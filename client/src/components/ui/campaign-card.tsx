@@ -47,7 +47,7 @@ export function CampaignCard({ campaign, onJoin }: CampaignCardProps) {
     }
   };
 
-  const progressPercentage = campaign.totalSlots > 0 ? (campaign.filledSlots / campaign.totalSlots) * 100 : 0;
+  const progressPercentage = campaign.totalSlots > 0 ? ((campaign.filledSlots || 0) / campaign.totalSlots) * 100 : 0;
   const daysLeft = campaign.deadline ? Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
   return (
@@ -83,7 +83,7 @@ export function CampaignCard({ campaign, onJoin }: CampaignCardProps) {
           </div>
           <div className="text-right">
             <div className="text-sm text-gray-600">
-              {campaign.filledSlots}/{campaign.totalSlots} spots
+              {campaign.filledSlots || 0}/{campaign.totalSlots} spots
             </div>
             <div className="w-20 bg-gray-200 rounded-full h-2">
               <div 
@@ -102,9 +102,9 @@ export function CampaignCard({ campaign, onJoin }: CampaignCardProps) {
           <Button 
             onClick={() => onJoin(campaign.id)}
             className="bg-accent text-white hover:bg-blue-700"
-            disabled={campaign.filledSlots >= campaign.totalSlots}
+            disabled={(campaign.filledSlots || 0) >= campaign.totalSlots}
           >
-            {campaign.filledSlots >= campaign.totalSlots ? 'Full' : 'Join Campaign'}
+            {(campaign.filledSlots || 0) >= campaign.totalSlots ? 'Full' : 'Join Campaign'}
           </Button>
         </div>
       </div>

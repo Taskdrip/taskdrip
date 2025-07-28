@@ -12,12 +12,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Auth routes - temporarily return mock user for testing
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      // For now, return a mock user to test the frontend
+      const mockUser = {
+        id: 'test-user-123',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        profileImageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+        isVerified: true,
+        bio: 'Content creator and tech enthusiast',
+        location: 'San Francisco, CA',
+        rating: 4.8,
+        followers: 12500,
+        following: 850,
+        completedCampaigns: 47,
+        totalEarned: 1250.75,
+        availableBalance: 325.50,
+        pendingBalance: 175.25,
+        skills: ['Content Creation', 'Social Media', 'Video Editing'],
+        twitterHandle: '@testuser',
+        instagramHandle: '@test.user',
+        linkedinHandle: 'test-user',
+        youtubeHandle: '@TestUserChannel',
+        createdAt: new Date()
+      };
+      res.json(mockUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -49,9 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Campaign participation routes
-  app.post('/api/campaigns/:id/join', isAuthenticated, async (req: any, res) => {
+  app.post('/api/campaigns/:id/join', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = 'test-user-123'; // Mock user ID for testing
       const campaignId = req.params.id;
       
       // Check if user already joined

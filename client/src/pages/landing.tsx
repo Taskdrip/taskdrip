@@ -39,7 +39,7 @@ export default function Landing() {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </a>
               </Button>
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold">
+              <Button variant="outline" size="lg" className="border-white/80 text-white bg-white/10 hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold backdrop-blur-sm">
                 <Play className="mr-2 w-5 h-5" />
                 Watch Demo
               </Button>
@@ -299,7 +299,7 @@ export default function Landing() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </a>
             </Button>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-purple-600 px-8 py-4 text-lg font-semibold">
+            <Button variant="outline" size="lg" className="border-white/80 text-white bg-white/10 hover:bg-white hover:text-purple-600 px-8 py-4 text-lg font-semibold backdrop-blur-sm">
               Learn More
             </Button>
           </div>

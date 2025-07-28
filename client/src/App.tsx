@@ -18,18 +18,12 @@ function Router() {
 
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/campaigns" component={Campaigns} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/blog" component={Blog} />
-          <Route path="/shop" component={Shop} />
-          <Route path="/admin" component={Admin} />
-        </>
-      )}
+      <Route path="/" component={isLoading || !isAuthenticated ? Landing : Home} />
+      <Route path="/campaigns" component={Campaigns} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/shop" component={Shop} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
