@@ -1,4 +1,4 @@
-import { Navigation } from "@/components/ui/navigation";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Star, TrendingUp, Shield, Users, Zap, ArrowRight } from "lucide-react";
@@ -9,10 +9,10 @@ export default function FinalLanding() {
   return (
     <div className="min-h-screen bg-white">
       {/* FORCE CACHE BREAK */}
-      <div className="bg-green-600 text-white text-center py-4 font-bold text-xl">
-        ✅ FINAL CLEAN DESIGN ACTIVE - NO WEB3 ERRORS - {currentTime} ✅
+      <div className="bg-blue-600 text-white text-center py-4 font-bold text-xl">
+        🚀 COMPLETE FIX DEPLOYED - CLEAN DESIGN + NO ERRORS - {currentTime} 🚀
       </div>
-      <Navigation />
+      <NavigationFixed />
       
       {/* Hero Section */}
       <section className="py-24 bg-white">
