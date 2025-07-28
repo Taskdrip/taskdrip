@@ -61,6 +61,15 @@ export default function Signup() {
   const [activeTab, setActiveTab] = useState('creator');
   const { toast } = useToast();
 
+  // Check URL parameters to set the initial tab
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userType = urlParams.get('type');
+    if (userType === 'brand' || userType === 'creator') {
+      setActiveTab(userType);
+    }
+  }, []);
+
   const creatorForm = useForm<CreatorFormData>({
     resolver: zodResolver(creatorFormSchema),
     defaultValues: {
