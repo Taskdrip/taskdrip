@@ -12,10 +12,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes - temporarily return mock user for testing
+  // Auth routes - check if user is authenticated
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      // For now, return a mock user to test the frontend
+      // Check if user is authenticated by checking session or req.user
+      if (!req.user && !req.isAuthenticated?.()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // If authenticated, return user data (this would normally come from database)
       const mockUser = {
         id: 'test-user-123',
         email: 'test@example.com',

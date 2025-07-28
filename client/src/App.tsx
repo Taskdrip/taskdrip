@@ -10,12 +10,15 @@ import Dashboard from "@/pages/dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
+import UserProfile from "@/pages/user-profile";
+import Messages from "@/pages/messages";
 import Blog from "@/pages/blog";
 import Shop from "@/pages/shop";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 import Signup from "@/pages/signup";
 import CampaignDetail from "@/pages/campaign-detail";
+
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -44,6 +47,8 @@ function Router() {
           <Route path="/campaigns" component={Campaigns} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
           <Route path="/profile" component={Profile} />
+          <Route path="/user-profile" component={UserProfile} />
+          <Route path="/messages" component={Messages} />
           <Route path="/admin" component={Admin} />
         </>
       ) : (

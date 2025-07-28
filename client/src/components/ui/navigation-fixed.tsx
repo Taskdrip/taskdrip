@@ -16,12 +16,24 @@ export function NavigationFixed() {
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/campaigns", label: "Campaigns" },
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/shop", label: "Shop" },
-  ];
+  const getNavItems = () => {
+    if (isAuthenticated) {
+      return [
+        { href: "/", label: "Home" },
+        { href: "/campaigns", label: "Tasks" },
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/shop", label: "Shop" },
+      ];
+    } else {
+      return [
+        { href: "/", label: "Home" },
+        { href: "/blog", label: "Blog" },
+        { href: "/shop", label: "Shop" },
+      ];
+    }
+  };
+
+  const navItems = getNavItems();
 
   const isActive = (href: string) => {
     if (href === "/" && location === "/") return true;
@@ -74,6 +86,9 @@ export function NavigationFixed() {
                 <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black">
                   <Bell className="h-5 w-5" />
                 </Button>
+                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black">
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -88,8 +103,16 @@ export function NavigationFixed() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <Link href="/user-profile" className="flex items-center w-full">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href="/messages" className="flex items-center w-full">
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        <span>Messages</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Settings className="mr-2 h-4 w-4" />
