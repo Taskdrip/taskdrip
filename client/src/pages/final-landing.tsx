@@ -22,13 +22,13 @@ export default function FinalLanding() {
               Professional SocialFi Platform
             </Badge>
             <h1 className="text-6xl md:text-7xl font-bold text-black leading-tight mb-8">
-              Turn Your <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Social Media</span>
+              Complete <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Tasks</span>
               <br />
-              Into <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Crypto Rewards</span>
+              Earn <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Crypto Rewards</span>
             </h1>
             <p className="text-2xl text-gray-600 mb-16 max-w-4xl mx-auto leading-relaxed">
-              Connect with brands, complete campaigns, and earn cryptocurrency. 
-              Professional platform for creators and businesses.
+              From app testing to event hosting, trading to content creation - earn cryptocurrency 
+              through diverse brand campaigns and real-world tasks.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20">
@@ -84,7 +84,7 @@ export default function FinalLanding() {
               Start Earning <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Cryptocurrency</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Complete social media tasks and get paid in crypto. No minimum followers required.
+              Complete diverse tasks from app testing to event hosting. Multiple earning opportunities across various skills and locations.
             </p>
           </div>
 
@@ -95,13 +95,13 @@ export default function FinalLanding() {
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-lg text-gray-700">Browse campaigns from verified brands</span>
+                  <span className="text-lg text-gray-700">Test apps, trade, create content & more</span>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-lg text-gray-700">Complete simple social media tasks</span>
+                  <span className="text-lg text-gray-700">Host events and run local errands</span>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
@@ -131,12 +131,12 @@ export default function FinalLanding() {
                 <div className="bg-gray-50 rounded-xl p-8">
                   <div className="flex items-center justify-between mb-6">
                     <h4 className="font-semibold text-black text-lg">Featured Campaign</h4>
-                    <Badge className="bg-black text-white px-4 py-2 text-lg">$25.00</Badge>
+                    <Badge className="bg-black text-white px-4 py-2 text-lg">$50.00</Badge>
                   </div>
-                  <p className="text-gray-600 mb-6 text-lg">Create content about eco-friendly products</p>
+                  <p className="text-gray-600 mb-6 text-lg">Test new trading app & provide feedback</p>
                   <div className="flex justify-between text-gray-500">
-                    <span>Time: 15 minutes</span>
-                    <span>Spots: 8 remaining</span>
+                    <span>Time: 30 minutes</span>
+                    <span>Spots: 12 remaining</span>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-8">
@@ -259,7 +259,7 @@ export default function FinalLanding() {
               </div>
               <h3 className="text-2xl font-semibold text-black mb-6">Instant Payments</h3>
               <p className="text-gray-600 leading-relaxed text-lg">
-                Fast crypto payouts in BNB, SOL, AVAX, TON, TRON, and USDT with same-day processing.
+                Fast crypto payouts across multiple networks with same-day processing for all completed tasks.
               </p>
             </div>
 
@@ -279,7 +279,7 @@ export default function FinalLanding() {
               </div>
               <h3 className="text-2xl font-semibold text-black mb-6">Global Network</h3>
               <p className="text-gray-600 leading-relaxed text-lg">
-                Join thousands of creators and brands building the future of digital marketing.
+                Join thousands of task performers and brands across diverse industries and locations.
               </p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function FinalLanding() {
             Ready to Get Started?
           </h2>
           <p className="text-xl text-gray-600 mb-16 max-w-3xl mx-auto">
-            Join the platform that's transforming how creators and brands collaborate in the digital economy.
+            Join the platform connecting task performers with brands across digital and real-world opportunities.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -324,7 +324,7 @@ export default function FinalLanding() {
             <div>
               <h3 className="text-2xl font-bold mb-6">Breedskool</h3>
               <p className="text-gray-400 mb-8 leading-relaxed text-lg">
-                Professional SocialFi platform connecting creators with brands through crypto rewards.
+                Professional task-based platform connecting performers with brands through crypto rewards.
               </p>
             </div>
 

@@ -1,6 +1,6 @@
 # Overview
 
-This is a Web3 SocialFi platform called "Breedskool" that connects creators/influencers with brands for campaign-based collaboration. The platform enables creators to earn cryptocurrency rewards by completing social media tasks and campaigns, while providing brands with a way to reach targeted audiences through influencer marketing.
+This is a Web3 task-based platform called "Breedskool" that connects task performers with brands for diverse campaign opportunities. The platform enables users to earn cryptocurrency rewards by completing various tasks including app testing, trading, content creation, event hosting, local errands, and more, while providing brands with access to a skilled workforce across multiple industries and locations.
 
 ## User Preferences
 

@@ -5,198 +5,245 @@ export async function seedDatabase() {
   try {
     console.log("Seeding database...");
 
-    // Seed campaigns
+    // Seed campaigns with diverse task categories
     const sampleCampaigns = [
       {
-        title: "Nike Air Max Social Media Campaign",
-        description: "Create engaging content showcasing Nike Air Max sneakers. Share your authentic experience and style tips with your audience.",
-        category: "Social Media",
-        platform: "Instagram",
-        brandName: "Nike",
-        reward: "25.00",
-        totalSlots: 100,
-        filledSlots: 67,
-        estimatedTime: "15 min",
-        requirements: ["Post on Instagram", "Use #NikeAirMax hashtag", "Tag @nike", "Minimum 1000 followers"],
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-      },
-      {
-        title: "Tech Product Review - Smartphone",
-        description: "Write an honest review of the latest smartphone model. Include unboxing, features overview, and personal opinion.",
-        category: "Content Creation",
-        platform: "YouTube",
-        brandName: "TechCorp",
-        reward: "50.00",
+        title: "Mobile Trading App Beta Testing",
+        description: "Test our new cryptocurrency trading app. Provide detailed feedback on usability, features, and bugs.",
+        category: "App Testing",
+        platform: "Mobile App",
+        brandName: "CryptoTrade Pro",
+        reward: "75.00",
         totalSlots: 50,
         filledSlots: 23,
         estimatedTime: "2 hours",
-        requirements: ["Create 5+ minute video", "Include unboxing", "Honest review", "Post on YouTube"],
-        deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days from now
+        requirements: ["Android/iOS device", "Basic crypto knowledge", "Complete testing report"],
+        deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
       },
       {
-        title: "Gaming Stream Sponsorship",
-        description: "Stream gameplay while featuring our gaming headset. Discuss audio quality and comfort during live stream.",
-        category: "Gaming",
-        platform: "Twitch",
-        brandName: "GameGear Pro",
-        reward: "75.00",
-        totalSlots: 30,
+        title: "Event Host - Tech Meetup NYC",
+        description: "Host a tech meetup in NYC. Present our product to attendees and facilitate networking.",
+        category: "Event Hosting",
+        platform: "In-Person",
+        brandName: "TechFlow",
+        reward: "200.00",
+        totalSlots: 3,
+        filledSlots: 1,
+        estimatedTime: "4 hours",
+        requirements: ["NYC location", "Event hosting experience", "Tech industry knowledge"],
+        deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "DeFi Trading Challenge",
+        description: "Execute specific trading strategies on our DeFi platform. Document results and provide feedback.",
+        category: "Trading",
+        platform: "DeFi Platform",
+        brandName: "DeFiMax",
+        reward: "100.00",
+        totalSlots: 25,
         filledSlots: 12,
         estimatedTime: "3 hours",
-        requirements: ["Live stream minimum 2 hours", "Feature product prominently", "Engage with audience", "Minimum 500 followers"],
-        deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) // 10 days from now
+        requirements: ["DeFi experience", "$500+ portfolio", "Risk management knowledge"],
+        deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
       },
       {
-        title: "Fitness App Promotion",
-        description: "Share your workout journey using our fitness app. Create before/after content and motivational posts.",
-        category: "Health & Fitness",
-        platform: "TikTok",
-        brandName: "FitLife",
-        reward: "30.00",
-        totalSlots: 200,
-        filledSlots: 134,
-        estimatedTime: "30 min",
-        requirements: ["Create TikTok video", "Show app in use", "Use #FitLifeChallenge", "Motivational content"],
-        deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) // 5 days from now
-      },
-      {
-        title: "Crypto Education Content",
-        description: "Create educational content explaining DeFi concepts to beginners. Focus on making complex topics accessible.",
-        category: "Cryptocurrency",
-        platform: "Twitter",
-        brandName: "CryptoLearn",
-        reward: "40.00",
-        totalSlots: 75,
+        title: "Brand Ambassador - Local Store Visits",
+        description: "Visit 5 retail stores in your city to check product placement and take photos.",
+        category: "Local Errands",
+        platform: "In-Person",
+        brandName: "GlobalBrands Inc",
+        reward: "80.00",
+        totalSlots: 100,
         filledSlots: 45,
-        estimatedTime: "1 hour",
-        requirements: ["Twitter thread (10+ tweets)", "Educational content", "Beginner-friendly", "Include infographics"],
-        deadline: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000) // 12 days from now
+        estimatedTime: "3 hours",
+        requirements: ["Major city location", "Smartphone with camera", "Reliable transportation"],
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       },
       {
-        title: "Online Course Testimonial",
-        description: "Share your experience completing our digital marketing course. Highlight key learnings and outcomes.",
-        category: "Education",
-        platform: "LinkedIn",
-        brandName: "EduMaster",
-        reward: "35.00",
-        totalSlots: 60,
-        filledSlots: 28,
-        estimatedTime: "45 min",
-        requirements: ["LinkedIn post", "Course completion certificate", "Honest testimonial", "Professional tone"],
-        deadline: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000) // 8 days from now
+        title: "Content Creation - Product Video",
+        description: "Create professional unboxing and review video of our latest gadget.",
+        category: "Content Creation",
+        platform: "YouTube",
+        brandName: "TechGadgets Pro",
+        reward: "125.00",
+        totalSlots: 20,
+        filledSlots: 8,
+        estimatedTime: "4 hours",
+        requirements: ["Video editing skills", "YouTube channel", "Professional camera setup"],
+        deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "Social Media Campaign - Fitness",
+        description: "Create Instagram posts showcasing our fitness equipment in real workout scenarios.",
+        category: "Social Media",
+        platform: "Instagram",
+        brandName: "FitPro Equipment",
+        reward: "50.00",
+        totalSlots: 75,
+        filledSlots: 34,
+        estimatedTime: "1 hour",
+        requirements: ["Fitness enthusiast", "1000+ Instagram followers", "High-quality photos"],
+        deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "Product Launch Event - Miami",
+        description: "Attend and live-tweet our product launch event in Miami. Engage with attendees and capture highlights.",
+        category: "Event Attendance",
+        platform: "Twitter + In-Person",
+        brandName: "Innovation Labs",
+        reward: "150.00",
+        totalSlots: 10,
+        filledSlots: 6,
+        estimatedTime: "6 hours",
+        requirements: ["Miami location", "Twitter account", "Professional attire", "Event photography"],
+        deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "App Install & Review Campaign",
+        description: "Install our productivity app, use for 7 days, and write detailed app store review.",
+        category: "App Testing",
+        platform: "App Store",
+        brandName: "ProductivityMax",
+        reward: "25.00",
+        totalSlots: 200,
+        filledSlots: 156,
+        estimatedTime: "30 min",
+        requirements: ["iOS/Android device", "App store account", "Honest detailed review"],
+        deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "Delivery Service - Sample Distribution",
+        description: "Distribute product samples to 20 local businesses in your area.",
+        category: "Local Errands",
+        platform: "In-Person",
+        brandName: "SampleCorp",
+        reward: "60.00",
+        totalSlots: 50,
+        filledSlots: 23,
+        estimatedTime: "4 hours",
+        requirements: ["Reliable vehicle", "Business district access", "Professional presentation"],
+        deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+      },
+      {
+        title: "Crypto Portfolio Analysis",
+        description: "Analyze and provide detailed report on DeFi yield farming strategies using our platform.",
+        category: "Trading",
+        platform: "DeFi Platform",
+        brandName: "YieldMax Protocol",
+        reward: "90.00",
+        totalSlots: 15,
+        filledSlots: 7,
+        estimatedTime: "3 hours",
+        requirements: ["Advanced DeFi knowledge", "Portfolio analysis experience", "Written report"],
+        deadline: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000)
       }
     ];
 
-    for (const campaign of sampleCampaigns) {
-      await db.insert(campaigns).values(campaign).onConflictDoNothing();
-    }
+    // Clear existing campaigns and insert new ones
+    await db.delete(campaigns);
+    await db.insert(campaigns).values(sampleCampaigns);
 
     // Seed blog posts
     const sampleBlogPosts = [
       {
-        title: "The Future of Creator Economy: How Web3 is Changing Everything",
-        slug: "future-creator-economy-web3",
-        content: "The creator economy is experiencing a revolutionary transformation with the advent of Web3 technologies. Blockchain, NFTs, and cryptocurrency are creating new monetization opportunities...",
-        excerpt: "Discover how Web3 technologies are revolutionizing the creator economy and opening new monetization opportunities.",
-        category: "Industry Insights",
-        tags: ["Web3", "Creator Economy", "Cryptocurrency", "NFTs"],
+        title: "How to Maximize Your Earnings: Task Selection Strategies",
+        slug: "maximize-earnings-task-strategies",
+        content: `Choosing the right tasks can significantly impact your earnings on Breedskool. Here are proven strategies for maximizing your income:
+
+**1. Diversify Your Task Portfolio**
+Don't limit yourself to one category. Mix app testing, content creation, and local errands to maintain steady income.
+
+**2. Focus on High-Value Tasks**
+Tasks like event hosting and trading analysis typically offer higher rewards. Build skills in these areas for better opportunities.
+
+**3. Location Advantage**
+If you're in a major city, prioritize local errands and event-based tasks that often pay premium rates.
+
+**4. Build Your Reputation**
+Complete smaller tasks perfectly to build ratings, then qualify for exclusive high-paying campaigns.
+
+**5. Time Management**
+Plan tasks around your schedule. App testing can be done flexibly, while events have fixed timeframes.`,
+        excerpt: "Learn proven strategies to maximize your earnings through strategic task selection and portfolio diversification.",
+        category: "Creator Tips",
+        tags: ["earnings", "strategy", "tasks", "guide"],
         isPublished: true,
         publishedAt: new Date()
       },
       {
-        title: "Maximizing Your Earnings: Top Strategies for Social Media Campaigns",
-        slug: "maximizing-earnings-social-media-campaigns",
-        content: "Social media campaigns offer incredible earning potential for creators. In this comprehensive guide, we'll explore proven strategies...",
-        excerpt: "Learn proven strategies to maximize your earnings from social media campaigns and brand collaborations.",
-        category: "Creator Tips",
-        tags: ["Social Media", "Earnings", "Strategy", "Campaigns"],
+        title: "The Future of Task-Based Work: Beyond Social Media",
+        slug: "future-task-based-work",
+        content: `The gig economy is evolving beyond traditional social media influencing. Breedskool represents the next generation of task-based work:
+
+**Diverse Opportunities**
+From app testing to event hosting, the platform offers opportunities for various skill sets and interests.
+
+**Real-World Impact**
+Tasks like local errands and business visits create tangible value for brands while providing meaningful work.
+
+**Skill Development**
+Users can develop new skills in trading, content creation, and event management through our campaigns.
+
+**Global Reach, Local Action**
+While the platform is global, many tasks focus on local market needs and community engagement.
+
+**Crypto Rewards**
+Instant cryptocurrency payments provide financial flexibility and access to the growing digital economy.`,
+        excerpt: "Discover how task-based work is revolutionizing the gig economy beyond traditional social media.",
+        category: "Industry Insights",
+        tags: ["future", "gig-economy", "innovation", "crypto"],
         isPublished: true,
-        publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-      },
-      {
-        title: "Cryptocurrency Payments for Creators: A Complete Guide",
-        slug: "cryptocurrency-payments-creators-guide",
-        content: "Cryptocurrency payments are becoming the standard for creator compensation. This guide covers everything you need to know...",
-        excerpt: "Everything creators need to know about receiving cryptocurrency payments safely and efficiently.",
-        category: "Crypto Guide",
-        tags: ["Cryptocurrency", "Payments", "Security", "Wallets"],
-        isPublished: true,
-        publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+        publishedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       }
     ];
 
-    for (const post of sampleBlogPosts) {
-      await db.insert(blogPosts).values(post).onConflictDoNothing();
-    }
+    await db.insert(blogPosts).values(sampleBlogPosts);
 
     // Seed shop products
     const sampleProducts = [
       {
-        title: "Complete Creator Toolkit",
-        description: "Everything you need to start and grow your creator business. Includes templates, guides, and exclusive resources.",
-        price: "49.99",
-        originalPrice: "99.99",
-        category: "Course",
-        type: "digital_course",
-        rating: "4.8",
-        reviewCount: 156,
-        tags: ["Creator Tools", "Business", "Templates", "Guides"],
-        isActive: true
-      },
-      {
-        title: "Social Media Analytics Dashboard",
-        description: "Professional analytics tool to track your social media performance across all platforms. Real-time insights and reporting.",
-        price: "29.99",
-        category: "Software",
-        type: "software",
-        rating: "4.6",
-        reviewCount: 89,
-        tags: ["Analytics", "Social Media", "Dashboard", "Tracking"],
-        isActive: true
-      },
-      {
-        title: "Content Calendar Templates",
-        description: "Professional content calendar templates for all major social platforms. Plan your content strategy effectively.",
-        price: "19.99",
-        originalPrice: "39.99",
-        category: "Templates",
-        type: "template",
-        rating: "4.9",
-        reviewCount: 234,
-        tags: ["Templates", "Content Planning", "Social Media", "Organization"],
-        isActive: true
-      },
-      {
-        title: "Cryptocurrency for Creators",
-        description: "Comprehensive course on cryptocurrency, DeFi, and Web3 for content creators. Learn to navigate the new economy.",
-        price: "79.99",
-        category: "Crypto Course",
-        type: "course",
+        title: "Professional Content Creator Kit",
+        description: "Complete kit for high-quality content creation including ring light, tripod, and microphone.",
+        price: "150.00",
+        originalPrice: "200.00",
+        category: "Equipment",
+        type: "physical_product",
         rating: "4.7",
-        reviewCount: 67,
-        tags: ["Cryptocurrency", "Web3", "DeFi", "Education"],
+        reviewCount: 89,
+        tags: ["content", "equipment", "video"],
         isActive: true
       },
       {
-        title: "Creator's Equipment Guide",
-        description: "Ultimate guide to creator equipment on any budget. Camera, lighting, audio, and editing recommendations.",
-        price: "0.00",
-        category: "Equipment Guide",
-        type: "guide",
-        rating: "4.5",
-        reviewCount: 312,
-        tags: ["Equipment", "Gear", "Budget", "Recommendations"],
-        isActive: true,
-        isFree: true
+        title: "Crypto Trading Course Access",
+        description: "6-month access to advanced cryptocurrency trading course with live sessions and community.",
+        price: "299.00",
+        originalPrice: "399.00",
+        category: "Education",
+        type: "digital_course",
+        rating: "4.9",
+        reviewCount: 156,
+        tags: ["crypto", "trading", "education"],
+        isActive: true
+      },
+      {
+        title: "Event Hosting Masterclass",
+        description: "Learn professional event hosting skills from industry experts. Includes templates and guides.",
+        price: "99.00",
+        originalPrice: "149.00",
+        category: "Education",
+        type: "digital_course",
+        rating: "4.6",
+        reviewCount: 67,
+        tags: ["events", "hosting", "skills"],
+        isActive: true
       }
     ];
 
-    for (const product of sampleProducts) {
-      await db.insert(shopProducts).values(product).onConflictDoNothing();
-    }
+    await db.insert(shopProducts).values(sampleProducts);
 
     console.log("Database seeded successfully!");
   } catch (error) {
     console.error("Error seeding database:", error);
+    throw error;
   }
 }
