@@ -9,8 +9,8 @@ export default function FinalLanding() {
   return (
     <div className="min-h-screen bg-white">
       {/* FORCE CACHE BREAK */}
-      <div className="bg-blue-600 text-white text-center py-4 font-bold text-xl">
-        🚀 COMPLETE FIX DEPLOYED - CLEAN DESIGN + NO ERRORS - {currentTime} 🚀
+      <div className="bg-red-600 text-white text-center py-6 font-bold text-2xl animate-pulse">
+        🔥 FORCED UPDATE - NEW DESIGN LOADING NOW - {currentTime} 🔥
       </div>
       <NavigationFixed />
       

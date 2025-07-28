@@ -79,9 +79,9 @@ export function NavigationFixed() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.profileImageUrl} alt={user?.firstName || "User"} />
+                        <AvatarImage src={(user as any)?.profileImageUrl} alt={(user as any)?.firstName || "User"} />
                         <AvatarFallback className="bg-black text-white">
-                          {user?.firstName?.charAt(0) || "U"}
+                          {(user as any)?.firstName?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
@@ -95,7 +95,7 @@ export function NavigationFixed() {
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </DropdownMenuItem>
-                    {user?.role === 'admin' && (
+                    {(user as any)?.role === 'admin' && (
                       <DropdownMenuItem>
                         <Link href="/admin-dashboard" className="flex items-center w-full">
                           <Settings className="mr-2 h-4 w-4" />
