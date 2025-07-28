@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
+import Dashboard from "@/pages/dashboard";
+import AdminDashboard from "@/pages/admin-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
 import Blog from "@/pages/blog";
@@ -22,6 +24,8 @@ function Router() {
     <Switch>
       <Route path="/" component={isLoading || !isAuthenticated ? Landing : Home} />
       <Route path="/signup" component={Signup} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/admin-dashboard" component={AdminDashboard} />
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/campaigns/:id" component={CampaignDetail} />
       <Route path="/profile" component={Profile} />

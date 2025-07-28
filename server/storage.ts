@@ -91,6 +91,24 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserProfile(id: string, updates: Partial<User>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+
+  async getAllParticipations(): Promise<CampaignParticipation[]> {
+    return await db.select().from(campaignParticipations).orderBy(desc(campaignParticipations.createdAt));
+  }
+
   // Campaign operations
   async getAllCampaigns(): Promise<Campaign[]> {
     return await db.select().from(campaigns).where(eq(campaigns.isActive, true)).orderBy(desc(campaigns.createdAt));

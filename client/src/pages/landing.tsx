@@ -33,15 +33,22 @@ export default function Landing() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
-              <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
-                <a href="/api/login" className="flex items-center">
-                  Start Earning Today
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </a>
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                onClick={() => window.location.href = '/signup?type=creator'}
+              >
+                Start Earning Today
+                <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
-              <Button variant="outline" size="lg" className="border-white/80 text-white bg-white/10 hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold backdrop-blur-sm">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-white/80 text-white bg-white/10 hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold backdrop-blur-sm"
+                onClick={() => window.location.href = '/signup?type=brand'}
+              >
                 <Play className="mr-2 w-5 h-5" />
-                Watch Demo
+                For Brands
               </Button>
             </div>
 
@@ -134,11 +141,152 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Creator Section */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <Badge className="bg-green-100 text-green-800 mb-4">For Creators</Badge>
+              <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Turn Your Creativity Into Cryptocurrency</h2>
+              <p className="text-xl text-gray-600 mb-8">
+                Join thousands of creators earning real money by completing brand campaigns. No minimum followers required.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-700">Complete simple social media tasks</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-700">Earn $5-$100+ per campaign</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-700">Get paid in cryptocurrency</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <span className="text-gray-700">Build your portfolio and reputation</span>
+                </div>
+              </div>
+
+              <Button 
+                size="lg" 
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+                onClick={() => window.location.href = '/signup?type=creator'}
+              >
+                Join as Creator
+              </Button>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-8">
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold">Available Campaign</h4>
+                    <Badge className="bg-green-600 text-white">$25.00</Badge>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">Post about our new eco-friendly products on Instagram</p>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Estimated time: 10 min</span>
+                    <span>12 spots left</span>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold">Your Earnings</h4>
+                    <span className="text-2xl font-bold text-green-600">$247.50</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full w-3/4"></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">$2.50 away from payout threshold</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Brand Section */}
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 order-2 md:order-1">
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <h4 className="font-semibold mb-4">Campaign Analytics</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">1,247</div>
+                      <div className="text-xs text-gray-500">Total Reach</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-600">94%</div>
+                      <div className="text-xs text-gray-500">Completion Rate</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <h4 className="font-semibold mb-4">Active Campaigns</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Summer Collection</span>
+                      <Badge variant="outline">15 creators</Badge>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Back to School</span>
+                      <Badge variant="outline">8 creators</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="order-1 md:order-2">
+              <Badge className="bg-blue-100 text-blue-800 mb-4">For Brands</Badge>
+              <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Reach Your Audience Through Authentic Creators</h2>
+              <p className="text-xl text-gray-600 mb-8">
+                Connect with creators who genuinely love your brand. Launch campaigns that drive real engagement and sales.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <span className="text-gray-700">Access vetted creator network</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <span className="text-gray-700">Track campaign performance</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <span className="text-gray-700">Set your own budget and timeline</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <span className="text-gray-700">Get detailed analytics and reports</span>
+                </div>
+              </div>
+
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+                onClick={() => window.location.href = '/signup?type=brand'}
+              >
+                Join as Brand
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Why Creators Choose Us</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Why Choose Breedskool</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Professional tools and secure infrastructure designed for the modern creator economy
             </p>

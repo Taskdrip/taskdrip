@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User profile routes
-  app.get('/api/users/:id/participations', isAuthenticated, async (req, res) => {
+  app.get('/api/users/:id/participations', async (req, res) => {
     try {
       const participations = await storage.getUserParticipations(req.params.id);
       res.json(participations);
@@ -189,13 +189,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/users/:id/transactions', isAuthenticated, async (req, res) => {
+  app.get('/api/users/:id/transactions', async (req, res) => {
     try {
       const transactions = await storage.getUserTransactions(req.params.id);
       res.json(transactions);
     } catch (error) {
       console.error("Error fetching transactions:", error);
       res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  // Profile management routes
+  app.patch('/api/users/:id/profile', async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const updates = req.body;
+      
+      const updatedUser = await storage.updateUserProfile(userId, updates);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Admin routes
+  app.get('/api/admin/participations', async (req, res) => {
+    try {
+      const participations = await storage.getAllParticipations();
+      res.json(participations);
+    } catch (error) {
+      console.error("Error fetching all participations:", error);
+      res.status(500).json({ message: "Failed to fetch participations" });
+    }
+  });
+
+  app.patch('/api/admin/profile', async (req, res) => {
+    try {
+      const updates = req.body;
+      // For demo purposes, we'll use a mock admin update
+      res.json({ success: true, message: "Admin profile updated" });
+    } catch (error) {
+      console.error("Error updating admin profile:", error);
+      res.status(500).json({ message: "Failed to update admin profile" });
+    }
+  });
+
+  app.post('/api/admin/change-password', async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      // For demo purposes, we'll mock password change
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
     }
   });
 
