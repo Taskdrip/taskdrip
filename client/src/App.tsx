@@ -20,18 +20,41 @@ import CampaignDetail from "@/pages/campaign-detail";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
-      <Route path="/" component={FinalLanding} />
+      <Route path="/" component={isAuthenticated ? Home : FinalLanding} />
       <Route path="/signup" component={Signup} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/admin-dashboard" component={AdminDashboard} />
-      <Route path="/campaigns" component={Campaigns} />
-      <Route path="/campaigns/:id" component={CampaignDetail} />
-      <Route path="/profile" component={Profile} />
       <Route path="/blog" component={Blog} />
       <Route path="/shop" component={Shop} />
-      <Route path="/admin" component={Admin} />
+      {isAuthenticated ? (
+        <>
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/admin-dashboard" component={AdminDashboard} />
+          <Route path="/campaigns" component={Campaigns} />
+          <Route path="/campaigns/:id" component={CampaignDetail} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/admin" component={Admin} />
+        </>
+      ) : (
+        <>
+          <Route path="/dashboard" component={() => { window.location.href = '/api/login'; return null; }} />
+          <Route path="/admin-dashboard" component={() => { window.location.href = '/api/login'; return null; }} />
+          <Route path="/campaigns" component={() => { window.location.href = '/api/login'; return null; }} />
+          <Route path="/profile" component={() => { window.location.href = '/api/login'; return null; }} />
+          <Route path="/admin" component={() => { window.location.href = '/api/login'; return null; }} />
+        </>
+      )}
       <Route component={NotFound} />
     </Switch>
   );

@@ -8,10 +8,7 @@ export default function FinalLanding() {
   
   return (
     <div className="min-h-screen bg-white">
-      {/* FORCE CACHE BREAK */}
-      <div className="bg-red-600 text-white text-center py-6 font-bold text-2xl animate-pulse">
-        🔥 FORCED UPDATE - NEW DESIGN LOADING NOW - {currentTime} 🔥
-      </div>
+
       <NavigationFixed />
       
       {/* Hero Section */}
@@ -358,18 +355,18 @@ export default function FinalLanding() {
           </div>
 
           <div className="border-t border-gray-800 pt-10">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <p className="text-gray-400 mb-6 md:mb-0">
+            <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
+              <p className="text-gray-400 text-center lg:text-left">
                 © 2025 Breedskool. All rights reserved.
               </p>
-              <div className="flex items-center space-x-6">
-                <span className="text-gray-400">Supported Networks:</span>
-                <div className="flex space-x-3">
-                  <span className="bg-yellow-600 text-black px-3 py-1 rounded font-semibold">BNB</span>
-                  <span className="bg-purple-600 text-white px-3 py-1 rounded font-semibold">SOL</span>
-                  <span className="bg-red-600 text-white px-3 py-1 rounded font-semibold">AVAX</span>
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded font-semibold">TON</span>
-                  <span className="bg-green-600 text-white px-3 py-1 rounded font-semibold">USDT</span>
+              <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                <span className="text-gray-400 text-center">Supported Networks:</span>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <span className="bg-yellow-600 text-black px-3 py-1 rounded font-semibold text-sm">BNB</span>
+                  <span className="bg-purple-600 text-white px-3 py-1 rounded font-semibold text-sm">SOL</span>
+                  <span className="bg-red-600 text-white px-3 py-1 rounded font-semibold text-sm">AVAX</span>
+                  <span className="bg-blue-600 text-white px-3 py-1 rounded font-semibold text-sm">TON</span>
+                  <span className="bg-green-600 text-white px-3 py-1 rounded font-semibold text-sm">USDT</span>
                 </div>
               </div>
             </div>

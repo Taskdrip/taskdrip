@@ -111,18 +111,21 @@ export function NavigationFixed() {
                 </DropdownMenu>
               </>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-gray-600 hover:text-black">
-                  <Link href="/api/login">
-                    Sign In
-                  </Link>
+              <>
+                <Button 
+                  variant="ghost" 
+                  className="text-black hover:bg-gray-100"
+                  onClick={() => window.location.href = '/api/login'}
+                >
+                  Log In
                 </Button>
-                <Button className="bg-black text-white hover:bg-gray-800">
-                  <Link href="/signup">
-                    Get Started
-                  </Link>
+                <Button 
+                  className="bg-black text-white hover:bg-gray-800"
+                  onClick={() => window.location.href = '/signup'}
+                >
+                  Sign Up
                 </Button>
-              </div>
+              </>
             )}
 
             {/* Mobile menu button */}
