@@ -6,9 +6,10 @@ import type { Campaign } from "@shared/schema";
 interface CampaignCardProps {
   campaign: Campaign;
   onJoin: (campaignId: string) => void;
+  onClick?: (campaignId: string) => void;
 }
 
-export function CampaignCard({ campaign, onJoin }: CampaignCardProps) {
+export function CampaignCard({ campaign, onJoin, onClick }: CampaignCardProps) {
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
       case 'social media':
@@ -51,7 +52,10 @@ export function CampaignCard({ campaign, onJoin }: CampaignCardProps) {
   const daysLeft = campaign.deadline ? Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+    <div 
+      className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer"
+      onClick={() => onClick?.(campaign.id)}
+    >
       {/* Brand header */}
       <div className={`h-48 bg-gradient-to-br ${getBrandColor(campaign.category)} flex items-center justify-center`}>
         <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
@@ -100,7 +104,10 @@ export function CampaignCard({ campaign, onJoin }: CampaignCardProps) {
             <span className="text-sm text-gray-600">{campaign.estimatedTime || '5 min'} task</span>
           </div>
           <Button 
-            onClick={() => onJoin(campaign.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onJoin(campaign.id);
+            }}
             className="bg-accent text-white hover:bg-blue-700"
             disabled={(campaign.filledSlots || 0) >= campaign.totalSlots}
           >

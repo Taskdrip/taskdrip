@@ -106,6 +106,27 @@ export class DatabaseStorage implements IStorage {
     return newCampaign;
   }
 
+  async updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign> {
+    const [updatedCampaign] = await db
+      .update(campaigns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(campaigns.id, id))
+      .returning();
+    
+    if (!updatedCampaign) {
+      throw new Error("Campaign not found");
+    }
+    
+    return updatedCampaign;
+  }
+
+  async deleteCampaign(id: string): Promise<void> {
+    const result = await db.delete(campaigns).where(eq(campaigns.id, id));
+    if (result.rowCount === 0) {
+      throw new Error("Campaign not found");
+    }
+  }
+
   async updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign> {
     const [updatedCampaign] = await db
       .update(campaigns)

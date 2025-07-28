@@ -12,6 +12,8 @@ import Blog from "@/pages/blog";
 import Shop from "@/pages/shop";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
+import Signup from "@/pages/signup";
+import CampaignDetail from "@/pages/campaign-detail";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,7 +21,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={isLoading || !isAuthenticated ? Landing : Home} />
+      <Route path="/signup" component={Signup} />
       <Route path="/campaigns" component={Campaigns} />
+      <Route path="/campaigns/:id" component={CampaignDetail} />
       <Route path="/profile" component={Profile} />
       <Route path="/blog" component={Blog} />
       <Route path="/shop" component={Shop} />

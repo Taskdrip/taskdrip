@@ -37,12 +37,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instagramHandle: '@test.user',
         linkedinHandle: 'test-user',
         youtubeHandle: '@TestUserChannel',
+        role: 'admin',
         createdAt: new Date()
       };
       res.json(mockUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Signup endpoint
+  app.post('/api/auth/signup', async (req: any, res) => {
+    try {
+      const userData = req.body;
+      // In a real app, this would create a user in the database
+      res.json({ 
+        success: true, 
+        message: `${userData.userType} profile created successfully`,
+        userId: 'new-user-' + Date.now()
+      });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
     }
   });
 
@@ -67,6 +84,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching campaign:", error);
       res.status(500).json({ message: "Failed to fetch campaign" });
+    }
+  });
+
+  // Update campaign
+  app.patch('/api/campaigns/:id', async (req, res) => {
+    try {
+      const campaignId = req.params.id;
+      const updates = req.body;
+      
+      const campaign = await storage.getCampaignById(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      const updatedCampaign = await storage.updateCampaign(campaignId, updates);
+      res.json(updatedCampaign);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      res.status(500).json({ message: "Failed to update campaign" });
+    }
+  });
+
+  // Delete campaign
+  app.delete('/api/campaigns/:id', async (req, res) => {
+    try {
+      const campaignId = req.params.id;
+      
+      const campaign = await storage.getCampaignById(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      await storage.deleteCampaign(campaignId);
+      res.json({ success: true, message: "Campaign deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      res.status(500).json({ message: "Failed to delete campaign" });
     }
   });
 
