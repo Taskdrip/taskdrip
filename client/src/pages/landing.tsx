@@ -6,6 +6,10 @@ import { CheckCircle, Star, TrendingUp, Shield, Users, Zap, ArrowRight, Play } f
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
+      {/* VISIBLE UPDATE INDICATOR */}
+      <div className="bg-red-600 text-white text-center py-2 font-bold">
+        🔥 UPDATED HOMEPAGE WITH CREATOR & BRAND SECTIONS - v2.0 🔥
+      </div>
       <Navigation />
       
       {/* Hero Section */}
@@ -20,12 +24,12 @@ export default function Landing() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <Badge className="bg-white/20 text-white border-white/30 mb-6 px-4 py-2">
-              🚀 Transform Your Content Into Crypto Earnings
+              🚀 NEW UPDATED VERSION - Transform Your Content Into Crypto Earnings
             </Badge>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-8">
               Turn Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Influence</span> Into
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Income</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Crypto Income</span>
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-4xl mx-auto leading-relaxed">
               Join thousands of creators earning cryptocurrency by completing brand campaigns. 
