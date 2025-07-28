@@ -1,0 +1,102 @@
+You're the lead developer with 15+ years of experience. Build a production-ready, secure, scalable SaaS Web3 SocialFi platform for my company "Breedskool." This will connect creators/influencers with brands for task-based campaigns and reward them via manual but secure crypto payments (BNB, SOL, AVAX, TON, TRON, USDT-TRC20).
+
+🖼️ Design & Interface:
+- Use a **clean, sleek, intuitive interface** with **white background**, **black fonts**, smooth transitions, and modern typography.
+- Add minimal shadows, rounded corners, responsive design, and grid-based layouts.
+- Include dark mode toggle for future versioning (optional).
+- Navigation menu: Home, About, Earn Rewards, Blog, Shop, Profile, Contact.
+- PWA-ready with service workers and installable UI.
+
+🔐 Authentication & Security:
+- Signup with: **Username, Email, Password, Phone Number, Location** via secure form
+- Secure password hashing (bcrypt or similar)
+- Encrypted database for storing user data and wallet addresses
+- Email verification + admin KYC approval flow
+- Session & token-based login (JWT recommended)
+- Rate-limiting, captcha, and brute-force protection
+
+👥 Profile Pages:
+- Public profile page for each user
+- Displays: profile image, banner, username, bio, location, links to social media, skill tags
+- Shows followers/following count, rating (1–5), rank level, badges, campaign history
+- Editable from user dashboard
+- "Verified" tag if user completes profile, adds wallets, and passes admin KYC
+
+💰 Crypto Wallet & Payment System (No Custody):
+- Add **cold wallet addresses from admin panel** (one for each supported network)
+- Users NEVER deposit or store crypto in the app — all payments go directly to designated wallets
+- **Transaction logic:**
+  - When user wants to join a campaign, they follow task instructions
+  - If payment is required (e.g. entry), they are shown the correct wallet and amount
+  - Admin manually verifies payment receipt and task proof
+- **In-App Wallet Display (Virtual)**:
+  - Tracks **earning and payment history** only
+  - Shows: Task Name, Amount Earned, Status (Approved, Pending), Date
+  - Wallet Balance = total approved earnings
+  - Users can request payouts after reaching **$10 threshold**
+  - On payout request: Admin receives a notification and sends crypto manually via TON/TRON → Admin marks it as “Paid”
+  - Record shows under "Transactions" with hash if added
+
+📦 Campaign Engine (Brand Side):
+- Create a new campaign: Name, Description, Cover Image, Tasks Required, Platform (X, YouTube, TikTok, etc), Participant Criteria, Budget
+- Set payout per user and total slots (e.g. $5 x 100 = $500)
+- Funds must be sent manually to cold wallet → brand uploads screenshot or TX hash
+- After escrow confirmed by admin, campaign is published
+- Filter campaign participants by location, rank, verification, subscription tier
+
+🧠 Task Completion (User Side):
+- Browse active campaigns
+- Join if eligible (auto-check eligibility logic)
+- Complete task (e.g. follow, post, etc)
+- Submit proof (upload screenshot, enter text/URL)
+- Brand/Admin reviews → approve/reject
+- If approved, amount is added to user balance and history
+
+💬 Messaging & Notifications:
+- Inbox for user-to-user and user-to-brand messaging
+- Admin-to-all notification center
+- Campaign update alerts, earning alerts, payout confirmation alerts
+- Real-time or polling-based notifications
+- PWA push notification support
+
+📝 Blog System:
+- Admin can post articles or use AI assistant
+- AI agent uses trending keywords and news APIs to generate SEO content (images, human-readable, plagiarism-free)
+- Articles show on homepage and have categories, tags, and comments
+
+🛍️ Shop & Digital Marketplace:
+- Admin uploads software, courses, tools
+- Users can buy with manual crypto payment
+- Once payment confirmed (uploaded proof), admin marks as paid → link unlocks
+- Purchase history tab per user
+
+⚙️ Admin Panel:
+- Manage all users, brands, KYC approvals
+- Set cold wallets per chain
+- Manage campaigns, tasks, payouts
+- View analytics: users, transactions, top earners, campaign performance
+- Blog/article manager (manual + AI post options)
+- Manage subscription pricing, add/remove free-tier limits
+
+📦 System Features:
+- Fully modular SaaS code structure
+- One-click VPS deployment script (bash or dockerized)
+- All pages SEO-optimized
+- Multi-language ready (i18n setup)
+- Fully documented: README, setup guide, API docs, admin guide
+- Database options: Replit-recommended (Supabase, Firebase, or MongoDB)
+- Smart loading states, error handling, analytics-ready
+
+🔗 Bonus:
+- “Top Creators” and “Top Brands” leaderboard pages
+- Daily trending campaigns or tasks
+- Invite/referral system
+- Reporting tool for fake/spam campaigns or profiles
+
+💡 Final Requirement:
+No funds are held on the platform. Every crypto transaction happens off-platform, using secure cold wallets set by admin. All balances shown to users are virtual logs of approved and paid transactions.
+
+🎯 Goal:
+Build this SaaS for easy resale and deployment on CodeCanyon and other marketplaces. Focus on security, scalability, minimal dependencies, and documentation. Ensure clean UI, manual crypto logic, and ease of use for non-developers.
+
+Begin building now.
