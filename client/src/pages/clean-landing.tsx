@@ -7,8 +7,8 @@ export default function CleanLanding() {
   return (
     <div className="min-h-screen bg-white">
       {/* CACHE BREAK INDICATOR */}
-      <div className="bg-black text-white text-center py-2 font-medium">
-        PROFESSIONAL CLEAN DESIGN - CACHE REFRESHED
+      <div className="bg-red-600 text-white text-center py-3 font-bold text-lg">
+        🔥 FORCE REFRESH - NEW CLEAN DESIGN LOADED - {new Date().toLocaleTimeString()} 🔥
       </div>
       <Navigation />
       
