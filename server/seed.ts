@@ -139,8 +139,11 @@ export async function seedDatabase() {
       }
     ];
 
-    // Clear existing campaigns and insert new ones
+    // Clear existing data and insert new ones
     await db.delete(campaigns);
+    await db.delete(blogPosts);
+    await db.delete(shopProducts);
+    
     await db.insert(campaigns).values(sampleCampaigns);
 
     // Seed blog posts

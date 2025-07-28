@@ -112,10 +112,7 @@ export default function Signup() {
         specialties: data.specialties,
         skills: data.skills.split(',').map(s => s.trim()),
       };
-      return await apiRequest('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      return await apiRequest('POST', '/api/auth/signup', payload);
     },
     onSuccess: () => {
       toast({
@@ -140,10 +137,7 @@ export default function Signup() {
         userType: 'brand',
         marketingGoals: data.marketingGoals,
       };
-      return await apiRequest('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      return await apiRequest('POST', '/api/auth/signup', payload);
     },
     onSuccess: () => {
       toast({
