@@ -204,7 +204,7 @@ export default function AdminDashboard() {
                   <Activity className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalCampaigns}</div>
+                  <div className="text-2xl font-bold break-words overflow-hidden">{totalCampaigns}</div>
                   <p className="text-xs text-muted-foreground">
                     {activeCampaigns} active campaigns
                   </p>
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalParticipations}</div>
+                  <div className="text-2xl font-bold break-words overflow-hidden">{totalParticipations}</div>
                   <p className="text-xs text-muted-foreground">
                     {approvedParticipations} approved
                   </p>
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                   <Trophy className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">{pendingParticipations}</div>
+                  <div className="text-2xl font-bold text-orange-600 break-words overflow-hidden">{pendingParticipations}</div>
                   <p className="text-xs text-muted-foreground">
                     Awaiting approval
                   </p>
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-green-600 break-words overflow-hidden">
                     {totalParticipations > 0 ? Math.round((approvedParticipations / totalParticipations) * 100) : 0}%
                   </div>
                   <p className="text-xs text-muted-foreground">

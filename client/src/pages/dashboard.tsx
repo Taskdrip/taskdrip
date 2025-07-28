@@ -116,8 +116,10 @@ export default function Dashboard() {
     updateProfileMutation.mutate(profileData);
   };
 
-  const totalEarnings = transactions?.reduce((sum: number, t: any) => 
-    t.type === 'credit' ? sum + t.amount : sum, 0) || 0;
+  const calculateTotalEarnings = () => {
+    return transactions?.reduce((sum: number, t: any) => 
+      t.type === 'credit' ? sum + t.amount : sum, 0) || 0;
+  };
   
   const completedTasks = participations?.filter((p: any) => p.status === 'approved').length || 0;
   const pendingTasks = participations?.filter((p: any) => p.status === 'pending').length || 0;
@@ -152,7 +154,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-green-600" />
                     <span className="text-sm text-gray-600">
-                      Total Earned: <span className="font-semibold text-green-600">${totalEarnings.toFixed(2)}</span>
+                      Total Earned: <span className="font-semibold text-green-600">${calculateTotalEarnings().toFixed(2)}</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -200,7 +202,9 @@ export default function Dashboard() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">${totalEarnings.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-green-600 break-words overflow-hidden">
+                    ${calculateTotalEarnings().toFixed(2)}
+                  </div>
                   <p className="text-xs text-muted-foreground">+12% from last month</p>
                 </CardContent>
               </Card>
@@ -211,7 +215,7 @@ export default function Dashboard() {
                   <Trophy className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{completedTasks}</div>
+                  <div className="text-2xl font-bold break-words overflow-hidden">{completedTasks}</div>
                   <p className="text-xs text-muted-foreground">+3 this week</p>
                 </CardContent>
               </Card>
@@ -222,7 +226,7 @@ export default function Dashboard() {
                   <Star className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">94.2%</div>
+                  <div className="text-2xl font-bold break-words overflow-hidden">94.2%</div>
                   <p className="text-xs text-muted-foreground">Approval rate</p>
                 </CardContent>
               </Card>
