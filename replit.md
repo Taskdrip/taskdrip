@@ -5,6 +5,7 @@ This is a Web3 SocialFi platform called "Breedskool" that connects creators/infl
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Design preferences: Clean, professional web app design with white background and black or gradient fonts.
 
 ## System Architecture
 
