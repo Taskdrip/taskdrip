@@ -108,7 +108,7 @@ export function CampaignCard({ campaign, onJoin, showJoinButton = true }: Campai
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <div className="flex items-center gap-1 text-green-600 font-bold text-lg">
               <DollarSign className="w-4 h-4" />
-              <span>${campaign.reward}</span>
+              <span>${parseFloat(campaign.reward).toFixed(2)}</span>
             </div>
             {campaign.isActive && (
               <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">

@@ -151,7 +151,7 @@ export default function Campaigns() {
           </div>
           <div className="bg-white rounded-lg p-6 text-center border border-gray-200">
             <div className="text-3xl font-bold text-green-600 mb-2">
-              ${activeCampaigns.reduce((sum: number, campaign: any) => sum + (campaign.reward || 0), 0).toLocaleString()}
+              ${activeCampaigns.reduce((sum: number, campaign: any) => sum + (parseFloat(campaign.reward) || 0), 0).toFixed(2)}
             </div>
             <div className="text-gray-600">Total Rewards</div>
           </div>
