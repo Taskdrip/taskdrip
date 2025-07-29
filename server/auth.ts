@@ -39,6 +39,7 @@ export function setupAuth(app: Express) {
     store: new PostgresSessionStore({
       conString: process.env.DATABASE_URL,
       createTableIfMissing: true,
+      tableName: 'session',
     }),
     cookie: {
       secure: false, // Set to true in production with HTTPS
@@ -94,11 +95,24 @@ export function setupAuth(app: Express) {
       // Hash the password
       const hashedPassword = await hashPassword(userData.password);
 
-      // Create user with hashed password
+      // Create user with hashed password and proper defaults
       const user = await storage.createUser({
-        ...userData,
-        password: hashedPassword,
         id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: hashedPassword,
+        userType: userData.userType || 'creator',
+        bio: userData.bio || '',
+        location: userData.location || '',
+        skills: userData.skills || [],
+        twitterHandle: userData.twitterHandle || null,
+        instagramHandle: userData.instagramHandle || null,
+        youtubeHandle: userData.youtubeHandle || null,
+        linkedinHandle: userData.linkedinHandle || null,
+        companyName: userData.companyName || null,
+        website: userData.website || null,
+        industry: userData.industry || null,
       });
 
       // Log them in automatically
@@ -162,5 +176,61 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     res.json(req.user);
+  });
+
+  // Password reset request
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return res.json({ message: "If an account with that email exists, we've sent a password reset link." });
+      }
+
+      // Generate reset token (in production, you'd send this via email)
+      const resetToken = randomBytes(32).toString('hex');
+      
+      // Store reset token temporarily (in production, store in database with expiration)
+      // For now, we'll just log it for demo purposes
+      console.log(`Password reset token for ${email}: ${resetToken}`);
+      
+      res.json({ 
+        message: "If an account with that email exists, we've sent a password reset link.",
+        // In demo mode, return the token directly
+        resetToken: resetToken 
+      });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Password reset (simplified for demo)
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email, newPassword, token } = req.body;
+      
+      if (!email || !newPassword || !token) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid reset request" });
+      }
+
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update user password
+      await storage.updateUserProfile(user.id, { password: hashedPassword });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   });
 }

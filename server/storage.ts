@@ -144,15 +144,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign> {
-    const [updatedCampaign] = await db
-      .update(campaigns)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(campaigns.id, id))
-      .returning();
-    return updatedCampaign;
-  }
-
   // Campaign participation operations
   async getCampaignParticipations(campaignId: string): Promise<CampaignParticipation[]> {
     return await db.select().from(campaignParticipations).where(eq(campaignParticipations.campaignId, campaignId));

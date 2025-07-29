@@ -19,6 +19,7 @@ import NotFound from "@/pages/not-found";
 import Signup from "@/pages/signup";
 import SimpleSignup from "@/pages/simple-signup";
 import Login from "@/pages/login";
+import ForgotPassword from "@/pages/forgot-password";
 import CampaignDetail from "@/pages/campaign-detail";
 
 
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/" component={isAuthenticated ? Home : FinalLanding} />
       <Route path="/signup" component={SimpleSignup} />
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/blog" component={Blog} />
       <Route path="/shop" component={Shop} />
       {isAuthenticated ? (
