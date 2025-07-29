@@ -604,6 +604,29 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updated;
   }
+
+  // Admin user management operations
+  async getAllUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt));
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db
+      .delete(users)
+      .where(eq(users.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();

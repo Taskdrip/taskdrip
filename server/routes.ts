@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
+import bcrypt from "bcrypt";
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -612,6 +613,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating payment deposit:", error);
       res.status(500).json({ message: "Failed to create payment deposit" });
+    }
+  });
+
+
+
+  // Admin user management routes
+  app.get('/api/admin/users', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/admin/users', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { email, password, firstName, lastName, userType, isVerified } = req.body;
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const newUser = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        userType,
+        isVerified,
+      });
+
+      // Remove password from response
+      const { password: _, ...userResponse } = newUser;
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.patch('/api/admin/users/:id', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const updatedUser = await storage.updateUser(req.params.id, req.body);
+      const { password: _, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/admin/users/:id', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Prevent deletion of master admin
+      if (req.params.id === 'admin_master_001') {
+        return res.status(403).json({ message: "Cannot delete master admin account" });
+      }
+
+      await storage.deleteUser(req.params.id);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.patch('/api/admin/users/:id/reset-password', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { password } = req.body;
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      await storage.updateUser(req.params.id, { password: hashedPassword });
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  app.patch('/api/admin/users/:id/verification', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      
+      const user = await storage.getUser(userId);
+      if (!user || user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { isVerified } = req.body;
+      const updatedUser = await storage.updateUser(req.params.id, { isVerified });
+      const { password: _, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error updating verification:", error);
+      res.status(500).json({ message: "Failed to update verification" });
     }
   });
 
