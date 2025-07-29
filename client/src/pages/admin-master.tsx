@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/ui/navigation";
@@ -59,6 +60,8 @@ export default function AdminMaster() {
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [isBlogDialogOpen, setIsBlogDialogOpen] = useState(false);
 
   // Forms
   const blogForm = useForm({
@@ -206,6 +209,46 @@ export default function AdminMaster() {
       toast({
         title: "Success",
         description: "User verification updated",
+      });
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/admin/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    },
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const res = await apiRequest("PUT", `/api/admin/users/${userId}/reset-password`, { newPassword });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Password reset successfully",
+      });
+    },
+  });
+
+  const updateUser = useMutation({
+    mutationFn: async ({ userId, updates }: { userId: string; updates: any }) => {
+      const res = await apiRequest("PUT", `/api/admin/users/${userId}`, updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User updated successfully",
       });
     },
   });
@@ -719,9 +762,47 @@ export default function AdminMaster() {
                                 </div>
                               </DialogContent>
                             </Dialog>
-                            <Button variant="outline" size="sm">
-                              <MoreHorizontal className="h-3 w-3" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <MoreHorizontal className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setIsEditUserDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    const newPassword = prompt("Enter new password for user:");
+                                    if (newPassword) {
+                                      resetPassword.mutate({ userId: user.id, newPassword });
+                                    }
+                                  }}
+                                >
+                                  <Lock className="h-4 w-4 mr-2" />
+                                  Reset Password
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
+                                      deleteUser.mutate(user.id);
+                                    }
+                                  }}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete User
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1338,39 +1419,189 @@ What story will you tell today?"
           </TabsContent>
 
           <TabsContent value="campaigns" className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold">Campaign Oversight</h2>
+              <Button onClick={() => setIsCampaignDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Campaign
+              </Button>
             </div>
             
             <Card>
               <CardHeader>
-                <CardTitle>All Campaigns</CardTitle>
+                <CardTitle>All Campaigns ({campaigns.length})</CardTitle>
                 <CardDescription>Monitor and manage platform campaigns</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {campaigns.map((campaign: any) => (
-                    <div key={campaign.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{campaign.title}</p>
-                        <p className="text-sm text-gray-600">{campaign.category} • ${campaign.reward} reward</p>
-                        <div className="flex gap-2 mt-1">
-                          <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'}>
-                            {campaign.status}
-                          </Badge>
+              <CardContent className="max-h-[500px] overflow-y-auto">
+                {campaigns.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Target className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                    <p>No campaigns found</p>
+                    <p className="text-sm">Create your first campaign to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {campaigns.map((campaign: any) => (
+                      <div key={campaign.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium">{campaign.title}</p>
+                            <Badge variant={campaign.status === 'active' ? 'default' : campaign.status === 'completed' ? 'secondary' : 'destructive'} className="text-xs">
+                              {campaign.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">{campaign.description}</p>
+                          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              ${campaign.reward} reward
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {campaign.filledSlots || 0}/{campaign.totalSlots} slots
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(campaign.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3 sm:mt-0">
+                          <Button variant="outline" size="sm" onClick={() => setSelectedCampaign(campaign)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h2 className="text-2xl font-bold">Payment Management</h2>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+              </div>
+            </div>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>All Transactions ({transactions.length})</CardTitle>
+                <CardDescription>Track payments, withdrawals, and platform revenue</CardDescription>
+              </CardHeader>
+              <CardContent className="max-h-[500px] overflow-y-auto">
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <DollarSign className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                    <p>No transactions found</p>
+                    <p className="text-sm">Payment transactions will appear here</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Transaction ID</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Network</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((transaction: any) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell>
+                            <div className="font-mono text-sm">
+                              {transaction.id?.slice(0, 8)}...
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                {transaction.userEmail?.[0]?.toUpperCase() || 'U'}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{transaction.userEmail}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={transaction.type === 'payment' ? 'default' : 'secondary'}>
+                              {transaction.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              ${transaction.amount}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {transaction.network || 'USDT'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              transaction.status === 'completed' ? 'default' : 
+                              transaction.status === 'pending' ? 'secondary' : 'destructive'
+                            }>
+                              {transaction.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-600">
+                              {new Date(transaction.createdAt).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {transaction.status === 'pending' && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => updatePaymentStatus.mutate({ paymentId: transaction.id, status: 'completed' })}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => updatePaymentStatus.mutate({ paymentId: transaction.id, status: 'rejected' })}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1808,6 +2039,97 @@ What story will you tell today?"
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information for {selectedUser?.firstName} {selectedUser?.lastName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>First Name</Label>
+                <Input 
+                  defaultValue={selectedUser?.firstName} 
+                  onChange={(e) => setSelectedUser(prev => ({ ...prev, firstName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Last Name</Label>
+                <Input 
+                  defaultValue={selectedUser?.lastName}
+                  onChange={(e) => setSelectedUser(prev => ({ ...prev, lastName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input 
+                  defaultValue={selectedUser?.email}
+                  onChange={(e) => setSelectedUser(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Phone Number</Label>
+                <Input 
+                  defaultValue={selectedUser?.phoneNumber}
+                  onChange={(e) => setSelectedUser(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>Bio</Label>
+                <Textarea 
+                  defaultValue={selectedUser?.bio}
+                  onChange={(e) => setSelectedUser(prev => ({ ...prev, bio: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>User Type</Label>
+                <Select 
+                  defaultValue={selectedUser?.userType}
+                  onValueChange={(value) => setSelectedUser(prev => ({ ...prev, userType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="creator">Creator</SelectItem>
+                    <SelectItem value="brand">Brand</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Location</Label>
+                <Input 
+                  defaultValue={selectedUser?.location}
+                  onChange={(e) => setSelectedUser(prev => ({ ...prev, location: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button 
+                onClick={() => {
+                  if (selectedUser) {
+                    updateUser.mutate({ 
+                      userId: selectedUser.id, 
+                      updates: selectedUser 
+                    });
+                    setIsEditUserDialogOpen(false);
+                  }
+                }}
+                disabled={updateUser.isPending}
+              >
+                {updateUser.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
