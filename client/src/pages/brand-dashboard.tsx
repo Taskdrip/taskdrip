@@ -101,10 +101,16 @@ export default function BrandDashboard() {
   // Create campaign mutation
   const createCampaignMutation = useMutation({
     mutationFn: async (data: z.infer<typeof campaignSchema>) => {
+      console.log("Creating campaign with data:", data);
       const res = await apiRequest("POST", "/api/campaigns", data);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
       return res.json();
     },
     onSuccess: (response) => {
+      console.log("Campaign creation response:", response);
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
       toast({
         title: "Campaign draft created!",
@@ -117,6 +123,7 @@ export default function BrandDashboard() {
       setLocation(`/escrow-payment?campaignId=${response.campaignId}`);
     },
     onError: (error: Error) => {
+      console.error("Campaign creation error:", error);
       toast({
         title: "Failed to create campaign",
         description: error.message,

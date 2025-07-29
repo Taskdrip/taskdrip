@@ -40,33 +40,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new campaign with escrow payment
   app.post('/api/campaigns', async (req, res) => {
     try {
-      const userId = (req as any).user?.id;
-      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      // Check if user is authenticated
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const user = req.user as any;
+
+      // Check if user is a brand
+      if (user.userType !== 'brand') {
+        return res.status(403).json({ message: "Only brands can create campaigns" });
+      }
 
       const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const campaignData = {
         ...req.body,
         id: campaignId,
-        brandId: userId,
-        brandName: req.body.brandName || 'Brand Name',
+        brandId: user.id,
+        brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
         status: 'pending_payment',
         paymentStatus: 'pending',
         isActive: false,
       };
       
+      console.log("Creating campaign with data:", campaignData);
       const campaign = await storage.createCampaign(campaignData);
+      console.log("Campaign created:", campaign);
       
       // Create escrow payment session with 30-minute window
-      const escrowPayment = await storage.createEscrowPayment({
+      const escrowPaymentData = {
         id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         campaignId: campaign.id,
-        brandId: userId,
+        brandId: user.id,
         amount: req.body.totalBudget || req.body.reward,
         status: 'payment_window',
         paymentWindowStart: new Date(),
         paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
-      });
+      };
+      
+      console.log("Creating escrow payment with data:", escrowPaymentData);
+      const escrowPayment = await storage.createEscrowPayment(escrowPaymentData);
+      console.log("Escrow payment created:", escrowPayment);
 
       res.status(201).json({ 
         campaign, 
@@ -75,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error creating campaign:", error);
-      res.status(500).json({ message: "Failed to create campaign" });
+      res.status(500).json({ message: "Failed to create campaign", error: error.message });
     }
   });
 

@@ -175,6 +175,32 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Legacy login endpoint for brand dashboard compatibility
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Invalid credentials" });
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.json(user);
+      });
+    })(req, res, next);
+  });
+
+  // Legacy user endpoint
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    res.json(req.user);
+  });
+
   // Legacy logout route for compatibility (redirects)
   app.get("/api/logout", (req, res) => {
     req.logout((err) => {
