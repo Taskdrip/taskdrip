@@ -27,10 +27,12 @@ Design preferences: Clean, professional web app design with white background and
 ### Key Components
 
 #### Authentication System
-- Replit-based OAuth authentication using OpenID Connect
-- Session-based authentication with JWT tokens
-- User profile management with KYC approval workflow
-- Rate limiting and security measures
+- Custom email/password authentication system (fully replaced Replit Auth)
+- Secure password hashing using bcrypt with salt
+- Session-based authentication with PostgreSQL session store
+- Comprehensive password recovery system with token generation
+- User profile management with creator/brand user types
+- Professional signup and login pages with form validation
 
 #### Campaign Engine
 - Campaign creation and management for brands
@@ -54,11 +56,21 @@ Design preferences: Clean, professional web app design with white background and
 
 ## Data Flow
 
-1. **User Onboarding**: Users sign up via Replit Auth → Profile creation → Optional KYC submission
-2. **Campaign Discovery**: Users browse available campaigns → Filter by criteria → Join eligible campaigns
+1. **User Onboarding**: Users sign up with email/password → Profile creation with user type (creator/brand) → Optional social media handles
+2. **Campaign Discovery**: Users browse available campaigns → Filter by criteria → Join eligible campaigns  
 3. **Task Completion**: Users complete social media tasks → Submit proof → Admin verification
 4. **Payment Processing**: Approved tasks credit virtual wallet → Users request payouts → Admin processes manual payments
 5. **Shop Integration**: Users can purchase products/services → Payment proof submission → Admin verification
+
+## Recent Changes (July 29, 2025)
+
+✓ **Authentication System Overhaul**: Completely replaced Replit Auth with custom email/password system
+✓ **Password Security**: Implemented bcrypt hashing with secure salt generation
+✓ **Session Management**: Configured PostgreSQL session store for reliable authentication state
+✓ **Password Recovery**: Added two-step password reset flow with secure token generation
+✓ **User Experience**: Professional signup/login pages with comprehensive form validation
+✓ **Database Schema**: Updated users table with proper fields for custom authentication
+✓ **API Endpoints**: Created secure authentication endpoints (/register, /login, /logout, /forgot-password, /reset-password)
 
 ## External Dependencies
 
