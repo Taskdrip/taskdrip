@@ -22,7 +22,8 @@ import {
   Shield, Users, DollarSign, MessageSquare, CheckCircle, XCircle, Clock, Plus, Edit, 
   Trash2, Eye, UserCheck, AlertTriangle, TrendingUp, Settings, BookOpen, Target,
   Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
-  Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink
+  Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
+  Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight
 } from "lucide-react";
 
 // Form schemas
@@ -260,9 +261,9 @@ export default function AdminMaster() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
       <Navigation />
-      <div className="w-full px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 pb-20 overflow-x-hidden">
+      <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 pb-20 overflow-x-hidden">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -276,7 +277,7 @@ export default function AdminMaster() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 w-full">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -922,62 +923,165 @@ export default function AdminMaster() {
                                 <div className="border rounded-lg p-3 bg-gray-50">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <div className="flex items-center gap-1">
-                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Bold">
-                                        <strong>B</strong>
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Bold"
+                                        onClick={() => {
+                                          const currentValue = field.value || "";
+                                          field.onChange(currentValue + "**bold text**");
+                                        }}
+                                      >
+                                        <Bold className="h-3 w-3" />
                                       </Button>
-                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Italic">
-                                        <em>I</em>
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Italic"
+                                        onClick={() => {
+                                          const currentValue = field.value || "";
+                                          field.onChange(currentValue + "*italic text*");
+                                        }}
+                                      >
+                                        <Italic className="h-3 w-3" />
                                       </Button>
-                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Underline">
-                                        <u>U</u>
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Heading"
+                                        onClick={() => {
+                                          const currentValue = field.value || "";
+                                          field.onChange(currentValue + "\n\n## New Heading\n\n");
+                                        }}
+                                      >
+                                        H2
                                       </Button>
                                     </div>
                                     <div className="w-px h-4 bg-gray-300"></div>
                                     <div className="flex items-center gap-1">
-                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Add Link">
-                                        <ExternalLink className="h-3 w-3" />
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Add Link"
+                                        onClick={() => {
+                                          const linkText = prompt("Enter link text:");
+                                          const linkUrl = prompt("Enter link URL:");
+                                          if (linkText && linkUrl) {
+                                            const currentValue = field.value || "";
+                                            field.onChange(currentValue + `[${linkText}](${linkUrl})`);
+                                          }
+                                        }}
+                                      >
+                                        <Link className="h-3 w-3" />
                                       </Button>
-                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Add Image">
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Add Image"
+                                        onClick={() => {
+                                          const imageUrl = prompt("Enter image URL or upload link:");
+                                          if (imageUrl) {
+                                            const altText = prompt("Enter image description (alt text):") || "Image";
+                                            const currentValue = field.value || "";
+                                            field.onChange(currentValue + `\n\n![${altText}](${imageUrl})\n\n`);
+                                            toast({
+                                              title: "Image added",
+                                              description: "Image markdown has been inserted into your post",
+                                            });
+                                          }
+                                        }}
+                                      >
                                         <Image className="h-3 w-3" />
                                       </Button>
-                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Add Video">
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Add Video"
+                                        onClick={() => {
+                                          const videoUrl = prompt("Enter video URL (YouTube, Vimeo, etc.):");
+                                          if (videoUrl) {
+                                            const currentValue = field.value || "";
+                                            // Handle different video platforms
+                                            let embedCode = "";
+                                            if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
+                                              embedCode = `\n\n📺 [Watch Video](${videoUrl})\n\n`;
+                                            } else if (videoUrl.includes("vimeo.com")) {
+                                              embedCode = `\n\n📹 [Watch on Vimeo](${videoUrl})\n\n`;
+                                            } else {
+                                              embedCode = `\n\n🎥 [Watch Video](${videoUrl})\n\n`;
+                                            }
+                                            field.onChange(currentValue + embedCode);
+                                            toast({
+                                              title: "Video added",
+                                              description: "Video link has been inserted into your post",
+                                            });
+                                          }
+                                        }}
+                                      >
                                         <Video className="h-3 w-3" />
                                       </Button>
                                     </div>
                                     <div className="w-px h-4 bg-gray-300"></div>
+                                    <div className="flex items-center gap-1">
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Add List"
+                                        onClick={() => {
+                                          const currentValue = field.value || "";
+                                          field.onChange(currentValue + "\n\n- Item 1\n- Item 2\n- Item 3\n\n");
+                                        }}
+                                      >
+                                        <List className="h-3 w-3" />
+                                      </Button>
+                                      <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-8 px-2" 
+                                        title="Add Quote"
+                                        onClick={() => {
+                                          const currentValue = field.value || "";
+                                          field.onChange(currentValue + "\n\n> Your quote here\n\n");
+                                        }}
+                                      >
+                                        <Quote className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    <div className="w-px h-4 bg-gray-300"></div>
                                     <div className="text-xs text-gray-500">
-                                      Markdown supported
+                                      Rich Editor
                                     </div>
                                   </div>
                                 </div>
                                 
                                 {/* Content Editor */}
                                 <Textarea 
-                                  placeholder="Start writing your blog post...
+                                  placeholder="Start writing your engaging blog post here...
 
-# Main Heading
-## Subheading
+✨ Quick Tips:
+• Use the toolbar buttons above to add formatting
+• **Bold** and *italic* text for emphasis
+• Click the image button to add pictures
+• Click the video button to embed videos
+• Use ## for headings and > for quotes
 
-**Bold text** and *italic text* for emphasis.
-
-[Link text](https://example.com) for external links.
-
-![Alt text](image-url) for images.
-
-- Bullet point 1
-- Bullet point 2
-
-1. Numbered list item
-2. Another item
-
-> Quote text here
-
-```
-Code block here
-```
-
-Be creative and engaging with your content!"
-                                  className="min-h-[400px] font-mono text-sm leading-relaxed"
+What story will you tell today?"
+                                  className="min-h-[450px] font-mono text-sm leading-relaxed border-0 focus:ring-0 resize-y"
                                   {...field} 
                                 />
                                 
