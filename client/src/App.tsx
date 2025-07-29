@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import FinalLanding from "@/pages/final-landing";
 import Home from "@/pages/home";
+import AdminHome from "@/pages/admin-home";
 import Dashboard from "@/pages/dashboard";
 import SimpleDashboard from "@/pages/simple-dashboard";
 import AdminUserManagement from "@/pages/admin-user-management";
@@ -32,7 +33,7 @@ import Contact from "@/pages/contact";
 
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -47,7 +48,9 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={isAuthenticated ? Home : FinalLanding} />
+      <Route path="/" component={isAuthenticated ? 
+        ((user as any)?.userType === 'admin' ? AdminHome : Home) : 
+        FinalLanding} />
       <Route path="/signup" component={SimpleSignup} />
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
