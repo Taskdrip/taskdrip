@@ -45,7 +45,10 @@ export default function Login() {
         title: "Login successful",
         description: `Welcome back, ${data.user.firstName}!`,
       });
-      setLocation('/dashboard');
+      // Small delay to ensure auth state updates before redirect
+      setTimeout(() => {
+        setLocation('/dashboard');
+      }, 100);
     },
     onError: (error: any) => {
       toast({

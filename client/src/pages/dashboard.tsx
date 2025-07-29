@@ -47,11 +47,8 @@ export default function Dashboard() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(`/api/users/${user?.id}/profile`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await apiRequest('PATCH', `/api/users/${user?.id}/profile`, data);
+      return await response.json();
     },
     onSuccess: () => {
       toast({

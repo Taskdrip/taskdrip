@@ -58,11 +58,11 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/dashboard" component={() => { window.location.href = '/api/login'; return null; }} />
-          <Route path="/admin-dashboard" component={() => { window.location.href = '/api/login'; return null; }} />
-          <Route path="/campaigns" component={() => { window.location.href = '/api/login'; return null; }} />
-          <Route path="/profile" component={() => { window.location.href = '/api/login'; return null; }} />
-          <Route path="/admin" component={() => { window.location.href = '/api/login'; return null; }} />
+          <Route path="/dashboard" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/admin-dashboard" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/campaigns" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/profile" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/admin" component={() => { window.location.href = '/login'; return null; }} />
         </>
       )}
       <Route component={NotFound} />
