@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Navigation } from "@/components/ui/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
@@ -71,10 +72,14 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
-  const [newBlogPost, setNewBlogPost] = useState({
+  const [newBlogPost, setNewBlogPost] = useState<{
+    title: string;
+    content: string;
+    status: 'published' | 'draft';
+  }>({
     title: "",
     content: "",
-    status: "draft" as const
+    status: "draft"
   });
 
   const { data: stats } = useQuery<AdminStats>({
@@ -151,7 +156,7 @@ export default function AdminDashboard() {
     },
   });
 
-  if (user?.userType !== 'admin') {
+  if ((user as any)?.userType !== 'admin') {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -167,7 +172,9 @@ export default function AdminDashboard() {
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
@@ -627,6 +634,7 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

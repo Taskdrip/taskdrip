@@ -65,7 +65,12 @@ export interface IStorage {
   // Transaction operations
   getUserTransactions(userId: string): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  getAllUsers(): Promise<User[]>;
+  getAllCampaigns(): Promise<Campaign[]>;
+  getAllTransactions(): Promise<Transaction[]>;
   updateTransaction(id: string, updates: Partial<InsertTransaction>): Promise<Transaction>;
+  updateTransactionStatus(transactionId: string, status: string): Promise<void>;
+  updateUserVerification(userId: string, verified: boolean): Promise<void>;
   
   // Blog operations
   getAllBlogPosts(): Promise<BlogPost[]>;
@@ -222,6 +227,10 @@ export class DatabaseStorage implements IStorage {
     return newTransaction;
   }
 
+  async getAllTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
+  }
+
   async updateTransaction(id: string, updates: Partial<InsertTransaction>): Promise<Transaction> {
     const [updatedTransaction] = await db
       .update(transactions)
@@ -229,6 +238,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(transactions.id, id))
       .returning();
     return updatedTransaction;
+  }
+
+  async updateTransactionStatus(transactionId: string, status: string): Promise<void> {
+    await db.update(transactions)
+      .set({ status })
+      .where(eq(transactions.id, transactionId));
+  }
+
+  async updateUserVerification(userId: string, verified: boolean): Promise<void> {
+    await db.update(users)
+      .set({ isVerified: verified })
+      .where(eq(users.id, userId));
   }
 
   // Blog operations

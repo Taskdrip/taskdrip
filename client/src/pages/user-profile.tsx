@@ -120,7 +120,7 @@ export default function UserProfile() {
                     <div className="text-sm text-gray-600">Following</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">${(user as any)?.totalEarned?.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-green-600">${typeof (user as any)?.totalEarned === 'number' ? (user as any).totalEarned.toFixed(2) : '0.00'}</div>
                     <div className="text-sm text-gray-600">Total Earned</div>
                   </div>
                   <div className="text-center">
