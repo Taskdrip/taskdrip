@@ -176,6 +176,22 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Legacy logout route for compatibility (redirects)
+  app.get("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+      }
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("Session destroy error:", sessionErr);
+        }
+        res.clearCookie('connect.sid');
+        res.redirect('/');
+      });
+    });
+  });
+
   // Get current user endpoint
   app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated() || !req.user) {

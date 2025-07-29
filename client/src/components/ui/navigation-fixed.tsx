@@ -42,8 +42,9 @@ export function NavigationFixed() {
   };
 
   const handleLogout = () => {
-    // Simple logout without Web3 complications
-    window.location.href = "/api/logout";
+    fetch("/api/auth/logout", { method: "POST" }).then(() => {
+      window.location.href = "/";
+    });
   };
 
   return (
