@@ -1660,7 +1660,7 @@ What story will you tell today?"
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Revenue</p>
-                      <p className="text-3xl font-bold">${totalRevenue.toFixed(0)}</p>
+                      <p className="text-2xl lg:text-3xl font-bold break-all">${(totalRevenue / 1000000).toFixed(1)}M</p>
                       <p className="text-sm text-green-600">↗ +15% from last month</p>
                     </div>
                     <DollarSign className="h-12 w-12 text-green-600" />
@@ -1721,6 +1721,33 @@ What story will you tell today?"
                     <div className="flex justify-between items-center pt-2 border-t">
                       <span className="text-sm font-medium">Average Transaction</span>
                       <span className="font-medium">${transactions.length > 0 ? (totalRevenue / transactions.length).toFixed(2) : '0.00'}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Creator Balances</CardTitle>
+                  <CardDescription>Outstanding payouts and withdrawal requests</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Creator Balances</span>
+                      <span className="font-medium">${users.filter((u: any) => u.userType === 'creator').reduce((sum: number, user: any) => sum + parseFloat(user.availableBalance || '0'), 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Creators with $10+ Balance</span>
+                      <span className="font-medium">{users.filter((u: any) => u.userType === 'creator' && parseFloat(u.availableBalance || '0') >= 10).length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Average Creator Balance</span>
+                      <span className="font-medium">${users.filter((u: any) => u.userType === 'creator').length > 0 ? (users.filter((u: any) => u.userType === 'creator').reduce((sum: number, user: any) => sum + parseFloat(user.availableBalance || '0'), 0) / users.filter((u: any) => u.userType === 'creator').length).toFixed(2) : '0.00'}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm font-medium">Payout Requests</span>
+                      <span className="font-medium text-orange-600">{pendingPayments.length} pending</span>
                     </div>
                   </div>
                 </CardContent>
@@ -1871,8 +1898,8 @@ What story will you tell today?"
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                         <div>
-                          <p className="font-medium">TON</p>
-                          <p className="text-sm text-gray-600">The Open Network</p>
+                          <p className="font-medium">USDT (TON)</p>
+                          <p className="text-sm text-gray-600">USDT on The Open Network</p>
                         </div>
                       </div>
                       <Badge variant="secondary">Active</Badge>

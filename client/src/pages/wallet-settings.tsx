@@ -95,9 +95,9 @@ export default function WalletSettings() {
       color: 'from-yellow-500 to-yellow-600',
     },
     {
-      name: 'TON Wallet',
+      name: 'USDT (TON Network)',
       key: 'tonWallet' as keyof WalletFormData,  
-      description: 'The Open Network native wallet',
+      description: 'USDT on The Open Network',
       placeholder: 'EQD5p2L6r4g8J9B3K1r5n6m7c8...',
       color: 'from-blue-500 to-blue-600',
     },
@@ -288,7 +288,7 @@ export default function WalletSettings() {
                 <ul className="text-gray-600 mt-1 space-y-1">
                   <li>• USDT on Tron (TRC-20)</li>
                   <li>• USDT on BSC (BEP-20)</li>
-                  <li>• TON Network</li>
+                  <li>• USDT on TON Network</li>
                 </ul>
               </div>
               <div>

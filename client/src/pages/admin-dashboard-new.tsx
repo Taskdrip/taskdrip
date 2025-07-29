@@ -596,7 +596,7 @@ export default function AdminDashboard() {
                     <Input value="0x742d35Cc6528..." readOnly />
                   </div>
                   <div>
-                    <Label>TON Wallet</Label>
+                    <Label>USDT (TON) Wallet</Label>
                     <Input value="EQC3dNlesgVD9YbAx..." readOnly />
                   </div>
                   <div>
