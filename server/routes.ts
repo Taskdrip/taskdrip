@@ -36,6 +36,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new campaign
+  app.post('/api/campaigns', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const campaignData = {
+        ...req.body,
+        brandId: userId,
+        brandName: req.body.brandName || 'Brand Name',
+      };
+      
+      const campaign = await storage.createCampaign(campaignData);
+      res.status(201).json(campaign);
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      res.status(500).json({ message: "Failed to create campaign" });
+    }
+  });
+
   // Update campaign
   app.patch('/api/campaigns/:id', async (req, res) => {
     try {

@@ -444,7 +444,7 @@ export default function BrandDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Spent</p>
-                    <p className="text-3xl font-bold text-orange-600">${stats.totalSpent.toFixed(2)}</p>
+                    <p className="text-3xl font-bold text-orange-600">${parseFloat(stats.totalSpent || '0').toFixed(2)}</p>
                   </div>
                   <DollarSign className="h-8 w-8 text-orange-600" />
                 </div>
