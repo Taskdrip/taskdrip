@@ -115,15 +115,27 @@ export default function AdminMaster() {
   // Admin mutations
   const createBlogPost = useMutation({
     mutationFn: async (data: z.infer<typeof blogPostSchema>) => {
-      const res = await apiRequest("POST", "/api/admin/blog", data);
+      // Generate slug from title
+      const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      
+      const postData = {
+        ...data,
+        slug,
+        isPublished: data.status === 'published',
+        publishedAt: data.status === 'published' ? new Date().toISOString() : null,
+        excerpt: data.content.substring(0, 160) + '...',
+        authorId: (user as any)?.id,
+      };
+      
+      const res = await apiRequest("POST", "/api/admin/blog", postData);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
       blogForm.reset();
       toast({
         title: "Success",
-        description: "Blog post created successfully",
+        description: `Blog post ${data.status === 'published' ? 'published' : 'saved as draft'} successfully`,
       });
     },
   });
@@ -768,27 +780,31 @@ export default function AdminMaster() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Create New Post</CardTitle>
-                  <CardDescription>Publish content to engage your community</CardDescription>
+                  <CardTitle>WordPress-Style Editor</CardTitle>
+                  <CardDescription>Create engaging blog posts with rich formatting and media uploads</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...blogForm}>
                     <form 
                       id="blog-form"
                       onSubmit={blogForm.handleSubmit((data) => createBlogPost.mutate(data))}
-                      className="space-y-4"
+                      className="space-y-6"
                     >
                       <FormField
                         control={blogForm.control}
                         name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Title</FormLabel>
+                            <FormLabel>Post Title</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter compelling blog title" {...field} />
+                              <Input 
+                                placeholder="Enter an engaging and SEO-friendly title..." 
+                                className="text-lg font-medium"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -797,37 +813,70 @@ export default function AdminMaster() {
                       
                       <FormField
                         control={blogForm.control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select category" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="announcements">Announcements</SelectItem>
-                                <SelectItem value="tutorials">Tutorials</SelectItem>
-                                <SelectItem value="case-studies">Case Studies</SelectItem>
-                                <SelectItem value="industry-news">Industry News</SelectItem>
-                                <SelectItem value="company-updates">Company Updates</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={blogForm.control}
                         name="featuredImage"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Featured Image URL</FormLabel>
+                            <FormLabel>Featured Image</FormLabel>
                             <FormControl>
-                              <Input placeholder="https://example.com/image.jpg" {...field} />
+                              <div className="space-y-4">
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => {
+                                          field.onChange(e.target?.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                    className="hidden"
+                                    id="featured-image-upload"
+                                  />
+                                  <label 
+                                    htmlFor="featured-image-upload" 
+                                    className="cursor-pointer flex flex-col items-center"
+                                  >
+                                    <Upload className="h-12 w-12 text-gray-400 mb-4" />
+                                    <div className="text-lg font-medium text-gray-700">Upload Featured Image</div>
+                                    <div className="text-sm text-gray-500">PNG, JPG up to 10MB</div>
+                                    <Button type="button" className="mt-4">
+                                      Choose File
+                                    </Button>
+                                  </label>
+                                </div>
+                                
+                                <div className="relative">
+                                  <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-gray-300"></div>
+                                  </div>
+                                  <div className="relative flex justify-center text-sm">
+                                    <span className="bg-white px-2 text-gray-500">or</span>
+                                  </div>
+                                </div>
+                                
+                                <Input 
+                                  placeholder="Enter image URL..." 
+                                  value={field.value || ''}
+                                  onChange={field.onChange}
+                                />
+                                
+                                {field.value && (
+                                  <div className="mt-4">
+                                    <img 
+                                      src={field.value} 
+                                      alt="Featured image preview" 
+                                      className="w-full h-64 object-cover rounded-lg border shadow-sm"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -839,104 +888,295 @@ export default function AdminMaster() {
                         name="content"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Content</FormLabel>
+                            <FormLabel>Content Editor</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder="Write your blog post content here..."
-                                rows={8}
-                                {...field}
-                              />
+                              <div className="space-y-4">
+                                {/* Rich Text Editor Toolbar */}
+                                <div className="border rounded-lg p-3 bg-gray-50">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex items-center gap-1">
+                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Bold">
+                                        <strong>B</strong>
+                                      </Button>
+                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Italic">
+                                        <em>I</em>
+                                      </Button>
+                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Underline">
+                                        <u>U</u>
+                                      </Button>
+                                    </div>
+                                    <div className="w-px h-4 bg-gray-300"></div>
+                                    <div className="flex items-center gap-1">
+                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Add Link">
+                                        <ExternalLink className="h-3 w-3" />
+                                      </Button>
+                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Add Image">
+                                        <Image className="h-3 w-3" />
+                                      </Button>
+                                      <Button type="button" variant="ghost" size="sm" className="h-8 px-2" title="Add Video">
+                                        <Video className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    <div className="w-px h-4 bg-gray-300"></div>
+                                    <div className="text-xs text-gray-500">
+                                      Markdown supported
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Content Editor */}
+                                <Textarea 
+                                  placeholder="Start writing your blog post...
+
+# Main Heading
+## Subheading
+
+**Bold text** and *italic text* for emphasis.
+
+[Link text](https://example.com) for external links.
+
+![Alt text](image-url) for images.
+
+- Bullet point 1
+- Bullet point 2
+
+1. Numbered list item
+2. Another item
+
+> Quote text here
+
+```
+Code block here
+```
+
+Be creative and engaging with your content!"
+                                  className="min-h-[400px] font-mono text-sm leading-relaxed"
+                                  {...field} 
+                                />
+                                
+                                {/* Word Count and SEO Info */}
+                                <div className="flex justify-between text-xs text-gray-500">
+                                  <span>{field.value?.length || 0} characters</span>
+                                  <span>{field.value?.split(' ').filter(word => word.length > 0).length || 0} words</span>
+                                </div>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                       
-                      <FormField
-                        control={blogForm.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Publication Status</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="draft">Save as Draft</SelectItem>
-                                <SelectItem value="published">Publish Immediately</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={blogForm.control}
+                          name="category"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Category</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose category" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="announcements">📢 Announcements</SelectItem>
+                                  <SelectItem value="tutorials">📚 Tutorials</SelectItem>
+                                  <SelectItem value="case-studies">📊 Case Studies</SelectItem>
+                                  <SelectItem value="industry-news">📰 Industry News</SelectItem>
+                                  <SelectItem value="company-updates">🏢 Company Updates</SelectItem>
+                                  <SelectItem value="tips-tricks">💡 Tips & Tricks</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={blogForm.control}
+                          name="status"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Publication Status</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="draft">💾 Save as Draft</SelectItem>
+                                  <SelectItem value="published">🚀 Publish Now</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-6 border-t">
+                        <Button 
+                          type="submit" 
+                          disabled={createBlogPost.isPending}
+                          className="flex-1"
+                          size="lg"
+                        >
+                          {createBlogPost.isPending ? (
+                            <>
+                              <Clock className="h-4 w-4 mr-2 animate-spin" />
+                              {blogForm.watch('status') === 'published' ? 'Publishing...' : 'Saving...'}
+                            </>
+                          ) : (
+                            <>
+                              {blogForm.watch('status') === 'published' ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Publish Post
+                                </>
+                              ) : (
+                                <>
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Save Draft
+                                </>
+                              )}
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="lg"
+                          onClick={() => {
+                            blogForm.reset();
+                            toast({
+                              title: "Form cleared",
+                              description: "All fields have been reset",
+                            });
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Clear All
+                        </Button>
+                      </div>
                     </form>
                   </Form>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>All Blog Posts ({blogPosts.length})</CardTitle>
-                  <CardDescription>Manage your published content</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {blogPosts.map((post: any) => (
-                      <div key={post.id} className="flex items-start justify-between p-4 border rounded-lg">
-                        <div className="flex gap-3">
+              {/* Blog Management Sidebar */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      Publishing Tools
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <p className="font-medium text-blue-800">Content Guidelines</p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        Write engaging, valuable content that provides real value to your audience
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Quick Actions</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Upload className="h-3 w-3 mr-1" />
+                          Import
+                        </Button>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Download className="h-3 w-3 mr-1" />
+                          Export
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="font-medium">SEO Tips</h4>
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <p>• Use descriptive, keyword-rich titles</p>
+                        <p>• Include relevant images with alt text</p>
+                        <p>• Write compelling meta descriptions</p>
+                        <p>• Use headings to structure content</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>All Posts ({blogPosts.length})</CardTitle>
+                    <CardDescription>Recent blog content</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {blogPosts.slice(0, 5).map((post: any) => (
+                        <div key={post.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
                           {post.featuredImage && (
-                            <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                            <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
                               <img src={post.featuredImage} alt="" className="w-full h-full object-cover" />
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium truncate">{post.title}</p>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="font-medium text-sm truncate">{post.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
                               {post.category && (
-                                <Badge variant="outline" className="mr-2 text-xs">
+                                <Badge variant="outline" className="text-xs px-1 py-0">
                                   {post.category}
                                 </Badge>
                               )}
-                              {post.isPublished ? 'Published' : 'Draft'} • {new Date(post.createdAt).toLocaleDateString()}
+                              <Badge variant={post.isPublished ? 'default' : 'secondary'} className="text-xs px-1 py-0">
+                                {post.isPublished ? 'Live' : 'Draft'}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(post.createdAt).toLocaleDateString()}
                             </p>
-                            {post.excerpt && (
-                              <p className="text-xs text-gray-500 mt-2 line-clamp-2">{post.excerpt}</p>
-                            )}
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                              onClick={() => deleteBlogPost.mutate(post.id)}
+                              disabled={deleteBlogPost.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-1 flex-shrink-0">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => deleteBlogPost.mutate(post.id)}
-                            disabled={deleteBlogPost.isPending}
-                          >
-                            <Trash2 className="h-3 w-3" />
+                      ))}
+                      
+                      {blogPosts.length === 0 && (
+                        <div className="text-center py-6 text-gray-500">
+                          <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm">No posts yet</p>
+                          <p className="text-xs">Start creating content</p>
+                        </div>
+                      )}
+                      
+                      {blogPosts.length > 5 && (
+                        <div className="text-center pt-2">
+                          <Button variant="ghost" size="sm" className="text-xs">
+                            View all {blogPosts.length} posts
                           </Button>
                         </div>
-                      </div>
-                    ))}
-                    
-                    {blogPosts.length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        <BookOpen className="h-12 w-12 mx-auto mb-2" />
-                        <p>No blog posts yet</p>
-                        <p className="text-sm">Create your first post to get started</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
