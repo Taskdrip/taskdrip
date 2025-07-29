@@ -300,6 +300,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile update endpoint for wallet addresses
+  app.patch("/api/users/:userId/profile", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user || req.user.id !== req.params.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const updatedUser = await storage.updateUserProfile(req.params.userId, req.body);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -45,6 +45,10 @@ export const users = pgTable("users", {
   companyName: varchar("company_name"), // For brands
   website: varchar("website"), // For brands
   industry: varchar("industry"), // For brands
+  // Crypto wallet addresses for payments
+  usdtTronWallet: varchar("usdt_tron_wallet"),
+  usdtBscWallet: varchar("usdt_bsc_wallet"),
+  tonWallet: varchar("ton_wallet"),
   isVerified: boolean("is_verified").default(false),
   isKycApproved: boolean("is_kyc_approved").default(false),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),

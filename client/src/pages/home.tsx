@@ -49,7 +49,7 @@ export default function Home() {
               <Coins className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.availableBalance.toFixed(2)}</div>
+              <div className="text-2xl font-bold">${parseFloat(stats.availableBalance || '0').toFixed(2)}</div>
               <p className="text-xs opacity-90">Ready for withdrawal</p>
             </CardContent>
           </Card>
@@ -60,7 +60,7 @@ export default function Home() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalEarnings.toFixed(2)}</div>
+              <div className="text-2xl font-bold">${parseFloat(stats.totalEarnings || '0').toFixed(2)}</div>
               <p className="text-xs text-green-600">+12% this month</p>
             </CardContent>
           </Card>

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import FinalLanding from "@/pages/final-landing";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
+import SimpleDashboard from "@/pages/simple-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
@@ -21,6 +22,7 @@ import SimpleSignup from "@/pages/simple-signup";
 import Login from "@/pages/login";
 import ForgotPassword from "@/pages/forgot-password";
 import CampaignDetail from "@/pages/campaign-detail";
+import WalletSettings from "@/pages/wallet-settings";
 
 
 function Router() {
@@ -47,13 +49,14 @@ function Router() {
       <Route path="/shop" component={Shop} />
       {isAuthenticated ? (
         <>
-          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/dashboard" component={SimpleDashboard} />
           <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/campaigns" component={Campaigns} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
           <Route path="/profile" component={Profile} />
           <Route path="/user-profile" component={UserProfile} />
           <Route path="/messages" component={Messages} />
+          <Route path="/wallet" component={WalletSettings} />
           <Route path="/admin" component={Admin} />
         </>
       ) : (
