@@ -39,6 +39,7 @@ export interface IStorage {
   getCampaignById(id: string): Promise<Campaign | undefined>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign>;
+  deleteCampaign(id: string): Promise<void>;
   
   // Campaign participation operations
   getCampaignParticipations(campaignId: string): Promise<CampaignParticipation[]>;
@@ -133,7 +134,7 @@ export class DatabaseStorage implements IStorage {
     return newCampaign;
   }
 
-  async updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign> {
+  async updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign> {
     const [updatedCampaign] = await db
       .update(campaigns)
       .set({ ...updates, updatedAt: new Date() })

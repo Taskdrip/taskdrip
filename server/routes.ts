@@ -76,7 +76,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Campaign participation routes
   app.post('/api/campaigns/:id/join', async (req: any, res) => {
     try {
-      const userId = 'test-user-123'; // Mock user ID for testing
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const userId = req.user.id;
       const campaignId = req.params.id;
       
       // Check if user already joined

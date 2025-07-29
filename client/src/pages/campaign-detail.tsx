@@ -79,9 +79,7 @@ export default function CampaignDetail() {
 
   const joinCampaignMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/campaigns/${campaignId}/join`, {
-        method: 'POST',
-      });
+      return await apiRequest('POST', `/api/campaigns/${campaignId}/join`);
     },
     onSuccess: () => {
       toast({
