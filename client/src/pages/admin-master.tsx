@@ -262,7 +262,7 @@ export default function AdminMaster() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <div className="container mx-auto px-4 py-8 pb-20">
+      <div className="w-full px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 pb-20 overflow-x-hidden">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -276,7 +276,7 @@ export default function AdminMaster() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -327,19 +327,19 @@ export default function AdminMaster() {
           </div>
         </div>
 
-        {/* Search and Actions Bar */}
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        {/* Mobile-responsive Search and Actions Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search users, campaigns, transactions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-80"
+                className="pl-10 w-full sm:w-80"
               />
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               <Filter className="h-4 w-4 mr-2" />
               Filters
             </Button>
@@ -347,13 +347,13 @@ export default function AdminMaster() {
           <div className="flex gap-2">
             <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" className="flex-1 sm:flex-none">
                   <Plus className="h-4 w-4 mr-2" />
                   New Campaign
                 </Button>
               </DialogTrigger>
             </Dialog>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Download className="h-4 w-4 mr-2" />
               Export Data
             </Button>
@@ -362,15 +362,39 @@ export default function AdminMaster() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7 h-auto">
-            <TabsTrigger value="overview" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Overview</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Users ({totalUsers})</TabsTrigger>
-            <TabsTrigger value="campaigns" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Campaigns</TabsTrigger>
-            <TabsTrigger value="payments" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Payments</TabsTrigger>
-            <TabsTrigger value="blog" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Blog</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Analytics</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Settings</TabsTrigger>
-          </TabsList>
+          {/* Mobile-responsive linear tab navigation */}
+          <div className="w-full overflow-x-auto pb-2 mb-6">
+            <TabsList className="flex w-max min-w-full lg:grid lg:grid-cols-7 h-auto p-1 bg-muted rounded-lg gap-1">
+              <TabsTrigger value="overview" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <Shield className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex-shrink-0 min-w-[100px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <Users className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Users ({totalUsers})</span>
+              </TabsTrigger>
+              <TabsTrigger value="campaigns" className="flex-shrink-0 min-w-[100px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <Target className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Campaigns</span>
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <DollarSign className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Payments</span>
+              </TabsTrigger>
+              <TabsTrigger value="blog" className="flex-shrink-0 min-w-[70px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <BookOpen className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Blog</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex-shrink-0 min-w-[80px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <Settings className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Settings</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-6 pb-8">
             {/* Executive Summary Cards */}
@@ -780,13 +804,16 @@ export default function AdminMaster() {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+              <Card className="xl:col-span-2">
                 <CardHeader>
-                  <CardTitle>WordPress-Style Editor</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    WordPress-Style Editor
+                  </CardTitle>
                   <CardDescription>Create engaging blog posts with rich formatting and media uploads</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <Form {...blogForm}>
                     <form 
                       id="blog-form"
@@ -1017,11 +1044,11 @@ Be creative and engaging with your content!"
                       </div>
                       
                       {/* Action Buttons */}
-                      <div className="flex gap-3 pt-6 border-t">
+                      <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
                         <Button 
                           type="submit" 
                           disabled={createBlogPost.isPending}
-                          className="flex-1"
+                          className="flex-1 sm:flex-none sm:min-w-[140px]"
                           size="lg"
                         >
                           {createBlogPost.isPending ? (
@@ -1033,7 +1060,7 @@ Be creative and engaging with your content!"
                             <>
                               {blogForm.watch('status') === 'published' ? (
                                 <>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  <Send className="h-4 w-4 mr-2" />
                                   Publish Post
                                 </>
                               ) : (
@@ -1046,10 +1073,36 @@ Be creative and engaging with your content!"
                           )}
                         </Button>
                         
+                        {/* Quick Publish Button */}
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          size="lg"
+                          className="flex-1 sm:flex-none sm:min-w-[120px]"
+                          onClick={() => {
+                            blogForm.setValue('status', 'published');
+                            const data = blogForm.getValues();
+                            if (data.title && data.content) {
+                              createBlogPost.mutate(data);
+                            } else {
+                              toast({
+                                title: "Missing fields",
+                                description: "Please fill in title and content",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          disabled={createBlogPost.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Quick Publish
+                        </Button>
+                        
                         <Button 
                           type="button" 
                           variant="outline" 
                           size="lg"
+                          className="flex-1 sm:flex-none"
                           onClick={() => {
                             blogForm.reset();
                             toast({
