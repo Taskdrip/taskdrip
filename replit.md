@@ -86,6 +86,9 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Mobile Responsiveness**: Enhanced campaigns and payments sections with scrollable content areas
 ✓ **Database Schema Fixes**: Added missing approved_by and approved_at columns to transactions table
 
+→ **Campaign Creation Issues**: Working on fixing session deserialization errors and campaign form submission
+→ **Authentication Flow**: Debugging passport session management between auth and API endpoints
+
 ## External Dependencies
 
 ### Core Dependencies

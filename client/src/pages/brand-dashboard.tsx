@@ -60,17 +60,14 @@ interface BrandStats {
 }
 
 const campaignSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters"),
-  description: z.string().min(20, "Description must be at least 20 characters"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
   category: z.string().min(1, "Category is required"),
   reward: z.number().min(1, "Reward must be at least $1"),
-  totalBudget: z.number().min(10, "Total budget must be at least $10"),
-  budgetPerCreator: z.number().min(5, "Budget per creator must be at least $5"),
   totalSlots: z.number().min(1, "Must have at least 1 slot"),
   deadline: z.string().min(1, "Deadline is required"),
-  requirements: z.string().min(10, "Requirements must be at least 10 characters"),
+  requirements: z.string().min(1, "Requirements are required"),
   estimatedTime: z.string().min(1, "Estimated time is required"),
-  featureImage: z.string().optional(),
 });
 
 export default function BrandDashboard() {
@@ -190,8 +187,21 @@ export default function BrandDashboard() {
   });
 
   const onCreateCampaign = (data: z.infer<typeof campaignSchema>) => {
-    console.log("Form submission data:", data);
+    console.log("Form submission triggered with data:", data);
     console.log("Form errors:", form.formState.errors);
+    console.log("Form valid:", form.formState.isValid);
+    
+    // Ensure all required fields are filled
+    if (!data.title || !data.description || !data.category || !data.requirements) {
+      console.error("Missing required fields");
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createCampaignMutation.mutate(data);
   };
 
@@ -408,7 +418,15 @@ export default function BrandDashboard() {
                         type="submit" 
                         disabled={createCampaignMutation.isPending}
                         className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => console.log("Create Campaign button clicked")}
+                        onClick={(e) => {
+                          console.log("Create Campaign button clicked");
+                          console.log("Form state:", form.formState);
+                          console.log("Form values:", form.getValues());
+                          
+                          // Manually trigger form validation and submission
+                          e.preventDefault();
+                          form.handleSubmit(onCreateCampaign)();
+                        }}
                       >
                         {createCampaignMutation.isPending ? "Creating..." : "Create Campaign"}
                       </Button>

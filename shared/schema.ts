@@ -253,6 +253,15 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  reward: z.number().min(1, "Reward must be at least $1"),
+  totalSlots: z.number().min(1, "Must have at least 1 slot"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  category: z.string().min(1, "Category is required"),
+  requirements: z.string().min(1, "Requirements are required"),
+  deadline: z.string().min(1, "Deadline is required"),
+  estimatedTime: z.string().min(1, "Estimated time is required"),
 });
 
 export const insertCampaignParticipationSchema = createInsertSchema(campaignParticipations).omit({
