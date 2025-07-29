@@ -262,7 +262,7 @@ export default function EscrowPayment() {
                         selectedNetwork === "ton" ? "border-blue-500 bg-blue-50" : "border-gray-200"
                       }`}
                     >
-                      <div className="font-semibold">TON</div>
+                      <div className="font-semibold">USDT (TON)</div>
                       <div className="text-sm text-gray-600">TON Network</div>
                     </button>
                   </div>
@@ -273,7 +273,7 @@ export default function EscrowPayment() {
                   <Label className="text-sm font-medium mb-2 block">
                     {selectedNetwork === "tron" ? "USDT (Tron) Wallet Address" :
                      selectedNetwork === "bsc" ? "USDT (BSC) Wallet Address" :
-                     "TON Wallet Address"}
+                     "USDT (TON) Wallet Address"}
                   </Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -374,7 +374,7 @@ export default function EscrowPayment() {
                 >
                   <option value="tron">USDT (Tron)</option>
                   <option value="bsc">USDT (BSC)</option>
-                  <option value="ton">TON</option>
+                  <option value="ton">USDT (TON)</option>
                 </select>
               </div>
               <div>
