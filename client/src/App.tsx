@@ -24,6 +24,7 @@ import Login from "@/pages/login";
 import ForgotPassword from "@/pages/forgot-password";
 import CampaignDetail from "@/pages/campaign-detail";
 import WalletSettings from "@/pages/wallet-settings";
+import PaymentDeposit from "@/pages/payment-deposit";
 import ProfileEdit from "@/pages/profile-edit";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
@@ -64,6 +65,7 @@ function Router() {
           <Route path="/user-profile" component={UserProfile} />
           <Route path="/messages" component={Messages} />
           <Route path="/wallet" component={WalletSettings} />
+          <Route path="/payment-deposit" component={PaymentDeposit} />
           <Route path="/profile-edit" component={ProfileEdit} />
           <Route path="/admin" component={Admin} />
         </>

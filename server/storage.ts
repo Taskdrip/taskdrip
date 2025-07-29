@@ -9,6 +9,9 @@ import {
   messages,
   taskSubmissions,
   notifications,
+  paymentDeposits,
+  adminWallets,
+  brandWallets,
   type User,
   type InsertUser,
   type Campaign,
@@ -29,6 +32,12 @@ import {
   type InsertTaskSubmission,
   type Notification,
   type InsertNotification,
+  type PaymentDeposit,
+  type InsertPaymentDeposit,
+  type AdminWallet,
+  type InsertAdminWallet,
+  type BrandWallet,
+  type InsertBrandWallet,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -504,6 +513,96 @@ export class DatabaseStorage implements IStorage {
       pendingSubmissions: pendingSubmissions[0]?.count || 0,
       averageRating: 4.8, // Mock for now
     };
+  }
+
+  // Payment deposit operations
+  async createPaymentDeposit(deposit: any): Promise<PaymentDeposit> {
+    const [newDeposit] = await db
+      .insert(paymentDeposits)
+      .values(deposit)
+      .returning();
+    return newDeposit;
+  }
+
+  async getPaymentDepositById(id: string): Promise<PaymentDeposit | undefined> {
+    const [deposit] = await db
+      .select()
+      .from(paymentDeposits)
+      .where(eq(paymentDeposits.id, id));
+    return deposit;
+  }
+
+  async getPaymentDepositsByCampaign(campaignId: string): Promise<PaymentDeposit[]> {
+    return await db
+      .select()
+      .from(paymentDeposits)
+      .where(eq(paymentDeposits.campaignId, campaignId));
+  }
+
+  async updatePaymentDepositStatus(id: string, status: string, adminNotes?: string): Promise<PaymentDeposit> {
+    const [updated] = await db
+      .update(paymentDeposits)
+      .set({ 
+        status, 
+        adminNotes,
+        approvedAt: status === 'approved' ? new Date() : undefined,
+        updatedAt: new Date()
+      })
+      .where(eq(paymentDeposits.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Admin wallet operations
+  async getAllAdminWallets(): Promise<AdminWallet[]> {
+    return await db
+      .select()
+      .from(adminWallets)
+      .where(eq(adminWallets.isActive, true));
+  }
+
+  async getAdminWalletsByPurpose(purpose: string): Promise<AdminWallet[]> {
+    return await db
+      .select()
+      .from(adminWallets)
+      .where(and(
+        eq(adminWallets.purpose, purpose),
+        eq(adminWallets.isActive, true)
+      ));
+  }
+
+  async createAdminWallet(wallet: InsertAdminWallet): Promise<AdminWallet> {
+    const [newWallet] = await db
+      .insert(adminWallets)
+      .values(wallet)
+      .returning();
+    return newWallet;
+  }
+
+  // Brand wallet operations
+  async getBrandWallet(brandId: string): Promise<BrandWallet | undefined> {
+    const [wallet] = await db
+      .select()
+      .from(brandWallets)
+      .where(eq(brandWallets.brandId, brandId));
+    return wallet;
+  }
+
+  async createBrandWallet(wallet: InsertBrandWallet): Promise<BrandWallet> {
+    const [newWallet] = await db
+      .insert(brandWallets)
+      .values(wallet)
+      .returning();
+    return newWallet;
+  }
+
+  async updateBrandWalletBalance(brandId: string, updates: any): Promise<BrandWallet> {
+    const [updated] = await db
+      .update(brandWallets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(brandWallets.brandId, brandId))
+      .returning();
+    return updated;
   }
 }
 

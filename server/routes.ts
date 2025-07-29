@@ -588,6 +588,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment deposit routes
+  app.post('/api/payment-deposits', upload.single('paymentProof'), async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const depositData = {
+        campaignId: req.body.campaignId,
+        brandId: userId,
+        amount: req.body.amount,
+        network: req.body.network,
+        walletAddress: req.body.walletAddress,
+        transactionHash: req.body.transactionHash,
+        paymentProof: req.file?.path,
+        notes: req.body.notes,
+        timerExpiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+        status: 'submitted'
+      };
+
+      const deposit = await storage.createPaymentDeposit(depositData);
+      res.status(201).json(deposit);
+    } catch (error) {
+      console.error("Error creating payment deposit:", error);
+      res.status(500).json({ message: "Failed to create payment deposit" });
+    }
+  });
+
+  // Admin wallet routes
+  app.get('/api/admin/wallets/escrow', async (req, res) => {
+    try {
+      const wallets = await storage.getAdminWalletsByPurpose('escrow');
+      res.json(wallets);
+    } catch (error) {
+      console.error("Error fetching admin wallets:", error);
+      res.status(500).json({ message: "Failed to fetch admin wallets" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

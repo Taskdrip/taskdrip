@@ -63,15 +63,19 @@ const campaignSchema = z.object({
   description: z.string().min(20, "Description must be at least 20 characters"),
   category: z.string().min(1, "Category is required"),
   reward: z.number().min(1, "Reward must be at least $1"),
+  totalBudget: z.number().min(10, "Total budget must be at least $10"),
+  budgetPerCreator: z.number().min(5, "Budget per creator must be at least $5"),
   totalSlots: z.number().min(1, "Must have at least 1 slot"),
   deadline: z.string().min(1, "Deadline is required"),
   requirements: z.string().min(10, "Requirements must be at least 10 characters"),
   estimatedTime: z.string().min(1, "Estimated time is required"),
+  featureImage: z.string().optional(),
 });
 
 export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "submissions" | "creators">("overview");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
 

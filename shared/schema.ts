@@ -74,11 +74,16 @@ export const campaigns = pgTable("campaigns", {
   brandLogo: varchar("brand_logo"),
   brandId: varchar("brand_id").notNull().references(() => users.id),
   reward: decimal("reward", { precision: 10, scale: 2 }).notNull(),
+  totalBudget: decimal("total_budget", { precision: 10, scale: 2 }),
+  budgetPerCreator: decimal("budget_per_creator", { precision: 10, scale: 2 }),
+  featureImage: varchar("feature_image", { length: 500 }),
   totalSlots: integer("total_slots").notNull(),
   filledSlots: integer("filled_slots").default(0),
   estimatedTime: varchar("estimated_time"), // "5 min", "30 min", etc.
   requirements: text("requirements").array(),
-  status: varchar("status").default("active"), // 'active', 'draft', 'completed', 'cancelled'
+  status: varchar("status").default("pending_payment"), // 'pending_payment', 'active', 'draft', 'completed', 'cancelled'
+  paymentStatus: varchar("payment_status").default("pending"), // 'pending', 'deposited', 'approved'
+  depositRequired: boolean("deposit_required").default(true),
   isActive: boolean("is_active").default(true),
   deadline: timestamp("deadline"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -300,3 +305,78 @@ export type TaskSubmission = typeof taskSubmissions.$inferSelect;
 export type InsertTaskSubmission = z.infer<typeof insertTaskSubmissionSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// Payment deposits for campaign funding
+export const paymentDeposits = pgTable("payment_deposits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: varchar("campaign_id").references(() => campaigns.id),
+  brandId: varchar("brand_id").references(() => users.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  network: varchar("network", { length: 20 }).notNull(), // 'tron', 'bsc', 'ton'
+  walletAddress: varchar("wallet_address", { length: 100 }),
+  transactionHash: varchar("transaction_hash", { length: 100 }),
+  paymentProof: varchar("payment_proof", { length: 500 }),
+  status: varchar("status", { length: 20 }).default('pending'), // 'pending', 'submitted', 'verified', 'approved', 'rejected'
+  timerExpiresAt: timestamp("timer_expires_at"),
+  adminNotes: text("admin_notes"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Admin wallets for platform payments
+export const adminWallets = pgTable("admin_wallets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  walletName: varchar("wallet_name", { length: 100 }).notNull(),
+  walletAddress: varchar("wallet_address", { length: 100 }).notNull(),
+  network: varchar("network", { length: 20 }).notNull(), // 'tron', 'bsc', 'ton'
+  currency: varchar("currency", { length: 10 }).notNull(), // 'USDT', 'TON', 'BNB'
+  purpose: varchar("purpose", { length: 50 }).notNull(), // 'subscriptions', 'task_uploads', 'ads_campaigns', 'escrow'
+  isActive: boolean("is_active").default(true),
+  qrCodePath: varchar("qr_code_path", { length: 500 }),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Brand wallet balances
+export const brandWallets = pgTable("brand_wallets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brandId: varchar("brand_id").references(() => users.id).unique(),
+  totalDeposited: decimal("total_deposited", { precision: 10, scale: 2 }).default("0.00"),
+  totalSpent: decimal("total_spent", { precision: 10, scale: 2 }).default("0.00"),
+  availableBalance: decimal("available_balance", { precision: 10, scale: 2 }).default("0.00"),
+  pendingDeposits: decimal("pending_deposits", { precision: 10, scale: 2 }).default("0.00"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for new payment tables
+export const insertPaymentDepositSchema = createInsertSchema(paymentDeposits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAdminWalletSchema = createInsertSchema(adminWallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBrandWalletSchema = createInsertSchema(brandWallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for new payment tables
+export type PaymentDeposit = typeof paymentDeposits.$inferSelect;
+export type InsertPaymentDeposit = z.infer<typeof insertPaymentDepositSchema>;
+
+export type AdminWallet = typeof adminWallets.$inferSelect;
+export type InsertAdminWallet = z.infer<typeof insertAdminWalletSchema>;
+
+export type BrandWallet = typeof brandWallets.$inferSelect;
+export type InsertBrandWallet = z.infer<typeof insertBrandWalletSchema>;
