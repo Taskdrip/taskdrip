@@ -97,8 +97,15 @@ export function Navigation() {
                     <Link href="/admin">Admin</Link>
                   </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
-                    <a href="/api/logout">Logout</a>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => {
+                      fetch("/api/auth/logout", { method: "POST" }).then(() => {
+                        window.location.href = "/";
+                      });
+                    }}
+                  >
+                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
