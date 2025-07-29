@@ -135,19 +135,19 @@ export function NavigationFixed() {
               </>
             ) : (
               <>
-                <Button 
-                  variant="ghost" 
-                  className="text-black hover:bg-gray-100"
-                  onClick={() => window.location.href = '/api/login'}
-                >
-                  Log In
-                </Button>
-                <Button 
-                  className="bg-black text-white hover:bg-gray-800"
-                  onClick={() => window.location.href = '/signup'}
-                >
-                  Sign Up
-                </Button>
+                <Link href="/login">
+                  <Button 
+                    variant="ghost" 
+                    className="text-black hover:bg-gray-100"
+                  >
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button className="bg-black text-white hover:bg-gray-800">
+                    Sign Up
+                  </Button>
+                </Link>
               </>
             )}
 

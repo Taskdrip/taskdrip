@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./auth";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -9,64 +9,8 @@ import multer from "multer";
 const upload = multer({ dest: 'uploads/' });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes - check if user is authenticated
-  app.get('/api/auth/user', async (req: any, res) => {
-    try {
-      // Check if user is authenticated by checking session or req.user
-      if (!req.user && !req.isAuthenticated?.()) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      // If authenticated, return user data (this would normally come from database)
-      const mockUser = {
-        id: 'test-user-123',
-        email: 'test@example.com',
-        firstName: 'Test',
-        lastName: 'User',
-        profileImageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-        isVerified: true,
-        bio: 'Content creator and tech enthusiast',
-        location: 'San Francisco, CA',
-        rating: 4.8,
-        followers: 12500,
-        following: 850,
-        completedCampaigns: 47,
-        totalEarned: 1250.75,
-        availableBalance: 325.50,
-        pendingBalance: 175.25,
-        skills: ['Content Creation', 'Social Media', 'Video Editing'],
-        twitterHandle: '@testuser',
-        instagramHandle: '@test.user',
-        linkedinHandle: 'test-user',
-        youtubeHandle: '@TestUserChannel',
-        role: 'admin',
-        createdAt: new Date()
-      };
-      res.json(mockUser);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
-  // Signup endpoint
-  app.post('/api/auth/signup', async (req: any, res) => {
-    try {
-      const userData = req.body;
-      // In a real app, this would create a user in the database
-      res.json({ 
-        success: true, 
-        message: `${userData.userType} profile created successfully`,
-        userId: 'new-user-' + Date.now()
-      });
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ message: "Failed to create user" });
-    }
-  });
+  // Auth middleware - this now includes all auth routes
+  setupAuth(app);
 
   // Campaign routes
   app.get('/api/campaigns', async (req, res) => {
@@ -156,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/campaigns/:id/submit', isAuthenticated, upload.array('files'), async (req: any, res) => {
+  app.post('/api/campaigns/:id/submit', upload.array('files'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const campaignId = req.params.id;
@@ -252,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Transaction routes
-  app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/transactions', async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertTransactionSchema.parse({
@@ -317,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Purchase routes
-  app.post('/api/purchases', isAuthenticated, upload.single('paymentProof'), async (req: any, res) => {
+  app.post('/api/purchases', upload.single('paymentProof'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertPurchaseSchema.parse({
@@ -334,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/users/:id/purchases', isAuthenticated, async (req, res) => {
+  app.get('/api/users/:id/purchases', async (req, res) => {
     try {
       const purchases = await storage.getUserPurchases(req.params.id);
       res.json(purchases);
@@ -345,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message routes
-  app.get('/api/messages', isAuthenticated, async (req: any, res) => {
+  app.get('/api/messages', async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const messages = await storage.getUserMessages(userId);

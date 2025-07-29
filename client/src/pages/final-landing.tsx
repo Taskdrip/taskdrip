@@ -2,6 +2,7 @@ import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Star, TrendingUp, Shield, Users, Zap, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 
 export default function FinalLanding() {
   const currentTime = new Date().toLocaleString();
@@ -29,22 +30,24 @@ export default function FinalLanding() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20">
-              <Button 
-                size="lg" 
-                className="bg-black text-white hover:bg-gray-800 px-12 py-6 text-xl font-semibold"
-                onClick={() => window.location.href = '/signup?type=creator'}
-              >
-                Start as Creator
-                <ArrowRight className="ml-3 w-6 h-6" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="border-gray-400 text-black bg-white hover:bg-gray-50 px-12 py-6 text-xl font-semibold"
-                onClick={() => window.location.href = '/signup?type=brand'}
-              >
-                Launch Brand Campaign
-              </Button>
+              <Link href="/signup">
+                <Button 
+                  size="lg" 
+                  className="bg-black text-white hover:bg-gray-800 px-12 py-6 text-xl font-semibold"
+                >
+                  Start as Creator
+                  <ArrowRight className="ml-3 w-6 h-6" />
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="border-gray-400 text-black bg-white hover:bg-gray-50 px-12 py-6 text-xl font-semibold"
+                >
+                  Launch Brand Campaign
+                </Button>
+              </Link>
             </div>
 
             {/* Stats */}

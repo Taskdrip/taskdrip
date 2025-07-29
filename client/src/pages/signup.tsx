@@ -19,6 +19,7 @@ const creatorFormSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   bio: z.string().min(10, 'Bio must be at least 10 characters'),
   location: z.string().min(2, 'Location is required'),
   skills: z.string().min(1, 'At least one skill is required'),
@@ -26,13 +27,12 @@ const creatorFormSchema = z.object({
   instagramHandle: z.string().optional(),
   youtubeHandle: z.string().optional(),
   linkedinHandle: z.string().optional(),
-  followerCount: z.number().min(0, 'Follower count must be positive'),
-  specialties: z.array(z.string()).min(1, 'Select at least one specialty'),
+  userType: z.literal('creator'),
 });
 
 const brandFormSchema = z.object({
-  companyName: z.string().min(2, 'Company name must be at least 2 characters'),
-  contactName: z.string().min(2, 'Contact name must be at least 2 characters'),
+  firstName: z.string().min(2, 'Contact first name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Contact last name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   industry: z.string().min(1, 'Industry is required'),
   companySize: z.string().min(1, 'Company size is required'),

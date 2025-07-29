@@ -24,31 +24,37 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// Users table for custom authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
+  id: varchar("id").primaryKey(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  userType: varchar("user_type").notNull(), // 'creator' or 'brand'
   profileImageUrl: varchar("profile_image_url"),
   bio: text("bio"),
   location: varchar("location"),
   phoneNumber: varchar("phone_number"),
+  skills: text("skills").array(),
+  twitterHandle: varchar("twitter_handle"),
+  instagramHandle: varchar("instagram_handle"),
+  youtubeHandle: varchar("youtube_handle"),
+  linkedinHandle: varchar("linkedin_handle"),
+  tiktokHandle: varchar("tiktok_handle"),
+  companyName: varchar("company_name"), // For brands
+  website: varchar("website"), // For brands
+  industry: varchar("industry"), // For brands
   isVerified: boolean("is_verified").default(false),
   isKycApproved: boolean("is_kyc_approved").default(false),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
+  followers: integer("followers").default(0),
+  following: integer("following").default(0),
+  completedCampaigns: integer("completed_campaigns").default(0),
   totalEarned: decimal("total_earned", { precision: 10, scale: 2 }).default("0.00"),
   availableBalance: decimal("available_balance", { precision: 10, scale: 2 }).default("0.00"),
   pendingBalance: decimal("pending_balance", { precision: 10, scale: 2 }).default("0.00"),
-  completedCampaigns: integer("completed_campaigns").default(0),
-  followers: integer("followers").default(0),
-  following: integer("following").default(0),
-  twitterHandle: varchar("twitter_handle"),
-  instagramHandle: varchar("instagram_handle"),
-  linkedinHandle: varchar("linkedin_handle"),
-  youtubeHandle: varchar("youtube_handle"),
-  tiktokHandle: varchar("tiktok_handle"),
-  skills: text("skills").array(),
+  role: varchar("role").default("user"), // 'user' or 'admin'
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -203,8 +209,9 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 });
 
 // Types
-export type UpsertUser = typeof users.$inferInsert;
+export type InsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type CampaignParticipation = typeof campaignParticipations.$inferSelect;

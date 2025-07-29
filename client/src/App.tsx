@@ -17,6 +17,8 @@ import Shop from "@/pages/shop";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 import Signup from "@/pages/signup";
+import SimpleSignup from "@/pages/simple-signup";
+import Login from "@/pages/login";
 import CampaignDetail from "@/pages/campaign-detail";
 
 
@@ -37,7 +39,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={isAuthenticated ? Home : FinalLanding} />
-      <Route path="/signup" component={Signup} />
+      <Route path="/signup" component={SimpleSignup} />
+      <Route path="/login" component={Login} />
       <Route path="/blog" component={Blog} />
       <Route path="/shop" component={Shop} />
       {isAuthenticated ? (
