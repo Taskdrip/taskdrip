@@ -22,7 +22,7 @@ export default function Campaigns() {
 
   // Navigate to campaign detail page instead of auto-joining
   const handleJoinCampaign = (campaignId: string) => {
-    setLocation(`/campaign/${campaignId}`);
+    setLocation(`/campaigns/${campaignId}`);
   };
 
   useEffect(() => {
