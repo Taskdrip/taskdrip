@@ -9,7 +9,7 @@ import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import SimpleDashboard from "@/pages/simple-dashboard";
 import AdminUserManagement from "@/pages/admin-user-management";
-import AdminDashboard from "@/pages/admin-dashboard-new";
+import AdminDashboard from "@/pages/admin-master";
 import BrandDashboard from "@/pages/brand-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";

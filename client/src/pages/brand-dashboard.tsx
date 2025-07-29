@@ -19,6 +19,7 @@ import {
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2 
 } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 
 interface Campaign {
   id: string;
@@ -81,7 +82,7 @@ export default function BrandDashboard() {
 
   // Fetch brand campaigns
   const { data: campaigns = [], isLoading: campaignLoading } = useQuery<Campaign[]>({
-    queryKey: ["/api/campaigns/brand", user?.id],
+    queryKey: ["/api/campaigns/brand", (user as any)?.id],
     retry: false,
   });
 
@@ -216,7 +217,7 @@ export default function BrandDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Brand Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {user?.firstName}! Manage your campaigns and creators.</p>
+              <p className="text-gray-600 mt-1">Welcome back, {(user as any)?.firstName}! Manage your campaigns and creators.</p>
             </div>
             <Dialog open={isCreateCampaignOpen} onOpenChange={setIsCreateCampaignOpen}>
               <DialogTrigger asChild>
@@ -448,7 +449,7 @@ export default function BrandDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Spent</p>
-                    <p className="text-3xl font-bold text-orange-600">${parseFloat(stats.totalSpent || '0').toFixed(2)}</p>
+                    <p className="text-3xl font-bold text-orange-600">${parseFloat(String(stats?.totalSpent || '0')).toFixed(2)}</p>
                   </div>
                   <DollarSign className="h-8 w-8 text-orange-600" />
                 </div>

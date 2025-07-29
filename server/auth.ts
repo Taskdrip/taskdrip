@@ -21,6 +21,13 @@ async function comparePasswords(supplied: string, stored: string) {
   return await bcrypt.compare(supplied, stored);
 }
 
+export const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Authentication required" });
+};
+
 export function setupAuth(app: Express) {
   const PostgresSessionStore = connectPg(session);
   

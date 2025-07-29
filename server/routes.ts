@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, isAuthenticated } from "./auth";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
@@ -761,6 +761,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching admin wallets:", error);
       res.status(500).json({ message: "Failed to fetch admin wallets" });
+    }
+  });
+
+  // Admin routes (protected)
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching admin users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  app.post('/api/admin/blog', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const { title, content, status } = req.body;
+      const blogPost = await storage.createBlogPost({
+        title,
+        content,
+        status,
+        authorId: userId,
+        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        excerpt: content.substring(0, 200) + '...',
+        publishedAt: status === 'published' ? new Date() : null
+      });
+      res.json(blogPost);
+    } catch (error) {
+      console.error('Error creating blog post:', error);
+      res.status(500).json({ message: 'Failed to create blog post' });
+    }
+  });
+
+  app.put('/api/admin/users/:id/verification', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const { id } = req.params;
+      const { verified } = req.body;
+      
+      await storage.updateUserVerification(id, verified);
+      res.json({ message: 'User verification updated successfully' });
+    } catch (error) {
+      console.error('Error updating user verification:', error);
+      res.status(500).json({ message: 'Failed to update user verification' });
+    }
+  });
+
+  app.put('/api/admin/payments/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      await storage.updateTransactionStatus(id, status);
+      res.json({ message: 'Payment status updated successfully' });
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      res.status(500).json({ message: 'Failed to update payment status' });
+    }
+  });
+
+  app.get('/api/admin/campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const campaigns = await storage.getAllCampaigns();
+      res.json(campaigns);
+    } catch (error) {
+      console.error('Error fetching admin campaigns:', error);
+      res.status(500).json({ message: 'Failed to fetch campaigns' });
+    }
+  });
+
+  app.get('/api/admin/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const transactions = await storage.getAllTransactions();
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching admin transactions:', error);
+      res.status(500).json({ message: 'Failed to fetch transactions' });
     }
   });
 
