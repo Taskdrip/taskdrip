@@ -18,7 +18,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { 
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
-  Target, TrendingUp, Award, MessageSquare
+  Target, TrendingUp, Award, MessageSquare, Clipboard, FileText, Trash2
 } from 'lucide-react';
 
 const editCampaignSchema = z.object({
@@ -83,14 +83,14 @@ export default function CampaignDetail() {
     },
     onSuccess: () => {
       toast({
-        title: 'Successfully Joined!',
-        description: 'You have joined this campaign. Check your profile for next steps.',
+        title: 'Application Submitted!',
+        description: 'Your application has been submitted for review.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId] });
     },
     onError: (error) => {
       toast({
-        title: 'Failed to Join',
+        title: 'Application Failed',
         description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
@@ -445,26 +445,141 @@ export default function CampaignDetail() {
               </CardContent>
             </Card>
 
-            {/* Requirements */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  Requirements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose prose-sm max-w-none">
+            {/* Detailed Requirements and Application Process */}
+            <div className="space-y-6">
+              {/* Eligibility Requirements */}
+              <Card className="border-amber-200 bg-amber-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-amber-800 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Eligibility Requirements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   {campaign.requirements ? (
-                    <p className="text-gray-700 whitespace-pre-wrap">{campaign.requirements}</p>
+                    <div className="text-amber-800 whitespace-pre-wrap">{campaign.requirements}</div>
                   ) : (
-                    <p className="text-gray-700">
-                      Complete the assigned social media task and submit proof of completion for review.
-                    </p>
+                    <div className="text-amber-800">
+                      <ul className="space-y-2 list-disc list-inside">
+                        <li>Active social media account</li>
+                        <li>Ability to create original content</li>
+                        <li>Willingness to follow brand guidelines</li>
+                        <li>Submit proof within the deadline</li>
+                      </ul>
+                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Application Process */}
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
+                    <Clipboard className="w-5 h-5" />
+                    How to Apply & Complete Tasks
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-blue-800">
+                    <p className="font-medium mb-3">Step-by-step process:</p>
+                    <ol className="list-decimal list-inside space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <span className="font-medium">Apply:</span>
+                        <span>Click "Apply to Join" to submit your application</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-medium">Wait for Approval:</span>
+                        <span>Campaign admin will review your profile and application</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-medium">Complete Tasks:</span>
+                        <span>Once approved, complete the required social media tasks</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-medium">Submit Proof:</span>
+                        <span>Provide screenshots, links, and descriptions of completed work</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-medium">Get Verified:</span>
+                        <span>Admin reviews your submission for approval</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-medium">Receive Payment:</span>
+                        <span>Get your ${parseFloat(campaign.reward).toFixed(2)} reward in crypto</span>
+                      </li>
+                    </ol>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Proof Submission Guidelines */}
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-green-800 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Proof Submission Requirements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-green-800 space-y-3">
+                    <p className="font-medium">You must provide the following:</p>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="font-medium mb-2">Required Files:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Screenshots of completed posts</li>
+                          <li>Links to your published content</li>
+                          <li>Analytics screenshots (if requested)</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-medium mb-2">Documentation:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Clear description of work completed</li>
+                          <li>Any additional verification requested</li>
+                          <li>Confirmation of brand guidelines followed</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="bg-green-100 p-3 rounded-lg mt-3">
+                      <p className="text-sm font-medium">💡 Pro Tip: Clear, detailed submissions get approved faster!</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Information */}
+              <Card className="border-purple-200 bg-purple-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-purple-800 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Payment & Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-purple-800 space-y-3 text-sm">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-medium mb-2">Payment Details:</p>
+                        <ul className="space-y-1">
+                          <li><span className="font-medium">Reward:</span> ${parseFloat(campaign.reward).toFixed(2)} per task</li>
+                          <li><span className="font-medium">Payment:</span> Cryptocurrency (USDT/TON)</li>
+                          <li><span className="font-medium">Timeline:</span> {campaign.estimatedTime || "30 minutes"}</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-medium mb-2">Important Notes:</p>
+                        <ul className="space-y-1">
+                          <li>Payment processed after approval</li>
+                          <li>Minimum payout: $10.00</li>
+                          <li>Review time: 24-48 hours</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Campaign Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -494,18 +609,18 @@ export default function CampaignDetail() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Join Campaign Card */}
+            {/* Campaign Application Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">Join This Campaign</CardTitle>
+                <CardTitle className="text-xl">Campaign Application</CardTitle>
                 <CardDescription>
-                  Complete tasks and earn crypto rewards
+                  Review requirements and apply to join
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-success mb-1">${campaign.reward}</div>
-                  <div className="text-sm text-gray-600">per completed task</div>
+                  <div className="text-3xl font-bold text-success mb-1">${parseFloat(campaign.reward).toFixed(2)}</div>
+                  <div className="text-sm text-gray-600">reward per task</div>
                 </div>
 
                 {canJoin ? (
@@ -514,7 +629,7 @@ export default function CampaignDetail() {
                     className="w-full bg-accent hover:bg-blue-700"
                     disabled={joinCampaignMutation.isPending}
                   >
-                    {joinCampaignMutation.isPending ? 'Joining...' : 'Join Campaign'}
+                    {joinCampaignMutation.isPending ? 'Applying...' : 'Apply to Join'}
                   </Button>
                 ) : (
                   <Button 

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from 'wouter';
 import { Navigation } from "@/components/ui/navigation";
 import { CampaignCard } from "@/components/ui/campaign-card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
@@ -14,7 +13,6 @@ export default function Campaigns() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -22,25 +20,10 @@ export default function Campaigns() {
     queryKey: ['/api/campaigns'],
   });
 
-  const joinCampaignMutation = useMutation({
-    mutationFn: async (campaignId: string) => {
-      return await apiRequest('POST', `/api/campaigns/${campaignId}/join`);
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Successfully Joined!',
-        description: 'You have joined this campaign. Check your profile for next steps.',
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/campaigns'] });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Failed to Join',
-        description: error.message || 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
+  // Navigate to campaign detail page instead of auto-joining
+  const handleJoinCampaign = (campaignId: string) => {
+    setLocation(`/campaign/${campaignId}`);
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -89,15 +72,7 @@ export default function Campaigns() {
     return matchesSearch && matchesCategory;
   });
 
-  const categories = [...new Set(campaignList.map((campaign: any) => campaign.category))];
-
-  const handleCampaignClick = (campaignId: string) => {
-    setLocation(`/campaigns/${campaignId}`);
-  };
-
-  const handleJoinCampaign = (campaignId: string) => {
-    joinCampaignMutation.mutate(campaignId);
-  };
+  const categories = Array.from(new Set(campaignList.map((campaign: any) => campaign.category)));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -173,7 +148,7 @@ export default function Campaigns() {
                 key={campaign.id}
                 campaign={campaign}
                 onJoin={handleJoinCampaign}
-                onClick={handleCampaignClick}
+                showJoinButton={true}
               />
             ))}
           </div>

@@ -179,7 +179,7 @@ export function CampaignCard({ campaign, onJoin, showJoinButton = true }: Campai
             onClick={() => onJoin?.(campaign.id)}
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
           >
-            Join Campaign
+            View Details
           </Button>
         )}
 
