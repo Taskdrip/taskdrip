@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dialog overrides for better scrolling */
+.dialog-content {
+  max-height: 90vh !important;
+  overflow: hidden !important;
+}
+
+/* Ensure select dropdowns appear above dialog */
+[data-radix-select-content] {
+  z-index: 70 !important;
+}
+
+/* Custom scrollbar for better UX */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 /* Mobile optimization for admin dashboard */
 @layer base {
   * {
