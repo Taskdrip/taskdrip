@@ -228,23 +228,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllTransactions(): Promise<Transaction[]> {
-    return await db.select({
-      id: transactions.id,
-      userId: transactions.userId,
-      campaignId: transactions.campaignId,
-      taskSubmissionId: transactions.taskSubmissionId,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      transactionHash: transactions.transactionHash,
-      network: transactions.network,
-      walletAddress: transactions.walletAddress,
-      description: transactions.description,
-      approvedBy: transactions.approvedBy,
-      approvedAt: transactions.approvedAt,
-      createdAt: transactions.createdAt,
-      processedAt: transactions.processedAt,
-    }).from(transactions).orderBy(desc(transactions.createdAt));
+    try {
+      return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      // Return empty array if there's a database issue
+      return [];
+    }
   }
 
   async updateTransaction(id: string, updates: Partial<InsertTransaction>): Promise<Transaction> {

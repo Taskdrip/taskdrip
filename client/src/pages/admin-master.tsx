@@ -350,14 +350,14 @@ export default function AdminMaster() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users ({totalUsers})</TabsTrigger>
-            <TabsTrigger value="campaigns">Campaigns ({campaigns.length})</TabsTrigger>
-            <TabsTrigger value="payments">Payments ({pendingPayments.length})</TabsTrigger>
-            <TabsTrigger value="blog">Blog ({blogPosts.length})</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 h-auto">
+            <TabsTrigger value="overview" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Overview</TabsTrigger>
+            <TabsTrigger value="users" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Users ({totalUsers})</TabsTrigger>
+            <TabsTrigger value="campaigns" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Campaigns</TabsTrigger>
+            <TabsTrigger value="payments" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Payments</TabsTrigger>
+            <TabsTrigger value="blog" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Blog</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Analytics</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
