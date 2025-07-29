@@ -61,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: req.body.category,
         reward: req.body.reward.toString(),
         totalSlots: req.body.totalSlots,
-        deadline: req.body.deadline,
+        deadline: new Date(req.body.deadline),
         requirements: [req.body.requirements], // Convert string to array
         estimatedTime: req.body.estimatedTime,
         brandId: user.id,
