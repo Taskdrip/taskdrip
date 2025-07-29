@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 (async () => {
   // Seed database in development
   if (app.get("env") === "development") {
-    await seedDatabase();
+    // await seedDatabase(); // Temporarily disabled during schema updates
   }
 
   const server = await registerRoutes(app);

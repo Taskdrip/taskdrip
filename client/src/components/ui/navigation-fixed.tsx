@@ -18,12 +18,22 @@ export function NavigationFixed() {
 
   const getNavItems = () => {
     if (isAuthenticated) {
-      return [
-        { href: "/", label: "Home" },
-        { href: "/campaigns", label: "Tasks" },
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/shop", label: "Shop" },
-      ];
+      if (user?.userType === 'brand') {
+        return [
+          { href: "/brand-dashboard", label: "Dashboard" },
+          { href: "/campaigns", label: "My Campaigns" },
+          { href: "/messages", label: "Messages" },
+          { href: "/shop", label: "Shop" },
+        ];
+      } else {
+        return [
+          { href: "/", label: "Home" },
+          { href: "/campaigns", label: "Tasks" },
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/messages", label: "Messages" },
+          { href: "/shop", label: "Shop" },
+        ];
+      }
     } else {
       return [
         { href: "/", label: "Home" },

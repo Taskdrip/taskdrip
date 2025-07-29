@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import SimpleDashboard from "@/pages/simple-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import BrandDashboard from "@/pages/brand-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
 import UserProfile from "@/pages/user-profile";
@@ -55,6 +56,7 @@ function Router() {
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={SimpleDashboard} />
+          <Route path="/brand-dashboard" component={BrandDashboard} />
           <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/campaigns" component={Campaigns} />
           <Route path="/campaigns/:id" component={CampaignDetail} />

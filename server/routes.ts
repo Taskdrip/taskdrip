@@ -516,6 +516,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Brand-specific routes
+  app.get('/api/campaigns/brand/:brandId', async (req, res) => {
+    try {
+      const campaigns = await storage.getCampaignsByBrand(req.params.brandId);
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching brand campaigns:", error);
+      res.status(500).json({ message: "Failed to fetch brand campaigns" });
+    }
+  });
+
+  app.get('/api/brand/submissions', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const submissions = await storage.getBrandTaskSubmissions(userId);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching brand submissions:", error);
+      res.status(500).json({ message: "Failed to fetch brand submissions" });
+    }
+  });
+
+  app.get('/api/brand/stats', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const stats = await storage.getBrandStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching brand stats:", error);
+      res.status(500).json({ message: "Failed to fetch brand stats" });
+    }
+  });
+
   // User profile update endpoint for wallet addresses
   app.patch("/api/users/:userId/profile", async (req, res) => {
     try {

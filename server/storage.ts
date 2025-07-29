@@ -216,7 +216,7 @@ export class DatabaseStorage implements IStorage {
   async updateTransaction(id: string, updates: Partial<InsertTransaction>): Promise<Transaction> {
     const [updatedTransaction] = await db
       .update(transactions)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updates)
       .where(eq(transactions.id, id))
       .returning();
     return updatedTransaction;
@@ -428,6 +428,82 @@ export class DatabaseStorage implements IStorage {
     }
 
     return approved;
+  }
+
+  // Brand-specific methods
+  async getCampaignsByBrand(brandId: string): Promise<Campaign[]> {
+    return await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.brandId, brandId))
+      .orderBy(desc(campaigns.createdAt));
+  }
+
+  async getBrandTaskSubmissions(brandId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: taskSubmissions.id,
+        campaignId: taskSubmissions.campaignId,
+        userId: taskSubmissions.userId,
+        title: taskSubmissions.title,
+        description: taskSubmissions.description,
+        status: taskSubmissions.status,
+        submittedAt: taskSubmissions.submittedAt,
+        reviewedAt: taskSubmissions.reviewedAt,
+        reviewNotes: taskSubmissions.reviewNotes,
+        campaign: {
+          id: campaigns.id,
+          title: campaigns.title,
+        },
+        user: {
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(taskSubmissions)
+      .innerJoin(campaigns, eq(taskSubmissions.campaignId, campaigns.id))
+      .innerJoin(users, eq(taskSubmissions.userId, users.id))
+      .where(eq(campaigns.brandId, brandId))
+      .orderBy(desc(taskSubmissions.submittedAt));
+  }
+
+  async getBrandStats(brandId: string): Promise<any> {
+    const totalCampaigns = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(campaigns)
+      .where(eq(campaigns.brandId, brandId));
+
+    const activeCampaigns = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(campaigns)
+      .where(and(eq(campaigns.brandId, brandId), eq(campaigns.status, 'active')));
+
+    const totalCreators = await db
+      .select({ count: sql<number>`count(distinct ${campaignParticipations.userId})` })
+      .from(campaignParticipations)
+      .innerJoin(campaigns, eq(campaignParticipations.campaignId, campaigns.id))
+      .where(eq(campaigns.brandId, brandId));
+
+    const totalSpent = await db
+      .select({ sum: sql<number>`coalesce(sum(${sql.raw('cast(reward as decimal)')}), 0)` })
+      .from(campaigns)
+      .where(eq(campaigns.brandId, brandId));
+
+    const pendingSubmissions = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(taskSubmissions)
+      .innerJoin(campaigns, eq(taskSubmissions.campaignId, campaigns.id))
+      .where(and(eq(campaigns.brandId, brandId), eq(taskSubmissions.status, 'pending')));
+
+    return {
+      totalCampaigns: totalCampaigns[0]?.count || 0,
+      activeCampaigns: activeCampaigns[0]?.count || 0,
+      totalCreators: totalCreators[0]?.count || 0,
+      totalSpent: totalSpent[0]?.sum || 0,
+      pendingSubmissions: pendingSubmissions[0]?.count || 0,
+      averageRating: 4.8, // Mock for now
+    };
   }
 }
 

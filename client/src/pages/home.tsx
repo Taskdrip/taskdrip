@@ -9,6 +9,13 @@ import { Link } from "wouter";
 
 export default function Home() {
   const { user } = useAuth();
+  
+  // Redirect brands to their dedicated dashboard
+  if (user?.userType === 'brand') {
+    window.location.href = '/brand-dashboard';
+    return null;
+  }
+
   const { data: campaigns } = useQuery({
     queryKey: ["/api/campaigns"],
   });

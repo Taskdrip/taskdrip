@@ -72,11 +72,13 @@ export const campaigns = pgTable("campaigns", {
   platform: varchar("platform"), // Twitter, Instagram, TikTok, etc.
   brandName: varchar("brand_name").notNull(),
   brandLogo: varchar("brand_logo"),
+  brandId: varchar("brand_id").notNull().references(() => users.id),
   reward: decimal("reward", { precision: 10, scale: 2 }).notNull(),
   totalSlots: integer("total_slots").notNull(),
   filledSlots: integer("filled_slots").default(0),
   estimatedTime: varchar("estimated_time"), // "5 min", "30 min", etc.
   requirements: text("requirements").array(),
+  status: varchar("status").default("active"), // 'active', 'draft', 'completed', 'cancelled'
   isActive: boolean("is_active").default(true),
   deadline: timestamp("deadline"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -102,7 +104,6 @@ export const transactions = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id").references(() => users.id),
   campaignId: varchar("campaign_id").references(() => campaigns.id),
-  participationId: varchar("participation_id").references(() => campaignParticipations.id),
   taskSubmissionId: uuid("task_submission_id").references(() => taskSubmissions.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   type: varchar("type", { length: 20 }).notNull(), // 'campaign_reward', 'payout', 'bonus', etc.
