@@ -250,7 +250,7 @@ export default function AdminMaster() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-20">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -360,7 +360,7 @@ export default function AdminMaster() {
             <TabsTrigger value="settings" className="text-xs px-1 py-2 h-auto min-w-0 flex-shrink">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-6 pb-8">
             {/* Executive Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               <Card>
@@ -476,7 +476,7 @@ export default function AdminMaster() {
               </Card>
 
               {/* Recent Activity */}
-              <Card>
+              <Card className="h-fit">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Activity className="h-5 w-5" />
@@ -484,10 +484,10 @@ export default function AdminMaster() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {users.slice(-5).map((user: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {users.slice(-8).map((user: any, idx: number) => (
+                      <div key={`user-${idx}`} className="flex items-center gap-3 py-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">New registration: {user.email}</p>
                           <p className="text-xs text-gray-500">Just now</p>
@@ -495,9 +495,9 @@ export default function AdminMaster() {
                       </div>
                     ))}
                     
-                    {campaigns.slice(-3).map((campaign: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    {campaigns.slice(-4).map((campaign: any, idx: number) => (
+                      <div key={`campaign-${idx}`} className="flex items-center gap-3 py-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">Campaign: {campaign.title}</p>
                           <p className="text-xs text-gray-500">Recently created</p>
@@ -505,9 +505,9 @@ export default function AdminMaster() {
                       </div>
                     ))}
                     
-                    {transactions.slice(-2).map((transaction: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
+                    {transactions.slice(-3).map((transaction: any, idx: number) => (
+                      <div key={`transaction-${idx}`} className="flex items-center gap-3 py-2">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                           transaction.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
                         }`}></div>
                         <div className="flex-1 min-w-0">
@@ -516,6 +516,14 @@ export default function AdminMaster() {
                         </div>
                       </div>
                     ))}
+                    
+                    {users.length === 0 && campaigns.length === 0 && transactions.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Activity className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                        <p>No recent activity</p>
+                        <p className="text-sm">Activity will appear here as users interact with the platform</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
