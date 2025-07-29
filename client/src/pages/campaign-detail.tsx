@@ -18,7 +18,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { 
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
-  Target, TrendingUp, Award, MessageSquare, Clipboard, FileText, Trash2
+  Target, TrendingUp, Award, MessageSquare, Clipboard, FileText, Trash2,
+  MessageCircle, Upload
 } from 'lucide-react';
 
 const editCampaignSchema = z.object({
@@ -631,6 +632,39 @@ export default function CampaignDetail() {
                   >
                     {joinCampaignMutation.isPending ? 'Applying...' : 'Apply to Join'}
                   </Button>
+                ) : hasJoined ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-green-600 justify-center">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium">You've joined this campaign!</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.location.href = '/messages'}
+                        className="flex items-center gap-2 text-sm"
+                        size="sm"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Message
+                      </Button>
+                      <Button 
+                        onClick={() => window.location.href = '/messages'}
+                        className="flex items-center gap-2 text-sm"
+                        size="sm"
+                      >
+                        <Upload className="h-4 w-4" />
+                        Submit
+                      </Button>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => window.location.href = '/dashboard'}
+                    >
+                      View in Dashboard
+                    </Button>
+                  </div>
                 ) : (
                   <Button 
                     disabled

@@ -9,6 +9,7 @@ import {
   decimal,
   integer,
   boolean,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -96,17 +97,24 @@ export const campaignParticipations = pgTable("campaign_participations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Enhanced Transactions table for tracking crypto payments with approval workflow
 export const transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  type: varchar("type").notNull(), // campaign_reward, payout, purchase
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  status: varchar("status").notNull().default("pending"), // pending, approved, completed, failed
-  description: text("description").notNull(),
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id),
   campaignId: varchar("campaign_id").references(() => campaigns.id),
+  participationId: varchar("participation_id").references(() => campaignParticipations.id),
+  taskSubmissionId: uuid("task_submission_id").references(() => taskSubmissions.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // 'campaign_reward', 'payout', 'bonus', etc.
+  status: varchar("status", { length: 20 }).notNull().default('pending'), // 'pending', 'approved', 'completed', 'failed'
   transactionHash: varchar("transaction_hash"),
+  network: varchar("network", { length: 20 }), // 'tron', 'bsc', 'ton'
+  walletAddress: varchar("wallet_address"),
+  description: text("description"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
 });
 
 export const blogPosts = pgTable("blog_posts", {
@@ -156,13 +164,57 @@ export const purchases = pgTable("purchases", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Enhanced Messages table for brand-creator communication
 export const messages = pgTable("messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  receiverId: varchar("receiver_id").notNull().references(() => users.id),
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: varchar("campaign_id").references(() => campaigns.id),
+  participationId: varchar("participation_id").references(() => campaignParticipations.id),
+  senderId: varchar("sender_id").references(() => users.id).notNull(),
+  receiverId: varchar("receiver_id").references(() => users.id).notNull(),
+  subject: varchar("subject", { length: 200 }),
   content: text("content").notNull(),
+  messageType: varchar("message_type", { length: 50 }).default('general'), // 'general', 'task_submission', 'approval_request'
   isRead: boolean("is_read").default(false),
+  attachments: jsonb("attachments"), // Array of file URLs and metadata
+  parentMessageId: uuid("parent_message_id").references(() => messages.id),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Task submissions table for tracking proof of work
+export const taskSubmissions = pgTable("task_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: varchar("campaign_id").references(() => campaigns.id).notNull(),
+  participationId: varchar("participation_id").references(() => campaignParticipations.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  proofUrls: jsonb("proof_urls"), // Array of URLs (social media posts, etc.)
+  screenshots: jsonb("screenshots"), // Array of screenshot file paths
+  additionalFiles: jsonb("additional_files"), // Array of additional file paths
+  status: varchar("status", { length: 20 }).notNull().default('submitted'), // 'submitted', 'under_review', 'approved', 'rejected', 'revision_requested'
+  reviewNotes: text("review_notes"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  approvedForPayment: boolean("approved_for_payment").default(false),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Notifications table for sitewide notifications
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'message', 'task_approved', 'payment_received', 'campaign_joined', etc.
+  title: varchar("title", { length: 200 }).notNull(),
+  content: text("content").notNull(),
+  actionUrl: varchar("action_url"), // URL to navigate when notification is clicked
+  relatedId: uuid("related_id"), // ID of related entity (campaign, message, etc.)
+  isRead: boolean("is_read").default(false),
+  priority: varchar("priority", { length: 20 }).default('normal'), // 'low', 'normal', 'high', 'urgent'
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
 });
 
 // Insert schemas
@@ -210,6 +262,19 @@ export const insertPurchaseSchema = createInsertSchema(purchases).omit({
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskSubmissionSchema = createInsertSchema(taskSubmissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  submittedAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Types
@@ -230,3 +295,7 @@ export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type TaskSubmission = typeof taskSubmissions.$inferSelect;
+export type InsertTaskSubmission = z.infer<typeof insertTaskSubmissionSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;

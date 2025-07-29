@@ -7,6 +7,8 @@ import {
   shopProducts,
   purchases,
   messages,
+  taskSubmissions,
+  notifications,
   type User,
   type InsertUser,
   type Campaign,
@@ -23,6 +25,10 @@ import {
   type InsertPurchase,
   type Message,
   type InsertMessage,
+  type TaskSubmission,
+  type InsertTaskSubmission,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -69,7 +75,26 @@ export interface IStorage {
   
   // Message operations
   getUserMessages(userId: string): Promise<Message[]>;
+  getCampaignMessages(campaignId: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+  markMessageAsRead(messageId: string): Promise<void>;
+  
+  // Task submission operations
+  getUserTaskSubmissions(userId: string): Promise<TaskSubmission[]>;
+  getCampaignTaskSubmissions(campaignId: string): Promise<TaskSubmission[]>;
+  createTaskSubmission(submission: InsertTaskSubmission): Promise<TaskSubmission>;
+  updateTaskSubmission(id: string, updates: Partial<InsertTaskSubmission>): Promise<TaskSubmission>;
+  approveTaskSubmission(id: string, reviewedBy: string, notes?: string): Promise<TaskSubmission>;
+  rejectTaskSubmission(id: string, reviewedBy: string, notes: string): Promise<TaskSubmission>;
+  
+  // Notification operations
+  getUserNotifications(userId: string): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(notificationId: string): Promise<void>;
+  
+  // Wallet and payment operations
+  updateUserBalance(userId: string, amount: number, type: 'add' | 'subtract'): Promise<User>;
+  approvePayment(transactionId: string, approvedBy: string): Promise<Transaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -253,9 +278,156 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(messages.createdAt));
   }
 
+  async getCampaignMessages(campaignId: string): Promise<Message[]> {
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.campaignId, campaignId))
+      .orderBy(desc(messages.createdAt));
+  }
+
   async createMessage(message: InsertMessage): Promise<Message> {
     const [newMessage] = await db.insert(messages).values(message).returning();
     return newMessage;
+  }
+
+  async markMessageAsRead(messageId: string): Promise<void> {
+    await db
+      .update(messages)
+      .set({ isRead: true })
+      .where(eq(messages.id, messageId));
+  }
+
+  // Task submission operations
+  async getUserTaskSubmissions(userId: string): Promise<TaskSubmission[]> {
+    return await db
+      .select()
+      .from(taskSubmissions)
+      .where(eq(taskSubmissions.userId, userId))
+      .orderBy(desc(taskSubmissions.createdAt));
+  }
+
+  async getCampaignTaskSubmissions(campaignId: string): Promise<TaskSubmission[]> {
+    return await db
+      .select()
+      .from(taskSubmissions)
+      .where(eq(taskSubmissions.campaignId, campaignId))
+      .orderBy(desc(taskSubmissions.createdAt));
+  }
+
+  async createTaskSubmission(submission: InsertTaskSubmission): Promise<TaskSubmission> {
+    const [newSubmission] = await db
+      .insert(taskSubmissions)
+      .values(submission)
+      .returning();
+    return newSubmission;
+  }
+
+  async updateTaskSubmission(id: string, updates: Partial<InsertTaskSubmission>): Promise<TaskSubmission> {
+    const [updated] = await db
+      .update(taskSubmissions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(taskSubmissions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async approveTaskSubmission(id: string, reviewedBy: string, notes?: string): Promise<TaskSubmission> {
+    const [approved] = await db
+      .update(taskSubmissions)
+      .set({
+        status: 'approved',
+        approvedForPayment: true,
+        reviewedBy,
+        reviewedAt: new Date(),
+        reviewNotes: notes,
+        updatedAt: new Date(),
+      })
+      .where(eq(taskSubmissions.id, id))
+      .returning();
+    return approved;
+  }
+
+  async rejectTaskSubmission(id: string, reviewedBy: string, notes: string): Promise<TaskSubmission> {
+    const [rejected] = await db
+      .update(taskSubmissions)
+      .set({
+        status: 'rejected',
+        reviewedBy,
+        reviewedAt: new Date(),
+        reviewNotes: notes,
+        updatedAt: new Date(),
+      })
+      .where(eq(taskSubmissions.id, id))
+      .returning();
+    return rejected;
+  }
+
+  // Notification operations
+  async getUserNotifications(userId: string): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ 
+        isRead: true,
+        readAt: new Date(),
+      })
+      .where(eq(notifications.id, notificationId));
+  }
+
+  // Wallet and payment operations
+  async updateUserBalance(userId: string, amount: number, type: 'add' | 'subtract'): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
+
+    const currentBalance = parseFloat(user.availableBalance || '0');
+    const newBalance = type === 'add' 
+      ? currentBalance + amount 
+      : Math.max(0, currentBalance - amount);
+
+    const [updated] = await db
+      .update(users)
+      .set({ 
+        availableBalance: newBalance.toString(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async approvePayment(transactionId: string, approvedBy: string): Promise<Transaction> {
+    const [approved] = await db
+      .update(transactions)
+      .set({
+        status: 'approved',
+        approvedBy,
+        approvedAt: new Date(),
+      })
+      .where(eq(transactions.id, transactionId))
+      .returning();
+
+    // Update user balance if it's a campaign reward
+    if (approved.type === 'campaign_reward' && approved.userId) {
+      await this.updateUserBalance(approved.userId, parseFloat(approved.amount), 'add');
+    }
+
+    return approved;
   }
 }
 

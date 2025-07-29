@@ -291,15 +291,228 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Message routes
-  app.get('/api/messages', async (req: any, res) => {
+  // Enhanced messaging routes for brand-creator communication
+  app.get('/api/messages', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
       const messages = await storage.getUserMessages(userId);
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
       res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.get('/api/campaigns/:campaignId/messages', async (req, res) => {
+    try {
+      const messages = await storage.getCampaignMessages(req.params.campaignId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching campaign messages:", error);
+      res.status(500).json({ message: "Failed to fetch campaign messages" });
+    }
+  });
+
+  app.post('/api/messages', upload.array('attachments'), async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const { campaignId, participationId, receiverId, subject, content, messageType } = req.body;
+      const files = req.files as Express.Multer.File[];
+      
+      const attachments = files ? files.map(file => ({
+        filename: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size
+      })) : [];
+
+      const message = await storage.createMessage({
+        campaignId,
+        participationId,
+        senderId: userId,
+        receiverId,
+        subject,
+        content,
+        messageType: messageType || 'general',
+        attachments
+      });
+
+      // Create notification for receiver
+      await storage.createNotification({
+        userId: receiverId,
+        type: 'message',
+        title: subject || 'New Message',
+        content: `You have a new message from ${(req as any).user?.firstName}`,
+        actionUrl: `/messages`,
+        relatedId: message.id,
+      });
+
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Task submission routes
+  app.get('/api/task-submissions', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const submissions = await storage.getUserTaskSubmissions(userId);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching task submissions:", error);
+      res.status(500).json({ message: "Failed to fetch task submissions" });
+    }
+  });
+
+  app.get('/api/campaigns/:campaignId/submissions', async (req, res) => {
+    try {
+      const submissions = await storage.getCampaignTaskSubmissions(req.params.campaignId);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching campaign submissions:", error);
+      res.status(500).json({ message: "Failed to fetch campaign submissions" });
+    }
+  });
+
+  app.post('/api/task-submissions', upload.array('files'), async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const { campaignId, participationId, title, description, proofUrls } = req.body;
+      const files = req.files as Express.Multer.File[];
+      
+      const screenshots = files?.filter(f => f.mimetype.startsWith('image/')).map(file => ({
+        filename: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype
+      })) || [];
+
+      const additionalFiles = files?.filter(f => !f.mimetype.startsWith('image/')).map(file => ({
+        filename: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype
+      })) || [];
+
+      const submission = await storage.createTaskSubmission({
+        campaignId,
+        participationId,
+        userId,
+        title,
+        description,
+        proofUrls: JSON.parse(proofUrls || '[]'),
+        screenshots,
+        additionalFiles,
+      });
+
+      res.status(201).json(submission);
+    } catch (error) {
+      console.error("Error creating task submission:", error);
+      res.status(500).json({ message: "Failed to submit task" });
+    }
+  });
+
+  // Task approval and payment routes
+  app.patch('/api/task-submissions/:id/approve', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const { notes } = req.body;
+      const submission = await storage.approveTaskSubmission(req.params.id, userId, notes);
+
+      // Create transaction for payment
+      const campaign = await storage.getCampaignById(submission.campaignId);
+      if (campaign) {
+        const transaction = await storage.createTransaction({
+          userId: submission.userId,
+          campaignId: submission.campaignId,
+          participationId: submission.participationId,
+          amount: campaign.reward.toString(),
+          type: 'campaign_reward',
+          description: `Reward for completing "${campaign.title}"`,
+        });
+
+        // Approve payment and update user balance
+        await storage.approvePayment(transaction.id, userId);
+
+        // Notify creator of approval and payment
+        await storage.createNotification({
+          userId: submission.userId,
+          type: 'task_approved',
+          title: 'Task Approved & Payment Sent',
+          content: `Your submission for "${campaign.title}" has been approved. $${campaign.reward} has been added to your wallet.`,
+          actionUrl: `/wallet`,
+          relatedId: submission.id,
+        });
+      }
+
+      res.json(submission);
+    } catch (error) {
+      console.error("Error approving task submission:", error);
+      res.status(500).json({ message: "Failed to approve task submission" });
+    }
+  });
+
+  app.patch('/api/task-submissions/:id/reject', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const { notes } = req.body;
+      if (!notes) return res.status(400).json({ message: "Rejection notes are required" });
+
+      const submission = await storage.rejectTaskSubmission(req.params.id, userId, notes);
+
+      // Notify creator of rejection
+      const campaign = await storage.getCampaignById(submission.campaignId);
+      if (campaign) {
+        await storage.createNotification({
+          userId: submission.userId,
+          type: 'task_rejected',
+          title: 'Task Submission Rejected',
+          content: `Your submission for "${campaign.title}" needs revision. Check the feedback and resubmit.`,
+          actionUrl: `/campaigns/${submission.campaignId}`,
+          relatedId: submission.id,
+        });
+      }
+
+      res.json(submission);
+    } catch (error) {
+      console.error("Error rejecting task submission:", error);
+      res.status(500).json({ message: "Failed to reject task submission" });
+    }
+  });
+
+  // Notifications routes
+  app.get('/api/notifications', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const notifications = await storage.getUserNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.patch('/api/notifications/:id/read', async (req, res) => {
+    try {
+      await storage.markNotificationAsRead(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
     }
   });
 

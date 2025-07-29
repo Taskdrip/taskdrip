@@ -1,290 +1,603 @@
-import { NavigationFixed } from "@/components/ui/navigation-fixed";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
-import { Send, Search, Phone, Video, MoreVertical, Paperclip } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { MessageCircle, Send, Upload, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
 
-export default function Messages() {
-  const { user } = useAuth();
-  const [selectedConversation, setSelectedConversation] = useState(1);
-  const [newMessage, setNewMessage] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+interface Message {
+  id: string;
+  campaignId: string;
+  senderId: string;
+  receiverId: string;
+  subject: string;
+  content: string;
+  messageType: string;
+  isRead: boolean;
+  attachments?: any[];
+  createdAt: string;
+}
 
-  const conversations = [
-    {
-      id: 1,
-      name: "TechCorp Marketing",
-      lastMessage: "Thanks for completing the app testing task!",
-      timestamp: "2m ago",
-      unread: 2,
-      avatar: null,
-      online: true
-    },
-    {
-      id: 2,
-      name: "Sarah Chen",
-      lastMessage: "How was the event hosting gig?",
-      timestamp: "1h ago",
-      unread: 0,
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b5c5?w=40&h=40&fit=crop&crop=face",
-      online: true
-    },
-    {
-      id: 3,
-      name: "CryptoTrading Co",
-      lastMessage: "New trading campaign available",
-      timestamp: "3h ago",
-      unread: 1,
-      avatar: null,
-      online: false
-    },
-    {
-      id: 4,
-      name: "Local Events Team",
-      lastMessage: "Great work on the community meetup!",
-      timestamp: "1d ago",
-      unread: 0,
-      avatar: null,
-      online: false
-    },
-    {
-      id: 5,
-      name: "Alex Rodriguez",
-      lastMessage: "Want to collaborate on the next campaign?",
-      timestamp: "2d ago",
-      unread: 0,
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-      online: false
-    }
-  ];
+interface TaskSubmission {
+  id: string;
+  campaignId: string;
+  participationId: string;
+  title: string;
+  description: string;
+  status: string;
+  proofUrls?: string[];
+  screenshots?: any[];
+  reviewNotes?: string;
+  submittedAt: string;
+}
 
-  const currentConversation = conversations.find(c => c.id === selectedConversation);
+interface Campaign {
+  id: string;
+  title: string;
+  brandName: string;
+  reward: string;
+}
 
-  const messages = [
-    {
-      id: 1,
-      sender: "TechCorp Marketing",
-      content: "Hi! We have a new app testing opportunity that matches your profile perfectly.",
-      timestamp: "10:30 AM",
-      isCurrentUser: false
-    },
-    {
-      id: 2,
-      sender: "You",
-      content: "Sounds interesting! Could you share more details about the testing requirements?",
-      timestamp: "10:32 AM",
-      isCurrentUser: true
-    },
-    {
-      id: 3,
-      sender: "TechCorp Marketing",
-      content: "It's a fintech mobile app that needs comprehensive testing across different devices. The task pays $45 and should take about 3-4 hours.",
-      timestamp: "10:35 AM",
-      isCurrentUser: false
-    },
-    {
-      id: 4,
-      sender: "You",
-      content: "Perfect! I have experience with fintech apps. When do you need this completed?",
-      timestamp: "10:37 AM",
-      isCurrentUser: true
-    },
-    {
-      id: 5,
-      sender: "TechCorp Marketing",
-      content: "By Friday would be ideal. I'll send you the testing guidelines and access credentials.",
-      timestamp: "10:40 AM",
-      isCurrentUser: false
-    },
-    {
-      id: 6,
-      sender: "TechCorp Marketing",
-      content: "Thanks for completing the app testing task! Your feedback was incredibly detailed and helpful.",
-      timestamp: "2:15 PM",
-      isCurrentUser: false
-    }
-  ];
+const messageSchema = z.object({
+  campaignId: z.string(),
+  receiverId: z.string(),
+  subject: z.string().min(1, "Subject is required"),
+  content: z.string().min(1, "Message content is required"),
+  messageType: z.string().optional(),
+});
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      // In real app, this would send to API
-      console.log("Sending message:", newMessage);
-      setNewMessage("");
+const taskSubmissionSchema = z.object({
+  campaignId: z.string(),
+  participationId: z.string(),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  proofUrls: z.string().optional(),
+});
+
+export default function MessagesPage() {
+  const { toast } = useToast();
+  const [selectedTab, setSelectedTab] = useState<"messages" | "submissions">("messages");
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [isSubmitTaskOpen, setIsSubmitTaskOpen] = useState(false);
+
+  // Fetch user messages
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
+    queryKey: ["/api/messages"],
+    retry: false,
+  });
+
+  // Fetch user task submissions
+  const { data: submissions = [], isLoading: submissionsLoading } = useQuery<TaskSubmission[]>({
+    queryKey: ["/api/task-submissions"],
+    retry: false,
+  });
+
+  // Fetch user participations to get campaigns they can message about
+  const { data: participations = [] } = useQuery({
+    queryKey: ["/api/participations"],
+    retry: false,
+  });
+
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof messageSchema> & { files?: FileList }) => {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'files' && value !== undefined) {
+          formData.append(key, value);
+        }
+      });
+      
+      if (data.files) {
+        Array.from(data.files).forEach(file => {
+          formData.append('attachments', file);
+        });
+      }
+
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      toast({
+        title: "Message sent!",
+        description: "Your message has been sent successfully.",
+      });
+      setIsComposeOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Submit task mutation
+  const submitTaskMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof taskSubmissionSchema> & { files?: FileList }) => {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'files' && value !== undefined) {
+          formData.append(key, value);
+        }
+      });
+      
+      if (data.files) {
+        Array.from(data.files).forEach(file => {
+          formData.append('files', file);
+        });
+      }
+
+      const res = await fetch('/api/task-submissions', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/task-submissions"] });
+      toast({
+        title: "Task submitted!",
+        description: "Your task submission has been sent for review.",
+      });
+      setIsSubmitTaskOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to submit task",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const messageForm = useForm<z.infer<typeof messageSchema>>({
+    resolver: zodResolver(messageSchema),
+    defaultValues: {
+      campaignId: "",
+      receiverId: "",
+      subject: "",
+      content: "",
+      messageType: "general",
+    },
+  });
+
+  const taskForm = useForm<z.infer<typeof taskSubmissionSchema>>({
+    resolver: zodResolver(taskSubmissionSchema),
+    defaultValues: {
+      campaignId: "",
+      participationId: "",
+      title: "",
+      description: "",
+      proofUrls: "",
+    },
+  });
+
+  const onSendMessage = (data: z.infer<typeof messageSchema>) => {
+    const files = (document.getElementById('message-files') as HTMLInputElement)?.files;
+    sendMessageMutation.mutate({ ...data, files: files || undefined });
+  };
+
+  const onSubmitTask = (data: z.infer<typeof taskSubmissionSchema>) => {
+    const files = (document.getElementById('task-files') as HTMLInputElement)?.files;
+    const proofUrls = data.proofUrls ? data.proofUrls.split('\n').filter(url => url.trim()) : [];
+    submitTaskMutation.mutate({ 
+      ...data, 
+      proofUrls: JSON.stringify(proofUrls),
+      files: files || undefined 
+    });
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'rejected':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'under_review':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-blue-500" />;
     }
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'under_review':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavigationFixed />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-          {/* Conversations List */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Messages</span>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Messages & Tasks</h1>
+            <p className="text-gray-600 mt-2">Communicate with brands and submit your completed work</p>
+          </div>
+          <div className="flex gap-4">
+            <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Compose Message
                 </Button>
-              </CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Send Message to Brand</DialogTitle>
+                  <DialogDescription>
+                    Send a message about one of your active campaigns
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...messageForm}>
+                  <form onSubmit={messageForm.handleSubmit(onSendMessage)} className="space-y-4">
+                    <FormField
+                      control={messageForm.control}
+                      name="campaignId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Campaign</FormLabel>
+                          <FormControl>
+                            <select {...field} className="w-full p-2 border rounded-md">
+                              <option value="">Select campaign...</option>
+                              {participations.map((p: any) => (
+                                <option key={p.campaignId} value={p.campaignId}>
+                                  {p.campaign?.title || p.campaignId}
+                                </option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={messageForm.control}
+                      name="subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subject</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Message subject..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={messageForm.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Message</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Type your message..." 
+                              className="min-h-[120px]"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Attachments</label>
+                      <input
+                        id="message-files"
+                        type="file"
+                        multiple
+                        className="w-full p-2 border rounded-md"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setIsComposeOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={sendMessageMutation.isPending}>
+                        {sendMessageMutation.isPending ? "Sending..." : "Send Message"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isSubmitTaskOpen} onOpenChange={setIsSubmitTaskOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Submit Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Submit Completed Task</DialogTitle>
+                  <DialogDescription>
+                    Submit proof of your completed campaign work for review
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...taskForm}>
+                  <form onSubmit={taskForm.handleSubmit(onSubmitTask)} className="space-y-4">
+                    <FormField
+                      control={taskForm.control}
+                      name="campaignId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Campaign</FormLabel>
+                          <FormControl>
+                            <select 
+                              {...field} 
+                              className="w-full p-2 border rounded-md"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                const participation = participations.find((p: any) => p.campaignId === e.target.value);
+                                if (participation) {
+                                  taskForm.setValue('participationId', participation.id);
+                                }
+                              }}
+                            >
+                              <option value="">Select campaign...</option>
+                              {participations.map((p: any) => (
+                                <option key={p.campaignId} value={p.campaignId}>
+                                  {p.campaign?.title || p.campaignId}
+                                </option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={taskForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Submission Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Brief title for your submission..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={taskForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Describe what you completed and how it meets the campaign requirements..." 
+                              className="min-h-[120px]"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={taskForm.control}
+                      name="proofUrls"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Proof URLs</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Add links to your posts, videos, or other proof (one per line)..."
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Screenshots & Files</label>
+                      <input
+                        id="task-files"
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx"
+                        className="w-full p-2 border rounded-md"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">Upload screenshots, documents, or other proof files</p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setIsSubmitTaskOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={submitTaskMutation.isPending}>
+                        {submitTaskMutation.isPending ? "Submitting..." : "Submit Task"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b mb-6">
+          <button
+            onClick={() => setSelectedTab("messages")}
+            className={`px-6 py-3 font-medium ${
+              selectedTab === "messages"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Messages ({messages.length})
+          </button>
+          <button
+            onClick={() => setSelectedTab("submissions")}
+            className={`px-6 py-3 font-medium ${
+              selectedTab === "submissions"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Task Submissions ({submissions.length})
+          </button>
+        </div>
+
+        {/* Messages Tab */}
+        {selectedTab === "messages" && (
+          <div className="space-y-4">
+            {messagesLoading ? (
+              <div className="text-center py-8">Loading messages...</div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-12">
+                <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
+                <p className="text-gray-500 mb-4">Start a conversation with brands about your campaigns</p>
+                <Button onClick={() => setIsComposeOpen(true)}>Send Your First Message</Button>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-1">
-                {filteredConversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    onClick={() => setSelectedConversation(conversation.id)}
-                    className={`flex items-center space-x-3 p-4 hover:bg-gray-50 cursor-pointer border-l-4 transition-colors ${
-                      selectedConversation === conversation.id
-                        ? "bg-blue-50 border-l-blue-500"
-                        : "border-l-transparent"
-                    }`}
-                  >
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={conversation.avatar} alt={conversation.name} />
-                        <AvatarFallback>
-                          {conversation.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      {conversation.online && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+            ) : (
+              messages.map((message) => (
+                <Card key={message.id} className={`${!message.isRead ? 'border-l-4 border-l-blue-500' : ''}`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-lg">{message.subject}</CardTitle>
+                        <CardDescription>
+                          {format(new Date(message.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                        </CardDescription>
+                      </div>
+                      {!message.isRead && (
+                        <Badge variant="secondary">Unread</Badge>
                       )}
                     </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {conversation.name}
-                        </h3>
-                        <span className="text-xs text-gray-500">{conversation.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 truncate">{conversation.lastMessage}</p>
-                    </div>
-                    
-                    {conversation.unread > 0 && (
-                      <div className="bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {conversation.unread}
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 whitespace-pre-wrap">{message.content}</p>
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Attachments:</h4>
+                        <div className="space-y-1">
+                          {message.attachments.map((attachment: any, idx: number) => (
+                            <div key={idx} className="text-sm text-blue-600 hover:underline">
+                              📎 {attachment.filename}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Chat Area */}
-          <Card className="lg:col-span-2 flex flex-col">
-            {currentConversation ? (
-              <>
-                {/* Chat Header */}
-                <CardHeader className="border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={currentConversation.avatar} alt={currentConversation.name} />
-                          <AvatarFallback>
-                            {currentConversation.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        {currentConversation.online && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{currentConversation.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {currentConversation.online ? "Online" : "Last seen recently"}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Video className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                {/* Messages */}
-                <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        message.isCurrentUser
-                          ? 'bg-black text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}>
-                        <p className="text-sm">{message.content}</p>
-                        <span className="text-xs opacity-70 mt-1 block">
-                          {message.timestamp}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-
-                {/* Message Input */}
-                <div className="border-t p-4">
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      placeholder="Type your message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim()}
-                      className="bg-black text-white hover:bg-gray-800"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <CardContent className="flex-1 flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
-                  <p>Choose a conversation from the sidebar to start messaging</p>
-                </div>
-              </CardContent>
+                  </CardContent>
+                </Card>
+              ))
             )}
-          </Card>
-        </div>
+          </div>
+        )}
+
+        {/* Task Submissions Tab */}
+        {selectedTab === "submissions" && (
+          <div className="space-y-4">
+            {submissionsLoading ? (
+              <div className="text-center py-8">Loading submissions...</div>
+            ) : submissions.length === 0 ? (
+              <div className="text-center py-12">
+                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No task submissions yet</h3>
+                <p className="text-gray-500 mb-4">Submit your completed campaign work for review and payment</p>
+                <Button onClick={() => setIsSubmitTaskOpen(true)}>Submit Your First Task</Button>
+              </div>
+            ) : (
+              submissions.map((submission) => (
+                <Card key={submission.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          {getStatusIcon(submission.status)}
+                          <CardTitle className="text-lg">{submission.title}</CardTitle>
+                        </div>
+                        <CardDescription>
+                          Submitted {format(new Date(submission.submittedAt), "MMM d, yyyy 'at' h:mm a")}
+                        </CardDescription>
+                      </div>
+                      <Badge className={getStatusColor(submission.status)}>
+                        {submission.status.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 mb-4">{submission.description}</p>
+                    
+                    {submission.proofUrls && submission.proofUrls.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">Proof URLs:</h4>
+                        <div className="space-y-1">
+                          {submission.proofUrls.map((url: string, idx: number) => (
+                            <a 
+                              key={idx} 
+                              href={url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline block"
+                            >
+                              🔗 {url}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.screenshots && submission.screenshots.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">Screenshots:</h4>
+                        <div className="text-sm text-gray-600">
+                          {submission.screenshots.length} file(s) uploaded
+                        </div>
+                      </div>
+                    )}
+
+                    {submission.reviewNotes && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium mb-2">Review Notes:</h4>
+                        <p className="text-gray-700">{submission.reviewNotes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
