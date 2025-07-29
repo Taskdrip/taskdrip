@@ -190,6 +190,8 @@ export default function BrandDashboard() {
   });
 
   const onCreateCampaign = (data: z.infer<typeof campaignSchema>) => {
+    console.log("Form submission data:", data);
+    console.log("Form errors:", form.formState.errors);
     createCampaignMutation.mutate(data);
   };
 
@@ -245,12 +247,12 @@ export default function BrandDashboard() {
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onCreateCampaign)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField
                         control={form.control}
                         name="title"
                         render={({ field }) => (
-                          <FormItem className="col-span-2">
+                          <FormItem>
                             <FormLabel>Campaign Title</FormLabel>
                             <FormControl>
                               <Input placeholder="Enter campaign title..." {...field} />
@@ -339,7 +341,7 @@ export default function BrandDashboard() {
                       )}
                     />
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
                         name="reward"
@@ -402,7 +404,12 @@ export default function BrandDashboard() {
                       <Button type="button" variant="outline" onClick={() => setIsCreateCampaignOpen(false)}>
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={createCampaignMutation.isPending}>
+                      <Button 
+                        type="submit" 
+                        disabled={createCampaignMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        onClick={() => console.log("Create Campaign button clicked")}
+                      >
                         {createCampaignMutation.isPending ? "Creating..." : "Create Campaign"}
                       </Button>
                     </div>

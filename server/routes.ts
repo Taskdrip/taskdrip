@@ -73,7 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         campaignId: campaign.id,
         brandId: user.id,
-        amount: req.body.totalBudget || req.body.reward,
+        amount: parseFloat(req.body.reward) * parseInt(req.body.totalSlots), // Total campaign budget
         status: 'payment_window',
         paymentWindowStart: new Date(),
         paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
@@ -84,6 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Escrow payment created:", escrowPayment);
 
       res.status(201).json({ 
+        success: true,
         campaign, 
         campaignId: campaign.id,
         escrowPaymentId: escrowPayment.id 
