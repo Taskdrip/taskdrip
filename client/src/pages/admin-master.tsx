@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,20 +10,85 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/ui/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { 
   Shield, Users, DollarSign, MessageSquare, CheckCircle, XCircle, Clock, Plus, Edit, 
-  Trash2, Eye, UserCheck, AlertTriangle, TrendingUp, Settings, BookOpen, Target
+  Trash2, Eye, UserCheck, AlertTriangle, TrendingUp, Settings, BookOpen, Target,
+  Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
+  Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink
 } from "lucide-react";
+
+// Form schemas
+const blogPostSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(10, "Content must be at least 10 characters"),
+  status: z.enum(["draft", "published"]),
+  category: z.string().optional(),
+  featuredImage: z.string().optional(),
+});
+
+const campaignSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(10, "Description is required"),
+  category: z.string().min(1, "Category is required"),
+  reward: z.number().min(0.01, "Reward must be positive"),
+  totalSlots: z.number().min(1, "Must have at least 1 slot"),
+});
+
+const settingsSchema = z.object({
+  minPayout: z.number().min(1, "Minimum payout must be at least $1"),
+  maxTaskReward: z.number().min(1, "Maximum task reward must be positive"),
+  dailyWithdrawalLimit: z.number().min(100, "Daily limit must be at least $100"),
+});
 
 export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [newBlogPost, setNewBlogPost] = useState({
-    title: "",
-    content: "",
-    status: "draft" as 'published' | 'draft'
+  const [activeTab, setActiveTab] = useState("overview");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+
+  // Forms
+  const blogForm = useForm({
+    resolver: zodResolver(blogPostSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+      status: "draft" as const,
+      category: "",
+      featuredImage: "",
+    },
+  });
+
+  const campaignForm = useForm({
+    resolver: zodResolver(campaignSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      category: "",
+      reward: 0,
+      totalSlots: 1,
+    },
+  });
+
+  const settingsForm = useForm({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      minPayout: 10,
+      maxTaskReward: 500,
+      dailyWithdrawalLimit: 2000,
+    },
   });
 
   // Data fetching with proper admin endpoints
@@ -49,16 +114,71 @@ export default function AdminMaster() {
 
   // Admin mutations
   const createBlogPost = useMutation({
-    mutationFn: async (data: { title: string; content: string; status: string }) => {
+    mutationFn: async (data: z.infer<typeof blogPostSchema>) => {
       const res = await apiRequest("POST", "/api/admin/blog", data);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
-      setNewBlogPost({ title: "", content: "", status: "draft" });
+      blogForm.reset();
       toast({
         title: "Success",
         description: "Blog post created successfully",
+      });
+    },
+  });
+
+  const createCampaign = useMutation({
+    mutationFn: async (data: z.infer<typeof campaignSchema>) => {
+      const res = await apiRequest("POST", "/api/admin/campaigns", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      campaignForm.reset();
+      setIsCampaignDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Campaign created successfully",
+      });
+    },
+  });
+
+  const deleteBlogPost = useMutation({
+    mutationFn: async (postId: string) => {
+      await apiRequest("DELETE", `/api/admin/blog/${postId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
+      toast({
+        title: "Success",
+        description: "Blog post deleted successfully",
+      });
+    },
+  });
+
+  const suspendUser = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("PUT", `/api/admin/users/${userId}/suspend`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User suspended successfully",
+      });
+    },
+  });
+
+  const updateSettings = useMutation({
+    mutationFn: async (data: z.infer<typeof settingsSchema>) => {
+      await apiRequest("PUT", "/api/admin/settings", data);
+    },
+    onSuccess: () => {
+      setIsSettingsDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Settings updated successfully",
       });
     },
   });
@@ -105,6 +225,27 @@ export default function AdminMaster() {
   const pendingPayments = transactions.filter((t: any) => t.status === 'pending');
   const unverifiedUsers = users.filter((u: any) => !u.isVerified && u.userType !== 'admin');
   const activeCampaigns = campaigns.filter((c: any) => c.status === 'active');
+  const totalUsers = users.length;
+  const totalRevenue = transactions
+    .filter((t: any) => t.status === 'completed')
+    .reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
+
+  // Filtered data based on search
+  const filteredUsers = users.filter((user: any) => 
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredCampaigns = campaigns.filter((campaign: any) =>
+    campaign.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    campaign.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredTransactions = transactions.filter((transaction: any) =>
+    transaction.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    transaction.status?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -174,21 +315,123 @@ export default function AdminMaster() {
           </div>
         </div>
 
+        {/* Search and Actions Bar */}
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search users, campaigns, transactions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-80"
+              />
+            </div>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Campaign
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export Data
+            </Button>
+          </div>
+        </div>
+
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="users">Users ({totalUsers})</TabsTrigger>
+            <TabsTrigger value="campaigns">Campaigns ({campaigns.length})</TabsTrigger>
+            <TabsTrigger value="payments">Payments ({pendingPayments.length})</TabsTrigger>
+            <TabsTrigger value="blog">Blog ({blogPosts.length})</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Priority Actions */}
+            {/* Executive Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Revenue</p>
+                      <p className="text-2xl font-bold text-green-600">${totalRevenue.toFixed(2)}</p>
+                      <p className="text-xs text-green-500">+12% this month</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Active Users</p>
+                      <p className="text-2xl font-bold">{totalUsers}</p>
+                      <p className="text-xs text-blue-500">+5 new today</p>
+                    </div>
+                    <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Pending Approvals</p>
+                      <p className="text-2xl font-bold text-orange-600">{pendingPayments.length + unverifiedUsers.length}</p>
+                      <p className="text-xs text-orange-500">Needs attention</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-orange-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Live Campaigns</p>
+                      <p className="text-2xl font-bold text-purple-600">{activeCampaigns.length}</p>
+                      <p className="text-xs text-purple-500">Currently running</p>
+                    </div>
+                    <Target className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Platform Status</p>
+                      <p className="text-lg font-bold text-green-600">Operational</p>
+                      <p className="text-xs text-green-500">All systems online</p>
+                    </div>
+                    <Activity className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Priority Actions */}
+              <Card className="md:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -197,22 +440,36 @@ export default function AdminMaster() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {pendingPayments.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-yellow-800">{pendingPayments.length} Pending Payments</p>
-                        <p className="text-sm text-yellow-600">Require immediate review</p>
+                    <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="h-5 w-5 text-yellow-600" />
+                        <div>
+                          <p className="font-medium text-yellow-800">{pendingPayments.length} Pending Payments</p>
+                          <p className="text-sm text-yellow-600">Total: ${pendingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0).toFixed(2)}</p>
+                        </div>
                       </div>
-                      <Button size="sm" variant="outline">Review</Button>
+                      <Button size="sm" onClick={() => setActiveTab('payments')}>Review</Button>
                     </div>
                   )}
                   
                   {unverifiedUsers.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-red-800">{unverifiedUsers.length} Unverified Users</p>
-                        <p className="text-sm text-red-600">Awaiting verification</p>
+                    <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-l-4 border-red-400">
+                      <div className="flex items-center gap-3">
+                        <UserCheck className="h-5 w-5 text-red-600" />
+                        <div>
+                          <p className="font-medium text-red-800">{unverifiedUsers.length} Unverified Users</p>
+                          <p className="text-sm text-red-600">Awaiting identity verification</p>
+                        </div>
                       </div>
-                      <Button size="sm" variant="outline">Review</Button>
+                      <Button size="sm" onClick={() => setActiveTab('users')}>Review</Button>
+                    </div>
+                  )}
+                  
+                  {pendingPayments.length === 0 && unverifiedUsers.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                      <p>All tasks completed!</p>
+                      <p className="text-sm">No pending actions require attention.</p>
                     </div>
                   )}
                 </CardContent>
@@ -221,22 +478,44 @@ export default function AdminMaster() {
               {/* Recent Activity */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">New user registration: john@example.com</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm">Campaign created: Social Media Boost</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span className="text-sm">Payment pending: $250 payout</span>
-                    </div>
+                    {users.slice(-5).map((user: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">New registration: {user.email}</p>
+                          <p className="text-xs text-gray-500">Just now</p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {campaigns.slice(-3).map((campaign: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">Campaign: {campaign.title}</p>
+                          <p className="text-xs text-gray-500">Recently created</p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {transactions.slice(-2).map((transaction: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          transaction.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+                        }`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">${transaction.amount} {transaction.type}</p>
+                          <p className="text-xs text-gray-500">{transaction.status}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -246,52 +525,164 @@ export default function AdminMaster() {
           <TabsContent value="users" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">User Management</h2>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Users
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Users
+                </Button>
+              </div>
             </div>
             
             <Card>
               <CardHeader>
-                <CardTitle>All Users</CardTitle>
-                <CardDescription>Manage user accounts and verification status</CardDescription>
+                <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+                <CardDescription>Manage user accounts, verification status, and permissions</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {users.map((user: any) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                          {user.firstName?.[0] || 'U'}
-                        </div>
-                        <div>
-                          <p className="font-medium">{user.firstName} {user.lastName}</p>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant={user.userType === 'admin' ? 'default' : 'secondary'}>
-                              {user.userType}
-                            </Badge>
-                            <Badge variant={user.isVerified ? 'default' : 'destructive'}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Earnings</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user: any) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+                              {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                              <p className="font-medium">{user.firstName} {user.lastName}</p>
+                              <p className="text-sm text-gray-600">{user.email}</p>
+                              {user.location && (
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {user.location}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.userType === 'admin' ? 'default' : user.userType === 'brand' ? 'secondary' : 'outline'}>
+                            {user.userType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={user.isVerified ? 'default' : 'destructive'} className="w-fit">
                               {user.isVerified ? 'Verified' : 'Unverified'}
                             </Badge>
+                            {user.isKycApproved && (
+                              <Badge variant="secondary" className="w-fit text-xs">
+                                KYC Approved
+                              </Badge>
+                            )}
                           </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {!user.isVerified && user.userType !== 'admin' && (
-                          <Button 
-                            size="sm"
-                            onClick={() => updateUserVerification.mutate({ userId: user.id, verified: true })}
-                            disabled={updateUserVerification.isPending}
-                          >
-                            <UserCheck className="h-4 w-4 mr-1" />
-                            Verify
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p className="font-medium">${user.totalEarned || '0.00'}</p>
+                            <p className="text-gray-500">{user.completedCampaigns || 0} campaigns</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {!user.isVerified && user.userType !== 'admin' && (
+                              <Button 
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateUserVerification.mutate({ userId: user.id, verified: true })}
+                                disabled={updateUserVerification.isPending}
+                              >
+                                <UserCheck className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>User Details</DialogTitle>
+                                  <DialogDescription>
+                                    Complete information for {user.firstName} {user.lastName}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label>Email</Label>
+                                    <p className="text-sm">{user.email}</p>
+                                  </div>
+                                  <div>
+                                    <Label>Phone</Label>
+                                    <p className="text-sm">{user.phoneNumber || 'Not provided'}</p>
+                                  </div>
+                                  <div>
+                                    <Label>Bio</Label>
+                                    <p className="text-sm">{user.bio || 'No bio provided'}</p>
+                                  </div>
+                                  <div>
+                                    <Label>Skills</Label>
+                                    <p className="text-sm">{user.skills?.join(', ') || 'No skills listed'}</p>
+                                  </div>
+                                  <div>
+                                    <Label>Social Media</Label>
+                                    <div className="space-y-1">
+                                      {user.twitterHandle && <p className="text-sm">Twitter: @{user.twitterHandle}</p>}
+                                      {user.instagramHandle && <p className="text-sm">Instagram: @{user.instagramHandle}</p>}
+                                      {user.linkedinHandle && <p className="text-sm">LinkedIn: {user.linkedinHandle}</p>}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label>Crypto Wallets</Label>
+                                    <div className="space-y-1">
+                                      {user.usdtTronWallet && <p className="text-xs font-mono">USDT (Tron): {user.usdtTronWallet}</p>}
+                                      {user.usdtBscWallet && <p className="text-xs font-mono">USDT (BSC): {user.usdtBscWallet}</p>}
+                                      {user.tonWallet && <p className="text-xs font-mono">TON: {user.tonWallet}</p>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                  <Button variant="outline" onClick={() => suspendUser.mutate(user.id)}>
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    Suspend User
+                                  </Button>
+                                  <Button variant="outline">
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Send Message
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            <Button variant="outline" size="sm">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -357,82 +748,184 @@ export default function AdminMaster() {
           <TabsContent value="blog" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Blog Management</h2>
-              <Button 
-                onClick={() => createBlogPost.mutate(newBlogPost)} 
-                disabled={!newBlogPost.title || createBlogPost.isPending}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Publish Post
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Posts
+                </Button>
+                <Button size="sm" form="blog-form">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Post
+                </Button>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Create New Post</CardTitle>
+                  <CardDescription>Publish content to engage your community</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      value={newBlogPost.title}
-                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Enter blog post title"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="content">Content</Label>
-                    <Textarea
-                      id="content"
-                      value={newBlogPost.content}
-                      onChange={(e) => setNewBlogPost(prev => ({ ...prev, content: e.target.value }))}
-                      placeholder="Write your blog post content..."
-                      rows={8}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="status">Status</Label>
-                    <Select 
-                      value={newBlogPost.status} 
-                      onValueChange={(value: 'published' | 'draft') => setNewBlogPost(prev => ({ ...prev, status: value }))}
+                <CardContent>
+                  <Form {...blogForm}>
+                    <form 
+                      id="blog-form"
+                      onSubmit={blogForm.handleSubmit((data) => createBlogPost.mutate(data))}
+                      className="space-y-4"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <FormField
+                        control={blogForm.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter compelling blog title" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={blogForm.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="announcements">Announcements</SelectItem>
+                                <SelectItem value="tutorials">Tutorials</SelectItem>
+                                <SelectItem value="case-studies">Case Studies</SelectItem>
+                                <SelectItem value="industry-news">Industry News</SelectItem>
+                                <SelectItem value="company-updates">Company Updates</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={blogForm.control}
+                        name="featuredImage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Featured Image URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://example.com/image.jpg" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={blogForm.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Content</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Write your blog post content here..."
+                                rows={8}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={blogForm.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Publication Status</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="draft">Save as Draft</SelectItem>
+                                <SelectItem value="published">Publish Immediately</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </form>
+                  </Form>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Posts</CardTitle>
+                  <CardTitle>All Blog Posts ({blogPosts.length})</CardTitle>
+                  <CardDescription>Manage your published content</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {blogPosts.slice(0, 5).map((post: any) => (
-                      <div key={post.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium">{post.title}</p>
-                          <p className="text-sm text-gray-600">
-                            {post.status === 'published' ? 'Published' : 'Draft'} • {new Date(post.createdAt).toLocaleDateString()}
-                          </p>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {blogPosts.map((post: any) => (
+                      <div key={post.id} className="flex items-start justify-between p-4 border rounded-lg">
+                        <div className="flex gap-3">
+                          {post.featuredImage && (
+                            <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                              <img src={post.featuredImage} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{post.title}</p>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {post.category && (
+                                <Badge variant="outline" className="mr-2 text-xs">
+                                  {post.category}
+                                </Badge>
+                              )}
+                              {post.isPublished ? 'Published' : 'Draft'} • {new Date(post.createdAt).toLocaleDateString()}
+                            </p>
+                            {post.excerpt && (
+                              <p className="text-xs text-gray-500 mt-2 line-clamp-2">{post.excerpt}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 flex-shrink-0">
                           <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
+                            <Eye className="h-3 w-3" />
                           </Button>
                           <Button variant="outline" size="sm">
-                            <Trash2 className="h-4 w-4" />
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => deleteBlogPost.mutate(post.id)}
+                            disabled={deleteBlogPost.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
                     ))}
+                    
+                    {blogPosts.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <BookOpen className="h-12 w-12 mx-auto mb-2" />
+                        <p>No blog posts yet</p>
+                        <p className="text-sm">Create your first post to get started</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -477,36 +970,439 @@ export default function AdminMaster() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Analytics & Insights</h2>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Report
+                </Button>
+                <Select defaultValue="7days">
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">Last 24h</SelectItem>
+                    <SelectItem value="7days">Last 7 days</SelectItem>
+                    <SelectItem value="30days">Last 30 days</SelectItem>
+                    <SelectItem value="90days">Last 90 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Users</p>
+                      <p className="text-3xl font-bold">{totalUsers}</p>
+                      <p className="text-sm text-green-600">↗ +12% from last month</p>
+                    </div>
+                    <Users className="h-12 w-12 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
+                      <p className="text-3xl font-bold">{activeCampaigns.length}</p>
+                      <p className="text-sm text-blue-600">↗ +8% from last week</p>
+                    </div>
+                    <Target className="h-12 w-12 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Revenue</p>
+                      <p className="text-3xl font-bold">${totalRevenue.toFixed(0)}</p>
+                      <p className="text-sm text-green-600">↗ +15% from last month</p>
+                    </div>
+                    <DollarSign className="h-12 w-12 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Completion Rate</p>
+                      <p className="text-3xl font-bold">94%</p>
+                      <p className="text-sm text-green-600">↗ +2% from last week</p>
+                    </div>
+                    <TrendingUp className="h-12 w-12 text-orange-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Growth Trends</CardTitle>
+                  <CardDescription>New user registrations over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <Activity className="h-12 w-12 mx-auto mb-2" />
+                      <p>Chart visualization would be implemented here</p>
+                      <p className="text-sm">Showing user growth trends and patterns</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Analytics</CardTitle>
+                  <CardDescription>Payment trends and commission tracking</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Processed</span>
+                      <span className="font-medium">${totalRevenue.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Pending Payments</span>
+                      <span className="font-medium">${pendingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Commission Earned</span>
+                      <span className="font-medium">${(totalRevenue * 0.05).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm font-medium">Average Transaction</span>
+                      <span className="font-medium">${transactions.length > 0 ? (totalRevenue / transactions.length).toFixed(2) : '0.00'}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="settings" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Platform Settings</h2>
+              <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Update Settings
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Platform Configuration</DialogTitle>
+                    <DialogDescription>
+                      Modify global platform settings and limits
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...settingsForm}>
+                    <form 
+                      onSubmit={settingsForm.handleSubmit((data) => updateSettings.mutate(data))}
+                      className="space-y-4"
+                    >
+                      <FormField
+                        control={settingsForm.control}
+                        name="minPayout"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Minimum Payout ($)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={settingsForm.control}
+                        name="maxTaskReward"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Maximum Task Reward ($)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={settingsForm.control}
+                        name="dailyWithdrawalLimit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Daily Withdrawal Limit ($)</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value))} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex gap-2 pt-4">
+                        <Button type="submit" disabled={updateSettings.isPending}>
+                          {updateSettings.isPending ? "Updating..." : "Save Settings"}
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setIsSettingsDialogOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </div>
             
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>General Settings</CardTitle>
+                  <CardDescription>Configure platform-wide parameters</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <Label className="text-sm font-medium">Minimum Payout Amount</Label>
+                      <p className="text-2xl font-bold mt-1">$10.00</p>
+                      <p className="text-sm text-gray-600">Current threshold for payouts</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <Label className="text-sm font-medium">Maximum Task Reward</Label>
+                      <p className="text-2xl font-bold mt-1">$500.00</p>
+                      <p className="text-sm text-gray-600">Maximum reward per task</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <Label className="text-sm font-medium">Daily Withdrawal Limit</Label>
+                    <p className="text-2xl font-bold mt-1">$2,000.00</p>
+                    <p className="text-sm text-gray-600">Maximum daily withdrawal per user</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Supported Networks</CardTitle>
+                  <CardDescription>Active cryptocurrency payment networks</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">USDT (Tron)</p>
+                          <p className="text-sm text-gray-600">TRC-20 Network</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">USDT (BSC)</p>
+                          <p className="text-sm text-gray-600">BEP-20 Network</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium">TON</p>
+                          <p className="text-sm text-gray-600">The Open Network</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle>System Configuration</CardTitle>
-                <CardDescription>Manage platform-wide settings and limits</CardDescription>
+                <CardTitle>Platform Status</CardTitle>
+                <CardDescription>System health and operational metrics</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">Minimum Payout</span>
-                    <Badge>$10 USD</Badge>
+              <CardContent>
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div className="text-center p-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+                    <p className="font-medium">Database</p>
+                    <p className="text-sm text-gray-600">Operational</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">Max Task Reward</span>
-                    <Badge>$500 USD</Badge>
+                  <div className="text-center p-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+                    <p className="font-medium">Payment Gateway</p>
+                    <p className="text-sm text-gray-600">Operational</p>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">Daily Withdrawal Limit</span>
-                    <Badge>$2,000 USD</Badge>
+                  <div className="text-center p-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+                    <p className="font-medium">API Services</p>
+                    <p className="text-sm text-gray-600">Operational</p>
+                  </div>
+                  <div className="text-center p-4">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2"></div>
+                    <p className="font-medium">Email Service</p>
+                    <p className="text-sm text-gray-600">Operational</p>
                   </div>
                 </div>
-                <Button>Update Settings</Button>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Campaign Creation Dialog */}
+        {isCampaignDialogOpen && (
+          <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Campaign</DialogTitle>
+                <DialogDescription>
+                  Set up a new campaign for creators to participate in
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...campaignForm}>
+                <form 
+                  onSubmit={campaignForm.handleSubmit((data) => createCampaign.mutate(data))}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={campaignForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Campaign Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter campaign title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={campaignForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Describe the campaign requirements..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={campaignForm.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="social-media">Social Media</SelectItem>
+                            <SelectItem value="content-creation">Content Creation</SelectItem>
+                            <SelectItem value="gaming">Gaming</SelectItem>
+                            <SelectItem value="fitness">Health & Fitness</SelectItem>
+                            <SelectItem value="technology">Technology</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={campaignForm.control}
+                      name="reward"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reward ($)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="0.01"
+                              {...field} 
+                              onChange={(e) => field.onChange(parseFloat(e.target.value))} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={campaignForm.control}
+                      name="totalSlots"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Total Slots</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field} 
+                              onChange={(e) => field.onChange(parseInt(e.target.value))} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <Button type="submit" disabled={createCampaign.isPending}>
+                      {createCampaign.isPending ? "Creating..." : "Create Campaign"}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsCampaignDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );

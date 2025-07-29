@@ -109,7 +109,7 @@ export const transactions = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id").references(() => users.id),
   campaignId: varchar("campaign_id").references(() => campaigns.id),
-  taskSubmissionId: uuid("task_submission_id").references(() => taskSubmissions.id),
+  taskSubmissionId: uuid("task_submission_id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   type: varchar("type", { length: 20 }).notNull(), // 'campaign_reward', 'payout', 'bonus', etc.
   status: varchar("status", { length: 20 }).notNull().default('pending'), // 'pending', 'approved', 'completed', 'failed'
@@ -179,10 +179,10 @@ export const messages = pgTable("messages", {
   receiverId: varchar("receiver_id").references(() => users.id).notNull(),
   subject: varchar("subject", { length: 200 }),
   content: text("content").notNull(),
-  messageType: varchar("message_type", { length: 50 }).default('general'), // 'general', 'task_submission', 'approval_request'
+  messageType: varchar("message_type", { length: 50 }).default('general'),
   isRead: boolean("is_read").default(false),
-  attachments: jsonb("attachments"), // Array of file URLs and metadata
-  parentMessageId: uuid("parent_message_id").references(() => messages.id),
+  attachments: jsonb("attachments"),
+  parentMessageId: uuid("parent_message_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
