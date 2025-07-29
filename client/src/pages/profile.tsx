@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "wouter";
 import { 
   Star, 
   MapPin, 
@@ -20,7 +21,8 @@ import {
   Wallet,
   Clock,
   Plus,
-  Minus
+  Minus,
+  Edit3
 } from "lucide-react";
 
 export default function Profile() {
@@ -108,6 +110,17 @@ export default function Profile() {
                 ))}
               </div>
             </div>
+            
+            <Link href="/profile-edit">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="ml-4 bg-white text-black border-white hover:bg-gray-100"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            </Link>
           </div>
         </div>
 

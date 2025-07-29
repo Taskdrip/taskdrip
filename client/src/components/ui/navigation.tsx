@@ -92,9 +92,11 @@ export function Navigation() {
                   <DropdownMenuItem asChild>
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
+{(user as any)?.role === 'admin' && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin">Admin</Link>
                   </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <a href="/api/logout">Logout</a>
                   </DropdownMenuItem>

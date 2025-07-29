@@ -229,12 +229,59 @@ export default function WalletSettings() {
           </Card>
         </form>
 
-        {/* Payment Info */}
+        {/* Payment Management */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Payment Information</CardTitle>
+            <CardTitle>Payment Management</CardTitle>
+            <CardDescription>Request payouts and view transaction history</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {parseFloat(user?.availableBalance || '0') >= 10 ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-green-900">Ready for Withdrawal</h3>
+                    <p className="text-green-700 text-sm">You can request a payout to your crypto wallets</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-800">
+                      ${parseFloat(user?.availableBalance || '0').toFixed(2)}
+                    </div>
+                    <p className="text-green-600 text-sm">Available</p>
+                  </div>
+                </div>
+                {(user?.usdtTronWallet || user?.usdtBscWallet || user?.tonWallet) ? (
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    Request Payout
+                  </Button>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-yellow-800 text-sm mb-2">Add at least one wallet address to request payouts</p>
+                    <Button variant="outline" className="border-green-600 text-green-600">
+                      Add Wallet Address
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <h3 className="font-semibold text-gray-900 mb-2">Minimum Payout Not Reached</h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  You need at least $10.00 to request a payout. Keep completing tasks to reach the minimum!
+                </p>
+                <div className="bg-white rounded-lg p-3 border">
+                  <div className="flex justify-between text-sm">
+                    <span>Current Balance:</span>
+                    <span className="font-medium">${parseFloat(user?.availableBalance || '0').toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Needed for payout:</span>
+                    <span>${(10 - parseFloat(user?.availableBalance || '0')).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <h4 className="font-semibold text-gray-900">Supported Networks</h4>

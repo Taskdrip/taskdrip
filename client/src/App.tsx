@@ -23,6 +23,9 @@ import Login from "@/pages/login";
 import ForgotPassword from "@/pages/forgot-password";
 import CampaignDetail from "@/pages/campaign-detail";
 import WalletSettings from "@/pages/wallet-settings";
+import ProfileEdit from "@/pages/profile-edit";
+import About from "@/pages/about";
+import Contact from "@/pages/contact";
 
 
 function Router() {
@@ -47,6 +50,8 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/blog" component={Blog} />
       <Route path="/shop" component={Shop} />
+      <Route path="/about" component={About} />
+      <Route path="/contact" component={Contact} />
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={SimpleDashboard} />
@@ -57,6 +62,7 @@ function Router() {
           <Route path="/user-profile" component={UserProfile} />
           <Route path="/messages" component={Messages} />
           <Route path="/wallet" component={WalletSettings} />
+          <Route path="/profile-edit" component={ProfileEdit} />
           <Route path="/admin" component={Admin} />
         </>
       ) : (

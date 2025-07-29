@@ -1,4 +1,4 @@
-import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavigationFixed />
+      <Navigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -43,12 +43,20 @@ export default function Blog() {
             {featuredPost && (
               <Card className="mb-8 overflow-hidden">
                 <div className="md:flex">
-                  <div className="md:w-1/2 h-64 md:h-auto bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                    <div className="text-white text-center p-8">
-                      <Smartphone className="h-16 w-16 mx-auto mb-4" />
-                      <h2 className="text-2xl font-bold mb-2">Featured Guide</h2>
-                      <p className="text-lg opacity-90">Latest strategies for maximizing earnings</p>
+                  <div className="md:w-1/2 h-64 md:h-auto relative overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600">
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                      <div className="text-white text-center p-8">
+                        <Smartphone className="h-16 w-16 mx-auto mb-4" />
+                        <h2 className="text-2xl font-bold mb-2">Featured Guide</h2>
+                        <p className="text-lg opacity-90">Latest strategies for maximizing earnings</p>
+                      </div>
                     </div>
+                    <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 400 300" fill="none">
+                      <circle cx="100" cy="100" r="50" fill="white" opacity="0.1"/>
+                      <circle cx="300" cy="200" r="30" fill="white" opacity="0.1"/>
+                      <rect x="200" y="50" width="60" height="60" fill="white" opacity="0.1" rx="8"/>
+                      <path d="M50 250 Q200 150 350 250" stroke="white" strokeWidth="2" opacity="0.2"/>
+                    </svg>
                   </div>
                   <div className="md:w-1/2 p-8">
                     <div className="flex items-center gap-2 mb-4">
@@ -84,13 +92,27 @@ export default function Blog() {
 
             {/* Recent Posts Grid */}
             <div className="grid md:grid-cols-2 gap-6">
-              {recentPosts.map((post: any) => (
+              {recentPosts.map((post: any, index: number) => {
+                const imagePatterns = [
+                  { bg: "from-purple-500 to-pink-500", icon: TrendingUp },
+                  { bg: "from-green-500 to-blue-500", icon: Users },
+                  { bg: "from-orange-500 to-red-500", icon: Smartphone },
+                  { bg: "from-blue-500 to-purple-500", icon: Eye }
+                ];
+                const pattern = imagePatterns[index % imagePatterns.length];
+                const IconComponent = pattern.icon;
+                
+                return (
                 <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="h-40 bg-gradient-to-r from-gray-200 to-gray-300 flex items-center justify-center">
-                    <div className="text-center text-gray-600">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-sm font-medium">{post.category}</p>
+                  <div className={`h-40 bg-gradient-to-r ${pattern.bg} relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                      <IconComponent className="h-12 w-12 text-white opacity-80" />
                     </div>
+                    <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 300 200" fill="none">
+                      <circle cx={50 + index * 20} cy={50 + index * 15} r="15" fill="white" opacity="0.3"/>
+                      <circle cx={200 - index * 25} cy={120 - index * 10} r="10" fill="white" opacity="0.2"/>
+                      <rect x={80 + index * 20} y={20 + index * 15} width="30" height="30" fill="white" opacity="0.1" rx="4"/>
+                    </svg>
                   </div>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-3">
@@ -119,7 +141,8 @@ export default function Blog() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
 
