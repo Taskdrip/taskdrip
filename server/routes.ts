@@ -55,13 +55,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const campaignData = {
-        ...req.body,
         id: campaignId,
+        title: req.body.title,
+        description: req.body.description,
+        category: req.body.category,
+        reward: req.body.reward.toString(),
+        totalSlots: req.body.totalSlots,
+        deadline: req.body.deadline,
+        requirements: [req.body.requirements], // Convert string to array
+        estimatedTime: req.body.estimatedTime,
         brandId: user.id,
         brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
         status: 'pending_payment',
         paymentStatus: 'pending',
         isActive: false,
+        filledSlots: 0,
       };
       
       console.log("Creating campaign with data:", campaignData);
