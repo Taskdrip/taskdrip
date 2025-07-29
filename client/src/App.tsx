@@ -8,8 +8,8 @@ import FinalLanding from "@/pages/final-landing";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import SimpleDashboard from "@/pages/simple-dashboard";
-import AdminDashboard from "@/pages/admin-dashboard";
 import AdminUserManagement from "@/pages/admin-user-management";
+import AdminDashboard from "@/pages/admin-dashboard-new";
 import BrandDashboard from "@/pages/brand-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
@@ -68,7 +68,7 @@ function Router() {
           <Route path="/wallet" component={WalletSettings} />
           <Route path="/payment-deposit" component={PaymentDeposit} />
           <Route path="/profile-edit" component={ProfileEdit} />
-          <Route path="/admin" component={Admin} />
+          <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
         </>
       ) : (
