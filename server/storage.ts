@@ -12,6 +12,7 @@ import {
   paymentDeposits,
   adminWallets,
   brandWallets,
+  escrowPayments,
   type User,
   type InsertUser,
   type Campaign,
@@ -260,6 +261,26 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ isVerified: verified })
       .where(eq(users.id, userId));
+  }
+
+  // Escrow payment operations
+  async createEscrowPayment(payment: any): Promise<any> {
+    const [newPayment] = await db.insert(escrowPayments).values(payment).returning();
+    return newPayment;
+  }
+
+  async getEscrowPaymentByCampaignId(campaignId: string): Promise<any> {
+    const [payment] = await db.select().from(escrowPayments).where(eq(escrowPayments.campaignId, campaignId));
+    return payment;
+  }
+
+  async updateEscrowPayment(id: string, updates: any): Promise<any> {
+    const [updatedPayment] = await db
+      .update(escrowPayments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(escrowPayments.id, id))
+      .returning();
+    return updatedPayment;
   }
 
   // Blog operations

@@ -30,6 +30,7 @@ import PaymentDeposit from "@/pages/payment-deposit";
 import ProfileEdit from "@/pages/profile-edit";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
+import EscrowPayment from "@/pages/escrow-payment";
 
 
 function Router() {
@@ -71,6 +72,7 @@ function Router() {
           <Route path="/wallet" component={WalletSettings} />
           <Route path="/payment-deposit" component={PaymentDeposit} />
           <Route path="/profile-edit" component={ProfileEdit} />
+          <Route path="/escrow-payment" component={EscrowPayment} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
         </>

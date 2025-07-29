@@ -223,6 +223,25 @@ export const notifications = pgTable("notifications", {
   readAt: timestamp("read_at"),
 });
 
+// Escrow payments table for campaign funding
+export const escrowPayments = pgTable("escrow_payments", {
+  id: varchar("id").primaryKey(),
+  campaignId: varchar("campaign_id").references(() => campaigns.id).notNull(),
+  brandId: varchar("brand_id").references(() => users.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default('pending'), // 'pending', 'payment_window', 'verifying', 'completed', 'expired'
+  transactionHash: varchar("transaction_hash"),
+  network: varchar("network", { length: 20 }), // 'tron', 'bsc', 'ton'
+  paymentScreenshot: varchar("payment_screenshot"),
+  paymentWindowStart: timestamp("payment_window_start"),
+  paymentWindowEnd: timestamp("payment_window_end"),
+  submittedAt: timestamp("submitted_at"),
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,

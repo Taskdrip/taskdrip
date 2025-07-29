@@ -104,14 +104,17 @@ export default function BrandDashboard() {
       const res = await apiRequest("POST", "/api/campaigns", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
       toast({
-        title: "Campaign created!",
-        description: "Your campaign is now live and accepting applications.",
+        title: "Campaign draft created!",
+        description: "Redirecting to escrow payment to activate your campaign.",
       });
       setIsCreateCampaignOpen(false);
       form.reset();
+      
+      // Redirect to escrow payment page
+      setLocation(`/escrow-payment?campaignId=${response.campaignId}`);
     },
     onError: (error: Error) => {
       toast({

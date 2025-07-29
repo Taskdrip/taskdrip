@@ -37,20 +37,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new campaign
+  // Create new campaign with escrow payment
   app.post('/api/campaigns', async (req, res) => {
     try {
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
+      const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       const campaignData = {
         ...req.body,
+        id: campaignId,
         brandId: userId,
         brandName: req.body.brandName || 'Brand Name',
+        status: 'pending_payment',
+        paymentStatus: 'pending',
+        isActive: false,
       };
       
       const campaign = await storage.createCampaign(campaignData);
-      res.status(201).json(campaign);
+      
+      // Create escrow payment session with 30-minute window
+      const escrowPayment = await storage.createEscrowPayment({
+        id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        campaignId: campaign.id,
+        brandId: userId,
+        amount: req.body.totalBudget || req.body.reward,
+        status: 'payment_window',
+        paymentWindowStart: new Date(),
+        paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+      });
+
+      res.status(201).json({ 
+        campaign, 
+        campaignId: campaign.id,
+        escrowPaymentId: escrowPayment.id 
+      });
     } catch (error) {
       console.error("Error creating campaign:", error);
       res.status(500).json({ message: "Failed to create campaign" });
@@ -91,6 +113,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting campaign:", error);
       res.status(500).json({ message: "Failed to delete campaign" });
+    }
+  });
+
+  // Escrow Payment System
+  app.get('/api/escrow-payment/:campaignId', async (req, res) => {
+    try {
+      const campaignId = req.params.campaignId;
+      const escrowPayment = await storage.getEscrowPaymentByCampaignId(campaignId);
+      
+      if (!escrowPayment) {
+        return res.status(404).json({ message: "Escrow payment not found" });
+      }
+
+      // Calculate remaining time
+      const now = new Date();
+      const endTime = new Date(escrowPayment.paymentWindowEnd);
+      const remainingMinutes = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / (1000 * 60)));
+
+      // Check if payment window expired
+      if (remainingMinutes === 0 && escrowPayment.status === 'payment_window') {
+        await storage.updateEscrowPayment(escrowPayment.id, { status: 'expired' });
+        escrowPayment.status = 'expired';
+      }
+
+      // Company wallet addresses (these should be environment variables in production)
+      const walletAddresses = {
+        usdtTron: "TYDz8p6QHrEYBMBnUMEUXojFSCShbxfPDN", // Example Tron USDT address
+        usdtBsc: "0x742d35Cc6531C0532925a3b8F6D09f8888E8ec12", // Example BSC USDT address  
+        ton: "EQCs2dE-1Qn1kzZGNE8Q8n3Q8FJHbA9HqH5YZrO8kF5-J8gU" // Example TON address
+      };
+
+      res.json({
+        ...escrowPayment,
+        paymentWindow: {
+          startTime: escrowPayment.paymentWindowStart,
+          endTime: escrowPayment.paymentWindowEnd,
+          remainingMinutes
+        },
+        walletAddresses
+      });
+    } catch (error) {
+      console.error("Error fetching escrow payment:", error);
+      res.status(500).json({ message: "Failed to fetch escrow payment" });
+    }
+  });
+
+  app.post('/api/escrow-payment/submit-proof', upload.single('paymentScreenshot'), async (req, res) => {
+    try {
+      const { transactionHash, network, campaignId } = req.body;
+      const paymentScreenshot = req.file?.path;
+
+      if (!transactionHash || !network || !campaignId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Get escrow payment
+      const escrowPayment = await storage.getEscrowPaymentByCampaignId(campaignId);
+      if (!escrowPayment) {
+        return res.status(404).json({ message: "Escrow payment not found" });
+      }
+
+      // Check if still within payment window
+      const now = new Date();
+      const endTime = new Date(escrowPayment.paymentWindowEnd);
+      if (now > endTime) {
+        return res.status(400).json({ message: "Payment window has expired" });
+      }
+
+      // Update escrow payment with proof
+      await storage.updateEscrowPayment(escrowPayment.id, {
+        status: 'verifying',
+        transactionHash,
+        network,
+        paymentScreenshot,
+        submittedAt: new Date()
+      });
+
+      // Create transaction record for admin verification
+      await storage.createTransaction({
+        userId: escrowPayment.brandId,
+        campaignId: campaignId,
+        amount: escrowPayment.amount,
+        type: 'campaign_deposit',
+        status: 'pending',
+        transactionHash,
+        network,
+        description: `Campaign escrow deposit for campaign ${campaignId}`,
+      });
+
+      res.json({ 
+        success: true, 
+        message: "Payment proof submitted successfully. Your payment is being verified." 
+      });
+    } catch (error) {
+      console.error("Error submitting payment proof:", error);
+      res.status(500).json({ message: "Failed to submit payment proof" });
     }
   });
 
