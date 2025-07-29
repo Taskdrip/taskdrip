@@ -2042,91 +2042,140 @@ What story will you tell today?"
 
         {/* Edit User Dialog */}
         <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
+          <DialogContent className="max-w-3xl max-h-[95vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Edit User</DialogTitle>
               <DialogDescription>
                 Update user information for {selectedUser?.firstName} {selectedUser?.lastName}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>First Name</Label>
-                <Input 
-                  defaultValue={selectedUser?.firstName} 
-                  onChange={(e) => setSelectedUser(prev => ({ ...prev, firstName: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Last Name</Label>
-                <Input 
-                  defaultValue={selectedUser?.lastName}
-                  onChange={(e) => setSelectedUser(prev => ({ ...prev, lastName: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input 
-                  defaultValue={selectedUser?.email}
-                  onChange={(e) => setSelectedUser(prev => ({ ...prev, email: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Phone Number</Label>
-                <Input 
-                  defaultValue={selectedUser?.phoneNumber}
-                  onChange={(e) => setSelectedUser(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Bio</Label>
-                <Textarea 
-                  defaultValue={selectedUser?.bio}
-                  onChange={(e) => setSelectedUser(prev => ({ ...prev, bio: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>User Type</Label>
-                <Select 
-                  defaultValue={selectedUser?.userType}
-                  onValueChange={(value) => setSelectedUser(prev => ({ ...prev, userType: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="creator">Creator</SelectItem>
-                    <SelectItem value="brand">Brand</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Location</Label>
-                <Input 
-                  defaultValue={selectedUser?.location}
-                  onChange={(e) => setSelectedUser(prev => ({ ...prev, location: e.target.value }))}
-                />
+            
+            <div className="flex-1 overflow-y-auto px-2 py-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>First Name</Label>
+                  <Input 
+                    defaultValue={selectedUser?.firstName} 
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, firstName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Last Name</Label>
+                  <Input 
+                    defaultValue={selectedUser?.lastName}
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, lastName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input 
+                    defaultValue={selectedUser?.email}
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Phone Number</Label>
+                  <Input 
+                    defaultValue={selectedUser?.phoneNumber}
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  />
+                </div>
+                <div className="col-span-1 md:col-span-2">
+                  <Label>Bio</Label>
+                  <Textarea 
+                    defaultValue={selectedUser?.bio}
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, bio: e.target.value }))}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+                <div>
+                  <Label>User Type</Label>
+                  <Select 
+                    defaultValue={selectedUser?.userType}
+                    onValueChange={(value) => setSelectedUser(prev => ({ ...prev, userType: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="creator">Creator</SelectItem>
+                      <SelectItem value="brand">Brand</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Location</Label>
+                  <Input 
+                    defaultValue={selectedUser?.location}
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, location: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Wallet Address</Label>
+                  <Input 
+                    defaultValue={selectedUser?.walletAddress}
+                    onChange={(e) => setSelectedUser(prev => ({ ...prev, walletAddress: e.target.value }))}
+                    placeholder="Enter crypto wallet address"
+                  />
+                </div>
+                <div>
+                  <Label>Account Status</Label>
+                  <Select 
+                    defaultValue={selectedUser?.isVerified ? "verified" : "pending"}
+                    onValueChange={(value) => setSelectedUser(prev => ({ ...prev, isVerified: value === "verified" }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="verified">Verified</SelectItem>
+                      <SelectItem value="pending">Pending Verification</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <Button 
-                onClick={() => {
-                  if (selectedUser) {
-                    updateUser.mutate({ 
-                      userId: selectedUser.id, 
-                      updates: selectedUser 
+            
+            <div className="flex-shrink-0 border-t pt-4 mt-4 bg-white">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => {
+                    if (selectedUser) {
+                      updateUser.mutate({ 
+                        userId: selectedUser.id, 
+                        updates: selectedUser 
                     });
-                    setIsEditUserDialogOpen(false);
-                  }
-                }}
-                disabled={updateUser.isPending}
-              >
-                {updateUser.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>
-                Cancel
-              </Button>
+                      setIsEditUserDialogOpen(false);
+                    }
+                  }}
+                  disabled={updateUser.isPending}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                >
+                  {updateUser.isPending ? (
+                    <>
+                      <span className="animate-spin mr-2">⟳</span>
+                      Saving Changes...
+                    </>
+                  ) : (
+                    <>
+                      <span className="mr-2">💾</span>
+                      Update User
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditUserDialogOpen(false)}
+                  className="flex-1"
+                  size="lg"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
