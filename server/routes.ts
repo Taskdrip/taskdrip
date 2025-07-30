@@ -710,8 +710,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campaign editing route
-  app.patch('/api/campaigns/:id', async (req, res) => {
+  // Campaign editing route with image upload
+  app.patch('/api/campaigns/:id', upload.single('featuredImage'), async (req, res) => {
     try {
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
@@ -725,19 +725,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You can only edit your own campaigns" });
       }
 
-      // Don't allow budget changes if there are already payments
-      if (updates.reward && updates.reward !== campaign.reward) {
-        const payments = await storage.getPaymentDepositsByCampaign(campaignId);
-        if (payments.length > 0) {
-          return res.status(400).json({ message: "Cannot change reward amount after payments have been made" });
-        }
+      // Add uploaded image to updates if present
+      if (req.file) {
+        updates.featuredImage = `/uploads/${req.file.filename}`;
       }
+
+      // Convert string numbers back to numbers
+      if (updates.reward) updates.reward = parseFloat(updates.reward);
+      if (updates.totalSlots) updates.totalSlots = parseInt(updates.totalSlots);
 
       const updatedCampaign = await storage.updateCampaign(campaignId, updates);
       res.json(updatedCampaign);
     } catch (error) {
       console.error("Error updating campaign:", error);
       res.status(500).json({ message: "Failed to update campaign" });
+    }
+  });
+
+  // Delete campaign route
+  app.delete('/api/campaigns/:id', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const campaignId = req.params.id;
+
+      // Check if user owns this campaign
+      const campaign = await storage.getCampaignById(campaignId);
+      if (!campaign || campaign.brandId !== userId) {
+        return res.status(403).json({ message: "You can only delete your own campaigns" });
+      }
+
+      await storage.deleteCampaign(campaignId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      res.status(500).json({ message: "Failed to delete campaign" });
     }
   });
 

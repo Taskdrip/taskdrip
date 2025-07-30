@@ -31,6 +31,7 @@ const editCampaignSchema = z.object({
   deadline: z.string().min(1, 'Deadline is required'),
   requirements: z.string().min(10, 'Requirements must be at least 10 characters'),
   estimatedTime: z.string().min(1, 'Estimated time is required'),
+  featuredImage: z.string().optional(),
 });
 
 type EditCampaignData = z.infer<typeof editCampaignSchema>;
@@ -42,6 +43,8 @@ export default function CampaignDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
 
   const campaignId = params.id;
 
@@ -51,7 +54,7 @@ export default function CampaignDetail() {
   });
 
   // Define user type variables first
-  const isBrand = user?.userType === 'brand';
+  const isBrand = (user as any)?.userType === 'brand';
   
   // Check if user has joined this campaign
   const { data: participations = [] } = useQuery({
@@ -61,32 +64,82 @@ export default function CampaignDetail() {
 
   const hasJoined = participations.some((p: any) => p.campaignId === campaignId);
 
+  // Handle image upload for edit form
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditImageFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Edit form submit handler
+  const onEditSubmit = (data: EditCampaignData) => {
+    editCampaignMutation.mutate(data);
+  };
+
+  // Delete campaign mutation
+  const deleteCampaignMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Campaign Deleted',
+        description: 'Your campaign has been successfully deleted.',
+      });
+      setLocation('/brand-dashboard');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Delete Failed',
+        description: error.message || 'Failed to delete campaign. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const editForm = useForm<EditCampaignData>({
     resolver: zodResolver(editCampaignSchema),
     defaultValues: {
-      title: campaign?.title || '',
-      description: campaign?.description || '',
-      category: campaign?.category || '',
-      reward: campaign?.reward || 0,
-      totalSlots: campaign?.totalSlots || 1,
-      deadline: campaign?.deadline ? new Date(campaign.deadline).toISOString().split('T')[0] : '',
-      requirements: campaign?.requirements || '',
-      estimatedTime: campaign?.estimatedTime || '',
+      title: (campaign as any)?.title || '',
+      description: (campaign as any)?.description || '',
+      category: (campaign as any)?.category || '',
+      reward: (campaign as any)?.reward || 0,
+      totalSlots: (campaign as any)?.totalSlots || 1,
+      deadline: (campaign as any)?.deadline ? new Date((campaign as any).deadline).toISOString().split('T')[0] : '',
+      requirements: (campaign as any)?.requirements || '',
+      estimatedTime: (campaign as any)?.estimatedTime || '',
+      featuredImage: (campaign as any)?.featuredImage || '',
     },
   });
 
   // Update form when campaign data is loaded
-  if (campaign && editForm.getValues().title !== campaign.title) {
+  if (campaign && editForm.getValues().title !== (campaign as any).title) {
     editForm.reset({
-      title: campaign.title,
-      description: campaign.description,
-      category: campaign.category,
-      reward: campaign.reward,
-      totalSlots: campaign.totalSlots,
-      deadline: campaign.deadline ? new Date(campaign.deadline).toISOString().split('T')[0] : '',
-      requirements: campaign.requirements,
-      estimatedTime: campaign.estimatedTime,
+      title: (campaign as any).title,
+      description: (campaign as any).description,
+      category: (campaign as any).category,
+      reward: (campaign as any).reward,
+      totalSlots: (campaign as any).totalSlots,
+      deadline: (campaign as any).deadline ? new Date((campaign as any).deadline).toISOString().split('T')[0] : '',
+      requirements: (campaign as any).requirements,
+      estimatedTime: (campaign as any).estimatedTime,
+      featuredImage: (campaign as any).featuredImage || '',
     });
+    setEditImagePreview((campaign as any).featuredImage || null);
   }
 
   const joinCampaignMutation = useMutation({
@@ -111,10 +164,30 @@ export default function CampaignDetail() {
 
   const editCampaignMutation = useMutation({
     mutationFn: async (data: EditCampaignData) => {
-      return await apiRequest(`/api/campaigns/${campaignId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
+      const formData = new FormData();
+      
+      // Add all campaign data
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
       });
+      
+      // Add image file if present
+      if (editImageFile) {
+        formData.append('featuredImage', editImageFile);
+      }
+      
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -128,28 +201,6 @@ export default function CampaignDetail() {
       toast({
         title: 'Update Failed',
         description: error.message || 'Failed to update campaign. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteCampaignMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest(`/api/campaigns/${campaignId}`, {
-        method: 'DELETE',
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Campaign Deleted',
-        description: 'Your campaign has been successfully deleted.',
-      });
-      setLocation('/campaigns');
-    },
-    onError: (error) => {
-      toast({
-        title: 'Delete Failed',
-        description: error.message || 'Failed to delete campaign. Please try again.',
         variant: 'destructive',
       });
     },
@@ -216,14 +267,10 @@ export default function CampaignDetail() {
     }
   };
 
-  const progressPercentage = campaign.totalSlots > 0 ? ((campaign.filledSlots || 0) / campaign.totalSlots) * 100 : 0;
-  const daysLeft = campaign.deadline ? Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
-  const isOwnerOrAdmin = user?.id === campaign.brandId || user?.role === 'admin';
-  const canJoin = !isOwnerOrAdmin && !isBrand && (campaign.filledSlots || 0) < campaign.totalSlots;
-
-  const onEditSubmit = (data: EditCampaignData) => {
-    editCampaignMutation.mutate(data);
-  };
+  const progressPercentage = (campaign as any)?.totalSlots > 0 ? (((campaign as any)?.filledSlots || 0) / (campaign as any)?.totalSlots) * 100 : 0;
+  const daysLeft = (campaign as any)?.deadline ? Math.ceil((new Date((campaign as any).deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const isOwnerOrAdmin = (user as any)?.id === (campaign as any)?.brandId || (user as any)?.role === 'admin';
+  const canJoin = !isOwnerOrAdmin && !isBrand && ((campaign as any)?.filledSlots || 0) < (campaign as any)?.totalSlots;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -261,12 +308,12 @@ export default function CampaignDetail() {
             <Card>
               <CardContent className="p-0">
                 {/* Brand Banner */}
-                <div className={`h-48 md:h-64 bg-gradient-to-br ${getBrandColor(campaign.category)} flex items-center justify-center relative overflow-hidden`}>
-                  {campaign.featureImage ? (
+                <div className={`h-48 md:h-64 bg-gradient-to-br ${getBrandColor((campaign as any)?.category)} flex items-center justify-center relative overflow-hidden`}>
+                  {(campaign as any)?.featuredImage ? (
                     <>
                       <img 
-                        src={campaign.featureImage} 
-                        alt={campaign.title}
+                        src={(campaign as any).featuredImage} 
+                        alt={(campaign as any).title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -277,9 +324,9 @@ export default function CampaignDetail() {
                       <div className="absolute inset-0 bg-black bg-opacity-20"></div>
                     </>
                   ) : null}
-                  <div className={`fallback-brand w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg ${campaign.featureImage ? 'absolute' : ''}`}>
+                  <div className={`fallback-brand w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg ${(campaign as any)?.featuredImage ? 'absolute' : ''}`}>
                     <span className="text-3xl font-bold text-gray-700">
-                      {campaign.brandName[0]}
+                      {(campaign as any)?.brandName?.[0]}
                     </span>
                   </div>
                   {isOwnerOrAdmin && (
@@ -391,6 +438,34 @@ export default function CampaignDetail() {
                               />
                             </div>
 
+                            {/* Featured Image Upload */}
+                            <div className="space-y-2">
+                              <Label htmlFor="featuredImage">Featured Image</Label>
+                              <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                  <Input
+                                    id="featuredImage"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleEditImageChange}
+                                    className="cursor-pointer"
+                                  />
+                                </div>
+                                {editImagePreview && (
+                                  <div className="w-20 h-20 border border-gray-300 rounded-lg overflow-hidden">
+                                    <img
+                                      src={editImagePreview}
+                                      alt="Preview"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                Upload a new image to replace the current featured image (optional)
+                              </p>
+                            </div>
+
                             <div className="flex gap-2">
                               <Button
                                 type="submit"
@@ -417,8 +492,8 @@ export default function CampaignDetail() {
 
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <Badge className={`text-xs font-medium px-3 py-1 rounded-full ${getCategoryColor(campaign.category)}`}>
-                      {campaign.category}
+                    <Badge className={`text-xs font-medium px-3 py-1 rounded-full ${getCategoryColor((campaign as any)?.category)}`}>
+                      {(campaign as any)?.category}
                     </Badge>
                     {daysLeft && (
                       <span className="text-sm text-gray-600 flex items-center gap-1">
@@ -428,14 +503,14 @@ export default function CampaignDetail() {
                     )}
                   </div>
 
-                  <h1 className="text-3xl font-bold text-gray-900 mb-4">{campaign.title}</h1>
-                  <p className="text-gray-700 text-lg mb-6">{campaign.description}</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-4">{(campaign as any)?.title}</h1>
+                  <p className="text-gray-700 text-lg mb-6">{(campaign as any)?.description}</p>
 
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-5 h-5 text-gray-500" />
-                        <span className="font-medium text-gray-900">{campaign.brandName}</span>
+                        <span className="font-medium text-gray-900">{(campaign as any)?.brandName}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -443,7 +518,7 @@ export default function CampaignDetail() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold text-success">${campaign.reward}</div>
+                      <div className="text-3xl font-bold text-success">${(campaign as any)?.reward}</div>
                       <div className="text-sm text-gray-600">per task</div>
                     </div>
                   </div>
@@ -453,7 +528,7 @@ export default function CampaignDetail() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700">Campaign Progress</span>
                       <span className="text-sm text-gray-600">
-                        {campaign.filledSlots || 0} / {campaign.totalSlots} spots filled
+                        {(campaign as any)?.filledSlots || 0} / {(campaign as any)?.totalSlots} spots filled
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
@@ -483,8 +558,8 @@ export default function CampaignDetail() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {campaign.requirements ? (
-                    <div className="text-amber-800 whitespace-pre-wrap">{campaign.requirements}</div>
+                  {(campaign as any)?.requirements ? (
+                    <div className="text-amber-800 whitespace-pre-wrap">{(campaign as any).requirements}</div>
                   ) : (
                     <div className="text-amber-800">
                       <ul className="space-y-2 list-disc list-inside">
@@ -532,7 +607,7 @@ export default function CampaignDetail() {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="font-medium">Receive Payment:</span>
-                        <span>Get your ${parseFloat(campaign.reward).toFixed(2)} reward in crypto</span>
+                        <span>Get your ${parseFloat((campaign as any)?.reward || 0).toFixed(2)} reward in crypto</span>
                       </li>
                     </ol>
                   </div>
@@ -589,9 +664,9 @@ export default function CampaignDetail() {
                       <div>
                         <p className="font-medium mb-2">Payment Details:</p>
                         <ul className="space-y-1">
-                          <li><span className="font-medium">Reward:</span> ${parseFloat(campaign.reward).toFixed(2)} per task</li>
+                          <li><span className="font-medium">Reward:</span> ${parseFloat((campaign as any)?.reward || 0).toFixed(2)} per task</li>
                           <li><span className="font-medium">Payment:</span> Cryptocurrency (USDT/TON)</li>
-                          <li><span className="font-medium">Timeline:</span> {campaign.estimatedTime || "30 minutes"}</li>
+                          <li><span className="font-medium">Timeline:</span> {(campaign as any)?.estimatedTime || "30 minutes"}</li>
                         </ul>
                       </div>
                       <div>
@@ -613,14 +688,14 @@ export default function CampaignDetail() {
               <Card>
                 <CardContent className="p-4 text-center">
                   <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900">{campaign.estimatedTime || '30 min'}</div>
+                  <div className="text-2xl font-bold text-gray-900">{(campaign as any)?.estimatedTime || '30 min'}</div>
                   <div className="text-sm text-gray-600">Estimated Time</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
                   <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900">{campaign.totalSlots}</div>
+                  <div className="text-2xl font-bold text-gray-900">{(campaign as any)?.totalSlots}</div>
                   <div className="text-sm text-gray-600">Total Spots</div>
                 </CardContent>
               </Card>
@@ -646,7 +721,7 @@ export default function CampaignDetail() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-success mb-1">${parseFloat(campaign.reward).toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-success mb-1">${parseFloat((campaign as any)?.reward || 0).toFixed(2)}</div>
                   <div className="text-sm text-gray-600">reward per task</div>
                 </div>
 
@@ -659,7 +734,7 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?campaign=${campaign.id}`)}
+                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message Creators
@@ -691,7 +766,7 @@ export default function CampaignDetail() {
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
                         variant="outline" 
-                        onClick={() => setLocation(`/messages?campaign=${campaign.id}`)}
+                        onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
                         className="flex items-center gap-2 text-sm"
                         size="sm"
                       >
@@ -720,7 +795,7 @@ export default function CampaignDetail() {
                     disabled
                     className="w-full"
                   >
-                    {(campaign.filledSlots || 0) >= campaign.totalSlots ? 'Campaign Full' : 'Cannot Join Campaign'}
+                    {((campaign as any)?.filledSlots || 0) >= (campaign as any)?.totalSlots ? 'Campaign Full' : 'Cannot Join Campaign'}
                   </Button>
                 )}
 
@@ -728,17 +803,17 @@ export default function CampaignDetail() {
                   <div className="flex items-center justify-between">
                     <span>Spots Available:</span>
                     <span className="font-medium">
-                      {campaign.totalSlots - (campaign.filledSlots || 0)} / {campaign.totalSlots}
+                      {(campaign as any)?.totalSlots - ((campaign as any)?.filledSlots || 0)} / {(campaign as any)?.totalSlots}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Time Commitment:</span>
-                    <span className="font-medium">{campaign.estimatedTime || '30 min'}</span>
+                    <span className="font-medium">{(campaign as any)?.estimatedTime || '30 min'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Deadline:</span>
                     <span className="font-medium">
-                      {campaign.deadline ? new Date(campaign.deadline).toLocaleDateString() : 'No deadline'}
+                      {(campaign as any)?.deadline ? new Date((campaign as any).deadline).toLocaleDateString() : 'No deadline'}
                     </span>
                   </div>
                 </div>
@@ -750,17 +825,17 @@ export default function CampaignDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5" />
-                  About {campaign.brandName}
+                  About {(campaign as any)?.brandName}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">{campaign.brandName[0]}</span>
+                    <span className="text-white font-bold">{(campaign as any)?.brandName?.[0]}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{campaign.brandName}</div>
-                    <div className="text-sm text-gray-600">{campaign.category}</div>
+                    <div className="font-medium text-gray-900">{(campaign as any)?.brandName}</div>
+                    <div className="text-sm text-gray-600">{(campaign as any)?.category}</div>
                   </div>
                 </div>
                 
@@ -785,7 +860,7 @@ export default function CampaignDetail() {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => setLocation(`/brand/${campaign.brandId}`)}
+                  onClick={() => setLocation(`/brand/${(campaign as any)?.brandId}`)}
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   View Brand Profile
