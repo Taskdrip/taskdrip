@@ -574,7 +574,7 @@ export default function BrandDashboard() {
         )}
 
         {/* Navigation Tabs */}
-        <div className="flex border-b mb-8">
+        <div className="flex border-b mb-8 overflow-x-auto">
           {[
             { id: "overview", label: "Overview", icon: BarChart3 },
             { id: "campaigns", label: "My Campaigns", icon: Target },
@@ -585,7 +585,7 @@ export default function BrandDashboard() {
             <button
               key={tab.id}
               onClick={() => setSelectedTab(tab.id as any)}
-              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors whitespace-nowrap ${
                 selectedTab === tab.id
                   ? "border-b-2 border-blue-500 text-blue-600"
                   : "text-gray-500 hover:text-gray-700"
@@ -762,57 +762,57 @@ export default function BrandDashboard() {
                     <p className="text-gray-500">Applications will appear here when creators apply to your campaigns</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
                     {applications.map((application) => (
                       <Card key={application.id} className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-4">
-                              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                            <div className="flex items-start gap-4 flex-1 min-w-0">
+                              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
                                 {application.user?.firstName?.[0]}{application.user?.lastName?.[0]}
                               </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="font-semibold text-lg">{application.user?.firstName} {application.user?.lastName}</h3>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <h3 className="font-semibold text-lg truncate">{application.user?.firstName} {application.user?.lastName}</h3>
                                   <Badge className={`${
                                     application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                     application.status === 'approved' ? 'bg-green-100 text-green-800' :
                                     'bg-red-100 text-red-800'
-                                  }`}>
+                                  } flex-shrink-0`}>
                                     {application.status.toUpperCase()}
                                   </Badge>
                                 </div>
-                                <p className="text-gray-600 mb-1">{application.user?.email}</p>
-                                <p className="text-sm font-medium text-blue-600 mb-2">Campaign: {application.campaign?.title}</p>
+                                <p className="text-gray-600 mb-1 text-sm truncate">{application.user?.email}</p>
+                                <p className="text-sm font-medium text-blue-600 mb-2 truncate">Campaign: {application.campaign?.title}</p>
                                 <p className="text-sm text-green-600 font-medium">Reward: ${application.campaign?.reward}</p>
                                 {application.submissionText && (
                                   <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                    <p className="text-sm text-gray-700">{application.submissionText}</p>
+                                    <p className="text-sm text-gray-700 break-words">{application.submissionText}</p>
                                   </div>
                                 )}
-                                <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                                  <span>Applied: {format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
+                                <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 flex-wrap">
+                                  <span className="flex-shrink-0">Applied: {format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
                                   {application.reviewedAt && (
-                                    <span>Reviewed: {format(new Date(application.reviewedAt), 'MMM d, yyyy')}</span>
+                                    <span className="flex-shrink-0">Reviewed: {format(new Date(application.reviewedAt), 'MMM d, yyyy')}</span>
                                   )}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                               {application.status === 'pending' && (
                                 <>
                                   <Button
                                     size="sm"
                                     onClick={() => approveApplicationMutation.mutate(application.id)}
                                     disabled={approveApplicationMutation.isPending}
-                                    className="bg-green-600 hover:bg-green-700"
+                                    className="bg-green-600 hover:bg-green-700 whitespace-nowrap"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-1" />
                                     Approve
                                   </Button>
                                   <Dialog>
                                     <DialogTrigger asChild>
-                                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
+                                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 whitespace-nowrap">
                                         <AlertCircle className="h-4 w-4 mr-1" />
                                         Reject
                                       </Button>
@@ -854,6 +854,7 @@ export default function BrandDashboard() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setLocation(`/messages?userId=${application.user?.id}&campaignId=${application.campaignId}`)}
+                                className="whitespace-nowrap"
                               >
                                 <MessageCircle className="h-4 w-4 mr-1" />
                                 Message
@@ -863,7 +864,7 @@ export default function BrandDashboard() {
                           {application.adminNotes && (
                             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                               <p className="text-sm text-yellow-800 font-medium">Admin Notes:</p>
-                              <p className="text-sm text-yellow-700">{application.adminNotes}</p>
+                              <p className="text-sm text-yellow-700 break-words">{application.adminNotes}</p>
                             </div>
                           )}
                         </CardContent>

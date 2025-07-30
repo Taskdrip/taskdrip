@@ -113,11 +113,18 @@ export function NavigationFixed() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuItem>
-                      <Link href="/user-profile" className="flex items-center w-full">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </Link>
+                    <DropdownMenuItem onClick={() => {
+                      const userType = user?.userType;
+                      if (userType === 'admin') {
+                        window.location.href = '/admin-dashboard';
+                      } else if (userType === 'brand') {
+                        window.location.href = '/brand-dashboard';
+                      } else {
+                        window.location.href = '/dashboard';
+                      }
+                    }}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Link href="/messages" className="flex items-center w-full">
@@ -126,8 +133,16 @@ export function NavigationFixed() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <Link href="/user-profile" className="flex items-center w-full">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href="/profile-edit" className="flex items-center w-full">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
                     </DropdownMenuItem>
                     {(user as any)?.role === 'admin' && (
                       <DropdownMenuItem>

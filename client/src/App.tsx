@@ -66,7 +66,16 @@ function Router() {
           <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/campaigns" component={Campaigns} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
-          <Route path="/profile" component={Profile} />
+          <Route path="/profile" component={() => {
+            const userType = (user as any)?.userType;
+            if (userType === 'admin') {
+              return <AdminDashboard />;
+            } else if (userType === 'brand') {
+              return <BrandDashboard />;
+            } else {
+              return <Profile />;
+            }
+          }} />
           <Route path="/user-profile" component={UserProfile} />
           <Route path="/messages" component={Messages} />
           <Route path="/wallet" component={WalletSettings} />
