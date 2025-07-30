@@ -139,7 +139,6 @@ export default function ChatPage() {
       formData.append('receiverId', selectedConversation!);
       formData.append('subject', 'Chat Message');
       formData.append('messageType', 'chat');
-      formData.append('campaignId', ''); // Default empty for chat messages
 
       if (data.files) {
         Array.from(data.files).forEach(file => {
@@ -315,6 +314,10 @@ export default function ChatPage() {
                         variant="ghost"
                         size="sm"
                         className="text-gray-400 hover:text-gray-600"
+                        onClick={() => {
+                          const fileInput = document.getElementById('message-files') as HTMLInputElement;
+                          fileInput?.click();
+                        }}
                       >
                         <Paperclip className="h-4 w-4" />
                       </Button>

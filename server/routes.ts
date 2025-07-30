@@ -625,8 +625,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })) : [];
 
       const message = await storage.createMessage({
-        campaignId,
-        participationId,
+        campaignId: campaignId || null,
+        participationId: participationId || null,
         senderId: userId,
         receiverId,
         subject,

@@ -31,8 +31,8 @@ export function Navigation() {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const unreadMessagesCount = messages.filter((m: any) => !m.isRead).length;
-  const unreadNotificationsCount = notifications.filter((n: any) => !n.isRead).length;
+  const unreadMessagesCount = Array.isArray(messages) ? messages.filter((m: any) => !m.isRead).length : 0;
+  const unreadNotificationsCount = Array.isArray(notifications) ? notifications.filter((n: any) => !n.isRead).length : 0;
 
   const navItems = [
     { href: "/", label: "Home" },
