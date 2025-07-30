@@ -50,8 +50,8 @@ interface Campaign {
 }
 
 const messageSchema = z.object({
-  campaignId: z.string(),
-  receiverId: z.string(),
+  campaignId: z.string().min(1, "Please select a campaign"),
+  receiverId: z.string().min(1, "Please select a recipient"),
   subject: z.string().min(1, "Subject is required"),
   content: z.string().min(1, "Message content is required"),
   messageType: z.string().optional(),
@@ -81,6 +81,18 @@ export default function MessagesPage() {
   // Fetch user task submissions
   const { data: submissions = [], isLoading: submissionsLoading } = useQuery<TaskSubmission[]>({
     queryKey: ["/api/task-submissions"],
+    retry: false,
+  });
+
+  // Fetch user campaigns for messaging dropdown
+  const { data: campaigns = [] } = useQuery<Campaign[]>({
+    queryKey: ["/api/user/campaigns"],
+    retry: false,
+  });
+
+  // Fetch campaign applications for brand to message creators
+  const { data: applications = [] } = useQuery({
+    queryKey: ["/api/brand/applications"],
     retry: false,
   });
 
@@ -268,13 +280,44 @@ export default function MessagesPage() {
                         <FormItem>
                           <FormLabel>Campaign</FormLabel>
                           <FormControl>
-                            <select {...field} className="w-full p-2 border rounded-md">
+                            <select 
+                              {...field} 
+                              className="w-full p-2 border rounded-md"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Reset receiver when campaign changes
+                                messageForm.setValue('receiverId', '');
+                              }}
+                            >
                               <option value="">Select campaign...</option>
-                              {participations.map((p: any) => (
-                                <option key={p.campaignId} value={p.campaignId}>
-                                  {p.campaign?.title || p.campaignId}
+                              {campaigns.map((campaign: Campaign) => (
+                                <option key={campaign.id} value={campaign.id}>
+                                  {campaign.title}
                                 </option>
                               ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={messageForm.control}
+                      name="receiverId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Recipient</FormLabel>
+                          <FormControl>
+                            <select {...field} className="w-full p-2 border rounded-md">
+                              <option value="">Select creator...</option>
+                              {applications
+                                .filter((app: any) => app.campaignId === messageForm.watch('campaignId') && app.status === 'approved')
+                                .map((app: any) => (
+                                  <option key={app.userId} value={app.userId}>
+                                    {app.user?.firstName} {app.user?.lastName} (@{app.user?.username || app.user?.email})
+                                  </option>
+                                ))
+                              }
                             </select>
                           </FormControl>
                           <FormMessage />

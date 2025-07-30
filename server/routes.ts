@@ -454,6 +454,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get brand campaigns for messaging dropdown
+  app.get('/api/user/campaigns', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const campaigns = await storage.getBrandCampaigns(userId);
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching user campaigns:", error);
+      res.status(500).json({ message: "Failed to fetch campaigns" });
+    }
+  });
+
   // Enhanced messaging routes for brand-creator communication
   app.get('/api/messages', async (req, res) => {
     try {
