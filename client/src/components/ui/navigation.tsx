@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
@@ -15,6 +16,23 @@ export function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Fetch unread message count
+  const { data: messages = [] } = useQuery({
+    queryKey: ['/api/messages'],
+    enabled: !!isAuthenticated && !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch unread notification count
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['/api/notifications'],
+    enabled: !!isAuthenticated && !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const unreadMessagesCount = messages.filter((m: any) => !m.isRead).length;
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.isRead).length;
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -68,12 +86,26 @@ export function Navigation() {
           {/* User Menu */}
           {isAuthenticated ? (
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent">
-                <MessageCircle className="h-5 w-5" />
-              </Button>
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadNotificationsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              <Link href="/messages">
+                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent relative">
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2 p-2">

@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
-import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload } from "lucide-react";
+import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail } from "lucide-react";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -42,6 +42,18 @@ export default function Dashboard() {
 
   const { data: transactions } = useQuery({
     queryKey: ['/api/users', user?.id, 'transactions'],
+    enabled: !!user?.id,
+  });
+
+  // Fetch messages for creator
+  const { data: messages } = useQuery({
+    queryKey: ['/api/messages'],
+    enabled: !!user?.id,
+  });
+
+  // Fetch notifications 
+  const { data: notifications } = useQuery({
+    queryKey: ['/api/notifications'],
     enabled: !!user?.id,
   });
 
@@ -183,8 +195,9 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="messages">Messages</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
@@ -229,29 +242,154 @@ export default function Dashboard() {
               </Card>
             </div>
 
-            {/* Recent Activity */}
+            {/* Active Campaigns with Messaging */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>Active Campaigns</CardTitle>
+                <p className="text-sm text-gray-600">Your approved campaigns with messaging access</p>
               </CardHeader>
               <CardContent>
                 {participations && participations.length > 0 ? (
                   <div className="space-y-4">
                     {participations.slice(0, 5).map((participation: any) => (
                       <div key={participation.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">Campaign Participation</p>
-                          <p className="text-sm text-gray-600">Campaign ID: {participation.campaignId}</p>
+                        <div className="flex-1">
+                          <p className="font-medium">Campaign Task</p>
+                          <p className="text-sm text-gray-600">Status: {participation.status}</p>
+                          <p className="text-xs text-gray-500">Submitted: {participation.submittedAt ? new Date(participation.submittedAt).toLocaleDateString() : 'N/A'}</p>
                         </div>
-                        <Badge variant={participation.status === 'approved' ? 'default' : 'secondary'}>
-                          {participation.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={participation.status === 'approved' ? 'default' : 'secondary'}>
+                            {participation.status}
+                          </Badge>
+                          {participation.status === 'approved' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(`/messages?campaign=${participation.campaignId}`, '_blank')}
+                              className="flex items-center gap-1"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              Chat Brand
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-600 text-center py-8">No recent activity</p>
+                  <p className="text-gray-600 text-center py-8">No active campaigns</p>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Messages Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    Recent Messages
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {messages && messages.length > 0 ? (
+                    <div className="space-y-3">
+                      {messages.slice(0, 3).map((message: any) => (
+                        <div key={message.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{message.subject}</p>
+                            <p className="text-xs text-gray-600 truncate">{message.content}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(message.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {!message.isRead && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          )}
+                        </div>
+                      ))}
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-4"
+                        onClick={() => window.location.href = '/messages'}
+                      >
+                        View All Messages
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-600">No messages yet</p>
+                      <p className="text-sm text-gray-500">Messages from brands will appear here</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Notifications */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="w-5 h-5" />
+                    Notifications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {notifications && notifications.length > 0 ? (
+                    <div className="space-y-3">
+                      {notifications.slice(0, 3).map((notification: any) => (
+                        <div key={notification.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{notification.title}</p>
+                            <p className="text-xs text-gray-600">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(notification.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {!notification.isRead && (
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-600">No notifications</p>
+                      <p className="text-sm text-gray-500">Updates will appear here</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-4">
+                  <Button 
+                    onClick={() => window.location.href = '/messages'}
+                    className="flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Open Messages
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/campaigns'}
+                    className="flex items-center gap-2"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    Browse Campaigns
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
