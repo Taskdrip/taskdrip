@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+// Remove auth import for now, will get user data via API
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +72,14 @@ export default function MessagesPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSubmitTaskOpen, setIsSubmitTaskOpen] = useState(false);
+
+  // Get current user data
+  const { data: user } = useQuery({
+    queryKey: ["/api/user"],
+    retry: false,
+  });
+
+  const isBrand = user?.userType === 'brand';
 
 
 
@@ -272,22 +281,34 @@ export default function MessagesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Messages & Tasks</h1>
-            <p className="text-gray-600 mt-2">Communicate with brands and submit your completed work</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {isBrand ? "Messages & Communications" : "Messages & Tasks"}
+            </h1>
+            <p className="text-gray-600 mt-2">
+              {isBrand 
+                ? "Communicate with creators about your campaigns and review their progress" 
+                : "Communicate with brands and submit your completed work"
+              }
+            </p>
           </div>
           <div className="flex gap-4">
             <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
-                  Compose Message
+                  {isBrand ? "Message Creator" : "Compose Message"}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Send Message to Brand</DialogTitle>
+                  <DialogTitle>
+                    {isBrand ? "Send Message to Creator" : "Send Message to Brand"}
+                  </DialogTitle>
                   <DialogDescription>
-                    Send a message about one of your active campaigns
+                    {isBrand 
+                      ? "Send a message to creators about your campaigns"
+                      : "Send a message about one of your active campaigns"
+                    }
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...messageForm}>
@@ -395,13 +416,14 @@ export default function MessagesPage() {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={isSubmitTaskOpen} onOpenChange={setIsSubmitTaskOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Submit Task
-                </Button>
-              </DialogTrigger>
+            {!isBrand && (
+              <Dialog open={isSubmitTaskOpen} onOpenChange={setIsSubmitTaskOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Submit Task
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Submit Completed Task</DialogTitle>
@@ -509,7 +531,8 @@ export default function MessagesPage() {
                   </form>
                 </Form>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            )}
           </div>
         </div>
 
@@ -525,16 +548,18 @@ export default function MessagesPage() {
           >
             Messages ({messages.length})
           </button>
-          <button
-            onClick={() => setSelectedTab("submissions")}
-            className={`px-6 py-3 font-medium ${
-              selectedTab === "submissions"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Task Submissions ({submissions.length})
-          </button>
+          {!isBrand && (
+            <button
+              onClick={() => setSelectedTab("submissions")}
+              className={`px-6 py-3 font-medium ${
+                selectedTab === "submissions"
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Task Submissions ({submissions.length})
+            </button>
+          )}
         </div>
 
         {/* Messages Tab */}
@@ -586,8 +611,8 @@ export default function MessagesPage() {
           </div>
         )}
 
-        {/* Task Submissions Tab */}
-        {selectedTab === "submissions" && (
+        {/* Task Submissions Tab - Only for creators */}
+        {!isBrand && selectedTab === "submissions" && (
           <div className="space-y-4">
             {submissionsLoading ? (
               <div className="text-center py-8">Loading submissions...</div>
