@@ -16,6 +16,7 @@ import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
 import UserProfile from "@/pages/user-profile";
 import Messages from "@/pages/messages";
+import Chat from "@/pages/chat";
 import Blog from "@/pages/blog";
 import Shop from "@/pages/shop";
 import ProductDetail from "@/pages/product-detail";
@@ -85,6 +86,7 @@ function Router() {
           }} />
           <Route path="/user-profile" component={UserProfile} />
           <Route path="/messages" component={Messages} />
+          <Route path="/chat" component={Chat} />
           <Route path="/wallet" component={WalletSettings} />
           <Route path="/payment-deposit" component={PaymentDeposit} />
           <Route path="/profile-edit" component={ProfileEdit} />

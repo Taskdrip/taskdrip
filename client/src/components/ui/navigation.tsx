@@ -96,7 +96,7 @@ export function Navigation() {
                   )}
                 </Button>
               </Link>
-              <Link href="/messages">
+              <Link href="/chat">
                 <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent relative">
                   <MessageCircle className="h-5 w-5" />
                   {unreadMessagesCount > 0 && (
