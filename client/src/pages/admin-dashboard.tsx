@@ -20,7 +20,10 @@ import {
   BarChart3, 
   UserCog,
   Lock,
-  Key
+  Key,
+  ShoppingCart,
+  Package,
+  Plus
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -187,10 +190,11 @@ export default function AdminDashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="shop">Shop</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -349,6 +353,82 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Shop Tab */}
+          <TabsContent value="shop" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5" />
+                  Shop Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">Product Management</h3>
+                      <p className="text-gray-600">Add, edit, and manage software products in the shop</p>
+                    </div>
+                    <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      <a href="/admin/products">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Manage Products
+                      </a>
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Package className="w-8 h-8 text-blue-600" />
+                        <div>
+                          <div className="text-2xl font-bold text-blue-600">0</div>
+                          <div className="text-sm text-blue-800">Total Products</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ShoppingCart className="w-8 h-8 text-green-600" />
+                        <div>
+                          <div className="text-2xl font-bold text-green-600">0</div>
+                          <div className="text-sm text-green-800">Total Sales</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="w-8 h-8 text-orange-600" />
+                        <div>
+                          <div className="text-2xl font-bold text-orange-600">$0</div>
+                          <div className="text-sm text-orange-800">Revenue</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <h4 className="font-semibold mb-4">Quick Actions</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <a href="/admin/products">
+                          <Package className="w-4 h-4 mr-2" />
+                          View All Products
+                        </a>
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <a href="/shop">
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          View Customer Shop
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
