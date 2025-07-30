@@ -143,17 +143,26 @@ export const shopProducts = pgTable("shop_products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   description: text("description").notNull(),
+  shortDescription: varchar("short_description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   category: varchar("category").notNull(),
   type: varchar("type").notNull(), // course, software, template, etc.
   featuredImage: varchar("featured_image"),
+  galleryImages: text("gallery_images").array().default(sql`ARRAY[]::text[]`),
   downloadUrl: varchar("download_url"),
+  demoUrl: varchar("demo_url"),
+  documentationUrl: varchar("documentation_url"),
+  features: text("features").array().default(sql`ARRAY[]::text[]`),
+  requirements: text("requirements").array().default(sql`ARRAY[]::text[]`),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
   reviewCount: integer("review_count").default(0),
+  salesCount: integer("sales_count").default(0),
   isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
   isFree: boolean("is_free").default(false),
-  tags: text("tags").array(),
+  tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -162,10 +171,32 @@ export const purchases = pgTable("purchases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   productId: varchar("product_id").notNull().references(() => shopProducts.id),
+  quantity: integer("quantity").default(1),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: varchar("payment_method"), // BTC, BNB, SOL, USDT, etc.
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method"), // usdt_tron, usdt_bsc, ton
   paymentProof: varchar("payment_proof"),
-  status: varchar("status").notNull().default("pending"), // pending, confirmed, failed
+  transactionHash: varchar("transaction_hash"),
+  status: varchar("status").notNull().default("pending"), // pending, paid, delivered, cancelled, refunded
+  deliveryDetails: jsonb("delivery_details"), // Download links, access keys, etc.
+  adminNotes: text("admin_notes"),
+  paidAt: timestamp("paid_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Product reviews for better customer feedback
+export const productReviews = pgTable("product_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => shopProducts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  purchaseId: varchar("purchase_id").references(() => purchases.id), // Link to verified purchase
+  rating: integer("rating").notNull(), // 1-5 stars
+  title: varchar("title"),
+  comment: text("comment"),
+  isVerified: boolean("is_verified").default(false), // True if user purchased the product
+  helpfulCount: integer("helpful_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -327,6 +358,8 @@ export type ShopProduct = typeof shopProducts.$inferSelect;
 export type InsertShopProduct = z.infer<typeof insertShopProductSchema>;
 export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
+export type ProductReview = typeof productReviews.$inferSelect;
+export type InsertProductReview = typeof productReviews.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type TaskSubmission = typeof taskSubmissions.$inferSelect;

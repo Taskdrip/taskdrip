@@ -18,6 +18,9 @@ import UserProfile from "@/pages/user-profile";
 import Messages from "@/pages/messages";
 import Blog from "@/pages/blog";
 import Shop from "@/pages/shop";
+import ProductDetail from "@/pages/product-detail";
+import ShopCheckout from "@/pages/shop-checkout";
+import AdminProducts from "@/pages/admin-products";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 import Signup from "@/pages/signup";
@@ -58,6 +61,8 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/blog" component={Blog} />
       <Route path="/shop" component={Shop} />
+      <Route path="/shop/product/:id" component={ProductDetail} />
+      <Route path="/shop/checkout/:id" component={ShopCheckout} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       {isAuthenticated ? (
@@ -86,6 +91,7 @@ function Router() {
           <Route path="/escrow-payment" component={EscrowPayment} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
+          <Route path="/admin/products" component={AdminProducts} />
         </>
       ) : (
         <>

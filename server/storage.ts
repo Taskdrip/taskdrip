@@ -6,6 +6,7 @@ import {
   blogPosts,
   shopProducts,
   purchases,
+  productReviews,
   messages,
   taskSubmissions,
   notifications,
@@ -27,6 +28,8 @@ import {
   type InsertShopProduct,
   type Purchase,
   type InsertPurchase,
+  type ProductReview,
+  type InsertProductReview,
   type Message,
   type InsertMessage,
   type TaskSubmission,
@@ -84,13 +87,24 @@ export interface IStorage {
   
   // Shop operations
   getAllShopProducts(): Promise<ShopProduct[]>;
+  getFeaturedProducts(): Promise<ShopProduct[]>;
+  getProductsByCategory(category: string): Promise<ShopProduct[]>;
   getShopProductById(id: string): Promise<ShopProduct | undefined>;
   createShopProduct(product: InsertShopProduct): Promise<ShopProduct>;
+  updateShopProduct(id: string, updates: Partial<InsertShopProduct>): Promise<ShopProduct>;
+  deleteShopProduct(id: string): Promise<void>;
   
   // Purchase operations
+  getAllPurchases(): Promise<Purchase[]>;
   getUserPurchases(userId: string): Promise<Purchase[]>;
+  getPurchaseById(id: string): Promise<Purchase | undefined>;
   createPurchase(purchase: InsertPurchase): Promise<Purchase>;
   updatePurchase(id: string, updates: Partial<InsertPurchase>): Promise<Purchase>;
+  
+  // Product review operations
+  getProductReviews(productId: string): Promise<ProductReview[]>;
+  createProductReview(review: InsertProductReview): Promise<ProductReview>;
+  updateProductReview(id: string, updates: Partial<InsertProductReview>): Promise<ProductReview>;
   
   // Message operations
   getUserMessages(userId: string): Promise<Message[]>;
@@ -333,14 +347,48 @@ export class DatabaseStorage implements IStorage {
     return product;
   }
 
+  async getFeaturedProducts(): Promise<ShopProduct[]> {
+    return await db.select().from(shopProducts)
+      .where(and(eq(shopProducts.isActive, true), eq(shopProducts.isFeatured, true)))
+      .orderBy(desc(shopProducts.createdAt));
+  }
+
+  async getProductsByCategory(category: string): Promise<ShopProduct[]> {
+    return await db.select().from(shopProducts)
+      .where(and(eq(shopProducts.isActive, true), eq(shopProducts.category, category)))
+      .orderBy(desc(shopProducts.createdAt));
+  }
+
   async createShopProduct(product: InsertShopProduct): Promise<ShopProduct> {
     const [newProduct] = await db.insert(shopProducts).values(product).returning();
     return newProduct;
   }
 
+  async updateShopProduct(id: string, updates: Partial<InsertShopProduct>): Promise<ShopProduct> {
+    const [updatedProduct] = await db
+      .update(shopProducts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(shopProducts.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
+  async deleteShopProduct(id: string): Promise<void> {
+    await db.delete(shopProducts).where(eq(shopProducts.id, id));
+  }
+
   // Purchase operations
+  async getAllPurchases(): Promise<Purchase[]> {
+    return await db.select().from(purchases).orderBy(desc(purchases.createdAt));
+  }
+
   async getUserPurchases(userId: string): Promise<Purchase[]> {
     return await db.select().from(purchases).where(eq(purchases.userId, userId)).orderBy(desc(purchases.createdAt));
+  }
+
+  async getPurchaseById(id: string): Promise<Purchase | undefined> {
+    const [purchase] = await db.select().from(purchases).where(eq(purchases.id, id));
+    return purchase;
   }
 
   async createPurchase(purchase: InsertPurchase): Promise<Purchase> {
@@ -355,6 +403,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(purchases.id, id))
       .returning();
     return updatedPurchase;
+  }
+
+  // Product review operations
+  async getProductReviews(productId: string): Promise<ProductReview[]> {
+    return await db.select().from(productReviews)
+      .where(eq(productReviews.productId, productId))
+      .orderBy(desc(productReviews.createdAt));
+  }
+
+  async createProductReview(review: InsertProductReview): Promise<ProductReview> {
+    const [newReview] = await db.insert(productReviews).values(review).returning();
+    return newReview;
+  }
+
+  async updateProductReview(id: string, updates: Partial<InsertProductReview>): Promise<ProductReview> {
+    const [updatedReview] = await db
+      .update(productReviews)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(productReviews.id, id))
+      .returning();
+    return updatedReview;
   }
 
   // Message operations

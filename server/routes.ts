@@ -1354,6 +1354,267 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shop API Routes
+  // Public shop routes
+  app.get('/api/shop/products', async (req, res) => {
+    try {
+      const products = await storage.getAllShopProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching shop products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.get('/api/shop/products/featured', async (req, res) => {
+    try {
+      const products = await storage.getFeaturedProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching featured products:", error);
+      res.status(500).json({ message: "Failed to fetch featured products" });
+    }
+  });
+
+  app.get('/api/shop/products/category/:category', async (req, res) => {
+    try {
+      const products = await storage.getProductsByCategory(req.params.category);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products by category:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.get('/api/shop/products/:id', async (req, res) => {
+    try {
+      const product = await storage.getShopProductById(req.params.id);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(product);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      res.status(500).json({ message: "Failed to fetch product" });
+    }
+  });
+
+  app.get('/api/shop/products/:id/reviews', async (req, res) => {
+    try {
+      const reviews = await storage.getProductReviews(req.params.id);
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching product reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  app.post('/api/shop/products/:id/reviews', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { rating, comment, title } = req.body;
+
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be between 1 and 5" });
+      }
+
+      const review = await storage.createProductReview({
+        productId: req.params.id,
+        userId: user.id,
+        rating,
+        title,
+        comment,
+        isVerified: false, // TODO: Check if user actually purchased the product
+      });
+
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating review:", error);
+      res.status(500).json({ message: "Failed to create review" });
+    }
+  });
+
+  // Shop purchase route
+  app.post('/api/shop/purchase', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { productId, amount, currency, network, paymentProof, transactionHash } = req.body;
+
+      if (!productId) {
+        return res.status(400).json({ message: "Product ID is required" });
+      }
+
+      const product = await storage.getShopProductById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      // Validate payment for non-free products
+      if (!product.isFree) {
+        if (!paymentProof || !paymentProof.trim()) {
+          return res.status(400).json({ message: "Payment proof is required for paid products" });
+        }
+        
+        if (parseFloat(amount) !== parseFloat(product.price)) {
+          return res.status(400).json({ message: "Payment amount doesn't match product price" });
+        }
+      }
+
+      const purchase = await storage.createPurchase({
+        userId: user.id,
+        productId,
+        amount: amount || "0",
+        currency: currency || "USDT",
+        network: network || "free",
+        paymentProof: paymentProof || "FREE_PRODUCT",
+        transactionHash: transactionHash || "",
+        status: product.isFree ? "approved" : "pending",
+      });
+
+      res.status(201).json(purchase);
+    } catch (error) {
+      console.error("Error creating purchase:", error);
+      res.status(500).json({ message: "Failed to create purchase" });
+    }
+  });
+
+  app.get('/api/shop/purchase/:id', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const purchase = await storage.getPurchaseById(req.params.id);
+      
+      if (!purchase) {
+        return res.status(404).json({ message: "Purchase not found" });
+      }
+
+      // Only allow user to view their own purchases or admin to view all
+      if (purchase.userId !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(purchase);
+    } catch (error) {
+      console.error("Error fetching purchase:", error);
+      res.status(500).json({ message: "Failed to fetch purchase" });
+    }
+  });
+
+  // Admin shop routes
+  app.get('/api/admin/shop/products', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Get all products including inactive ones for admin
+      const products = await storage.getAllShopProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching admin products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.post('/api/admin/shop/products', isAuthenticated, upload.single('featuredImage'), async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const productData = {
+        ...req.body,
+        price: req.body.price.toString(),
+        originalPrice: req.body.originalPrice ? req.body.originalPrice.toString() : undefined,
+        featuredImage: req.file ? `/uploads/${req.file.filename}` : req.body.featuredImage,
+        createdBy: user.id,
+        galleryImages: Array.isArray(req.body.galleryImages) ? req.body.galleryImages : [],
+        features: Array.isArray(req.body.features) ? req.body.features : [],
+        requirements: Array.isArray(req.body.requirements) ? req.body.requirements : [],
+        tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+      };
+
+      const product = await storage.createShopProduct(productData);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  app.put('/api/admin/shop/products/:id', isAuthenticated, upload.single('featuredImage'), async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const updateData = {
+        ...req.body,
+        price: req.body.price ? req.body.price.toString() : undefined,
+        originalPrice: req.body.originalPrice ? req.body.originalPrice.toString() : undefined,
+        featuredImage: req.file ? `/uploads/${req.file.filename}` : req.body.featuredImage,
+        galleryImages: Array.isArray(req.body.galleryImages) ? req.body.galleryImages : [],
+        features: Array.isArray(req.body.features) ? req.body.features : [],
+        requirements: Array.isArray(req.body.requirements) ? req.body.requirements : [],
+        tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+      };
+
+      const product = await storage.updateShopProduct(req.params.id, updateData);
+      res.json(product);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
+    }
+  });
+
+  app.delete('/api/admin/shop/products/:id', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.deleteShopProduct(req.params.id);
+      res.json({ message: "Product deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ message: "Failed to delete product" });
+    }
+  });
+
+  // Purchase management routes
+  app.get('/api/admin/purchases', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const purchases = await storage.getAllPurchases();
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching purchases:", error);
+      res.status(500).json({ message: "Failed to fetch purchases" });
+    }
+  });
+
+  app.put('/api/admin/purchases/:id', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const purchase = await storage.updatePurchase(req.params.id, req.body);
+      res.json(purchase);
+    } catch (error) {
+      console.error("Error updating purchase:", error);
+      res.status(500).json({ message: "Failed to update purchase" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
