@@ -39,21 +39,17 @@ export default function AdminDashboard() {
     confirmPassword: ''
   });
 
-  const { data: campaigns } = useQuery({
+  const { data: campaigns = [] } = useQuery({
     queryKey: ['/api/campaigns'],
   });
 
-  const { data: allParticipations } = useQuery({
+  const { data: allParticipations = [] } = useQuery({
     queryKey: ['/api/admin/participations'],
   });
 
   const updateAdminProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/admin/profile', {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return await apiRequest('PATCH', '/api/admin/profile', data);
     },
     onSuccess: () => {
       toast({
@@ -73,11 +69,7 @@ export default function AdminDashboard() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/admin/change-password', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return await apiRequest('POST', '/api/admin/change-password', data);
     },
     onSuccess: () => {
       toast({

@@ -6,6 +6,7 @@ import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurch
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcrypt";
+import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
 
@@ -408,29 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Shop routes
-  app.get('/api/shop', async (req, res) => {
-    try {
-      const products = await storage.getAllShopProducts();
-      res.json(products);
-    } catch (error) {
-      console.error("Error fetching shop products:", error);
-      res.status(500).json({ message: "Failed to fetch shop products" });
-    }
-  });
-
-  app.get('/api/shop/:id', async (req, res) => {
-    try {
-      const product = await storage.getShopProductById(req.params.id);
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      res.json(product);
-    } catch (error) {
-      console.error("Error fetching product:", error);
-      res.status(500).json({ message: "Failed to fetch product" });
-    }
-  });
+  // Note: Shop routes moved to dedicated section below for better organization
 
   // Purchase routes
   app.post('/api/purchases', upload.single('paymentProof'), async (req: any, res) => {
@@ -938,6 +917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await bcrypt.hash(password, 10);
       
       const newUser = await storage.createUser({
+        id: nanoid(),
         email,
         password: hashedPassword,
         firstName,
@@ -1354,18 +1334,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Shop API Routes
-  // Public shop routes
-  app.get('/api/shop/products', async (req, res) => {
-    try {
-      const products = await storage.getAllShopProducts();
-      res.json(products);
-    } catch (error) {
-      console.error("Error fetching shop products:", error);
-      res.status(500).json({ message: "Failed to fetch products" });
-    }
-  });
-
+  // Shop API Routes - Specific routes must come before parameterized routes
+  
+  // Static routes first (most specific)
   app.get('/api/shop/products/featured', async (req, res) => {
     try {
       const products = await storage.getFeaturedProducts();
@@ -1386,6 +1357,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Base products route (no parameters) - second most specific
+  app.get('/api/shop/products', async (req, res) => {
+    try {
+      const products = await storage.getAllShopProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching shop products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // Parameterized routes last (least specific)
   app.get('/api/shop/products/:id', async (req, res) => {
     try {
       const product = await storage.getShopProductById(req.params.id);
@@ -1464,7 +1447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: user.id,
         productId,
         amount: amount || "0",
-        currency: currency || "USDT",
+        totalAmount: amount || "0",
         network: network || "free",
         paymentProof: paymentProof || "FREE_PRODUCT",
         transactionHash: transactionHash || "",
