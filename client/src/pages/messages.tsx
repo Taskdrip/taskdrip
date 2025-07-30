@@ -79,7 +79,7 @@ export default function MessagesPage() {
     retry: false,
   });
 
-  const isBrand = user?.userType === 'brand';
+  const isBrand = (user as any)?.userType === 'brand';
 
 
 
@@ -101,16 +101,11 @@ export default function MessagesPage() {
     retry: false,
   });
 
-  // Fetch campaign applications for brand to message creators
-  const { data: applications = [] } = useQuery({
-    queryKey: ["/api/brand/applications"],
+  // Fetch message recipients based on user role
+  const { data: recipients = [] } = useQuery({
+    queryKey: ["/api/message-recipients"],
     retry: false,
-  });
-
-  // Fetch user participations to get campaigns they can message about
-  const { data: participations = [] } = useQuery({
-    queryKey: ["/api/participations"],
-    retry: false,
+    enabled: !!user,
   });
 
   // Send message mutation
@@ -350,15 +345,16 @@ export default function MessagesPage() {
                           <FormLabel>Recipient</FormLabel>
                           <FormControl>
                             <select {...field} className="w-full p-2 border rounded-md">
-                              <option value="">Select creator...</option>
-                              {applications
-                                .filter((app: any) => app.campaignId === messageForm.watch('campaignId') && app.status === 'approved')
-                                .map((app: any) => (
-                                  <option key={app.userId} value={app.userId}>
-                                    {app.user?.firstName} {app.user?.lastName} (@{app.user?.username || app.user?.email})
-                                  </option>
-                                ))
-                              }
+                              <option value="">
+                                {isBrand ? "Select creator..." : "Select brand..."}
+                              </option>
+                              {(recipients as any[]).map((recipient: any) => (
+                                <option key={recipient.id} value={recipient.id}>
+                                  {recipient.userType === 'brand' 
+                                    ? (recipient.companyName || `${recipient.firstName} ${recipient.lastName}`)
+                                    : `${recipient.firstName} ${recipient.lastName}`}
+                                </option>
+                              ))}
                             </select>
                           </FormControl>
                           <FormMessage />
@@ -446,16 +442,16 @@ export default function MessagesPage() {
                               className="w-full p-2 border rounded-md"
                               onChange={(e) => {
                                 field.onChange(e);
-                                const participation = participations.find((p: any) => p.campaignId === e.target.value);
-                                if (participation) {
-                                  taskForm.setValue('participationId', participation.id);
+                                const campaign = campaigns.find((c: any) => c.id === e.target.value);
+                                if (campaign) {
+                                  taskForm.setValue('participationId', campaign.id);
                                 }
                               }}
                             >
                               <option value="">Select campaign...</option>
-                              {participations.map((p: any) => (
-                                <option key={p.campaignId} value={p.campaignId}>
-                                  {p.campaign?.title || p.campaignId}
+                              {(campaigns as any[]).map((campaign: Campaign) => (
+                                <option key={campaign.id} value={campaign.id}>
+                                  {campaign.title}
                                 </option>
                               ))}
                             </select>

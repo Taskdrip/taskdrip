@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: req.body.category,
         reward: req.body.reward,
         totalSlots: parseInt(req.body.totalSlots),
-        deadline: new Date(req.body.deadline),
+        deadline: req.body.deadline,
         requirements: req.body.requirements, // Should be a string per schema
         estimatedTime: req.body.estimatedTime,
         brandId: user.id,
@@ -308,6 +308,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching participations:", error);
       res.status(500).json({ message: "Failed to fetch participations" });
+    }
+  });
+
+  // Get current user's participations
+  app.get('/api/participations', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const participations = await storage.getUserParticipations(req.user.id);
+      res.json(participations);
+    } catch (error) {
+      console.error("Error fetching participations:", error);
+      res.status(500).json({ message: "Failed to fetch participations" });
+    }
+  });
+
+  // Get user campaigns for messaging
+  app.get('/api/user/campaigns', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.user.id;
+      const user = req.user;
+      
+      if (user.userType === 'brand') {
+        // Get campaigns created by the brand
+        const campaigns = await storage.getBrandCampaigns(userId);
+        res.json(campaigns);
+      } else {
+        // Get campaigns the creator has participated in (approved ones for messaging)
+        const participations = await storage.getUserParticipations(userId);
+        const approvedParticipations = participations.filter(p => p.status === 'approved');
+        
+        // Get campaign details for each participation
+        const campaignPromises = approvedParticipations.map(async (p) => {
+          const campaign = await storage.getCampaignById(p.campaignId);
+          return campaign;
+        });
+        
+        const campaigns = await Promise.all(campaignPromises);
+        res.json(campaigns.filter(Boolean));
+      }
+    } catch (error) {
+      console.error("Error fetching user campaigns:", error);
+      res.status(500).json({ message: "Failed to fetch campaigns" });
+    }
+  });
+
+  // Get potential message recipients based on user role
+  app.get('/api/message-recipients', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.user.id;
+      const user = req.user;
+      
+      if (user.userType === 'brand') {
+        // Brands can message creators who have participated in their campaigns
+        const campaigns = await storage.getBrandCampaigns(userId);
+        const recipientSet = new Set();
+        const recipients = [];
+        
+        for (const campaign of campaigns) {
+          const participations = await storage.getCampaignParticipations(campaign.id);
+          for (const participation of participations) {
+            if (!recipientSet.has(participation.userId)) {
+              recipientSet.add(participation.userId);
+              const creator = await storage.getUserById(participation.userId);
+              if (creator) {
+                recipients.push({
+                  id: creator.id,
+                  firstName: creator.firstName,
+                  lastName: creator.lastName,
+                  email: creator.email,
+                  userType: creator.userType
+                });
+              }
+            }
+          }
+        }
+        res.json(recipients);
+      } else {
+        // Creators can message brands of campaigns they've participated in
+        const participations = await storage.getUserParticipations(userId);
+        const recipientSet = new Set();
+        const recipients = [];
+        
+        for (const participation of participations) {
+          const campaign = await storage.getCampaignById(participation.campaignId);
+          if (campaign && !recipientSet.has(campaign.brandId)) {
+            recipientSet.add(campaign.brandId);
+            const brand = await storage.getUserById(campaign.brandId);
+            if (brand) {
+              recipients.push({
+                id: brand.id,
+                firstName: brand.firstName,
+                lastName: brand.lastName,
+                companyName: brand.companyName,
+                email: brand.email,
+                userType: brand.userType
+              });
+            }
+          }
+        }
+        res.json(recipients);
+      }
+    } catch (error) {
+      console.error("Error fetching message recipients:", error);
+      res.status(500).json({ message: "Failed to fetch recipients" });
     }
   });
 
