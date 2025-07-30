@@ -151,15 +151,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: string, updates: Partial<User>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
-
-  async updateUserProfile(id: string, updates: Partial<User>): Promise<User> {
     const [updatedUser] = await db
       .update(users)
       .set({ ...updates, updatedAt: new Date() })
@@ -193,9 +184,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign> {
+    // Convert reward to string if it's a number
+    const safeUpdates = {
+      ...updates,
+      reward: typeof updates.reward === 'number' ? updates.reward.toString() : updates.reward,
+      updatedAt: new Date()
+    };
+    
     const [updatedCampaign] = await db
       .update(campaigns)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(safeUpdates)
       .where(eq(campaigns.id, id))
       .returning();
     
@@ -711,7 +709,7 @@ export class DatabaseStorage implements IStorage {
                 firstName: user[0].firstName,
                 lastName: user[0].lastName,
                 email: user[0].email,
-                profileImage: user[0].profileImage,
+                profileImage: user[0].profileImageUrl,
                 location: user[0].location,
               }
             });
@@ -719,7 +717,11 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return results.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
     } catch (error) {
       console.error('Error fetching brand campaign applications:', error);
       return [];
@@ -839,12 +841,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated;
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    await db
-      .delete(users)
-      .where(eq(users.id, id));
   }
 }
 

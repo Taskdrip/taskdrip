@@ -65,10 +65,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: req.body.title,
         description: req.body.description,
         category: req.body.category,
-        reward: req.body.reward.toString(),
+        reward: req.body.reward,
         totalSlots: parseInt(req.body.totalSlots),
         deadline: new Date(req.body.deadline),
-        requirements: [req.body.requirements], // Convert string to array
+        requirements: req.body.requirements, // Should be a string per schema
         estimatedTime: req.body.estimatedTime,
         brandId: user.id,
         brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
@@ -106,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error creating campaign:", error);
-      res.status(500).json({ message: "Failed to create campaign", error: error.message });
+      res.status(500).json({ message: "Failed to create campaign", error: (error as Error).message });
     }
   });
 
@@ -1086,15 +1086,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
       }
 
-      const { title, content, status } = req.body;
+      const { title, content, isPublished } = req.body;
       const blogPost = await storage.createBlogPost({
         title,
         content,
-        status,
+        isPublished: isPublished || false,
         authorId: userId,
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         excerpt: content.substring(0, 200) + '...',
-        publishedAt: status === 'published' ? new Date() : null
+        publishedAt: isPublished ? new Date() : null
       });
       res.json(blogPost);
     } catch (error) {
@@ -1448,7 +1448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productId,
         amount: amount || "0",
         totalAmount: amount || "0",
-        network: network || "free",
+
         paymentProof: paymentProof || "FREE_PRODUCT",
         transactionHash: transactionHash || "",
         status: product.isFree ? "approved" : "pending",
