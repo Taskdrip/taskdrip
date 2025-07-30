@@ -279,19 +279,20 @@ export default function MessagesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isBrand ? "Messages & Communications" : "Messages & Tasks"}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              {isBrand 
-                ? "Communicate with creators about your campaigns and review their progress" 
-                : "Communicate with brands and submit your completed work"
-              }
-            </p>
-          </div>
-          <div className="flex gap-4">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isBrand ? "Messages & Communications" : "Messages & Tasks"}
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {isBrand 
+                  ? "Communicate with creators about your campaigns and review their progress" 
+                  : "Communicate with brands and submit your completed work"
+                }
+              </p>
+            </div>
+            <div className="flex gap-4 sm:flex-shrink-0">
             <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
@@ -533,6 +534,7 @@ export default function MessagesPage() {
               </DialogContent>
               </Dialog>
             )}
+            </div>
           </div>
         </div>
 
