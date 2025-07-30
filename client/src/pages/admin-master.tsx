@@ -24,7 +24,8 @@ import {
   Trash2, Eye, UserCheck, AlertTriangle, TrendingUp, Settings, BookOpen, Target,
   Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
-  Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight
+  Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
+  Copy
 } from "lucide-react";
 
 // Form schemas
@@ -448,7 +449,7 @@ export default function AdminMaster() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Total Revenue</p>
-                      <p className="text-2xl font-bold text-green-600">${totalRevenue.toFixed(2)}</p>
+                      <p className="text-xl font-bold text-green-600">${(totalRevenue / 1000000).toFixed(1)}M</p>
                       <p className="text-xs text-green-500">+12% this month</p>
                     </div>
                     <TrendingUp className="h-8 w-8 text-green-600" />
@@ -1708,7 +1709,7 @@ What story will you tell today?"
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Total Processed</span>
-                      <span className="font-medium">${totalRevenue.toFixed(2)}</span>
+                      <span className="font-medium">${(totalRevenue / 1000000).toFixed(1)}M</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Pending Payments</span>
@@ -1716,7 +1717,7 @@ What story will you tell today?"
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Commission Earned</span>
-                      <span className="font-medium">${(totalRevenue * 0.05).toFixed(2)}</span>
+                      <span className="font-medium">${((totalRevenue * 0.05) / 1000000).toFixed(1)}M</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t">
                       <span className="text-sm font-medium">Average Transaction</span>
@@ -1908,6 +1909,94 @@ What story will you tell today?"
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Payment Wallets</CardTitle>
+                <CardDescription>Central wallet addresses for all platform transactions (campaigns, shop, subscriptions, ads)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-1 gap-4">
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium text-blue-900">USDT (Tron Network) - TRC-20</Label>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value="TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR" 
+                          readOnly 
+                          className="font-mono text-sm bg-white"
+                        />
+                        <Button variant="outline" size="sm">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-blue-700 mt-1">All USDT Tron payments go to this address</p>
+                    </div>
+
+                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium text-yellow-900">USDT (BSC Network) - BEP-20</Label>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value="0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B" 
+                          readOnly 
+                          className="font-mono text-sm bg-white"
+                        />
+                        <Button variant="outline" size="sm">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-yellow-700 mt-1">All USDT BSC payments go to this address</p>
+                    </div>
+
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium text-blue-900">USDT (TON Network)</Label>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value="EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8" 
+                          readOnly 
+                          className="font-mono text-sm bg-white"
+                        />
+                        <Button variant="outline" size="sm">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-blue-700 mt-1">All USDT TON payments go to this address</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Wallet Security Status</p>
+                      <p className="text-xs text-gray-600">All wallets are cold storage addresses managed by admin</p>
+                    </div>
+                    <Badge variant="default" className="bg-green-100 text-green-800">
+                      <Shield className="h-3 w-3 mr-1" />
+                      Secure
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
