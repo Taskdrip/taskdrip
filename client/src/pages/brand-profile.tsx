@@ -102,7 +102,7 @@ export default function BrandProfile() {
   const shareProfile = () => {
     navigator.share({
       title: `${brand?.companyName || brand?.firstName} - Brand Profile`,
-      text: `Check out ${brand?.companyName || brand?.firstName} on Breedskool`,
+      text: `Check out ${brand?.companyName || brand?.firstName} on Taskdrip`,
       url: window.location.href,
     }).catch(() => {
       navigator.clipboard.writeText(window.location.href);

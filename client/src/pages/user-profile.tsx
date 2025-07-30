@@ -25,7 +25,7 @@ export default function UserProfile() {
   const mockPosts = [
     {
       id: 1,
-      content: "Just completed my 50th task! Loving the diversity of campaigns on Breedskool 🚀",
+      content: "Just completed my 50th task! Loving the diversity of campaigns on Taskdrip 🚀",
       timestamp: "2 hours ago",
       likes: 24,
       comments: 8,

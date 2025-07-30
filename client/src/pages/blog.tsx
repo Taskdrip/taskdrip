@@ -32,7 +32,7 @@ export default function Blog() {
             Task Performer Hub
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Expert guides, earning strategies, and success stories from the Breedskool community.
+            Expert guides, earning strategies, and success stories from the Taskdrip community.
           </p>
         </div>
 

@@ -32,7 +32,7 @@ class WalletManager {
     this.notifyListeners();
     
     // Store in localStorage for persistence
-    localStorage.setItem('breedskool_wallet_addresses', JSON.stringify(this.walletAddresses));
+    localStorage.setItem('taskdrip_wallet_addresses', JSON.stringify(this.walletAddresses));
   }
 
   // Subscribe to wallet address changes
@@ -56,7 +56,7 @@ class WalletManager {
   // Initialize from localStorage
   initialize(): void {
     try {
-      const stored = localStorage.getItem('breedskool_wallet_addresses');
+      const stored = localStorage.getItem('taskdrip_wallet_addresses');
       if (stored) {
         const parsed = JSON.parse(stored);
         this.walletAddresses = { ...this.walletAddresses, ...parsed };

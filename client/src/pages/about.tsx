@@ -217,7 +217,7 @@ export default function About() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-6">Ready to Start Earning?</h2>
           <p className="text-xl text-gray-300 mb-8">
-            Join thousands of creators who are already earning crypto rewards through Breedskool
+            Join thousands of creators who are already earning crypto rewards through Taskdrip
           </p>
           <div className="flex justify-center space-x-4">
             <Link href="/signup">

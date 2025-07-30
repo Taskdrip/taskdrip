@@ -275,7 +275,7 @@ export default function AdminUserManagement() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-blue-900 font-medium">Email</Label>
-              <p className="text-blue-800 font-mono bg-blue-100 p-2 rounded border">admin@breedskool.com</p>
+              <p className="text-blue-800 font-mono bg-blue-100 p-2 rounded border">admin@taskdrip.com</p>
             </div>
             <div>
               <Label className="text-blue-900 font-medium">Password</Label>

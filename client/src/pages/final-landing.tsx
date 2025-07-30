@@ -246,7 +246,7 @@ export default function FinalLanding() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-black mb-8">Why Choose Breedskool</h2>
+            <h2 className="text-5xl font-bold text-black mb-8">Why Choose Taskdrip</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Professional tools and secure infrastructure for the modern creator economy
             </p>
@@ -322,7 +322,7 @@ export default function FinalLanding() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-12 mb-16">
             <div>
-              <h3 className="text-2xl font-bold mb-6">Breedskool</h3>
+              <h3 className="text-2xl font-bold mb-6">Taskdrip</h3>
               <p className="text-gray-400 mb-8 leading-relaxed text-lg">
                 Professional task-based platform connecting performers with brands through crypto rewards.
               </p>
@@ -360,7 +360,7 @@ export default function FinalLanding() {
           <div className="border-t border-gray-800 pt-10">
             <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
               <p className="text-gray-400 text-center lg:text-left">
-                © 2025 Breedskool. All rights reserved.
+                © 2025 Taskdrip. All rights reserved.
               </p>
               <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
                 <span className="text-gray-400 text-center">Supported Networks:</span>

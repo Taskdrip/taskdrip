@@ -249,7 +249,7 @@ export default function LandingNew() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
-              <h3 className="text-2xl font-bold mb-4">Breedskool</h3>
+              <h3 className="text-2xl font-bold mb-4">Taskdrip</h3>
               <p className="text-gray-400 mb-6 leading-relaxed">
                 The future of creator monetization. Connect with brands, complete campaigns, and earn cryptocurrency.
               </p>
@@ -300,7 +300,7 @@ export default function LandingNew() {
           <div className="border-t border-gray-800 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p className="text-gray-400 text-sm mb-4 md:mb-0">
-                © 2025 Breedskool. All rights reserved.
+                © 2025 Taskdrip. All rights reserved.
               </p>
               <div className="flex items-center space-x-6 text-sm">
                 <span className="text-gray-400">Supported Networks:</span>

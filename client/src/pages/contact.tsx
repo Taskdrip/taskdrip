@@ -64,7 +64,7 @@ export default function Contact() {
     {
       icon: Mail,
       title: "Email Us",
-      details: "support@breedskool.com",
+      details: "support@taskdrip.com",
       description: "Send us an email anytime"
     },
     {

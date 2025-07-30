@@ -366,7 +366,7 @@ export default function Landing() {
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Trusted by Top Creators</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See what successful creators are saying about their experience with Breedskool
+              See what successful creators are saying about their experience with Taskdrip
             </p>
           </div>
 

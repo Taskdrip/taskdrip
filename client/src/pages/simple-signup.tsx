@@ -70,7 +70,7 @@ export default function SimpleSignup() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: "Account created successfully!",
-        description: `Welcome to Breedskool, ${data.user.firstName}!`,
+        description: `Welcome to Taskdrip, ${data.user.firstName}!`,
       });
       setLocation('/dashboard');
     },
@@ -108,7 +108,7 @@ export default function SimpleSignup() {
               Back to Home
             </Button>
           </Link>
-          <h2 className="text-3xl font-bold text-gray-900">Join Breedskool</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Join Taskdrip</h2>
           <p className="mt-2 text-sm text-gray-600">
             Create your account and start earning crypto rewards
           </p>
