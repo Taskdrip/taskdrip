@@ -51,6 +51,10 @@ const settingsSchema = z.object({
   dailyWithdrawalLimit: z.number().min(100, "Daily limit must be at least $100"),
 });
 
+const walletSchema = z.object({
+  address: z.string().min(10, "Wallet address must be at least 10 characters"),
+});
+
 export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -63,6 +67,8 @@ export default function AdminMaster() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isBlogDialogOpen, setIsBlogDialogOpen] = useState(false);
+  const [isEditWalletDialogOpen, setIsEditWalletDialogOpen] = useState(false);
+  const [editingWallet, setEditingWallet] = useState<{type: string, address: string} | null>(null);
 
   // Forms
   const blogForm = useForm({
@@ -93,6 +99,13 @@ export default function AdminMaster() {
       minPayout: 10,
       maxTaskReward: 500,
       dailyWithdrawalLimit: 2000,
+    },
+  });
+
+  const walletForm = useForm({
+    resolver: zodResolver(walletSchema),
+    defaultValues: {
+      address: "",
     },
   });
 
@@ -264,6 +277,22 @@ export default function AdminMaster() {
       toast({
         title: "Success",
         description: "Payment status updated",
+      });
+    },
+  });
+
+  const updateWallet = useMutation({
+    mutationFn: async ({ type, address }: { type: string; address: string }) => {
+      const res = await apiRequest("PUT", `/api/admin/wallets/${type}`, { address });
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsEditWalletDialogOpen(false);
+      setEditingWallet(null);
+      walletForm.reset();
+      toast({
+        title: "Success",
+        description: "Wallet address updated successfully",
       });
     },
   });
@@ -1921,7 +1950,18 @@ What story will you tell today?"
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="flex items-center justify-between mb-2">
                         <Label className="text-sm font-medium text-blue-900">USDT (Tron Network) - TRC-20</Label>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingWallet({
+                              type: 'tron',
+                              address: 'TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR'
+                            });
+                            walletForm.setValue('address', 'TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR');
+                            setIsEditWalletDialogOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
@@ -1932,7 +1972,17 @@ What story will you tell today?"
                           readOnly 
                           className="font-mono text-sm bg-white"
                         />
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText('TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR');
+                            toast({
+                              title: "Copied!",
+                              description: "Tron wallet address copied to clipboard",
+                            });
+                          }}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1942,7 +1992,18 @@ What story will you tell today?"
                     <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                       <div className="flex items-center justify-between mb-2">
                         <Label className="text-sm font-medium text-yellow-900">USDT (BSC Network) - BEP-20</Label>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingWallet({
+                              type: 'bsc',
+                              address: '0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B'
+                            });
+                            walletForm.setValue('address', '0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B');
+                            setIsEditWalletDialogOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
@@ -1953,7 +2014,17 @@ What story will you tell today?"
                           readOnly 
                           className="font-mono text-sm bg-white"
                         />
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText('0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B');
+                            toast({
+                              title: "Copied!",
+                              description: "BSC wallet address copied to clipboard",
+                            });
+                          }}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1963,7 +2034,18 @@ What story will you tell today?"
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="flex items-center justify-between mb-2">
                         <Label className="text-sm font-medium text-blue-900">USDT (TON Network)</Label>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingWallet({
+                              type: 'ton',
+                              address: 'EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8'
+                            });
+                            walletForm.setValue('address', 'EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8');
+                            setIsEditWalletDialogOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
@@ -1974,7 +2056,17 @@ What story will you tell today?"
                           readOnly 
                           className="font-mono text-sm bg-white"
                         />
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText('EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8');
+                            toast({
+                              title: "Copied!",
+                              description: "TON wallet address copied to clipboard",
+                            });
+                          }}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
@@ -2323,6 +2415,66 @@ What story will you tell today?"
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Wallet Dialog */}
+        <Dialog open={isEditWalletDialogOpen} onOpenChange={setIsEditWalletDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Wallet Address</DialogTitle>
+              <DialogDescription>
+                Update the {editingWallet?.type?.toUpperCase()} wallet address for platform payments
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...walletForm}>
+              <form 
+                onSubmit={walletForm.handleSubmit((data) => {
+                  if (editingWallet) {
+                    updateWallet.mutate({ type: editingWallet.type, address: data.address });
+                  }
+                })}
+                className="space-y-4"
+              >
+                <FormField
+                  control={walletForm.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Wallet Address</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter new wallet address" 
+                          {...field} 
+                          className="font-mono"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-sm text-gray-600">
+                        All {editingWallet?.type?.toUpperCase()} payments will be redirected to this address
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" disabled={updateWallet.isPending}>
+                    {updateWallet.isPending ? "Updating..." : "Update Wallet"}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditWalletDialogOpen(false);
+                      setEditingWallet(null);
+                      walletForm.reset();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>

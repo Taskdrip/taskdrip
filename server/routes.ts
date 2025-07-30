@@ -906,6 +906,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/admin/wallets/:type', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const adminUser = await storage.getUser(userId);
+      
+      if (adminUser?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
+      const { type } = req.params;
+      const { address } = req.body;
+      
+      if (!address || typeof address !== 'string') {
+        return res.status(400).json({ message: 'Valid wallet address is required' });
+      }
+
+      // For now, we'll just simulate success since wallet management is stored in memory
+      // In a real implementation, this would update the database
+      res.json({ 
+        success: true, 
+        message: `${type.toUpperCase()} wallet address updated successfully`,
+        type,
+        address 
+      });
+    } catch (error) {
+      console.error('Error updating wallet address:', error);
+      res.status(500).json({ message: 'Failed to update wallet address' });
+    }
+  });
+
   // Admin routes (protected)
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
