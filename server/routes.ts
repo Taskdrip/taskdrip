@@ -690,6 +690,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Campaign editing route
+  app.patch('/api/campaigns/:id', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const campaignId = req.params.id;
+      const updates = req.body;
+
+      // Check if user owns this campaign
+      const campaign = await storage.getCampaignById(campaignId);
+      if (!campaign || campaign.brandId !== userId) {
+        return res.status(403).json({ message: "You can only edit your own campaigns" });
+      }
+
+      // Don't allow budget changes if there are already payments
+      if (updates.reward && updates.reward !== campaign.reward) {
+        const payments = await storage.getPaymentDepositsByCampaign(campaignId);
+        if (payments.length > 0) {
+          return res.status(400).json({ message: "Cannot change reward amount after payments have been made" });
+        }
+      }
+
+      const updatedCampaign = await storage.updateCampaign(campaignId, updates);
+      res.json(updatedCampaign);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      res.status(500).json({ message: "Failed to update campaign" });
+    }
+  });
+
   app.get('/api/brand/submissions', async (req, res) => {
     try {
       const userId = (req as any).user?.id;
@@ -700,6 +731,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching brand submissions:", error);
       res.status(500).json({ message: "Failed to fetch brand submissions" });
+    }
+  });
+
+  app.get('/api/brand/applications', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const applications = await storage.getBrandCampaignApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching brand applications:", error);
+      res.status(500).json({ message: "Failed to fetch brand applications" });
+    }
+  });
+
+  app.patch('/api/participations/:id/approve', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const participation = await storage.updateParticipation(req.params.id, { 
+        status: 'approved',
+        reviewedAt: new Date() 
+      });
+
+      // Create notification for creator
+      await storage.createNotification({
+        userId: participation.userId,
+        type: 'application_approved',
+        title: 'Campaign Application Approved!',
+        content: 'Your campaign application has been approved. You can now start working on the tasks.',
+        actionUrl: `/campaigns/${participation.campaignId}`,
+        relatedId: participation.id,
+      });
+
+      res.json(participation);
+    } catch (error) {
+      console.error("Error approving application:", error);
+      res.status(500).json({ message: "Failed to approve application" });
+    }
+  });
+
+  app.patch('/api/participations/:id/reject', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const { reason } = req.body;
+      const participation = await storage.updateParticipation(req.params.id, { 
+        status: 'rejected',
+        adminNotes: reason,
+        reviewedAt: new Date() 
+      });
+
+      // Create notification for creator
+      await storage.createNotification({
+        userId: participation.userId,
+        type: 'application_rejected',
+        title: 'Campaign Application Update',
+        content: `Your campaign application was not approved. ${reason ? `Reason: ${reason}` : ''}`,
+        actionUrl: `/campaigns/${participation.campaignId}`,
+        relatedId: participation.id,
+      });
+
+      res.json(participation);
+    } catch (error) {
+      console.error("Error rejecting application:", error);
+      res.status(500).json({ message: "Failed to reject application" });
     }
   });
 

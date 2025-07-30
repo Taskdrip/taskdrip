@@ -580,7 +580,7 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(taskSubmissions)
       .innerJoin(campaigns, eq(taskSubmissions.campaignId, campaigns.id))
-      .where(and(eq(campaigns.brandId, brandId), eq(taskSubmissions.status, 'pending')));
+      .where(and(eq(campaigns.brandId, brandId), eq(taskSubmissions.status, 'submitted')));
 
     return {
       totalCampaigns: totalCampaigns[0]?.count || 0,
@@ -590,6 +590,71 @@ export class DatabaseStorage implements IStorage {
       pendingSubmissions: pendingSubmissions[0]?.count || 0,
       averageRating: 4.8, // Mock for now
     };
+  }
+
+  async getBrandCampaignApplications(brandId: string): Promise<any[]> {
+    try {
+      // First, get all campaigns for this brand
+      const brandCampaigns = await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.brandId, brandId));
+
+      if (brandCampaigns.length === 0) {
+        return [];
+      }
+
+      const results = [];
+      for (const campaign of brandCampaigns) {
+        // Get all participations for this campaign
+        const participations = await db
+          .select()
+          .from(campaignParticipations)
+          .where(eq(campaignParticipations.campaignId, campaign.id))
+          .orderBy(desc(campaignParticipations.createdAt));
+
+        for (const participation of participations) {
+          // Get user details
+          const user = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, participation.userId))
+            .limit(1);
+
+          if (user[0]) {
+            results.push({
+              id: participation.id,
+              userId: participation.userId,
+              campaignId: participation.campaignId,
+              status: participation.status,
+              submissionText: participation.submissionText,
+              submittedAt: participation.submittedAt,
+              reviewedAt: participation.reviewedAt,
+              adminNotes: participation.adminNotes,
+              createdAt: participation.createdAt,
+              campaign: {
+                id: campaign.id,
+                title: campaign.title,
+                reward: campaign.reward,
+              },
+              user: {
+                id: user[0].id,
+                firstName: user[0].firstName,
+                lastName: user[0].lastName,
+                email: user[0].email,
+                profileImage: user[0].profileImage,
+                location: user[0].location,
+              }
+            });
+          }
+        }
+      }
+
+      return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+      console.error('Error fetching brand campaign applications:', error);
+      return [];
+    }
   }
 
   // Payment deposit operations

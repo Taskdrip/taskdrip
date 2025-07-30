@@ -74,8 +74,9 @@ export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "submissions" | "creators">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "creators">("overview");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
   // Fetch brand campaigns
   const { data: campaigns = [], isLoading: campaignLoading } = useQuery<Campaign[]>({
@@ -89,9 +90,21 @@ export default function BrandDashboard() {
     retry: false,
   });
 
+  // Fetch campaign applications for brand's campaigns
+  const { data: applications = [], isLoading: applicationsLoading } = useQuery<any[]>({
+    queryKey: ["/api/brand/applications"],
+    retry: false,
+  });
+
   // Fetch brand statistics
   const { data: stats, isLoading: statsLoading } = useQuery<BrandStats>({
     queryKey: ["/api/brand/stats"],
+    retry: false,
+  });
+
+  // Fetch notifications
+  const { data: notifications = [], isLoading: notificationsLoading } = useQuery<any[]>({
+    queryKey: ["/api/notifications"],
     retry: false,
   });
 
@@ -166,6 +179,73 @@ export default function BrandDashboard() {
     onError: (error: Error) => {
       toast({
         title: "Failed to reject submission",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Application approval/rejection mutations
+  const approveApplicationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/participations/${id}/approve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/stats"] });
+      toast({
+        title: "Application approved",
+        description: "Creator has been notified and can start working.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to approve application",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectApplicationMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const res = await apiRequest("PATCH", `/api/participations/${id}/reject`, { reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/applications"] });
+      toast({
+        title: "Application rejected",
+        description: "Creator has been notified of the decision.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to reject application",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Campaign editing mutation
+  const editCampaignMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<z.infer<typeof campaignSchema>> }) => {
+      const res = await apiRequest("PATCH", `/api/campaigns/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      toast({
+        title: "Campaign updated!",
+        description: "Your campaign has been successfully updated.",
+      });
+      setEditingCampaign(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update campaign",
         description: error.message,
         variant: "destructive",
       });
@@ -498,6 +578,7 @@ export default function BrandDashboard() {
           {[
             { id: "overview", label: "Overview", icon: BarChart3 },
             { id: "campaigns", label: "My Campaigns", icon: Target },
+            { id: "applications", label: "Applications", icon: Users },
             { id: "submissions", label: "Submissions", icon: CheckCircle },
             { id: "creators", label: "Creators", icon: Users },
           ].map((tab) => (
@@ -512,6 +593,11 @@ export default function BrandDashboard() {
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
+              {tab.id === "applications" && applications.filter(app => app.status === 'pending').length > 0 && (
+                <Badge variant="destructive" className="ml-1">
+                  {applications.filter(app => app.status === 'pending').length}
+                </Badge>
+              )}
               {tab.id === "submissions" && submissions.filter(s => s.status === 'pending').length > 0 && (
                 <Badge variant="destructive" className="ml-1">
                   {submissions.filter(s => s.status === 'pending').length}
@@ -651,6 +737,142 @@ export default function BrandDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {selectedTab === "applications" && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Campaign Applications</CardTitle>
+                <CardDescription>Manage creator applications for your campaigns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {applicationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading applications...</p>
+                    </div>
+                  </div>
+                ) : applications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
+                    <p className="text-gray-500">Applications will appear here when creators apply to your campaigns</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {applications.map((application) => (
+                      <Card key={application.id} className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-4">
+                              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
+                                {application.user?.firstName?.[0]}{application.user?.lastName?.[0]}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-semibold text-lg">{application.user?.firstName} {application.user?.lastName}</h3>
+                                  <Badge className={`${
+                                    application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    application.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                    {application.status.toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <p className="text-gray-600 mb-1">{application.user?.email}</p>
+                                <p className="text-sm font-medium text-blue-600 mb-2">Campaign: {application.campaign?.title}</p>
+                                <p className="text-sm text-green-600 font-medium">Reward: ${application.campaign?.reward}</p>
+                                {application.submissionText && (
+                                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                    <p className="text-sm text-gray-700">{application.submissionText}</p>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                  <span>Applied: {format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
+                                  {application.reviewedAt && (
+                                    <span>Reviewed: {format(new Date(application.reviewedAt), 'MMM d, yyyy')}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {application.status === 'pending' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => approveApplicationMutation.mutate(application.id)}
+                                    disabled={approveApplicationMutation.isPending}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50">
+                                        <AlertCircle className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Reject Application</DialogTitle>
+                                        <DialogDescription>
+                                          Please provide a reason for rejecting this application
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-4">
+                                        <Textarea 
+                                          placeholder="Reason for rejection..."
+                                          id={`reject-reason-${application.id}`}
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                          <DialogTrigger asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                          </DialogTrigger>
+                                          <Button
+                                            onClick={() => {
+                                              const textarea = document.getElementById(`reject-reason-${application.id}`) as HTMLTextAreaElement;
+                                              const reason = textarea?.value || 'No reason provided';
+                                              rejectApplicationMutation.mutate({ id: application.id, reason });
+                                            }}
+                                            disabled={rejectApplicationMutation.isPending}
+                                            className="bg-red-600 hover:bg-red-700"
+                                          >
+                                            Reject Application
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setLocation(`/messages?userId=${application.user?.id}&campaignId=${application.campaignId}`)}
+                              >
+                                <MessageCircle className="h-4 w-4 mr-1" />
+                                Message
+                              </Button>
+                            </div>
+                          </div>
+                          {application.adminNotes && (
+                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <p className="text-sm text-yellow-800 font-medium">Admin Notes:</p>
+                              <p className="text-sm text-yellow-700">{application.adminNotes}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
