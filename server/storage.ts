@@ -657,6 +657,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getBrandCampaigns(brandId: string): Promise<Campaign[]> {
+    return await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.brandId, brandId))
+      .orderBy(desc(campaigns.createdAt));
+  }
+
   // Payment deposit operations
   async createPaymentDeposit(deposit: any): Promise<PaymentDeposit> {
     const [newDeposit] = await db

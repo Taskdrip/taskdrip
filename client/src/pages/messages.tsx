@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,8 @@ export default function MessagesPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSubmitTaskOpen, setIsSubmitTaskOpen] = useState(false);
+
+
 
   // Fetch user messages
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
@@ -194,6 +196,23 @@ export default function MessagesPage() {
       messageType: "general",
     },
   });
+
+  // Check URL parameters for pre-populated messaging
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const campaignId = urlParams.get('campaignId');
+    
+    if (userId || campaignId) {
+      setIsComposeOpen(true);
+      if (campaignId) {
+        messageForm.setValue('campaignId', campaignId);
+      }
+      if (userId) {
+        messageForm.setValue('receiverId', userId);
+      }
+    }
+  }, []);
 
   const taskForm = useForm<z.infer<typeof taskSubmissionSchema>>({
     resolver: zodResolver(taskSubmissionSchema),
