@@ -6,12 +6,17 @@ import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurch
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcrypt";
+import path from "path";
+import express from "express";
 
 const upload = multer({ dest: 'uploads/' });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - this now includes all auth routes
   setupAuth(app);
+  
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Campaign routes
   app.get('/api/campaigns', async (req, res) => {
@@ -37,8 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new campaign with escrow payment
-  app.post('/api/campaigns', async (req, res) => {
+  // Create new campaign with escrow payment (with optional image upload)
+  app.post('/api/campaigns', upload.single('featureImage'), async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated() || !req.user) {
@@ -60,12 +65,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: req.body.description,
         category: req.body.category,
         reward: req.body.reward.toString(),
-        totalSlots: req.body.totalSlots,
+        totalSlots: parseInt(req.body.totalSlots),
         deadline: new Date(req.body.deadline),
         requirements: [req.body.requirements], // Convert string to array
         estimatedTime: req.body.estimatedTime,
         brandId: user.id,
         brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
+        featureImage: req.file ? `/uploads/${req.file.filename}` : null,
         status: 'pending_payment',
         paymentStatus: 'pending',
         isActive: false,

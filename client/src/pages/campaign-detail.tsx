@@ -250,8 +250,23 @@ export default function CampaignDetail() {
             <Card>
               <CardContent className="p-0">
                 {/* Brand Banner */}
-                <div className={`h-48 bg-gradient-to-br ${getBrandColor(campaign.category)} flex items-center justify-center relative`}>
-                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                <div className={`h-48 md:h-64 bg-gradient-to-br ${getBrandColor(campaign.category)} flex items-center justify-center relative overflow-hidden`}>
+                  {campaign.featureImage ? (
+                    <>
+                      <img 
+                        src={campaign.featureImage} 
+                        alt={campaign.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallbackDiv = e.currentTarget.parentElement?.querySelector('.fallback-brand');
+                          if (fallbackDiv) fallbackDiv.classList.remove('hidden');
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+                    </>
+                  ) : null}
+                  <div className={`fallback-brand w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg ${campaign.featureImage ? 'absolute' : ''}`}>
                     <span className="text-3xl font-bold text-gray-700">
                       {campaign.brandName[0]}
                     </span>

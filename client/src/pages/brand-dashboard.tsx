@@ -110,14 +110,38 @@ export default function BrandDashboard() {
 
   // Create campaign mutation
   const createCampaignMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof campaignSchema>) => {
+    mutationFn: async (data: z.infer<typeof campaignSchema> & { file?: File }) => {
       console.log("Creating campaign with data:", data);
-      const res = await apiRequest("POST", "/api/campaigns", data);
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText);
+      
+      if (data.file) {
+        // Use FormData for file upload
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (key !== 'file' && value !== undefined) {
+            formData.append(key, value.toString());
+          }
+        });
+        formData.append('featureImage', data.file);
+        
+        const res = await fetch('/api/campaigns', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText);
+        }
+        return res.json();
+      } else {
+        // Regular JSON request
+        const res = await apiRequest("POST", "/api/campaigns", data);
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText);
+        }
+        return res.json();
       }
-      return res.json();
     },
     onSuccess: (response) => {
       console.log("Campaign creation response:", response);
@@ -282,7 +306,11 @@ export default function BrandDashboard() {
       return;
     }
     
-    createCampaignMutation.mutate(data);
+    // Get the uploaded file
+    const fileInput = document.getElementById('campaign-image') as HTMLInputElement;
+    const file = fileInput?.files?.[0];
+    
+    createCampaignMutation.mutate({ ...data, file });
   };
 
   const getStatusIcon = (status: string) => {
@@ -412,6 +440,17 @@ export default function BrandDashboard() {
                         </FormItem>
                       )}
                     />
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Campaign Image</label>
+                      <input
+                        id="campaign-image"
+                        type="file"
+                        accept="image/*"
+                        className="w-full p-2 border rounded-md"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">Upload an attractive image for your campaign (optional)</p>
+                    </div>
 
                     <FormField
                       control={form.control}
