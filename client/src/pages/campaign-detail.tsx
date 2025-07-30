@@ -62,7 +62,7 @@ export default function CampaignDetail() {
     enabled: !!user && !isBrand,
   });
 
-  const hasJoined = participations.some((p: any) => p.campaignId === campaignId);
+  const hasJoined = (participations as any[]).some((p: any) => p.campaignId === campaignId);
 
   // Handle image upload for edit form
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -308,26 +308,32 @@ export default function CampaignDetail() {
             <Card>
               <CardContent className="p-0">
                 {/* Brand Banner */}
-                <div className={`h-48 md:h-64 bg-gradient-to-br ${getBrandColor((campaign as any)?.category)} flex items-center justify-center relative overflow-hidden`}>
+                <div className="h-48 md:h-64 relative overflow-hidden">
                   {(campaign as any)?.featuredImage ? (
-                    <>
-                      <img 
-                        src={(campaign as any).featuredImage} 
-                        alt={(campaign as any).title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const fallbackDiv = e.currentTarget.parentElement?.querySelector('.fallback-brand');
-                          if (fallbackDiv) fallbackDiv.classList.remove('hidden');
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                    </>
-                  ) : null}
-                  <div className={`fallback-brand w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg ${(campaign as any)?.featuredImage ? 'absolute' : ''}`}>
-                    <span className="text-3xl font-bold text-gray-700">
-                      {(campaign as any)?.brandName?.[0]}
-                    </span>
+                    <img 
+                      src={(campaign as any).featuredImage} 
+                      alt={(campaign as any).title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Image failed to load:', (campaign as any).featuredImage);
+                        e.currentTarget.style.display = 'none';
+                        const fallbackDiv = e.currentTarget.parentElement?.querySelector('.fallback-brand');
+                        if (fallbackDiv) fallbackDiv.classList.remove('hidden');
+                      }}
+                    />
+                  ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${getBrandColor((campaign as any)?.category)} flex items-center justify-center`}>
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                        <span className="text-3xl font-bold text-gray-700">{(campaign as any)?.brandName?.[0] || 'B'}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className={`fallback-brand hidden absolute inset-0 bg-gradient-to-br ${getBrandColor((campaign as any)?.category)} flex items-center justify-center`}>
+                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-3xl font-bold text-gray-700">
+                        {(campaign as any)?.brandName?.[0]}
+                      </span>
+                    </div>
                   </div>
                   {isOwnerOrAdmin && (
                     <div className="absolute top-4 right-4 flex gap-2">
@@ -720,9 +726,9 @@ export default function CampaignDetail() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-success mb-1">${parseFloat((campaign as any)?.reward || 0).toFixed(2)}</div>
-                  <div className="text-sm text-gray-600">reward per task</div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl md:text-3xl font-bold text-success mb-1">${parseFloat((campaign as any)?.reward || 0).toFixed(2)}</div>
+                  <div className="text-sm text-gray-600">per task</div>
                 </div>
 
                 {isBrand ? (
