@@ -283,7 +283,7 @@ export default function MessagesPage() {
                   Compose Message
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Send Message to Brand</DialogTitle>
                   <DialogDescription>
@@ -402,7 +402,7 @@ export default function MessagesPage() {
                   Submit Task
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Submit Completed Task</DialogTitle>
                   <DialogDescription>
