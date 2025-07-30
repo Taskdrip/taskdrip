@@ -574,7 +574,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
       const messages = await storage.getUserMessages(userId);
-      res.json(messages);
+      
+      // Enrich messages with sender information
+      const enrichedMessages = await Promise.all(
+        messages.map(async (message) => {
+          const sender = await storage.getUserById(message.senderId);
+          return {
+            ...message,
+            sender: sender ? {
+              id: sender.id,
+              firstName: sender.firstName,
+              lastName: sender.lastName,
+              companyName: sender.companyName,
+              userType: sender.userType,
+            } : null
+          };
+        })
+      );
+      
+      res.json(enrichedMessages);
     } catch (error) {
       console.error("Error fetching messages:", error);
       res.status(500).json({ message: "Failed to fetch messages" });

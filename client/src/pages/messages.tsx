@@ -95,10 +95,11 @@ export default function MessagesPage() {
     retry: false,
   });
 
-  // Fetch user campaigns for messaging dropdown
+  // Fetch campaigns based on user role
   const { data: campaigns = [] } = useQuery<Campaign[]>({
-    queryKey: ["/api/user/campaigns"],
+    queryKey: isBrand ? ["/api/campaigns/brand", (user as any)?.id] : ["/api/user/campaigns"],
     retry: false,
+    enabled: !!user,
   });
 
   // Fetch message recipients based on user role
@@ -114,7 +115,7 @@ export default function MessagesPage() {
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (key !== 'files' && value !== undefined) {
-          formData.append(key, value);
+          formData.append(key, String(value));
         }
       });
       
@@ -155,7 +156,7 @@ export default function MessagesPage() {
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (key !== 'files' && value !== undefined) {
-          formData.append(key, value);
+          formData.append(key, String(value));
         }
       });
       
@@ -578,6 +579,13 @@ export default function MessagesPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-blue-600">
+                            From: {(message as any).sender?.userType === 'brand' 
+                              ? ((message as any).sender?.companyName || `${(message as any).sender?.firstName} ${(message as any).sender?.lastName}`)
+                              : `${(message as any).sender?.firstName} ${(message as any).sender?.lastName}`}
+                          </span>
+                        </div>
                         <CardTitle className="text-lg">{message.subject}</CardTitle>
                         <CardDescription>
                           {format(new Date(message.createdAt), "MMM d, yyyy 'at' h:mm a")}
