@@ -290,7 +290,7 @@ export default function Landing() {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Why Choose Breedskool</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Why Choose Taskdrip</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Professional tools and secure infrastructure designed for the modern creator economy
             </p>
@@ -466,7 +466,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-1">
-              <h3 className="text-2xl font-bold mb-4">Breedskool</h3>
+              <h3 className="text-2xl font-bold mb-4">Taskdrip</h3>
               <p className="text-gray-300 mb-6 leading-relaxed">
                 Empowering creators worldwide with cryptocurrency earnings through authentic brand collaborations and task-based campaigns.
               </p>
@@ -516,7 +516,7 @@ export default function Landing() {
 
           <div className="border-t border-gray-800 mt-12 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
-              <p className="text-gray-300 text-sm">&copy; 2024 Breedskool. All rights reserved.</p>
+              <p className="text-gray-300 text-sm">&copy; 2024 Taskdrip. All rights reserved.</p>
               <p className="text-gray-300 text-sm mt-2 md:mt-0">Built for the creator economy 🚀</p>
             </div>
           </div>

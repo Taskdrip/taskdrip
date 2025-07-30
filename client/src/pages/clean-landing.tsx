@@ -245,7 +245,7 @@ export default function CleanLanding() {
       <section className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-black mb-6">Why Choose Breedskool</h2>
+            <h2 className="text-4xl font-bold text-black mb-6">Why Choose Taskdrip</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Professional tools and secure infrastructure for the modern creator economy
             </p>

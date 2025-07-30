@@ -176,7 +176,7 @@ Plan tasks around your schedule. App testing can be done flexibly, while events 
       {
         title: "The Future of Task-Based Work: Beyond Social Media",
         slug: "future-task-based-work",
-        content: `The gig economy is evolving beyond traditional social media influencing. Breedskool represents the next generation of task-based work:
+        content: `The gig economy is evolving beyond traditional social media influencing. Taskdrip represents the next generation of task-based work:
 
 **Diverse Opportunities**
 From app testing to event hosting, the platform offers opportunities for various skill sets and interests.

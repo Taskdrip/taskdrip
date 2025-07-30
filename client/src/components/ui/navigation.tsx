@@ -58,7 +58,7 @@ export function Navigation() {
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0">
               <div>
-                <h1 className="text-2xl font-bold text-black">Breedskool</h1>
+                <h1 className="text-2xl font-bold text-black">Taskdrip</h1>
                 <p className="text-xs text-gray-600 -mt-1">SocialFi Platform</p>
               </div>
             </Link>

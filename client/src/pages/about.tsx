@@ -76,7 +76,7 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl font-bold mb-6">
-              About Breedskool
+              About Taskdrip
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
               The leading Web3 SocialFi platform connecting creators with brands through 
@@ -144,7 +144,7 @@ export default function About() {
             </div>
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 text-white">
               <Target className="h-12 w-12 mb-6" />
-              <h3 className="text-2xl font-bold mb-4">Why Breedskool?</h3>
+              <h3 className="text-2xl font-bold mb-4">Why Taskdrip?</h3>
               <p className="text-blue-100 mb-6">
                 We believe in the power of human creativity and the importance of fair compensation. 
                 Our platform combines cutting-edge blockchain technology with user-friendly design.
