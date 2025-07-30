@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useWallets } from "@/hooks/useWallets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ interface PaymentProof {
 export default function EscrowPayment() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const { walletAddresses, copyToClipboard } = useWallets();
   
   // Extract campaign ID from URL params
   const urlParams = new URLSearchParams(window.location.search);
@@ -126,13 +128,7 @@ export default function EscrowPayment() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: "Wallet address copied to clipboard",
-    });
-  };
+
 
   if (isLoading) {
     return (
@@ -162,7 +158,7 @@ export default function EscrowPayment() {
     );
   }
 
-  const walletAddresses = escrowPayment.walletAddresses;
+  // Use centralized wallet addresses instead of escrow payment specific ones
 
   return (
     <div className="container mx-auto p-6">
@@ -278,8 +274,8 @@ export default function EscrowPayment() {
                   <div className="flex items-center gap-2">
                     <Input
                       value={
-                        selectedNetwork === "tron" ? walletAddresses.usdtTron :
-                        selectedNetwork === "bsc" ? walletAddresses.usdtBsc :
+                        selectedNetwork === "tron" ? walletAddresses.tron :
+                        selectedNetwork === "bsc" ? walletAddresses.bsc :
                         walletAddresses.ton
                       }
                       readOnly
@@ -288,11 +284,18 @@ export default function EscrowPayment() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(
-                        selectedNetwork === "tron" ? walletAddresses.usdtTron :
-                        selectedNetwork === "bsc" ? walletAddresses.usdtBsc :
-                        walletAddresses.ton
-                      )}
+                      onClick={async () => {
+                        const address = selectedNetwork === "tron" ? walletAddresses.tron :
+                                      selectedNetwork === "bsc" ? walletAddresses.bsc :
+                                      walletAddresses.ton;
+                        const success = await copyToClipboard(selectedNetwork);
+                        if (success) {
+                          toast({
+                            title: "Copied!",
+                            description: "Wallet address copied to clipboard",
+                          });
+                        }
+                      }}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>

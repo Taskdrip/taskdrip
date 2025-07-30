@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useWallets } from "@/hooks/useWallets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +59,7 @@ const walletSchema = z.object({
 export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { walletAddresses, updateWalletAddress, copyToClipboard } = useWallets();
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -286,13 +288,16 @@ export default function AdminMaster() {
       const res = await apiRequest("PUT", `/api/admin/wallets/${type}`, { address });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Update wallet address using centralized manager
+      updateWalletAddress(variables.type as keyof typeof walletAddresses, variables.address);
+      
       setIsEditWalletDialogOpen(false);
       setEditingWallet(null);
       walletForm.reset();
       toast({
         title: "Success",
-        description: "Wallet address updated successfully",
+        description: `${variables.type.toUpperCase()} wallet address updated successfully`,
       });
     },
   });
@@ -1956,9 +1961,9 @@ What story will you tell today?"
                           onClick={() => {
                             setEditingWallet({
                               type: 'tron',
-                              address: 'TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR'
+                              address: walletAddresses.tron
                             });
-                            walletForm.setValue('address', 'TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR');
+                            walletForm.setValue('address', walletAddresses.tron);
                             setIsEditWalletDialogOpen(true);
                           }}
                         >
@@ -1968,19 +1973,21 @@ What story will you tell today?"
                       </div>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value="TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR" 
+                          value={walletAddresses.tron} 
                           readOnly 
                           className="font-mono text-sm bg-white"
                         />
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText('TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR');
-                            toast({
-                              title: "Copied!",
-                              description: "Tron wallet address copied to clipboard",
-                            });
+                          onClick={async () => {
+                            const success = await copyToClipboard('tron');
+                            if (success) {
+                              toast({
+                                title: "Copied!",
+                                description: "Tron wallet address copied to clipboard",
+                              });
+                            }
                           }}
                         >
                           <Copy className="h-4 w-4" />
@@ -1998,9 +2005,9 @@ What story will you tell today?"
                           onClick={() => {
                             setEditingWallet({
                               type: 'bsc',
-                              address: '0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B'
+                              address: walletAddresses.bsc
                             });
-                            walletForm.setValue('address', '0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B');
+                            walletForm.setValue('address', walletAddresses.bsc);
                             setIsEditWalletDialogOpen(true);
                           }}
                         >
@@ -2010,19 +2017,21 @@ What story will you tell today?"
                       </div>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value="0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B" 
+                          value={walletAddresses.bsc} 
                           readOnly 
                           className="font-mono text-sm bg-white"
                         />
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText('0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B');
-                            toast({
-                              title: "Copied!",
-                              description: "BSC wallet address copied to clipboard",
-                            });
+                          onClick={async () => {
+                            const success = await copyToClipboard('bsc');
+                            if (success) {
+                              toast({
+                                title: "Copied!",
+                                description: "BSC wallet address copied to clipboard",
+                              });
+                            }
                           }}
                         >
                           <Copy className="h-4 w-4" />
@@ -2040,9 +2049,9 @@ What story will you tell today?"
                           onClick={() => {
                             setEditingWallet({
                               type: 'ton',
-                              address: 'EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8'
+                              address: walletAddresses.ton
                             });
-                            walletForm.setValue('address', 'EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8');
+                            walletForm.setValue('address', walletAddresses.ton);
                             setIsEditWalletDialogOpen(true);
                           }}
                         >
@@ -2052,19 +2061,21 @@ What story will you tell today?"
                       </div>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value="EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8" 
+                          value={walletAddresses.ton} 
                           readOnly 
                           className="font-mono text-sm bg-white"
                         />
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText('EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8');
-                            toast({
-                              title: "Copied!",
-                              description: "TON wallet address copied to clipboard",
-                            });
+                          onClick={async () => {
+                            const success = await copyToClipboard('ton');
+                            if (success) {
+                              toast({
+                                title: "Copied!",
+                                description: "TON wallet address copied to clipboard",
+                              });
+                            }
                           }}
                         >
                           <Copy className="h-4 w-4" />

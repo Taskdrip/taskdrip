@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { CloudUpload, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useWallets } from "@/hooks/useWallets";
 import type { ShopProduct } from "@shared/schema";
 
 interface PaymentModalProps {
@@ -20,30 +21,40 @@ interface PaymentModalProps {
 }
 
 export function PaymentModal({ isOpen, onClose, product, onSubmit }: PaymentModalProps) {
-  const [selectedPayment, setSelectedPayment] = useState("USDT");
+  const [selectedPayment, setSelectedPayment] = useState("USDT-TRC20");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const { toast } = useToast();
+  const { walletAddresses, copyToClipboard } = useWallets();
 
-  const walletAddresses = {
-    BTC: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    BNB: "bnb1grpf0955h0ykzq3ar5nmum7y6gdfl6lxfn46h2",
-    SOL: "DQyrAcCrDXQ7NeoqGgDCZwBveBXbQmy3qz9Mh8VCMXeJ",
-    USDT: "TXFBqBbqJtZ8jVhD5sV5VY9rdnzhTtAATz",
+  const walletMapping = {
+    "USDT-TRC20": walletAddresses.tron,
+    "USDT-BEP20": walletAddresses.bsc,
+    "USDT-TON": walletAddresses.ton,
   };
 
   const paymentMethods = [
-    { code: "BTC", name: "Bitcoin", icon: "₿", color: "text-yellow-500" },
-    { code: "BNB", name: "BNB", icon: "B", color: "text-yellow-600" },
-    { code: "SOL", name: "Solana", icon: "◎", color: "text-purple-500" },
-    { code: "USDT", name: "USDT", icon: "$", color: "text-green-500" },
+    { code: "USDT-TRC20", name: "USDT (Tron)", icon: "$", color: "text-blue-500" },
+    { code: "USDT-BEP20", name: "USDT (BSC)", icon: "$", color: "text-yellow-500" },
+    { code: "USDT-TON", name: "USDT (TON)", icon: "$", color: "text-blue-600" },
   ];
 
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(walletAddresses[selectedPayment as keyof typeof walletAddresses]);
-    toast({
-      title: "Address Copied",
-      description: "Wallet address has been copied to clipboard",
-    });
+  const handleCopyAddress = async () => {
+    const address = walletMapping[selectedPayment as keyof typeof walletMapping];
+    if (address) {
+      try {
+        await navigator.clipboard.writeText(address);
+        toast({
+          title: "Address Copied",
+          description: "Wallet address has been copied to clipboard",
+        });
+      } catch (error) {
+        toast({
+          title: "Copy Failed",
+          description: "Failed to copy wallet address",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -68,7 +79,7 @@ export function PaymentModal({ isOpen, onClose, product, onSubmit }: PaymentModa
   };
 
   const handleClose = () => {
-    setSelectedPayment("USDT");
+    setSelectedPayment("USDT-TRC20");
     setPaymentProof(null);
     onClose();
   };
@@ -129,7 +140,7 @@ export function PaymentModal({ isOpen, onClose, product, onSubmit }: PaymentModa
               <div className="bg-gray-100 p-3 rounded-lg border">
                 <div className="flex items-center justify-between">
                   <code className="text-sm font-mono text-black break-all pr-2">
-                    {walletAddresses[selectedPayment as keyof typeof walletAddresses]}
+                    {walletMapping[selectedPayment as keyof typeof walletMapping]}
                   </code>
                   <Button
                     type="button"
