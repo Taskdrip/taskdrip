@@ -50,6 +50,17 @@ export default function CampaignDetail() {
     enabled: !!campaignId,
   });
 
+  // Define user type variables first
+  const isBrand = user?.userType === 'brand';
+  
+  // Check if user has joined this campaign
+  const { data: participations = [] } = useQuery({
+    queryKey: ['/api/participations'],
+    enabled: !!user && !isBrand,
+  });
+
+  const hasJoined = participations.some((p: any) => p.campaignId === campaignId);
+
   const editForm = useForm<EditCampaignData>({
     resolver: zodResolver(editCampaignSchema),
     defaultValues: {
@@ -207,8 +218,8 @@ export default function CampaignDetail() {
 
   const progressPercentage = campaign.totalSlots > 0 ? ((campaign.filledSlots || 0) / campaign.totalSlots) * 100 : 0;
   const daysLeft = campaign.deadline ? Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
-  const isOwnerOrAdmin = user?.id === campaign.createdBy || user?.role === 'admin';
-  const canJoin = !isOwnerOrAdmin && (campaign.filledSlots || 0) < campaign.totalSlots;
+  const isOwnerOrAdmin = user?.id === campaign.brandId || user?.role === 'admin';
+  const canJoin = !isOwnerOrAdmin && !isBrand && (campaign.filledSlots || 0) < campaign.totalSlots;
 
   const onEditSubmit = (data: EditCampaignData) => {
     editCampaignMutation.mutate(data);
@@ -639,7 +650,31 @@ export default function CampaignDetail() {
                   <div className="text-sm text-gray-600">reward per task</div>
                 </div>
 
-                {canJoin ? (
+                {isBrand ? (
+                  <div className="space-y-3">
+                    <div className="text-center text-gray-600">
+                      <Building2 className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm">You're viewing as a brand</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setLocation(`/messages?campaign=${campaign.id}`)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message Creators
+                    </Button>
+                    {isOwnerOrAdmin && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setLocation('/brand-dashboard')}
+                      >
+                        Manage Campaign
+                      </Button>
+                    )}
+                  </div>
+                ) : canJoin ? (
                   <Button 
                     onClick={() => joinCampaignMutation.mutate()}
                     className="w-full bg-accent hover:bg-blue-700"
@@ -656,7 +691,7 @@ export default function CampaignDetail() {
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
                         variant="outline" 
-                        onClick={() => window.location.href = '/messages'}
+                        onClick={() => setLocation(`/messages?campaign=${campaign.id}`)}
                         className="flex items-center gap-2 text-sm"
                         size="sm"
                       >
@@ -664,7 +699,7 @@ export default function CampaignDetail() {
                         Message
                       </Button>
                       <Button 
-                        onClick={() => window.location.href = '/messages'}
+                        onClick={() => setLocation('/messages')}
                         className="flex items-center gap-2 text-sm"
                         size="sm"
                       >
@@ -675,7 +710,7 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => window.location.href = '/dashboard'}
+                      onClick={() => setLocation('/dashboard')}
                     >
                       View in Dashboard
                     </Button>
@@ -685,7 +720,7 @@ export default function CampaignDetail() {
                     disabled
                     className="w-full"
                   >
-                    {(campaign.filledSlots || 0) >= campaign.totalSlots ? 'Campaign Full' : 'You Own This Campaign'}
+                    {(campaign.filledSlots || 0) >= campaign.totalSlots ? 'Campaign Full' : 'Cannot Join Campaign'}
                   </Button>
                 )}
 
@@ -747,7 +782,11 @@ export default function CampaignDetail() {
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setLocation(`/brand/${campaign.brandId}`)}
+                >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   View Brand Profile
                 </Button>

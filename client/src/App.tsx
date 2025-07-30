@@ -25,6 +25,7 @@ import SimpleSignup from "@/pages/simple-signup";
 import Login from "@/pages/login";
 import ForgotPassword from "@/pages/forgot-password";
 import CampaignDetail from "@/pages/campaign-detail";
+import BrandProfile from "@/pages/brand-profile";
 import WalletSettings from "@/pages/wallet-settings";
 import PaymentDeposit from "@/pages/payment-deposit";
 import ProfileEdit from "@/pages/profile-edit";
@@ -66,6 +67,7 @@ function Router() {
           <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/campaigns" component={Campaigns} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
+          <Route path="/brand/:id" component={BrandProfile} />
           <Route path="/profile" component={() => {
             const userType = (user as any)?.userType;
             if (userType === 'admin') {

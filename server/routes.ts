@@ -1174,6 +1174,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Brand profile routes
+  app.post('/api/users/:id/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const brandId = req.params.id;
+      
+      // In a real implementation, this would add/remove the follow relationship
+      // For now, we'll just return success
+      res.json({ success: true, message: 'Follow status updated' });
+    } catch (error) {
+      console.error('Error updating follow status:', error);
+      res.status(500).json({ message: 'Failed to update follow status' });
+    }
+  });
+
+  app.post('/api/users/:id/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const brandId = req.params.id;
+      
+      // In a real implementation, this would add/remove the like relationship
+      // For now, we'll just return success
+      res.json({ success: true, message: 'Like status updated' });
+    } catch (error) {
+      console.error('Error updating like status:', error);
+      res.status(500).json({ message: 'Failed to update like status' });
+    }
+  });
+
+  app.get('/api/brand/reviews/:brandId', async (req, res) => {
+    try {
+      const brandId = req.params.brandId;
+      // For now, return empty array - in real implementation would fetch from database
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching brand reviews:', error);
+      res.status(500).json({ message: 'Failed to fetch brand reviews' });
+    }
+  });
+
+  app.post('/api/brand/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { brandId, rating, comment } = req.body;
+      
+      // In a real implementation, this would create a review in the database
+      // For now, we'll just return success
+      res.json({ success: true, message: 'Review submitted successfully' });
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      res.status(500).json({ message: 'Failed to submit review' });
+    }
+  });
+
   // Blog management routes
   app.get('/api/blog', async (req, res) => {
     try {
