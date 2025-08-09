@@ -80,7 +80,7 @@ export const campaigns = pgTable("campaigns", {
   totalSlots: integer("total_slots").notNull(),
   filledSlots: integer("filled_slots").default(0),
   estimatedTime: varchar("estimated_time"), // "5 min", "30 min", etc.
-  requirements: text("requirements"),
+  requirements: text("requirements").array(),
   status: varchar("status").default("pending_payment"), // 'pending_payment', 'active', 'draft', 'completed', 'cancelled'
   paymentStatus: varchar("payment_status").default("pending"), // 'pending', 'deposited', 'approved'
   depositRequired: boolean("deposit_required").default(true),

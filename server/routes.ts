@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reward: req.body.reward,
         totalSlots: parseInt(req.body.totalSlots),
         deadline: new Date(req.body.deadline),
-        requirements: req.body.requirements, // Should be a string per schema
+        requirements: req.body.requirements ? [req.body.requirements] : [], // Convert string to array
         estimatedTime: req.body.estimatedTime,
         brandId: user.id,
         brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
