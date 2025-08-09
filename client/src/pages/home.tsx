@@ -1,4 +1,5 @@
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,22 +12,22 @@ export default function Home() {
   const { user } = useAuth();
   
   // Redirect brands to their dedicated dashboard
-  if (user?.userType === 'brand') {
+  if ((user as any)?.userType === 'brand') {
     window.location.href = '/brand-dashboard';
     return null;
   }
 
-  const { data: campaigns } = useQuery({
+  const { data: campaigns = [] } = useQuery({
     queryKey: ["/api/campaigns"],
   });
 
-  const activeCampaigns = campaigns?.filter((c: any) => c.filledSlots < c.totalSlots) || [];
+  const activeCampaigns = Array.isArray(campaigns) ? campaigns.filter((c: any) => c.filledSlots < c.totalSlots) : [];
   const stats = {
-    totalEarnings: user?.totalEarned || 1250.75,
-    availableBalance: user?.availableBalance || 325.50,
+    totalEarnings: (user as any)?.totalEarned || 1250.75,
+    availableBalance: (user as any)?.availableBalance || 325.50,
     activeCampaigns: activeCampaigns.length,
-    completedTasks: user?.completedCampaigns || 47,
-    followers: user?.followers || 12500
+    completedTasks: (user as any)?.completedCampaigns || 47,
+    followers: (user as any)?.followers || 12500
   };
 
   const featuredCampaigns = activeCampaigns.slice(0, 3);
@@ -44,7 +45,7 @@ export default function Home() {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstName || 'Creator'}!</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {(user as any)?.firstName || 'Creator'}!</h1>
           <p className="text-gray-600">Ready to start earning? Here are today's opportunities.</p>
         </div>
 
@@ -206,6 +207,8 @@ export default function Home() {
           </Card>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

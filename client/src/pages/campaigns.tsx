@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from 'wouter';
-import { Navigation } from "@/components/ui/navigation";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { CampaignCard } from "@/components/ui/campaign-card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +51,7 @@ export default function Campaigns() {
   if (campaignsLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
+        <NavigationFixed />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-accent"></div>
@@ -76,7 +77,7 @@ export default function Campaigns() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <NavigationFixed />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Browse Campaigns</h1>
@@ -166,6 +167,8 @@ export default function Campaigns() {
           </div>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 }

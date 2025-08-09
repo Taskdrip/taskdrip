@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { Navigation } from "@/components/ui/navigation";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,30 +12,30 @@ export default function SimpleDashboard() {
   const { user } = useAuth();
 
   const { data: participations = [] } = useQuery({
-    queryKey: ['/api/users', user?.id, 'participations'],
-    enabled: !!user?.id,
+    queryKey: ['/api/users', (user as any)?.id, 'participations'],
+    enabled: !!(user as any)?.id,
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['/api/users', user?.id, 'transactions'], 
-    enabled: !!user?.id,
+    queryKey: ['/api/users', (user as any)?.id, 'transactions'], 
+    enabled: !!(user as any)?.id,
   });
 
   const stats = {
-    availableBalance: parseFloat(user?.availableBalance || '0'),
-    totalEarnings: parseFloat(user?.totalEarned || '0'),
-    completedTasks: user?.completedCampaigns || 0,
+    availableBalance: parseFloat((user as any)?.availableBalance || '0'),
+    totalEarnings: parseFloat((user as any)?.totalEarned || '0'),
+    completedTasks: (user as any)?.completedCampaigns || 0,
     activeCampaigns: 12, // This would come from API
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <NavigationFixed />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user?.firstName || 'Creator'}!
+            Welcome back, {(user as any)?.firstName || 'Creator'}!
           </h1>
           <p className="text-gray-600">Here's your account overview and recent activity.</p>
         </div>
@@ -122,9 +123,9 @@ export default function SimpleDashboard() {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              {participations.length > 0 ? (
+              {Array.isArray(participations) && participations.length > 0 ? (
                 <div className="space-y-4">
-                  {participations.slice(0, 3).map((participation: any) => (
+                  {(participations as any[]).slice(0, 3).map((participation: any) => (
                     <div key={participation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium">Task Participation</p>
@@ -151,7 +152,7 @@ export default function SimpleDashboard() {
         </div>
 
         {/* Wallet Setup Reminder */}
-        {!user?.usdtTronWallet && !user?.usdtBscWallet && !user?.tonWallet && (
+        {!(user as any)?.usdtTronWallet && !(user as any)?.usdtBscWallet && !(user as any)?.tonWallet && (
           <Card className="mt-8 border-blue-200 bg-blue-50">
             <CardContent className="pt-6">
               <div className="flex items-center space-x-3">
@@ -172,6 +173,8 @@ export default function SimpleDashboard() {
           </Card>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -341,6 +343,7 @@ export default function BrandDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <NavigationFixed />
       {/* Header */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-6 py-6">
@@ -1052,6 +1055,8 @@ export default function BrandDashboard() {
           </div>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 }
