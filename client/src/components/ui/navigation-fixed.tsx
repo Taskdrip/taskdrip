@@ -9,7 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, Home } from "lucide-react";
 
 export function NavigationFixed() {
   const [location] = useLocation();
@@ -20,9 +20,10 @@ export function NavigationFixed() {
     if (isAuthenticated) {
       if (user?.userType === 'brand') {
         return [
+          { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
           { href: "/campaigns", label: "My Campaigns" },
-          { href: "/messages", label: "Messages" },
+          { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
       } else {
@@ -30,7 +31,7 @@ export function NavigationFixed() {
           { href: "/", label: "Home" },
           { href: "/campaigns", label: "Tasks" },
           { href: "/dashboard", label: "Dashboard" },
-          { href: "/messages", label: "Messages" },
+          { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
       }
@@ -94,12 +95,19 @@ export function NavigationFixed() {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
+                <Link href="/">
+                  <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black" title="Home">
+                    <Home className="h-5 w-5" />
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black">
                   <Bell className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black">
-                  <MessageCircle className="h-5 w-5" />
-                </Button>
+                <Link href="/chat">
+                  <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black">
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
+                </Link>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -127,7 +135,7 @@ export function NavigationFixed() {
                       <span>Dashboard</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Link href="/messages" className="flex items-center w-full">
+                      <Link href="/chat" className="flex items-center w-full">
                         <MessageCircle className="mr-2 h-4 w-4" />
                         <span>Messages</span>
                       </Link>
