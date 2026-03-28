@@ -14,6 +14,9 @@ import {
   adminWallets,
   brandWallets,
   escrowPayments,
+  posts,
+  postLikes,
+  postComments,
   type User,
   type InsertUser,
   type Campaign,
@@ -42,6 +45,8 @@ import {
   type InsertAdminWallet,
   type BrandWallet,
   type InsertBrandWallet,
+  type Post,
+  type PostComment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -129,6 +134,20 @@ export interface IStorage {
   // Wallet and payment operations
   updateUserBalance(userId: string, amount: number, type: 'add' | 'subtract'): Promise<User>;
   approvePayment(transactionId: string, approvedBy: string): Promise<Transaction>;
+
+  // Admin wallet operations
+  getActiveAdminWallets(): Promise<AdminWallet[]>;
+
+  // Social feed operations
+  getFeed(limit?: number, offset?: number): Promise<(Post & { user: Partial<User> })[]>;
+  getUserPosts(userId: string): Promise<Post[]>;
+  createPost(id: string, userId: string, content: string, imageUrl?: string): Promise<Post>;
+  deletePost(id: string, userId: string): Promise<void>;
+  likePost(postId: string, userId: string): Promise<void>;
+  unlikePost(postId: string, userId: string): Promise<void>;
+  getPostLike(postId: string, userId: string): Promise<boolean>;
+  getPostComments(postId: string): Promise<(PostComment & { user: Partial<User> })[]>;
+  addPostComment(id: string, postId: string, userId: string, content: string): Promise<PostComment>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -853,6 +872,90 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated;
+  }
+
+  async getActiveAdminWallets(): Promise<AdminWallet[]> {
+    return await db.select().from(adminWallets).where(eq(adminWallets.isActive, true));
+  }
+
+  async getFeed(limit = 20, offset = 0): Promise<(Post & { user: Partial<User> })[]> {
+    const feedPosts = await db
+      .select()
+      .from(posts)
+      .orderBy(desc(posts.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const result: (Post & { user: Partial<User> })[] = [];
+    for (const post of feedPosts) {
+      const [u] = await db.select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        profileImageUrl: users.profileImageUrl,
+        creatorTier: users.creatorTier,
+        niche: users.niche,
+        isVerified: users.isVerified,
+        totalFollowers: users.totalFollowers,
+      }).from(users).where(eq(users.id, post.userId));
+      result.push({ ...post, user: u || {} });
+    }
+    return result;
+  }
+
+  async getUserPosts(userId: string): Promise<Post[]> {
+    return await db.select().from(posts).where(eq(posts.userId, userId)).orderBy(desc(posts.createdAt));
+  }
+
+  async createPost(id: string, userId: string, content: string, imageUrl?: string): Promise<Post> {
+    const [post] = await db.insert(posts).values({
+      id, userId, content, imageUrl: imageUrl || null,
+    }).returning();
+    return post;
+  }
+
+  async deletePost(id: string, userId: string): Promise<void> {
+    await db.delete(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
+  }
+
+  async likePost(postId: string, userId: string): Promise<void> {
+    const { nanoid } = await import('nanoid');
+    const id = nanoid();
+    await db.insert(postLikes).values({ id, postId, userId });
+    await db.update(posts).set({ likeCount: sql`${posts.likeCount} + 1` }).where(eq(posts.id, postId));
+  }
+
+  async unlikePost(postId: string, userId: string): Promise<void> {
+    await db.delete(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
+    await db.update(posts).set({ likeCount: sql`GREATEST(${posts.likeCount} - 1, 0)` }).where(eq(posts.id, postId));
+  }
+
+  async getPostLike(postId: string, userId: string): Promise<boolean> {
+    const [like] = await db.select().from(postLikes).where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
+    return !!like;
+  }
+
+  async getPostComments(postId: string): Promise<(PostComment & { user: Partial<User> })[]> {
+    const comments = await db.select().from(postComments).where(eq(postComments.postId, postId)).orderBy(desc(postComments.createdAt));
+    const result: (PostComment & { user: Partial<User> })[] = [];
+    for (const comment of comments) {
+      const [u] = await db.select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        profileImageUrl: users.profileImageUrl,
+      }).from(users).where(eq(users.id, comment.userId));
+      result.push({ ...comment, user: u || {} });
+    }
+    return result;
+  }
+
+  async addPostComment(id: string, postId: string, userId: string, content: string): Promise<PostComment> {
+    const [comment] = await db.insert(postComments).values({ id, postId, userId, content }).returning();
+    await db.update(posts).set({ commentCount: sql`${posts.commentCount} + 1` }).where(eq(posts.id, postId));
+    return comment;
   }
 }
 

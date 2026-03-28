@@ -5,7 +5,7 @@ import { Footer } from "@/components/ui/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target } from "lucide-react";
+import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 
 export default function SimpleDashboard() {
@@ -35,9 +35,9 @@ export default function SimpleDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {(user as any)?.firstName || 'Creator'}!
+            Welcome back, {(user as any)?.firstName || 'Influencer'}! 👋
           </h1>
-          <p className="text-gray-600">Here's your account overview and recent activity.</p>
+          <p className="text-gray-600">Here's your influencer dashboard — campaigns, earnings, and community.</p>
         </div>
 
         {/* Quick Stats */}
@@ -95,9 +95,16 @@ export default function SimpleDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Link href="/campaigns">
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start bg-black text-white hover:bg-gray-900">
                   <Target className="h-4 w-4 mr-2" />
                   Browse Available Tasks
+                </Button>
+              </Link>
+              
+              <Link href="/feed">
+                <Button className="w-full justify-start" variant="outline">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Influencer Feed
                 </Button>
               </Link>
               
@@ -108,10 +115,10 @@ export default function SimpleDashboard() {
                 </Button>
               </Link>
               
-              <Link href="/profile">
+              <Link href="/profile-edit">
                 <Button className="w-full justify-start" variant="outline">
                   <User className="h-4 w-4 mr-2" />
-                  Update Profile
+                  Update Influencer Profile
                 </Button>
               </Link>
             </CardContent>

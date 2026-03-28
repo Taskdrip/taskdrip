@@ -37,7 +37,7 @@ import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import EscrowPayment from "@/pages/escrow-payment";
 import Creators from "@/pages/creators";
-
+import FeedPage from "@/pages/feed";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -68,6 +68,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/creators" component={Creators} />
+      <Route path="/feed" component={FeedPage} />
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={SimpleDashboard} />

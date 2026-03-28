@@ -171,10 +171,10 @@ export default function Creators() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 mb-4">
             <Users className="w-8 h-8 text-purple-400" />
-            <h1 className="text-4xl font-black">Creator Discovery</h1>
+            <h1 className="text-4xl font-black">Influencer Discovery</h1>
           </div>
           <p className="text-gray-400 text-lg max-w-2xl">
-            Browse vetted creators by tier, niche, platform, and location. Find the perfect fit for your campaign.
+            Browse verified influencers by tier, niche, platform, and location. Find the perfect fit for your campaign.
           </p>
         </div>
       </div>
@@ -249,7 +249,7 @@ export default function Creators() {
         {/* Leaderboard Banner */}
         <div className="flex items-center gap-2 mb-6">
           <TrendingUp className="w-5 h-5 text-orange-500" />
-          <span className="font-semibold text-gray-700">{filtered.length} creators found</span>
+          <span className="font-semibold text-gray-700">{filtered.length} influencers found</span>
           {tier !== "all" && (
             <Badge className={`${getTierConfig(tier).badge} ml-2`}>
               {getTierConfig(tier).icon} {getTierConfig(tier).name}
@@ -266,8 +266,8 @@ export default function Creators() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-700 mb-2">No creators found</h3>
-            <p className="text-gray-500 text-sm">Try adjusting your filters</p>
+            <h3 className="text-lg font-bold text-gray-700 mb-2">No influencers found</h3>
+            <p className="text-gray-500 text-sm">Try adjusting your filters or search terms</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -279,8 +279,8 @@ export default function Creators() {
 
         {!isAuthenticated && (
           <div className="mt-10 bg-black text-white rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-3">Sign Up to Message Creators</h3>
-            <p className="text-gray-400 mb-6">Create a brand account to contact creators and launch campaigns.</p>
+            <h3 className="text-2xl font-bold mb-3">Sign Up to Connect with Influencers</h3>
+            <p className="text-gray-400 mb-6">Create a brand account to message influencers and launch targeted campaigns.</p>
             <Link href="/signup?type=brand">
               <Button className="bg-white text-black hover:bg-gray-100 px-8 py-5 rounded-xl font-bold text-base">
                 Get Started Free

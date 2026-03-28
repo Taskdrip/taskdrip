@@ -22,8 +22,9 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
-          { href: "/creators", label: "Find Creators" },
+          { href: "/creators", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
@@ -39,7 +40,8 @@ export function NavigationFixed() {
           { href: "/", label: "Home" },
           { href: "/campaigns", label: "Tasks" },
           { href: "/dashboard", label: "Dashboard" },
-          { href: "/creators", label: "Creators" },
+          { href: "/feed", label: "Feed" },
+          { href: "/creators", label: "Influencers" },
           { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
@@ -47,7 +49,8 @@ export function NavigationFixed() {
     } else {
       return [
         { href: "/", label: "Home" },
-        { href: "/creators", label: "Creators" },
+        { href: "/creators", label: "Influencers" },
+        { href: "/feed", label: "Feed" },
         { href: "/blog", label: "Blog" },
         { href: "/shop", label: "Shop" },
       ];

@@ -19,7 +19,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-  // Creator discovery route - public, returns all creators with tier info
+  // Creator/Influencer discovery route - public, returns all creators with tier info
   app.get('/api/creators', async (req, res) => {
     try {
       const creators = await storage.getCreators();
@@ -27,6 +27,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching creators:", error);
       res.status(500).json({ message: "Failed to fetch creators" });
+    }
+  });
+
+  // Admin wallets - public read for payment purposes
+  app.get('/api/payment-wallets', async (req, res) => {
+    try {
+      const wallets = await storage.getActiveAdminWallets();
+      res.json(wallets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch wallets" });
+    }
+  });
+
+  // Social Feed routes
+  app.get('/api/feed', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const feed = await storage.getFeed(limit, offset);
+      res.json(feed);
+    } catch (error) {
+      console.error("Error fetching feed:", error);
+      res.status(500).json({ message: "Failed to fetch feed" });
+    }
+  });
+
+  app.get('/api/users/:userId/posts', async (req, res) => {
+    try {
+      const posts = await storage.getUserPosts(req.params.userId);
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
+  app.post('/api/posts', isAuthenticated, async (req: any, res) => {
+    try {
+      const { content, imageUrl } = req.body;
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      const { nanoid } = await import('nanoid');
+      const id = `post_${nanoid()}`;
+      const post = await storage.createPost(id, req.user.id, content.trim(), imageUrl);
+      res.status(201).json(post);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.delete('/api/posts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deletePost(req.params.id, req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete post" });
+    }
+  });
+
+  app.post('/api/posts/:id/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const isLiked = await storage.getPostLike(req.params.id, req.user.id);
+      if (isLiked) {
+        await storage.unlikePost(req.params.id, req.user.id);
+        res.json({ liked: false });
+      } else {
+        await storage.likePost(req.params.id, req.user.id);
+        res.json({ liked: true });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle like" });
+    }
+  });
+
+  app.get('/api/posts/:id/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const liked = await storage.getPostLike(req.params.id, req.user.id);
+      res.json({ liked });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check like" });
+    }
+  });
+
+  app.get('/api/posts/:id/comments', async (req, res) => {
+    try {
+      const comments = await storage.getPostComments(req.params.id);
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  app.post('/api/posts/:id/comments', isAuthenticated, async (req: any, res) => {
+    try {
+      const { content } = req.body;
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      const { nanoid } = await import('nanoid');
+      const id = `cmt_${nanoid()}`;
+      const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim());
+      res.status(201).json(comment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add comment" });
     }
   });
 

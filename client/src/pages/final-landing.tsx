@@ -53,17 +53,17 @@ const TIERS = [
 ];
 
 const CREATOR_STEPS = [
-  { num: "01", title: "Create Your Profile", desc: "Sign up, add your social handles and follower counts to get auto-classified into your creator tier." },
-  { num: "02", title: "Browse & Join Campaigns", desc: "Discover brand campaigns matching your niche and audience. Apply with one click." },
-  { num: "03", title: "Complete & Submit Proof", desc: "Complete the task, submit your screenshot or link, and await brand approval." },
-  { num: "04", title: "Get Paid in Crypto", desc: "Approved tasks credit your wallet. Withdraw to USDT or TON anytime." },
+  { num: "01", title: "Create Your Influencer Profile", desc: "Sign up, add your social handles and follower counts. Get auto-classified into your influencer tier instantly." },
+  { num: "02", title: "Browse & Join Campaigns", desc: "Discover brand campaigns matching your niche. Apply with one click — no agencies, no middlemen." },
+  { num: "03", title: "Complete & Submit Proof", desc: "Complete the task, submit your content link or screenshot, and await brand approval." },
+  { num: "04", title: "Get Paid in Crypto", desc: "Approved tasks credit your wallet instantly. Withdraw to USDT (TRC-20/BEP-20) or TON anytime." },
 ];
 
 const BRAND_STEPS = [
-  { num: "01", title: "Post Your Campaign", desc: "Set your budget, task requirements, and target creator tier in minutes." },
-  { num: "02", title: "Discover Creators", desc: "Filter our creator database by tier, niche, platform, location, and follower count." },
+  { num: "01", title: "Post Your Campaign", desc: "Set your budget, task requirements, and target influencer tier in minutes." },
+  { num: "02", title: "Discover Influencers", desc: "Filter our influencer database by tier, niche, platform, location, and follower count." },
   { num: "03", title: "Review Submissions", desc: "Approve or reject each submission. Pay only for results you're satisfied with." },
-  { num: "04", title: "Scale Your Results", desc: "Run multiple campaigns simultaneously. Reach thousands of creators worldwide." },
+  { num: "04", title: "Scale Your Results", desc: "Run multiple campaigns simultaneously. Reach thousands of influencers worldwide." },
 ];
 
 const NICHES = ["Gaming", "Fitness", "Fashion", "Tech", "Beauty", "Food", "Travel", "Finance", "Music", "Education", "Sports", "Lifestyle"];
@@ -95,42 +95,42 @@ export default function FinalLanding() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Badge className="mb-6 px-5 py-2 bg-black text-white text-sm font-semibold rounded-full inline-flex items-center gap-2">
-            <Rocket className="w-4 h-4" /> Web3 SocialFi Platform
+            <Rocket className="w-4 h-4" /> #1 Web3 Influencer Platform
           </Badge>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-black leading-[1.05] tracking-tight mb-6">
-            Connect with the{" "}
+            Work with the Best{" "}
             <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent">
-              Right Creators.
+              Influencers.
             </span>
             <br />
-            Launch{" "}
+            Earn Crypto.{" "}
             <span className="bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
-              Powerful Campaigns.
+              Grow Your Brand.
             </span>
           </h1>
 
           <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Taskdrip connects global brands with vetted creators across every platform.
-            Complete tasks, earn crypto, scale your brand — all in one place.
+            Taskdrip is the leading Web3 platform connecting global brands with verified influencers.
+            Complete campaigns, earn USDT/TON crypto, and scale your influence — all in one place.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href="/signup?type=brand">
+            <Link href="/signup?type=creator">
               <Button size="lg" className="bg-black text-white hover:bg-gray-900 px-10 py-6 text-lg rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
-                Find Creators <ArrowRight className="ml-2 w-5 h-5" />
+                Join as Influencer <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Link href="/signup?type=creator">
-              <Button size="lg" variant="outline" className="border-2 border-black text-black hover:bg-black hover:text-white px-10 py-6 text-lg rounded-xl font-bold transition-all">
-                Start Campaign <Rocket className="ml-2 w-5 h-5" />
+            <Link href="/signup?type=brand">
+              <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 px-10 py-6 text-lg rounded-xl font-bold shadow-lg transition-all">
+                Hire Influencers <Rocket className="ml-2 w-5 h-5" />
               </Button>
             </Link>
           </div>
 
           <div className="grid grid-cols-3 gap-6 max-w-xl mx-auto">
             {[
-              { label: "Creators", value: "10K+", icon: <Users className="w-5 h-5" /> },
+              { label: "Influencers", value: "10K+", icon: <Users className="w-5 h-5" /> },
               { label: "Campaigns", value: "2.5K+", icon: <Target className="w-5 h-5" /> },
               { label: "Paid Out", value: "$450K+", icon: <DollarSign className="w-5 h-5" /> },
             ].map((s) => (
@@ -148,10 +148,10 @@ export default function FinalLanding() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <Badge className="mb-4 bg-purple-100 text-purple-700 border-purple-200 px-4 py-1.5">Creator Tiers</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">Every Creator Has a Place</h2>
+            <Badge className="mb-4 bg-purple-100 text-purple-700 border-purple-200 px-4 py-1.5">Influencer Tiers</Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">Every Influencer Has a Tier</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our intelligent system auto-classifies creators based on total followers across all connected platforms.
+              Our smart system auto-classifies influencers by total followers across all social platforms — TikTok, YouTube, Instagram, Twitch, and more.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -176,11 +176,11 @@ export default function FinalLanding() {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16">
-            {/* For Creators */}
+            {/* For Influencers */}
             <div>
-              <Badge className="mb-4 bg-green-100 text-green-700 border-green-200 px-4 py-1.5">For Creators</Badge>
-              <h2 className="text-3xl font-bold text-black mb-3">Earn Crypto Doing What You Love</h2>
-              <p className="text-gray-600 mb-8">Complete brand campaigns that match your niche. Get paid in USDT or TON.</p>
+              <Badge className="mb-4 bg-green-100 text-green-700 border-green-200 px-4 py-1.5">For Influencers</Badge>
+              <h2 className="text-3xl font-bold text-black mb-3">Monetize Your Influence with Crypto</h2>
+              <p className="text-gray-600 mb-8">Join brand campaigns that match your niche. Get paid instantly in USDT or TON.</p>
               <div className="space-y-5">
                 {CREATOR_STEPS.map((step) => (
                   <div key={step.num} className="flex gap-4 items-start">
@@ -204,8 +204,8 @@ export default function FinalLanding() {
             {/* For Brands */}
             <div>
               <Badge className="mb-4 bg-blue-100 text-blue-700 border-blue-200 px-4 py-1.5">For Brands</Badge>
-              <h2 className="text-3xl font-bold text-black mb-3">Scale Your Brand with Creator Marketing</h2>
-              <p className="text-gray-600 mb-8">Access thousands of vetted creators. Pay only for approved results.</p>
+              <h2 className="text-3xl font-bold text-black mb-3">Scale Your Brand with Influencer Marketing</h2>
+              <p className="text-gray-600 mb-8">Access 10,000+ verified influencers. Pay only for approved results — no waste, no risk.</p>
               <div className="space-y-5">
                 {BRAND_STEPS.map((step) => (
                   <div key={step.num} className="flex gap-4 items-start">
@@ -232,8 +232,8 @@ export default function FinalLanding() {
       {/* ── NICHES (DARK) ── */}
       <section className="py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">Creators Across Every Niche</h2>
-          <p className="text-gray-400 mb-10">From gaming to fitness, beauty to tech — find creators in your space.</p>
+          <h2 className="text-4xl font-bold text-white mb-4">Influencers Across Every Niche</h2>
+          <p className="text-gray-400 mb-10">From gaming to fitness, beauty to tech — find verified influencers in your space.</p>
           <div className="flex flex-wrap gap-3 justify-center mb-10">
             {NICHES.map((niche) => (
               <Link key={niche} href="/creators">
@@ -244,8 +244,8 @@ export default function FinalLanding() {
             ))}
           </div>
           <Link href="/creators">
-            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-black px-8 py-5 rounded-xl text-base font-semibold">
-              Browse All Creators <ArrowRight className="ml-2 w-4 h-4" />
+            <Button className="bg-white text-black hover:bg-gray-100 px-8 py-5 rounded-xl text-base font-semibold shadow-lg">
+              Browse All Influencers <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </Link>
         </div>
@@ -304,7 +304,7 @@ export default function FinalLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
             {[
-              { value: "10,000+", label: "Registered Creators" },
+              { value: "10,000+", label: "Registered Influencers" },
               { value: "500+", label: "Brand Partners" },
               { value: "$450K+", label: "Total Payouts" },
               { value: "2,500+", label: "Campaigns Launched" },
@@ -342,19 +342,20 @@ export default function FinalLanding() {
       {/* ── FINAL CTA ── */}
       <section className="py-24 bg-black">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-5xl font-black text-white mb-6">Ready to Get Started?</h2>
+          <Badge className="mb-5 bg-white/10 text-white border-white/20 px-4 py-1.5 text-sm">Start Today — It's Free</Badge>
+          <h2 className="text-5xl font-black text-white mb-6">Your Influence Is Your Income.</h2>
           <p className="text-xl text-gray-400 mb-10">
-            Join thousands of creators and brands already on Taskdrip.
+            Join 10,000+ influencers and 500+ brands already on Taskdrip. Earn crypto. Grow faster.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup?type=creator">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold">
-                Join as Creator
+              <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-lg">
+                Join as Influencer 🚀
               </Button>
             </Link>
             <Link href="/signup?type=brand">
-              <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-black px-10 py-6 text-lg rounded-xl font-bold">
-                Join as Brand
+              <Button size="lg" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 px-10 py-6 text-lg rounded-xl font-bold shadow-lg">
+                Hire Influencers →
               </Button>
             </Link>
           </div>
