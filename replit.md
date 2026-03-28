@@ -1,6 +1,6 @@
 # Overview
 
-This is a Web3 task-based platform called "Taskdrip" that connects task performers with brands for diverse campaign opportunities. The platform enables users to earn cryptocurrency rewards by completing various tasks including app testing, trading, content creation, event hosting, local errands, and more, while providing brands with access to a skilled workforce across multiple industries and locations.
+Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally. Creators earn cryptocurrency by completing brand campaigns. Brands discover vetted creators through an advanced tier-based discovery system. The platform features non-custodial crypto payments, automatic creator tier classification, and a comprehensive campaign management system.
 
 ## User Preferences
 
@@ -100,7 +100,21 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Database Optimization**: Fixed foreign key constraints for chat messages without campaign requirements
 ✓ **Campaign Creation Bug Fix**: Resolved deadline date format and requirements array mismatch issues
 ✓ **Homepage Navigation**: Added Home button in navigation for both influencers and brands
-→ **Cost Optimization**: Focus on essential MVP features only to minimize Replit credit usage
+
+## Major Platform Upgrade (March 2026)
+
+✓ **New Landing Page**: Complete SaaS landing page redesign with hero, creator tiers display, how-it-works, live campaigns, stats, and dual CTA for brands/creators
+✓ **Creator Tier System**: 4-tier classification (Rising Sparks 1K-10K, Growth Engines 10K-100K, Power Influencers 100K-1M, Global Titans 1M+) auto-assigned from total followers
+✓ **Extended Social Platforms**: Added Twitch, Telegram Channel, WhatsApp Channel to user profiles + follower counts per platform
+✓ **Follower Count Tracking**: Per-platform follower counts (TikTok, YouTube, Instagram, Twitter, Twitch, Telegram, WhatsApp) with totalFollowers auto-calculated
+✓ **Auto Tier Calculation**: Profile save auto-computes totalFollowers sum and assigns creatorTier based on range
+✓ **Creator Discovery Page**: Full /creators page with search, filter by tier/niche/platform, sort by followers/rating, creator cards with tier badges
+✓ **Profile Edit Redesign**: New profile-edit page with live tier preview, all social platforms + follower count inputs, niche selector, username field
+✓ **User Profile Upgrade**: Shows tier badge, verified badge, niche, username, social platform follower breakdown, improved stats grid
+✓ **Navigation Enhancement**: "Find Creators" link for brands, "Creators" link visible to all users (public + authenticated)
+✓ **API Endpoint**: /api/creators endpoint returns all creator users ordered by total followers
+✓ **Footer Added**: Footer component added to all major pages
+✓ **Database Schema**: Added username, bannerImageUrl, social platform handles + follower columns, totalFollowers, creatorTier, niche columns
 
 ## External Dependencies
 

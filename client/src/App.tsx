@@ -36,6 +36,7 @@ import ProfileEdit from "@/pages/profile-edit";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import EscrowPayment from "@/pages/escrow-payment";
+import Creators from "@/pages/creators";
 
 
 function Router() {
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/shop/checkout/:id" component={ShopCheckout} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
+      <Route path="/creators" component={Creators} />
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={SimpleDashboard} />

@@ -18,19 +18,28 @@ export function NavigationFixed() {
 
   const getNavItems = () => {
     if (isAuthenticated) {
-      if (user?.userType === 'brand') {
+      if ((user as any)?.userType === 'brand') {
         return [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
-          { href: "/campaigns", label: "My Campaigns" },
+          { href: "/creators", label: "Find Creators" },
+          { href: "/campaigns", label: "Campaigns" },
           { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
+        ];
+      } else if ((user as any)?.userType === 'admin') {
+        return [
+          { href: "/", label: "Home" },
+          { href: "/admin-dashboard", label: "Admin" },
+          { href: "/creators", label: "Creators" },
+          { href: "/campaigns", label: "Campaigns" },
         ];
       } else {
         return [
           { href: "/", label: "Home" },
           { href: "/campaigns", label: "Tasks" },
           { href: "/dashboard", label: "Dashboard" },
+          { href: "/creators", label: "Creators" },
           { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
@@ -38,6 +47,7 @@ export function NavigationFixed() {
     } else {
       return [
         { href: "/", label: "Home" },
+        { href: "/creators", label: "Creators" },
         { href: "/blog", label: "Blog" },
         { href: "/shop", label: "Shop" },
       ];
@@ -122,7 +132,7 @@ export function NavigationFixed() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuItem onClick={() => {
-                      const userType = user?.userType;
+                      const userType = (user as any)?.userType;
                       if (userType === 'admin') {
                         window.location.href = '/admin-dashboard';
                       } else if (userType === 'brand') {

@@ -43,6 +43,23 @@ export const users = pgTable("users", {
   youtubeHandle: varchar("youtube_handle"),
   linkedinHandle: varchar("linkedin_handle"),
   tiktokHandle: varchar("tiktok_handle"),
+  twitchHandle: varchar("twitch_handle"),
+  telegramChannel: varchar("telegram_channel"),
+  whatsappChannel: varchar("whatsapp_channel"),
+  // Follower counts per platform
+  tiktokFollowers: integer("tiktok_followers").default(0),
+  youtubeFollowers: integer("youtube_followers").default(0),
+  instagramFollowers: integer("instagram_followers").default(0),
+  twitterFollowers: integer("twitter_followers").default(0),
+  twitchFollowers: integer("twitch_followers").default(0),
+  telegramFollowers: integer("telegram_followers").default(0),
+  whatsappFollowers: integer("whatsapp_followers").default(0),
+  totalFollowers: integer("total_followers").default(0),
+  // Creator classification
+  creatorTier: varchar("creator_tier").default("rising_sparks"), // rising_sparks, growth_engines, power_influencers, global_titans
+  niche: varchar("niche"), // Gaming, Fitness, Fashion, Tech, etc.
+  username: varchar("username").unique(),
+  bannerImageUrl: varchar("banner_image_url"),
   companyName: varchar("company_name"), // For brands
   website: varchar("website"), // For brands
   industry: varchar("industry"), // For brands

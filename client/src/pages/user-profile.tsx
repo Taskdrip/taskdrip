@@ -1,4 +1,5 @@
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,8 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, Heart, Share2, Calendar, MapPin, Star, Trophy, Users, Target, Coins, Edit3, Send } from "lucide-react";
+import { MessageCircle, Heart, Share2, Calendar, MapPin, Star, Trophy, Users, Target, Coins, Edit3, Send, Award } from "lucide-react";
 import { useState } from "react";
+import { getTierConfig, formatFollowers } from "@/lib/tiers";
+import { Link } from "wouter";
 
 export default function UserProfile() {
   const { user } = useAuth();
@@ -81,14 +84,35 @@ export default function UserProfile() {
               <div className="flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                      {(user as any)?.firstName} {(user as any)?.lastName}
-                    </h1>
-                    <p className="text-gray-600 text-lg">{(user as any)?.bio}</p>
-                    <div className="flex items-center mt-2 text-gray-500">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      <span>{(user as any)?.location}</span>
+                    <div className="flex items-center gap-3 mb-1 flex-wrap">
+                      <h1 className="text-3xl font-bold text-gray-900">
+                        {(user as any)?.firstName} {(user as any)?.lastName}
+                      </h1>
+                      {(user as any)?.userType === 'creator' && (() => {
+                        const tier = getTierConfig((user as any)?.creatorTier || 'rising_sparks');
+                        return (
+                          <span className={`text-sm font-bold px-3 py-1 rounded-full ${tier.badge}`}>
+                            {tier.icon} {tier.name}
+                          </span>
+                        );
+                      })()}
+                      {(user as any)?.isVerified && (
+                        <Badge className="bg-blue-100 text-blue-700 border-0">✓ KYC Verified</Badge>
+                      )}
                     </div>
+                    {(user as any)?.username && (
+                      <p className="text-gray-400 text-sm mb-1">@{(user as any).username}</p>
+                    )}
+                    {(user as any)?.niche && (
+                      <Badge variant="secondary" className="mb-2">{(user as any).niche}</Badge>
+                    )}
+                    <p className="text-gray-600">{(user as any)?.bio}</p>
+                    {(user as any)?.location && (
+                      <div className="flex items-center mt-2 text-gray-500">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        <span>{(user as any)?.location}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex gap-3 mt-4 sm:mt-0">
@@ -110,24 +134,36 @@ export default function UserProfile() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{(user as any)?.followers?.toLocaleString()}</div>
-                    <div className="text-sm text-gray-600">Followers</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="text-center p-3 bg-gray-50 rounded-xl">
+                    <div className="text-2xl font-bold text-gray-900">{formatFollowers((user as any)?.totalFollowers || 0)}</div>
+                    <div className="text-xs text-gray-500 font-medium">Total Followers</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{(user as any)?.following}</div>
-                    <div className="text-sm text-gray-600">Following</div>
+                  <div className="text-center p-3 bg-gray-50 rounded-xl">
+                    <div className="text-2xl font-bold text-green-600">${parseFloat((user as any)?.totalEarned || '0').toFixed(2)}</div>
+                    <div className="text-xs text-gray-500 font-medium">Total Earned</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">${typeof (user as any)?.totalEarned === 'number' ? (user as any).totalEarned.toFixed(2) : '0.00'}</div>
-                    <div className="text-sm text-gray-600">Total Earned</div>
+                  <div className="text-center p-3 bg-gray-50 rounded-xl">
+                    <div className="text-2xl font-bold text-gray-900">{(user as any)?.completedCampaigns || 0}</div>
+                    <div className="text-xs text-gray-500 font-medium">Tasks Done</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{(user as any)?.completedCampaigns}</div>
-                    <div className="text-sm text-gray-600">Tasks Completed</div>
+                  <div className="text-center p-3 bg-gray-50 rounded-xl">
+                    <div className="text-2xl font-bold text-yellow-500">{parseFloat((user as any)?.rating || '0').toFixed(1)}</div>
+                    <div className="text-xs text-gray-500 font-medium">Rating</div>
                   </div>
                 </div>
+
+                {/* Social platform breakdown */}
+                {(user as any)?.userType === 'creator' && (user as any)?.totalFollowers > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(user as any)?.tiktokFollowers > 0 && <span className="text-xs bg-pink-50 text-pink-600 px-3 py-1 rounded-full font-medium border border-pink-100">TikTok {formatFollowers((user as any).tiktokFollowers)}</span>}
+                    {(user as any)?.youtubeFollowers > 0 && <span className="text-xs bg-red-50 text-red-600 px-3 py-1 rounded-full font-medium border border-red-100">YouTube {formatFollowers((user as any).youtubeFollowers)}</span>}
+                    {(user as any)?.instagramFollowers > 0 && <span className="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium border border-purple-100">Instagram {formatFollowers((user as any).instagramFollowers)}</span>}
+                    {(user as any)?.twitterFollowers > 0 && <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium border border-blue-100">X {formatFollowers((user as any).twitterFollowers)}</span>}
+                    {(user as any)?.twitchFollowers > 0 && <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-medium border border-violet-100">Twitch {formatFollowers((user as any).twitchFollowers)}</span>}
+                    {(user as any)?.telegramFollowers > 0 && <span className="text-xs bg-sky-50 text-sky-600 px-3 py-1 rounded-full font-medium border border-sky-100">Telegram {formatFollowers((user as any).telegramFollowers)}</span>}
+                  </div>
+                )}
 
                 {/* Skills */}
                 <div className="mt-6">
@@ -344,6 +380,7 @@ export default function UserProfile() {
           </TabsContent>
         </Tabs>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -54,6 +54,7 @@ export interface IStorage {
   updateUserProfile(id: string, updates: Partial<User>): Promise<User>;
   deleteUser(id: string): Promise<void>;
   resetUserPassword(id: string, newPassword: string): Promise<void>;
+  getCreators(): Promise<User[]>;
   
   // Campaign operations
   getAllCampaigns(): Promise<Campaign[]>;
@@ -338,6 +339,12 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ password: hashedPassword, updatedAt: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async getCreators(): Promise<User[]> {
+    return await db.select().from(users)
+      .where(eq(users.userType, 'creator'))
+      .orderBy(desc(users.totalFollowers));
   }
 
   // Shop operations

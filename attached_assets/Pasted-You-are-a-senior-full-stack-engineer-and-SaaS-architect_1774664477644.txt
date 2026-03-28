@@ -1,0 +1,332 @@
+You are a senior full-stack engineer and SaaS architect.
+
+Upgrade my existing web app "Taskdrip™" into a production-ready, scalable Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
+
+⚠️ IMPORTANT:
+- Maintain existing features but refactor and improve structure, UI, and performance
+- Use the BEST tech stack recommended by Replit automatically
+- Follow modern security best practices
+- Ensure modular, clean, well-documented code
+- Make it ready for resale (CodeCanyon standard)
+
+--------------------------------------------------
+🎨 UI / UX DESIGN SYSTEM
+--------------------------------------------------
+
+- Clean, sleek, modern interface
+- White background, black fonts
+- Minimalist layout with soft shadows and rounded corners
+- Smooth animations and transitions
+- Fully responsive (mobile + desktop)
+- Add loading states, empty states, and error handling
+- Prepare dark mode support (optional toggle)
+
+--------------------------------------------------
+👥 USER SYSTEM (ENHANCED)
+--------------------------------------------------
+
+Signup fields:
+- Username
+- Email
+- Password (securely hashed)
+- Phone number
+- Location
+
+Features:
+- JWT authentication
+- Email verification
+- Role system: Creator | Brand | Admin
+- Encrypted database storage
+
+--------------------------------------------------
+🌐 CREATOR PROFILE SYSTEM (MAJOR UPGRADE)
+--------------------------------------------------
+
+Each user has a public profile page accessible from top navigation.
+
+Profile includes:
+- Profile image + banner
+- Username, bio, location
+- Skill tags / niche
+- Social media accounts:
+    - TikTok
+    - YouTube
+    - Instagram
+    - Twitch
+    - X (Twitter)
+    - Telegram Channel
+    - WhatsApp Channel
+
+Each platform includes:
+- Username
+- Link
+- Follower count
+
+System automatically:
+- Calculates TOTAL followers across all platforms
+- Displays breakdown per platform
+
+------------------------------------------
+🏆 CREATOR TIERS (AUTO CLASSIFICATION)
+------------------------------------------
+
+Create 4 influencer classes:
+
+1. Rising Sparks → 1K – 10K followers
+2. Growth Engines → 10K – 100K followers
+3. Power Influencers → 100K – 1M followers
+4. Global Titans → 1M+ followers
+
+Rules:
+- Automatically assign tier based on total followers
+- Display badge + color on profile
+- Show tier on search results and leaderboard
+
+------------------------------------------
+🔍 CREATOR DISCOVERY SYSTEM (FOR BRANDS)
+------------------------------------------
+
+Build advanced search/filter:
+
+Filter creators by:
+- Tier (Rising Sparks → Global Titans)
+- Platform (TikTok, YouTube, etc.)
+- Follower range
+- Location
+- Niche/category
+- Rating
+- Verified status
+
+Include:
+- “Top Creators” leaderboard
+- “Trending Creators”
+- Creator cards with:
+    - Image
+    - Followers
+    - Tier badge
+    - Rating
+    - Quick “Message” or “Invite” button
+
+------------------------------------------
+💬 ADVANCED MESSAGING SYSTEM
+------------------------------------------
+
+- Real-time or near real-time messaging
+- Brand ↔ Creator communication
+- Campaign-based chat threads
+- Send:
+    - Text
+    - Images
+    - Links
+
+Features:
+- Read receipts
+- Notifications
+- “Invite to Campaign” button
+- Inbox UI
+
+------------------------------------------
+📢 CAMPAIGN SYSTEM (IMPROVED)
+------------------------------------------
+
+Brands can:
+- Create campaigns:
+    - Title
+    - Description
+    - Image
+    - Platform
+    - Budget
+    - Reward per user
+    - Max participants
+
+Logic:
+- Budget ÷ reward = max users
+- Campaign visible after admin approval
+
+------------------------------------------
+🧾 MICRO TASK SYSTEM (UPGRADED)
+------------------------------------------
+
+Dedicated “Tasks” page:
+
+Tasks can be posted by:
+- Admin
+- Brands
+
+Task types:
+- Follow
+- Like
+- Comment
+- App install
+- Review
+- Content creation
+
+Features:
+- Filter tasks by reward, platform, difficulty
+- Users join tasks
+- Submit proof (image or link)
+- Admin/brand approves or rejects
+
+------------------------------------------
+💰 WALLET SYSTEM (NON-CUSTODIAL)
+------------------------------------------
+
+⚠️ CRITICAL RULE:
+NO money is stored on the platform.
+
+Instead:
+
+- Admin sets cold wallet addresses (BNB, SOL, AVAX, TON, TRON, USDT TRC20)
+- All payments go directly to those wallets externally
+
+In-app wallet is ONLY a tracker:
+
+Show:
+- Earnings
+- Payment history
+- Task rewards
+- Tips
+
+When task is approved:
+→ Add earnings to user balance
+
+------------------------------------------
+💸 PAYOUT SYSTEM
+------------------------------------------
+
+- Minimum withdrawal: $10
+- User submits payout request
+- Must have saved wallet (TRON or TON USDT)
+
+Admin:
+- Reviews request
+- Sends crypto manually
+- Marks as “Paid”
+
+Transaction log includes:
+- Amount
+- Status
+- Date
+- Optional TX hash
+
+------------------------------------------
+💎 SOCIAL FEATURES (ENGAGEMENT)
+------------------------------------------
+
+Add social network features:
+
+- Follow / Unfollow users
+- Like posts
+- Comment system
+- Share posts
+- Post feed:
+    - Text
+    - Image
+    - Short video
+
+------------------------------------------
+💵 TIPPING SYSTEM
+------------------------------------------
+
+- Users can tip others manually
+- Display wallet address
+- User submits proof
+- Admin verifies
+- Tip recorded in wallet history
+
+------------------------------------------
+🏠 HOMEPAGE (FRONT PAGE REDESIGN)
+------------------------------------------
+
+Create a high-converting SaaS landing page:
+
+1. HERO SECTION:
+   “Connect with the Right Creators. Launch Powerful Campaigns.”
+   CTA buttons:
+   - Find Creators
+   - Start Campaign
+
+2. CREATOR TIERS DISPLAY:
+   - Rising Sparks
+   - Growth Engines
+   - Power Influencers
+   - Global Titans
+
+3. HOW IT WORKS:
+   - Discover creators
+   - Launch campaigns
+   - Get results
+
+4. FEATURED CREATORS
+
+5. TRENDING CAMPAIGNS
+
+6. PLATFORM STATS:
+   - Users
+   - Campaigns
+   - Payouts
+
+------------------------------------------
+🛍️ SHOP SYSTEM
+------------------------------------------
+
+- Admin sells:
+    - Courses
+    - Software
+    - Digital products
+
+- Manual crypto payment verification
+- Unlock content after admin approval
+
+------------------------------------------
+📝 BLOG SYSTEM (AI ENABLED)
+------------------------------------------
+
+- Admin can:
+    - Write posts manually
+    - Use AI to generate SEO articles
+
+AI features:
+- Use trending keywords
+- Generate human-like content
+- Add images
+
+------------------------------------------
+🔔 NOTIFICATIONS + PWA
+------------------------------------------
+
+- Push notifications
+- Campaign updates
+- Payment alerts
+- Messages
+
+- PWA install support
+
+------------------------------------------
+⚙️ ADMIN PANEL
+------------------------------------------
+
+Admin can:
+- Manage users
+- Approve KYC
+- Manage campaigns
+- Approve payouts
+- Set wallet addresses
+- Manage blog
+- Feature creators
+
+------------------------------------------
+📦 FINAL REQUIREMENTS
+------------------------------------------
+
+- Clean modular architecture
+- Secure API structure
+- SEO optimized
+- Fast loading
+- Full documentation
+- One-click deployment (Docker or script)
+- Ready for resale on CodeCanyon
+
+Build this as a complete SaaS product.
+
+Start upgrading now.

@@ -19,6 +19,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+  // Creator discovery route - public, returns all creators with tier info
+  app.get('/api/creators', async (req, res) => {
+    try {
+      const creators = await storage.getCreators();
+      res.json(creators);
+    } catch (error) {
+      console.error("Error fetching creators:", error);
+      res.status(500).json({ message: "Failed to fetch creators" });
+    }
+  });
+
   // Campaign routes
   app.get('/api/campaigns', async (req, res) => {
     try {
@@ -977,7 +988,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const updatedUser = await storage.updateUserProfile(req.params.userId, req.body);
+      const updates = { ...req.body };
+
+      // Auto-calculate totalFollowers and creatorTier
+      const followerFields = ['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers'];
+      const existingUser = await storage.getUser(req.params.userId);
+      
+      let totalFollowers = 0;
+      for (const field of followerFields) {
+        const val = updates[field] !== undefined ? parseInt(updates[field]) || 0 : (existingUser as any)?.[field] || 0;
+        totalFollowers += val;
+      }
+      
+      updates.totalFollowers = totalFollowers;
+
+      if (totalFollowers >= 1_000_000) updates.creatorTier = 'global_titans';
+      else if (totalFollowers >= 100_000) updates.creatorTier = 'power_influencers';
+      else if (totalFollowers >= 10_000) updates.creatorTier = 'growth_engines';
+      else updates.creatorTier = 'rising_sparks';
+
+      const updatedUser = await storage.updateUserProfile(req.params.userId, updates);
       res.json(updatedUser);
     } catch (error) {
       console.error("Profile update error:", error);
