@@ -227,15 +227,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update campaign
-  app.patch('/api/campaigns/:id', async (req, res) => {
+  app.patch('/api/campaigns/:id', isAuthenticated, upload.single('featureImage'), async (req: any, res) => {
     try {
+      const requesterId = req.user.id;
+      const requester = await storage.getUser(requesterId);
       const campaignId = req.params.id;
-      const updates = req.body;
-      
+
       const campaign = await storage.getCampaignById(campaignId);
-      if (!campaign) {
-        return res.status(404).json({ message: "Campaign not found" });
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+
+      const isAdmin = requester?.userType === 'admin';
+      const isBrandOwner = campaign.brandId === requesterId;
+
+      if (!isAdmin && !isBrandOwner) {
+        return res.status(403).json({ message: "You can only edit your own campaigns" });
       }
+
+      const updates = { ...req.body };
+      // Brands cannot change the reward/amount — only admins can
+      if (!isAdmin) {
+        delete updates.reward;
+        delete updates.totalSlots;
+      } else {
+        if (updates.reward) updates.reward = parseFloat(updates.reward);
+        if (updates.totalSlots) updates.totalSlots = parseInt(updates.totalSlots);
+      }
+      if (req.file) updates.featureImage = `/uploads/${req.file.filename}`;
 
       const updatedCampaign = await storage.updateCampaign(campaignId, updates);
       res.json(updatedCampaign);
@@ -1221,22 +1238,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/admin/users/:id', async (req: any, res) => {
+  app.delete('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
-      if (!userId) return res.status(401).json({ message: "Authentication required" });
-      
-      const user = await storage.getUser(userId);
-      if (!user || user.userType !== 'admin') {
+      const userId = req.user.id;
+      const admin = await storage.getUser(userId);
+      if (!admin || admin.userType !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
-
-      // Prevent deletion of master admin
-      if (req.params.id === 'admin_master_001') {
-        return res.status(403).json({ message: "Cannot delete master admin account" });
+      const targetId = req.params.id;
+      if (targetId === userId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
       }
-
-      await storage.deleteUser(req.params.id);
+      await storage.deleteUser(targetId);
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -1473,6 +1486,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tip a user — creates a pending crypto tip transaction
+  app.post('/api/users/:id/tip', isAuthenticated, upload.single('proofFile'), async (req: any, res) => {
+    try {
+      const senderId = req.user.id;
+      const recipientId = req.params.id;
+      if (senderId === recipientId) return res.status(400).json({ message: "Cannot tip yourself" });
+
+      const recipient = await storage.getUser(recipientId);
+      if (!recipient) return res.status(404).json({ message: "User not found" });
+
+      const { amount, network, txHash } = req.body;
+      const tipAmount = parseFloat(amount);
+      if (!tipAmount || tipAmount <= 0) return res.status(400).json({ message: "Invalid tip amount" });
+
+      // Record as a transaction (pending review)
+      await storage.createTransaction({
+        userId: recipientId,
+        type: 'tip_received',
+        amount: tipAmount.toString(),
+        network: network || null,
+        description: `Tip from ${req.user.firstName || 'Anonymous'} via ${network || 'crypto'}`,
+        status: 'pending',
+        transactionHash: txHash || null,
+      });
+
+      res.json({ success: true, message: "Tip submitted for review" });
+    } catch (error) {
+      console.error("Error processing tip:", error);
+      res.status(500).json({ message: "Failed to process tip" });
+    }
+  });
+
+  // Get user's wallet address for tipping
+  app.get('/api/users/:id/wallet', async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      res.json({
+        usdtTronWallet: (user as any).usdtTronWallet || null,
+        usdtBscWallet: (user as any).usdtBscWallet || null,
+        tonWallet: (user as any).tonWallet || null,
+        displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch wallet" });
+    }
+  });
+
   app.get('/api/brand/reviews/:brandId', async (req, res) => {
     try {
       const brandId = req.params.brandId;
@@ -1544,24 +1605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User management routes
-  app.delete('/api/admin/users/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const adminUser = await storage.getUser(userId);
-      
-      if (adminUser?.userType !== 'admin') {
-        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-      }
-
-      const { id } = req.params;
-      await storage.deleteUser(id);
-      res.json({ message: 'User deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      res.status(500).json({ message: 'Failed to delete user' });
-    }
-  });
+  // (duplicate delete user route removed — see /api/admin/users/:id above)
 
   app.put('/api/admin/users/:id/reset-password', isAuthenticated, async (req: any, res) => {
     try {

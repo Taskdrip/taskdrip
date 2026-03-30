@@ -349,6 +349,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
+    // Delete in dependency order to avoid FK violations
+    await db.delete(postComments).where(eq(postComments.userId, id));
+    await db.delete(postLikes).where(eq(postLikes.userId, id));
+    await db.delete(posts).where(eq(posts.userId, id));
+    await db.delete(productReviews).where(eq(productReviews.userId, id));
+    await db.delete(purchases).where(eq(purchases.userId, id));
+    await db.delete(notifications).where(eq(notifications.userId, id));
+    await db.delete(taskSubmissions).where(eq(taskSubmissions.userId, id));
+    await db.delete(campaignParticipations).where(eq(campaignParticipations.userId, id));
+    await db.delete(transactions).where(eq(transactions.userId, id));
+    // Messages: delete where sender or receiver
+    await db.execute(sql`DELETE FROM messages WHERE sender_id = ${id} OR receiver_id = ${id}`);
+    await db.delete(escrowPayments).where(eq(escrowPayments.brandId, id));
+    await db.delete(paymentDeposits).where(eq(paymentDeposits.brandId, id));
+    await db.delete(brandWallets).where(eq(brandWallets.brandId, id));
+    // Delete user's campaigns (and their participations first)
+    const userCampaigns = await db.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.brandId, id));
+    for (const c of userCampaigns) {
+      await db.delete(campaignParticipations).where(eq(campaignParticipations.campaignId, c.id));
+    }
+    await db.delete(campaigns).where(eq(campaigns.brandId, id));
+    await db.delete(blogPosts).where(eq(blogPosts.authorId, id));
     await db.delete(users).where(eq(users.id, id));
   }
 

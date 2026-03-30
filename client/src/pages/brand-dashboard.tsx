@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
-  Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2 
+  Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
