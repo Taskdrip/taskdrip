@@ -81,6 +81,81 @@ const NICHES = [
   { name: "Finance", img: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=300&q=70&auto=format&fit=crop", color: "from-emerald-600 to-teal-700" },
 ];
 
+const DEMO_CAMPAIGNS = [
+  {
+    id: "demo-1",
+    title: "Promote Our New Gaming App — TikTok/YouTube Review",
+    brandName: "NovaByte Gaming",
+    reward: "120",
+    totalSlots: 50,
+    filledSlots: 38,
+    category: "Gaming",
+    gradient: "from-purple-600 via-indigo-600 to-blue-700",
+    emoji: "🎮",
+    tag: "Gaming · TikTok"
+  },
+  {
+    id: "demo-2",
+    title: "Instagram Reel for Premium Skincare Launch",
+    brandName: "GlowLab Beauty",
+    reward: "85",
+    totalSlots: 30,
+    filledSlots: 12,
+    category: "Beauty",
+    gradient: "from-pink-500 via-rose-500 to-red-500",
+    emoji: "💄",
+    tag: "Beauty · Instagram"
+  },
+  {
+    id: "demo-3",
+    title: "Fitness Challenge — 7-Day Transformation Campaign",
+    brandName: "PeakFit Pro",
+    reward: "200",
+    totalSlots: 100,
+    filledSlots: 71,
+    category: "Fitness",
+    gradient: "from-green-500 via-emerald-500 to-teal-600",
+    emoji: "💪",
+    tag: "Fitness · YouTube"
+  },
+  {
+    id: "demo-4",
+    title: "Tech Unboxing — Latest Wireless Earbuds Review",
+    brandName: "SoundWave Tech",
+    reward: "150",
+    totalSlots: 40,
+    filledSlots: 22,
+    category: "Tech",
+    gradient: "from-cyan-500 via-blue-500 to-indigo-600",
+    emoji: "🎧",
+    tag: "Tech · YouTube"
+  },
+  {
+    id: "demo-5",
+    title: "Travel Vlog Feature — Luxury Resort Partnership",
+    brandName: "Horizon Escapes",
+    reward: "350",
+    totalSlots: 15,
+    filledSlots: 4,
+    category: "Travel",
+    gradient: "from-sky-500 via-blue-500 to-cyan-600",
+    emoji: "✈️",
+    tag: "Travel · YouTube"
+  },
+  {
+    id: "demo-6",
+    title: "Food Reel Campaign — Healthy Meal Delivery App",
+    brandName: "FreshDrop",
+    reward: "75",
+    totalSlots: 80,
+    filledSlots: 53,
+    category: "Food",
+    gradient: "from-orange-500 via-amber-500 to-yellow-500",
+    emoji: "🍜",
+    tag: "Food · Instagram"
+  },
+];
+
 const WHY_FEATURES = [
   { icon: <Shield className="w-7 h-7" />, title: "Non-Custodial Payments", desc: "We never hold your funds. All crypto goes directly to your wallet — full ownership, always.", color: "bg-green-100 text-green-600", accent: "bg-green-600" },
   { icon: <Star className="w-7 h-7" />, title: "Verified Creators", desc: "Every creator goes through KYC. Brands get access to real, active influencers — no bots.", color: "bg-purple-100 text-purple-600", accent: "bg-purple-600" },
@@ -97,9 +172,7 @@ const TESTIMONIALS = [
 ];
 
 export default function FinalLanding() {
-  const { data: campaigns = [] } = useQuery({ queryKey: ["/api/campaigns"] });
-  const campaignList = Array.isArray(campaigns) ? campaigns : [];
-  const activeCampaigns = campaignList.filter((c: any) => c.isActive).slice(0, 3);
+  useQuery({ queryKey: ["/api/campaigns"] });
 
   return (
     <div className="min-h-screen bg-white">
@@ -239,24 +312,32 @@ export default function FinalLanding() {
             <Badge className="mb-4 bg-black text-white px-4 py-1.5">How It Works</Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-black">Simple. Fast. Rewarding.</h2>
           </div>
+
+          {/* For Influencers */}
           <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
-            {/* For Influencers */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-              <img
-                src="https://images.unsplash.com/photo-1598550473359-433baf8e8fd0?w=700&q=85&auto=format&fit=crop"
-                alt="Influencer creating content"
-                className="w-full h-80 object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <Badge className="mb-3 bg-green-500 text-white border-0 px-3 py-1">For Influencers</Badge>
-                <h3 className="text-2xl font-black text-white">Monetize Your Influence</h3>
-                <p className="text-gray-300 text-sm mt-1">Join brand campaigns that match your niche. Get paid instantly in USDT or TON.</p>
+            {/* Illustrated Panel */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl h-80 bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 flex items-center justify-center">
+              {/* Decorative circles */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/3 -translate-x-1/3" />
+              {/* Content */}
+              <div className="relative z-10 text-center px-8">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl">
+                  <span className="text-5xl">🎯</span>
+                </div>
+                <Badge className="mb-3 bg-white/20 text-white border-white/30 px-3 py-1 backdrop-blur-sm">For Influencers</Badge>
+                <h3 className="text-3xl font-black text-white mb-2">Monetize Your Influence</h3>
+                <p className="text-green-100 text-sm">Join brand campaigns that match your niche.<br/>Get paid instantly in USDT or TON.</p>
+                <div className="flex items-center justify-center gap-4 mt-5">
+                  {["TikTok", "YouTube", "Instagram"].map((p) => (
+                    <span key={p} className="text-xs bg-white/15 text-white px-3 py-1 rounded-full border border-white/20">{p}</span>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="space-y-5">
+            <div className="space-y-4">
               {CREATOR_STEPS.map((step) => (
-                <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md transition-all">
+                <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:border-green-200 transition-all">
                   <div className="flex-shrink-0 w-11 h-11 bg-black text-white rounded-xl flex items-center justify-center font-black text-sm">
                     {step.num}
                   </div>
@@ -268,17 +349,18 @@ export default function FinalLanding() {
                 </div>
               ))}
               <Link href="/signup?type=creator">
-                <Button className="w-full mt-4 bg-black hover:bg-gray-900 text-white py-5 rounded-xl font-semibold text-base">
+                <Button className="w-full mt-2 bg-black hover:bg-gray-900 text-white py-5 rounded-xl font-semibold text-base">
                   Start Earning Today <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
             </div>
           </div>
 
+          {/* For Brands */}
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-5 order-2 lg:order-1">
+            <div className="space-y-4 order-2 lg:order-1">
               {BRAND_STEPS.map((step) => (
-                <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md transition-all">
+                <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all">
                   <div className="flex-shrink-0 w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black text-sm">
                     {step.num}
                   </div>
@@ -290,23 +372,27 @@ export default function FinalLanding() {
                 </div>
               ))}
               <Link href="/signup?type=brand">
-                <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-xl font-semibold text-base">
+                <Button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-xl font-semibold text-base">
                   Launch a Campaign <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
             </div>
-            {/* For Brands */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl order-1 lg:order-2">
-              <img
-                src="https://images.unsplash.com/photo-1553877522-43269d4ea984?w=700&q=85&auto=format&fit=crop"
-                alt="Brand marketing team"
-                className="w-full h-80 object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <Badge className="mb-3 bg-blue-500 text-white border-0 px-3 py-1">For Brands</Badge>
-                <h3 className="text-2xl font-black text-white">Scale with Influencer Marketing</h3>
-                <p className="text-gray-300 text-sm mt-1">Access 10,000+ verified influencers. Pay only for approved results.</p>
+            {/* Illustrated Panel */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl h-80 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex items-center justify-center order-1 lg:order-2">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 -translate-x-1/2" />
+              <div className="absolute bottom-0 right-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/3 translate-x-1/3" />
+              <div className="relative z-10 text-center px-8">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl">
+                  <span className="text-5xl">🏢</span>
+                </div>
+                <Badge className="mb-3 bg-white/20 text-white border-white/30 px-3 py-1 backdrop-blur-sm">For Brands</Badge>
+                <h3 className="text-3xl font-black text-white mb-2">Scale with Influencers</h3>
+                <p className="text-blue-100 text-sm">Access 10,000+ verified influencers.<br/>Pay only for approved results — no risk.</p>
+                <div className="flex items-center justify-center gap-3 mt-5">
+                  {["10K+ Influencers", "500+ Brands", "$450K+ Paid"].map((s) => (
+                    <span key={s} className="text-xs bg-white/15 text-white px-2 py-1 rounded-full border border-white/20">{s}</span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -344,52 +430,86 @@ export default function FinalLanding() {
       </section>
 
       {/* ── TRENDING CAMPAIGNS ── */}
-      {activeCampaigns.length > 0 && (
-        <section className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <Badge className="mb-3 bg-orange-100 text-orange-700 border-orange-200 px-4 py-1.5 inline-flex items-center gap-1">
-                  <Flame className="w-3 h-3" /> Trending
-                </Badge>
-                <h2 className="text-4xl font-bold text-black">Live Campaigns</h2>
-              </div>
-              <Link href="/login">
-                <Button variant="outline" className="border-2 border-black rounded-xl font-semibold">View All</Button>
-              </Link>
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <Badge className="mb-3 bg-orange-100 text-orange-700 border-orange-200 px-4 py-1.5 inline-flex items-center gap-1">
+                <Flame className="w-3 h-3" /> Trending Now
+              </Badge>
+              <h2 className="text-4xl font-bold text-black">Live Campaigns</h2>
+              <p className="text-gray-500 mt-2">Join these active campaigns and start earning today</p>
             </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {activeCampaigns.map((campaign: any) => (
-                <div key={campaign.id} className="border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all group">
-                  <div className="h-40 bg-gradient-to-br from-blue-500 to-purple-600 relative flex items-center justify-center overflow-hidden">
-                    {campaign.featureImage ? (
-                      <img src={campaign.featureImage} alt={campaign.title} className="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform" />
-                    ) : (
-                      <Target className="w-10 h-10 text-white/50" />
-                    )}
+            <Link href="/login">
+              <Button variant="outline" className="border-2 border-black rounded-xl font-semibold hidden sm:flex">
+                View All <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {DEMO_CAMPAIGNS.map((campaign) => {
+              const pct = Math.round((campaign.filledSlots / campaign.totalSlots) * 100);
+              return (
+                <div key={campaign.id} className="border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all group cursor-pointer">
+                  {/* Feature Image / Gradient */}
+                  <div className={`h-44 bg-gradient-to-br ${campaign.gradient} relative flex items-center justify-center overflow-hidden`}>
+                    {/* Decorative blobs */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+                    {/* Emoji icon */}
+                    <div className="relative z-10 text-center">
+                      <div className="text-6xl mb-2 group-hover:scale-110 transition-transform duration-300">{campaign.emoji}</div>
+                    </div>
+                    {/* Badges */}
                     <div className="absolute top-3 left-3">
-                      <Badge className="bg-green-500 text-white text-xs border-0">Active</Badge>
+                      <Badge className="bg-green-500 text-white text-xs border-0 shadow-sm">🟢 Active</Badge>
                     </div>
                     <div className="absolute top-3 right-3">
-                      <Badge className="bg-black/80 text-white text-xs border-0">${campaign.reward}</Badge>
+                      <Badge className="bg-black/70 backdrop-blur-sm text-white text-sm border-0 font-bold px-2 py-1">${campaign.reward}</Badge>
+                    </div>
+                    <div className="absolute bottom-3 left-3">
+                      <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-1 rounded-full border border-white/20">{campaign.tag}</span>
                     </div>
                   </div>
-                  <div className="p-5">
-                    <p className="text-xs text-gray-400 mb-1">{campaign.brandName}</p>
-                    <h3 className="font-bold text-black mb-3 line-clamp-2">{campaign.title}</h3>
+                  {/* Card Body */}
+                  <div className="p-5 bg-white">
+                    <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">{campaign.brandName}</p>
+                    <h3 className="font-bold text-black mb-3 line-clamp-2 text-sm leading-snug">{campaign.title}</h3>
+                    {/* Progress bar */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>{campaign.filledSlots}/{campaign.totalSlots} influencers joined</span>
+                        <span className="font-semibold text-gray-700">{pct}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${campaign.gradient} rounded-full transition-all`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">{campaign.filledSlots}/{campaign.totalSlots} joined</span>
+                      <span className="text-xs text-gray-400">{campaign.totalSlots - campaign.filledSlots} spots left</span>
                       <Link href="/login">
-                        <Button size="sm" className="bg-black text-white rounded-lg text-xs">Join Now</Button>
+                        <Button size="sm" className="bg-black text-white rounded-lg text-xs hover:bg-gray-900 px-4">
+                          Apply Now
+                        </Button>
                       </Link>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </section>
-      )}
+          <div className="text-center mt-10">
+            <Link href="/login">
+              <Button variant="outline" className="border-2 border-black rounded-xl font-semibold px-8 py-5">
+                View All Campaigns <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* ── STATS BANNER ── */}
       <section className="relative py-24 overflow-hidden">
