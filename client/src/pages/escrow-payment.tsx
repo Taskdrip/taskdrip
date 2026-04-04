@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Copy, Clock, Wallet, CheckCircle, AlertTriangle, Upload } from "lucide-react";
+import { ArrowLeft, Copy, Clock, Wallet, CheckCircle, AlertTriangle, Upload, MessageCircle, Phone, Mail } from "lucide-react";
 import { format } from "date-fns";
 
 interface EscrowPayment {
@@ -316,6 +316,100 @@ export default function EscrowPayment() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Payment Proof Submitted - Beautiful Thank You Page */}
+        {(escrowPayment.status === "verifying" || escrowPayment.status === "submitted" || (escrowPayment as any).escrowStatus === "submitted") && (
+          <div className="space-y-6">
+            {/* Hero thank you card */}
+            <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 via-white to-blue-50 overflow-hidden">
+              <CardContent className="p-8 text-center">
+                <div className="relative inline-block mb-6">
+                  <div className="absolute inset-0 bg-green-200 rounded-full blur-xl opacity-40 animate-pulse"></div>
+                  <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-full p-5 inline-flex">
+                    <CheckCircle className="h-14 w-14 text-white" />
+                  </div>
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Proof Submitted!</h2>
+                <p className="text-lg text-gray-600 max-w-md mx-auto mb-2">
+                  Your payment proof is under review by our team.
+                </p>
+                <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                  We typically verify payments within <strong>2–6 hours</strong>. Your campaign will be activated as soon as verification is complete.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* What happens next */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">What happens next?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    { step: '1', title: 'Payment Verification', desc: 'Our admin team reviews your transaction hash and screenshot.', done: true },
+                    { step: '2', title: 'Campaign Activation', desc: 'Once verified, your campaign goes live and influencers can start joining.', done: false },
+                    { step: '3', title: 'Email Notification', desc: "You'll receive an email confirmation once your campaign is active.", done: false },
+                  ].map((item) => (
+                    <div key={item.step} className="flex items-start gap-4">
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${item.done ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                        {item.done ? '✓' : item.step}
+                      </div>
+                      <div>
+                        <p className={`font-semibold ${item.done ? 'text-green-700' : 'text-gray-700'}`}>{item.title}</p>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact admin card */}
+            <Card className="border-blue-100 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="text-blue-900 text-lg">Need help? Contact us</CardTitle>
+                <CardDescription className="text-blue-700">Our team is available to assist with your payment verification</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <a
+                    href="https://wa.me/2348036622568"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 transition-colors font-medium"
+                  >
+                    <Phone className="h-5 w-5 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs opacity-80">WhatsApp</div>
+                      <div>+234 803 662 2568</div>
+                    </div>
+                  </a>
+                  <a
+                    href="/messages"
+                    className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 transition-colors font-medium"
+                  >
+                    <MessageCircle className="h-5 w-5 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs opacity-80">In-App Chat</div>
+                      <div>Message Admin</div>
+                    </div>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setLocation("/brand-dashboard")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Payment Expired */}

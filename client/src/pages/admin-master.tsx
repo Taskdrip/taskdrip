@@ -128,34 +128,37 @@ export default function AdminMaster() {
   });
 
   const { data: blogPosts = [] } = useQuery({
-    queryKey: ["/api/blog"],
+    queryKey: ["/api/admin/blog"],
+    retry: false,
+  });
+
+  const { data: escrowPayments = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/escrow-payments"],
     retry: false,
   });
 
   // Admin mutations
   const createBlogPost = useMutation({
     mutationFn: async (data: z.infer<typeof blogPostSchema>) => {
-      // Generate slug from title
-      const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      
       const postData = {
-        ...data,
-        slug,
+        title: data.title,
+        content: data.content,
         isPublished: data.status === 'published',
-        publishedAt: data.status === 'published' ? new Date().toISOString() : null,
-        excerpt: data.content.substring(0, 160) + '...',
-        authorId: (user as any)?.id,
+        category: data.category || 'general',
+        featuredImage: data.featuredImage || null,
+        excerpt: data.content.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
       };
-      
       const res = await apiRequest("POST", "/api/admin/blog", postData);
+      if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
       queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
       blogForm.reset();
       toast({
         title: "Success",
-        description: `Blog post ${data.status === 'published' ? 'published' : 'saved as draft'} successfully`,
+        description: `Blog post ${data.isPublished ? 'published' : 'saved as draft'} successfully`,
       });
     },
   });
@@ -181,11 +184,36 @@ export default function AdminMaster() {
       await apiRequest("DELETE", `/api/admin/blog/${postId}`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
       queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
-      toast({
-        title: "Success",
-        description: "Blog post deleted successfully",
-      });
+      toast({ title: "Success", description: "Blog post deleted successfully" });
+    },
+  });
+
+  const approveEscrow = useMutation({
+    mutationFn: async (escrowId: string) => {
+      const res = await apiRequest("PUT", `/api/admin/escrow-payments/${escrowId}/approve`, {});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/escrow-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/transactions"] });
+      toast({ title: "✅ Approved!", description: "Payment verified and campaign activated" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectEscrow = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const res = await apiRequest("PUT", `/api/admin/escrow-payments/${id}/reject`, { reason });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/escrow-payments"] });
+      toast({ title: "Rejected", description: "Payment rejected and brand notified" });
     },
   });
 
@@ -1475,42 +1503,45 @@ What story will you tell today?"
                     <p className="text-sm">Create your first campaign to get started</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {campaigns.map((campaign: any) => (
-                      <div key={campaign.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{campaign.title}</p>
-                            <Badge variant={campaign.status === 'active' ? 'default' : campaign.status === 'completed' ? 'secondary' : 'destructive'} className="text-xs">
-                              {campaign.status}
-                            </Badge>
+                      <div key={campaign.id} className="border rounded-xl p-4 hover:shadow-md transition-all bg-white">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <p className="font-semibold text-gray-900 truncate">{campaign.title}</p>
+                              <Badge className={
+                                campaign.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' :
+                                campaign.status === 'pending_payment' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                campaign.status === 'completed' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                              } variant="outline">
+                                {campaign.status?.replace('_', ' ')}
+                              </Badge>
+                              {campaign.isActive && <Badge className="bg-green-600 text-white text-xs">LIVE</Badge>}
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-1 mb-2">{campaign.description}</p>
+                            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                              <span>💰 ${campaign.reward}</span>
+                              <span>👥 {campaign.filledSlots || 0}/{campaign.totalSlots} slots</span>
+                              <span>🏷 {campaign.category}</span>
+                              <span>📅 {campaign.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : '—'}</span>
+                              {campaign.escrowPayment && (
+                                <span className={`font-medium ${campaign.escrowPayment.status === 'verified' ? 'text-green-600' : campaign.escrowPayment.status === 'submitted' ? 'text-orange-600' : 'text-gray-400'}`}>
+                                  💳 Escrow: {campaign.escrowPayment.status}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">{campaign.description}</p>
-                          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" />
-                              ${campaign.reward} reward
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {campaign.filledSlots || 0}/{campaign.totalSlots} slots
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(campaign.createdAt).toLocaleDateString()}
-                            </span>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button variant="outline" size="sm" onClick={() => setSelectedCampaign(campaign)} className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                              <Eye className="h-4 w-4 mr-1" /> View
+                            </Button>
+                            {campaign.escrowPayment?.status === 'submitted' && (
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveEscrow.mutate(campaign.escrowPayment.id)} disabled={approveEscrow.isPending}>
+                                <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                        <div className="flex gap-2 mt-3 sm:mt-0">
-                          <Button variant="outline" size="sm" onClick={() => setSelectedCampaign(campaign)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
                         </div>
                       </div>
                     ))}
@@ -1523,17 +1554,82 @@ What story will you tell today?"
           <TabsContent value="payments" className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold">Payment Management</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-              </div>
             </div>
+
+            {/* Escrow Payment Reviews */}
+            <Card className="border-orange-200 bg-orange-50/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-800">
+                  <AlertTriangle className="h-5 w-5" />
+                  Campaign Payment Proofs — Requires Action ({escrowPayments.filter((e: any) => e.status === 'submitted').length} pending)
+                </CardTitle>
+                <CardDescription>Review payment submissions and approve to activate campaigns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {escrowPayments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <CheckCircle className="h-10 w-10 mx-auto mb-2" />
+                    <p className="text-sm">No escrow payment submissions yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {escrowPayments.map((ep: any) => (
+                      <div key={ep.id} className="bg-white border rounded-xl p-4 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-gray-900">{ep.campaign?.title || 'Unknown Campaign'}</span>
+                              <Badge variant={ep.status === 'submitted' ? 'secondary' : ep.status === 'verified' ? 'default' : ep.status === 'rejected' ? 'destructive' : 'outline'}>
+                                {ep.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-500">Brand: {ep.brandEmail} · ${ep.amount} escrow</p>
+                            {ep.transactionHash && (
+                              <p className="text-xs font-mono text-blue-600 mt-1 break-all">TX: {ep.transactionHash}</p>
+                            )}
+                            {ep.network && <p className="text-xs text-gray-400">Network: {ep.network}</p>}
+                            <p className="text-xs text-gray-400">Submitted: {ep.submittedAt ? new Date(ep.submittedAt).toLocaleString() : '—'}</p>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {ep.paymentScreenshot && (
+                              <a href={ep.paymentScreenshot} target="_blank" rel="noreferrer">
+                                <Button variant="outline" size="sm" className="w-full">
+                                  <Eye className="h-4 w-4 mr-1" /> View Proof
+                                </Button>
+                              </a>
+                            )}
+                            {ep.status === 'submitted' && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                                  onClick={() => approveEscrow.mutate(ep.id)}
+                                  disabled={approveEscrow.isPending}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" /> Approve & Activate
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-200 text-red-600 hover:bg-red-50 flex-1"
+                                  onClick={() => {
+                                    const reason = prompt('Rejection reason (optional):') || 'Payment proof is invalid.';
+                                    rejectEscrow.mutate({ id: ep.id, reason });
+                                  }}
+                                  disabled={rejectEscrow.isPending}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" /> Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             
             <Card>
               <CardHeader>
@@ -2133,6 +2229,138 @@ What story will you tell today?"
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Campaign Detail Dialog */}
+        {selectedCampaign && (
+          <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-blue-600" />
+                  Campaign Details
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5">
+                {/* Status and basic info */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-xl font-bold">{selectedCampaign.title}</h3>
+                  <Badge className={selectedCampaign.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} variant="outline">
+                    {selectedCampaign.status?.replace('_', ' ')}
+                  </Badge>
+                  {selectedCampaign.isActive && <Badge className="bg-green-600 text-white">LIVE</Badge>}
+                </div>
+                <p className="text-gray-600 text-sm">{selectedCampaign.description}</p>
+
+                {/* Campaign stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Reward', value: `$${selectedCampaign.reward}`, color: 'text-green-600' },
+                    { label: 'Slots', value: `${selectedCampaign.filledSlots||0}/${selectedCampaign.totalSlots}`, color: 'text-blue-600' },
+                    { label: 'Category', value: selectedCampaign.category, color: 'text-purple-600' },
+                    { label: 'Deadline', value: selectedCampaign.deadline ? new Date(selectedCampaign.deadline).toLocaleDateString() : '—', color: 'text-orange-600' },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
+                      <div className={`font-bold ${s.color}`}>{s.value}</div>
+                      <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Brand info */}
+                {selectedCampaign.brandName && (
+                  <div className="bg-blue-50 rounded-xl p-3">
+                    <p className="text-xs font-medium text-blue-700 mb-1">Brand</p>
+                    <p className="font-semibold text-blue-900">{selectedCampaign.brandName}</p>
+                  </div>
+                )}
+
+                {/* Requirements */}
+                {selectedCampaign.requirements && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Requirements</p>
+                    {Array.isArray(selectedCampaign.requirements) ? (
+                      <ul className="list-disc list-inside space-y-1">
+                        {selectedCampaign.requirements.map((r: string, i: number) => (
+                          <li key={i} className="text-sm text-gray-600">{r}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-600">{selectedCampaign.requirements}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Payment Proof */}
+                {selectedCampaign.escrowPayment && (
+                  <div className="border rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-gray-800">Payment Proof</p>
+                      <Badge variant={
+                        selectedCampaign.escrowPayment.status === 'verified' ? 'default' :
+                        selectedCampaign.escrowPayment.status === 'submitted' ? 'secondary' : 'outline'
+                      }>{selectedCampaign.escrowPayment.status}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-400">Amount</p>
+                        <p className="font-medium">${selectedCampaign.escrowPayment.amount}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Network</p>
+                        <p className="font-medium">{selectedCampaign.escrowPayment.network || '—'}</p>
+                      </div>
+                    </div>
+                    {selectedCampaign.escrowPayment.transactionHash && (
+                      <div>
+                        <p className="text-xs text-gray-400">Transaction Hash</p>
+                        <p className="font-mono text-xs text-blue-600 break-all">{selectedCampaign.escrowPayment.transactionHash}</p>
+                      </div>
+                    )}
+                    {selectedCampaign.escrowPayment.paymentScreenshot && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-2">Payment Screenshot</p>
+                        <a href={selectedCampaign.escrowPayment.paymentScreenshot} target="_blank" rel="noreferrer" className="block">
+                          <img
+                            src={selectedCampaign.escrowPayment.paymentScreenshot}
+                            alt="Payment proof"
+                            className="w-full max-h-64 object-contain rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
+                          />
+                        </a>
+                      </div>
+                    )}
+                    {selectedCampaign.escrowPayment.status === 'submitted' && (
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => { approveEscrow.mutate(selectedCampaign.escrowPayment.id); setSelectedCampaign(null); }}
+                          disabled={approveEscrow.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" /> Approve & Activate Campaign
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => {
+                            const reason = prompt('Rejection reason:') || 'Invalid payment proof.';
+                            rejectEscrow.mutate({ id: selectedCampaign.escrowPayment.id, reason });
+                            setSelectedCampaign(null);
+                          }}
+                          disabled={rejectEscrow.isPending}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" /> Reject
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => setSelectedCampaign(null)}>Close</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Campaign Creation Dialog */}
         {isCampaignDialogOpen && (

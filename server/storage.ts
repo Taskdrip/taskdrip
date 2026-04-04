@@ -311,6 +311,19 @@ export class DatabaseStorage implements IStorage {
     return payment;
   }
 
+  async getAllEscrowPayments(): Promise<any[]> {
+    return await db.select().from(escrowPayments).orderBy(desc(escrowPayments.createdAt));
+  }
+
+  async getEscrowPaymentById(id: string): Promise<any> {
+    const [payment] = await db.select().from(escrowPayments).where(eq(escrowPayments.id, id));
+    return payment;
+  }
+
+  async getAllCampaignsAdmin(): Promise<Campaign[]> {
+    return await db.select().from(campaigns).orderBy(desc(campaigns.createdAt));
+  }
+
   async updateEscrowPayment(id: string, updates: any): Promise<any> {
     const [updatedPayment] = await db
       .update(escrowPayments)
@@ -323,6 +336,10 @@ export class DatabaseStorage implements IStorage {
   // Blog operations
   async getAllBlogPosts(): Promise<BlogPost[]> {
     return await db.select().from(blogPosts).where(eq(blogPosts.isPublished, true)).orderBy(desc(blogPosts.publishedAt));
+  }
+
+  async getAllBlogPostsAdmin(): Promise<BlogPost[]> {
+    return await db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
   }
 
   async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
