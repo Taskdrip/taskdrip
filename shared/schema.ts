@@ -494,6 +494,15 @@ export const postComments = pgTable("post_comments", {
   postId: varchar("post_id").notNull().references(() => posts.id),
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
+  parentId: varchar("parent_id"), // For nested replies
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User follows table
+export const userFollows = pgTable("user_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => users.id),
+  followingId: varchar("following_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -504,6 +513,7 @@ export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type PostLike = typeof postLikes.$inferSelect;
 export type PostComment = typeof postComments.$inferSelect;
+export type UserFollow = typeof userFollows.$inferSelect;
 
 // Insert schemas for new payment tables
 export const insertPaymentDepositSchema = createInsertSchema(paymentDeposits).omit({

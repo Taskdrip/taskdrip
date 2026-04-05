@@ -122,16 +122,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/posts/:id/comments', isAuthenticated, async (req: any, res) => {
     try {
-      const { content } = req.body;
+      const { content, parentId } = req.body;
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
       const { nanoid } = await import('nanoid');
       const id = `cmt_${nanoid()}`;
-      const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim());
+      const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim(), parentId);
       res.status(201).json(comment);
     } catch (error) {
       res.status(500).json({ message: "Failed to add comment" });
+    }
+  });
+
+  // User follow/unfollow routes
+  app.get('/api/users/:id/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.params.id === req.user.id) return res.json({ following: false });
+      const following = await storage.isFollowing(req.user.id, req.params.id);
+      res.json({ following });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check follow status" });
+    }
+  });
+
+  app.post('/api/users/:id/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.params.id === req.user.id) return res.status(400).json({ message: "Cannot follow yourself" });
+      const following = await storage.isFollowing(req.user.id, req.params.id);
+      if (following) {
+        await storage.unfollowUser(req.user.id, req.params.id);
+        res.json({ following: false });
+      } else {
+        await storage.followUser(req.user.id, req.params.id);
+        res.json({ following: true });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle follow" });
+    }
+  });
+
+  app.get('/api/users/:id/profile', async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user profile" });
     }
   });
 

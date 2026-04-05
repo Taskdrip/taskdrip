@@ -20,6 +20,7 @@ import {
   posts,
   postLikes,
   postComments,
+  userFollows,
   type User,
   type InsertUser,
   type Campaign,
@@ -727,10 +728,18 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(campaigns, eq(campaignParticipations.campaignId, campaigns.id))
       .where(eq(campaigns.brandId, brandId));
 
-    const totalSpent = await db
-      .select({ sum: sql<number>`coalesce(sum(${sql.raw('cast(reward as decimal)')}), 0)` })
+    // Total spent = sum of (reward × filledSlots) for each campaign
+    const totalSpentResult = await db
+      .select({ 
+        reward: campaigns.reward,
+        filledSlots: campaigns.filledSlots,
+        totalSlots: campaigns.totalSlots,
+      })
       .from(campaigns)
       .where(eq(campaigns.brandId, brandId));
+
+    const totalSpent = totalSpentResult.reduce((sum, c) => sum + (parseFloat(String(c.reward)) * (c.filledSlots || 0)), 0);
+    const totalAllocated = totalSpentResult.reduce((sum, c) => sum + (parseFloat(String(c.reward)) * (c.totalSlots || 0)), 0);
 
     const pendingSubmissions = await db
       .select({ count: sql<number>`count(*)` })
@@ -742,9 +751,10 @@ export class DatabaseStorage implements IStorage {
       totalCampaigns: totalCampaigns[0]?.count || 0,
       activeCampaigns: activeCampaigns[0]?.count || 0,
       totalCreators: totalCreators[0]?.count || 0,
-      totalSpent: totalSpent[0]?.sum || 0,
+      totalSpent,
+      totalAllocated,
       pendingSubmissions: pendingSubmissions[0]?.count || 0,
-      averageRating: 4.8, // Mock for now
+      averageRating: 4.8,
     };
   }
 
@@ -994,26 +1004,77 @@ export class DatabaseStorage implements IStorage {
     return !!like;
   }
 
-  async getPostComments(postId: string): Promise<(PostComment & { user: Partial<User> })[]> {
-    const comments = await db.select().from(postComments).where(eq(postComments.postId, postId)).orderBy(desc(postComments.createdAt));
-    const result: (PostComment & { user: Partial<User> })[] = [];
-    for (const comment of comments) {
+  async getPostComments(postId: string): Promise<(PostComment & { user: Partial<User>; replies?: any[] })[]> {
+    const allComments = await db.select().from(postComments).where(eq(postComments.postId, postId)).orderBy(postComments.createdAt);
+    const enriched: (PostComment & { user: Partial<User>; replies: any[] })[] = [];
+    for (const comment of allComments) {
       const [u] = await db.select({
         id: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
         username: users.username,
         profileImageUrl: users.profileImageUrl,
+        userType: users.userType,
+        isVerified: users.isVerified,
       }).from(users).where(eq(users.id, comment.userId));
-      result.push({ ...comment, user: u || {} });
+      enriched.push({ ...comment, user: u || {}, replies: [] });
+    }
+    // Build tree: attach replies to parent comments
+    const topLevel = enriched.filter(c => !c.parentId);
+    const replies = enriched.filter(c => !!c.parentId);
+    replies.forEach(reply => {
+      const parent = topLevel.find(c => c.id === reply.parentId);
+      if (parent) parent.replies.push(reply);
+    });
+    return topLevel;
+  }
+
+  async addPostComment(id: string, postId: string, userId: string, content: string, parentId?: string): Promise<PostComment> {
+    const [comment] = await db.insert(postComments).values({ id, postId, userId, content, parentId: parentId || null } as any).returning();
+    if (!parentId) {
+      await db.update(posts).set({ commentCount: sql`${posts.commentCount} + 1` }).where(eq(posts.id, postId));
+    }
+    return comment;
+  }
+
+  // User follow/unfollow methods
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    try {
+      await db.insert(userFollows).values({ followerId, followingId } as any);
+      await db.update(users).set({ following: sql`${users.following} + 1` }).where(eq(users.id, followerId));
+      await db.update(users).set({ followers: sql`${users.followers} + 1` }).where(eq(users.id, followingId));
+    } catch (e) { /* already following */ }
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await db.delete(userFollows).where(and(eq(userFollows.followerId, followerId), eq(userFollows.followingId, followingId)));
+    await db.update(users).set({ following: sql`GREATEST(${users.following} - 1, 0)` }).where(eq(users.id, followerId));
+    await db.update(users).set({ followers: sql`GREATEST(${users.followers} - 1, 0)` }).where(eq(users.id, followingId));
+  }
+
+  async isFollowing(followerId: string, followingId: string): Promise<boolean> {
+    const [row] = await db.select().from(userFollows).where(and(eq(userFollows.followerId, followerId), eq(userFollows.followingId, followingId)));
+    return !!row;
+  }
+
+  async getUserFollowers(userId: string): Promise<User[]> {
+    const follows = await db.select().from(userFollows).where(eq(userFollows.followingId, userId));
+    const result: User[] = [];
+    for (const f of follows) {
+      const [u] = await db.select().from(users).where(eq(users.id, f.followerId));
+      if (u) result.push(u);
     }
     return result;
   }
 
-  async addPostComment(id: string, postId: string, userId: string, content: string): Promise<PostComment> {
-    const [comment] = await db.insert(postComments).values({ id, postId, userId, content }).returning();
-    await db.update(posts).set({ commentCount: sql`${posts.commentCount} + 1` }).where(eq(posts.id, postId));
-    return comment;
+  async getUserFollowing(userId: string): Promise<User[]> {
+    const follows = await db.select().from(userFollows).where(eq(userFollows.followerId, userId));
+    const result: User[] = [];
+    for (const f of follows) {
+      const [u] = await db.select().from(users).where(eq(users.id, f.followingId));
+      if (u) result.push(u);
+    }
+    return result;
   }
 
   // Blog interaction implementations
