@@ -200,11 +200,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Campaign created:", campaign);
       
       // Create escrow payment session with 30-minute window
+      // Add 5% platform fee to total campaign budget
+      const totalReward = parseFloat(req.body.reward) * parseInt(req.body.totalSlots);
+      const platformFee = totalReward * 0.05;
+      const totalAmount = totalReward + platformFee;
       const escrowPaymentData = {
         id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         campaignId: campaign.id,
         brandId: user.id,
-        amount: parseFloat(req.body.reward) * parseInt(req.body.totalSlots), // Total campaign budget
+        amount: totalAmount, // Total campaign budget + 5% platform fee
         status: 'payment_window',
         paymentWindowStart: new Date(),
         paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
@@ -635,7 +639,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Blog routes
   app.get('/api/blog', async (req, res) => {
     try {
-      const posts = await storage.getAllBlogPosts();
+      const category = req.query.category as string | undefined;
+      const posts = category
+        ? await storage.getBlogPostsByCategory(category)
+        : await storage.getAllBlogPosts();
       res.json(posts);
     } catch (error) {
       console.error("Error fetching blog posts:", error);
@@ -646,13 +653,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/blog/:slug', async (req, res) => {
     try {
       const post = await storage.getBlogPostBySlug(req.params.slug);
-      if (!post) {
-        return res.status(404).json({ message: "Blog post not found" });
-      }
-      res.json(post);
+      if (!post) return res.status(404).json({ message: "Blog post not found" });
+      // Increment view count
+      await storage.incrementBlogViews(post.id);
+      // Get comments count and likes count from DB
+      res.json({ ...post, viewCount: (post.viewCount || 0) + 1 });
     } catch (error) {
       console.error("Error fetching blog post:", error);
       res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
+  // Blog likes
+  app.get('/api/blog/:slug/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const liked = await storage.getBlogLike(post.id, req.user.id);
+      res.json({ liked });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check like" });
+    }
+  });
+
+  app.post('/api/blog/:slug/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const liked = await storage.getBlogLike(post.id, req.user.id);
+      if (liked) {
+        await storage.unlikeBlogPost(post.id, req.user.id);
+        res.json({ liked: false });
+      } else {
+        await storage.likeBlogPost(post.id, req.user.id);
+        res.json({ liked: true });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle like" });
+    }
+  });
+
+  // Blog comments
+  app.get('/api/blog/:slug/comments', async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const comments = await storage.getBlogComments(post.id);
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  app.post('/api/blog/:slug/comments', isAuthenticated, async (req: any, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const { content, parentId } = req.body;
+      if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+      const comment = await storage.addBlogComment(post.id, req.user.id, content.trim(), parentId);
+      res.status(201).json(comment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add comment" });
+    }
+  });
+
+  // Blog category follow
+  app.get('/api/blog/category/:category/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      const following = await storage.getBlogCategoryFollow(req.user.id, req.params.category);
+      res.json({ following });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check follow" });
+    }
+  });
+
+  app.post('/api/blog/category/:category/follow', isAuthenticated, async (req: any, res) => {
+    try {
+      const { category } = req.params;
+      const following = await storage.getBlogCategoryFollow(req.user.id, category);
+      if (following) {
+        await storage.unfollowBlogCategory(req.user.id, category);
+        res.json({ following: false });
+      } else {
+        await storage.followBlogCategory(req.user.id, category);
+        res.json({ following: true });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle follow" });
     }
   });
 
@@ -1376,20 +1464,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (adminUser?.userType !== 'admin') {
         return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
       }
-      const { title, content, isPublished, category, featuredImage, slug, excerpt, tags } = req.body;
+      const { title, content, isPublished, status, category, featuredImage, slug, excerpt, tags, metaDescription, seoKeywords, readingTime } = req.body;
       if (!title || !content) return res.status(400).json({ message: 'Title and content are required' });
+      const shouldPublish = isPublished === true || isPublished === 'true' || status === 'published';
       const autoSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
       const blogPost = await storage.createBlogPost({
         title,
         content,
-        isPublished: isPublished === true || isPublished === 'true',
+        isPublished: shouldPublish,
         authorId: userId,
         slug: autoSlug,
         excerpt: excerpt || content.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
         category: category || 'general',
         featuredImage: featuredImage || null,
         tags: Array.isArray(tags) ? tags : (tags ? [tags] : []),
-        publishedAt: (isPublished === true || isPublished === 'true') ? new Date() : null,
+        publishedAt: shouldPublish ? new Date() : null,
+        metaDescription: metaDescription || null,
+        seoKeywords: seoKeywords || null,
+        readingTime: readingTime || 5,
       });
       res.status(201).json(blogPost);
     } catch (error) {
@@ -1471,6 +1563,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: platform stats (real-time)
+  app.get('/api/admin/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Access denied' });
+      const allUsers = await storage.getAllUsers ? (await (storage as any).getAllUsers()) : [];
+      const allCampaigns = await (storage as any).getAllCampaignsAdmin();
+      const allTransactions = await storage.getAllTransactions();
+      const allEscrow = await (storage as any).getAllEscrowPayments();
+      const activeCampaigns = allCampaigns.filter((c: any) => c.isActive && c.status === 'active');
+      const totalRevenue = allEscrow
+        .filter((e: any) => e.status === 'verified')
+        .reduce((sum: number, e: any) => sum + parseFloat(e.amount || '0'), 0);
+      const pendingEscrow = allEscrow.filter((e: any) => e.status === 'verifying' || e.status === 'submitted');
+      const creators = allUsers.filter((u: any) => u.userType === 'creator');
+      const brands = allUsers.filter((u: any) => u.userType === 'brand');
+      const totalRewardsDistributed = allTransactions
+        .filter((t: any) => t.type === 'reward' && t.status === 'completed')
+        .reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
+      res.json({
+        totalUsers: allUsers.length,
+        totalCreators: creators.length,
+        totalBrands: brands.length,
+        totalCampaigns: allCampaigns.length,
+        activeCampaigns: activeCampaigns.length,
+        pendingCampaigns: allCampaigns.filter((c: any) => c.status === 'pending_payment').length,
+        totalRevenue: totalRevenue.toFixed(2),
+        totalRewardsDistributed: totalRewardsDistributed.toFixed(2),
+        pendingPayments: pendingEscrow.length,
+        verifiedPayments: allEscrow.filter((e: any) => e.status === 'verified').length,
+        totalTransactions: allTransactions.length,
+      });
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  });
+
   app.get('/api/admin/campaigns', isAuthenticated, async (req: any, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
@@ -1519,9 +1649,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mark escrow as verified
       await storage.updateEscrowPayment(escrow.id, { status: 'verified', verifiedAt: new Date(), verifiedBy: req.user.id });
       // Activate campaign
-      await storage.updateCampaign(escrow.campaignId, { isActive: true, status: 'active', paymentStatus: 'completed' } as any);
-      // Notify brand
+      const activatedCampaign = await storage.updateCampaign(escrow.campaignId, { isActive: true, status: 'active', paymentStatus: 'completed' } as any);
       const { nanoid } = await import('nanoid');
+      // Notify brand
       await storage.createNotification({
         id: `notif_${nanoid()}`,
         userId: escrow.brandId,
@@ -1531,7 +1661,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actionUrl: '/brand-dashboard',
         isRead: false,
       } as any);
-      res.json({ success: true, message: 'Campaign activated successfully' });
+      // Notify all creators about new campaign
+      const allCreators = await storage.getAllCreators();
+      const campaignTitle = (activatedCampaign as any)?.title || 'New Campaign';
+      for (const creator of allCreators) {
+        try {
+          await storage.createNotification({
+            id: `notif_${nanoid()}`,
+            userId: creator.id,
+            type: 'new_campaign',
+            title: '🚀 New Campaign Available!',
+            message: `A new campaign "${campaignTitle}" is now live. Join and earn crypto rewards!`,
+            actionUrl: '/campaigns',
+            isRead: false,
+          } as any);
+        } catch (e) { /* continue */ }
+      }
+      res.json({ success: true, message: 'Campaign activated and creators notified' });
     } catch (error) {
       console.error('Error approving escrow payment:', error);
       res.status(500).json({ message: 'Failed to approve payment' });

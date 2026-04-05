@@ -152,8 +152,42 @@ export const blogPosts = pgTable("blog_posts", {
   authorId: varchar("author_id").references(() => users.id),
   isPublished: boolean("is_published").default(false),
   publishedAt: timestamp("published_at"),
+  viewCount: integer("view_count").default(0),
+  likesCount: integer("likes_count").default(0),
+  commentsCount: integer("comments_count").default(0),
+  metaDescription: text("meta_description"),
+  seoKeywords: text("seo_keywords"),
+  readingTime: integer("reading_time").default(5),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Blog likes - track who liked which post
+export const blogLikes = pgTable("blog_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => blogPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Blog comments
+export const blogComments = pgTable("blog_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => blogPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  parentId: varchar("parent_id"), // For nested replies
+  isApproved: boolean("is_approved").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Blog category follows
+export const blogCategoryFollows = pgTable("blog_category_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  category: varchar("category").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const shopProducts = pgTable("shop_products", {
@@ -371,6 +405,12 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogLike = typeof blogLikes.$inferSelect;
+export type BlogComment = typeof blogComments.$inferSelect;
+export type BlogCategoryFollow = typeof blogCategoryFollows.$inferSelect;
+
+export const insertBlogCommentSchema = createInsertSchema(blogComments).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;
 export type ShopProduct = typeof shopProducts.$inferSelect;
 export type InsertShopProduct = z.infer<typeof insertShopProductSchema>;
 export type Purchase = typeof purchases.$inferSelect;

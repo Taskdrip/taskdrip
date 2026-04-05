@@ -4,6 +4,9 @@ import {
   campaignParticipations,
   transactions,
   blogPosts,
+  blogLikes,
+  blogComments,
+  blogCategoryFollows,
   shopProducts,
   purchases,
   productReviews,
@@ -27,6 +30,8 @@ import {
   type InsertTransaction,
   type BlogPost,
   type InsertBlogPost,
+  type BlogComment,
+  type InsertBlogComment,
   type ShopProduct,
   type InsertShopProduct,
   type Purchase,
@@ -148,6 +153,20 @@ export interface IStorage {
   getPostLike(postId: string, userId: string): Promise<boolean>;
   getPostComments(postId: string): Promise<(PostComment & { user: Partial<User> })[]>;
   addPostComment(id: string, postId: string, userId: string, content: string): Promise<PostComment>;
+
+  // Blog interaction operations
+  getBlogPostById(id: string): Promise<BlogPost | undefined>;
+  incrementBlogViews(postId: string): Promise<void>;
+  getBlogLike(postId: string, userId: string): Promise<boolean>;
+  likeBlogPost(postId: string, userId: string): Promise<void>;
+  unlikeBlogPost(postId: string, userId: string): Promise<void>;
+  getBlogComments(postId: string): Promise<(BlogComment & { user: Partial<User> })[]>;
+  addBlogComment(postId: string, userId: string, content: string, parentId?: string): Promise<BlogComment>;
+  getBlogCategoryFollow(userId: string, category: string): Promise<boolean>;
+  followBlogCategory(userId: string, category: string): Promise<void>;
+  unfollowBlogCategory(userId: string, category: string): Promise<void>;
+  getBlogPostsByCategory(category: string): Promise<BlogPost[]>;
+  getAllCreators(): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -995,6 +1014,74 @@ export class DatabaseStorage implements IStorage {
     const [comment] = await db.insert(postComments).values({ id, postId, userId, content }).returning();
     await db.update(posts).set({ commentCount: sql`${posts.commentCount} + 1` }).where(eq(posts.id, postId));
     return comment;
+  }
+
+  // Blog interaction implementations
+  async getBlogPostById(id: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post;
+  }
+
+  async incrementBlogViews(postId: string): Promise<void> {
+    await db.update(blogPosts).set({ viewCount: sql`${blogPosts.viewCount} + 1` }).where(eq(blogPosts.id, postId));
+  }
+
+  async getBlogLike(postId: string, userId: string): Promise<boolean> {
+    const [like] = await db.select().from(blogLikes).where(and(eq(blogLikes.postId, postId), eq(blogLikes.userId, userId)));
+    return !!like;
+  }
+
+  async likeBlogPost(postId: string, userId: string): Promise<void> {
+    try {
+      await db.insert(blogLikes).values({ postId, userId });
+      await db.update(blogPosts).set({ likesCount: sql`${blogPosts.likesCount} + 1` }).where(eq(blogPosts.id, postId));
+    } catch (e) { /* already liked */ }
+  }
+
+  async unlikeBlogPost(postId: string, userId: string): Promise<void> {
+    await db.delete(blogLikes).where(and(eq(blogLikes.postId, postId), eq(blogLikes.userId, userId)));
+    await db.update(blogPosts).set({ likesCount: sql`GREATEST(${blogPosts.likesCount} - 1, 0)` }).where(eq(blogPosts.id, postId));
+  }
+
+  async getBlogComments(postId: string): Promise<(BlogComment & { user: Partial<User> })[]> {
+    const comments = await db.select().from(blogComments)
+      .where(and(eq(blogComments.postId, postId), eq(blogComments.isApproved, true)))
+      .orderBy(desc(blogComments.createdAt));
+    const result: (BlogComment & { user: Partial<User> })[] = [];
+    for (const comment of comments) {
+      const [u] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, username: users.username, profileImageUrl: users.profileImageUrl }).from(users).where(eq(users.id, comment.userId));
+      result.push({ ...comment, user: u || {} });
+    }
+    return result;
+  }
+
+  async addBlogComment(postId: string, userId: string, content: string, parentId?: string): Promise<BlogComment> {
+    const [comment] = await db.insert(blogComments).values({ postId, userId, content, parentId: parentId || null }).returning();
+    await db.update(blogPosts).set({ commentsCount: sql`${blogPosts.commentsCount} + 1` }).where(eq(blogPosts.id, postId));
+    return comment;
+  }
+
+  async getBlogCategoryFollow(userId: string, category: string): Promise<boolean> {
+    const [follow] = await db.select().from(blogCategoryFollows).where(and(eq(blogCategoryFollows.userId, userId), eq(blogCategoryFollows.category, category)));
+    return !!follow;
+  }
+
+  async followBlogCategory(userId: string, category: string): Promise<void> {
+    try {
+      await db.insert(blogCategoryFollows).values({ userId, category });
+    } catch (e) { /* already following */ }
+  }
+
+  async unfollowBlogCategory(userId: string, category: string): Promise<void> {
+    await db.delete(blogCategoryFollows).where(and(eq(blogCategoryFollows.userId, userId), eq(blogCategoryFollows.category, category)));
+  }
+
+  async getBlogPostsByCategory(category: string): Promise<BlogPost[]> {
+    return await db.select().from(blogPosts).where(and(eq(blogPosts.category, category), eq(blogPosts.isPublished, true))).orderBy(desc(blogPosts.publishedAt));
+  }
+
+  async getAllCreators(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.userType, 'creator'));
   }
 }
 

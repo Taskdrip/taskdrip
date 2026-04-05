@@ -116,6 +116,17 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Footer Added**: Footer component added to all major pages
 ✓ **Database Schema**: Added username, bannerImageUrl, social platform handles + follower columns, totalFollowers, creatorTier, niche columns
 
+## Blog & Content System (April 2026)
+
+✓ **Blog Schema Extended**: Added `viewCount`, `likesCount`, `commentsCount`, `metaDescription`, `seoKeywords`, `readingTime` to `blogPosts` table; created `blogLikes`, `blogComments`, `blogCategoryFollows` tables
+✓ **Blog Post Reader**: Full `/blog/:slug` reader with likes, comments, share buttons (Twitter/Facebook/copy), category follow, reading time, SEO prose display, and view counter
+✓ **Blog Listing Redesign**: Complete rewrite with hero section, category filter tabs, featured post, trending sidebar, category follow, real view/like/comment counts
+✓ **Tiptap Rich Text Editor**: Installed Tiptap (v2) with full WYSIWYG toolbar — headings, bold/italic/underline/highlight, align, lists, blockquote, code blocks, links, undo/redo; word count display
+✓ **Admin Blog SEO Fields**: Added Excerpt, Meta Description, SEO Keywords, Reading Time fields to admin blog editor with blue SEO section
+✓ **Blog API Updated**: POST /api/admin/blog now saves metaDescription, seoKeywords, readingTime; GET /api/blog/:slug increments view count; category filter on GET /api/blog
+✓ **Blog Comments with User Data**: Comment thread shows user avatar, name and date; post comment form with authentication gate
+✓ **App Routing**: Added /blog/:slug route to App.tsx for individual blog post pages
+
 ## External Dependencies
 
 ### Core Dependencies

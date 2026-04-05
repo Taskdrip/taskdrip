@@ -18,6 +18,7 @@ import UserProfile from "@/pages/user-profile";
 import Messages from "@/pages/messages";
 import Chat from "@/pages/chat";
 import Blog from "@/pages/blog";
+import BlogPost from "@/pages/blog-post";
 import Shop from "@/pages/shop";
 import ProductDetail from "@/pages/product-detail";
 import ShopCheckout from "@/pages/shop-checkout";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/shop" component={Shop} />
       <Route path="/shop/product/:id" component={ProductDetail} />
       <Route path="/shop/checkout/:id" component={ShopCheckout} />

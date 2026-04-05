@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/ui/navigation";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,6 +37,10 @@ const blogPostSchema = z.object({
   status: z.enum(["draft", "published"]),
   category: z.string().optional(),
   featuredImage: z.string().optional(),
+  excerpt: z.string().optional(),
+  metaDescription: z.string().optional(),
+  seoKeywords: z.string().optional(),
+  readingTime: z.number().optional(),
 });
 
 const campaignSchema = z.object({
@@ -81,6 +86,10 @@ export default function AdminMaster() {
       status: "draft" as const,
       category: "",
       featuredImage: "",
+      excerpt: "",
+      metaDescription: "",
+      seoKeywords: "",
+      readingTime: 5,
     },
   });
 
@@ -143,10 +152,14 @@ export default function AdminMaster() {
       const postData = {
         title: data.title,
         content: data.content,
+        status: data.status,
         isPublished: data.status === 'published',
         category: data.category || 'general',
         featuredImage: data.featuredImage || null,
-        excerpt: data.content.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
+        excerpt: data.excerpt || data.content.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
+        metaDescription: data.metaDescription || null,
+        seoKeywords: data.seoKeywords || null,
+        readingTime: data.readingTime || 5,
       };
       const res = await apiRequest("POST", "/api/admin/blog", postData);
       if (!res.ok) throw new Error(await res.text());
@@ -1063,8 +1076,8 @@ export default function AdminMaster() {
                             <FormLabel>Content Editor</FormLabel>
                             <FormControl>
                               <div className="space-y-4">
-                                {/* Rich Text Editor Toolbar */}
-                                <div className="border rounded-lg p-3 bg-gray-50">
+                                {/* Legacy toolbar - hidden now */}
+                                <div className="hidden">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <div className="flex items-center gap-1">
                                       <Button 
@@ -1213,27 +1226,12 @@ export default function AdminMaster() {
                                   </div>
                                 </div>
                                 
-                                {/* Content Editor */}
-                                <Textarea 
-                                  placeholder="Start writing your engaging blog post here...
-
-✨ Quick Tips:
-• Use the toolbar buttons above to add formatting
-• **Bold** and *italic* text for emphasis
-• Click the image button to add pictures
-• Click the video button to embed videos
-• Use ## for headings and > for quotes
-
-What story will you tell today?"
-                                  className="min-h-[450px] font-mono text-sm leading-relaxed border-0 focus:ring-0 resize-y"
-                                  {...field} 
+                                {/* Rich Text Editor */}
+                                <RichTextEditor
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Start writing your engaging blog post here..."
                                 />
-                                
-                                {/* Word Count and SEO Info */}
-                                <div className="flex justify-between text-xs text-gray-500">
-                                  <span>{field.value?.length || 0} characters</span>
-                                  <span>{field.value?.split(' ').filter(word => word.length > 0).length || 0} words</span>
-                                </div>
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -1291,6 +1289,82 @@ What story will you tell today?"
                         />
                       </div>
                       
+                      {/* SEO Fields */}
+                      <div className="border border-blue-100 rounded-xl p-4 bg-blue-50/50 space-y-4">
+                        <p className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                          🔍 SEO & Metadata
+                        </p>
+                        <FormField
+                          control={blogForm.control}
+                          name="excerpt"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm">Post Excerpt</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="A brief summary shown in post previews and social shares (150-200 chars)..."
+                                  className="min-h-[70px] resize-none text-sm"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={blogForm.control}
+                          name="metaDescription"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm">Meta Description</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="SEO meta description for search engines (150-160 chars recommended)..."
+                                  className="min-h-[70px] resize-none text-sm"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={blogForm.control}
+                            name="seoKeywords"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm">SEO Keywords</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="crypto, taskdrip, earn..." {...field} className="text-sm" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={blogForm.control}
+                            name="readingTime"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm">Reading Time (min)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    placeholder="5"
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
+                                    className="text-sm"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
                       {/* Action Buttons */}
                       <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
                         <Button 
