@@ -65,7 +65,7 @@ import {
   type Referral,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, ne } from "drizzle-orm";
+import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations for custom authentication
@@ -323,6 +323,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(campaignParticipations.id, id))
       .returning();
     return updatedParticipation;
+  }
+
+  async getParticipationById(id: string): Promise<CampaignParticipation | null> {
+    const [participation] = await db.select().from(campaignParticipations).where(eq(campaignParticipations.id, id));
+    return participation || null;
   }
 
   // Transaction operations
@@ -774,18 +779,30 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(campaigns, eq(campaignParticipations.campaignId, campaigns.id))
       .where(eq(campaigns.brandId, brandId));
 
-    // Total spent = sum of (reward × filledSlots) for each campaign
-    const totalSpentResult = await db
-      .select({ 
-        reward: campaigns.reward,
-        filledSlots: campaigns.filledSlots,
-        totalSlots: campaigns.totalSlots,
-      })
+    // Total spent = sum of approved campaign_reward transactions for this brand's campaigns
+    const brandCampaignIds = await db
+      .select({ id: campaigns.id, reward: campaigns.reward, filledSlots: campaigns.filledSlots, totalSlots: campaigns.totalSlots })
       .from(campaigns)
       .where(eq(campaigns.brandId, brandId));
 
-    const totalSpent = totalSpentResult.reduce((sum, c) => sum + (parseFloat(String(c.reward)) * (c.filledSlots || 0)), 0);
-    const totalAllocated = totalSpentResult.reduce((sum, c) => sum + (parseFloat(String(c.reward)) * (c.totalSlots || 0)), 0);
+    const totalAllocated = brandCampaignIds.reduce((sum, c) => sum + (parseFloat(String(c.reward)) * (c.totalSlots || 0)), 0);
+
+    // Accurate spent: sum of all approved campaign_reward transactions for this brand's campaigns
+    let totalSpent = 0;
+    if (brandCampaignIds.length > 0) {
+      const campaignIdList = brandCampaignIds.map(c => c.id);
+      const rewardTxns = await db
+        .select({ amount: transactions.amount })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.type, 'campaign_reward'),
+            eq(transactions.status, 'approved'),
+            inArray(transactions.campaignId, campaignIdList),
+          )
+        );
+      totalSpent = rewardTxns.reduce((sum, t) => sum + parseFloat(String(t.amount || '0')), 0);
+    }
 
     const pendingSubmissions = await db
       .select({ count: sql<number>`count(*)` })

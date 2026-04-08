@@ -57,6 +57,7 @@ interface BrandStats {
   activeCampaigns: number;
   totalCreators: number;
   totalSpent: number;
+  totalAllocated: number;
   pendingSubmissions: number;
   averageRating: number;
 }
@@ -564,51 +565,67 @@ export default function BrandDashboard() {
       <div className="container mx-auto px-6 py-8">
         {/* Stats Cards */}
         {!statsLoading && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
-                    <p className="text-3xl font-bold text-gray-900">{stats.totalCampaigns}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Campaigns</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalCampaigns}</p>
                   </div>
-                  <Target className="h-8 w-8 text-blue-600" />
+                  <Target className="h-8 w-8 text-blue-500 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
-                    <p className="text-3xl font-bold text-green-600">{stats.activeCampaigns}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Active Campaigns</p>
+                    <p className="text-3xl font-bold text-green-600 mt-1">{stats.activeCampaigns}</p>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-green-600" />
+                  <TrendingUp className="h-8 w-8 text-green-500 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Creators</p>
-                    <p className="text-3xl font-bold text-purple-600">{stats.totalCreators}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Creators</p>
+                    <p className="text-3xl font-bold text-purple-600 mt-1">{stats.totalCreators}</p>
                   </div>
-                  <Users className="h-8 w-8 text-purple-600" />
+                  <Users className="h-8 w-8 text-purple-500 opacity-80" />
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Spent</p>
-                    <p className="text-3xl font-bold text-orange-600">${parseFloat(String(stats?.totalSpent || '0')).toFixed(2)}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Paid Out</p>
+                    <p className="text-3xl font-bold text-orange-600 mt-1">${parseFloat(String(stats?.totalSpent || '0')).toFixed(2)}</p>
+                    <p className="text-xs text-gray-400 mt-1">of ${parseFloat(String(stats?.totalAllocated || '0')).toFixed(2)} allocated</p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-orange-600" />
+                  <DollarSign className="h-8 w-8 text-orange-500 opacity-80" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-200 bg-emerald-50">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-emerald-700 uppercase tracking-wide">Budget Remaining</p>
+                    <p className="text-3xl font-bold text-emerald-700 mt-1">
+                      ${Math.max(0, parseFloat(String(stats?.totalAllocated || '0')) - parseFloat(String(stats?.totalSpent || '0'))).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-emerald-600 mt-1">unspent allocation</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-emerald-500 opacity-80" />
                 </div>
               </CardContent>
             </Card>

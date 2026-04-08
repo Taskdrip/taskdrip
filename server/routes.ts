@@ -471,6 +471,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending"
       });
 
+      // Notify brand that a creator applied
+      const campaign = await storage.getCampaignById(campaignId);
+      const creator = await storage.getUser(userId);
+      if (campaign && creator) {
+        const creatorName = `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.email;
+        await storage.createNotification({
+          userId: campaign.brandId,
+          type: 'new_application',
+          title: '📩 New Campaign Application',
+          content: `${creatorName} applied to "${campaign.title}". Review their profile and approve or reject.`,
+          actionUrl: '/brand-dashboard',
+          isRead: false,
+        } as any);
+      }
+
       res.json(participation);
     } catch (error) {
       console.error("Error joining campaign:", error);
@@ -1245,6 +1260,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
+      // Get current participation to check previous status before updating
+      const existing = await (storage as any).getParticipationById?.(req.params.id) || null;
+      const wasAlreadyApproved = existing?.status === 'completed' || existing?.status === 'approved';
+
       const participation = await storage.updateParticipation(req.params.id, { 
         status: 'completed',
         reviewedAt: new Date() 
@@ -1270,6 +1289,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Increment campaign filledSlots if not already approved
+      if (campaign && !wasAlreadyApproved) {
+        const newFilled = Math.min((campaign.filledSlots || 0) + 1, campaign.totalSlots || 999);
+        await storage.updateCampaign(campaign.id, { filledSlots: newFilled } as any);
+      }
+
       // Create notification for creator
       await storage.createNotification({
         userId: participation.userId,
@@ -1277,8 +1302,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: 'Work Approved — Payment Released! 🎉',
         content: `Your work has been approved${rewardAmount > 0 ? ` and $${rewardAmount.toFixed(2)} has been added to your wallet balance` : ''}. Great job!`,
         actionUrl: `/campaigns/${participation.campaignId}`,
-        relatedId: participation.id,
-      });
+        isRead: false,
+      } as any);
 
       res.json({ ...participation, rewardAmount });
     } catch (error) {
@@ -1293,21 +1318,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
       const { reason } = req.body;
+
+      // Get current participation to check if it was previously approved (slot must be freed)
+      const existing = await (storage as any).getParticipationById?.(req.params.id) || null;
+      const wasApproved = existing?.status === 'completed' || existing?.status === 'approved';
+
       const participation = await storage.updateParticipation(req.params.id, { 
         status: 'rejected',
         adminNotes: reason,
         reviewedAt: new Date() 
       });
 
+      // Free up the slot if the creator had been approved
+      if (wasApproved) {
+        const campaign = await storage.getCampaignById(participation.campaignId);
+        if (campaign) {
+          const newFilled = Math.max((campaign.filledSlots || 0) - 1, 0);
+          await storage.updateCampaign(campaign.id, { filledSlots: newFilled } as any);
+        }
+      }
+
       // Create notification for creator
       await storage.createNotification({
         userId: participation.userId,
         type: 'application_rejected',
         title: 'Campaign Application Update',
-        content: `Your campaign application was not approved. ${reason ? `Reason: ${reason}` : ''}`,
+        content: `Your campaign application was not approved.${reason ? ` Reason: ${reason}` : ''} The slot is now open for others.`,
         actionUrl: `/campaigns/${participation.campaignId}`,
-        relatedId: participation.id,
-      });
+        isRead: false,
+      } as any);
 
       res.json(participation);
     } catch (error) {
@@ -1791,11 +1830,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { nanoid } = await import('nanoid');
       // Notify brand
       await storage.createNotification({
-        id: `notif_${nanoid()}`,
         userId: escrow.brandId,
         type: 'payment_received',
         title: '🎉 Campaign Activated!',
-        message: 'Your payment has been verified. Your campaign is now live and influencers can join.',
+        content: 'Your payment has been verified. Your campaign is now live and influencers can join.',
         actionUrl: '/brand-dashboard',
         isRead: false,
       } as any);
@@ -1805,11 +1843,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const creator of allCreators) {
         try {
           await storage.createNotification({
-            id: `notif_${nanoid()}`,
             userId: creator.id,
             type: 'new_campaign',
             title: '🚀 New Campaign Available!',
-            message: `A new campaign "${campaignTitle}" is now live. Join and earn crypto rewards!`,
+            content: `A new campaign "${campaignTitle}" is now live. Join and earn crypto rewards!`,
             actionUrl: '/campaigns',
             isRead: false,
           } as any);
@@ -1831,13 +1868,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const escrow = await (storage as any).getEscrowPaymentById(req.params.id);
       if (!escrow) return res.status(404).json({ message: 'Escrow payment not found' });
       await storage.updateEscrowPayment(escrow.id, { status: 'rejected' });
-      const { nanoid } = await import('nanoid');
       await storage.createNotification({
-        id: `notif_${nanoid()}`,
         userId: escrow.brandId,
         type: 'task_rejected',
         title: '❌ Payment Rejected',
-        message: reason || 'Your payment proof was rejected. Please resubmit with a valid transaction hash.',
+        content: reason || 'Your payment proof was rejected. Please resubmit with a valid transaction hash.',
         actionUrl: `/escrow-payment?campaignId=${escrow.campaignId}`,
         isRead: false,
       } as any);
@@ -2424,7 +2459,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.user.id);
       if (user?.userType === 'admin') {
         const requests = await storage.getAllPayoutRequests();
-        return res.json(requests);
+        // Enrich each request with requester user info for admin review
+        const enriched = await Promise.all(requests.map(async (r: any) => {
+          const requester = await storage.getUser(r.userId);
+          const userTransactions = requester ? await storage.getUserTransactions(r.userId) : [];
+          const completedCampaigns = userTransactions.filter((t: any) => t.type === 'campaign_reward' && t.status === 'approved').length;
+          const totalEarned = userTransactions
+            .filter((t: any) => t.type === 'campaign_reward' && t.status === 'approved')
+            .reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
+          return {
+            ...r,
+            requester: requester ? {
+              id: requester.id,
+              firstName: requester.firstName,
+              lastName: requester.lastName,
+              email: requester.email,
+              availableBalance: requester.availableBalance,
+              profileImageUrl: (requester as any).profileImageUrl,
+              creatorTier: (requester as any).creatorTier,
+              completedCampaigns,
+              totalEarned,
+            } : null,
+          };
+        }));
+        return res.json(enriched);
       }
       const requests = await storage.getUserPayoutRequests(req.user.id);
       res.json(requests);
@@ -2480,15 +2538,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (adminUser?.userType !== 'admin') return res.status(403).json({ message: "Admin only" });
 
       const { status, adminNotes, transactionHash } = req.body;
+
+      // Fetch current request to get amount for refund
+      const allRequests = await storage.getAllPayoutRequests();
+      const currentRequest = allRequests.find((r: any) => r.id === req.params.id);
+
       const request = await storage.updatePayoutRequest(req.params.id, { status, adminNotes, transactionHash } as any);
+
+      // If rejected, refund the amount back to user balance
+      if (status === 'rejected' && currentRequest && currentRequest.status === 'pending') {
+        const refundAmount = parseFloat(currentRequest.amount || '0');
+        if (refundAmount > 0) {
+          await storage.updateUserBalance(request.userId, refundAmount, 'add');
+        }
+      }
 
       await storage.createNotification({
         userId: request.userId,
         type: 'payout_update',
-        title: `Payout ${status === 'completed' ? 'Completed! 🎉' : status === 'rejected' ? 'Rejected' : 'Processing'}`,
-        content: adminNotes || `Your payout request has been updated to: ${status}`,
-        priority: status === 'completed' ? 'high' : 'normal',
-      });
+        title: `Payout ${status === 'completed' ? 'Completed! 🎉' : status === 'rejected' ? 'Rejected — Funds Refunded' : 'Processing...'}`,
+        content: adminNotes || (status === 'completed' ? 'Your payout has been sent successfully!' : status === 'rejected' ? 'Your payout was rejected and the funds have been returned to your wallet balance.' : `Your payout request status: ${status}`),
+        isRead: false,
+      } as any);
 
       res.json(request);
     } catch (error) {
