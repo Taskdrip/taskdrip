@@ -191,6 +191,8 @@ export interface IStorage {
   getUserByReferralCode(code: string): Promise<User | undefined>;
   getTopCreatorsByReferrals(limit?: number): Promise<any[]>;
   getTopCreatorsByActivity(limit?: number): Promise<any[]>;
+  getAdminUser(): Promise<User | undefined>;
+  getReferralStats(): Promise<any>;
 
   // Followers
   getUserFollowers(userId: string): Promise<User[]>;
@@ -1311,6 +1313,43 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(users.totalEarned))
       .limit(limit);
     return creators.map(u => ({ ...u, password: undefined }));
+  }
+
+  async getAdminUser(): Promise<User | undefined> {
+    const [admin] = await db.select().from(users)
+      .where(eq(users.userType, 'admin'))
+      .limit(1);
+    return admin;
+  }
+
+  async getReferralStats(): Promise<any> {
+    const totalReferrals = await db.select({ count: sql<number>`COUNT(*)` }).from(referrals);
+    const byType = await db.select({
+      referralType: referrals.referralType,
+      count: sql<number>`COUNT(*)`,
+    }).from(referrals).groupBy(referrals.referralType);
+
+    const topReferrers = await db.select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl,
+      userType: users.userType,
+      totalReferrals: users.totalReferrals,
+    }).from(users)
+      .orderBy(desc(users.totalReferrals))
+      .limit(10);
+
+    const recentReferrals = await db.select().from(referrals)
+      .orderBy(desc(referrals.createdAt))
+      .limit(20);
+
+    return {
+      total: Number(totalReferrals[0]?.count || 0),
+      byType,
+      topReferrers,
+      recentReferrals,
+    };
   }
 }
 

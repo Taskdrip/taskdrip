@@ -98,6 +98,13 @@ export function setupAuth(app: Express) {
       // Hash the password
       const hashedPassword = await hashPassword(userData.password);
 
+      // Generate unique referral codes
+      const genCode = (prefix: string) =>
+        `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+
+      const referralCodeCreator = genCode('CR');
+      const referralCodeBrand = genCode('BR');
+
       // Create user with hashed password and proper defaults
       const user = await storage.createUser({
         id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -116,7 +123,32 @@ export function setupAuth(app: Express) {
         companyName: userData.companyName || null,
         website: userData.website || null,
         industry: userData.industry || null,
-      });
+        referralCodeCreator,
+        referralCodeBrand,
+      } as any);
+
+      // Handle referral tracking — if they came via a referral link
+      const refCode = userData.referralCode;
+      const refType = userData.referralType || userData.userType || 'creator';
+      if (refCode) {
+        try {
+          const referrer = await storage.getUserByReferralCode(refCode);
+          if (referrer && referrer.id !== user.id) {
+            await storage.createReferral({
+              referrerId: referrer.id,
+              referredId: user.id,
+              referralType: refType,
+              referralCode: refCode,
+            });
+            // Increment referrer's count
+            await storage.updateUserProfile(referrer.id, {
+              totalReferrals: (referrer.totalReferrals || 0) + 1,
+            });
+          }
+        } catch (refErr) {
+          console.error('Referral tracking error:', refErr);
+        }
+      }
 
       // Log them in automatically
       req.login(user, (err) => {

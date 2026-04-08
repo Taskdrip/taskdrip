@@ -2480,6 +2480,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Admin user lookup (for chat routing) ──────────────────────────
+  app.get('/api/admin-user', async (req, res) => {
+    try {
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(404).json({ message: "No admin found" });
+      const { password, ...safe } = admin;
+      res.json(safe);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch admin" });
+    }
+  });
+
+  // ── Referral click tracking ────────────────────────────────────────
+  app.post('/api/referrals/click/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      const referrer = await storage.getUserByReferralCode(code);
+      if (!referrer) return res.status(404).json({ message: "Invalid referral code" });
+      res.json({ valid: true, referrerName: `${referrer.firstName} ${referrer.lastName}` });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to track click" });
+    }
+  });
+
+  // ── Admin referral analytics ───────────────────────────────────────
+  app.get('/api/admin/referral-stats', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: "Forbidden" });
+      const stats = await storage.getReferralStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch referral stats" });
+    }
+  });
+
+  // ── Send message to admin (from escrow payment page) ───────────────
+  app.post('/api/messages/to-admin', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(404).json({ message: "No admin available" });
+      const { subject, content } = req.body;
+      const message = await storage.createMessage({
+        senderId: req.user.id,
+        receiverId: admin.id,
+        subject: subject || 'Payment Verification Request',
+        content,
+        messageType: 'general',
+        attachments: [],
+      });
+      await storage.createNotification({
+        userId: admin.id,
+        type: 'message',
+        title: `New message: ${subject || 'Payment Verification Request'}`,
+        content: `From ${req.user.firstName} ${req.user.lastName}: ${content.substring(0, 80)}...`,
+        actionUrl: '/chat',
+        relatedId: message.id,
+      });
+      res.status(201).json(message);
+    } catch (error) {
+      console.error('Error sending admin message:', error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // ── Ensure existing users have referral codes ──────────────────────
+  app.post('/api/referrals/ensure-codes', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const updates: any = {};
+      if (!user.referralCodeCreator) {
+        updates.referralCodeCreator = `CR_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+      }
+      if (!user.referralCodeBrand) {
+        updates.referralCodeBrand = `BR_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+      }
+      if (Object.keys(updates).length > 0) {
+        await storage.updateUserProfile(user.id, updates);
+      }
+      const updated = await storage.getUser(req.user.id);
+      res.json({
+        referralCodeCreator: updated?.referralCodeCreator,
+        referralCodeBrand: updated?.referralCodeBrand,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to ensure referral codes" });
+    }
+  });
+
   // ── Creator's Active Campaigns ────────────────────────────────────
   app.get('/api/my-campaigns', isAuthenticated, async (req: any, res) => {
     try {

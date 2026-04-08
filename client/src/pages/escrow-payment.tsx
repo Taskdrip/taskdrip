@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Copy, Clock, Wallet, CheckCircle, AlertTriangle, Upload, MessageCircle, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Copy, Clock, Wallet, CheckCircle, AlertTriangle, Upload, MessageCircle, Phone, Mail, Send } from "lucide-react";
 import { format } from "date-fns";
 
 interface EscrowPayment {
@@ -53,6 +54,22 @@ export default function EscrowPayment() {
   });
   const [countdown, setCountdown] = useState<number>(0);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [adminMsgOpen, setAdminMsgOpen] = useState(false);
+  const [adminMsgText, setAdminMsgText] = useState("");
+
+  const sendAdminMsgMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", "/api/messages/to-admin", {
+        subject: "Payment Verification Request",
+        content: adminMsgText || `I've submitted payment proof for campaign ID: ${campaignId}. Please verify my payment. Thank you.`,
+      }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Message sent!", description: "Admin has been notified and will respond shortly." });
+      setAdminMsgOpen(false);
+      setAdminMsgText("");
+    },
+    onError: () => toast({ title: "Failed to send", description: "Please try WhatsApp instead.", variant: "destructive" }),
+  });
 
   // Fetch escrow payment details
   const { data: escrowPayment, isLoading, refetch } = useQuery<EscrowPayment>({
@@ -386,19 +403,65 @@ export default function EscrowPayment() {
                       <div>+234 803 662 2568</div>
                     </div>
                   </a>
-                  <a
-                    href="/messages"
-                    className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 transition-colors font-medium"
+                  <button
+                    onClick={() => setAdminMsgOpen(true)}
+                    className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 transition-colors font-medium text-left"
+                    data-testid="button-message-admin"
                   >
                     <MessageCircle className="h-5 w-5 flex-shrink-0" />
                     <div>
                       <div className="text-xs opacity-80">In-App Chat</div>
                       <div>Message Admin</div>
                     </div>
-                  </a>
+                  </button>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Admin Message Dialog */}
+            <Dialog open={adminMsgOpen} onOpenChange={setAdminMsgOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-blue-600" />
+                    Message Admin
+                  </DialogTitle>
+                  <DialogDescription>
+                    Send a message directly to our admin team. They'll be notified immediately and reply via in-app chat.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Your Message</Label>
+                    <Textarea
+                      rows={5}
+                      placeholder={`Hi, I've submitted payment proof for campaign ${campaignId}. Please verify my payment. Transaction details: ...`}
+                      value={adminMsgText}
+                      onChange={e => setAdminMsgText(e.target.value)}
+                      className="mt-1.5"
+                      data-testid="input-admin-message"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" className="flex-1" onClick={() => setAdminMsgOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={() => sendAdminMsgMutation.mutate()}
+                      disabled={sendAdminMsgMutation.isPending || !adminMsgText.trim()}
+                      data-testid="button-send-admin-message"
+                    >
+                      {sendAdminMsgMutation.isPending ? (
+                        "Sending..."
+                      ) : (
+                        <><Send className="h-4 w-4 mr-2" /> Send to Admin</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <div className="flex gap-3">
               <Button 

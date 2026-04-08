@@ -56,12 +56,18 @@ export default function SimpleSignup() {
     resolver: zodResolver(brandSignupSchema),
   });
 
+  // Capture referral code from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  const refType = urlParams.get('type');
+
   const signupMutation = useMutation({
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
         userType: activeTab,
         skills: activeTab === 'creator' ? [data.skills] : [],
+        ...(refCode ? { referralCode: refCode, referralType: refType || activeTab } : {}),
       };
       const response = await apiRequest('POST', '/api/auth/register', payload);
       return await response.json();

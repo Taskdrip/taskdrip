@@ -1,15 +1,20 @@
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Sparkles, Share2, Copy, Users } from "lucide-react";
 import { Link } from "wouter";
 
 export default function SimpleDashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
 
   const { data: participations = [] } = useQuery({
     queryKey: ['/api/users', (user as any)?.id, 'participations'],
@@ -20,6 +25,36 @@ export default function SimpleDashboard() {
     queryKey: ['/api/users', (user as any)?.id, 'transactions'], 
     enabled: !!(user as any)?.id,
   });
+
+  const { data: referralData } = useQuery<any>({
+    queryKey: ['/api/referrals/my'],
+    enabled: !!(user as any)?.id,
+  });
+
+  const ensureCodesMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/referrals/ensure-codes").then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/referrals/my'] }),
+  });
+
+  useEffect(() => {
+    if (user && referralData && (!referralData.referralCodeCreator || !referralData.referralCodeBrand)) {
+      ensureCodesMutation.mutate();
+    }
+  }, [user, referralData]);
+
+  const baseUrl = window.location.origin;
+  const creatorLink = referralData?.referralCodeCreator
+    ? `${baseUrl}/signup?ref=${referralData.referralCodeCreator}&type=creator`
+    : null;
+  const brandLink = referralData?.referralCodeBrand
+    ? `${baseUrl}/signup?ref=${referralData.referralCodeBrand}&type=brand`
+    : null;
+
+  const copyLink = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({ title: `${label} copied!`, description: "Share it to earn referral rewards." });
+    });
+  };
 
   const stats = {
     availableBalance: parseFloat((user as any)?.availableBalance || '0'),
@@ -179,6 +214,90 @@ export default function SimpleDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Referral Links Card */}
+        <Card className="mt-8 border-0 bg-gradient-to-br from-black to-gray-800 text-white overflow-hidden">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-5">
+              <Share2 className="h-6 w-6 text-yellow-400" />
+              <div>
+                <h3 className="font-bold text-lg">Your Referral Links</h3>
+                <p className="text-gray-400 text-sm">Invite friends and earn rewards</p>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <Users className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-300">{referralData?.totalReferrals ?? 0} referred</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Creator link */}
+              <div className="bg-white/10 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-purple-300">🎭 Invite Creators</span>
+                  <Badge className="bg-purple-500/30 text-purple-200 text-xs border-0">Creator Link</Badge>
+                </div>
+                {creatorLink ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white/10 rounded px-2.5 py-1.5 text-xs text-gray-300 font-mono truncate">
+                      {creatorLink}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-white hover:bg-white/20 h-8 px-2"
+                      onClick={() => copyLink(creatorLink, "Creator referral link")}
+                      data-testid="button-dash-copy-creator"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Generating your links...</p>
+                )}
+              </div>
+
+              {/* Brand link */}
+              <div className="bg-white/10 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-blue-300">🏢 Invite Brands</span>
+                  <Badge className="bg-blue-500/30 text-blue-200 text-xs border-0">Brand Link</Badge>
+                </div>
+                {brandLink ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white/10 rounded px-2.5 py-1.5 text-xs text-gray-300 font-mono truncate">
+                      {brandLink}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-white hover:bg-white/20 h-8 px-2"
+                      onClick={() => copyLink(brandLink, "Brand referral link")}
+                      data-testid="button-dash-copy-brand"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Generating your links...</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <Link href="/referrals" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full border-white/30 text-white hover:bg-white/10 hover:text-white">
+                  View Full Referral Dashboard
+                </Button>
+              </Link>
+              <Link href="/leaderboard">
+                <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
+                  <Trophy className="h-3.5 w-3.5 mr-1.5" /> Leaderboard
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       <Footer />
