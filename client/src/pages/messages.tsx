@@ -1,412 +1,290 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-// Remove auth import for now, will get user data via API
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, Upload, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { MessageCircle, Send, ShieldCheck, Plus, Users, Clock, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 
-interface Message {
+interface Conversation {
   id: string;
-  campaignId: string;
+  campaignId: string | null;
+  campaign: { id: string; title: string } | null;
+  participants: { id: string; firstName: string; lastName: string; userType: string; companyName?: string; profileImageUrl?: string }[];
+  lastMessage: { id: string; content: string; senderId: string; createdAt: string; isRead: boolean };
+  unreadCount: number;
+}
+
+interface ThreadMessage {
+  id: string;
+  campaignId: string | null;
   senderId: string;
   receiverId: string;
-  subject: string;
+  subject: string | null;
   content: string;
-  messageType: string;
+  messageType: string | null;
   isRead: boolean;
-  attachments?: any[];
   createdAt: string;
+  sender: { id: string; firstName: string; lastName: string; userType: string; companyName?: string } | null;
 }
 
-interface TaskSubmission {
-  id: string;
-  campaignId: string;
-  participationId: string;
-  title: string;
-  description: string;
-  status: string;
-  proofUrls?: string[];
-  screenshots?: any[];
-  reviewNotes?: string;
-  submittedAt: string;
-}
-
-interface Campaign {
-  id: string;
-  title: string;
-  brandName: string;
-  reward: string;
-}
-
-const messageSchema = z.object({
-  campaignId: z.string().min(1, "Please select a campaign"),
+const newConvSchema = z.object({
   receiverId: z.string().min(1, "Please select a recipient"),
+  campaignId: z.string().optional(),
   subject: z.string().min(1, "Subject is required"),
-  content: z.string().min(1, "Message content is required"),
-  messageType: z.string().optional(),
+  content: z.string().min(1, "Message is required"),
 });
 
-const taskSubmissionSchema = z.object({
-  campaignId: z.string(),
-  participationId: z.string(),
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  proofUrls: z.string().optional(),
+const adminMsgSchema = z.object({
+  subject: z.string().min(1, "Subject is required"),
+  content: z.string().min(1, "Message is required"),
 });
 
 export default function MessagesPage() {
   const { toast } = useToast();
-  const [selectedTab, setSelectedTab] = useState<"messages" | "submissions">("messages");
-  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
-  const [isSubmitTaskOpen, setIsSubmitTaskOpen] = useState(false);
+  const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [isNewMsgOpen, setIsNewMsgOpen] = useState(false);
+  const [isAdminMsgOpen, setIsAdminMsgOpen] = useState(false);
+  const threadEndRef = useRef<HTMLDivElement>(null);
 
-  // Get current user data
-  const { data: user } = useQuery({
-    queryKey: ["/api/user"],
-    retry: false,
-  });
-
+  const { data: user } = useQuery<any>({ queryKey: ["/api/user"], retry: false });
+  const isAdmin = (user as any)?.userType === 'admin';
   const isBrand = (user as any)?.userType === 'brand';
 
-
-
-  // Fetch user messages
-  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ["/api/messages"],
+  const { data: conversations = [], isLoading: convsLoading } = useQuery<Conversation[]>({
+    queryKey: ["/api/conversations"],
     retry: false,
+    enabled: !!user,
+    refetchInterval: 15000,
   });
 
-  // Fetch user task submissions
-  const { data: submissions = [], isLoading: submissionsLoading } = useQuery<TaskSubmission[]>({
-    queryKey: ["/api/task-submissions"],
-    retry: false,
+  const selectedConv = conversations.find(c => c.id === selectedConvId) || null;
+
+  const { data: thread = [], isLoading: threadLoading } = useQuery<ThreadMessage[]>({
+    queryKey: ["/api/conversations", selectedConv?.campaignId, "thread"],
+    queryFn: () => apiRequest("GET", `/api/conversations/${selectedConv!.campaignId}/thread`).then(r => r.json()),
+    enabled: !!selectedConv?.campaignId,
+    refetchInterval: 8000,
   });
 
-  // Fetch campaigns based on user role
-  const { data: campaigns = [] } = useQuery<Campaign[]>({
+  const { data: campaigns = [] } = useQuery<any[]>({
     queryKey: isBrand ? ["/api/campaigns/brand", (user as any)?.id] : ["/api/user/campaigns"],
     retry: false,
     enabled: !!user,
   });
 
-  // Fetch message recipients based on user role
-  const { data: recipients = [] } = useQuery({
+  const { data: allUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/message-recipients"],
     retry: false,
     enabled: !!user,
   });
 
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof messageSchema> & { files?: FileList }) => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'files' && value !== undefined) {
-          formData.append(key, String(value));
-        }
-      });
-      
-      if (data.files) {
-        Array.from(data.files).forEach(file => {
-          formData.append('attachments', file);
-        });
-      }
-
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
-      toast({
-        title: "Message sent!",
-        description: "Your message has been sent successfully.",
-      });
-      setIsComposeOpen(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send message",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Submit task mutation
-  const submitTaskMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof taskSubmissionSchema> & { files?: FileList }) => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'files' && value !== undefined) {
-          formData.append(key, String(value));
-        }
-      });
-      
-      if (data.files) {
-        Array.from(data.files).forEach(file => {
-          formData.append('files', file);
-        });
-      }
-
-      const res = await fetch('/api/task-submissions', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/task-submissions"] });
-      toast({
-        title: "Task submitted!",
-        description: "Your task submission has been sent for review.",
-      });
-      setIsSubmitTaskOpen(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to submit task",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const messageForm = useForm<z.infer<typeof messageSchema>>({
-    resolver: zodResolver(messageSchema),
-    defaultValues: {
-      campaignId: "",
-      receiverId: "",
-      subject: "",
-      content: "",
-      messageType: "general",
-    },
-  });
-
-  // Check URL parameters for pre-populated messaging
+  // Auto-select conversation from URL param
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    const campaignId = urlParams.get('campaignId');
-    
-    if (userId || campaignId) {
-      setIsComposeOpen(true);
-      if (campaignId) {
-        messageForm.setValue('campaignId', campaignId);
-      }
-      if (userId) {
-        messageForm.setValue('receiverId', userId);
+    const params = new URLSearchParams(window.location.search);
+    const campaignId = params.get('campaign');
+    if (campaignId && conversations.length > 0) {
+      const match = conversations.find(c => c.campaignId === campaignId);
+      if (match) {
+        setSelectedConvId(match.id);
+      } else {
+        // No existing conversation found — open new message dialog with that campaign pre-selected
+        setIsNewMsgOpen(true);
+        newConvForm.setValue('campaignId', campaignId);
       }
     }
-  }, []);
+  }, [conversations.length]);
 
-  const taskForm = useForm<z.infer<typeof taskSubmissionSchema>>({
-    resolver: zodResolver(taskSubmissionSchema),
-    defaultValues: {
-      campaignId: "",
-      participationId: "",
-      title: "",
-      description: "",
-      proofUrls: "",
+  // Scroll to latest message
+  useEffect(() => {
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thread.length]);
+
+  // Reply in campaign thread
+  const replyMutation = useMutation({
+    mutationFn: async ({ campaignId, content }: { campaignId: string; content: string }) => {
+      const res = await apiRequest("POST", `/api/conversations/${campaignId}/reply`, { content });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConv?.campaignId, "thread"] });
+      setReplyText("");
+    },
+    onError: (e: Error) => toast({ title: "Failed to send", description: e.message, variant: "destructive" }),
   });
 
-  const onSendMessage = (data: z.infer<typeof messageSchema>) => {
-    const files = (document.getElementById('message-files') as HTMLInputElement)?.files;
-    sendMessageMutation.mutate({ ...data, files: files || undefined });
+  const handleReply = () => {
+    if (!replyText.trim() || !selectedConv?.campaignId) return;
+    replyMutation.mutate({ campaignId: selectedConv.campaignId, content: replyText.trim() });
   };
 
-  const onSubmitTask = (data: z.infer<typeof taskSubmissionSchema>) => {
-    const files = (document.getElementById('task-files') as HTMLInputElement)?.files;
-    const proofUrls = data.proofUrls ? data.proofUrls.split('\n').filter(url => url.trim()) : [];
-    submitTaskMutation.mutate({ 
-      ...data, 
-      proofUrls: JSON.stringify(proofUrls),
-      files: files || undefined 
-    });
+  // New conversation (direct message)
+  const newConvForm = useForm<z.infer<typeof newConvSchema>>({
+    resolver: zodResolver(newConvSchema),
+    defaultValues: { receiverId: "", campaignId: "", subject: "", content: "" },
+  });
+
+  const sendNewMsgMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof newConvSchema>) => {
+      const res = await apiRequest("POST", "/api/messages", data);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ title: "Message sent!", description: "Your message has been delivered." });
+      setIsNewMsgOpen(false);
+      newConvForm.reset();
+    },
+    onError: (e: Error) => toast({ title: "Failed to send", description: e.message, variant: "destructive" }),
+  });
+
+  // Message admin
+  const adminForm = useForm<z.infer<typeof adminMsgSchema>>({
+    resolver: zodResolver(adminMsgSchema),
+    defaultValues: { subject: "", content: "" },
+  });
+
+  const adminMsgMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof adminMsgSchema>) => {
+      const res = await apiRequest("POST", "/api/messages/to-admin", data);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ title: "Message sent to admin!", description: "The support team will respond shortly." });
+      setIsAdminMsgOpen(false);
+      adminForm.reset();
+    },
+    onError: (e: Error) => toast({ title: "Failed to send", description: e.message, variant: "destructive" }),
+  });
+
+  const getDisplayName = (participant: any, currentUserId?: string) => {
+    if (!participant) return "Unknown";
+    if (participant.id === currentUserId) return "You";
+    if (participant.userType === 'admin') return "Admin Support";
+    if (participant.userType === 'brand') return participant.companyName || `${participant.firstName} ${participant.lastName}`;
+    return `${participant.firstName} ${participant.lastName}`;
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'under_review':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-blue-500" />;
+  const getSenderName = (msg: ThreadMessage) => {
+    if (!msg.sender) return "Unknown";
+    if (msg.sender.id === user?.id) return "You";
+    if (msg.sender.userType === 'admin') return "Admin Support";
+    if (msg.sender.userType === 'brand') return msg.sender.companyName || `${msg.sender.firstName} ${msg.sender.lastName}`;
+    return `${msg.sender.firstName} ${msg.sender.lastName}`;
+  };
+
+  const getConvTitle = (conv: Conversation) => {
+    if (conv.campaign) return conv.campaign.title;
+    const others = conv.participants.filter(p => p.id !== user?.id);
+    if (others.length === 0) return "Conversation";
+    return others.map(p => getDisplayName(p)).join(", ");
+  };
+
+  const getConvSubtitle = (conv: Conversation) => {
+    const others = conv.participants.filter(p => p.id !== user?.id);
+    if (conv.campaign) {
+      const otherNames = others.map(p => getDisplayName(p)).join(", ");
+      return otherNames || "Campaign conversation";
     }
+    return conv.lastMessage.content.substring(0, 50);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'under_review':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
+  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
+      {/* Left sidebar: conversation list */}
+      <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {isBrand ? "Messages & Communications" : "Messages & Tasks"}
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {isBrand 
-                  ? "Communicate with creators about your campaigns and review their progress" 
-                  : "Communicate with brands and submit your completed work"
-                }
-              </p>
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-blue-600" />
+              <h1 className="text-lg font-bold text-gray-900">Messages</h1>
+              {totalUnread > 0 && (
+                <Badge className="bg-blue-600 text-white text-xs">{totalUnread}</Badge>
+              )}
             </div>
-            <div className="flex gap-4 sm:flex-shrink-0">
-            <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
+          </div>
+          <div className="flex gap-2">
+            {/* New message button */}
+            <Dialog open={isNewMsgOpen} onOpenChange={setIsNewMsgOpen}>
               <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  {isBrand ? "Message Creator" : "Compose Message"}
+                <Button size="sm" variant="outline" className="flex-1 gap-1" data-testid="button-new-message">
+                  <Plus className="h-3.5 w-3.5" />
+                  New
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>
-                    {isBrand ? "Send Message to Creator" : "Send Message to Brand"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {isBrand 
-                      ? "Send a message to creators about your campaigns"
-                      : "Send a message about one of your active campaigns"
-                    }
-                  </DialogDescription>
+                  <DialogTitle>New Message</DialogTitle>
+                  <DialogDescription>Start a conversation about a campaign</DialogDescription>
                 </DialogHeader>
-                <Form {...messageForm}>
-                  <form onSubmit={messageForm.handleSubmit(onSendMessage)} className="space-y-4">
-                    <FormField
-                      control={messageForm.control}
-                      name="campaignId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Campaign</FormLabel>
-                          <FormControl>
-                            <select 
-                              {...field} 
-                              className="w-full p-2 border rounded-md"
-                              onChange={(e) => {
-                                field.onChange(e);
-                                // Reset receiver when campaign changes
-                                messageForm.setValue('receiverId', '');
-                              }}
-                            >
-                              <option value="">Select campaign...</option>
-                              {campaigns.map((campaign: Campaign) => (
-                                <option key={campaign.id} value={campaign.id}>
-                                  {campaign.title}
-                                </option>
-                              ))}
-                            </select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={messageForm.control}
-                      name="receiverId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Recipient</FormLabel>
-                          <FormControl>
-                            <select {...field} className="w-full p-2 border rounded-md">
-                              <option value="">
-                                {isBrand ? "Select creator..." : "Select brand..."}
+                <Form {...newConvForm}>
+                  <form onSubmit={newConvForm.handleSubmit(d => sendNewMsgMutation.mutate(d))} className="space-y-4">
+                    <FormField control={newConvForm.control} name="campaignId" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Campaign (optional)</FormLabel>
+                        <FormControl>
+                          <select {...field} className="w-full p-2 border rounded-md text-sm">
+                            <option value="">No specific campaign</option>
+                            {campaigns.map((c: any) => (
+                              <option key={c.id} value={c.id}>{c.title}</option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={newConvForm.control} name="receiverId" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recipient</FormLabel>
+                        <FormControl>
+                          <select {...field} className="w-full p-2 border rounded-md text-sm">
+                            <option value="">Select recipient...</option>
+                            {(allUsers as any[]).map((u: any) => (
+                              <option key={u.id} value={u.id}>
+                                {u.userType === 'brand' ? (u.companyName || `${u.firstName} ${u.lastName}`) : `${u.firstName} ${u.lastName}`}
+                                {u.userType === 'admin' ? ' (Admin)' : ''}
                               </option>
-                              {(recipients as any[]).map((recipient: any) => (
-                                <option key={recipient.id} value={recipient.id}>
-                                  {recipient.userType === 'brand' 
-                                    ? (recipient.companyName || `${recipient.firstName} ${recipient.lastName}`)
-                                    : `${recipient.firstName} ${recipient.lastName}`}
-                                </option>
-                              ))}
-                            </select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={messageForm.control}
-                      name="subject"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subject</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Message subject..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={messageForm.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Message</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Type your message..." 
-                              className="min-h-[120px]"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Attachments</label>
-                      <input
-                        id="message-files"
-                        type="file"
-                        multiple
-                        className="w-full p-2 border rounded-md"
-                      />
-                    </div>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={newConvForm.control} name="subject" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <FormControl><Input placeholder="What's this about?" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={newConvForm.control} name="content" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message</FormLabel>
+                        <FormControl><Textarea placeholder="Type your message..." className="min-h-[100px]" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
                     <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setIsComposeOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={sendMessageMutation.isPending}>
-                        {sendMessageMutation.isPending ? "Sending..." : "Send Message"}
+                      <Button type="button" variant="outline" onClick={() => setIsNewMsgOpen(false)}>Cancel</Button>
+                      <Button type="submit" disabled={sendNewMsgMutation.isPending}>
+                        {sendNewMsgMutation.isPending ? "Sending..." : "Send Message"}
                       </Button>
                     </div>
                   </form>
@@ -414,281 +292,264 @@ export default function MessagesPage() {
               </DialogContent>
             </Dialog>
 
-            {!isBrand && (
-              <Dialog open={isSubmitTaskOpen} onOpenChange={setIsSubmitTaskOpen}>
+            {/* Message Admin button — visible to all non-admin users */}
+            {!isAdmin && (
+              <Dialog open={isAdminMsgOpen} onOpenChange={setIsAdminMsgOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Submit Task
+                  <Button size="sm" className="flex-1 gap-1 bg-purple-600 hover:bg-purple-700" data-testid="button-message-admin">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Admin
                   </Button>
                 </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Submit Completed Task</DialogTitle>
-                  <DialogDescription>
-                    Submit proof of your completed campaign work for review
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...taskForm}>
-                  <form onSubmit={taskForm.handleSubmit(onSubmitTask)} className="space-y-4">
-                    <FormField
-                      control={taskForm.control}
-                      name="campaignId"
-                      render={({ field }) => (
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-purple-600" />
+                      Contact Admin Support
+                    </DialogTitle>
+                    <DialogDescription>
+                      Need help with a dispute, payment issue, or have a question? Message the admin team directly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...adminForm}>
+                    <form onSubmit={adminForm.handleSubmit(d => adminMsgMutation.mutate(d))} className="space-y-4">
+                      <FormField control={adminForm.control} name="subject" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Campaign</FormLabel>
+                          <FormLabel>Subject</FormLabel>
+                          <FormControl><Input placeholder="e.g. Payment issue, Dispute, Account question..." {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={adminForm.control} name="content" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Message</FormLabel>
                           <FormControl>
-                            <select 
-                              {...field} 
-                              className="w-full p-2 border rounded-md"
-                              onChange={(e) => {
-                                field.onChange(e);
-                                const campaign = campaigns.find((c: any) => c.id === e.target.value);
-                                if (campaign) {
-                                  taskForm.setValue('participationId', campaign.id);
-                                }
-                              }}
-                            >
-                              <option value="">Select campaign...</option>
-                              {(campaigns as any[]).map((campaign: Campaign) => (
-                                <option key={campaign.id} value={campaign.id}>
-                                  {campaign.title}
-                                </option>
-                              ))}
-                            </select>
+                            <Textarea placeholder="Describe your issue or question in detail..." className="min-h-[120px]" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={taskForm.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Submission Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Brief title for your submission..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={taskForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe what you completed and how it meets the campaign requirements..." 
-                              className="min-h-[120px]"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={taskForm.control}
-                      name="proofUrls"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Proof URLs</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Add links to your posts, videos, or other proof (one per line)..."
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Screenshots & Files</label>
-                      <input
-                        id="task-files"
-                        type="file"
-                        multiple
-                        accept="image/*,.pdf,.doc,.docx"
-                        className="w-full p-2 border rounded-md"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">Upload screenshots, documents, or other proof files</p>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setIsSubmitTaskOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={submitTaskMutation.isPending}>
-                        {submitTaskMutation.isPending ? "Submitting..." : "Submit Task"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
+                      )} />
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setIsAdminMsgOpen(false)}>Cancel</Button>
+                        <Button type="submit" disabled={adminMsgMutation.isPending} className="bg-purple-600 hover:bg-purple-700">
+                          {adminMsgMutation.isPending ? "Sending..." : "Send to Admin"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
               </Dialog>
             )}
-            </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b mb-6">
-          <button
-            onClick={() => setSelectedTab("messages")}
-            className={`px-6 py-3 font-medium ${
-              selectedTab === "messages"
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Messages ({messages.length})
-          </button>
-          {!isBrand && (
-            <button
-              onClick={() => setSelectedTab("submissions")}
-              className={`px-6 py-3 font-medium ${
-                selectedTab === "submissions"
-                  ? "border-b-2 border-blue-500 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Task Submissions ({submissions.length})
-            </button>
+        {/* Conversations list */}
+        <div className="flex-1 overflow-y-auto">
+          {convsLoading ? (
+            <div className="p-4 space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />)}
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="p-6 text-center">
+              <MessageCircle className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 font-medium">No conversations yet</p>
+              <p className="text-xs text-gray-400 mt-1">Start by clicking "New" or "Admin"</p>
+            </div>
+          ) : (
+            conversations.map(conv => {
+              const isSelected = selectedConvId === conv.id;
+              const others = conv.participants.filter(p => p.id !== user?.id);
+              const hasAdmin = conv.participants.some(p => p.userType === 'admin');
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => setSelectedConvId(conv.id)}
+                  data-testid={`conv-${conv.id}`}
+                  className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        {hasAdmin && <ShieldCheck className="h-3 w-3 text-purple-500 flex-shrink-0" />}
+                        {others.length > 1 && <Users className="h-3 w-3 text-blue-500 flex-shrink-0" />}
+                        <span className={`text-sm font-semibold truncate ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+                          {getConvTitle(conv)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{getConvSubtitle(conv)}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Clock className="h-3 w-3 text-gray-300" />
+                        <span className="text-xs text-gray-400">
+                          {format(new Date(conv.lastMessage.createdAt), "MMM d")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {conv.unreadCount > 0 && (
+                        <Badge className="bg-blue-600 text-white text-xs h-5 min-w-5 flex items-center justify-center">
+                          {conv.unreadCount}
+                        </Badge>
+                      )}
+                      <ChevronRight className="h-3.5 w-3.5 text-gray-300" />
+                    </div>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
+      </div>
 
-        {/* Messages Tab */}
-        {selectedTab === "messages" && (
-          <div className="space-y-4">
-            {messagesLoading ? (
-              <div className="text-center py-8">Loading messages...</div>
-            ) : messages.length === 0 ? (
-              <div className="text-center py-12">
-                <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No messages yet</h3>
-                <p className="text-gray-500 mb-4">Start a conversation with brands about your campaigns</p>
-                <Button onClick={() => setIsComposeOpen(true)}>Send Your First Message</Button>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <Card key={message.id} className={`${!message.isRead ? 'border-l-4 border-l-blue-500' : ''}`}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-blue-600">
-                            From: {(message as any).sender?.userType === 'brand' 
-                              ? ((message as any).sender?.companyName || `${(message as any).sender?.firstName} ${(message as any).sender?.lastName}`)
-                              : `${(message as any).sender?.firstName} ${(message as any).sender?.lastName}`}
-                          </span>
-                        </div>
-                        <CardTitle className="text-lg">{message.subject}</CardTitle>
-                        <CardDescription>
-                          {format(new Date(message.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                        </CardDescription>
-                      </div>
-                      {!message.isRead && (
-                        <Badge variant="secondary">Unread</Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 whitespace-pre-wrap">{message.content}</p>
-                    {message.attachments && message.attachments.length > 0 && (
-                      <div className="mt-4">
-                        <h4 className="font-medium mb-2">Attachments:</h4>
-                        <div className="space-y-1">
-                          {message.attachments.map((attachment: any, idx: number) => (
-                            <div key={idx} className="text-sm text-blue-600 hover:underline">
-                              📎 {attachment.filename}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+      {/* Right panel: thread view */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {selectedConv ? (
+          <>
+            {/* Thread header */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    {selectedConv.participants.some(p => p.userType === 'admin') && (
+                      <Badge className="bg-purple-100 text-purple-700 text-xs">Admin Involved</Badge>
                     )}
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Task Submissions Tab - Only for creators */}
-        {!isBrand && selectedTab === "submissions" && (
-          <div className="space-y-4">
-            {submissionsLoading ? (
-              <div className="text-center py-8">Loading submissions...</div>
-            ) : submissions.length === 0 ? (
-              <div className="text-center py-12">
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No task submissions yet</h3>
-                <p className="text-gray-500 mb-4">Submit your completed campaign work for review and payment</p>
-                <Button onClick={() => setIsSubmitTaskOpen(true)}>Submit Your First Task</Button>
-              </div>
-            ) : (
-              submissions.map((submission) => (
-                <Card key={submission.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          {getStatusIcon(submission.status)}
-                          <CardTitle className="text-lg">{submission.title}</CardTitle>
-                        </div>
-                        <CardDescription>
-                          Submitted {format(new Date(submission.submittedAt), "MMM d, yyyy 'at' h:mm a")}
-                        </CardDescription>
-                      </div>
-                      <Badge className={getStatusColor(submission.status)}>
-                        {submission.status.replace('_', ' ').toUpperCase()}
+                    <h2 className="text-lg font-bold text-gray-900">{getConvTitle(selectedConv)}</h2>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-sm text-gray-500">
+                      {selectedConv.participants.filter(p => p.id !== user?.id).map(p => getDisplayName(p, user?.id)).join(", ")}
+                    </span>
+                    {selectedConv.participants.length > 2 && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Users className="h-3 w-3" />
+                        Group conversation
                       </Badge>
+                    )}
+                  </div>
+                </div>
+                {!isAdmin && selectedConv.campaignId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-purple-600 border-purple-200 hover:bg-purple-50"
+                    onClick={() => setIsAdminMsgOpen(true)}
+                    data-testid="button-escalate-admin"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Involve Admin
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+              {threadLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Loading messages...</p>
+                  </div>
+                </div>
+              ) : thread.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No messages yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Send a message to start the conversation</p>
+                  </div>
+                </div>
+              ) : (
+                thread.map(msg => {
+                  const isMine = msg.senderId === user?.id;
+                  const isAdminMsg = msg.messageType === 'admin_group' || msg.sender?.userType === 'admin';
+                  return (
+                    <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[70%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                        <span className="text-xs text-gray-500 px-1">
+                          {getSenderName(msg)} · {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                        </span>
+                        <div className={`px-4 py-3 rounded-2xl shadow-sm ${
+                          isAdminMsg
+                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                            : isMine
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-900 border border-gray-200'
+                        }`}>
+                          {isAdminMsg && !isMine && (
+                            <div className="flex items-center gap-1 mb-1">
+                              <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />
+                              <span className="text-xs font-semibold text-purple-700">Admin Support</span>
+                            </div>
+                          )}
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4">{submission.description}</p>
-                    
-                    {submission.proofUrls && submission.proofUrls.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-medium mb-2">Proof URLs:</h4>
-                        <div className="space-y-1">
-                          {submission.proofUrls.map((url: string, idx: number) => (
-                            <a 
-                              key={idx} 
-                              href={url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline block"
-                            >
-                              🔗 {url}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  );
+                })
+              )}
+              <div ref={threadEndRef} />
+            </div>
 
-                    {submission.screenshots && submission.screenshots.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-medium mb-2">Screenshots:</h4>
-                        <div className="text-sm text-gray-600">
-                          {submission.screenshots.length} file(s) uploaded
-                        </div>
-                      </div>
-                    )}
-
-                    {submission.reviewNotes && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-medium mb-2">Review Notes:</h4>
-                        <p className="text-gray-700">{submission.reviewNotes}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
+            {/* Reply box */}
+            {selectedConv.campaignId ? (
+              <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+                <div className="flex gap-3 items-end">
+                  <Textarea
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    placeholder="Type your message... (all participants will receive it)"
+                    className="flex-1 min-h-[60px] max-h-[140px] resize-none text-sm"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleReply();
+                      }
+                    }}
+                    data-testid="input-reply"
+                  />
+                  <Button
+                    onClick={handleReply}
+                    disabled={!replyText.trim() || replyMutation.isPending}
+                    className="flex-shrink-0 gap-1 h-10"
+                    data-testid="button-send-reply"
+                  >
+                    <Send className="h-4 w-4" />
+                    {replyMutation.isPending ? "..." : "Send"}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Press Enter to send · Shift+Enter for new line</p>
+              </div>
+            ) : (
+              <div className="bg-gray-50 border-t border-gray-200 p-4 text-center">
+                <p className="text-sm text-gray-500">This is a direct message thread. Use "New" to start a campaign conversation.</p>
+              </div>
             )}
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center max-w-sm">
+              <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Your Messages</h3>
+              <p className="text-gray-500 mb-6">
+                {isAdmin
+                  ? "View and participate in all brand-creator conversations. You can mediate disputes and provide support."
+                  : "Select a conversation to read and reply, or start a new one. All parties in a campaign thread receive your message."
+                }
+              </p>
+              {!isAdmin && (
+                <div className="flex gap-3 justify-center">
+                  <Button variant="outline" onClick={() => setIsNewMsgOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Message
+                  </Button>
+                  <Button onClick={() => setIsAdminMsgOpen(true)} className="gap-2 bg-purple-600 hover:bg-purple-700">
+                    <ShieldCheck className="h-4 w-4" />
+                    Message Admin
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

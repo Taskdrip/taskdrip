@@ -174,10 +174,22 @@ export default function SimpleDashboard() {
                         <p className="text-sm text-gray-600">Campaign ID: {participation.campaignId}</p>
                       </div>
                       <Badge variant={
+                        participation.status === 'completed' ? 'default' :
                         participation.status === 'approved' ? 'default' :
+                        participation.status === 'submitted' ? 'secondary' :
                         participation.status === 'pending' ? 'secondary' : 'destructive'
+                      } className={
+                        participation.status === 'completed' ? 'bg-green-600 text-white' :
+                        participation.status === 'approved' ? 'bg-blue-600 text-white' :
+                        participation.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' :
+                        participation.status === 'rejected' ? 'bg-red-100 text-red-800' : ''
                       }>
-                        {participation.status}
+                        {participation.status === 'pending' ? 'Application Sent' :
+                         participation.status === 'approved' ? 'Approved – Awaiting Proof' :
+                         participation.status === 'submitted' ? 'Proof Submitted' :
+                         participation.status === 'completed' ? 'Completed & Paid' :
+                         participation.status === 'rejected' ? 'Rejected' :
+                         participation.status}
                       </Badge>
                     </div>
                   ))}

@@ -2,7 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages } from "@shared/schema";
+import { db } from "./db";
+import { desc, sql, eq } from "drizzle-orm";
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcrypt";
@@ -2570,6 +2572,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch referral stats" });
+    }
+  });
+
+  // ── Conversations: grouped threads per campaign ─────────────────────
+
+  // GET /api/conversations — list of conversations for current user
+  app.get('/api/conversations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const isAdmin = req.user.userType === 'admin';
+      let allMessages: any[];
+      if (isAdmin) {
+        // Admin sees every message ever sent
+        allMessages = await db.select().from(messages).orderBy(desc(messages.createdAt));
+      } else {
+        allMessages = await db.select().from(messages)
+          .where(sql`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`)
+          .orderBy(desc(messages.createdAt));
+      }
+
+      // Group by campaignId (or direct key for admin messages)
+      const convMap: Record<string, any> = {};
+      for (const msg of allMessages) {
+        const key = msg.campaignId || `direct_${[msg.senderId, msg.receiverId].sort().join('_')}`;
+        if (!convMap[key]) {
+          convMap[key] = {
+            id: key,
+            campaignId: msg.campaignId,
+            lastMessage: msg,
+            unreadCount: 0,
+            participantIds: new Set<string>(),
+          };
+        }
+        convMap[key].participantIds.add(msg.senderId);
+        convMap[key].participantIds.add(msg.receiverId);
+        if (!msg.isRead && msg.receiverId === userId) convMap[key].unreadCount++;
+        if (new Date(msg.createdAt) > new Date(convMap[key].lastMessage.createdAt)) {
+          convMap[key].lastMessage = msg;
+        }
+      }
+
+      // Enrich each conversation
+      const enriched = await Promise.all(Object.values(convMap).map(async (conv) => {
+        let campaign = null;
+        if (conv.campaignId) {
+          campaign = await storage.getCampaignById(conv.campaignId);
+        }
+        const participantIds = Array.from(conv.participantIds as Set<string>);
+        const participants = await Promise.all(
+          participantIds.map(async (pid: string) => {
+            const u = await storage.getUserById(pid);
+            return u ? { id: u.id, firstName: u.firstName, lastName: u.lastName, userType: u.userType, companyName: u.companyName, profileImageUrl: u.profileImageUrl } : null;
+          })
+        );
+        return {
+          id: conv.id,
+          campaignId: conv.campaignId,
+          campaign: campaign ? { id: campaign.id, title: campaign.title } : null,
+          participants: participants.filter(Boolean),
+          lastMessage: conv.lastMessage,
+          unreadCount: conv.unreadCount,
+        };
+      }));
+
+      enriched.sort((a: any, b: any) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
+      res.json(enriched);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      res.status(500).json({ message: 'Failed to fetch conversations' });
+    }
+  });
+
+  // GET /api/conversations/:campaignId/thread — full message thread for a campaign
+  app.get('/api/conversations/:campaignId/thread', isAuthenticated, async (req: any, res) => {
+    try {
+      const { campaignId } = req.params;
+      const userId = req.user.id;
+      const isAdmin = req.user.userType === 'admin';
+      // Fetch all messages for this campaign
+      const threadMessages = await storage.getCampaignMessages(campaignId);
+      if (!isAdmin) {
+        // verify user is a participant
+        const isParticipant = threadMessages.some(m => m.senderId === userId || m.receiverId === userId);
+        if (!isParticipant) return res.status(403).json({ message: 'Not a participant in this conversation' });
+      }
+      // Enrich with sender info
+      const enriched = await Promise.all(threadMessages.map(async (msg) => {
+        const sender = await storage.getUserById(msg.senderId);
+        return {
+          ...msg,
+          sender: sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType, companyName: sender.companyName, profileImageUrl: sender.profileImageUrl } : null,
+        };
+      }));
+      // Mark messages as read
+      for (const msg of threadMessages) {
+        if (msg.receiverId === userId && !msg.isRead) {
+          await storage.markMessageAsRead(msg.id);
+        }
+      }
+      res.json(enriched.reverse());
+    } catch (error) {
+      console.error('Error fetching thread:', error);
+      res.status(500).json({ message: 'Failed to fetch thread' });
+    }
+  });
+
+  // POST /api/conversations/:campaignId/reply — send to all participants
+  app.post('/api/conversations/:campaignId/reply', isAuthenticated, async (req: any, res) => {
+    try {
+      const { campaignId } = req.params;
+      const userId = req.user.id;
+      const { content, subject } = req.body;
+      if (!content) return res.status(400).json({ message: 'Content required' });
+
+      const campaign = await storage.getCampaignById(campaignId);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+
+      // Find all participant IDs (brand + creators)
+      const participantSet = new Set<string>();
+      participantSet.add(campaign.brandId); // brand
+      const participations = await storage.getCampaignParticipations(campaignId);
+      for (const p of participations) participantSet.add(p.userId);
+
+      // Admin is also a participant if they reply
+      const admin = await storage.getAdminUser();
+      if (admin) participantSet.add(admin.id);
+
+      // Remove self — send to everyone else
+      participantSet.delete(userId);
+
+      const sent: any[] = [];
+      for (const receiverId of participantSet) {
+        const msg = await storage.createMessage({
+          campaignId,
+          senderId: userId,
+          receiverId,
+          subject: subject || (campaign.title || 'Campaign Message'),
+          content,
+          messageType: req.user.userType === 'admin' ? 'admin_group' : 'general',
+          attachments: [],
+        });
+        await storage.createNotification({
+          userId: receiverId,
+          type: 'message',
+          title: `New message: ${campaign.title || 'Campaign'}`,
+          content: `${req.user.firstName} ${req.user.lastName}: ${content.substring(0, 80)}`,
+          actionUrl: `/messages?campaign=${campaignId}`,
+          relatedId: msg.id,
+        });
+        sent.push(msg);
+      }
+      res.status(201).json(sent[0] || {});
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      res.status(500).json({ message: 'Failed to send reply' });
+    }
+  });
+
+  // GET /api/admin/conversations — admin sees all campaign threads
+  app.get('/api/admin/conversations', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const allMessages = await db.select().from(messages).orderBy(desc(messages.createdAt));
+      const convMap: Record<string, any> = {};
+      for (const msg of allMessages) {
+        if (!msg.campaignId) continue;
+        if (!convMap[msg.campaignId]) {
+          convMap[msg.campaignId] = { campaignId: msg.campaignId, lastMessage: msg, messageCount: 0, hasAdminMessage: false };
+        }
+        convMap[msg.campaignId].messageCount++;
+        if (msg.messageType === 'admin_group') convMap[msg.campaignId].hasAdminMessage = true;
+        if (new Date(msg.createdAt) > new Date(convMap[msg.campaignId].lastMessage.createdAt)) {
+          convMap[msg.campaignId].lastMessage = msg;
+        }
+      }
+      const enriched = await Promise.all(Object.values(convMap).map(async (conv) => {
+        const campaign = await storage.getCampaignById(conv.campaignId);
+        return { ...conv, campaign: campaign ? { id: campaign.id, title: campaign.title } : null };
+      }));
+      enriched.sort((a: any, b: any) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
+      res.json(enriched);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch admin conversations' });
     }
   });
 

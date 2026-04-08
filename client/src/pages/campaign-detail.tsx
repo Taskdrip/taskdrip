@@ -153,8 +153,8 @@ export default function CampaignDetail() {
     },
     onSuccess: () => {
       toast({
-        title: 'Application Submitted!',
-        description: 'Your application has been submitted for review by the brand.',
+        title: 'Application Sent!',
+        description: 'Your application has been sent. Once the brand approves you, you can begin the task.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['/api/participations'] });
@@ -810,8 +810,8 @@ export default function CampaignDetail() {
                     <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <Hourglass className="h-5 w-5 text-yellow-600 flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-yellow-800 text-sm">Application Submitted</p>
-                        <p className="text-yellow-700 text-xs mt-0.5">Waiting for the brand to review your application.</p>
+                        <p className="font-medium text-yellow-800 text-sm">Application Sent – Awaiting Brand Approval</p>
+                        <p className="text-yellow-700 text-xs mt-0.5">Your application is pending review. No proof needed until the brand approves you.</p>
                       </div>
                     </div>
                     <Button 

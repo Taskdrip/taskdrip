@@ -255,12 +255,27 @@ export default function Dashboard() {
                       <div key={participation.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium">Campaign Task</p>
-                          <p className="text-sm text-gray-600">Status: {participation.status}</p>
+                          <p className="text-sm text-gray-600">
+                            Status: {participation.status === 'pending' ? 'Application Sent' :
+                             participation.status === 'approved' ? 'Approved – Awaiting Proof' :
+                             participation.status === 'submitted' ? 'Proof Submitted' :
+                             participation.status === 'completed' ? 'Completed & Paid' :
+                             participation.status === 'rejected' ? 'Rejected' : participation.status}
+                          </p>
                           <p className="text-xs text-gray-500">Submitted: {participation.submittedAt ? new Date(participation.submittedAt).toLocaleDateString() : 'N/A'}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={participation.status === 'approved' ? 'default' : 'secondary'}>
-                            {participation.status}
+                          <Badge className={
+                            participation.status === 'completed' ? 'bg-green-600 text-white' :
+                            participation.status === 'approved' ? 'bg-blue-600 text-white' :
+                            participation.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' :
+                            participation.status === 'rejected' ? 'bg-red-100 text-red-800' : ''
+                          } variant={participation.status === 'pending' ? 'secondary' : 'default'}>
+                            {participation.status === 'pending' ? 'Application Sent' :
+                             participation.status === 'approved' ? 'Approved' :
+                             participation.status === 'submitted' ? 'Proof Submitted' :
+                             participation.status === 'completed' ? 'Completed & Paid' :
+                             participation.status === 'rejected' ? 'Rejected' : participation.status}
                           </Badge>
                           {participation.status === 'approved' && (
                             <Button
@@ -575,8 +590,17 @@ export default function Dashboard() {
                       <div key={participation.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <p className="font-medium">Campaign ID: {participation.campaignId}</p>
-                          <Badge variant={participation.status === 'approved' ? 'default' : 'secondary'}>
-                            {participation.status}
+                          <Badge className={
+                            participation.status === 'completed' ? 'bg-green-600 text-white' :
+                            participation.status === 'approved' ? 'bg-blue-600 text-white' :
+                            participation.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' :
+                            participation.status === 'rejected' ? 'bg-red-100 text-red-800' : ''
+                          } variant={participation.status === 'pending' ? 'secondary' : 'default'}>
+                            {participation.status === 'pending' ? 'Application Sent' :
+                             participation.status === 'approved' ? 'Approved' :
+                             participation.status === 'submitted' ? 'Proof Submitted' :
+                             participation.status === 'completed' ? 'Completed & Paid' :
+                             participation.status === 'rejected' ? 'Rejected' : participation.status}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600">
