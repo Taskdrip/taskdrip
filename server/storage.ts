@@ -840,6 +840,7 @@ export class DatabaseStorage implements IStorage {
               campaignId: participation.campaignId,
               status: participation.status,
               submissionText: participation.submissionText,
+              submissionUrl: participation.submissionUrl,
               submittedAt: participation.submittedAt,
               reviewedAt: participation.reviewedAt,
               adminNotes: participation.adminNotes,

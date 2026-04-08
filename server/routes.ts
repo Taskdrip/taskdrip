@@ -1188,27 +1188,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Creator submits their work for a campaign participation
+  app.patch('/api/participations/:id/submit-work', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const { submissionUrl, submissionText } = req.body;
+      if (!submissionUrl && !submissionText) {
+        return res.status(400).json({ message: "Submission URL or description is required" });
+      }
+
+      const participation = await storage.updateParticipation(req.params.id, {
+        status: 'submitted',
+        submissionUrl: submissionUrl || null,
+        submissionText: submissionText || null,
+        submittedAt: new Date(),
+      });
+
+      // Notify brand that work was submitted
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      if (campaign) {
+        await storage.createNotification({
+          userId: campaign.brandId,
+          type: 'work_submitted',
+          title: 'Work Submitted for Review',
+          content: `A creator has submitted their work for "${campaign.title}". Review and approve to release payment.`,
+          actionUrl: `/brand-dashboard`,
+          relatedId: participation.id,
+        });
+      }
+
+      res.json(participation);
+    } catch (error) {
+      console.error("Error submitting work:", error);
+      res.status(500).json({ message: "Failed to submit work" });
+    }
+  });
+
   app.patch('/api/participations/:id/approve', async (req, res) => {
     try {
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
       const participation = await storage.updateParticipation(req.params.id, { 
-        status: 'approved',
+        status: 'completed',
         reviewedAt: new Date() 
       });
+
+      // Add campaign reward to creator's wallet balance
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      const rewardAmount = campaign ? parseFloat(campaign.reward as any) : 0;
+
+      if (rewardAmount > 0) {
+        await storage.updateUserBalance(participation.userId, rewardAmount, 'add');
+
+        // Create a transaction record for the reward
+        await storage.createTransaction({
+          userId: participation.userId,
+          campaignId: participation.campaignId,
+          amount: rewardAmount.toString(),
+          type: 'campaign_reward',
+          status: 'approved',
+          description: `Campaign reward for: ${campaign?.title || 'Campaign'}`,
+          approvedBy: userId,
+          approvedAt: new Date(),
+        });
+      }
 
       // Create notification for creator
       await storage.createNotification({
         userId: participation.userId,
         type: 'application_approved',
-        title: 'Campaign Application Approved!',
-        content: 'Your campaign application has been approved. You can now start working on the tasks.',
+        title: 'Work Approved — Payment Released! 🎉',
+        content: `Your work has been approved${rewardAmount > 0 ? ` and $${rewardAmount.toFixed(2)} has been added to your wallet balance` : ''}. Great job!`,
         actionUrl: `/campaigns/${participation.campaignId}`,
         relatedId: participation.id,
       });
 
-      res.json(participation);
+      res.json({ ...participation, rewardAmount });
     } catch (error) {
       console.error("Error approving application:", error);
       res.status(500).json({ message: "Failed to approve application" });

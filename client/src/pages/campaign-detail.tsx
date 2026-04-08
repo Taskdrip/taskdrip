@@ -19,7 +19,7 @@ import {
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
   Target, TrendingUp, Award, MessageSquare, Clipboard, FileText, Trash2,
-  MessageCircle, Upload
+  MessageCircle, Upload, Send, Hourglass, PartyPopper, XCircle, Link2
 } from 'lucide-react';
 
 const editCampaignSchema = z.object({
@@ -43,8 +43,11 @@ export default function CampaignDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [submitUrl, setSubmitUrl] = useState('');
+  const [submitText, setSubmitText] = useState('');
 
   const campaignId = params.id;
 
@@ -62,7 +65,9 @@ export default function CampaignDetail() {
     enabled: !!user && !isBrand,
   });
 
-  const hasJoined = (participations as any[]).some((p: any) => p.campaignId === campaignId);
+  const myParticipation = (participations as any[]).find((p: any) => p.campaignId === campaignId);
+  const hasJoined = !!myParticipation;
+  const participationStatus = myParticipation?.status || null;
 
   // Handle image upload for edit form
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,13 +154,40 @@ export default function CampaignDetail() {
     onSuccess: () => {
       toast({
         title: 'Application Submitted!',
-        description: 'Your application has been submitted for review.',
+        description: 'Your application has been submitted for review by the brand.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/participations'] });
     },
     onError: (error) => {
       toast({
         title: 'Application Failed',
+        description: error.message || 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const submitWorkMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('PATCH', `/api/participations/${myParticipation?.id}/submit-work`, {
+        submissionUrl: submitUrl,
+        submissionText: submitText,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Work Submitted! 🎉',
+        description: 'Your work has been sent to the brand for review. You\'ll be notified when they respond.',
+      });
+      setIsSubmitDialogOpen(false);
+      setSubmitUrl('');
+      setSubmitText('');
+      queryClient.invalidateQueries({ queryKey: ['/api/participations'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Submission Failed',
         description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
@@ -270,7 +302,8 @@ export default function CampaignDetail() {
   const progressPercentage = (campaign as any)?.totalSlots > 0 ? (((campaign as any)?.filledSlots || 0) / (campaign as any)?.totalSlots) * 100 : 0;
   const daysLeft = (campaign as any)?.deadline ? Math.ceil((new Date((campaign as any).deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
   const isOwnerOrAdmin = (user as any)?.id === (campaign as any)?.brandId || (user as any)?.role === 'admin';
-  const canJoin = !isOwnerOrAdmin && !isBrand && ((campaign as any)?.filledSlots || 0) < (campaign as any)?.totalSlots;
+  const canJoin = !isOwnerOrAdmin && !isBrand && !hasJoined && ((campaign as any)?.filledSlots || 0) < (campaign as any)?.totalSlots;
+  const campaignImage = (campaign as any)?.featureImage || (campaign as any)?.featuredImage || null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -309,13 +342,12 @@ export default function CampaignDetail() {
               <CardContent className="p-0">
                 {/* Brand Banner */}
                 <div className="h-48 md:h-64 relative overflow-hidden">
-                  {(campaign as any)?.featuredImage ? (
+                  {campaignImage ? (
                     <img 
-                      src={(campaign as any).featuredImage} 
+                      src={campaignImage}
                       alt={(campaign as any).title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        console.error('Image failed to load:', (campaign as any).featuredImage);
                         e.currentTarget.style.display = 'none';
                         const fallbackDiv = e.currentTarget.parentElement?.querySelector('.fallback-brand');
                         if (fallbackDiv) fallbackDiv.classList.remove('hidden');
@@ -722,7 +754,12 @@ export default function CampaignDetail() {
               <CardHeader>
                 <CardTitle className="text-xl">Campaign Application</CardTitle>
                 <CardDescription>
-                  Review requirements and apply to join
+                  {participationStatus === 'completed' ? 'Completed — payment released' :
+                   participationStatus === 'submitted' ? 'Work submitted — awaiting brand review' :
+                   participationStatus === 'approved' ? 'Approved — submit your work' :
+                   participationStatus === 'pending' ? 'Application under review' :
+                   participationStatus === 'rejected' ? 'Application not approved' :
+                   'Review requirements and apply to join'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -731,6 +768,7 @@ export default function CampaignDetail() {
                   <div className="text-sm text-gray-600">per task</div>
                 </div>
 
+                {/* Brand view */}
                 {isBrand ? (
                   <div className="space-y-3">
                     <div className="text-center text-gray-600">
@@ -747,60 +785,147 @@ export default function CampaignDetail() {
                     </Button>
                     {isOwnerOrAdmin && (
                       <Button 
-                        variant="outline" 
-                        className="w-full"
+                        className="w-full bg-accent hover:bg-blue-700"
                         onClick={() => setLocation('/brand-dashboard')}
                       >
-                        Manage Campaign
+                        Manage Applications
                       </Button>
                     )}
                   </div>
+
+                /* === STEP 1: Not yet applied === */
                 ) : canJoin ? (
                   <Button 
                     onClick={() => joinCampaignMutation.mutate()}
                     className="w-full bg-accent hover:bg-blue-700"
                     disabled={joinCampaignMutation.isPending}
+                    data-testid="button-apply-campaign"
                   >
                     {joinCampaignMutation.isPending ? 'Applying...' : 'Apply to Join'}
                   </Button>
-                ) : hasJoined ? (
+
+                /* === STEP 2: Applied — pending brand review === */
+                ) : participationStatus === 'pending' ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-green-600 justify-center">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">You've joined this campaign!</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
-                        className="flex items-center gap-2 text-sm"
-                        size="sm"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        Message
-                      </Button>
-                      <Button 
-                        onClick={() => setLocation('/messages')}
-                        className="flex items-center gap-2 text-sm"
-                        size="sm"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Submit
-                      </Button>
+                    <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <Hourglass className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-yellow-800 text-sm">Application Submitted</p>
+                        <p className="text-yellow-700 text-xs mt-0.5">Waiting for the brand to review your application.</p>
+                      </div>
                     </div>
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation('/dashboard')}
+                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
                     >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message Brand
+                    </Button>
+                    <Button variant="outline" className="w-full" onClick={() => setLocation('/dashboard')}>
                       View in Dashboard
                     </Button>
                   </div>
+
+                /* === STEP 3: Application approved — submit work === */
+                ) : participationStatus === 'approved' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-green-800 text-sm">Application Approved!</p>
+                        <p className="text-green-700 text-xs mt-0.5">Complete the task and submit your work for payment.</p>
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => setIsSubmitDialogOpen(true)}
+                      data-testid="button-submit-work"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Submit Your Work
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message Brand
+                    </Button>
+                  </div>
+
+                /* === STEP 4: Work submitted — awaiting approval === */
+                ) : participationStatus === 'submitted' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <Send className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-blue-800 text-sm">Work Submitted</p>
+                        <p className="text-blue-700 text-xs mt-0.5">The brand is reviewing your submission. You'll be notified on approval.</p>
+                      </div>
+                    </div>
+                    {myParticipation?.submissionUrl && (
+                      <a 
+                        href={myParticipation.submissionUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        View submitted link
+                      </a>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message Brand
+                    </Button>
+                  </div>
+
+                /* === STEP 5: Completed and paid === */
+                ) : participationStatus === 'completed' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <PartyPopper className="h-5 w-5 text-purple-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-purple-800 text-sm">Completed & Paid! 🎉</p>
+                        <p className="text-purple-700 text-xs mt-0.5">${parseFloat((campaign as any)?.reward || 0).toFixed(2)} has been added to your wallet balance.</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" className="w-full" onClick={() => setLocation('/wallet')}>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      View Wallet Balance
+                    </Button>
+                  </div>
+
+                /* === Rejected === */
+                ) : participationStatus === 'rejected' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-red-800 text-sm">Application Not Approved</p>
+                        {myParticipation?.adminNotes && (
+                          <p className="text-red-700 text-xs mt-0.5">Reason: {myParticipation.adminNotes}</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setLocation('/campaigns')}
+                    >
+                      Browse Other Campaigns
+                    </Button>
+                  </div>
+
+                /* === Campaign full or cannot join === */
                 ) : (
-                  <Button 
-                    disabled
-                    className="w-full"
-                  >
+                  <Button disabled className="w-full">
                     {((campaign as any)?.filledSlots || 0) >= (campaign as any)?.totalSlots ? 'Campaign Full' : 'Cannot Join Campaign'}
                   </Button>
                 )}
@@ -825,6 +950,59 @@ export default function CampaignDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Submit Work Dialog */}
+            <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Submit Your Work</DialogTitle>
+                  <DialogDescription>
+                    Provide the link to your completed work and a brief description for the brand to review.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="submission-url">Work Link (URL)</Label>
+                    <Input
+                      id="submission-url"
+                      placeholder="https://instagram.com/p/your-post or https://youtube.com/..."
+                      value={submitUrl}
+                      onChange={(e) => setSubmitUrl(e.target.value)}
+                      data-testid="input-submission-url"
+                    />
+                    <p className="text-xs text-gray-500">Link to your post, video, reel, or any deliverable URL.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="submission-text">Description</Label>
+                    <Textarea
+                      id="submission-text"
+                      placeholder="Describe what you completed, any relevant stats, reach, etc..."
+                      value={submitText}
+                      onChange={(e) => setSubmitText(e.target.value)}
+                      rows={4}
+                      data-testid="input-submission-text"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setIsSubmitDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => submitWorkMutation.mutate()}
+                      disabled={submitWorkMutation.isPending || (!submitUrl.trim() && !submitText.trim())}
+                      data-testid="button-confirm-submit-work"
+                    >
+                      {submitWorkMutation.isPending ? 'Submitting...' : 'Submit Work'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Brand Info */}
             <Card>

@@ -635,9 +635,9 @@ export default function BrandDashboard() {
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
-              {tab.id === "applications" && applications.filter(app => app.status === 'pending').length > 0 && (
+              {tab.id === "applications" && applications.filter(app => app.status === 'pending' || app.status === 'submitted').length > 0 && (
                 <Badge variant="destructive" className="ml-1">
-                  {applications.filter(app => app.status === 'pending').length}
+                  {applications.filter(app => app.status === 'pending' || app.status === 'submitted').length}
                 </Badge>
               )}
               {tab.id === "submissions" && submissions.filter(s => s.status === 'pending').length > 0 && (
@@ -818,18 +818,36 @@ export default function BrandDashboard() {
                                   <h3 className="font-semibold text-lg truncate">{application.user?.firstName} {application.user?.lastName}</h3>
                                   <Badge className={`${
                                     application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    application.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
                                     application.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                    application.status === 'completed' ? 'bg-purple-100 text-purple-800' :
                                     'bg-red-100 text-red-800'
                                   } flex-shrink-0`}>
-                                    {application.status.toUpperCase()}
+                                    {application.status === 'submitted' ? 'WORK SUBMITTED' :
+                                     application.status === 'completed' ? 'COMPLETED & PAID' :
+                                     application.status.toUpperCase()}
                                   </Badge>
                                 </div>
                                 <p className="text-gray-600 mb-1 text-sm truncate">{application.user?.email}</p>
                                 <p className="text-sm font-medium text-blue-600 mb-2 truncate">Campaign: {application.campaign?.title}</p>
                                 <p className="text-sm text-green-600 font-medium">Reward: ${application.campaign?.reward}</p>
-                                {application.submissionText && (
-                                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                    <p className="text-sm text-gray-700 break-words">{application.submissionText}</p>
+                                {/* Show submitted work details */}
+                                {(application.submissionText || application.submissionUrl) && (
+                                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Submitted Work</p>
+                                    {application.submissionUrl && (
+                                      <a 
+                                        href={application.submissionUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline break-all"
+                                      >
+                                        🔗 {application.submissionUrl}
+                                      </a>
+                                    )}
+                                    {application.submissionText && (
+                                      <p className="text-sm text-gray-700 break-words">{application.submissionText}</p>
+                                    )}
                                   </div>
                                 )}
                                 <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 flex-wrap">
@@ -841,7 +859,7 @@ export default function BrandDashboard() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                              {application.status === 'pending' && (
+                              {(application.status === 'pending' || application.status === 'submitted') && (
                                 <>
                                   <Button
                                     size="sm"
@@ -850,7 +868,7 @@ export default function BrandDashboard() {
                                     className="bg-green-600 hover:bg-green-700 whitespace-nowrap"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-1" />
-                                    Approve
+                                    {application.status === 'submitted' ? 'Approve & Pay' : 'Approve'}
                                   </Button>
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -861,9 +879,11 @@ export default function BrandDashboard() {
                                     </DialogTrigger>
                                     <DialogContent>
                                       <DialogHeader>
-                                        <DialogTitle>Reject Application</DialogTitle>
+                                        <DialogTitle>{application.status === 'submitted' ? 'Reject Submission' : 'Reject Application'}</DialogTitle>
                                         <DialogDescription>
-                                          Please provide a reason for rejecting this application
+                                          {application.status === 'submitted'
+                                            ? 'Please provide a reason for rejecting this submission. The creator will be notified.'
+                                            : 'Please provide a reason for rejecting this application'}
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="space-y-4">
@@ -884,7 +904,7 @@ export default function BrandDashboard() {
                                             disabled={rejectApplicationMutation.isPending}
                                             className="bg-red-600 hover:bg-red-700"
                                           >
-                                            Reject Application
+                                            {application.status === 'submitted' ? 'Reject Submission' : 'Reject Application'}
                                           </Button>
                                         </div>
                                       </div>
