@@ -18,6 +18,7 @@ interface CampaignCardProps {
     deadline?: string;
     requirements?: string[];
     createdAt: string;
+    featureImage?: string | null;
   };
   onJoin?: (campaignId: string) => void;
   showJoinButton?: boolean;
@@ -79,13 +80,12 @@ export function CampaignCard({ campaign, onJoin, showJoinButton = true }: Campai
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
       <div className="aspect-video w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
         <img
-          src={getCampaignImage(campaign.id, campaign.category)}
-          alt={`${campaign.category} campaign`}
+          src={campaign.featureImage || getCampaignImage(campaign.id, campaign.category)}
+          alt={`${campaign.title} campaign`}
           className="w-full h-full object-cover"
           onError={(e) => {
-            // Fallback if image fails to load
             const target = e.target as HTMLImageElement;
-            target.src = getCampaignImage(campaign.id, 'Technology');
+            target.src = getCampaignImage(campaign.id, campaign.category);
           }}
         />
       </div>
