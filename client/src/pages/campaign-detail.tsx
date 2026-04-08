@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useLocation } from 'wouter';
+import { useParams, useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -548,7 +548,9 @@ export default function CampaignDetail() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-5 h-5 text-gray-500" />
-                        <span className="font-medium text-gray-900">{(campaign as any)?.brandName}</span>
+                        <Link href={`/brand/${(campaign as any)?.brandId}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors">
+                          {(campaign as any)?.brandName}
+                        </Link>
                       </div>
                       <div className="flex items-center gap-2">
                         <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -1018,7 +1020,9 @@ export default function CampaignDetail() {
                     <span className="text-white font-bold">{(campaign as any)?.brandName?.[0]}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{(campaign as any)?.brandName}</div>
+                    <Link href={`/brand/${(campaign as any)?.brandId}`} className="font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors">
+                      {(campaign as any)?.brandName}
+                    </Link>
                     <div className="text-sm text-gray-600">{(campaign as any)?.category}</div>
                   </div>
                 </div>

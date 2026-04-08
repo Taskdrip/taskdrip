@@ -191,6 +191,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generic user lookup by ID (for profile pages)
+  app.get('/api/users/:id', async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Campaign routes
   app.get('/api/campaigns', async (req, res) => {
     try {

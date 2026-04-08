@@ -45,6 +45,7 @@ import SubscriptionPage from "@/pages/subscription";
 import PayoutRequestsPage from "@/pages/payout-requests";
 import MyCampaignsPage from "@/pages/my-campaigns";
 import ReferralsPage from "@/pages/referrals";
+import UnifiedProfile from "@/pages/unified-profile";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -77,6 +78,8 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/creators" component={Creators} />
       <Route path="/creators/:id" component={CreatorProfile} />
+      <Route path="/profile/:id" component={UnifiedProfile} />
+      <Route path="/brand/:id" component={BrandProfile} />
       <Route path="/feed" component={FeedPage} />
       <Route path="/leaderboard" component={Leaderboard} />
       {isAuthenticated ? (
@@ -86,7 +89,6 @@ function Router() {
           <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/campaigns" component={Campaigns} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
-          <Route path="/brand/:id" component={BrandProfile} />
           <Route path="/profile" component={() => {
             const userType = (user as any)?.userType;
             if (userType === 'admin') {

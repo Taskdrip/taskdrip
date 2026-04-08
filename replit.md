@@ -101,6 +101,16 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Campaign Creation Bug Fix**: Resolved deadline date format and requirements array mismatch issues
 ✓ **Homepage Navigation**: Added Home button in navigation for both influencers and brands
 
+## Profile System & Sitewide Username Links (April 2026)
+
+✓ **Brand Profile Redesign**: Completely rebuilt brand-profile.tsx with dark emerald/teal corporate design — hero banner, company logo, stats (campaigns/active/rating/followers), active campaigns grid, reviews sidebar, about section
+✓ **Unified Profile Router**: Created `/profile/:id` page that auto-detects user type and redirects creators → `/creators/:id`, brands → `/brand/:id`, admins → inline admin profile page
+✓ **Admin Profile Page**: Elegant dark slate design for admin profiles (shield badge, platform overview, authority styling)
+✓ **Public Profile Routes**: Moved `/brand/:id` and `/profile/:id` to public routes (accessible without login) for shareable profile links
+✓ **Backend `/api/users/:id` route**: Fixed "Brand Not Found" bug by adding generic user lookup endpoint alongside `/api/users/:id/profile`
+✓ **Sitewide Username Links**: Campaign-detail.tsx brand name links to `/brand/:id`; brand-dashboard.tsx applicant names link to `/profile/:id`; leaderboard already had profile links
+✓ **UserLink Component**: Reusable `UserLink` component in `client/src/components/ui/user-link.tsx` with `getUserProfileUrl()` helper
+
 ## Major Platform Upgrade (March 2026)
 
 ✓ **New Landing Page**: Complete SaaS landing page redesign with hero, creator tiers display, how-it-works, live campaigns, stats, and dual CTA for brands/creators

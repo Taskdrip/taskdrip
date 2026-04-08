@@ -21,7 +21,7 @@ import {
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil
 } from "lucide-react";
 import { format } from "date-fns";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 interface Campaign {
   id: string;
@@ -815,7 +815,9 @@ export default function BrandDashboard() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <h3 className="font-semibold text-lg truncate">{application.user?.firstName} {application.user?.lastName}</h3>
+                                  <Link href={`/profile/${application.user?.id}`} className="font-semibold text-lg truncate hover:text-blue-600 hover:underline transition-colors">
+                                    {application.user?.firstName} {application.user?.lastName}
+                                  </Link>
                                   <Badge className={`${
                                     application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                     application.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
