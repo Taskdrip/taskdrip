@@ -9,7 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, Home } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, Home, Trophy, CreditCard, DollarSign, Briefcase, Share2 } from "lucide-react";
 
 export function NavigationFixed() {
   const [location] = useLocation();
@@ -42,6 +42,7 @@ export function NavigationFixed() {
           { href: "/dashboard", label: "Dashboard" },
           { href: "/feed", label: "Feed" },
           { href: "/creators", label: "Influencers" },
+          { href: "/leaderboard", label: "Leaderboard" },
           { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
@@ -163,6 +164,32 @@ export function NavigationFixed() {
                       <Link href="/profile-edit" className="flex items-center w-full">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    {(user as any)?.userType === 'creator' && (
+                      <DropdownMenuItem>
+                        <Link href="/my-campaigns" className="flex items-center w-full">
+                          <Briefcase className="mr-2 h-4 w-4" />
+                          <span>My Campaigns</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem>
+                      <Link href="/payout-requests" className="flex items-center w-full">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        <span>Payout Requests</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href="/referrals" className="flex items-center w-full">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        <span>Referrals</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href="/subscription" className="flex items-center w-full">
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Subscription</span>
                       </Link>
                     </DropdownMenuItem>
                     {(user as any)?.role === 'admin' && (

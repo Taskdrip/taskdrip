@@ -1,0 +1,36 @@
+The feeds page need to allow a user add an image or paste a youtube video link that gets integrated with the post, allow  other users tip creator's post, using his wallet added to his profile .... and show amount creator has been tipped and analytics on his profile page,  on the profile page make all the social media icons show with the number of followers beautifully , with clickable links to each social media channels, The is no provision to edit and add contents to the Posts, Achievements, Portfolio, Reviews tabs on the users profile dashboard.
+
+Allow the list campaigns show up beautifully with their featured image , I see 2 $ signs showing up on the campaigns listed on the campaign page, allow brands add featured image to each campaign listed and make it work, fix all errors
+
+The request payout Feature on the influencers page doesn't work, fix it.
+
+The view profile when a users name is click doesn't load, shows a 404 error page not found. make this page supper clean and beautiful with icons and followers count to all social media channels added , add users analytics and a clean professional style. use social icons to illustrate this , instead of this TikTok 6.0K
+YT 5.0K
+IG 4.3K
+X 50.0K
+and also add the total count. and add the correct ranking category.
+ allows users add reviews comment and star ratings that gets displayed on a users profile.
+
+SHOW a Users followers and following on the platform on their profile, with the numbers beside it when the Followers or following tab is clicked , one should be able to see the list of all their followers or following , and connect with them.
+
+i wrote a review and 5 star rating on a brands profile, but it didn't reflect on their profile.
+
+after a creators applies for a campaign and is approved , There is no tab on his dashboard that shows projects or campaigns he is working on , There should be a tab where he can see all his campaigns and work on them , and also submit completed campaign to brand for approval.. make this chain off communication look and feel seamless for all users 
+
+Fix the 👤
+undefined undefined text showing on the influencers chat with brand, instead make name and button show username of user linking to their profile page.
+
+Make the ranking and categorizing system work sitewide also implement a ranking system for Brands, rank brands into 3 categories based on the Volume of transaction and badge on their profile.
+
+Implement a subscription system for both influencers and brand , where they can subscribe monthly at $7 for Influencers and  $24 for brands / allow Yearly subscriptions with a (15% Discount) use similar checkout process when listing a campaign, and also implement an auto notification system on the platform that reminds users to renew , and on expiry date , remove verified badge status from their profile, Remove access to tips for post on feeds page, also remove them from the featured section on the influencers page or Brands page, implement this system perfectly  
+
+
+ Implement a perfect request for payout between influencer and admin , with a clean interface and chat system and notification syncing system 
+
+Add a referrals system and  leaderboards page that showcases 2 sections Monthly top 10 Creators/Influencers Based on 1. Referrals and 2ND section based on top  10 best performing Creators/Influencers based on volume of transaction aand activities on the platform 
+
+Have a smart contract that automatically records all this , Each Creators/Influencers will have 2 referral links on their profile page to invite 1. Other Creators/Influencers and 2. Invite Brands, that will host campaigns on the platform , allow the smart contract track link clicks , and conversions and record this their analytics section of their dashboard and also have a section for this for admin to track and see full analytics.    
+
+
+
+

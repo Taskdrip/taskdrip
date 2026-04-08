@@ -39,6 +39,12 @@ import Contact from "@/pages/contact";
 import EscrowPayment from "@/pages/escrow-payment";
 import Creators from "@/pages/creators";
 import FeedPage from "@/pages/feed";
+import CreatorProfile from "@/pages/creator-profile";
+import Leaderboard from "@/pages/leaderboard";
+import SubscriptionPage from "@/pages/subscription";
+import PayoutRequestsPage from "@/pages/payout-requests";
+import MyCampaignsPage from "@/pages/my-campaigns";
+import ReferralsPage from "@/pages/referrals";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -70,7 +76,9 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/creators" component={Creators} />
+      <Route path="/creators/:id" component={CreatorProfile} />
       <Route path="/feed" component={FeedPage} />
+      <Route path="/leaderboard" component={Leaderboard} />
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={SimpleDashboard} />
@@ -99,6 +107,10 @@ function Router() {
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />
+          <Route path="/subscription" component={SubscriptionPage} />
+          <Route path="/payout-requests" component={PayoutRequestsPage} />
+          <Route path="/my-campaigns" component={MyCampaignsPage} />
+          <Route path="/referrals" component={ReferralsPage} />
         </>
       ) : (
         <>

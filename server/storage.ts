@@ -21,6 +21,11 @@ import {
   postLikes,
   postComments,
   userFollows,
+  userReviews,
+  subscriptions,
+  payoutRequests,
+  payoutMessages,
+  referrals,
   type User,
   type InsertUser,
   type Campaign,
@@ -53,9 +58,14 @@ import {
   type InsertBrandWallet,
   type Post,
   type PostComment,
+  type UserReview,
+  type Subscription,
+  type PayoutRequest,
+  type PayoutMessage,
+  type Referral,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations for custom authentication
@@ -147,13 +157,47 @@ export interface IStorage {
   // Social feed operations
   getFeed(limit?: number, offset?: number): Promise<(Post & { user: Partial<User> })[]>;
   getUserPosts(userId: string): Promise<Post[]>;
-  createPost(id: string, userId: string, content: string, imageUrl?: string): Promise<Post>;
+  createPost(id: string, userId: string, content: string, imageUrl?: string, videoUrl?: string): Promise<Post>;
+  updatePost(id: string, userId: string, updates: { content?: string; imageUrl?: string; videoUrl?: string }): Promise<Post>;
   deletePost(id: string, userId: string): Promise<void>;
   likePost(postId: string, userId: string): Promise<void>;
   unlikePost(postId: string, userId: string): Promise<void>;
   getPostLike(postId: string, userId: string): Promise<boolean>;
   getPostComments(postId: string): Promise<(PostComment & { user: Partial<User> })[]>;
-  addPostComment(id: string, postId: string, userId: string, content: string): Promise<PostComment>;
+  addPostComment(id: string, postId: string, userId: string, content: string, parentId?: string): Promise<PostComment>;
+  addPostTip(postId: string, amount: number): Promise<void>;
+
+  // User reviews
+  getUserReviews(userId: string): Promise<(UserReview & { reviewer: Partial<User> })[]>;
+  createUserReview(review: { revieweeId: string; reviewerId: string; rating: number; comment?: string }): Promise<UserReview>;
+
+  // Subscriptions
+  getUserSubscription(userId: string): Promise<Subscription | undefined>;
+  createSubscription(sub: { userId: string; plan: string; amount: number; network: string; transactionHash?: string; paymentProof?: string }): Promise<Subscription>;
+  updateSubscriptionStatus(id: string, status: string, startDate?: Date, endDate?: Date): Promise<Subscription>;
+  getExpiredSubscriptions(): Promise<Subscription[]>;
+
+  // Payout requests
+  getUserPayoutRequests(userId: string): Promise<PayoutRequest[]>;
+  getAllPayoutRequests(): Promise<(PayoutRequest & { user: Partial<User> })[]>;
+  createPayoutRequest(req: { userId: string; amount: number; network: string; walletAddress: string }): Promise<PayoutRequest>;
+  updatePayoutRequest(id: string, updates: Partial<PayoutRequest>): Promise<PayoutRequest>;
+  getPayoutMessages(payoutRequestId: string): Promise<(PayoutMessage & { sender: Partial<User> })[]>;
+  createPayoutMessage(payoutRequestId: string, senderId: string, content: string): Promise<PayoutMessage>;
+
+  // Referrals
+  getReferralsByReferrer(referrerId: string): Promise<Referral[]>;
+  createReferral(ref: { referrerId: string; referredId: string; referralType: string; referralCode: string }): Promise<Referral>;
+  getUserByReferralCode(code: string): Promise<User | undefined>;
+  getTopCreatorsByReferrals(limit?: number): Promise<any[]>;
+  getTopCreatorsByActivity(limit?: number): Promise<any[]>;
+
+  // Followers
+  getUserFollowers(userId: string): Promise<User[]>;
+  getUserFollowing(userId: string): Promise<User[]>;
+  followUser(followerId: string, followingId: string): Promise<void>;
+  unfollowUser(followerId: string, followingId: string): Promise<void>;
+  isFollowing(followerId: string, followingId: string): Promise<boolean>;
 
   // Blog interaction operations
   getBlogPostById(id: string): Promise<BlogPost | undefined>;
@@ -976,11 +1020,23 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(posts).where(eq(posts.userId, userId)).orderBy(desc(posts.createdAt));
   }
 
-  async createPost(id: string, userId: string, content: string, imageUrl?: string): Promise<Post> {
+  async createPost(id: string, userId: string, content: string, imageUrl?: string, videoUrl?: string): Promise<Post> {
     const [post] = await db.insert(posts).values({
-      id, userId, content, imageUrl: imageUrl || null,
+      id, userId, content, imageUrl: imageUrl || null, videoUrl: videoUrl || null,
     }).returning();
     return post;
+  }
+
+  async updatePost(id: string, userId: string, updates: { content?: string; imageUrl?: string; videoUrl?: string }): Promise<Post> {
+    const [post] = await db.update(posts).set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(posts.id, id), eq(posts.userId, userId))).returning();
+    return post;
+  }
+
+  async addPostTip(postId: string, amount: number): Promise<void> {
+    await db.update(posts).set({
+      totalTipsReceived: sql`COALESCE(${posts.totalTipsReceived}, 0) + ${amount}`,
+    }).where(eq(posts.id, postId));
   }
 
   async deletePost(id: string, userId: string): Promise<void> {
@@ -1143,6 +1199,118 @@ export class DatabaseStorage implements IStorage {
 
   async getAllCreators(): Promise<User[]> {
     return await db.select().from(users).where(eq(users.userType, 'creator'));
+  }
+
+  // User Reviews
+  async getUserReviews(userId: string): Promise<(UserReview & { reviewer: Partial<User> })[]> {
+    const reviews = await db.select().from(userReviews).where(eq(userReviews.revieweeId, userId)).orderBy(desc(userReviews.createdAt));
+    const result: (UserReview & { reviewer: Partial<User> })[] = [];
+    for (const review of reviews) {
+      const [reviewer] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq(users.id, review.reviewerId));
+      result.push({ ...review, reviewer: reviewer || {} });
+    }
+    return result;
+  }
+
+  async createUserReview(review: { revieweeId: string; reviewerId: string; rating: number; comment?: string }): Promise<UserReview> {
+    const [newReview] = await db.insert(userReviews).values(review as any).returning();
+    return newReview;
+  }
+
+  // Subscriptions
+  async getUserSubscription(userId: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).orderBy(desc(subscriptions.createdAt)).limit(1);
+    return sub;
+  }
+
+  async createSubscription(sub: { userId: string; plan: string; amount: number; network: string; transactionHash?: string; paymentProof?: string }): Promise<Subscription> {
+    const [newSub] = await db.insert(subscriptions).values({ ...sub, amount: sub.amount.toString() } as any).returning();
+    return newSub;
+  }
+
+  async updateSubscriptionStatus(id: string, status: string, startDate?: Date, endDate?: Date): Promise<Subscription> {
+    const updates: any = { status, updatedAt: new Date() };
+    if (startDate) updates.startDate = startDate;
+    if (endDate) updates.endDate = endDate;
+    const [sub] = await db.update(subscriptions).set(updates).where(eq(subscriptions.id, id)).returning();
+    return sub;
+  }
+
+  async getExpiredSubscriptions(): Promise<Subscription[]> {
+    return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+
+  // Payout Requests
+  async getUserPayoutRequests(userId: string): Promise<PayoutRequest[]> {
+    return await db.select().from(payoutRequests).where(eq(payoutRequests.userId, userId)).orderBy(desc(payoutRequests.createdAt));
+  }
+
+  async getAllPayoutRequests(): Promise<(PayoutRequest & { user: Partial<User> })[]> {
+    const requests = await db.select().from(payoutRequests).orderBy(desc(payoutRequests.createdAt));
+    const result: (PayoutRequest & { user: Partial<User> })[] = [];
+    for (const req of requests) {
+      const [u] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq(users.id, req.userId));
+      result.push({ ...req, user: u || {} });
+    }
+    return result;
+  }
+
+  async createPayoutRequest(req: { userId: string; amount: number; network: string; walletAddress: string }): Promise<PayoutRequest> {
+    const [newReq] = await db.insert(payoutRequests).values({ ...req, amount: req.amount.toString() } as any).returning();
+    return newReq;
+  }
+
+  async updatePayoutRequest(id: string, updates: Partial<PayoutRequest>): Promise<PayoutRequest> {
+    const [req] = await db.update(payoutRequests).set({ ...updates, updatedAt: new Date() } as any).where(eq(payoutRequests.id, id)).returning();
+    return req;
+  }
+
+  async getPayoutMessages(payoutRequestId: string): Promise<(PayoutMessage & { sender: Partial<User> })[]> {
+    const msgs = await db.select().from(payoutMessages).where(eq(payoutMessages.payoutRequestId, payoutRequestId)).orderBy(payoutMessages.createdAt);
+    const result: (PayoutMessage & { sender: Partial<User> })[] = [];
+    for (const msg of msgs) {
+      const [u] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq(users.id, msg.senderId));
+      result.push({ ...msg, sender: u || {} });
+    }
+    return result;
+  }
+
+  async createPayoutMessage(payoutRequestId: string, senderId: string, content: string): Promise<PayoutMessage> {
+    const [msg] = await db.insert(payoutMessages).values({ payoutRequestId, senderId, content } as any).returning();
+    return msg;
+  }
+
+  // Referrals
+  async getReferralsByReferrer(referrerId: string): Promise<Referral[]> {
+    return await db.select().from(referrals).where(eq(referrals.referrerId, referrerId)).orderBy(desc(referrals.createdAt));
+  }
+
+  async createReferral(ref: { referrerId: string; referredId: string; referralType: string; referralCode: string }): Promise<Referral> {
+    const [newRef] = await db.insert(referrals).values(ref as any).returning();
+    return newRef;
+  }
+
+  async getUserByReferralCode(code: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCodeCreator, code));
+    if (user) return user;
+    const [brandUser] = await db.select().from(users).where(eq(users.referralCodeBrand, code));
+    return brandUser;
+  }
+
+  async getTopCreatorsByReferrals(limit: number = 10): Promise<any[]> {
+    const creators = await db.select().from(users)
+      .where(eq(users.userType, 'creator'))
+      .orderBy(desc(users.totalReferrals))
+      .limit(limit);
+    return creators.map(u => ({ ...u, password: undefined }));
+  }
+
+  async getTopCreatorsByActivity(limit: number = 10): Promise<any[]> {
+    const creators = await db.select().from(users)
+      .where(eq(users.userType, 'creator'))
+      .orderBy(desc(users.totalEarned))
+      .limit(limit);
+    return creators.map(u => ({ ...u, password: undefined }));
   }
 }
 

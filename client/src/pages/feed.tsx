@@ -181,6 +181,11 @@ function TipModal({ recipientId, recipientName, open, onClose }: {
   );
 }
 
+function extractYouTubeId(url: string): string {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/);
+  return match ? match[1] : url;
+}
+
 // ── Post Card ──────────────────────────────────────────────────────────────────
 function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }) {
   const { toast } = useToast();
@@ -189,6 +194,8 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);
   const [showTip, setShowTip] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
 
   const { data: comments = [], refetch: refetchComments } = useQuery<any[]>({
     queryKey: [`/api/posts/${post.id}/comments`],
@@ -221,6 +228,19 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
     onError: () => toast({ title: "Error", description: "Failed to post comment", variant: "destructive" }),
   });
 
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", `/api/posts/${post.id}`, { content: editContent });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      toast({ title: "Post updated!" });
+      setShowEditDialog(false);
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update post", variant: "destructive" }),
+  });
+
   const tier = getTierConfig((post.user?.creatorTier || "rising_sparks") as any);
 
   const handleShare = () => {
@@ -229,6 +249,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
   };
 
   const isSelf = currentUserId === post.user?.id;
+  const tipTotal = parseFloat(post.totalTipsReceived || "0");
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
@@ -287,6 +308,28 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
         </div>
       )}
 
+      {/* YouTube Embed */}
+      {post.videoUrl && extractYouTubeId(post.videoUrl) && (
+        <div className="px-4 pb-3">
+          <div className="aspect-video rounded-xl overflow-hidden bg-black">
+            <iframe
+              src={`https://www.youtube.com/embed/${extractYouTubeId(post.videoUrl)}`}
+              className="w-full h-full"
+              allowFullScreen
+              title="Post video"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Tips received banner */}
+      {tipTotal > 0 && (
+        <div className="mx-4 mb-3 px-3 py-2 bg-purple-50 border border-purple-100 rounded-xl flex items-center gap-2">
+          <Gift className="w-4 h-4 text-purple-500 flex-shrink-0" />
+          <span className="text-sm text-purple-700 font-medium">${tipTotal.toFixed(2)} in tips received</span>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="px-4 pb-3 border-t border-gray-50 pt-3 flex items-center gap-4">
         <button
@@ -327,6 +370,17 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
         >
           <Share2 className="w-4 h-4" />
         </button>
+
+        {/* Edit button - only show if own post */}
+        {isSelf && (
+          <button
+            onClick={() => { setEditContent(post.content); setShowEditDialog(true); }}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-blue-500 transition-colors"
+            data-testid={`edit-post-${post.id}`}
+          >
+            ✏️
+          </button>
+        )}
       </div>
 
       {/* Comments section */}
@@ -394,6 +448,37 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
           onClose={() => setShowTip(false)}
         />
       )}
+
+      {/* Edit Post Dialog */}
+      {showEditDialog && (
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Post</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={editContent}
+                onChange={e => setEditContent(e.target.value)}
+                rows={5}
+                className="resize-none"
+                data-testid="edit-post-content"
+              />
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+                <Button
+                  onClick={() => editMutation.mutate()}
+                  disabled={editMutation.isPending || !editContent.trim()}
+                  className="bg-black hover:bg-gray-900 text-white"
+                  data-testid="save-post-edit"
+                >
+                  {editMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -403,14 +488,47 @@ function CreatePost({ userId }: { userId: string }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [content, setContent] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [showVideoInput, setShowVideoInput] = useState(false);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/posts", { content });
-      return await res.json();
+      const formData = new FormData();
+      formData.append("content", content);
+      if (imageFile) formData.append("image", imageFile);
+      if (videoUrl.trim()) formData.append("videoUrl", videoUrl.trim());
+
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
     },
     onSuccess: () => {
       setContent("");
+      setImageFile(null);
+      setImagePreview(null);
+      setVideoUrl("");
+      setShowVideoInput(false);
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
       toast({ title: "Posted!", description: "Your update is now live" });
     },
@@ -435,17 +553,67 @@ function CreatePost({ userId }: { userId: string }) {
             onChange={(e) => setContent(e.target.value)}
             className="resize-none border-gray-200 rounded-xl text-sm focus:border-black transition-colors min-h-[80px]"
             rows={3}
+            data-testid="create-post-content"
           />
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-gray-400">{content.length}/500</span>
-            <Button
-              className="bg-black text-white hover:bg-gray-900 rounded-xl px-5 text-sm"
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !content.trim() || content.length > 500}
-            >
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Post
-            </Button>
+
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="relative mt-2">
+              <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-cover rounded-xl" />
+              <button
+                onClick={clearImage}
+                className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black"
+              >✕</button>
+            </div>
+          )}
+
+          {/* YouTube URL Input */}
+          {showVideoInput && (
+            <div className="mt-2 flex gap-2">
+              <Input
+                placeholder="Paste YouTube URL (https://youtube.com/...)"
+                value={videoUrl}
+                onChange={e => setVideoUrl(e.target.value)}
+                className="rounded-xl text-sm border-gray-200"
+                data-testid="create-post-video-url"
+              />
+              {videoUrl && extractYouTubeId(videoUrl) && (
+                <span className="text-green-500 text-xs self-center whitespace-nowrap">✓ Valid</span>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              {/* Image Upload */}
+              <label className="cursor-pointer flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors px-2 py-1 rounded-lg hover:bg-purple-50" data-testid="upload-image-btn">
+                📷
+                <span className="hidden sm:inline">Photo</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+              </label>
+
+              {/* YouTube Link Toggle */}
+              <button
+                onClick={() => setShowVideoInput(!showVideoInput)}
+                className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-lg ${showVideoInput ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'}`}
+                data-testid="add-video-btn"
+              >
+                ▶️ <span className="hidden sm:inline">YouTube</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">{content.length}/500</span>
+              <Button
+                className="bg-black text-white hover:bg-gray-900 rounded-xl px-5 text-sm"
+                onClick={() => createMutation.mutate()}
+                disabled={createMutation.isPending || !content.trim() || content.length > 500}
+                data-testid="create-post-submit"
+              >
+                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Post
+              </Button>
+            </div>
           </div>
         </div>
       </div>

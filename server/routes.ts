@@ -62,19 +62,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/posts', isAuthenticated, async (req: any, res) => {
+  app.post('/api/posts', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
-      const { content, imageUrl } = req.body;
+      const { content, imageUrl, videoUrl } = req.body;
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
       const { nanoid } = await import('nanoid');
       const id = `post_${nanoid()}`;
-      const post = await storage.createPost(id, req.user.id, content.trim(), imageUrl);
+      const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
+      const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       res.status(201).json(post);
     } catch (error) {
       console.error("Error creating post:", error);
       res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.patch('/api/posts/:id', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      const { content, imageUrl, videoUrl } = req.body;
+      const updates: any = {};
+      if (content !== undefined) updates.content = content;
+      if (req.file) updates.imageUrl = `/uploads/${req.file.filename}`;
+      else if (imageUrl !== undefined) updates.imageUrl = imageUrl;
+      if (videoUrl !== undefined) updates.videoUrl = videoUrl;
+      const post = await storage.updatePost(req.params.id, req.user.id, updates);
+      res.json(post);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update post" });
     }
   });
 
@@ -834,10 +850,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const messages = await storage.getUserMessages(userId);
       
-      // Enrich messages with sender information
+      // Enrich messages with sender and receiver information
       const enrichedMessages = await Promise.all(
         messages.map(async (message) => {
           const sender = await storage.getUserById(message.senderId);
+          const receiver = await storage.getUserById(message.receiverId);
           return {
             ...message,
             sender: sender ? {
@@ -846,7 +863,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lastName: sender.lastName,
               companyName: sender.companyName,
               userType: sender.userType,
-            } : null
+              username: sender.username,
+              profileImageUrl: sender.profileImageUrl,
+            } : null,
+            receiver: receiver ? {
+              id: receiver.id,
+              firstName: receiver.firstName,
+              lastName: receiver.lastName,
+              companyName: receiver.companyName,
+              userType: receiver.userType,
+              username: receiver.username,
+              profileImageUrl: receiver.profileImageUrl,
+            } : null,
           };
         })
       );
@@ -1766,19 +1794,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Brand profile routes
-  app.post('/api/users/:id/follow', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const brandId = req.params.id;
-      
-      // In a real implementation, this would add/remove the follow relationship
-      // For now, we'll just return success
-      res.json({ success: true, message: 'Follow status updated' });
-    } catch (error) {
-      console.error('Error updating follow status:', error);
-      res.status(500).json({ message: 'Failed to update follow status' });
-    }
-  });
 
   app.post('/api/users/:id/like', isAuthenticated, async (req: any, res) => {
     try {
@@ -1844,9 +1859,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/brand/reviews/:brandId', async (req, res) => {
     try {
-      const brandId = req.params.brandId;
-      // For now, return empty array - in real implementation would fetch from database
-      res.json([]);
+      const reviews = await storage.getUserReviews(req.params.brandId);
+      res.json(reviews);
     } catch (error) {
       console.error('Error fetching brand reviews:', error);
       res.status(500).json({ message: 'Failed to fetch brand reviews' });
@@ -1855,12 +1869,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/brand/reviews', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
       const { brandId, rating, comment } = req.body;
-      
-      // In a real implementation, this would create a review in the database
-      // For now, we'll just return success
-      res.json({ success: true, message: 'Review submitted successfully' });
+      const review = await storage.createUserReview({
+        revieweeId: brandId,
+        reviewerId: req.user.id,
+        rating: parseInt(rating),
+        comment,
+      });
+      res.json(review);
     } catch (error) {
       console.error('Error submitting review:', error);
       res.status(500).json({ message: 'Failed to submit review' });
@@ -2179,6 +2195,304 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating purchase:", error);
       res.status(500).json({ message: "Failed to update purchase" });
+    }
+  });
+
+  // ── Creator Public Profile ───────────────────────────────────────
+  app.get('/api/creators/:id/profile', async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ message: "Creator not found" });
+      const { password, ...safeUser } = user;
+      const posts = await storage.getUserPosts(req.params.id);
+      const reviews = await storage.getUserReviews(req.params.id);
+      const followers = await storage.getUserFollowers(req.params.id);
+      const following = await storage.getUserFollowing(req.params.id);
+      const participations = await storage.getUserParticipations(req.params.id);
+      res.json({ ...safeUser, posts, reviews, followers, following, participations });
+    } catch (error) {
+      console.error("Error fetching creator profile:", error);
+      res.status(500).json({ message: "Failed to fetch creator profile" });
+    }
+  });
+
+  // ── User Followers/Following ─────────────────────────────────────
+  app.get('/api/users/:id/followers', async (req, res) => {
+    try {
+      const followers = await storage.getUserFollowers(req.params.id);
+      res.json(followers.map(u => { const { password, ...safe } = u; return safe; }));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch followers" });
+    }
+  });
+
+  app.get('/api/users/:id/following', async (req, res) => {
+    try {
+      const following = await storage.getUserFollowing(req.params.id);
+      res.json(following.map(u => { const { password, ...safe } = u; return safe; }));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch following" });
+    }
+  });
+
+  // ── User Reviews ─────────────────────────────────────────────────
+  app.get('/api/users/:id/reviews', async (req, res) => {
+    try {
+      const reviews = await storage.getUserReviews(req.params.id);
+      res.json(reviews);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  app.post('/api/users/:id/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const { rating, comment } = req.body;
+      if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be 1-5" });
+      if (req.params.id === req.user.id) return res.status(400).json({ message: "Cannot review yourself" });
+      const review = await storage.createUserReview({
+        revieweeId: req.params.id,
+        reviewerId: req.user.id,
+        rating: parseInt(rating),
+        comment,
+      });
+      res.status(201).json(review);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create review" });
+    }
+  });
+
+  // ── Subscriptions ─────────────────────────────────────────────────
+  const PLANS = {
+    creator_monthly: 7,
+    creator_yearly: Math.round(7 * 12 * 0.85 * 100) / 100, // 15% discount
+    brand_monthly: 24,
+    brand_yearly: Math.round(24 * 12 * 0.85 * 100) / 100,
+  };
+
+  app.get('/api/subscriptions/my', isAuthenticated, async (req: any, res) => {
+    try {
+      const sub = await storage.getUserSubscription(req.user.id);
+      res.json(sub || null);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch subscription" });
+    }
+  });
+
+  app.post('/api/subscriptions', isAuthenticated, upload.single('paymentProof'), async (req: any, res) => {
+    try {
+      const { plan, network, transactionHash } = req.body;
+      const amount = PLANS[plan as keyof typeof PLANS];
+      if (!amount) return res.status(400).json({ message: "Invalid plan" });
+
+      const sub = await storage.createSubscription({
+        userId: req.user.id,
+        plan,
+        amount,
+        network,
+        transactionHash,
+        paymentProof: req.file ? `/uploads/${req.file.filename}` : undefined,
+      });
+
+      // Create a notification
+      await storage.createNotification({
+        userId: req.user.id,
+        type: 'subscription',
+        title: 'Subscription Submitted',
+        content: `Your ${plan.replace(/_/g, ' ')} subscription payment is being verified. You'll be notified when it's approved.`,
+        priority: 'normal',
+      });
+
+      res.status(201).json(sub);
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+
+  app.patch('/api/admin/subscriptions/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: "Admin only" });
+
+      const { plan } = req.body;
+      const now = new Date();
+      const isYearly = plan?.includes('yearly');
+      const endDate = new Date(now);
+      if (isYearly) endDate.setFullYear(endDate.getFullYear() + 1);
+      else endDate.setMonth(endDate.getMonth() + 1);
+
+      const sub = await storage.updateSubscriptionStatus(req.params.id, 'active', now, endDate);
+
+      // Update user subscription status
+      await storage.updateUserProfile(sub.userId, {
+        subscriptionStatus: 'active',
+        subscriptionPlan: sub.plan,
+        subscriptionEndDate: endDate,
+        isVerified: true,
+      });
+
+      await storage.createNotification({
+        userId: sub.userId,
+        type: 'subscription_approved',
+        title: 'Subscription Activated! ✅',
+        content: `Your subscription has been approved and is now active until ${endDate.toLocaleDateString()}.`,
+        priority: 'high',
+      });
+
+      res.json(sub);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to approve subscription" });
+    }
+  });
+
+  // ── Payout Requests ───────────────────────────────────────────────
+  app.get('/api/payout-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (user?.userType === 'admin') {
+        const requests = await storage.getAllPayoutRequests();
+        return res.json(requests);
+      }
+      const requests = await storage.getUserPayoutRequests(req.user.id);
+      res.json(requests);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch payout requests" });
+    }
+  });
+
+  app.post('/api/payout-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const { amount, network, walletAddress } = req.body;
+      const user = await storage.getUser(req.user.id);
+      
+      const parsedAmount = parseFloat(amount);
+      if (!parsedAmount || parsedAmount <= 0) return res.status(400).json({ message: "Invalid amount" });
+      if (parseFloat(user?.availableBalance || '0') < parsedAmount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      const request = await storage.createPayoutRequest({
+        userId: req.user.id,
+        amount: parsedAmount,
+        network,
+        walletAddress,
+      });
+
+      // Deduct from available balance
+      await storage.updateUserBalance(req.user.id, parsedAmount, 'subtract');
+
+      // Notify admins
+      const allUsers = await storage.getAllUsers();
+      const admins = allUsers.filter(u => u.userType === 'admin');
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'payout_request',
+          title: 'New Payout Request',
+          content: `${user?.firstName} ${user?.lastName} requested a payout of $${parsedAmount} via ${network}`,
+          priority: 'high',
+        });
+      }
+
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating payout request:", error);
+      res.status(500).json({ message: "Failed to create payout request" });
+    }
+  });
+
+  app.patch('/api/payout-requests/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: "Admin only" });
+
+      const { status, adminNotes, transactionHash } = req.body;
+      const request = await storage.updatePayoutRequest(req.params.id, { status, adminNotes, transactionHash } as any);
+
+      await storage.createNotification({
+        userId: request.userId,
+        type: 'payout_update',
+        title: `Payout ${status === 'completed' ? 'Completed! 🎉' : status === 'rejected' ? 'Rejected' : 'Processing'}`,
+        content: adminNotes || `Your payout request has been updated to: ${status}`,
+        priority: status === 'completed' ? 'high' : 'normal',
+      });
+
+      res.json(request);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update payout request" });
+    }
+  });
+
+  app.get('/api/payout-requests/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const msgs = await storage.getPayoutMessages(req.params.id);
+      res.json(msgs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post('/api/payout-requests/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const { content } = req.body;
+      const msg = await storage.createPayoutMessage(req.params.id, req.user.id, content);
+      // Get the payout request to notify the other party
+      const requests = await storage.getUserPayoutRequests(req.user.id);
+      res.status(201).json(msg);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // ── Referrals ─────────────────────────────────────────────────────
+  app.get('/api/referrals/my', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      const referrals = await storage.getReferralsByReferrer(req.user.id);
+      res.json({
+        referralCodeCreator: user?.referralCodeCreator,
+        referralCodeBrand: user?.referralCodeBrand,
+        totalReferrals: user?.totalReferrals || 0,
+        referrals,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch referrals" });
+    }
+  });
+
+  // ── Leaderboard ───────────────────────────────────────────────────
+  app.get('/api/leaderboard/referrals', async (req, res) => {
+    try {
+      const top = await storage.getTopCreatorsByReferrals(10);
+      res.json(top);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
+  app.get('/api/leaderboard/activity', async (req, res) => {
+    try {
+      const top = await storage.getTopCreatorsByActivity(10);
+      res.json(top);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
+  // ── Creator's Active Campaigns ────────────────────────────────────
+  app.get('/api/my-campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      const participations = await storage.getUserParticipations(req.user.id);
+      const approvedParticipations = participations.filter(p => p.status === 'approved' || p.status === 'completed');
+      const result = [];
+      for (const p of approvedParticipations) {
+        const campaign = await storage.getCampaignById(p.campaignId);
+        if (campaign) result.push({ ...p, campaign });
+      }
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch campaigns" });
     }
   });
 

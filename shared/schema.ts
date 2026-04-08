@@ -77,6 +77,17 @@ export const users = pgTable("users", {
   availableBalance: decimal("available_balance", { precision: 10, scale: 2 }).default("0.00"),
   pendingBalance: decimal("pending_balance", { precision: 10, scale: 2 }).default("0.00"),
   role: varchar("role").default("user"), // 'user' or 'admin'
+  // Subscription fields
+  subscriptionStatus: varchar("subscription_status").default("free"), // 'free', 'active', 'expired'
+  subscriptionPlan: varchar("subscription_plan"), // 'creator_monthly', 'creator_yearly', 'brand_monthly', 'brand_yearly'
+  subscriptionEndDate: timestamp("subscription_end_date"),
+  // Referral system
+  referralCodeCreator: varchar("referral_code_creator").unique(), // Code for inviting creators
+  referralCodeBrand: varchar("referral_code_brand").unique(), // Code for inviting brands
+  totalReferrals: integer("total_referrals").default(0),
+  // Brand ranking (for brands): 'bronze', 'silver', 'gold'
+  brandRank: varchar("brand_rank").default("bronze"),
+  totalTransactionVolume: decimal("total_transaction_volume", { precision: 12, scale: 2 }).default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -476,8 +487,10 @@ export const posts = pgTable("posts", {
   userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   imageUrl: varchar("image_url"),
+  videoUrl: varchar("video_url"),
   likeCount: integer("like_count").default(0),
   commentCount: integer("comment_count").default(0),
+  totalTipsReceived: decimal("total_tips_received", { precision: 10, scale: 2 }).default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -506,14 +519,91 @@ export const userFollows = pgTable("user_follows", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// User Reviews - star ratings and comments on any user profile
+export const userReviews = pgTable("user_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  revieweeId: varchar("reviewee_id").notNull().references(() => users.id), // Who is being reviewed
+  reviewerId: varchar("reviewer_id").notNull().references(() => users.id), // Who wrote the review
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Platform subscriptions
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  plan: varchar("plan").notNull(), // 'creator_monthly', 'creator_yearly', 'brand_monthly', 'brand_yearly'
+  status: varchar("status").notNull().default("pending"), // 'pending', 'active', 'expired', 'cancelled'
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  network: varchar("network", { length: 20 }), // 'tron', 'bsc', 'ton'
+  transactionHash: varchar("transaction_hash"),
+  paymentProof: varchar("payment_proof"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  autoRenew: boolean("auto_renew").default(true),
+  renewalReminderSent: boolean("renewal_reminder_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payout requests - influencer requesting payout to admin
+export const payoutRequests = pgTable("payout_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  network: varchar("network", { length: 20 }).notNull(), // 'tron', 'bsc', 'ton'
+  walletAddress: varchar("wallet_address").notNull(),
+  status: varchar("status").notNull().default("pending"), // 'pending', 'processing', 'completed', 'rejected'
+  adminNotes: text("admin_notes"),
+  transactionHash: varchar("transaction_hash"),
+  processedBy: varchar("processed_by").references(() => users.id),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Payout request messages for communication
+export const payoutMessages = pgTable("payout_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  payoutRequestId: varchar("payout_request_id").notNull().references(() => payoutRequests.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Referrals system
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id), // Who sent the referral
+  referredId: varchar("referred_id").notNull().references(() => users.id), // Who joined via referral
+  referralType: varchar("referral_type").notNull(), // 'creator' or 'brand'
+  referralCode: varchar("referral_code").notNull(), // The code used
+  status: varchar("status").notNull().default("pending"), // 'pending', 'converted', 'rewarded'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, updatedAt: true, likeCount: true, commentCount: true });
 export const insertPostCommentSchema = createInsertSchema(postComments).omit({ id: true, createdAt: true });
+export const insertUserReviewSchema = createInsertSchema(userReviews).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPayoutRequestSchema = createInsertSchema(payoutRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true });
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type PostLike = typeof postLikes.$inferSelect;
 export type PostComment = typeof postComments.$inferSelect;
 export type UserFollow = typeof userFollows.$inferSelect;
+export type UserReview = typeof userReviews.$inferSelect;
+export type InsertUserReview = z.infer<typeof insertUserReviewSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type PayoutRequest = typeof payoutRequests.$inferSelect;
+export type InsertPayoutRequest = z.infer<typeof insertPayoutRequestSchema>;
+export type PayoutMessage = typeof payoutMessages.$inferSelect;
+export type Referral = typeof referrals.$inferSelect;
 
 // Insert schemas for new payment tables
 export const insertPaymentDepositSchema = createInsertSchema(paymentDeposits).omit({

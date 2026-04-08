@@ -32,6 +32,17 @@ interface Message {
     lastName: string;
     companyName?: string;
     userType: 'brand' | 'creator';
+    username?: string;
+    profileImageUrl?: string;
+  };
+  receiver?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    companyName?: string;
+    userType: 'brand' | 'creator';
+    username?: string;
+    profileImageUrl?: string;
   };
 }
 
@@ -84,21 +95,23 @@ export default function ChatPage() {
     const conversationMap = new Map<string, Conversation>();
 
     allMessages.forEach((message) => {
-      const otherUserId = message.senderId === (user as any).id ? message.receiverId : message.senderId;
-      const otherUser = message.senderId === (user as any).id ? null : message.sender;
+      const currentUserId = (user as any).id;
+      const otherUserId = message.senderId === currentUserId ? message.receiverId : message.senderId;
+      const otherUser = message.senderId === currentUserId ? message.receiver : message.sender;
       
       if (!conversationMap.has(otherUserId)) {
-        const userName = otherUser?.userType === 'brand' 
-          ? (otherUser?.companyName || `${otherUser?.firstName} ${otherUser?.lastName}`)
-          : `${otherUser?.firstName} ${otherUser?.lastName}` || 'Unknown User';
+        const displayName = otherUser?.userType === 'brand' 
+          ? (otherUser?.companyName || `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || 'Unknown Brand')
+          : (`${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || otherUser?.username || 'Unknown User');
 
         conversationMap.set(otherUserId, {
           userId: otherUserId,
-          userName,
+          userName: displayName || 'Unknown User',
           userType: otherUser?.userType || 'creator',
           lastMessage: message.content,
           lastMessageTime: message.createdAt,
           unreadCount: message.isRead ? 0 : 1,
+          avatar: otherUser?.profileImageUrl,
         });
       } else {
         const conv = conversationMap.get(otherUserId)!;
@@ -264,19 +277,28 @@ export default function ChatPage() {
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      {conversations.find(c => c.userId === selectedConversation)?.userType === 'brand' ? '🏢' : '👤'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h2 className="font-medium text-gray-900">
-                      {conversations.find(c => c.userId === selectedConversation)?.userName}
-                    </h2>
-                    <p className="text-xs text-gray-500">
-                      {conversations.find(c => c.userId === selectedConversation)?.userType === 'brand' ? 'Brand' : 'Creator'}
-                    </p>
-                  </div>
+                  {(() => {
+                    const conv = conversations.find(c => c.userId === selectedConversation);
+                    const profileLink = conv?.userType === 'brand' ? `/brand/${selectedConversation}` : `/creators/${selectedConversation}`;
+                    return (
+                      <>
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={conv?.avatar} />
+                          <AvatarFallback>
+                            {conv?.userType === 'brand' ? '🏢' : (conv?.userName?.charAt(0) || '👤')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <a href={profileLink} className="font-medium text-gray-900 hover:underline">
+                            {conv?.userName || 'Unknown User'}
+                          </a>
+                          <p className="text-xs text-gray-500">
+                            {conv?.userType === 'brand' ? 'Brand' : 'Creator'} · <a href={profileLink} className="text-blue-500 hover:underline">View profile</a>
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Messages */}
