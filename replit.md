@@ -101,6 +101,17 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Campaign Creation Bug Fix**: Resolved deadline date format and requirements array mismatch issues
 ✓ **Homepage Navigation**: Added Home button in navigation for both influencers and brands
 
+## Messaging System Complete Overhaul (April 2026)
+
+✓ **Fixed double messages bug**: Backend now deduplicates thread messages — same sender+content within 10-second window → one message shown (was creating one DB record per recipient, showing N copies)
+✓ **Fixed admin/direct chat broken**: Thread query was `enabled: !!campaignId` so direct conversations never loaded; now thread works for both campaign threads AND direct conversations (admin support, DMs)
+✓ **Fixed reply for direct conversations**: Reply endpoint now handles `direct_xxx` conv keys (not just campaign IDs) — sends to the other party without broadcasting
+✓ **Fixed double-send prevention**: `sendingRef` guard prevents concurrent send mutations even if Enter is pressed while click is in flight
+✓ **Support ticket system**: New `POST /api/support-tickets` backend endpoint + "Support" dialog in messages UI with Normal/Urgent priority selector; tickets shown with amber styling in thread
+✓ **Brand broadcast control**: Brand users see a "send to all / send to one" dropdown in campaign threads; default is all participants, can narrow to a specific creator
+✓ **Clean UI rebuild**: Rebuilt messages.tsx from scratch — search bar, avatar stacks, conversation type badges (Campaign/Support/Direct), mobile-responsive back button, grouped send hint
+✓ **New Conversation dialog**: Recipient selector (from allowed contacts list), optional campaign attachment, subject + message fields
+
 ## Profile System & Sitewide Username Links (April 2026)
 
 ✓ **Brand Profile Redesign**: Completely rebuilt brand-profile.tsx with dark emerald/teal corporate design — hero banner, company logo, stats (campaigns/active/rating/followers), active campaigns grid, reviews sidebar, about section

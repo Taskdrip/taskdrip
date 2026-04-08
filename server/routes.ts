@@ -2656,72 +2656,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/conversations/:campaignId/thread — full message thread for a campaign
-  app.get('/api/conversations/:campaignId/thread', isAuthenticated, async (req: any, res) => {
+  // GET /api/conversations/:convKey/thread — handles campaign threads AND direct conversations
+  app.get('/api/conversations/:convKey/thread', isAuthenticated, async (req: any, res) => {
     try {
-      const { campaignId } = req.params;
+      const { convKey } = req.params;
       const userId = req.user.id;
       const isAdmin = req.user.userType === 'admin';
-      // Fetch all messages for this campaign
-      const threadMessages = await storage.getCampaignMessages(campaignId);
-      if (!isAdmin) {
-        // verify user is a participant
-        const isParticipant = threadMessages.some(m => m.senderId === userId || m.receiverId === userId);
-        if (!isParticipant) return res.status(403).json({ message: 'Not a participant in this conversation' });
+
+      let rawMessages: any[];
+
+      if (convKey.startsWith('direct_')) {
+        // Direct conversation between two users — extract user IDs from key
+        const parts = convKey.replace('direct_', '').split('_');
+        // The key is direct_${sorted user IDs joined by _} but user IDs themselves contain _
+        // So we query: messages where (senderId = userId AND receiverId = otherId) OR vice versa
+        // Since we only know the key, get all messages that include this user and no campaignId
+        rawMessages = await db.select().from(messages)
+          .where(sql`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`)
+          .orderBy(messages.createdAt);
+        // Filter to only messages that match both parties in the key
+        rawMessages = rawMessages.filter(m => {
+          const pair = `direct_${[m.senderId, m.receiverId].sort().join('_')}`;
+          return pair === convKey;
+        });
+      } else {
+        // Campaign thread
+        rawMessages = await storage.getCampaignMessages(convKey);
+        if (!isAdmin) {
+          const isParticipant = rawMessages.some(m => m.senderId === userId || m.receiverId === userId);
+          if (!isParticipant) return res.status(403).json({ message: 'Not a participant in this conversation' });
+        }
       }
+
       // Enrich with sender info
-      const enriched = await Promise.all(threadMessages.map(async (msg) => {
-        const sender = await storage.getUserById(msg.senderId);
-        return {
-          ...msg,
-          sender: sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType, companyName: sender.companyName, profileImageUrl: sender.profileImageUrl } : null,
-        };
+      const senderCache: Record<string, any> = {};
+      const enriched = await Promise.all(rawMessages.map(async (msg) => {
+        if (!senderCache[msg.senderId]) {
+          const sender = await storage.getUserById(msg.senderId);
+          senderCache[msg.senderId] = sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType, companyName: sender.companyName, profileImageUrl: sender.profileImageUrl } : null;
+        }
+        return { ...msg, sender: senderCache[msg.senderId] };
       }));
+
+      // Deduplicate: multiple DB records created for broadcast messages (one per recipient)
+      // Keep only the first occurrence of same sender+content within 10 seconds
+      const seen = new Set<string>();
+      const deduplicated = enriched.filter((msg) => {
+        const ts = Math.floor(new Date(msg.createdAt).getTime() / 10000); // 10-second buckets
+        const key = `${msg.senderId}__${msg.content}__${ts}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       // Mark messages as read
-      for (const msg of threadMessages) {
+      for (const msg of rawMessages) {
         if (msg.receiverId === userId && !msg.isRead) {
           await storage.markMessageAsRead(msg.id);
         }
       }
-      res.json(enriched.reverse());
+
+      res.json(deduplicated);
     } catch (error) {
       console.error('Error fetching thread:', error);
       res.status(500).json({ message: 'Failed to fetch thread' });
     }
   });
 
-  // POST /api/conversations/:campaignId/reply — send to all participants
-  app.post('/api/conversations/:campaignId/reply', isAuthenticated, async (req: any, res) => {
+  // POST /api/conversations/:convKey/reply — handles both campaign and direct conversations
+  app.post('/api/conversations/:convKey/reply', isAuthenticated, async (req: any, res) => {
     try {
-      const { campaignId } = req.params;
+      const { convKey } = req.params;
       const userId = req.user.id;
-      const { content, subject } = req.body;
-      if (!content) return res.status(400).json({ message: 'Content required' });
+      const { content, subject, targetUserId } = req.body;
+      if (!content?.trim()) return res.status(400).json({ message: 'Content required' });
 
-      const campaign = await storage.getCampaignById(campaignId);
+      if (convKey.startsWith('direct_')) {
+        // Direct message — find the other user from the conversation key
+        // key = direct_${[senderId, receiverId].sort().join('_')}
+        // We need to figure out who the other user is
+        // Query existing messages in this thread to find the other party
+        const existingMsgs = await db.select().from(messages)
+          .where(sql`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`)
+          .limit(10);
+        const matchMsg = existingMsgs.find(m => {
+          const pair = `direct_${[m.senderId, m.receiverId].sort().join('_')}`;
+          return pair === convKey;
+        });
+        const receiverId = matchMsg ? (matchMsg.senderId === userId ? matchMsg.receiverId : matchMsg.senderId) : null;
+        if (!receiverId) return res.status(404).json({ message: 'Conversation not found' });
+
+        const msg = await storage.createMessage({
+          senderId: userId,
+          receiverId,
+          subject: subject || 'Direct Message',
+          content: content.trim(),
+          messageType: 'general',
+          attachments: [],
+        });
+        await storage.createNotification({
+          userId: receiverId,
+          type: 'message',
+          title: `New message from ${req.user.firstName}`,
+          content: content.substring(0, 80),
+          actionUrl: `/messages`,
+          relatedId: msg.id,
+        });
+        return res.status(201).json(msg);
+      }
+
+      // Campaign broadcast reply
+      const campaign = await storage.getCampaignById(convKey);
       if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
 
-      // Find all participant IDs (brand + creators)
+      // Build recipient list
       const participantSet = new Set<string>();
-      participantSet.add(campaign.brandId); // brand
-      const participations = await storage.getCampaignParticipations(campaignId);
+      participantSet.add(campaign.brandId);
+      const participations = await storage.getCampaignParticipations(convKey);
       for (const p of participations) participantSet.add(p.userId);
-
-      // Admin is also a participant if they reply
       const admin = await storage.getAdminUser();
       if (admin) participantSet.add(admin.id);
 
-      // Remove self — send to everyone else
-      participantSet.delete(userId);
+      // If targetUserId is specified (brand sending to one creator only), restrict to just them
+      let recipients: string[];
+      if (targetUserId && participantSet.has(targetUserId)) {
+        recipients = [targetUserId];
+      } else {
+        participantSet.delete(userId);
+        recipients = Array.from(participantSet);
+      }
 
       const sent: any[] = [];
-      for (const receiverId of participantSet) {
+      for (const receiverId of recipients) {
         const msg = await storage.createMessage({
-          campaignId,
+          campaignId: convKey,
           senderId: userId,
           receiverId,
-          subject: subject || (campaign.title || 'Campaign Message'),
-          content,
+          subject: subject || campaign.title || 'Campaign Message',
+          content: content.trim(),
           messageType: req.user.userType === 'admin' ? 'admin_group' : 'general',
           attachments: [],
         });
@@ -2730,7 +2802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'message',
           title: `New message: ${campaign.title || 'Campaign'}`,
           content: `${req.user.firstName} ${req.user.lastName}: ${content.substring(0, 80)}`,
-          actionUrl: `/messages?campaign=${campaignId}`,
+          actionUrl: `/messages?campaign=${convKey}`,
           relatedId: msg.id,
         });
         sent.push(msg);
@@ -2739,6 +2811,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error sending reply:', error);
       res.status(500).json({ message: 'Failed to send reply' });
+    }
+  });
+
+  // POST /api/support-tickets — open a support ticket (sends message to admin with support type)
+  app.post('/api/support-tickets', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(404).json({ message: 'No admin available' });
+      const { subject, content, priority = 'normal' } = req.body;
+      if (!content?.trim()) return res.status(400).json({ message: 'Content required' });
+      const msg = await storage.createMessage({
+        senderId: req.user.id,
+        receiverId: admin.id,
+        subject: subject || 'Support Ticket',
+        content: `[${priority.toUpperCase()} PRIORITY] ${content.trim()}`,
+        messageType: 'support_ticket',
+        attachments: [],
+      });
+      await storage.createNotification({
+        userId: admin.id,
+        type: 'message',
+        title: `Support Ticket: ${subject || 'New request'}`,
+        content: `From ${req.user.firstName} ${req.user.lastName}: ${content.substring(0, 80)}`,
+        actionUrl: '/messages',
+        relatedId: msg.id,
+      });
+      res.status(201).json(msg);
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      res.status(500).json({ message: 'Failed to create support ticket' });
     }
   });
 
