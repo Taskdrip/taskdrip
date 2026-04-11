@@ -953,323 +953,288 @@ export default function AdminMaster() {
     transaction.status?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Computed stats
+  const totalCreators = (users as any[]).filter((u: any) => u.userType === 'creator').length;
+  const totalBrands = (users as any[]).filter((u: any) => u.userType === 'brand').length;
+  const verifiedCreators = (users as any[]).filter((u: any) => u.userType === 'creator' && u.isVerified).length;
+  const kycApproved = (users as any[]).filter((u: any) => u.isKycApproved).length;
+  const completedCampaigns = (campaigns as any[]).filter((c: any) => c.status === 'completed').length;
+  const pendingCampaigns = (campaigns as any[]).filter((c: any) => c.status === 'pending').length;
+  const totalEscrow = (escrowPayments as any[]).reduce((s: number, p: any) => s + parseFloat(p.amount || '0'), 0);
+  const publishedCourses = (courses as any[]).filter((c: any) => c.isPublished).length;
+  const publishedPosts = (blogPosts as any[]).filter((p: any) => p.isPublished || p.status === 'published').length;
+  const activeProducts = (shopProducts as any[]).filter((p: any) => p.isActive).length;
+
   return (
-    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#07070f] w-full overflow-x-hidden">
       <Navigation />
-      <div className="w-full max-w-full px-2 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 pb-20 overflow-x-hidden">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Master Admin Dashboard</h1>
-              <p className="text-gray-600">Complete platform management and oversight</p>
-            </div>
-          </div>
+      <div className="w-full max-w-full px-3 sm:px-5 lg:px-8 py-6 sm:py-8 pb-20 overflow-x-hidden">
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 w-full">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Users</p>
-                    <p className="text-2xl font-bold">{users.length}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-600" />
+        {/* ── HERO HEADER ── */}
+        <div className="relative rounded-3xl overflow-hidden mb-8 bg-gradient-to-br from-gray-900 via-purple-950/40 to-gray-900 border border-white/10">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(139,92,246,0.18),transparent_60%)]" />
+          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl" />
+          <div className="relative z-10 p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl flex-shrink-0">
+                  <Shield className="w-8 h-8 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Pending Payments</p>
-                    <p className="text-2xl font-bold text-yellow-600">{pendingPayments.length}</p>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-0.5 rounded-full">Admin Control Center</span>
+                    <span className="flex items-center gap-1 text-xs text-green-400 font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      All Systems Live
+                    </span>
                   </div>
-                  <DollarSign className="h-8 w-8 text-yellow-600" />
+                  <h1 className="text-2xl sm:text-3xl font-black text-white mb-0.5">Master Admin Dashboard</h1>
+                  <p className="text-gray-400 text-sm">Complete platform management — users, campaigns, payments, content</p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Unverified Users</p>
-                    <p className="text-2xl font-bold text-red-600">{unverifiedUsers.length}</p>
-                  </div>
-                  <AlertTriangle className="h-8 w-8 text-red-600" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Active Campaigns</p>
-                    <p className="text-2xl font-bold text-green-600">{activeCampaigns.length}</p>
-                  </div>
-                  <Target className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Mobile-responsive Search and Actions Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-            <div className="relative flex-1 sm:flex-none">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search users, campaigns, transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full sm:w-80"
-              />
-            </div>
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="flex-1 sm:flex-none">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Campaign
+              </div>
+              <div className="flex items-center gap-3">
+                <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 rounded-xl shadow-lg hover:opacity-90">
+                      <Plus className="h-4 w-4 mr-1.5" /> New Campaign
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+                <Button variant="outline" size="sm" className="rounded-xl border-white/20 text-white hover:bg-white/10 bg-white/5">
+                  <Download className="h-4 w-4 mr-1.5" /> Export
                 </Button>
-              </DialogTrigger>
-            </Dialog>
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
-            </Button>
+              </div>
+            </div>
+
+            {/* Top 4 hero stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-7">
+              {[
+                { label: "Total Users", value: users.length, sub: `${totalCreators} creators · ${totalBrands} brands`, icon: <Users className="w-5 h-5" />, color: "from-blue-500 to-cyan-500" },
+                { label: "Platform Revenue", value: `$${totalRevenue >= 1000 ? (totalRevenue/1000).toFixed(1)+'K' : totalRevenue.toFixed(0)}`, sub: `${(transactions as any[]).filter((t:any)=>t.status==='completed').length} completed txns`, icon: <DollarSign className="w-5 h-5" />, color: "from-green-500 to-emerald-500" },
+                { label: "Pending Actions", value: pendingPayments.length + unverifiedUsers.length, sub: `${pendingPayments.length} payments · ${unverifiedUsers.length} verifications`, icon: <Clock className="w-5 h-5" />, color: "from-orange-500 to-amber-500" },
+                { label: "Active Campaigns", value: activeCampaigns.length, sub: `${completedCampaigns} completed · ${pendingCampaigns} pending`, icon: <Target className="w-5 h-5" />, color: "from-purple-500 to-violet-600" },
+              ].map((s) => (
+                <div key={s.label} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white mb-3 shadow-lg`}>
+                    {s.icon}
+                  </div>
+                  <div className="text-2xl font-black text-white">{s.value}</div>
+                  <div className="text-xs text-gray-400 font-medium mt-0.5">{s.label}</div>
+                  <div className="text-xs text-gray-600 mt-1">{s.sub}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* ── SEARCH BAR ── */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+            <Input
+              placeholder="Search users, campaigns, transactions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-gray-900 border-gray-800 text-white placeholder:text-gray-600 rounded-xl focus-visible:ring-purple-500/40"
+            />
+          </div>
+          <Button variant="outline" size="sm" className="border-gray-800 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl bg-gray-900">
+            <Filter className="h-4 w-4 mr-2" /> Filters
+          </Button>
+        </div>
+
+        {/* ── MAIN CONTENT ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Mobile-responsive linear tab navigation */}
           <div className="w-full overflow-x-auto pb-2 mb-6">
-            <TabsList className="flex w-max min-w-full lg:grid lg:grid-cols-10 h-auto p-1 bg-muted rounded-lg gap-1">
-              <TabsTrigger value="overview" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <Shield className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Overview</span>
-              </TabsTrigger>
-              <TabsTrigger value="users" className="flex-shrink-0 min-w-[100px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <Users className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Users ({totalUsers})</span>
-              </TabsTrigger>
-              <TabsTrigger value="campaigns" className="flex-shrink-0 min-w-[100px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <Target className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Campaigns</span>
-              </TabsTrigger>
-              <TabsTrigger value="payments" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <DollarSign className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Payments</span>
-              </TabsTrigger>
-              <TabsTrigger value="feed" className="flex-shrink-0 min-w-[80px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <Send className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Feed</span>
-              </TabsTrigger>
-              <TabsTrigger value="blog" className="flex-shrink-0 min-w-[70px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <BookOpen className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Blog</span>
-              </TabsTrigger>
-              <TabsTrigger value="courses" className="flex-shrink-0 min-w-[100px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <GraduationCap className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">BreedSkool</span>
-              </TabsTrigger>
-              <TabsTrigger value="shop" className="flex-shrink-0 min-w-[70px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <ShoppingBag className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Shop</span>
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Analytics</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex-shrink-0 min-w-[80px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
-                <Settings className="h-3 w-3 lg:h-4 lg:w-4" />
-                <span className="text-xs lg:text-sm">Settings</span>
-              </TabsTrigger>
+            <TabsList className="flex w-max bg-gray-900 border border-gray-800 rounded-2xl p-1 gap-0.5 h-auto">
+              {[
+                { value: "overview", icon: <Shield className="h-3.5 w-3.5" />, label: "Overview" },
+                { value: "users", icon: <Users className="h-3.5 w-3.5" />, label: `Users (${totalUsers})` },
+                { value: "campaigns", icon: <Target className="h-3.5 w-3.5" />, label: "Campaigns" },
+                { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
+                { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
+                { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
+                { value: "courses", icon: <GraduationCap className="h-3.5 w-3.5" />, label: "BreedSkool" },
+                { value: "shop", icon: <ShoppingBag className="h-3.5 w-3.5" />, label: "Shop" },
+                { value: "analytics", icon: <TrendingUp className="h-3.5 w-3.5" />, label: "Analytics" },
+                { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap text-gray-500 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+                >
+                  {tab.icon}
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
-          <TabsContent value="overview" className="space-y-6 pb-8">
-            {/* Executive Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Revenue</p>
-                      <p className="text-xl font-bold text-green-600">${(totalRevenue / 1000000).toFixed(1)}M</p>
-                      <p className="text-xs text-green-500">+12% this month</p>
-                    </div>
-                    <TrendingUp className="h-8 w-8 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Active Users</p>
-                      <p className="text-2xl font-bold">{totalUsers}</p>
-                      <p className="text-xs text-blue-500">+5 new today</p>
-                    </div>
-                    <Users className="h-8 w-8 text-blue-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Pending Approvals</p>
-                      <p className="text-2xl font-bold text-orange-600">{pendingPayments.length + unverifiedUsers.length}</p>
-                      <p className="text-xs text-orange-500">Needs attention</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-orange-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Live Campaigns</p>
-                      <p className="text-2xl font-bold text-purple-600">{activeCampaigns.length}</p>
-                      <p className="text-xs text-purple-500">Currently running</p>
-                    </div>
-                    <Target className="h-8 w-8 text-purple-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Platform Status</p>
-                      <p className="text-lg font-bold text-green-600">Operational</p>
-                      <p className="text-xs text-green-500">All systems online</p>
-                    </div>
-                    <Activity className="h-8 w-8 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
+          <TabsContent value="overview" className="space-y-5 pb-8">
+
+            {/* ── ROW 1: 8 secondary KPI cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              {[
+                { label: "Creators", value: totalCreators, icon: "🎨", color: "border-orange-500/30 bg-orange-500/5" },
+                { label: "Brands", value: totalBrands, icon: "🏢", color: "border-blue-500/30 bg-blue-500/5" },
+                { label: "Verified", value: verifiedCreators, icon: "✅", color: "border-green-500/30 bg-green-500/5" },
+                { label: "KYC Done", value: kycApproved, icon: "🛡️", color: "border-teal-500/30 bg-teal-500/5" },
+                { label: "Blog Posts", value: publishedPosts, icon: "📝", color: "border-purple-500/30 bg-purple-500/5" },
+                { label: "Courses", value: publishedCourses, icon: "🎓", color: "border-violet-500/30 bg-violet-500/5" },
+                { label: "Products", value: activeProducts, icon: "📦", color: "border-pink-500/30 bg-pink-500/5" },
+                { label: "Enrollments", value: courseEnrollments.length, icon: "📚", color: "border-cyan-500/30 bg-cyan-500/5" },
+              ].map((s) => (
+                <div key={s.label} className={`rounded-2xl border ${s.color} p-3.5 text-center`}>
+                  <div className="text-2xl mb-1">{s.icon}</div>
+                  <div className="text-xl font-black text-white">{s.value}</div>
+                  <div className="text-xs text-gray-500 font-medium">{s.label}</div>
+                </div>
+              ))}
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            {/* ── ROW 2: Priority Actions + Recent Activity ── */}
+            <div className="grid lg:grid-cols-3 gap-5">
+
               {/* Priority Actions */}
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-orange-500" />
-                    Priority Actions Required
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-3xl p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                    <AlertTriangle className="h-4 w-4 text-orange-400" />
+                  </div>
+                  <h3 className="font-bold text-white">Priority Actions Required</h3>
+                  {(pendingPayments.length + unverifiedUsers.length) > 0 && (
+                    <span className="ml-auto text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-0.5">
+                      {pendingPayments.length + unverifiedUsers.length} pending
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3">
                   {pendingPayments.length > 0 && (
-                    <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+                    <div className="flex items-center justify-between p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
                       <div className="flex items-center gap-3">
-                        <DollarSign className="h-5 w-5 text-yellow-600" />
+                        <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                          <DollarSign className="h-5 w-5 text-yellow-400" />
+                        </div>
                         <div>
-                          <p className="font-medium text-yellow-800">{pendingPayments.length} Pending Payments</p>
-                          <p className="text-sm text-yellow-600">Total: ${pendingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0).toFixed(2)}</p>
+                          <p className="font-semibold text-yellow-200 text-sm">{pendingPayments.length} Pending Payments</p>
+                          <p className="text-xs text-yellow-500 mt-0.5">Total: ${(pendingPayments as any[]).reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0).toFixed(2)} awaiting approval</p>
                         </div>
                       </div>
-                      <Button size="sm" onClick={() => setActiveTab('payments')}>Review</Button>
+                      <Button size="sm" onClick={() => setActiveTab('payments')} className="bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 border border-yellow-500/30 rounded-xl text-xs">Review</Button>
                     </div>
                   )}
-                  
                   {unverifiedUsers.length > 0 && (
-                    <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-l-4 border-red-400">
+                    <div className="flex items-center justify-between p-4 bg-red-500/10 rounded-2xl border border-red-500/20">
                       <div className="flex items-center gap-3">
-                        <UserCheck className="h-5 w-5 text-red-600" />
+                        <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                          <UserCheck className="h-5 w-5 text-red-400" />
+                        </div>
                         <div>
-                          <p className="font-medium text-red-800">{unverifiedUsers.length} Unverified Users</p>
-                          <p className="text-sm text-red-600">Awaiting identity verification</p>
+                          <p className="font-semibold text-red-200 text-sm">{unverifiedUsers.length} Unverified Users</p>
+                          <p className="text-xs text-red-500 mt-0.5">Awaiting identity verification</p>
                         </div>
                       </div>
-                      <Button size="sm" onClick={() => setActiveTab('users')}>Review</Button>
+                      <Button size="sm" onClick={() => setActiveTab('users')} className="bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-xs">Review</Button>
                     </div>
                   )}
-                  
-                  {pendingPayments.length === 0 && unverifiedUsers.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
-                      <p>All tasks completed!</p>
-                      <p className="text-sm">No pending actions require attention.</p>
+                  {pendingCampaigns > 0 && (
+                    <div className="flex items-center justify-between p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <Target className="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-blue-200 text-sm">{pendingCampaigns} Campaigns Pending</p>
+                          <p className="text-xs text-blue-500 mt-0.5">Awaiting activation or review</p>
+                        </div>
+                      </div>
+                      <Button size="sm" onClick={() => setActiveTab('campaigns')} className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-xs">Review</Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                  {pendingPayments.length === 0 && unverifiedUsers.length === 0 && pendingCampaigns === 0 && (
+                    <div className="text-center py-10">
+                      <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-3">
+                        <CheckCircle className="h-7 w-7 text-green-400" />
+                      </div>
+                      <p className="text-white font-semibold">All Clear!</p>
+                      <p className="text-sm text-gray-500 mt-1">No pending actions require attention</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Platform health strip */}
+                <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-800">
+                  <div className="text-center">
+                    <div className="text-sm font-black text-green-400">Operational</div>
+                    <div className="text-xs text-gray-600 mt-0.5">Platform Status</div>
+                  </div>
+                  <div className="text-center border-x border-gray-800">
+                    <div className="text-sm font-black text-white">{totalUsers > 0 ? Math.round((verifiedCreators / Math.max(totalCreators,1)) * 100) : 0}%</div>
+                    <div className="text-xs text-gray-600 mt-0.5">Verification Rate</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-black text-white">${totalEscrow >= 1000 ? (totalEscrow/1000).toFixed(1)+'K' : totalEscrow.toFixed(0)}</div>
+                    <div className="text-xs text-gray-600 mt-0.5">In Escrow</div>
+                  </div>
+                </div>
+              </div>
 
               {/* Recent Activity */}
-              <Card className="h-fit">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {users.slice(-8).map((user: any, idx: number) => (
-                      <div key={`user-${idx}`} className="flex items-center gap-3 py-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">New registration: {user.email}</p>
-                          <p className="text-xs text-gray-500">Just now</p>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {campaigns.slice(-4).map((campaign: any, idx: number) => (
-                      <div key={`campaign-${idx}`} className="flex items-center gap-3 py-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">Campaign: {campaign.title}</p>
-                          <p className="text-xs text-gray-500">Recently created</p>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {transactions.slice(-3).map((transaction: any, idx: number) => (
-                      <div key={`transaction-${idx}`} className="flex items-center gap-3 py-2">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          transaction.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
-                        }`}></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">${transaction.amount} {transaction.type}</p>
-                          <p className="text-xs text-gray-500">{transaction.status}</p>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {users.length === 0 && campaigns.length === 0 && transactions.length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        <Activity className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                        <p>No recent activity</p>
-                        <p className="text-sm">Activity will appear here as users interact with the platform</p>
-                      </div>
-                    )}
+              <div className="bg-gray-900 border border-gray-800 rounded-3xl p-6 flex flex-col">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                    <Activity className="h-4 w-4 text-purple-400" />
                   </div>
-                </CardContent>
-              </Card>
+                  <h3 className="font-bold text-white">Recent Activity</h3>
+                </div>
+                <div className="space-y-0 flex-1 overflow-y-auto max-h-72">
+                  {[
+                    ...(users as any[]).slice(-6).map((u: any) => ({ type: 'user', label: `${u.email || 'New user'} joined`, sub: u.userType, dot: 'bg-blue-500' })),
+                    ...(campaigns as any[]).slice(-4).map((c: any) => ({ type: 'campaign', label: c.title, sub: `Campaign · ${c.status}`, dot: 'bg-purple-500' })),
+                    ...(transactions as any[]).slice(-4).map((t: any) => ({ type: 'txn', label: `$${parseFloat(t.amount || '0').toFixed(2)} ${t.type || 'payment'}`, sub: t.status, dot: t.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500' })),
+                  ].slice(0, 10).map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-3 py-2.5 border-b border-gray-800/60 last:border-0">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${item.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-300 truncate">{item.label}</p>
+                        <p className="text-xs text-gray-600 capitalize">{item.sub}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {(users as any[]).length === 0 && (campaigns as any[]).length === 0 && (
+                    <div className="text-center py-8 text-gray-600">
+                      <Activity className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No activity yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* ── ROW 3: Module Overview Cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { label: "Users Tab", icon: <Users className="w-5 h-5" />, value: `${totalUsers} total`, color: "from-blue-600 to-blue-700", tab: "users" },
+                { label: "Campaigns", icon: <Target className="w-5 h-5" />, value: `${campaigns.length} total`, color: "from-purple-600 to-violet-700", tab: "campaigns" },
+                { label: "Payments", icon: <Wallet className="w-5 h-5" />, value: `${transactions.length} txns`, color: "from-green-600 to-emerald-700", tab: "payments" },
+                { label: "Blog", icon: <BookOpen className="w-5 h-5" />, value: `${blogPosts.length} posts`, color: "from-pink-600 to-rose-700", tab: "blog" },
+                { label: "BreedSkool", icon: <GraduationCap className="w-5 h-5" />, value: `${courses.length} courses`, color: "from-violet-600 to-purple-700", tab: "courses" },
+                { label: "Shop", icon: <ShoppingBag className="w-5 h-5" />, value: `${shopProducts.length} products`, color: "from-orange-600 to-amber-700", tab: "shop" },
+              ].map((m) => (
+                <button
+                  key={m.tab}
+                  onClick={() => setActiveTab(m.tab)}
+                  className={`rounded-2xl bg-gradient-to-br ${m.color} p-4 text-left hover:opacity-90 hover:scale-[1.02] transition-all group shadow-lg`}
+                >
+                  <div className="text-white mb-3">{m.icon}</div>
+                  <div className="text-white font-black text-lg leading-none">{m.value}</div>
+                  <div className="text-white/70 text-xs mt-1 font-medium">{m.label}</div>
+                  <div className="text-white/40 text-xs mt-2 group-hover:text-white/60 transition-colors">Click to manage →</div>
+                </button>
+              ))}
+            </div>
+
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
