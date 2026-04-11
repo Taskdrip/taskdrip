@@ -13,48 +13,60 @@ import {
 
 const TIERS = [
   {
+    key: "rising_sparks",
     name: "Rising Sparks",
     range: "10K – 100K",
-    gradient: "from-orange-400 to-amber-500",
-    bg: "from-orange-50 to-amber-50",
-    border: "border-orange-200",
-    text: "text-orange-700",
+    gradient: "from-orange-500 to-amber-400",
+    glow: "shadow-orange-500/30",
+    accent: "text-orange-400",
+    border: "border-orange-500/30",
+    pill: "bg-orange-500/20 text-orange-300 border-orange-500/30",
     icon: "🔥",
-    desc: "Emerging creators building their audience",
-    img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&q=80&auto=format&fit=crop"
+    desc: "Emerging creators building loyal, engaged audiences from the ground up.",
+    stat: "10K+ creators",
+    img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&q=80&auto=format&fit=crop"
   },
   {
+    key: "growth_engines",
     name: "Growth Engines",
     range: "100K – 1M",
-    gradient: "from-blue-500 to-cyan-500",
-    bg: "from-blue-50 to-cyan-50",
-    border: "border-blue-200",
-    text: "text-blue-700",
+    gradient: "from-cyan-500 to-blue-500",
+    glow: "shadow-cyan-500/30",
+    accent: "text-cyan-400",
+    border: "border-cyan-500/30",
+    pill: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
     icon: "⚡",
-    desc: "Fast-growing influencers with strong engagement",
-    img: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&q=80&auto=format&fit=crop"
+    desc: "Fast-rising influencers with high engagement rates and growing brand deals.",
+    stat: "Strong ROI",
+    img: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80&auto=format&fit=crop"
   },
   {
+    key: "power_influencers",
     name: "Power Influencers",
     range: "1M – 10M",
-    gradient: "from-purple-500 to-violet-600",
-    bg: "from-purple-50 to-violet-50",
-    border: "border-purple-200",
-    text: "text-purple-700",
+    gradient: "from-violet-600 to-purple-500",
+    glow: "shadow-purple-500/30",
+    accent: "text-purple-400",
+    border: "border-purple-500/30",
+    pill: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     icon: "💎",
-    desc: "Premium influencers with massive reach",
-    img: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=400&q=80&auto=format&fit=crop"
+    desc: "Premium creators with massive reach and proven campaign performance.",
+    stat: "Top earners",
+    img: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=600&q=80&auto=format&fit=crop"
   },
   {
+    key: "global_titans",
     name: "Global Titans",
     range: "10M+",
-    gradient: "from-yellow-500 to-orange-500",
-    bg: "from-yellow-50 to-orange-50",
-    border: "border-yellow-200",
-    text: "text-yellow-700",
+    gradient: "from-yellow-400 to-orange-500",
+    glow: "shadow-yellow-500/30",
+    accent: "text-yellow-400",
+    border: "border-yellow-500/30",
+    pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
     icon: "👑",
-    desc: "World-class creators with global impact",
-    img: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&q=80&auto=format&fit=crop"
+    desc: "World-class celebrities and icons with global cultural influence.",
+    stat: "Elite access",
+    img: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&q=80&auto=format&fit=crop"
   }
 ];
 
@@ -331,32 +343,87 @@ export default function FinalLanding() {
       </section>
 
       {/* ── CREATOR TIERS ── */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <Badge className="mb-4 bg-purple-100 text-purple-700 border-purple-200 px-4 py-1.5">Influencer Tiers</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">Every Creator Has a Tier</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our smart system auto-classifies creators by total followers across TikTok, YouTube, Instagram, Twitch, and more. Higher tier = bigger campaigns.
+      <section className="py-24 bg-gray-950 relative overflow-hidden">
+        {/* Background glows */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,40,200,0.06),transparent_70%)] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm font-semibold mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+              Influencer Tiers
+            </div>
+            <h2 className="text-4xl md:text-6xl font-black text-white mb-5 leading-tight tracking-tight">
+              Every Creator Has a{" "}
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 text-transparent bg-clip-text">Tier</span>
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+              Our smart system auto-classifies creators by total followers across TikTok, YouTube, Instagram, Twitch, and more.{" "}
+              <span className="text-white font-semibold">Higher tier = bigger campaigns.</span>
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          {/* Tier Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {TIERS.map((tier) => (
-              <div key={tier.name} className={`rounded-2xl border-2 ${tier.border} bg-gradient-to-br ${tier.bg} overflow-hidden hover:shadow-xl transition-all group`}>
-                <div className="relative h-36 overflow-hidden">
-                  <img src={tier.img} alt={tier.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className={`absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-50`} />
-                  <div className="absolute top-3 left-3 text-3xl">{tier.icon}</div>
-                  <div className={`absolute bottom-3 right-3 text-xs font-bold px-2 py-1 rounded-full bg-gradient-to-r ${tier.gradient} text-white shadow-lg`}>
-                    {tier.range}
+              <Link key={tier.key} href={`/creators?tier=${tier.key}`}>
+                <div className={`group relative rounded-3xl border ${tier.border} bg-gray-900/60 backdrop-blur overflow-hidden cursor-pointer hover:-translate-y-2 hover:shadow-2xl ${tier.glow} transition-all duration-300`}>
+                  {/* Top image with gradient overlay */}
+                  <div className="relative h-44 overflow-hidden">
+                    <img
+                      src={tier.img}
+                      alt={tier.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className={`absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent`} />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-20 group-hover:opacity-30 transition-opacity`} />
+                    {/* Icon badge */}
+                    <div className="absolute top-4 left-4">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${tier.gradient} flex items-center justify-center text-2xl shadow-xl`}>
+                        {tier.icon}
+                      </div>
+                    </div>
+                    {/* Range pill */}
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full border text-xs font-bold ${tier.pill}`}>
+                      {tier.range}
+                    </div>
+                  </div>
+
+                  {/* Card body */}
+                  <div className="p-5">
+                    <h3 className={`text-lg font-black text-white mb-1.5 group-hover:${tier.accent} transition-colors`}>{tier.name}</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-4">{tier.desc}</p>
+
+                    {/* Divider */}
+                    <div className={`h-px bg-gradient-to-r ${tier.gradient} opacity-20 mb-4`} />
+
+                    {/* CTA Button */}
+                    <div className={`flex items-center justify-between`}>
+                      <span className={`text-xs font-semibold ${tier.accent} uppercase tracking-wider`}>{tier.stat}</span>
+                      <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r ${tier.gradient} text-white text-xs font-bold shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all`}>
+                        Browse
+                        <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="p-5">
-                  <h3 className={`font-bold ${tier.text} text-base mb-1`}>{tier.name}</h3>
-                  <p className="text-sm text-gray-600">{tier.desc}</p>
-                </div>
-              </div>
+              </Link>
             ))}
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="mt-14 text-center">
+            <p className="text-gray-500 text-sm mb-4">Not sure which tier fits you?</p>
+            <Link href="/creators">
+              <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl px-8 py-5 text-sm font-bold backdrop-blur transition-all hover:scale-105">
+                Browse All Influencers →
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

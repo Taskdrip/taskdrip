@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
@@ -10,9 +10,9 @@ import { getTierConfig, formatFollowers, NICHES, TIER_ORDER, TIER_CONFIG, type C
 import {
   Search, MapPin, Star, MessageSquare, Users, ExternalLink, ChevronRight,
   ArrowLeft, Trophy, TrendingUp, CheckCircle, Zap, DollarSign, BarChart3,
-  Globe, LayoutGrid, List, SlidersHorizontal, X, Award
+  Globe, LayoutGrid, List, SlidersHorizontal, X, Award, Filter, Flame, Crown
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
 const PLATFORMS = ["All", "TikTok", "YouTube", "Instagram", "Twitter", "Twitch", "Telegram"];
@@ -301,12 +301,28 @@ function CreatorCard({ creator, rank }: { creator: any; rank: number }) {
 /* ─── Main Page ─── */
 export default function Creators() {
   const { isAuthenticated } = useAuth();
-  const [activeTier, setActiveTier] = useState<CreatorTier | null>(null);
+  const searchStr = useSearch();
+  const params = new URLSearchParams(searchStr);
+  const urlTier = params.get("tier") as CreatorTier | null;
+  const urlNiche = params.get("niche") || "all";
+  const urlSort = params.get("sort") || "followers";
+
+  const [activeTier, setActiveTier] = useState<CreatorTier | null>(
+    urlTier && TIER_ORDER.includes(urlTier) ? urlTier : null
+  );
   const [search, setSearch] = useState("");
-  const [niche, setNiche] = useState("all");
+  const [niche, setNiche] = useState(urlNiche);
   const [platform, setPlatform] = useState("All");
-  const [sortBy, setSortBy] = useState("followers");
+  const [sortBy, setSortBy] = useState(urlSort);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    if (urlTier && TIER_ORDER.includes(urlTier)) {
+      setActiveTier(urlTier);
+    }
+    if (urlNiche && urlNiche !== "all") setNiche(urlNiche);
+    if (urlSort) setSortBy(urlSort);
+  }, [searchStr]);
 
   const { data: tierData = {}, isLoading } = useQuery<Record<string, any[]>>({
     queryKey: ["/api/creators/by-tier"],
