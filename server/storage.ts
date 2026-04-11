@@ -75,6 +75,10 @@ import {
   type CourseEnrollment,
   type CourseReview,
   type CourseComment,
+  paymentMethods,
+  platformSettings,
+  type PaymentMethod,
+  type InsertPaymentMethod,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -165,6 +169,15 @@ export interface IStorage {
 
   // Admin wallet operations
   getActiveAdminWallets(): Promise<AdminWallet[]>;
+
+  // Payment methods (unified: crypto, bank, paypal, paystack, stripe)
+  getAllPaymentMethods(): Promise<PaymentMethod[]>;
+  getActivePaymentMethods(): Promise<PaymentMethod[]>;
+  createPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
+  updatePaymentMethod(id: string, data: Partial<InsertPaymentMethod>): Promise<PaymentMethod>;
+  deletePaymentMethod(id: string): Promise<void>;
+  getPlatformSetting(key: string): Promise<string | null>;
+  setPlatformSetting(key: string, value: string): Promise<void>;
 
   // Social feed operations
   getFeed(limit?: number, offset?: number): Promise<(Post & { user: Partial<User> })[]>;
@@ -1561,6 +1574,41 @@ export class DatabaseStorage implements IStorage {
   async createCourseMessage(data: { courseId: string; senderId: string; message: string }): Promise<any> {
     const [msg] = await db.insert(courseMessages).values(data).returning();
     return msg;
+  }
+
+  async getAllPaymentMethods(): Promise<PaymentMethod[]> {
+    return await db.select().from(paymentMethods).orderBy(paymentMethods.sortOrder, paymentMethods.createdAt);
+  }
+
+  async getActivePaymentMethods(): Promise<PaymentMethod[]> {
+    return await db.select().from(paymentMethods)
+      .where(eq(paymentMethods.isActive, true))
+      .orderBy(paymentMethods.sortOrder, paymentMethods.createdAt);
+  }
+
+  async createPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
+    const [method] = await db.insert(paymentMethods).values({ ...data, id: crypto.randomUUID() }).returning();
+    return method;
+  }
+
+  async updatePaymentMethod(id: string, data: Partial<InsertPaymentMethod>): Promise<PaymentMethod> {
+    const [method] = await db.update(paymentMethods).set({ ...data, updatedAt: new Date() }).where(eq(paymentMethods.id, id)).returning();
+    return method;
+  }
+
+  async deletePaymentMethod(id: string): Promise<void> {
+    await db.delete(paymentMethods).where(eq(paymentMethods.id, id));
+  }
+
+  async getPlatformSetting(key: string): Promise<string | null> {
+    const [row] = await db.select().from(platformSettings).where(eq(platformSettings.key, key));
+    return row?.value ?? null;
+  }
+
+  async setPlatformSetting(key: string, value: string): Promise<void> {
+    await db.insert(platformSettings)
+      .values({ id: crypto.randomUUID(), key, value, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: platformSettings.key, set: { value, updatedAt: new Date() } });
   }
 
   async getReferralStats(): Promise<any> {

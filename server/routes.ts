@@ -42,6 +42,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Payment Methods (unified: crypto, bank, paypal, paystack, stripe) ──
+  // Public: active payment methods for checkout display
+  app.get('/api/payment-methods', async (_req, res) => {
+    try {
+      const methods = await storage.getActivePaymentMethods();
+      res.json(methods);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  // Admin: all payment methods
+  app.get('/api/admin/payment-methods', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const methods = await storage.getAllPaymentMethods();
+      res.json(methods);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  // Admin: create payment method
+  app.post('/api/admin/payment-methods', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const method = await storage.createPaymentMethod(req.body);
+      res.json(method);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: "Failed to create payment method" });
+    }
+  });
+
+  // Admin: update payment method
+  app.patch('/api/admin/payment-methods/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const method = await storage.updatePaymentMethod(req.params.id, req.body);
+      res.json(method);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to update payment method" });
+    }
+  });
+
+  // Admin: delete payment method
+  app.delete('/api/admin/payment-methods/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deletePaymentMethod(req.params.id);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: "Failed to delete payment method" });
+    }
+  });
+
+  // Admin: seed demo campaigns (idempotent)
+  app.post('/api/admin/seed-demo-campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const existing = await storage.getAllCampaigns();
+      if (existing.length > 0) return res.json({ message: 'Campaigns already exist', count: existing.length });
+      const demos = [
+        { title: "Promote Our New Gaming App — TikTok/YouTube Review", description: "Create a 60-second TikTok or YouTube review of our gaming app. Show gameplay, highlight features, and include our download link in bio. Authentic reviews preferred.", category: "gaming", platform: "TikTok", brandName: "NovaByte Gaming", brandId: admin.id, reward: "120.00", totalSlots: 50, status: "active", isActive: true, requirements: ["Minimum 5K followers", "Post must stay live for 30 days", "Include #NovaByteGaming hashtag", "Submit proof screenshot"] },
+        { title: "Instagram Reel for Premium Skincare Launch", description: "Create a 30-second Instagram Reel showcasing our new skincare product. Morning routine integration preferred. Product will be shipped to you.", category: "beauty", platform: "Instagram", brandName: "GlowLab Beauty", brandId: admin.id, reward: "85.00", totalSlots: 30, status: "active", isActive: true, requirements: ["Beauty/lifestyle niche", "Minimum 3K followers", "Tag @glowlabbeauty in post", "Reels format only"] },
+        { title: "Fitness Challenge — 7-Day Transformation Campaign", description: "Join our 7-day fitness challenge and document your journey. Post daily stories + one main feed post. Share honest results and experiences.", category: "fitness", platform: "YouTube", brandName: "PeakFit Pro", brandId: admin.id, reward: "200.00", totalSlots: 100, status: "active", isActive: true, requirements: ["Fitness/health niche", "Minimum 10K followers", "Post 7 consecutive stories", "Include affiliate link in bio"] },
+        { title: "Tech Unboxing — Latest Wireless Earbuds Review", description: "Unbox and review our premium wireless earbuds. Test sound quality, battery life, and comfort. Share your honest opinion with your audience.", category: "tech", platform: "YouTube", brandName: "SoundWave Tech", brandId: admin.id, reward: "150.00", totalSlots: 40, status: "active", isActive: true, requirements: ["Tech niche preferred", "Minimum 15K YouTube subscribers", "Video must be 5+ minutes", "Sound quality comparison included"] },
+        { title: "Travel Vlog Feature — Luxury Resort Partnership", description: "Feature our luxury resort in your next travel vlog. We cover accommodation for 3 nights + pay the campaign reward. Stunning coastal location.", category: "travel", platform: "YouTube", brandName: "Horizon Escapes", brandId: admin.id, reward: "350.00", totalSlots: 15, status: "active", isActive: true, requirements: ["Travel niche creators only", "Minimum 50K followers", "Professional video quality", "At least 8-minute vlog feature"] },
+        { title: "Food Reel Campaign — Healthy Meal Delivery App", description: "Create a food reel featuring our healthy meal delivery service. Show the ordering process, delivery, and taste test reaction. Fun and authentic content wins!", category: "food", platform: "Instagram", brandName: "FreshDrop", brandId: admin.id, reward: "75.00", totalSlots: 80, status: "active", isActive: true, requirements: ["Food/lifestyle niche", "Minimum 2K followers", "Must show app ordering process", "Include discount code in caption"] },
+      ];
+      const created = [];
+      for (const demo of demos) {
+        const campaign = await storage.createCampaign(demo as any);
+        created.push(campaign);
+      }
+      res.json({ message: 'Demo campaigns created', count: created.length });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: "Failed to seed demo campaigns" });
+    }
+  });
+
   // Social Feed routes
   app.get('/api/feed', async (req, res) => {
     try {

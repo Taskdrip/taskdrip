@@ -35,10 +35,10 @@ const CATEGORY_FALLBACK_IMAGES: Record<string, string> = {
   general: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop",
 };
 
-const WALLETS = [
-  { network: "usdt_tron", label: "USDT (TRC20)", address: "TYourTronWalletAddress" },
-  { network: "usdt_bsc", label: "USDT (BEP20)", address: "0xYourBSCWalletAddress" },
-  { network: "ton", label: "TON", address: "YourTONWalletAddress" },
+const FALLBACK_PAYMENT_METHODS = [
+  { id: "f1", type: "crypto", label: "USDT TRC-20", network: "TRC-20", currency: "USDT", address: "" },
+  { id: "f2", type: "crypto", label: "USDT BEP-20", network: "BEP-20", currency: "USDT", address: "" },
+  { id: "f3", type: "crypto", label: "TON", network: "TON", currency: "TON", address: "" },
 ];
 
 function StarRating({ rating, interactive = false, onRate }: { rating: number; interactive?: boolean; onRate?: (r: number) => void }) {
@@ -346,7 +346,7 @@ export default function BreedSkoolCourse() {
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStep, setEnrollStep] = useState<"choose" | "pay" | "confirm" | "done">("choose");
-  const [paymentMethod, setPaymentMethod] = useState("usdt_tron");
+  const [paymentMethodId, setPaymentMethodId] = useState("");
   const [txHash, setTxHash] = useState("");
   const [paymentProof, setPaymentProof] = useState("");
   const [proofUrl, setProofUrl] = useState("");
@@ -400,11 +400,18 @@ export default function BreedSkoolCourse() {
     enabled: isAuthenticated,
   });
 
+  const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods"],
+  });
+
+  const paymentMethods = (paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_PAYMENT_METHODS) as any[];
+  const selectedMethod = paymentMethods.find((m: any) => m.id === paymentMethodId) || paymentMethods[0];
+
   const enrollMutation = useMutation({
     mutationFn: async () => {
       const payload = course?.isFree
         ? { paymentMethod: "free" }
-        : { paymentMethod, transactionHash: txHash, paymentProof };
+        : { paymentMethod: selectedMethod?.label || paymentMethodId, transactionHash: txHash, paymentProof: proofUrl || paymentProof };
       const res = await apiRequest("POST", `/api/courses/${id}/enroll`, payload);
       return res.json();
     },
@@ -487,7 +494,6 @@ export default function BreedSkoolCourse() {
   const isInstructor = (user as any)?.id === course.instructorId || (user as any)?.userType === "admin" || (user as any)?.role === "admin";
   const whatYouLearn = Array.isArray(course.whatYouLearn) ? course.whatYouLearn : [];
   const requirements = Array.isArray(course.requirements) ? course.requirements : [];
-  const selectedWallet = WALLETS.find(w => w.network === paymentMethod);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -880,28 +886,35 @@ export default function BreedSkoolCourse() {
               </div>
             )}
 
-            {/* Step: Choose network */}
+            {/* Step: Choose payment method */}
             {!course?.isFree && enrollStep === "choose" && (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600 mb-4">Select your payment network for <span className="font-bold text-gray-900">${course?.price} USDT</span></p>
-                {WALLETS.map((w) => (
-                  <button key={w.network} onClick={() => setPaymentMethod(w.network)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
-                      paymentMethod === w.network ? "border-violet-500 bg-violet-50 shadow-md" : "border-gray-100 bg-gray-50 hover:border-violet-200"
-                    }`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
-                      w.network === "usdt_tron" ? "bg-red-100" : w.network === "usdt_bsc" ? "bg-yellow-100" : "bg-blue-100"
-                    }`}>
-                      {w.network === "usdt_tron" ? "⚡" : w.network === "usdt_bsc" ? "🔶" : "💎"}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-semibold text-gray-900 text-sm">{w.label}</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === w.network ? "border-violet-600 bg-violet-600" : "border-gray-300"}`}>
-                      {paymentMethod === w.network && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                  </button>
-                ))}
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 mb-3">Select payment method for <span className="font-bold text-gray-900">${course?.price} USDT</span></p>
+                {paymentMethods.map((m: any) => {
+                  const typeIcons: Record<string, string> = { crypto: "🪙", bank: "🏦", paypal: "🅿️", paystack: "🟢", stripe: "💳" };
+                  const typeColors: Record<string, string> = { crypto: "bg-orange-100", bank: "bg-blue-100", paypal: "bg-sky-100", paystack: "bg-green-100", stripe: "bg-purple-100" };
+                  const isSelected = paymentMethodId === m.id || (!paymentMethodId && paymentMethods[0]?.id === m.id);
+                  return (
+                    <button key={m.id} onClick={() => setPaymentMethodId(m.id)}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${isSelected ? "border-violet-500 bg-violet-50 shadow-md" : "border-gray-100 bg-gray-50 hover:border-violet-200"}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${typeColors[m.type] || "bg-gray-100"}`}>
+                        {typeIcons[m.type] || "💳"}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-gray-900 text-sm">{m.label}</p>
+                        <p className="text-xs text-gray-500 capitalize">
+                          {m.type === 'crypto' ? `${m.network || ''} · ${m.currency || ''}` :
+                           m.type === 'bank' ? `${m.bankName || 'Bank Transfer'} · ${m.bankCountry || ''}` :
+                           m.type === 'paypal' ? `${m.paypalEmail || 'PayPal'}` :
+                           m.type === 'paystack' ? 'Paystack Gateway' : 'Stripe Gateway'}
+                        </p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-violet-600 bg-violet-600" : "border-gray-300"}`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                    </button>
+                  );
+                })}
                 <Button className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white mt-2"
                   onClick={() => setEnrollStep("pay")}>
                   Continue <ChevronRight className="h-4 w-4 ml-1" />
@@ -909,29 +922,84 @@ export default function BreedSkoolCourse() {
               </div>
             )}
 
-            {/* Step: Payment address */}
+            {/* Step: Payment details */}
             {!course?.isFree && enrollStep === "pay" && (
               <div className="space-y-4">
                 <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 flex justify-between items-center">
                   <div>
                     <p className="text-xs text-violet-600">Amount to send</p>
-                    <p className="text-2xl font-extrabold text-gray-900">${course?.price} <span className="text-sm text-gray-500">USDT</span></p>
+                    <p className="text-2xl font-extrabold text-gray-900">${course?.price} <span className="text-sm text-gray-500">{selectedMethod?.currency || "USDT"}</span></p>
                   </div>
-                  <Badge className="bg-violet-100 text-violet-700">{selectedWallet?.label}</Badge>
+                  <Badge className="bg-violet-100 text-violet-700">{selectedMethod?.label}</Badge>
                 </div>
-                <div className="bg-gray-900 rounded-2xl p-4">
-                  <p className="text-gray-400 text-xs mb-2">Send to this address:</p>
-                  <code className="text-green-400 font-mono text-sm break-all leading-relaxed block mb-3">{selectedWallet?.address}</code>
-                  <button onClick={() => { navigator.clipboard.writeText(selectedWallet?.address || ""); setCopiedAddr(true); setTimeout(() => setCopiedAddr(false), 2000); toast({ title: "Copied!" }); }}
-                    className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors ${copiedAddr ? "bg-green-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>
-                    {copiedAddr ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                    {copiedAddr ? "Copied!" : "Copy address"}
-                  </button>
-                </div>
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
-                  <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700">Send only {selectedWallet?.network?.includes("tron") ? "TRC-20" : selectedWallet?.network?.includes("bsc") ? "BEP-20" : "TON"} tokens. Other tokens will be permanently lost.</p>
-                </div>
+
+                {selectedMethod?.type === 'crypto' && (
+                  <div className="bg-gray-900 rounded-2xl p-4">
+                    <p className="text-gray-400 text-xs mb-1">Send to this address:</p>
+                    {selectedMethod.network && <p className="text-gray-500 text-xs mb-2">Network: <span className="text-gray-300">{selectedMethod.network}</span></p>}
+                    {selectedMethod.address ? (
+                      <>
+                        <code className="text-green-400 font-mono text-sm break-all leading-relaxed block mb-3">{selectedMethod.address}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(selectedMethod.address); setCopiedAddr(true); setTimeout(() => setCopiedAddr(false), 2000); toast({ title: "Copied!" }); }}
+                          className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors ${copiedAddr ? "bg-green-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>
+                          {copiedAddr ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          {copiedAddr ? "Copied!" : "Copy address"}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-yellow-400 text-xs">⚠️ Wallet address not configured. Contact admin.</p>
+                    )}
+                  </div>
+                )}
+
+                {selectedMethod?.type === 'bank' && (
+                  <div className="bg-blue-950 rounded-2xl p-4 space-y-2">
+                    <p className="text-blue-200 text-xs font-semibold mb-2">Bank Transfer Details</p>
+                    {selectedMethod.bankName && <div className="flex justify-between text-sm"><span className="text-gray-400">Bank</span><span className="text-white">{selectedMethod.bankName}</span></div>}
+                    {selectedMethod.accountName && <div className="flex justify-between text-sm"><span className="text-gray-400">Name</span><span className="text-white">{selectedMethod.accountName}</span></div>}
+                    {selectedMethod.accountNumber && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">Account</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-mono">{selectedMethod.accountNumber}</span>
+                          <button onClick={() => { navigator.clipboard.writeText(selectedMethod.accountNumber); setCopiedAddr(true); setTimeout(() => setCopiedAddr(false), 2000); toast({ title: "Copied!" }); }} className="p-1 rounded bg-blue-900 text-blue-300">
+                            {copiedAddr ? <CheckCircle2 className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {selectedMethod.bankCountry && <div className="flex justify-between text-sm"><span className="text-gray-400">Country</span><span className="text-white">{selectedMethod.bankCountry}</span></div>}
+                    {selectedMethod.swiftCode && <div className="flex justify-between text-sm"><span className="text-gray-400">SWIFT</span><span className="text-white font-mono">{selectedMethod.swiftCode}</span></div>}
+                  </div>
+                )}
+
+                {selectedMethod?.type === 'paypal' && (
+                  <div className="bg-sky-900 rounded-2xl p-4">
+                    <p className="text-sky-200 text-xs mb-2">Send ${course?.price} via PayPal to:</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-semibold">{selectedMethod.paypalEmail}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(selectedMethod.paypalEmail); toast({ title: "Copied!" }); }} className="p-1 rounded bg-sky-800 text-sky-300">
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <p className="text-sky-300 text-xs mt-2">Use "Friends & Family". Include your email in the note.</p>
+                  </div>
+                )}
+
+                {(selectedMethod?.type === 'paystack' || selectedMethod?.type === 'stripe') && (
+                  <div className="bg-purple-900 rounded-2xl p-4 text-center">
+                    <p className="text-white font-semibold mb-1">Pay via {selectedMethod.type === 'paystack' ? 'Paystack' : 'Stripe'}</p>
+                    <p className="text-purple-200 text-xs">You'll be redirected to complete payment securely.</p>
+                  </div>
+                )}
+
+                {selectedMethod?.instructions && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                    <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700">{selectedMethod.instructions}</p>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => setEnrollStep("choose")}>← Back</Button>
                   <Button className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
@@ -943,16 +1011,18 @@ export default function BreedSkoolCourse() {
             {/* Step: Confirm */}
             {!course?.isFree && enrollStep === "confirm" && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Paste your transaction hash to verify your payment</p>
+                <p className="text-sm text-gray-600">Provide your payment reference to verify your enrollment</p>
                 <div>
-                  <Label className="text-sm font-semibold mb-1.5 block">Transaction Hash <span className="text-red-500">*</span></Label>
+                  <Label className="text-sm font-semibold mb-1.5 block">
+                    {selectedMethod?.type === 'bank' ? 'Transfer Reference' : selectedMethod?.type === 'paypal' ? 'PayPal Transaction ID' : 'Transaction Hash'} <span className="text-red-500">*</span>
+                  </Label>
                   <Input value={txHash} onChange={(e) => setTxHash(e.target.value)}
-                    placeholder="0x... or TXid..." className="font-mono text-sm h-11 bg-gray-50" />
+                    placeholder={selectedMethod?.type === 'bank' ? 'Enter reference number...' : '0x... or TXid...'} className="font-mono text-sm h-11 bg-gray-50" />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold mb-1.5 block">Proof Link <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
+                  <Label className="text-sm font-semibold mb-1.5 block">Payment Screenshot / Proof <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
                   <Input value={paymentProof} onChange={(e) => setPaymentProof(e.target.value)}
-                    placeholder="Screenshot URL, proof link..." className="text-sm h-11 bg-gray-50" />
+                    placeholder="Screenshot URL or proof link..." className="text-sm h-11 bg-gray-50" />
                 </div>
                 <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
                   <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />

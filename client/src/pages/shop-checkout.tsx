@@ -11,21 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Shield, Copy, CheckCircle, AlertCircle, Package,
   ArrowLeft, Lock, Zap, ChevronRight, Upload, Star,
-  PartyPopper, Download, Mail,
+  PartyPopper, Download, Building2, Wallet,
 } from "lucide-react";
 import type { ShopProduct } from "@shared/schema";
-
-const WALLETS = [
-  { network: "tron", label: "USDT TRC-20", sublabel: "Tron Network", icon: "⚡", color: "from-red-500 to-orange-500" },
-  { network: "bsc", label: "USDT BEP-20", sublabel: "BNB Chain", icon: "🔶", color: "from-yellow-500 to-amber-500" },
-  { network: "ton", label: "TON", sublabel: "TON Network", icon: "💎", color: "from-blue-500 to-cyan-500" },
-];
-
-const WALLET_ADDRESSES: Record<string, string> = {
-  tron: "TYourTronWalletAddress",
-  bsc: "0xYourBSCWalletAddress",
-  ton: "YourTONWalletAddress",
-};
 
 type Step = "summary" | "payment" | "confirm" | "success";
 
@@ -99,7 +87,7 @@ function ProofUpload({ onUpload }: { onUpload: (url: string) => void }) {
       ) : (
         <>
           <Upload className="h-5 w-5 mx-auto mb-1 text-gray-300" />
-          <p className="text-sm text-gray-500">{uploading ? "Uploading..." : "Upload payment screenshot (optional)"}</p>
+          <p className="text-sm text-gray-500">{uploading ? "Uploading..." : "Upload payment screenshot"}</p>
           <p className="text-xs text-gray-400 mt-0.5">Click or drag image here</p>
         </>
       )}
@@ -109,6 +97,134 @@ function ProofUpload({ onUpload }: { onUpload: (url: string) => void }) {
   );
 }
 
+function MethodIcon({ method }: { method: any }) {
+  const typeIcons: Record<string, string> = {
+    crypto: "🪙", bank: "🏦", paypal: "🅿️", paystack: "🟢", stripe: "💳",
+  };
+  const typeColors: Record<string, string> = {
+    crypto: "from-orange-400 to-amber-500",
+    bank: "from-blue-500 to-indigo-600",
+    paypal: "from-sky-400 to-blue-500",
+    paystack: "from-green-400 to-emerald-500",
+    stripe: "from-purple-500 to-violet-600",
+  };
+  return (
+    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${typeColors[method.type] || "from-gray-400 to-gray-500"} flex items-center justify-center text-xl flex-shrink-0 shadow-md`}>
+      {typeIcons[method.type] || "💳"}
+    </div>
+  );
+}
+
+function MethodDetails({ method, amount }: { method: any; amount: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (method.type === 'crypto') {
+    return (
+      <div className="bg-gray-900 rounded-2xl p-5 mt-4">
+        <p className="text-gray-400 text-xs mb-1">
+          Send exactly <span className="text-white font-bold">${amount}</span>{method.currency ? ` ${method.currency}` : " USDT"} to:
+        </p>
+        {method.network && (
+          <p className="text-gray-500 text-xs mb-2">Network: <span className="text-gray-300">{method.network}</span></p>
+        )}
+        {method.address && (
+          <div className="flex items-center gap-3 mt-2">
+            <code className="text-green-400 font-mono text-sm flex-1 break-all leading-relaxed">{method.address}</code>
+            <button
+              onClick={() => copyText(method.address)}
+              className={`flex-shrink-0 p-2 rounded-lg transition-colors ${copied ? "bg-green-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+            >
+              {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
+        {method.instructions && (
+          <div className="mt-3 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-amber-300 text-xs">{method.instructions}</p>
+          </div>
+        )}
+        {!method.address && (
+          <p className="text-yellow-400 text-xs mt-2">⚠️ Admin wallet address not configured yet. Contact support.</p>
+        )}
+      </div>
+    );
+  }
+
+  if (method.type === 'bank') {
+    return (
+      <div className="bg-blue-950 rounded-2xl p-5 mt-4 space-y-2">
+        <p className="text-blue-200 text-xs font-semibold mb-2">Bank Transfer Details — Send ${amount}</p>
+        {method.bankName && <div className="flex justify-between text-sm"><span className="text-gray-400">Bank</span><span className="text-white font-medium">{method.bankName}</span></div>}
+        {method.accountName && <div className="flex justify-between text-sm"><span className="text-gray-400">Account Name</span><span className="text-white font-medium">{method.accountName}</span></div>}
+        {method.accountNumber && (
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-400">Account No.</span>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-mono font-medium">{method.accountNumber}</span>
+              <button onClick={() => copyText(method.accountNumber)} className="p-1 rounded bg-blue-900 text-blue-300 hover:bg-blue-800">
+                {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              </button>
+            </div>
+          </div>
+        )}
+        {method.bankCurrency && <div className="flex justify-between text-sm"><span className="text-gray-400">Currency</span><span className="text-white">{method.bankCurrency}</span></div>}
+        {method.swiftCode && <div className="flex justify-between text-sm"><span className="text-gray-400">SWIFT</span><span className="text-white font-mono">{method.swiftCode}</span></div>}
+        {method.routingNumber && <div className="flex justify-between text-sm"><span className="text-gray-400">Routing</span><span className="text-white font-mono">{method.routingNumber}</span></div>}
+        {method.bankCountry && <div className="flex justify-between text-sm"><span className="text-gray-400">Country</span><span className="text-white">{method.bankCountry}</span></div>}
+        {method.instructions && <p className="text-amber-300 text-xs mt-2 pt-2 border-t border-blue-900">{method.instructions}</p>}
+      </div>
+    );
+  }
+
+  if (method.type === 'paypal') {
+    return (
+      <div className="bg-sky-900 rounded-2xl p-5 mt-4">
+        <p className="text-sky-200 text-xs mb-2">Send ${amount} via PayPal to:</p>
+        {method.paypalEmail && (
+          <div className="flex items-center gap-3">
+            <span className="text-white font-semibold">{method.paypalEmail}</span>
+            <button onClick={() => copyText(method.paypalEmail)} className="p-1 rounded bg-sky-800 text-sky-300 hover:bg-sky-700">
+              {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </button>
+          </div>
+        )}
+        <p className="text-sky-300 text-xs mt-2">Use "Friends & Family" to avoid fees. Include your email in the note.</p>
+        {method.instructions && <p className="text-amber-300 text-xs mt-2">{method.instructions}</p>}
+      </div>
+    );
+  }
+
+  if (method.type === 'paystack' || method.type === 'stripe') {
+    return (
+      <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-5 mt-4 text-center">
+        <div className="text-4xl mb-2">{method.type === 'paystack' ? '🟢' : '💳'}</div>
+        <p className="text-white font-semibold mb-1">Pay ${amount} via {method.type === 'paystack' ? 'Paystack' : 'Stripe'}</p>
+        <p className="text-purple-200 text-xs">You'll be redirected to complete your payment securely.</p>
+        {method.instructions && <p className="text-amber-300 text-xs mt-2">{method.instructions}</p>}
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-green-300">
+          <Shield className="h-3 w-3" /> Secured & encrypted payment
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// Fallback payment methods if admin hasn't configured any
+const FALLBACK_METHODS = [
+  { id: "f1", type: "crypto", label: "USDT TRC-20", network: "TRC-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
+  { id: "f2", type: "crypto", label: "USDT BEP-20", network: "BEP-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
+  { id: "f3", type: "crypto", label: "TON", network: "TON", currency: "TON", address: "", instructions: "Contact admin for wallet address" },
+];
+
 export default function ShopCheckout() {
   const [, params] = useRoute("/shop/checkout/:id");
   const [, setLocation] = useLocation();
@@ -117,27 +233,38 @@ export default function ShopCheckout() {
 
   const productId = params?.id;
   const [step, setStep] = useState<Step>("summary");
-  const [network, setNetwork] = useState("tron");
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [txHash, setTxHash] = useState("");
   const [proofUrl, setProofUrl] = useState("");
   const [proofText, setProofText] = useState("");
   const [purchaseId, setPurchaseId] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const { data: product, isLoading } = useQuery<ShopProduct>({
     queryKey: ["/api/shop/products", productId],
     enabled: !!productId,
   });
 
+  const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods"],
+  });
+
+  const paymentMethods = paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_METHODS;
+  const selectedMethod = paymentMethods.find((m: any) => m.id === selectedMethodId) || paymentMethods[0];
+
+  if (!selectedMethodId && paymentMethods.length > 0 && !selectedMethodId) {
+    // Will be set on first render via the useEffect equivalent
+  }
+
   const purchaseMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/shop/purchase", {
         productId: product!.id,
         amount: product!.price,
-        currency: "USDT",
-        network,
+        currency: selectedMethod?.currency || "USDT",
+        network: selectedMethod?.network || selectedMethod?.type || "crypto",
         transactionHash: txHash,
         paymentProof: proofUrl || proofText,
+        paymentMethod: selectedMethod?.label || "Crypto",
       });
       return res.json();
     },
@@ -166,13 +293,6 @@ export default function ShopCheckout() {
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
-
-  const copyAddress = () => {
-    navigator.clipboard.writeText(WALLET_ADDRESSES[network]);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Address copied!" });
-  };
 
   if (!isAuthenticated) {
     return (
@@ -232,11 +352,9 @@ export default function ShopCheckout() {
                       <Badge variant="outline" className="text-xs">{product.type}</Badge>
                     </div>
                   </div>
-                  {product.featuredImage && (
-                    <Package className="h-8 w-8 text-violet-400 flex-shrink-0" />
-                  )}
+                  {!product.featuredImage && <Package className="h-8 w-8 text-violet-400 flex-shrink-0" />}
                 </div>
-                <p className="text-sm text-gray-500 leading-relaxed mb-4">{product.shortDescription || product.description.slice(0, 150)}...</p>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{product.shortDescription || product.description?.slice(0, 150)}...</p>
                 {product.features && (product.features as string[]).length > 0 && (
                   <div className="space-y-1.5">
                     {(product.features as string[]).slice(0, 4).map((f, i) => (
@@ -316,55 +434,53 @@ export default function ShopCheckout() {
           <div className="max-w-lg mx-auto space-y-5">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Choose Payment Method</h2>
-              <p className="text-gray-500 text-sm mt-1">Select your preferred crypto network to pay <span className="font-semibold text-gray-800">${product.price} USDT</span></p>
+              <p className="text-gray-500 text-sm mt-1">Select how you'd like to pay <span className="font-semibold text-gray-800">${product.price} USDT</span></p>
             </div>
 
-            <div className="space-y-3">
-              {WALLETS.map((w) => (
-                <button
-                  key={w.network}
-                  onClick={() => setNetwork(w.network)}
-                  className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
-                    network === w.network
-                      ? "border-violet-500 bg-violet-50 shadow-md shadow-violet-100"
-                      : "border-gray-100 bg-white hover:border-violet-200 hover:shadow-sm"
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${w.color} flex items-center justify-center text-xl flex-shrink-0`}>
-                    {w.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{w.label}</p>
-                    <p className="text-xs text-gray-500">{w.sublabel}</p>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${network === w.network ? "border-violet-600 bg-violet-600" : "border-gray-300"}`}>
-                    {network === w.network && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-gray-900 rounded-2xl p-5">
-              <p className="text-gray-400 text-xs mb-1">Send exactly <span className="text-white font-bold">${product.price} USDT</span> to:</p>
-              <div className="flex items-center gap-3 mt-2">
-                <code className="text-green-400 font-mono text-sm flex-1 break-all leading-relaxed">
-                  {WALLET_ADDRESSES[network]}
-                </code>
-                <button
-                  onClick={copyAddress}
-                  className={`flex-shrink-0 p-2 rounded-lg transition-colors ${copied ? "bg-green-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
-                >
-                  {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </button>
+            {paymentMethods.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">
+                <Wallet className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                <p>No payment methods configured yet.</p>
+                <p className="text-sm">Please contact the admin to set up payment options.</p>
               </div>
-              <div className="mt-3 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-amber-300 text-xs">Send only {network === "tron" ? "TRC-20" : network === "bsc" ? "BEP-20" : "TON"} tokens. Other tokens will be lost.</p>
+            ) : (
+              <div className="space-y-3">
+                {paymentMethods.map((m: any) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMethodId(m.id)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                      (selectedMethodId === m.id || (!selectedMethodId && paymentMethods[0]?.id === m.id))
+                        ? "border-violet-500 bg-violet-50 shadow-md shadow-violet-100"
+                        : "border-gray-100 bg-white hover:border-violet-200 hover:shadow-sm"
+                    }`}
+                  >
+                    <MethodIcon method={m} />
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{m.label}</p>
+                      <p className="text-xs text-gray-500 capitalize">
+                        {m.type === 'crypto' ? `${m.network || ''} · ${m.currency || 'Crypto'}` :
+                         m.type === 'bank' ? `${m.bankName || 'Bank Transfer'} · ${m.bankCurrency || m.bankCountry || ''}` :
+                         m.type === 'paypal' ? `PayPal · ${m.paypalEmail || ''}` :
+                         m.type === 'paystack' ? 'Paystack Payment Gateway' :
+                         'Stripe Payment Gateway'}
+                      </p>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${(selectedMethodId === m.id || (!selectedMethodId && paymentMethods[0]?.id === m.id)) ? "border-violet-600 bg-violet-600" : "border-gray-300"}`}>
+                      {(selectedMethodId === m.id || (!selectedMethodId && paymentMethods[0]?.id === m.id)) && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                  </button>
+                ))}
               </div>
-            </div>
+            )}
 
-            <Button className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 shadow-lg shadow-violet-200"
-              onClick={() => setStep("confirm")}>
+            {selectedMethod && <MethodDetails method={selectedMethod} amount={product.price} />}
+
+            <Button
+              className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 shadow-lg shadow-violet-200"
+              onClick={() => setStep("confirm")}
+              disabled={paymentMethods.length === 0}
+            >
               I've Sent the Payment <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -375,7 +491,7 @@ export default function ShopCheckout() {
           <div className="max-w-lg mx-auto space-y-5">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Confirm Your Payment</h2>
-              <p className="text-gray-500 text-sm mt-1">Paste your transaction hash so we can verify your payment quickly</p>
+              <p className="text-gray-500 text-sm mt-1">Provide your transaction details so we can verify quickly</p>
             </div>
 
             {/* Payment recap */}
@@ -386,26 +502,34 @@ export default function ShopCheckout() {
                   <p className="text-2xl font-extrabold text-gray-900">${product.price} <span className="text-sm font-normal text-gray-500">USDT</span></p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500">Network</p>
-                  <Badge className="bg-violet-100 text-violet-700">{WALLETS.find(w => w.network === network)?.label}</Badge>
+                  <p className="text-xs text-gray-500">Payment via</p>
+                  <Badge className="bg-violet-100 text-violet-700">{selectedMethod?.label || "Crypto"}</Badge>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
               <div>
-                <Label className="text-sm font-semibold text-gray-900 mb-2 block">Transaction Hash <span className="text-red-500">*</span></Label>
+                <Label className="text-sm font-semibold text-gray-900 mb-2 block">
+                  {selectedMethod?.type === 'bank' ? 'Reference / Transfer Code' :
+                   selectedMethod?.type === 'paypal' ? 'PayPal Transaction ID' :
+                   'Transaction Hash / ID'} <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   value={txHash}
                   onChange={(e) => setTxHash(e.target.value)}
-                  placeholder="0x... or TXid..."
+                  placeholder={
+                    selectedMethod?.type === 'bank' ? 'Enter transfer reference...' :
+                    selectedMethod?.type === 'paypal' ? 'PayPal transaction ID...' :
+                    '0x... or TXid...'
+                  }
                   className="font-mono text-sm h-12 bg-gray-50 border-gray-200"
                 />
-                <p className="text-xs text-gray-400 mt-1.5">Find this in your wallet's transaction history</p>
+                <p className="text-xs text-gray-400 mt-1.5">Find this in your {selectedMethod?.type === 'bank' ? 'bank statement' : selectedMethod?.type === 'paypal' ? 'PayPal activity' : "wallet's transaction history"}</p>
               </div>
 
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold text-gray-900 mb-2 block">Payment Screenshot <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Label className="text-sm font-semibold text-gray-900 mb-2 block">Payment Screenshot <span className="text-gray-400 font-normal">(recommended)</span></Label>
                 <ProofUpload onUpload={(url) => setProofUrl(url)} />
                 <div className="mt-2">
                   <Input
@@ -422,7 +546,7 @@ export default function ShopCheckout() {
               <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-xs text-amber-700">
                 <p className="font-semibold mb-0.5">Verification usually takes under 24 hours</p>
-                <p>Once verified, you'll get instant access to your download. You'll be notified by email.</p>
+                <p>Once verified, you'll get instant access. You'll be notified when approved.</p>
               </div>
             </div>
 
@@ -464,18 +588,18 @@ export default function ShopCheckout() {
                     <span className="text-gray-500">Amount</span>
                     <span className="font-bold text-gray-900">{product.isFree ? "FREE" : `$${product.price} USDT`}</span>
                   </div>
-                  {!product.isFree && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Status</span>
-                      <Badge className="bg-amber-100 text-amber-700">Pending Verification</Badge>
-                    </div>
-                  )}
-                  {product.isFree && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Status</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Payment via</span>
+                    <span className="font-medium text-gray-900">{selectedMethod?.label || "Crypto"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Status</span>
+                    {product.isFree ? (
                       <Badge className="bg-green-100 text-green-700">Confirmed</Badge>
-                    </div>
-                  )}
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-700">Pending Verification</Badge>
+                    )}
+                  </div>
                 </div>
 
                 {/* What happens next */}
@@ -513,15 +637,15 @@ export default function ShopCheckout() {
                         <div className="flex items-start gap-3">
                           <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-violet-700">2</div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Instant access</p>
-                            <p className="text-xs text-gray-500">You'll receive download links via email</p>
+                            <p className="text-sm font-medium text-gray-900">Access unlocked</p>
+                            <p className="text-xs text-gray-500">Download link delivered to your email</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
                           <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-violet-700">3</div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Enjoy your purchase</p>
-                            <p className="text-xs text-gray-500">Full access to all product materials</p>
+                            <p className="text-sm font-medium text-gray-900">Enjoy your product</p>
+                            <p className="text-xs text-gray-500">Use it, grow, and leave a review!</p>
                           </div>
                         </div>
                       </>
@@ -530,16 +654,19 @@ export default function ShopCheckout() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button className="flex-1 bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => setLocation("/shop")}>
-                    <Package className="h-4 w-4" /> Back to Shop
-                  </Button>
-                  {product.downloadUrl && product.isFree && (
-                    <a href={product.downloadUrl} target="_blank" rel="noreferrer" className="flex-1">
-                      <Button className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white">
-                        <Download className="h-4 w-4" /> Download
-                      </Button>
-                    </a>
-                  )}
+                  <Link href="/shop" className="flex-1">
+                    <Button variant="outline" className="w-full">Continue Shopping</Button>
+                  </Link>
+                  <Link href="/dashboard" className="flex-1">
+                    <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white">My Dashboard</Button>
+                  </Link>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
+                    <Shield className="h-3 w-3 text-green-500" />
+                    Your purchase is protected by Taskdrip's buyer guarantee
+                  </p>
                 </div>
               </div>
             </div>

@@ -27,7 +27,8 @@ import {
   Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
-  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog
+  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
+  Wallet, Sparkles, CreditCard, Building2, Landmark
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -380,6 +381,11 @@ export default function AdminMaster() {
   // Admin credentials state
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
 
+  // Payment methods state
+  const [isPaymentMethodDialogOpen, setIsPaymentMethodDialogOpen] = useState(false);
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState<any>(null);
+  const [paymentMethodForm, setPaymentMethodForm] = useState<any>({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 });
+
   // Forms
   const blogForm = useForm({
     resolver: zodResolver(blogPostSchema),
@@ -543,6 +549,54 @@ export default function AdminMaster() {
       setIsEditCampaignDialogOpen(false);
       setEditingCampaign(null);
       toast({ title: "Campaign updated!" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  // Payment methods queries & mutations
+  const { data: paymentMethodsList = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/payment-methods"],
+  });
+
+  const createPaymentMethodMutation = useMutation({
+    mutationFn: async (data: any) => (await apiRequest("POST", "/api/admin/payment-methods", data)).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payment-methods"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
+      setIsPaymentMethodDialogOpen(false);
+      setEditingPaymentMethod(null);
+      toast({ title: "Payment method saved!" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updatePaymentMethodMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => (await apiRequest("PATCH", `/api/admin/payment-methods/${id}`, data)).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payment-methods"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
+      setIsPaymentMethodDialogOpen(false);
+      setEditingPaymentMethod(null);
+      toast({ title: "Payment method updated!" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deletePaymentMethodMutation = useMutation({
+    mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/payment-methods/${id}`)).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/payment-methods"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
+      toast({ title: "Payment method deleted" });
+    },
+  });
+
+  const seedDemoCampaignsMutation = useMutation({
+    mutationFn: async () => (await apiRequest("POST", "/api/admin/seed-demo-campaigns", {})).json(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      toast({ title: "Demo campaigns seeded!", description: data.message });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1384,64 +1438,6 @@ export default function AdminMaster() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="payments" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Payment Management</h2>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-                <CardDescription>Monitor and approve platform payments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {transactions.map((transaction: any) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-3 h-3 rounded-full ${
-                          transaction.status === 'completed' ? 'bg-green-500' : 
-                          transaction.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}></div>
-                        <div>
-                          <p className="font-medium">${transaction.amount}</p>
-                          <p className="text-sm text-gray-600">{transaction.type}</p>
-                          <p className="text-xs text-gray-500">{new Date(transaction.createdAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant={
-                          transaction.status === 'completed' ? 'default' : 
-                          transaction.status === 'pending' ? 'secondary' : 'destructive'
-                        }>
-                          {transaction.status}
-                        </Badge>
-                        {transaction.status === 'pending' && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updatePaymentStatus.mutate({ paymentId: transaction.id, status: 'completed' })}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updatePaymentStatus.mutate({ paymentId: transaction.id, status: 'rejected' })}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="blog" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Blog Management</h2>
@@ -2053,23 +2049,35 @@ export default function AdminMaster() {
           <TabsContent value="campaigns" className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold">Campaign Oversight</h2>
-              <Button onClick={() => setIsCampaignDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Campaign
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                {campaigns.length === 0 && (
+                  <Button variant="outline" onClick={() => seedDemoCampaignsMutation.mutate()} disabled={seedDemoCampaignsMutation.isPending} className="border-dashed border-violet-300 text-violet-700 hover:bg-violet-50">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {seedDemoCampaignsMutation.isPending ? "Seeding..." : "Load Demo Campaigns"}
+                  </Button>
+                )}
+                <Button onClick={() => setIsCampaignDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Campaign
+                </Button>
+              </div>
             </div>
             
             <Card>
               <CardHeader>
                 <CardTitle>All Campaigns ({campaigns.length})</CardTitle>
-                <CardDescription>Monitor and manage platform campaigns</CardDescription>
+                <CardDescription>Monitor, edit, and manage platform campaigns. Use the Edit button to update content shown on the homepage.</CardDescription>
               </CardHeader>
               <CardContent className="max-h-[500px] overflow-y-auto">
                 {campaigns.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Target className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                    <p>No campaigns found</p>
-                    <p className="text-sm">Create your first campaign to get started</p>
+                  <div className="text-center py-12 text-gray-500">
+                    <Target className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p className="font-semibold">No campaigns yet</p>
+                    <p className="text-sm mb-4">Load demo campaigns to get started or create your own</p>
+                    <Button variant="outline" onClick={() => seedDemoCampaignsMutation.mutate()} disabled={seedDemoCampaignsMutation.isPending} className="border-violet-300 text-violet-700 hover:bg-violet-50">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {seedDemoCampaignsMutation.isPending ? "Loading..." : "Load 6 Demo Campaigns"}
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -2304,6 +2312,99 @@ export default function AdminMaster() {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── Payment Methods Manager ─── */}
+            <Card className="border-violet-200">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-violet-600" /> Payment Methods
+                    </CardTitle>
+                    <CardDescription>Manage crypto wallets, bank accounts, PayPal, Paystack, and Stripe for checkout</CardDescription>
+                  </div>
+                  <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => { setEditingPaymentMethod(null); setPaymentMethodForm({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 }); setIsPaymentMethodDialogOpen(true); }}>
+                    <Plus className="h-4 w-4" /> Add Method
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {paymentMethodsList.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <Wallet className="h-10 w-10 mx-auto mb-3" />
+                    <p className="font-semibold">No payment methods added yet</p>
+                    <p className="text-sm mb-4">Add crypto wallets, bank accounts, or payment gateways that users can pay with</p>
+                    <Button variant="outline" onClick={() => { setEditingPaymentMethod(null); setPaymentMethodForm({ type: "crypto", label: "USDT TRC-20", network: "TRC-20", currency: "USDT", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 }); setIsPaymentMethodDialogOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-2" /> Add Your First Wallet
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentMethodsList.map((method: any) => (
+                      <div key={method.id} className={`border-2 rounded-xl p-4 ${method.isActive ? 'border-green-200 bg-green-50/30' : 'border-gray-100 bg-gray-50 opacity-60'}`}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold ${
+                              method.type === 'crypto' ? 'bg-orange-100' :
+                              method.type === 'bank' ? 'bg-blue-100' :
+                              method.type === 'paypal' ? 'bg-sky-100' :
+                              method.type === 'paystack' ? 'bg-green-100' :
+                              'bg-purple-100'
+                            }`}>
+                              {method.type === 'crypto' ? '₿' : method.type === 'bank' ? '🏦' : method.type === 'paypal' ? '🅿' : method.type === 'paystack' ? '🟢' : '💳'}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-sm">{method.label}</p>
+                              <Badge className="text-xs capitalize bg-gray-100 text-gray-600 border-0">{method.type}</Badge>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => { setEditingPaymentMethod(method); setPaymentMethodForm({ ...method }); setIsPaymentMethodDialogOpen(true); }}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-500 hover:text-red-700 border-red-200" onClick={() => { if (confirm("Delete this payment method?")) deletePaymentMethodMutation.mutate(method.id); }}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        {method.type === 'crypto' && (
+                          <div className="space-y-1 text-xs text-gray-600">
+                            {method.network && <p><span className="font-medium">Network:</span> {method.network}</p>}
+                            {method.currency && <p><span className="font-medium">Currency:</span> {method.currency}</p>}
+                            {method.address && <p className="font-mono bg-gray-100 px-2 py-1 rounded break-all">{method.address}</p>}
+                          </div>
+                        )}
+                        {method.type === 'bank' && (
+                          <div className="space-y-1 text-xs text-gray-600">
+                            {method.bankName && <p><span className="font-medium">Bank:</span> {method.bankName}</p>}
+                            {method.accountName && <p><span className="font-medium">Account Name:</span> {method.accountName}</p>}
+                            {method.accountNumber && <p><span className="font-medium">Account No:</span> {method.accountNumber}</p>}
+                            {method.bankCountry && <p><span className="font-medium">Country:</span> {method.bankCountry}</p>}
+                          </div>
+                        )}
+                        {method.type === 'paypal' && method.paypalEmail && (
+                          <p className="text-xs text-gray-600"><span className="font-medium">Email:</span> {method.paypalEmail}</p>
+                        )}
+                        {method.type === 'paystack' && method.paystackPublicKey && (
+                          <p className="text-xs text-gray-600 font-mono truncate">pk: {method.paystackPublicKey.slice(0, 20)}...</p>
+                        )}
+                        {method.type === 'stripe' && method.stripePublicKey && (
+                          <p className="text-xs text-gray-600 font-mono truncate">pk: {method.stripePublicKey.slice(0, 20)}...</p>
+                        )}
+                        {method.instructions && <p className="text-xs text-gray-500 mt-2 italic border-t border-gray-100 pt-2">{method.instructions}</p>}
+                        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                          <span className={`text-xs font-medium flex items-center gap-1 ${method.isActive ? 'text-green-600' : 'text-gray-400'}`}>
+                            <span className={`w-2 h-2 rounded-full ${method.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
+                            {method.isActive ? 'Active in checkout' : 'Hidden from checkout'}
+                          </span>
+                          <Switch checked={method.isActive} onCheckedChange={(v) => updatePaymentMethodMutation.mutate({ id: method.id, data: { isActive: v } })} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -3626,6 +3727,183 @@ export default function AdminMaster() {
                     {updateCampaignMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                   <Button variant="outline" onClick={() => { setIsEditCampaignDialogOpen(false); setEditingCampaign(null); }}>Cancel</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Add/Edit Payment Method Dialog */}
+        {isPaymentMethodDialogOpen && (
+          <Dialog open={isPaymentMethodDialogOpen} onOpenChange={(v) => { setIsPaymentMethodDialogOpen(v); if (!v) setEditingPaymentMethod(null); }}>
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingPaymentMethod ? "Edit Payment Method" : "Add Payment Method"}</DialogTitle>
+                <DialogDescription>Configure how users can pay on this platform. Accepted payment methods appear in all checkout flows.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Type</Label>
+                  <Select value={paymentMethodForm.type} onValueChange={(v) => setPaymentMethodForm((p: any) => ({ ...p, type: v, label: v === 'crypto' ? '' : v === 'bank' ? '' : v === 'paypal' ? 'PayPal' : v === 'paystack' ? 'Paystack' : 'Stripe' }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="crypto">🪙 Crypto Wallet</SelectItem>
+                      <SelectItem value="bank">🏦 Bank Transfer</SelectItem>
+                      <SelectItem value="paypal">🅿️ PayPal</SelectItem>
+                      <SelectItem value="paystack">🟢 Paystack</SelectItem>
+                      <SelectItem value="stripe">💳 Stripe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Label (shown to users)</Label>
+                  <Input value={paymentMethodForm.label} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, label: e.target.value }))} placeholder={paymentMethodForm.type === 'crypto' ? 'e.g. USDT TRC-20' : paymentMethodForm.type === 'bank' ? 'e.g. GTBank Nigeria' : paymentMethodForm.type === 'paypal' ? 'PayPal' : paymentMethodForm.type === 'paystack' ? 'Paystack' : 'Stripe'} />
+                </div>
+
+                {paymentMethodForm.type === 'crypto' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Network</Label>
+                        <Select value={paymentMethodForm.network} onValueChange={(v) => setPaymentMethodForm((p: any) => ({ ...p, network: v }))}>
+                          <SelectTrigger><SelectValue placeholder="Select network" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="TRC-20">TRC-20 (Tron)</SelectItem>
+                            <SelectItem value="BEP-20">BEP-20 (BNB Chain)</SelectItem>
+                            <SelectItem value="TON">TON Network</SelectItem>
+                            <SelectItem value="ERC-20">ERC-20 (Ethereum)</SelectItem>
+                            <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+                            <SelectItem value="SOL">Solana (SOL)</SelectItem>
+                            <SelectItem value="MATIC">Polygon (MATIC)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Currency</Label>
+                        <Select value={paymentMethodForm.currency} onValueChange={(v) => setPaymentMethodForm((p: any) => ({ ...p, currency: v }))}>
+                          <SelectTrigger><SelectValue placeholder="Currency" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="USDT">USDT</SelectItem>
+                            <SelectItem value="TON">TON</SelectItem>
+                            <SelectItem value="BTC">BTC</SelectItem>
+                            <SelectItem value="ETH">ETH</SelectItem>
+                            <SelectItem value="BNB">BNB</SelectItem>
+                            <SelectItem value="SOL">SOL</SelectItem>
+                            <SelectItem value="MATIC">MATIC</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Wallet Address</Label>
+                      <Input value={paymentMethodForm.address} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, address: e.target.value }))} placeholder="Enter wallet address..." className="font-mono text-sm" />
+                    </div>
+                  </>
+                )}
+
+                {paymentMethodForm.type === 'bank' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Bank Name</Label>
+                        <Input value={paymentMethodForm.bankName} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, bankName: e.target.value }))} placeholder="e.g. GTBank" />
+                      </div>
+                      <div>
+                        <Label>Country</Label>
+                        <Input value={paymentMethodForm.bankCountry} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, bankCountry: e.target.value }))} placeholder="e.g. Nigeria" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Account Name</Label>
+                      <Input value={paymentMethodForm.accountName} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, accountName: e.target.value }))} placeholder="Account holder name" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Account Number</Label>
+                        <Input value={paymentMethodForm.accountNumber} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, accountNumber: e.target.value }))} placeholder="Account number" />
+                      </div>
+                      <div>
+                        <Label>Currency</Label>
+                        <Input value={paymentMethodForm.bankCurrency} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, bankCurrency: e.target.value }))} placeholder="e.g. NGN, USD" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Routing Number (optional)</Label>
+                        <Input value={paymentMethodForm.routingNumber} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, routingNumber: e.target.value }))} placeholder="For US banks" />
+                      </div>
+                      <div>
+                        <Label>SWIFT Code (optional)</Label>
+                        <Input value={paymentMethodForm.swiftCode} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, swiftCode: e.target.value }))} placeholder="For international" />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {paymentMethodForm.type === 'paypal' && (
+                  <div>
+                    <Label>PayPal Email</Label>
+                    <Input type="email" value={paymentMethodForm.paypalEmail} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, paypalEmail: e.target.value }))} placeholder="your@paypal.com" />
+                  </div>
+                )}
+
+                {paymentMethodForm.type === 'paystack' && (
+                  <>
+                    <div>
+                      <Label>Paystack Public Key</Label>
+                      <Input value={paymentMethodForm.paystackPublicKey} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, paystackPublicKey: e.target.value }))} placeholder="pk_live_..." className="font-mono text-sm" />
+                    </div>
+                    <div>
+                      <Label>Paystack Secret Key</Label>
+                      <Input type="password" value={paymentMethodForm.paystackSecretKey} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, paystackSecretKey: e.target.value }))} placeholder="sk_live_..." className="font-mono text-sm" />
+                    </div>
+                  </>
+                )}
+
+                {paymentMethodForm.type === 'stripe' && (
+                  <>
+                    <div>
+                      <Label>Stripe Publishable Key</Label>
+                      <Input value={paymentMethodForm.stripePublicKey} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, stripePublicKey: e.target.value }))} placeholder="pk_live_..." className="font-mono text-sm" />
+                    </div>
+                    <div>
+                      <Label>Stripe Secret Key</Label>
+                      <Input type="password" value={paymentMethodForm.stripeSecretKey} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, stripeSecretKey: e.target.value }))} placeholder="sk_live_..." className="font-mono text-sm" />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <Label>Instructions for users (optional)</Label>
+                  <Textarea rows={2} value={paymentMethodForm.instructions} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, instructions: e.target.value }))} placeholder="e.g. Send exactly the stated amount. Include your email in the memo." />
+                </div>
+
+                <div>
+                  <Label>Display Order</Label>
+                  <Input type="number" value={paymentMethodForm.sortOrder} onChange={(e) => setPaymentMethodForm((p: any) => ({ ...p, sortOrder: parseInt(e.target.value) || 0 }))} placeholder="0 = first" />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-xl bg-green-50">
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">Active in checkout</p>
+                    <p className="text-xs text-gray-500">Users will see this as a payment option</p>
+                  </div>
+                  <Switch checked={paymentMethodForm.isActive} onCheckedChange={(v) => setPaymentMethodForm((p: any) => ({ ...p, isActive: v }))} />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                    disabled={createPaymentMethodMutation.isPending || updatePaymentMethodMutation.isPending}
+                    onClick={() => {
+                      if (editingPaymentMethod) {
+                        updatePaymentMethodMutation.mutate({ id: editingPaymentMethod.id, data: paymentMethodForm });
+                      } else {
+                        createPaymentMethodMutation.mutate(paymentMethodForm);
+                      }
+                    }}>
+                    {(createPaymentMethodMutation.isPending || updatePaymentMethodMutation.isPending) ? "Saving..." : (editingPaymentMethod ? "Save Changes" : "Add Payment Method")}
+                  </Button>
+                  <Button variant="outline" onClick={() => { setIsPaymentMethodDialogOpen(false); setEditingPaymentMethod(null); }}>Cancel</Button>
                 </div>
               </div>
             </DialogContent>

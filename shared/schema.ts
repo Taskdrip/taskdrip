@@ -618,6 +618,54 @@ export type InsertPayoutRequest = z.infer<typeof insertPayoutRequestSchema>;
 export type PayoutMessage = typeof payoutMessages.$inferSelect;
 export type Referral = typeof referrals.$inferSelect;
 
+// ── Payment Methods (Admin-managed wallets, bank accounts, gateways) ──
+export const paymentMethods = pgTable("payment_methods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type").notNull(), // 'crypto', 'bank', 'paypal', 'paystack', 'stripe'
+  label: varchar("label").notNull(), // e.g. "USDT TRC-20", "GTBank NGN", "PayPal Business"
+  // Crypto fields
+  network: varchar("network"), // e.g. "TRC-20", "BEP-20", "TON", "ERC-20", "BTC"
+  currency: varchar("currency"), // e.g. "USDT", "TON", "BTC", "ETH"
+  address: varchar("address", { length: 500 }),
+  // Bank fields
+  bankName: varchar("bank_name"),
+  accountName: varchar("account_name"),
+  accountNumber: varchar("account_number"),
+  routingNumber: varchar("routing_number"),
+  swiftCode: varchar("swift_code"),
+  bankCountry: varchar("bank_country"),
+  bankCurrency: varchar("bank_currency"),
+  // PayPal fields
+  paypalEmail: varchar("paypal_email"),
+  paypalClientId: varchar("paypal_client_id"),
+  // Paystack fields
+  paystackPublicKey: varchar("paystack_public_key"),
+  paystackSecretKey: varchar("paystack_secret_key"),
+  // Stripe fields
+  stripePublicKey: varchar("stripe_public_key"),
+  stripeSecretKey: varchar("stripe_secret_key"),
+  // Common
+  instructions: text("instructions"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({ id: true, createdAt: true, updatedAt: true });
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
+
+// ── Platform Settings (site-wide config) ──
+export const platformSettings = pgTable("platform_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").unique().notNull(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type PlatformSetting = typeof platformSettings.$inferSelect;
+
 // Insert schemas for new payment tables
 export const insertPaymentDepositSchema = createInsertSchema(paymentDeposits).omit({
   id: true,
