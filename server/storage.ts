@@ -33,6 +33,18 @@ import {
   courseLikes,
   courseLessons,
   courseMessages,
+  socialPlatforms,
+  userSocialLinks,
+  portfolioItems,
+  pushSubscriptions,
+  pushNotificationCampaigns,
+  type SocialPlatform,
+  type InsertSocialPlatform,
+  type UserSocialLink,
+  type InsertUserSocialLink,
+  type PortfolioItem,
+  type InsertPortfolioItem,
+  type PushNotificationCampaign,
   type User,
   type InsertUser,
   type Campaign,
@@ -266,6 +278,35 @@ export interface IStorage {
   // Course chat
   getCourseMessages(courseId: string): Promise<any[]>;
   createCourseMessage(data: { courseId: string; senderId: string; message: string }): Promise<any>;
+
+  // Social platforms
+  getAllSocialPlatforms(): Promise<SocialPlatform[]>;
+  getActiveSocialPlatforms(): Promise<SocialPlatform[]>;
+  createSocialPlatform(data: InsertSocialPlatform): Promise<SocialPlatform>;
+  updateSocialPlatform(id: string, data: Partial<InsertSocialPlatform>): Promise<SocialPlatform>;
+  deleteSocialPlatform(id: string): Promise<void>;
+
+  // User social links
+  getUserSocialLinks(userId: string): Promise<UserSocialLink[]>;
+  upsertUserSocialLink(data: { userId: string; platformSlug: string; url: string; followerCount: number }): Promise<UserSocialLink>;
+  deleteUserSocialLink(id: string): Promise<void>;
+  replaceUserSocialLinks(userId: string, links: { platformSlug: string; url: string; followerCount: number }[]): Promise<void>;
+
+  // Portfolio items
+  getUserPortfolio(userId: string): Promise<PortfolioItem[]>;
+  createPortfolioItem(data: InsertPortfolioItem): Promise<PortfolioItem>;
+  updatePortfolioItem(id: string, data: Partial<InsertPortfolioItem>): Promise<PortfolioItem>;
+  deletePortfolioItem(id: string): Promise<void>;
+
+  // Push notifications
+  savePushSubscription(data: { userId: string; endpoint: string; keys: any; userAgent?: string }): Promise<void>;
+  removePushSubscription(endpoint: string): Promise<void>;
+  getUserPushSubscriptions(userId: string): Promise<any[]>;
+  getAllPushSubscriptions(targetType?: string): Promise<any[]>;
+  getAllPushNotificationCampaigns(): Promise<PushNotificationCampaign[]>;
+  createPushNotificationCampaign(data: { title: string; body: string; icon?: string; clickUrl?: string; targetType: string; createdBy: string }): Promise<PushNotificationCampaign>;
+  updatePushNotificationCampaign(id: string, data: Partial<PushNotificationCampaign>): Promise<PushNotificationCampaign>;
+  deletePushNotificationCampaign(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1619,6 +1660,121 @@ export class DatabaseStorage implements IStorage {
     await db.insert(platformSettings)
       .values({ id: crypto.randomUUID(), key, value, updatedAt: new Date() })
       .onConflictDoUpdate({ target: platformSettings.key, set: { value, updatedAt: new Date() } });
+  }
+
+  // ── Social Platforms ──────────────────────────────────────
+  async getAllSocialPlatforms(): Promise<SocialPlatform[]> {
+    return db.select().from(socialPlatforms).orderBy(socialPlatforms.sortOrder, socialPlatforms.name);
+  }
+
+  async getActiveSocialPlatforms(): Promise<SocialPlatform[]> {
+    return db.select().from(socialPlatforms).where(eq(socialPlatforms.isActive, true)).orderBy(socialPlatforms.sortOrder, socialPlatforms.name);
+  }
+
+  async createSocialPlatform(data: InsertSocialPlatform): Promise<SocialPlatform> {
+    const [p] = await db.insert(socialPlatforms).values({ ...data, id: crypto.randomUUID() }).returning();
+    return p;
+  }
+
+  async updateSocialPlatform(id: string, data: Partial<InsertSocialPlatform>): Promise<SocialPlatform> {
+    const [p] = await db.update(socialPlatforms).set(data).where(eq(socialPlatforms.id, id)).returning();
+    return p;
+  }
+
+  async deleteSocialPlatform(id: string): Promise<void> {
+    await db.delete(socialPlatforms).where(eq(socialPlatforms.id, id));
+  }
+
+  // ── User Social Links ──────────────────────────────────────
+  async getUserSocialLinks(userId: string): Promise<UserSocialLink[]> {
+    return db.select().from(userSocialLinks).where(eq(userSocialLinks.userId, userId)).orderBy(userSocialLinks.createdAt);
+  }
+
+  async upsertUserSocialLink(data: { userId: string; platformSlug: string; url: string; followerCount: number }): Promise<UserSocialLink> {
+    const existing = await db.select().from(userSocialLinks)
+      .where(and(eq(userSocialLinks.userId, data.userId), eq(userSocialLinks.platformSlug, data.platformSlug)));
+    if (existing.length > 0) {
+      const [r] = await db.update(userSocialLinks).set({ url: data.url, followerCount: data.followerCount, updatedAt: new Date() }).where(eq(userSocialLinks.id, existing[0].id)).returning();
+      return r;
+    }
+    const [r] = await db.insert(userSocialLinks).values({ id: crypto.randomUUID(), ...data }).returning();
+    return r;
+  }
+
+  async deleteUserSocialLink(id: string): Promise<void> {
+    await db.delete(userSocialLinks).where(eq(userSocialLinks.id, id));
+  }
+
+  async replaceUserSocialLinks(userId: string, links: { platformSlug: string; url: string; followerCount: number }[]): Promise<void> {
+    await db.delete(userSocialLinks).where(eq(userSocialLinks.userId, userId));
+    if (links.length > 0) {
+      await db.insert(userSocialLinks).values(links.map(l => ({ id: crypto.randomUUID(), userId, ...l })));
+    }
+  }
+
+  // ── Portfolio Items ──────────────────────────────────────
+  async getUserPortfolio(userId: string): Promise<PortfolioItem[]> {
+    return db.select().from(portfolioItems).where(eq(portfolioItems.userId, userId)).orderBy(portfolioItems.sortOrder, portfolioItems.createdAt);
+  }
+
+  async createPortfolioItem(data: InsertPortfolioItem): Promise<PortfolioItem> {
+    const [item] = await db.insert(portfolioItems).values({ ...data, id: crypto.randomUUID() }).returning();
+    return item;
+  }
+
+  async updatePortfolioItem(id: string, data: Partial<InsertPortfolioItem>): Promise<PortfolioItem> {
+    const [item] = await db.update(portfolioItems).set({ ...data, updatedAt: new Date() }).where(eq(portfolioItems.id, id)).returning();
+    return item;
+  }
+
+  async deletePortfolioItem(id: string): Promise<void> {
+    await db.delete(portfolioItems).where(eq(portfolioItems.id, id));
+  }
+
+  // ── Push Notifications ──────────────────────────────────────
+  async savePushSubscription(data: { userId: string; endpoint: string; keys: any; userAgent?: string }): Promise<void> {
+    await db.insert(pushSubscriptions)
+      .values({ id: crypto.randomUUID(), ...data })
+      .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { isActive: true, userId: data.userId } });
+  }
+
+  async removePushSubscription(endpoint: string): Promise<void> {
+    await db.update(pushSubscriptions).set({ isActive: false }).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async getUserPushSubscriptions(userId: string): Promise<any[]> {
+    return db.select().from(pushSubscriptions).where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.isActive, true)));
+  }
+
+  async getAllPushSubscriptions(targetType?: string): Promise<any[]> {
+    if (!targetType || targetType === 'all') {
+      return db.select({ sub: pushSubscriptions, user: { userType: users.userType } })
+        .from(pushSubscriptions)
+        .leftJoin(users, eq(pushSubscriptions.userId, users.id))
+        .where(eq(pushSubscriptions.isActive, true));
+    }
+    return db.select({ sub: pushSubscriptions, user: { userType: users.userType } })
+      .from(pushSubscriptions)
+      .leftJoin(users, eq(pushSubscriptions.userId, users.id))
+      .where(and(eq(pushSubscriptions.isActive, true), eq(users.userType, targetType === 'creators' ? 'creator' : 'brand')));
+  }
+
+  async getAllPushNotificationCampaigns(): Promise<PushNotificationCampaign[]> {
+    return db.select().from(pushNotificationCampaigns).orderBy(desc(pushNotificationCampaigns.createdAt));
+  }
+
+  async createPushNotificationCampaign(data: { title: string; body: string; icon?: string; clickUrl?: string; targetType: string; createdBy: string }): Promise<PushNotificationCampaign> {
+    const [campaign] = await db.insert(pushNotificationCampaigns).values({ id: crypto.randomUUID(), ...data }).returning();
+    return campaign;
+  }
+
+  async updatePushNotificationCampaign(id: string, data: Partial<PushNotificationCampaign>): Promise<PushNotificationCampaign> {
+    const [campaign] = await db.update(pushNotificationCampaigns).set(data).where(eq(pushNotificationCampaigns.id, id)).returning();
+    return campaign;
+  }
+
+  async deletePushNotificationCampaign(id: string): Promise<void> {
+    await db.delete(pushNotificationCampaigns).where(eq(pushNotificationCampaigns.id, id));
   }
 
   async getReferralStats(): Promise<any> {

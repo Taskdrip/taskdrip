@@ -28,7 +28,7 @@ import {
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
-  Wallet, Sparkles, CreditCard, Building2, Landmark
+  Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -1056,6 +1056,8 @@ export default function AdminMaster() {
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
                 { value: "courses", icon: <GraduationCap className="h-3.5 w-3.5" />, label: "BreedSkool" },
                 { value: "shop", icon: <ShoppingBag className="h-3.5 w-3.5" />, label: "Shop" },
+                { value: "social-channels", icon: <Link2 className="h-3.5 w-3.5" />, label: "Channels" },
+                { value: "push-notifications", icon: <Bell className="h-3.5 w-3.5" />, label: "Push Notify" },
                 { value: "analytics", icon: <TrendingUp className="h-3.5 w-3.5" />, label: "Analytics" },
                 { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
               ].map((tab) => (
@@ -2972,6 +2974,16 @@ export default function AdminMaster() {
             </Card>
           </TabsContent>
 
+          {/* ═══ SOCIAL CHANNELS TAB ═══ */}
+          <TabsContent value="social-channels" className="space-y-6">
+            <AdminSocialChannelsPanel />
+          </TabsContent>
+
+          {/* ═══ PUSH NOTIFICATIONS TAB ═══ */}
+          <TabsContent value="push-notifications" className="space-y-6">
+            <AdminPushNotificationsPanel />
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Analytics & Insights</h2>
@@ -4256,6 +4268,389 @@ export default function AdminMaster() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN SOCIAL CHANNELS PANEL
+// ═══════════════════════════════════════════════════
+function AdminSocialChannelsPanel() {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [form, setForm] = useState({ name: '', slug: '', urlPrefix: '', iconClass: '', bgColor: '#6366f1', isBuiltIn: false });
+
+  const { data: platforms = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/admin/social-platforms'],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest('POST', '/api/admin/social-platforms', data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
+      setDialogOpen(false); setEditItem(null); setForm({ name: '', slug: '', urlPrefix: '', iconClass: '', bgColor: '#6366f1', isBuiltIn: false });
+      toast({ title: 'Channel added!' });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest('PUT', `/api/admin/social-platforms/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
+      setDialogOpen(false); setEditItem(null);
+      toast({ title: 'Channel updated!' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => { await apiRequest('DELETE', `/api/admin/social-platforms/${id}`); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
+      toast({ title: 'Channel removed' });
+    },
+  });
+
+  const handleSave = () => {
+    if (!form.name || !form.slug) return;
+    if (editItem) updateMutation.mutate({ id: editItem.id, data: form });
+    else createMutation.mutate(form);
+  };
+
+  const openEdit = (item: any) => {
+    setEditItem(item);
+    setForm({ name: item.name, slug: item.slug, urlPrefix: item.urlPrefix || '', iconClass: item.iconClass || '', bgColor: item.bgColor || '#6366f1', isBuiltIn: item.isBuiltIn || false });
+    setDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Social Channels</h2>
+          <p className="text-gray-400 text-sm mt-1">Manage custom social media platforms creators can link</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditItem(null); setForm({ name: '', slug: '', urlPrefix: '', iconClass: '', bgColor: '#6366f1', isBuiltIn: false }); } }}>
+          <DialogTrigger asChild>
+            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="add-channel-btn">
+              <Plus className="w-4 h-4 mr-2" /> Add Channel
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editItem ? 'Edit Social Channel' : 'Add Social Channel'}</DialogTitle>
+              <DialogDescription>Configure a custom social media platform for creators to link</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Platform Name *</Label>
+                  <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Snapchat" className="mt-1" data-testid="channel-name" />
+                </div>
+                <div>
+                  <Label>Slug (unique ID) *</Label>
+                  <Input value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))} placeholder="e.g. snapchat" className="mt-1" data-testid="channel-slug" />
+                </div>
+              </div>
+              <div>
+                <Label>URL Prefix</Label>
+                <Input value={form.urlPrefix} onChange={e => setForm(p => ({ ...p, urlPrefix: e.target.value }))} placeholder="https://snapchat.com/add/" className="mt-1" />
+                <p className="text-xs text-gray-400 mt-1">Shown as placeholder hint when creators enter their link</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Background Color</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input type="color" value={form.bgColor} onChange={e => setForm(p => ({ ...p, bgColor: e.target.value }))} className="h-9 w-14 rounded border cursor-pointer" />
+                    <Input value={form.bgColor} onChange={e => setForm(p => ({ ...p, bgColor: e.target.value }))} className="flex-1 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Icon Class (optional)</Label>
+                  <Input value={form.iconClass} onChange={e => setForm(p => ({ ...p, iconClass: e.target.value }))} placeholder="e.g. SiSnapchat" className="mt-1" />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="save-channel-btn">
+                  {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editItem ? 'Update Channel' : 'Add Channel'}
+                </Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">Cancel</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card className="border-gray-800 bg-gray-900">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="py-12 text-center text-gray-500">Loading channels...</div>
+          ) : platforms.length === 0 ? (
+            <div className="py-16 text-center">
+              <Link2 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400 font-medium">No custom channels yet</p>
+              <p className="text-sm text-gray-500 mt-1">Add channels that creators can link in their profiles</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-800">
+                  <TableHead className="text-gray-400">Platform</TableHead>
+                  <TableHead className="text-gray-400">Slug</TableHead>
+                  <TableHead className="text-gray-400">URL Prefix</TableHead>
+                  <TableHead className="text-gray-400">Color</TableHead>
+                  <TableHead className="text-gray-400">Built-in</TableHead>
+                  <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {platforms.map((p: any) => (
+                  <TableRow key={p.id} className="border-gray-800 hover:bg-gray-800/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: p.bgColor || '#6366f1' }}>
+                          {p.name[0]}
+                        </div>
+                        <span className="font-semibold text-white">{p.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-400 font-mono text-sm">{p.slug}</TableCell>
+                    <TableCell className="text-gray-500 text-sm max-w-48 truncate">{p.urlPrefix || '—'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full border border-gray-600" style={{ backgroundColor: p.bgColor || '#6366f1' }} />
+                        <span className="text-gray-400 text-xs font-mono">{p.bgColor || '—'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={p.isBuiltIn ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-400'}>
+                        {p.isBuiltIn ? 'Built-in' : 'Custom'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(p)} className="text-gray-400 hover:text-white" data-testid={`edit-channel-${p.id}`}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        {!p.isBuiltIn && (
+                          <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(p.id)} className="text-gray-400 hover:text-red-400" data-testid={`delete-channel-${p.id}`}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN PUSH NOTIFICATIONS PANEL
+// ═══════════════════════════════════════════════════
+function AdminPushNotificationsPanel() {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ title: '', body: '', icon: '/icon-192.png', clickUrl: '/', targetType: 'all' });
+
+  const { data: campaigns = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/admin/push-notifications'],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest('POST', '/api/admin/push-notifications', data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/push-notifications'] });
+      setDialogOpen(false);
+      setForm({ title: '', body: '', icon: '/icon-192.png', clickUrl: '/', targetType: 'all' });
+      toast({ title: 'Notification campaign created!' });
+    },
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest('POST', `/api/admin/push-notifications/${id}/send`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/push-notifications'] });
+      toast({ title: `Sent to ${data.sentCount} subscribers`, description: data.message });
+    },
+    onError: () => toast({ title: 'Send failed', variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => { await apiRequest('DELETE', `/api/admin/push-notifications/${id}`); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/push-notifications'] });
+      toast({ title: 'Campaign deleted' });
+    },
+  });
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case 'sent': return <Badge className="bg-green-900 text-green-300">Sent</Badge>;
+      case 'failed': return <Badge className="bg-red-900 text-red-300">Failed</Badge>;
+      default: return <Badge className="bg-gray-800 text-gray-300">Draft</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Push Notifications</h2>
+          <p className="text-gray-400 text-sm mt-1">Send push notification campaigns to subscribed users</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="create-push-btn">
+              <Bell className="w-4 h-4 mr-2" /> New Campaign
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Create Push Notification</DialogTitle>
+              <DialogDescription>Compose a notification to send to your users</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Title *</Label>
+                <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="New campaign available! 🔥" className="mt-1" data-testid="push-title" />
+              </div>
+              <div>
+                <Label>Message *</Label>
+                <Textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} placeholder="Earn up to $500 for this week's campaigns..." rows={3} className="mt-1" data-testid="push-body" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Click URL</Label>
+                  <Input value={form.clickUrl} onChange={e => setForm(p => ({ ...p, clickUrl: e.target.value }))} placeholder="/" className="mt-1" />
+                </div>
+                <div>
+                  <Label>Target</Label>
+                  <select value={form.targetType} onChange={e => setForm(p => ({ ...p, targetType: e.target.value }))}
+                    className="mt-1 w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" data-testid="push-target">
+                    <option value="all">All Users</option>
+                    <option value="creators">Creators Only</option>
+                    <option value="brands">Brands Only</option>
+                  </select>
+                </div>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl border">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Preview</p>
+                <div className="flex items-start gap-3 p-3 bg-white rounded-lg border shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-900 text-sm">{form.title || 'Notification Title'}</div>
+                    <div className="text-gray-500 text-xs mt-0.5">{form.body || 'Message body will appear here...'}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => createMutation.mutate(form)} disabled={createMutation.isPending || !form.title || !form.body}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="save-push-btn">
+                  {createMutation.isPending ? 'Creating...' : 'Create Campaign'}
+                </Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">Cancel</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Total Campaigns", value: campaigns.length, color: "border-purple-500/30 bg-purple-500/5" },
+          { label: "Sent", value: campaigns.filter((c: any) => c.status === 'sent').length, color: "border-green-500/30 bg-green-500/5" },
+          { label: "Total Delivered", value: campaigns.reduce((sum: number, c: any) => sum + (c.sentCount || 0), 0), color: "border-blue-500/30 bg-blue-500/5" },
+        ].map(s => (
+          <Card key={s.label} className={`border ${s.color}`}>
+            <CardContent className="p-4">
+              <div className="text-2xl font-black text-white">{s.value}</div>
+              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="border-gray-800 bg-gray-900">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="py-12 text-center text-gray-500">Loading campaigns...</div>
+          ) : campaigns.length === 0 ? (
+            <div className="py-16 text-center">
+              <Bell className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400 font-medium">No notification campaigns yet</p>
+              <p className="text-sm text-gray-500 mt-1">Create your first push notification campaign</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-800">
+                  <TableHead className="text-gray-400">Campaign</TableHead>
+                  <TableHead className="text-gray-400">Target</TableHead>
+                  <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-400">Sent To</TableHead>
+                  <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {campaigns.map((c: any) => (
+                  <TableRow key={c.id} className="border-gray-800 hover:bg-gray-800/50" data-testid={`push-campaign-${c.id}`}>
+                    <TableCell>
+                      <div>
+                        <div className="font-semibold text-white text-sm">{c.title}</div>
+                        <div className="text-gray-500 text-xs mt-0.5 max-w-64 truncate">{c.body}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-gray-800 text-gray-300 capitalize">{c.targetType || 'all'}</Badge>
+                    </TableCell>
+                    <TableCell>{statusBadge(c.status || 'draft')}</TableCell>
+                    <TableCell className="text-gray-400 text-sm">{c.sentCount || 0}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {c.status !== 'sent' && (
+                          <Button size="sm" onClick={() => sendMutation.mutate(c.id)}
+                            disabled={sendMutation.isPending}
+                            className="bg-purple-600 hover:bg-purple-700 text-white" data-testid={`send-push-${c.id}`}>
+                            <Zap className="w-3 h-3 mr-1" /> Send
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(c.id)}
+                          className="text-gray-400 hover:text-red-400" data-testid={`delete-push-${c.id}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

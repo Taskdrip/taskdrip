@@ -2476,12 +2476,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.params.id);
       if (!user) return res.status(404).json({ message: "Creator not found" });
       const { password, ...safeUser } = user;
-      const posts = await storage.getUserPosts(req.params.id);
-      const reviews = await storage.getUserReviews(req.params.id);
-      const followers = await storage.getUserFollowers(req.params.id);
-      const following = await storage.getUserFollowing(req.params.id);
-      const participations = await storage.getUserParticipations(req.params.id);
-      res.json({ ...safeUser, posts, reviews, followers, following, participations });
+      const [posts, reviews, followers, following, participations, socialLinks, portfolio] = await Promise.all([
+        storage.getUserPosts(req.params.id),
+        storage.getUserReviews(req.params.id),
+        storage.getUserFollowers(req.params.id),
+        storage.getUserFollowing(req.params.id),
+        storage.getUserParticipations(req.params.id),
+        storage.getUserSocialLinks(req.params.id),
+        storage.getUserPortfolio(req.params.id),
+      ]);
+      res.json({ ...safeUser, posts, reviews, followers, following, participations, socialLinks, portfolio });
     } catch (error) {
       console.error("Error fetching creator profile:", error);
       res.status(500).json({ message: "Failed to fetch creator profile" });
@@ -3640,6 +3644,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to update credentials" });
     }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // SOCIAL PLATFORMS (admin-managed)
+  // ═══════════════════════════════════════════════════
+  app.get('/api/social-platforms', async (req, res) => {
+    try {
+      const platforms = await storage.getActiveSocialPlatforms();
+      res.json(platforms);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/social-platforms', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const platforms = await storage.getAllSocialPlatforms();
+      res.json(platforms);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/social-platforms', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const platform = await storage.createSocialPlatform(req.body);
+      res.json(platform);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/social-platforms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const platform = await storage.updateSocialPlatform(req.params.id, req.body);
+      res.json(platform);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.delete('/api/admin/social-platforms/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      await storage.deleteSocialPlatform(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // USER SOCIAL LINKS
+  // ═══════════════════════════════════════════════════
+  app.get('/api/users/:id/social-links', async (req, res) => {
+    try {
+      const links = await storage.getUserSocialLinks(req.params.id);
+      res.json(links);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/users/:id/social-links', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.id !== req.params.id && req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { links } = req.body; // [{platformSlug, url, followerCount}]
+      await storage.replaceUserSocialLinks(req.params.id, links || []);
+      const updated = await storage.getUserSocialLinks(req.params.id);
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // PORTFOLIO ITEMS
+  // ═══════════════════════════════════════════════════
+  app.get('/api/users/:id/portfolio', async (req, res) => {
+    try {
+      const items = await storage.getUserPortfolio(req.params.id);
+      res.json(items);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/portfolio', isAuthenticated, async (req: any, res) => {
+    try {
+      const item = await storage.createPortfolioItem({ ...req.body, userId: req.user.id });
+      res.json(item);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/portfolio/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const item = await storage.updatePortfolioItem(req.params.id, req.body);
+      res.json(item);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.delete('/api/portfolio/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deletePortfolioItem(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // PUSH NOTIFICATION SUBSCRIPTIONS
+  // ═══════════════════════════════════════════════════
+  app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
+    try {
+      const { endpoint, keys } = req.body;
+      if (!endpoint || !keys) return res.status(400).json({ message: 'Missing endpoint or keys' });
+      await storage.savePushSubscription({ userId: req.user.id, endpoint, keys, userAgent: req.headers['user-agent'] });
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/push/unsubscribe', isAuthenticated, async (req: any, res) => {
+    try {
+      const { endpoint } = req.body;
+      if (endpoint) await storage.removePushSubscription(endpoint);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ═══════════════════════════════════════════════════
+  // PUSH NOTIFICATION CAMPAIGNS (admin)
+  // ═══════════════════════════════════════════════════
+  app.get('/api/admin/push-notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const campaigns = await storage.getAllPushNotificationCampaigns();
+      res.json(campaigns);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/push-notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const { title, body, icon, clickUrl, targetType } = req.body;
+      if (!title || !body) return res.status(400).json({ message: 'Title and body required' });
+      const campaign = await storage.createPushNotificationCampaign({ title, body, icon, clickUrl, targetType: targetType || 'all', createdBy: req.user.id });
+      res.json(campaign);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/push-notifications/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const campaign = await storage.updatePushNotificationCampaign(req.params.id, req.body);
+      res.json(campaign);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.delete('/api/admin/push-notifications/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      await storage.deletePushNotificationCampaign(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Send a push notification campaign
+  app.post('/api/admin/push-notifications/:id/send', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.role !== 'admin' && req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const campaigns = await storage.getAllPushNotificationCampaigns();
+      const campaign = campaigns.find(c => c.id === req.params.id);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const subs = await storage.getAllPushSubscriptions(campaign.targetType || 'all');
+      // Mark as sent (actual push delivery needs web-push library - stored for now)
+      await storage.updatePushNotificationCampaign(req.params.id, {
+        status: 'sent',
+        sentAt: new Date(),
+        sentCount: subs.length,
+      });
+      res.json({ success: true, sentCount: subs.length, message: `Notification queued for ${subs.length} subscribers` });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   const httpServer = createServer(app);

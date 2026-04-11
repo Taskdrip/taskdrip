@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,8 +16,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { NavigationFixed } from '@/components/ui/navigation-fixed';
 import { Footer } from '@/components/ui/footer';
 import { getTierConfig, formatFollowers, NICHES } from '@/lib/tiers';
-import { Camera, Users, TrendingUp, Award } from 'lucide-react';
+import {
+  Camera, Users, TrendingUp, Award, Link2, Plus, Trash2,
+  Globe, ExternalLink
+} from 'lucide-react';
 import { Link } from 'wouter';
+import {
+  SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
+  SiTelegram, SiWhatsapp, SiLinkedin
+} from 'react-icons/si';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -30,7 +36,6 @@ const profileSchema = z.object({
   website: z.string().url().optional().or(z.literal('')),
   skills: z.string().optional(),
   niche: z.string().optional(),
-  // Social handles
   twitterHandle: z.string().optional(),
   instagramHandle: z.string().optional(),
   youtubeHandle: z.string().optional(),
@@ -39,7 +44,6 @@ const profileSchema = z.object({
   telegramChannel: z.string().optional(),
   whatsappChannel: z.string().optional(),
   linkedinHandle: z.string().optional(),
-  // Follower counts
   tiktokFollowers: z.coerce.number().min(0).optional(),
   youtubeFollowers: z.coerce.number().min(0).optional(),
   instagramFollowers: z.coerce.number().min(0).optional(),
@@ -51,14 +55,43 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
-const SOCIAL_PLATFORMS = [
-  { handle: 'tiktokHandle', followers: 'tiktokFollowers', label: 'TikTok', placeholder: '@username', color: 'bg-pink-50 border-pink-200' },
-  { handle: 'youtubeHandle', followers: 'youtubeFollowers', label: 'YouTube', placeholder: '@channel', color: 'bg-red-50 border-red-200' },
-  { handle: 'instagramHandle', followers: 'instagramFollowers', label: 'Instagram', placeholder: '@username', color: 'bg-purple-50 border-purple-200' },
-  { handle: 'twitterHandle', followers: 'twitterFollowers', label: 'X (Twitter)', placeholder: '@username', color: 'bg-blue-50 border-blue-200' },
-  { handle: 'twitchHandle', followers: 'twitchFollowers', label: 'Twitch', placeholder: 'username', color: 'bg-violet-50 border-violet-200' },
-  { handle: 'telegramChannel', followers: 'telegramFollowers', label: 'Telegram', placeholder: '@channel', color: 'bg-sky-50 border-sky-200' },
-  { handle: 'whatsappChannel', followers: 'whatsappFollowers', label: 'WhatsApp', placeholder: 'Channel link', color: 'bg-green-50 border-green-200' },
+const BUILT_IN_PLATFORMS = [
+  {
+    handle: 'tiktokHandle' as const, followers: 'tiktokFollowers' as const,
+    label: 'TikTok', icon: SiTiktok, color: 'bg-pink-50 border-pink-200',
+    iconBg: 'bg-black', placeholder: 'https://tiktok.com/@yourusername',
+  },
+  {
+    handle: 'youtubeHandle' as const, followers: 'youtubeFollowers' as const,
+    label: 'YouTube', icon: SiYoutube, color: 'bg-red-50 border-red-200',
+    iconBg: 'bg-red-600', placeholder: 'https://youtube.com/@yourchannel',
+  },
+  {
+    handle: 'instagramHandle' as const, followers: 'instagramFollowers' as const,
+    label: 'Instagram', icon: SiInstagram, color: 'bg-purple-50 border-purple-200',
+    iconBg: 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400',
+    placeholder: 'https://instagram.com/yourusername',
+  },
+  {
+    handle: 'twitterHandle' as const, followers: 'twitterFollowers' as const,
+    label: 'X (Twitter)', icon: SiX, color: 'bg-blue-50 border-blue-200',
+    iconBg: 'bg-black', placeholder: 'https://x.com/yourusername',
+  },
+  {
+    handle: 'twitchHandle' as const, followers: 'twitchFollowers' as const,
+    label: 'Twitch', icon: SiTwitch, color: 'bg-violet-50 border-violet-200',
+    iconBg: 'bg-violet-600', placeholder: 'https://twitch.tv/yourusername',
+  },
+  {
+    handle: 'telegramChannel' as const, followers: 'telegramFollowers' as const,
+    label: 'Telegram', icon: SiTelegram, color: 'bg-sky-50 border-sky-200',
+    iconBg: 'bg-sky-500', placeholder: 'https://t.me/yourchannel',
+  },
+  {
+    handle: 'whatsappChannel' as const, followers: 'whatsappFollowers' as const,
+    label: 'WhatsApp', icon: SiWhatsapp, color: 'bg-green-50 border-green-200',
+    iconBg: 'bg-green-500', placeholder: 'https://wa.me/c/yourchannel',
+  },
 ];
 
 export default function ProfileEdit() {
@@ -67,26 +100,35 @@ export default function ProfileEdit() {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [totalFollowersPreview, setTotalFollowersPreview] = useState(0);
+  const [customLinks, setCustomLinks] = useState<Record<string, { url: string; followerCount: number }>>({});
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      tiktokFollowers: 0,
-      youtubeFollowers: 0,
-      instagramFollowers: 0,
-      twitterFollowers: 0,
-      twitchFollowers: 0,
-      telegramFollowers: 0,
-      whatsappFollowers: 0,
+      tiktokFollowers: 0, youtubeFollowers: 0, instagramFollowers: 0,
+      twitterFollowers: 0, twitchFollowers: 0, telegramFollowers: 0, whatsappFollowers: 0,
     },
   });
 
-  const watchedFollowers = watch(['tiktokFollowers','youtubeFollowers','instagramFollowers','twitterFollowers','twitchFollowers','telegramFollowers','whatsappFollowers']);
+  const { data: customPlatforms = [] } = useQuery<any[]>({
+    queryKey: ['/api/social-platforms'],
+  });
+
+  const { data: existingCustomLinks = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${(user as any)?.id}/social-links`],
+    enabled: !!(user as any)?.id,
+  });
+
+  const watchedFollowers = watch([
+    'tiktokFollowers', 'youtubeFollowers', 'instagramFollowers',
+    'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers',
+  ]);
 
   useEffect(() => {
     const total = watchedFollowers.reduce((sum, v) => sum + (Number(v) || 0), 0);
-    setTotalFollowersPreview(total);
-  }, [watchedFollowers]);
+    const customTotal = Object.values(customLinks).reduce((sum, l) => sum + (l.followerCount || 0), 0);
+    setTotalFollowersPreview(total + customTotal);
+  }, [watchedFollowers, customLinks]);
 
   useEffect(() => {
     if (user) {
@@ -119,6 +161,16 @@ export default function ProfileEdit() {
     }
   }, [user, setValue]);
 
+  useEffect(() => {
+    if (existingCustomLinks.length > 0) {
+      const map: Record<string, { url: string; followerCount: number }> = {};
+      for (const link of existingCustomLinks) {
+        map[link.platformSlug] = { url: link.url, followerCount: link.followerCount || 0 };
+      }
+      setCustomLinks(map);
+    }
+  }, [existingCustomLinks]);
+
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest('PATCH', `/api/users/${(user as any)?.id}/profile`, data);
@@ -127,10 +179,16 @@ export default function ProfileEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      toast({ title: "Profile updated!", description: "Your profile has been saved successfully." });
     },
-    onError: (error: any) => {
-      toast({ title: "Update failed", description: error.message || "Failed to update profile", variant: "destructive" });
+  });
+
+  const saveCustomLinksMutation = useMutation({
+    mutationFn: async () => {
+      const links = Object.entries(customLinks)
+        .filter(([, v]) => v.url)
+        .map(([platformSlug, v]) => ({ platformSlug, url: v.url, followerCount: v.followerCount || 0 }));
+      const response = await apiRequest('PUT', `/api/users/${(user as any)?.id}/social-links`, { links });
+      return await response.json();
     },
   });
 
@@ -147,30 +205,38 @@ export default function ProfileEdit() {
   const onSubmit = async (data: ProfileFormData) => {
     const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
     const profileImageUrl = profileImage ? previewUrl : (user as any)?.profileImageUrl;
-    await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl });
+    try {
+      await Promise.all([
+        updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl }),
+        saveCustomLinksMutation.mutateAsync(),
+      ]);
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${(user as any)?.id}/social-links`] });
+      toast({ title: "Profile saved!", description: "Your profile has been updated successfully." });
+    } catch (error: any) {
+      toast({ title: "Save failed", description: error.message || "Failed to save profile", variant: "destructive" });
+    }
   };
 
   const displayName = `${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim() || 'User';
   const initials = `${(user as any)?.firstName?.[0] || ''}${(user as any)?.lastName?.[0] || ''}` || 'U';
-  const tierConfig = getTierConfig((user as any)?.creatorTier || 'rising_sparks');
   const previewTierConfig = getTierConfig(
     totalFollowersPreview >= 1_000_000 ? 'global_titans' :
     totalFollowersPreview >= 100_000 ? 'power_influencers' :
     totalFollowersPreview >= 10_000 ? 'growth_engines' : 'rising_sparks'
   );
 
+  const isPending = updateProfileMutation.isPending || saveCustomLinksMutation.isPending;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
-
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-black">Edit Profile</h1>
-          <p className="text-gray-500 mt-1">Update your profile, social media accounts and follower counts</p>
+          <p className="text-gray-500 mt-1">Update your profile, social media links and follower counts</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
           {/* Profile Image */}
           <Card className="border-gray-100">
             <CardHeader>
@@ -180,13 +246,12 @@ export default function ProfileEdit() {
               <div className="flex items-center gap-6">
                 <Avatar className="w-20 h-20 border-2 border-gray-200">
                   <AvatarImage src={previewUrl} alt={displayName} />
-                  <AvatarFallback className="text-xl bg-black text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="text-xl bg-purple-600 text-white">{initials}</AvatarFallback>
                 </Avatar>
                 <div>
                   <Label htmlFor="profileImage" className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors text-sm font-medium">
-                      <Camera className="h-4 w-4" />
-                      Change Photo
+                    <div className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors text-sm font-medium">
+                      <Camera className="h-4 w-4" /> Change Photo
                     </div>
                   </Label>
                   <Input id="profileImage" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -216,7 +281,7 @@ export default function ProfileEdit() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-3">
-                  Tier is auto-calculated from total followers across all platforms. Updates when you save.
+                  Tier auto-calculated from followers across all platforms. Updates on save.
                 </p>
               </CardContent>
             </Card>
@@ -224,42 +289,37 @@ export default function ProfileEdit() {
 
           {/* Basic Info */}
           <Card className="border-gray-100">
-            <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Basic Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name *</Label>
-                  <Input id="firstName" {...register('firstName')} placeholder="First name" className="mt-1" />
+                  <Input id="firstName" {...register('firstName')} placeholder="First name" className="mt-1" data-testid="input-firstName" />
                   {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName.message}</p>}
                 </div>
                 <div>
                   <Label htmlFor="lastName">Last Name *</Label>
-                  <Input id="lastName" {...register('lastName')} placeholder="Last name" className="mt-1" />
+                  <Input id="lastName" {...register('lastName')} placeholder="Last name" className="mt-1" data-testid="input-lastName" />
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" {...register('username')} placeholder="@your_username" className="mt-1" />
+                  <Input id="username" {...register('username')} placeholder="@your_username" className="mt-1" data-testid="input-username" />
                   <p className="text-xs text-gray-400 mt-1">Unique public profile URL</p>
                 </div>
                 <div>
                   <Label htmlFor="niche">Niche / Category</Label>
-                  <select {...register('niche')} className="mt-1 w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
+                  <select {...register('niche')} className="mt-1 w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" data-testid="select-niche">
                     <option value="">Select a niche...</option>
                     {NICHES.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
               </div>
-
               <div>
                 <Label htmlFor="bio">Bio</Label>
-                <Textarea id="bio" {...register('bio')} placeholder="Tell others about yourself..." rows={3} className="mt-1" />
+                <Textarea id="bio" {...register('bio')} placeholder="Tell others about yourself..." rows={3} className="mt-1" data-testid="input-bio" />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="location">Location</Label>
@@ -270,7 +330,6 @@ export default function ProfileEdit() {
                   <Input id="phoneNumber" {...register('phoneNumber')} placeholder="+1 555 123 4567" className="mt-1" />
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="website">Website</Label>
@@ -285,50 +344,124 @@ export default function ProfileEdit() {
             </CardContent>
           </Card>
 
-          {/* Social Media + Followers */}
+          {/* Social Media Links */}
           <Card className="border-gray-100">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Social Media Accounts
+                <Link2 className="w-5 h-5 text-purple-600" />
+                Social Media Links
               </CardTitle>
               <CardDescription>
-                Add your social handles and follower counts. We use these to calculate your creator tier automatically.
+                Enter the full URL of your social media profile. We use follower counts to calculate your creator tier.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {SOCIAL_PLATFORMS.map((platform) => (
-                <div key={platform.handle} className={`border rounded-xl p-4 ${platform.color}`}>
-                  <div className="font-medium text-sm text-gray-700 mb-3">{platform.label}</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-gray-500">Handle / Username</Label>
-                      <Input
-                        {...register(platform.handle as any)}
-                        placeholder={platform.placeholder}
-                        className="mt-1 bg-white text-sm"
-                      />
+              {BUILT_IN_PLATFORMS.map((platform) => {
+                const Icon = platform.icon;
+                return (
+                  <div key={platform.handle} className={`border rounded-xl p-4 ${platform.color}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-7 h-7 rounded-lg ${platform.iconBg} flex items-center justify-center flex-shrink-0`}>
+                        <Icon className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="font-semibold text-sm text-gray-800">{platform.label}</span>
                     </div>
-                    <div>
-                      <Label className="text-xs text-gray-500 flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" /> Follower Count
-                      </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        {...register(platform.followers as any, { valueAsNumber: true })}
-                        placeholder="0"
-                        className="mt-1 bg-white text-sm"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-gray-500 flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" /> Profile Link (Full URL)
+                        </Label>
+                        <Input
+                          {...register(platform.handle)}
+                          placeholder={platform.placeholder}
+                          className="mt-1 bg-white text-sm"
+                          data-testid={`input-${platform.handle}`}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500 flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3" /> Follower Count
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          {...register(platform.followers, { valueAsNumber: true })}
+                          placeholder="0"
+                          className="mt-1 bg-white text-sm"
+                          data-testid={`input-${platform.followers}`}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
-              <div className="border rounded-xl p-4 bg-gray-50">
-                <div className="font-medium text-sm text-gray-700 mb-3">LinkedIn</div>
-                <Input {...register('linkedinHandle')} placeholder="username" className="bg-white text-sm" />
+              {/* LinkedIn (no follower count) */}
+              <div className="border rounded-xl p-4 bg-blue-50 border-blue-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-700 flex items-center justify-center">
+                    <SiLinkedin className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-semibold text-sm text-gray-800">LinkedIn</span>
+                </div>
+                <Input
+                  {...register('linkedinHandle')}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                  className="bg-white text-sm"
+                  data-testid="input-linkedinHandle"
+                />
               </div>
+
+              {/* Custom Admin Platforms */}
+              {customPlatforms.length > 0 && (
+                <div className="border-t pt-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-purple-600" /> Additional Platforms
+                  </p>
+                  <div className="space-y-3">
+                    {customPlatforms.map((platform: any) => (
+                      <div key={platform.slug} className="border rounded-xl p-4 bg-gray-50 border-gray-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
+                            style={{ backgroundColor: platform.bgColor || '#6366f1' }}
+                          >
+                            {platform.name[0]}
+                          </div>
+                          <span className="font-semibold text-sm text-gray-800">{platform.name}</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs text-gray-500">Profile Link</Label>
+                            <Input
+                              value={customLinks[platform.slug]?.url || ''}
+                              onChange={(e) => setCustomLinks(prev => ({
+                                ...prev,
+                                [platform.slug]: { ...prev[platform.slug], url: e.target.value, followerCount: prev[platform.slug]?.followerCount || 0 }
+                              }))}
+                              placeholder={platform.urlPrefix ? `${platform.urlPrefix}yourhandle` : 'https://...'}
+                              className="mt-1 bg-white text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-500">Follower Count</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={customLinks[platform.slug]?.followerCount || 0}
+                              onChange={(e) => setCustomLinks(prev => ({
+                                ...prev,
+                                [platform.slug]: { ...prev[platform.slug], url: prev[platform.slug]?.url || '', followerCount: parseInt(e.target.value) || 0 }
+                              }))}
+                              className="mt-1 bg-white text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -339,15 +472,15 @@ export default function ProfileEdit() {
             </Link>
             <Button
               type="submit"
-              className="bg-black text-white hover:bg-gray-900 px-8 rounded-xl"
-              disabled={updateProfileMutation.isPending}
+              className="bg-purple-600 text-white hover:bg-purple-700 px-8 rounded-xl"
+              disabled={isPending}
+              data-testid="button-save-profile"
             >
-              {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile'}
+              {isPending ? 'Saving...' : 'Save Profile'}
             </Button>
           </div>
         </form>
       </div>
-
       <Footer />
     </div>
   );

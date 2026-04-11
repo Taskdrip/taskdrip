@@ -347,6 +347,88 @@ export const escrowPayments = pgTable("escrow_payments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Social platforms (admin-managed)
+export const socialPlatforms = pgTable("social_platforms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  slug: varchar("slug").unique().notNull(),
+  iconClass: varchar("icon_class"), // e.g. "SiTwitter", "SiFacebook"
+  color: varchar("color").default("#000000"),
+  bgColor: varchar("bg_color").default("#6366f1"),
+  urlPrefix: varchar("url_prefix"), // e.g. "https://twitter.com/"
+  isActive: boolean("is_active").default(true),
+  isBuiltIn: boolean("is_built_in").default(false),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User social links (platform URL + follower count)
+export const userSocialLinks = pgTable("user_social_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  platformSlug: varchar("platform_slug").notNull(),
+  url: varchar("url", { length: 500 }).notNull(),
+  followerCount: integer("follower_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Portfolio items
+export const portfolioItems = pgTable("portfolio_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url"),
+  url: varchar("url", { length: 500 }),
+  category: varchar("category"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Push subscriptions (browser Web Push API)
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  keys: jsonb("keys").notNull(),
+  userAgent: varchar("user_agent"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Push notification campaigns (admin-controlled broadcasts)
+export const pushNotificationCampaigns = pgTable("push_notification_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  body: text("body").notNull(),
+  icon: varchar("icon"),
+  clickUrl: varchar("click_url"),
+  targetType: varchar("target_type").default("all"), // 'all', 'creators', 'brands'
+  status: varchar("status").default("draft"), // 'draft', 'sent', 'scheduled'
+  scheduledAt: timestamp("scheduled_at"),
+  sentAt: timestamp("sent_at"),
+  sentCount: integer("sent_count").default(0),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSocialPlatformSchema = createInsertSchema(socialPlatforms).omit({ id: true, createdAt: true });
+export const insertUserSocialLinkSchema = createInsertSchema(userSocialLinks).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPortfolioItemSchema = createInsertSchema(portfolioItems).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPushNotificationCampaignSchema = createInsertSchema(pushNotificationCampaigns).omit({ id: true, createdAt: true });
+
+export type SocialPlatform = typeof socialPlatforms.$inferSelect;
+export type InsertSocialPlatform = z.infer<typeof insertSocialPlatformSchema>;
+export type UserSocialLink = typeof userSocialLinks.$inferSelect;
+export type InsertUserSocialLink = z.infer<typeof insertUserSocialLinkSchema>;
+export type PortfolioItem = typeof portfolioItems.$inferSelect;
+export type InsertPortfolioItem = z.infer<typeof insertPortfolioItemSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type PushNotificationCampaign = typeof pushNotificationCampaigns.$inferSelect;
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,

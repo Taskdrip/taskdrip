@@ -11,14 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
-import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail } from "lucide-react";
+import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail, Briefcase, Plus, Trash2, ExternalLink, Link2 } from "lucide-react";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [editingPortfolio, setEditingPortfolio] = useState<any>(null);
+  const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', url: '', category: '' });
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
@@ -56,6 +60,72 @@ export default function Dashboard() {
     queryKey: ['/api/notifications'],
     enabled: !!user?.id,
   });
+
+  // Fetch portfolio
+  const { data: portfolioItems = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${user?.id}/portfolio`],
+    enabled: !!user?.id,
+  });
+
+  // Fetch reviews received
+  const { data: myReviews = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${user?.id}/reviews`],
+    enabled: !!user?.id,
+  });
+
+  const createPortfolioMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest('POST', `/api/portfolio`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/portfolio`] });
+      setPortfolioDialogOpen(false);
+      setEditingPortfolio(null);
+      setPortfolioForm({ title: '', description: '', imageUrl: '', url: '', category: '' });
+      toast({ title: 'Portfolio item added!' });
+    },
+    onError: () => toast({ title: 'Failed to add portfolio item', variant: 'destructive' }),
+  });
+
+  const updatePortfolioMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest('PATCH', `/api/portfolio/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/portfolio`] });
+      setPortfolioDialogOpen(false);
+      setEditingPortfolio(null);
+      setPortfolioForm({ title: '', description: '', imageUrl: '', url: '', category: '' });
+      toast({ title: 'Portfolio item updated!' });
+    },
+  });
+
+  const deletePortfolioMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/portfolio/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/portfolio`] });
+      toast({ title: 'Portfolio item deleted' });
+    },
+  });
+
+  const handlePortfolioSave = () => {
+    if (!portfolioForm.title.trim()) return;
+    if (editingPortfolio) {
+      updatePortfolioMutation.mutate({ id: editingPortfolio.id, data: portfolioForm });
+    } else {
+      createPortfolioMutation.mutate(portfolioForm);
+    }
+  };
+
+  const openEditPortfolio = (item: any) => {
+    setEditingPortfolio(item);
+    setPortfolioForm({ title: item.title || '', description: item.description || '', imageUrl: item.imageUrl || '', url: item.url || '', category: item.category || '' });
+    setPortfolioDialogOpen(true);
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -195,12 +265,18 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-            <TabsTrigger value="earnings">Earnings</TabsTrigger>
+          <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">
+            <TabsTrigger value="overview" className="flex-1 min-w-[80px]">Overview</TabsTrigger>
+            <TabsTrigger value="messages" className="flex-1 min-w-[80px]">Messages</TabsTrigger>
+            <TabsTrigger value="portfolio" className="flex-1 min-w-[80px]" data-testid="tab-portfolio">
+              <Briefcase className="w-4 h-4 mr-1" /> Portfolio
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="flex-1 min-w-[80px]" data-testid="tab-reviews">
+              <Star className="w-4 h-4 mr-1" /> Reviews
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex-1 min-w-[80px]">Profile</TabsTrigger>
+            <TabsTrigger value="activity" className="flex-1 min-w-[80px]">Activity</TabsTrigger>
+            <TabsTrigger value="earnings" className="flex-1 min-w-[80px]">Earnings</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -647,6 +723,184 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <p className="text-center text-gray-600 py-8">No transactions yet</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Portfolio Tab */}
+          <TabsContent value="portfolio" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-purple-600" />
+                    My Portfolio
+                  </CardTitle>
+                  <Dialog open={portfolioDialogOpen} onOpenChange={(open) => {
+                    setPortfolioDialogOpen(open);
+                    if (!open) { setEditingPortfolio(null); setPortfolioForm({ title: '', description: '', imageUrl: '', url: '', category: '' }); }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="add-portfolio-btn">
+                        <Plus className="w-4 h-4 mr-2" /> Add Item
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>{editingPortfolio ? 'Edit Portfolio Item' : 'Add Portfolio Item'}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Title *</Label>
+                          <Input value={portfolioForm.title} onChange={e => setPortfolioForm(p => ({ ...p, title: e.target.value }))} placeholder="My Amazing Campaign" className="mt-1" data-testid="portfolio-title" />
+                        </div>
+                        <div>
+                          <Label>Category</Label>
+                          <Input value={portfolioForm.category} onChange={e => setPortfolioForm(p => ({ ...p, category: e.target.value }))} placeholder="e.g. Social Media, Video, Blog" className="mt-1" />
+                        </div>
+                        <div>
+                          <Label>Description</Label>
+                          <Textarea value={portfolioForm.description} onChange={e => setPortfolioForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe this project..." rows={3} className="mt-1" data-testid="portfolio-description" />
+                        </div>
+                        <div>
+                          <Label>Project URL</Label>
+                          <Input value={portfolioForm.url} onChange={e => setPortfolioForm(p => ({ ...p, url: e.target.value }))} placeholder="https://example.com/your-project" className="mt-1" data-testid="portfolio-url" />
+                        </div>
+                        <div>
+                          <Label>Image URL</Label>
+                          <Input value={portfolioForm.imageUrl} onChange={e => setPortfolioForm(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://images.unsplash.com/..." className="mt-1" />
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <Button onClick={handlePortfolioSave} disabled={createPortfolioMutation.isPending || updatePortfolioMutation.isPending}
+                            className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="save-portfolio-btn">
+                            {createPortfolioMutation.isPending || updatePortfolioMutation.isPending ? 'Saving...' : editingPortfolio ? 'Update' : 'Add to Portfolio'}
+                          </Button>
+                          <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)} className="flex-1">Cancel</Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {portfolioItems.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-4">
+                      <Briefcase className="w-8 h-8 text-purple-300" />
+                    </div>
+                    <p className="text-gray-500 font-medium mb-2">No portfolio items yet</p>
+                    <p className="text-sm text-gray-400">Showcase your best work to attract brands</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {portfolioItems.map((item: any) => (
+                      <div key={item.id} className="group border rounded-xl overflow-hidden hover:shadow-md transition-shadow" data-testid={`portfolio-item-${item.id}`}>
+                        {item.imageUrl ? (
+                          <div className="aspect-video overflow-hidden">
+                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          </div>
+                        ) : (
+                          <div className="aspect-video bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                            <Briefcase className="w-10 h-10 text-purple-300" />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-bold text-gray-900 text-sm truncate">{item.title}</h3>
+                              {item.category && <span className="inline-block text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full mt-1">{item.category}</span>}
+                              {item.description && <p className="text-gray-500 text-xs mt-2 line-clamp-2">{item.description}</p>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                            {item.url && (
+                              <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700">
+                                <ExternalLink className="w-3 h-3" /> View
+                              </a>
+                            )}
+                            <button onClick={() => openEditPortfolio(item)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 ml-auto" data-testid={`edit-portfolio-${item.id}`}>
+                              <Edit3 className="w-3 h-3" /> Edit
+                            </button>
+                            <button onClick={() => deletePortfolioMutation.mutate(item.id)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500" data-testid={`delete-portfolio-${item.id}`}>
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Reviews Tab */}
+          <TabsContent value="reviews" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-500" />
+                  Reviews Received
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {myReviews.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+                      <Star className="w-8 h-8 text-amber-300" />
+                    </div>
+                    <p className="text-gray-500 font-medium mb-1">No reviews yet</p>
+                    <p className="text-sm text-gray-400">Complete campaigns to start receiving reviews</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Summary */}
+                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-black text-gray-900">
+                            {(myReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / myReviews.length).toFixed(1)}
+                          </div>
+                          <div className="flex gap-0.5 mt-1">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} className={`w-4 h-4 ${s <= Math.round(myReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / myReviews.length) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{myReviews.length} reviews</div>
+                          <div className="text-xs text-gray-500">from verified collaborations</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Individual reviews */}
+                    {myReviews.map((review: any) => (
+                      <div key={review.id} className="border rounded-xl p-4 hover:border-amber-200 transition-colors" data-testid={`review-${review.id}`}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm flex-shrink-0">
+                            {review.reviewer?.firstName?.[0] || '?'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-bold text-gray-900 text-sm">
+                                {review.reviewer?.firstName} {review.reviewer?.lastName || ''}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                              </span>
+                            </div>
+                            <div className="flex gap-0.5 mb-2">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} className={`w-4 h-4 ${s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                              ))}
+                            </div>
+                            {review.comment && <p className="text-gray-600 text-sm leading-relaxed">{review.comment}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

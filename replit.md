@@ -156,6 +156,18 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Demo Content Seeding**: Demo feed posts and published blog posts are now seeded alongside courses and shop products when the demo database is empty.
 ✓ **Landing Page Refresh**: Redesigned the "How It Works" section with a premium white-background workflow, creator path, brand path, and gradient typography.
 
+## Web3 SocialFi Improvements (April 2026 — Session 2)
+
+✓ **Social Media Link URLs**: Social media inputs on profile-edit now accept full URLs (https://...) instead of just handles; dynamic section for admin-managed custom platforms; normalizeUrl helper handles legacy handles gracefully for backwards compatibility
+✓ **New DB Tables**: Added `social_platforms`, `user_social_links`, `portfolio_items`, `push_subscriptions`, `push_notification_campaigns` tables via schema update + db:push
+✓ **Backend Routes Added**: API routes for social platforms CRUD (admin), user social links PUT, portfolio CRUD, push subscription subscribe/unsubscribe, push notification campaign CRUD + send endpoint
+✓ **Engaging Creator Profile**: Completely redesigned creator-profile.tsx with dark blockchain/SocialFi gradient hero, animated follow button, social channel cards with platform logos + follower counts + clickable URLs, stats grid, Portfolio tab (shows portfolio items with card grid), Social Analytics tab (bar charts per platform), Reviews with star histogram, Share button, Followers/Following expandable panel
+✓ **Portfolio Tab on Dashboard**: Added Portfolio and Reviews tabs to dashboard.tsx; Portfolio tab has full CRUD (add/edit/delete portfolio items in a card grid with dialog form); Reviews tab shows aggregate star rating, histogram, and individual review cards
+✓ **Admin Social Channels Panel**: New "Channels" tab in admin-master.tsx with full CRUD for custom social platforms (name, slug, URL prefix, background color, icon class); integrated into profile-edit.tsx dynamic section
+✓ **Admin Push Notifications Panel**: New "Push Notify" tab in admin-master.tsx to create notification campaigns with title/body/target/URL fields, live preview, send to subscribers, delete; stats cards for sent/delivered count
+✓ **PWA Support**: Added manifest.json, service worker (sw.js with push notification handler + offline cache), updated index.html with manifest link + service worker registration, theme color, Apple touch icon meta tags
+✓ **Chat Redesign**: Completely rebuilt chat.tsx with modern messenger UI — green online dot, real-time 3-second polling, gradient message bubbles with sender avatars, read receipt checkmarks, date separators, search bar for conversations, smooth send button animation, handle URL param `?to=userId` for deep linking from profile pages
+
 ## External Dependencies
 
 ### Core Dependencies
