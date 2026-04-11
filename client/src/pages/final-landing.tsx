@@ -14,7 +14,7 @@ import {
 const TIERS = [
   {
     name: "Rising Sparks",
-    range: "1K – 10K",
+    range: "10K – 100K",
     gradient: "from-orange-400 to-amber-500",
     bg: "from-orange-50 to-amber-50",
     border: "border-orange-200",
@@ -25,35 +25,35 @@ const TIERS = [
   },
   {
     name: "Growth Engines",
-    range: "10K – 100K",
+    range: "100K – 1M",
     gradient: "from-blue-500 to-cyan-500",
     bg: "from-blue-50 to-cyan-50",
     border: "border-blue-200",
     text: "text-blue-700",
     icon: "⚡",
-    desc: "Established creators with engaged communities",
+    desc: "Fast-growing influencers with strong engagement",
     img: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&q=80&auto=format&fit=crop"
   },
   {
     name: "Power Influencers",
-    range: "100K – 1M",
+    range: "1M – 10M",
     gradient: "from-purple-500 to-violet-600",
     bg: "from-purple-50 to-violet-50",
     border: "border-purple-200",
     text: "text-purple-700",
     icon: "💎",
-    desc: "Top-tier creators with massive reach",
+    desc: "Premium influencers with massive reach",
     img: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=400&q=80&auto=format&fit=crop"
   },
   {
     name: "Global Titans",
-    range: "1M+",
+    range: "10M+",
     gradient: "from-yellow-500 to-orange-500",
     bg: "from-yellow-50 to-orange-50",
     border: "border-yellow-200",
     text: "text-yellow-700",
     icon: "👑",
-    desc: "Elite global creators and celebrities",
+    desc: "World-class creators with global impact",
     img: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&q=80&auto=format&fit=crop"
   }
 ];
