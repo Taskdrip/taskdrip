@@ -135,6 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const offset = parseInt(req.query.offset as string) || 0;
       const feed = await storage.getFeed(limit, offset);
+      await storage.incrementPostViews(feed.map((post) => post.id));
       res.json(feed);
     } catch (error) {
       console.error("Error fetching feed:", error);
@@ -2013,21 +2014,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recipient = await storage.getUser(recipientId);
       if (!recipient) return res.status(404).json({ message: "User not found" });
 
-      const { amount, network, txHash } = req.body;
+      const { amount, network, txHash, paymentMethodType, paymentMethodId } = req.body;
       const tipAmount = parseFloat(amount);
       if (!tipAmount || tipAmount <= 0) return res.status(400).json({ message: "Invalid tip amount" });
+      if (!network && !paymentMethodType) return res.status(400).json({ message: "Payment method is required" });
 
       // Record as a transaction (pending review)
       await storage.createTransaction({
         userId: recipientId,
         type: 'tip_received',
         amount: tipAmount.toString(),
-        network: network || null,
-        description: `Tip from ${req.user.firstName || 'Anonymous'} via ${network || 'crypto'}`,
+        network: network || paymentMethodType || null,
+        description: `Tip from ${req.user.firstName || 'Anonymous'} via ${network || paymentMethodType || 'payment method'}${paymentMethodId ? ` (${paymentMethodId})` : ''}`,
         status: 'pending',
         transactionHash: txHash || null,
       });
 
+      await storage.addPostTip(req.body.postId || "", tipAmount).catch(() => undefined);
       res.json({ success: true, message: "Tip submitted for review" });
     } catch (error) {
       console.error("Error processing tip:", error);

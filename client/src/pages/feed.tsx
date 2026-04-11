@@ -13,22 +13,23 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Heart, MessageCircle, Share2, Send, Loader2, Sparkles, TrendingUp,
-  Gift, Copy, CheckCircle, Wallet
+  Gift, Copy, CheckCircle, Wallet, Eye, CreditCard, Landmark
 } from "lucide-react";
 import { getTierConfig, formatFollowers } from "@/lib/tiers";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
 // ── Tip Modal ──────────────────────────────────────────────────────────────────
-function TipModal({ recipientId, recipientName, open, onClose }: {
+function TipModal({ recipientId, recipientName, postId, open, onClose }: {
   recipientId: string;
   recipientName: string;
+  postId?: string;
   open: boolean;
   onClose: () => void;
 }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<"network" | "send" | "confirm">("network");
-  const [network, setNetwork] = useState("");
+  const [step, setStep] = useState<"amount" | "method" | "details" | "confirm">("amount");
+  const [selectedMethodId, setSelectedMethodId] = useState("");
   const [txHash, setTxHash] = useState("");
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
@@ -38,30 +39,44 @@ function TipModal({ recipientId, recipientName, open, onClose }: {
     enabled: open,
   });
 
+  const { data: paymentMethods = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods"],
+    enabled: open,
+  });
+
   const tipMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", `/api/users/${recipientId}/tip`, {
-        amount, network, txHash,
+        amount,
+        network: selectedMethod?.network || selectedMethod?.label,
+        txHash,
+        postId,
+        paymentMethodId: selectedMethod?.id,
+        paymentMethodType: selectedMethod?.type,
       });
       return await res.json();
     },
     onSuccess: () => {
-      toast({ title: "Tip sent! 🎉", description: "Your tip has been submitted and will be verified by the team." });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      toast({ title: "Tip submitted", description: "Your tip has been recorded and will be verified by the team." });
       onClose();
-      setStep("network"); setTxHash(""); setAmount("");
+      setStep("amount"); setTxHash(""); setAmount(""); setSelectedMethodId("");
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to submit tip", variant: "destructive" });
     },
   });
 
-  const NETWORKS = [
-    { id: "USDT-TRC20", label: "USDT (TRC-20)", sub: "Tron Network", addr: wallet?.usdtTronWallet, color: "from-red-500 to-orange-500" },
-    { id: "USDT-BEP20", label: "USDT (BEP-20)", sub: "BNB Smart Chain", addr: wallet?.usdtBscWallet, color: "from-yellow-500 to-amber-500" },
-    { id: "TON", label: "TON", sub: "TON Network", addr: wallet?.tonWallet, color: "from-blue-500 to-cyan-500" },
+  const creatorWallets = [
+    { id: "creator-USDT-TRC20", type: "crypto", label: "USDT (TRC-20)", network: "USDT-TRC20", currency: "USDT", address: wallet?.usdtTronWallet, instructions: "Send directly to this creator wallet.", source: "Creator wallet" },
+    { id: "creator-USDT-BEP20", type: "crypto", label: "USDT (BEP-20)", network: "USDT-BEP20", currency: "USDT", address: wallet?.usdtBscWallet, instructions: "Send directly to this creator wallet.", source: "Creator wallet" },
+    { id: "creator-TON", type: "crypto", label: "TON", network: "TON", currency: "TON", address: wallet?.tonWallet, instructions: "Send directly to this creator wallet.", source: "Creator wallet" },
   ].filter((n) => n.addr);
 
-  const selectedNet = NETWORKS.find((n) => n.id === network);
+  const adminMethods = (paymentMethods as any[]).map((method) => ({ ...method, source: "Taskdrip checkout" }));
+  const checkoutMethods = [...adminMethods, ...creatorWallets];
+  const selectedMethod = checkoutMethods.find((method) => method.id === selectedMethodId);
+  const readyToConfirm = selectedMethod?.type === "stripe" || selectedMethod?.type === "paystack" || txHash.trim().length > 0;
 
   const copyAddress = (addr: string) => {
     navigator.clipboard.writeText(addr);
@@ -79,72 +94,132 @@ function TipModal({ recipientId, recipientName, open, onClose }: {
           </DialogTitle>
         </DialogHeader>
 
-        {step === "network" && (
+        <div className="grid grid-cols-4 gap-2 text-[10px] font-semibold text-center">
+          {["Amount", "Method", "Details", "Confirm"].map((label, idx) => {
+            const steps = ["amount", "method", "details", "confirm"];
+            const active = steps.indexOf(step) >= idx;
+            return (
+              <div key={label} className={`rounded-full py-1.5 ${active ? "bg-black text-white" : "bg-gray-100 text-gray-400"}`}>
+                {label}
+              </div>
+            );
+          })}
+        </div>
+
+        {step === "amount" && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-500">Choose how you'd like to send your tip:</p>
-            {NETWORKS.length === 0 ? (
+            <div className="rounded-2xl bg-gradient-to-br from-gray-950 to-purple-950 p-5 text-white">
+              <p className="text-xs uppercase tracking-[0.25em] text-white/50 mb-2">Creator support</p>
+              <h3 className="text-2xl font-black">Send a tip in seconds</h3>
+              <p className="text-white/70 text-sm mt-2">Choose an amount, select a checkout method, and submit confirmation for review.</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Tip Amount</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
+                <Input
+                  type="number"
+                  placeholder="10.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min="0.01"
+                  step="0.01"
+                  className="pl-8 h-12 rounded-xl text-lg font-semibold"
+                  data-testid="input-tip-amount"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {["5", "10", "25"].map((preset) => (
+                <button key={preset} onClick={() => setAmount(preset)} className="rounded-xl border border-gray-200 py-2 text-sm font-semibold hover:border-black" data-testid={`button-tip-preset-${preset}`}>
+                  ${preset}
+                </button>
+              ))}
+            </div>
+            <Button
+              className="w-full bg-black text-white hover:bg-gray-900 rounded-xl h-11"
+              disabled={!amount || parseFloat(amount) <= 0}
+              onClick={() => setStep("method")}
+              data-testid="button-tip-continue-method"
+            >
+              Continue to payment
+            </Button>
+          </div>
+        )}
+
+        {step === "method" && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">Choose a payment method for your ${parseFloat(amount || "0").toFixed(2)} tip.</p>
+            {checkoutMethods.length === 0 ? (
               <div className="text-center py-8">
                 <Wallet className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">This influencer hasn't set up a wallet yet.</p>
+                <p className="text-gray-500 text-sm">No payment methods are available yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {NETWORKS.map((net) => (
+                {checkoutMethods.map((method) => (
                   <button
-                    key={net.id}
-                    onClick={() => { setNetwork(net.id); setStep("send"); }}
+                    key={method.id}
+                    onClick={() => { setSelectedMethodId(method.id); setStep("details"); }}
                     className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50 transition-all text-left"
+                    data-testid={`button-tip-method-${method.id}`}
                   >
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${net.color} flex items-center justify-center text-white font-bold text-xs`}>
-                      {net.id === "TON" ? "TON" : "USDT"}
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-950 to-purple-700 flex items-center justify-center text-white">
+                      {method.type === "bank" ? <Landmark className="w-4 h-4" /> : method.type === "stripe" || method.type === "paystack" ? <CreditCard className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">{net.label}</div>
-                      <div className="text-xs text-gray-500">{net.sub}</div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 text-sm">{method.label}</div>
+                      <div className="text-xs text-gray-500">{method.source} · {method.type}{method.currency ? ` · ${method.currency}` : ""}</div>
                     </div>
+                    <span className="text-gray-300">→</span>
                   </button>
                 ))}
               </div>
             )}
+            <button onClick={() => setStep("amount")} className="w-full text-xs text-gray-400 hover:text-gray-600" data-testid="button-tip-back-amount">← Back</button>
           </div>
         )}
 
-        {step === "send" && selectedNet && (
+        {step === "details" && selectedMethod && (
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-xs text-gray-500 mb-1 font-medium">{selectedNet.label} Address</p>
-              <div className="flex items-center gap-2">
-                <code className="text-xs text-gray-800 break-all flex-1 font-mono">{selectedNet.addr}</code>
-                <button
-                  onClick={() => copyAddress(selectedNet.addr!)}
-                  className="flex-shrink-0 p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-100"
-                >
-                  {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-500" />}
-                </button>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-500 font-medium">{selectedMethod.label}</p>
+                <Badge variant="secondary" className="capitalize">{selectedMethod.type}</Badge>
               </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Amount to Send</label>
-              <Input
-                type="number"
-                placeholder="e.g. 10"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min="0.01"
-                step="0.01"
-              />
+              {selectedMethod.address && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Wallet address</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs text-gray-800 break-all flex-1 font-mono">{selectedMethod.address}</code>
+                    <button onClick={() => copyAddress(selectedMethod.address)} className="flex-shrink-0 p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-100" data-testid="button-copy-tip-address">
+                      {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-500" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {selectedMethod.bankName && <p className="text-xs text-gray-700"><span className="font-semibold">Bank:</span> {selectedMethod.bankName}</p>}
+              {selectedMethod.accountName && <p className="text-xs text-gray-700"><span className="font-semibold">Account name:</span> {selectedMethod.accountName}</p>}
+              {selectedMethod.accountNumber && <p className="text-xs text-gray-700"><span className="font-semibold">Account number:</span> {selectedMethod.accountNumber}</p>}
+              {selectedMethod.paypalEmail && <p className="text-xs text-gray-700"><span className="font-semibold">PayPal:</span> {selectedMethod.paypalEmail}</p>}
+              {selectedMethod.type === "stripe" && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
+                  Stripe checkout is ready in the UI. Connect Stripe in payment settings to process live card payments.
+                </div>
+              )}
+              {selectedMethod.instructions && <p className="text-xs text-gray-500">{selectedMethod.instructions}</p>}
             </div>
             <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-xl p-3">
-              📲 Send the crypto to the address above, then enter your transaction hash below to confirm.
+              Send ${parseFloat(amount || "0").toFixed(2)} using the method above. Then continue to submit confirmation.
             </p>
             <Button
               className="w-full bg-black text-white hover:bg-gray-900 rounded-xl"
-              disabled={!amount || parseFloat(amount) <= 0}
               onClick={() => setStep("confirm")}
+              data-testid="button-tip-details-continue"
             >
-              I've Sent the Tip →
+              Continue to confirmation →
             </Button>
-            <button onClick={() => setStep("network")} className="w-full text-xs text-gray-400 hover:text-gray-600">← Back</button>
+            <button onClick={() => setStep("method")} className="w-full text-xs text-gray-400 hover:text-gray-600" data-testid="button-tip-back-method">← Back</button>
           </div>
         )}
 
@@ -156,22 +231,27 @@ function TipModal({ recipientId, recipientName, open, onClose }: {
               <p className="text-xs text-green-600">Enter the transaction hash from your wallet</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Transaction Hash (optional)</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Transaction ID / Receipt Reference</label>
               <Input
-                placeholder="0x... or TxID from your wallet"
+                placeholder="0x..., TxID, receipt number, or card reference"
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
+                data-testid="input-tip-reference"
               />
+              {selectedMethod?.type !== "stripe" && selectedMethod?.type !== "paystack" && (
+                <p className="text-xs text-gray-400 mt-1">Required for manual verification.</p>
+              )}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("send")}>← Back</Button>
+              <Button variant="outline" className="flex-1" onClick={() => setStep("details")} data-testid="button-tip-back-details">← Back</Button>
               <Button
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={() => tipMutation.mutate()}
-                disabled={tipMutation.isPending}
+                disabled={tipMutation.isPending || !readyToConfirm}
+                data-testid="button-confirm-tip"
               >
                 {tipMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Confirm Tip 🎉
+                Submit Tip
               </Button>
             </div>
           </div>
@@ -332,6 +412,11 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
 
       {/* Actions */}
       <div className="px-4 pb-3 border-t border-gray-50 pt-3 flex items-center gap-4">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-gray-400" data-testid={`text-post-views-${post.id}`}>
+          <Eye className="w-4 h-4" />
+          <span>{post.viewCount || 0}</span>
+        </div>
+
         <button
           onClick={() => currentUserId && likeMutation.mutate()}
           className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
@@ -339,6 +424,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
           }`}
           disabled={!currentUserId || likeMutation.isPending}
           title={!currentUserId ? "Login to like" : ""}
+          data-testid={`button-like-post-${post.id}`}
         >
           <Heart className={`w-4 h-4 ${liked ? "fill-red-500" : ""}`} />
           <span>{likeCount}</span>
@@ -347,6 +433,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
         <button
           onClick={() => setShowComments(!showComments)}
           className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-blue-500 transition-colors"
+          data-testid={`button-comments-post-${post.id}`}
         >
           <MessageCircle className="w-4 h-4" />
           <span>{post.commentCount || 0}</span>
@@ -357,7 +444,8 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
           <button
             onClick={() => setShowTip(true)}
             className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-purple-500 transition-colors"
-            title="Send a crypto tip"
+            title="Send a tip"
+            data-testid={`button-tip-post-${post.id}`}
           >
             <Gift className="w-4 h-4" />
             <span className="hidden sm:inline">Tip</span>
@@ -367,6 +455,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
         <button
           onClick={handleShare}
           className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-green-500 transition-colors ml-auto"
+          data-testid={`button-share-post-${post.id}`}
         >
           <Share2 className="w-4 h-4" />
         </button>
@@ -444,6 +533,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
         <TipModal
           recipientId={post.user?.id}
           recipientName={`${post.user?.firstName || ""} ${post.user?.lastName || ""}`.trim()}
+          postId={post.id}
           open={showTip}
           onClose={() => setShowTip(false)}
         />
@@ -627,6 +717,8 @@ export default function FeedPage() {
   const { data: feed = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/feed"] });
   const { data: campaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
   const activeCampaigns = (campaigns as any[]).filter((c: any) => c.status === "active" || c.isActive).slice(0, 3);
+  const featuredPosts = (feed as any[]).filter((post: any) => post.user?.userType === "admin" || post.user?.role === "admin").slice(0, 3);
+  const recentPosts = (feed as any[]).filter((post: any) => !(post.user?.userType === "admin" || post.user?.role === "admin"));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -636,12 +728,30 @@ export default function FeedPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-yellow-500" />
-              <h1 className="text-xl font-bold text-gray-900">Influencer Feed</h1>
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs ml-1">
-                Like · Comment · Tip
-              </Badge>
+            <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                  <Badge className="bg-black text-white border-black text-xs mb-3">
+                    SocialFi Community
+                  </Badge>
+                  <h1 className="text-3xl font-black text-gray-950">Influencer Feed</h1>
+                  <p className="text-sm text-gray-500 mt-2">Follow official updates, creator wins, campaign tips, comments, views, and supporter tips in one clean stream.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center min-w-[210px]">
+                  <div className="rounded-2xl bg-gray-50 p-3">
+                    <div className="font-black text-gray-950" data-testid="text-feed-post-count">{feed.length}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-gray-400">Posts</div>
+                  </div>
+                  <div className="rounded-2xl bg-gray-50 p-3">
+                    <div className="font-black text-gray-950" data-testid="text-featured-post-count">{featuredPosts.length}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-gray-400">Featured</div>
+                  </div>
+                  <div className="rounded-2xl bg-gray-50 p-3">
+                    <div className="font-black text-gray-950" data-testid="text-feed-view-count">{feed.reduce((sum: number, post: any) => sum + (post.viewCount || 0), 0)}</div>
+                    <div className="text-[10px] uppercase tracking-wide text-gray-400">Views</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {isAuthenticated && <CreatePost userId={(user as any)?.id} />}
@@ -650,7 +760,7 @@ export default function FeedPage() {
               <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-2xl p-4 flex items-center gap-3">
                 <Gift className="w-5 h-5 text-purple-500 flex-shrink-0" />
                 <p className="text-sm text-gray-600 flex-1">
-                  <Link href="/login" className="text-purple-600 font-semibold hover:underline">Log in</Link> to like, comment, and tip influencers using your crypto wallet.
+                  <Link href="/login" className="text-purple-600 font-semibold hover:underline">Log in</Link> to like, comment, and support influencers with the available checkout methods.
                 </p>
               </div>
             )}
@@ -680,9 +790,37 @@ export default function FeedPage() {
                 <p className="text-gray-500 text-sm">Be the first to share something with the community!</p>
               </div>
             ) : (
-              feed.map((post: any) => (
-                <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} />
-              ))
+              <>
+                {featuredPosts.length > 0 && (
+                  <section className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                      <Sparkles className="w-5 h-5 text-yellow-500" />
+                      <h2 className="text-lg font-black text-gray-950">Featured by Taskdrip</h2>
+                      <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">Official</Badge>
+                    </div>
+                    {featuredPosts.map((post: any) => (
+                      <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} />
+                    ))}
+                  </section>
+                )}
+
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 px-1 pt-2">
+                    <TrendingUp className="w-5 h-5 text-purple-500" />
+                    <h2 className="text-lg font-black text-gray-950">Recent Posts</h2>
+                    <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-xs">Like · Comment · Tip</Badge>
+                  </div>
+                  {recentPosts.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                      <p className="text-gray-500 text-sm">Creator posts will appear here after the community starts sharing.</p>
+                    </div>
+                  ) : (
+                    recentPosts.map((post: any) => (
+                      <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} />
+                    ))
+                  )}
+                </section>
+              </>
             )}
           </div>
 
@@ -729,14 +867,14 @@ export default function FeedPage() {
             {/* Tip guide */}
             <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-5 text-white">
               <Gift className="w-6 h-6 mb-2 text-purple-200" />
-              <h3 className="font-bold text-sm mb-1">Tip with Crypto</h3>
+              <h3 className="font-bold text-sm mb-1">Tip with checkout options</h3>
               <p className="text-white/80 text-xs mb-3">
-                Support influencers directly by sending USDT or TON to their wallet. Click the 🎁 button on any post.
+                Support influencers using the available admin-managed methods or direct creator wallets. Click the gift button on any post.
               </p>
               <div className="flex gap-2 text-xs">
-                <span className="bg-white/15 px-2 py-1 rounded-full">USDT TRC-20</span>
-                <span className="bg-white/15 px-2 py-1 rounded-full">USDT BEP-20</span>
-                <span className="bg-white/15 px-2 py-1 rounded-full">TON</span>
+                <span className="bg-white/15 px-2 py-1 rounded-full">Card-ready</span>
+                <span className="bg-white/15 px-2 py-1 rounded-full">Crypto</span>
+                <span className="bg-white/15 px-2 py-1 rounded-full">Bank</span>
               </div>
             </div>
 

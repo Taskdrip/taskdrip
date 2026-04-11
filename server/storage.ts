@@ -184,6 +184,7 @@ export interface IStorage {
   getUserPosts(userId: string): Promise<Post[]>;
   createPost(id: string, userId: string, content: string, imageUrl?: string, videoUrl?: string): Promise<Post>;
   updatePost(id: string, userId: string, updates: { content?: string; imageUrl?: string; videoUrl?: string }): Promise<Post>;
+  incrementPostViews(ids: string[]): Promise<void>;
   deletePost(id: string, userId: string): Promise<void>;
   likePost(postId: string, userId: string): Promise<void>;
   unlikePost(postId: string, userId: string): Promise<void>;
@@ -1081,6 +1082,8 @@ export class DatabaseStorage implements IStorage {
         niche: users.niche,
         isVerified: users.isVerified,
         totalFollowers: users.totalFollowers,
+        userType: users.userType,
+        role: users.role,
       }).from(users).where(eq(users.id, post.userId));
       result.push({ ...post, user: u || {} });
     }
@@ -1102,6 +1105,13 @@ export class DatabaseStorage implements IStorage {
     const [post] = await db.update(posts).set({ ...updates, updatedAt: new Date() })
       .where(and(eq(posts.id, id), eq(posts.userId, userId))).returning();
     return post;
+  }
+
+  async incrementPostViews(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await db.update(posts).set({
+      viewCount: sql`COALESCE(${posts.viewCount}, 0) + 1`,
+    }).where(inArray(posts.id, ids));
   }
 
   async addPostTip(postId: string, amount: number): Promise<void> {

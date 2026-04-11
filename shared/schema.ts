@@ -503,6 +503,7 @@ export const posts = pgTable("posts", {
   videoUrl: varchar("video_url"),
   likeCount: integer("like_count").default(0),
   commentCount: integer("comment_count").default(0),
+  viewCount: integer("view_count").default(0),
   totalTipsReceived: decimal("total_tips_received", { precision: 10, scale: 2 }).default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -597,7 +598,7 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, updatedAt: true, likeCount: true, commentCount: true });
+export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, updatedAt: true, likeCount: true, commentCount: true, viewCount: true });
 export const insertPostCommentSchema = createInsertSchema(postComments).omit({ id: true, createdAt: true });
 export const insertUserReviewSchema = createInsertSchema(userReviews).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true, createdAt: true, updatedAt: true });

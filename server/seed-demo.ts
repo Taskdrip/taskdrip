@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { courses, shopProducts, courseLessons } from "@shared/schema";
+import { courses, shopProducts, courseLessons, posts, blogPosts } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 
 const ADMIN_ID = "demo-admin-seed-id";
@@ -249,11 +249,97 @@ const DEMO_PRODUCTS = [
   },
 ];
 
+const DEMO_FEED_POSTS = [
+  {
+    id: "demo_feed_taskdrip_launch",
+    content: "Welcome to the Taskdrip creator feed. Share campaign wins, useful creator tips, collaboration updates, and Web3 earning lessons with the community.",
+    imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=700&fit=crop",
+    likeCount: 28,
+    commentCount: 4,
+    viewCount: 740,
+    totalTipsReceived: "35.00",
+  },
+  {
+    id: "demo_feed_brand_tip",
+    content: "Brand tip: campaigns perform best when the task brief includes a clear deliverable, deadline, content example, approval checklist, and wallet/payment expectations up front.",
+    imageUrl: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&h=700&fit=crop",
+    likeCount: 19,
+    commentCount: 2,
+    viewCount: 512,
+    totalTipsReceived: "12.00",
+  },
+  {
+    id: "demo_feed_creator_tip",
+    content: "Creator tip: keep your profile fresh. Updated follower counts, niche tags, platform links, and proof of past work help brands approve you faster.",
+    imageUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200&h=700&fit=crop",
+    likeCount: 43,
+    commentCount: 7,
+    viewCount: 980,
+    totalTipsReceived: "48.00",
+  },
+];
+
+const DEMO_BLOG_POSTS = [
+  {
+    title: "How Web3 Campaign Payments Make Creator Work Faster",
+    slug: "web3-campaign-payments-creator-work",
+    content: "<p>Web3 payments help global creators work with brands without waiting on slow cross-border banking. On Taskdrip, brands fund campaigns, creators submit proof, and approved rewards can be tracked clearly from one dashboard.</p><p>The strongest campaigns still start with a simple brief: what to create, where to publish it, when it is due, and how success will be reviewed.</p>",
+    excerpt: "A practical look at why crypto-native campaign payments help brands and creators move faster.",
+    featuredImage: "https://images.unsplash.com/photo-1642104704074-907c0698cbd9?w=1200&h=700&fit=crop",
+    category: "payments",
+    tags: ["web3", "creator economy", "payments"],
+    isPublished: true,
+    publishedAt: new Date(),
+    viewCount: 1260,
+    likesCount: 84,
+    commentsCount: 9,
+    metaDescription: "Learn how Web3 campaign payments improve speed and transparency for global creator campaigns.",
+    seoKeywords: "web3 creator payments, crypto influencer campaigns, socialfi payments",
+    readingTime: 4,
+  },
+  {
+    title: "Creator Tiers Explained: From Rising Sparks to Global Titans",
+    slug: "creator-tiers-explained-taskdrip",
+    content: "<p>Taskdrip classifies creators by audience size so brands can discover the right partners for each campaign. Rising Sparks are perfect for authentic niche engagement, while Global Titans offer large-scale reach.</p><p>The best strategy is not always choosing the largest creator. Brands often see stronger conversion from creators whose audience closely matches the product niche.</p>",
+    excerpt: "Understand Taskdrip creator tiers and how brands can select the right influencer mix.",
+    featuredImage: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&h=700&fit=crop",
+    category: "creators",
+    tags: ["creator tiers", "influencer marketing", "brands"],
+    isPublished: true,
+    publishedAt: new Date(),
+    viewCount: 940,
+    likesCount: 61,
+    commentsCount: 6,
+    metaDescription: "A guide to Taskdrip creator tiers and how brands can choose creators for campaign performance.",
+    seoKeywords: "creator tiers, influencer tiers, Taskdrip creators",
+    readingTime: 5,
+  },
+  {
+    title: "What Brands Should Include in a High-Converting Campaign Brief",
+    slug: "high-converting-campaign-brief",
+    content: "<p>A strong campaign brief removes guesswork. Include the campaign goal, target platform, content format, required talking points, prohibited claims, deadline, proof requirements, and reward amount.</p><p>Clear briefs reduce revision cycles and help creators publish content that feels authentic while still protecting the brand.</p>",
+    excerpt: "Use this campaign brief checklist to get better creator submissions and faster approvals.",
+    featuredImage: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=700&fit=crop",
+    category: "brands",
+    tags: ["campaign brief", "brand campaigns", "creator management"],
+    isPublished: true,
+    publishedAt: new Date(),
+    viewCount: 810,
+    likesCount: 47,
+    commentsCount: 5,
+    metaDescription: "A practical checklist for creating creator campaign briefs that convert.",
+    seoKeywords: "campaign brief, influencer brief, brand creator campaign",
+    readingTime: 3,
+  },
+];
+
 export async function seedDemoData(adminUserId: string) {
   try {
     // Check if demo data already exists
     const existingCourses = await db.select({ id: courses.id }).from(courses).limit(1);
     const existingProducts = await db.select({ id: shopProducts.id }).from(shopProducts).limit(1);
+    const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
+    const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
 
     if (existingCourses.length === 0) {
       console.log("[seed] Seeding demo courses...");
@@ -299,6 +385,28 @@ export async function seedDemoData(adminUserId: string) {
         });
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
+    }
+
+    if (existingPosts.length === 0) {
+      console.log("[seed] Seeding demo feed posts...");
+      for (const post of DEMO_FEED_POSTS) {
+        await db.insert(posts).values({
+          ...post,
+          userId: adminUserId,
+        });
+      }
+      console.log(`[seed] Created ${DEMO_FEED_POSTS.length} demo feed posts.`);
+    }
+
+    if (existingBlogPosts.length === 0) {
+      console.log("[seed] Seeding demo blog posts...");
+      for (const post of DEMO_BLOG_POSTS) {
+        await db.insert(blogPosts).values({
+          ...post,
+          authorId: adminUserId,
+        });
+      }
+      console.log(`[seed] Created ${DEMO_BLOG_POSTS.length} demo blog posts.`);
     }
   } catch (err) {
     console.error("[seed] Demo seed error:", err);

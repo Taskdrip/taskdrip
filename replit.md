@@ -148,6 +148,14 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Blog Comments with User Data**: Comment thread shows user avatar, name and date; post comment form with authentication gate
 ✓ **App Routing**: Added /blog/:slug route to App.tsx for individual blog post pages
 
+## Feed, Checkout, and Landing Updates (April 2026)
+
+✓ **Feed Redesign**: `/feed` now has a polished hero summary, official admin-featured posts section, separate recent community posts section, and visible post view counts.
+✓ **Post Analytics**: Added `viewCount` to feed posts and increment views when the feed is loaded.
+✓ **Tip Checkout Flow**: Reworked tipping into a multi-step checkout-style flow: amount → payment method → payment details → confirmation, using admin-managed payment methods plus creator wallets.
+✓ **Demo Content Seeding**: Demo feed posts and published blog posts are now seeded alongside courses and shop products when the demo database is empty.
+✓ **Landing Page Refresh**: Redesigned the "How It Works" section with a premium white-background workflow, creator path, brand path, and gradient typography.
+
 ## External Dependencies
 
 ### Core Dependencies

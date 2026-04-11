@@ -396,83 +396,100 @@ export default function FinalLanding() {
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="max-w-3xl mx-auto text-center mb-16">
             <Badge className="mb-4 bg-black text-white px-4 py-1.5">How It Works</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-black">Simple. Fast. Rewarding.</h2>
+            <h2 className="text-4xl md:text-6xl font-black text-black tracking-tight">
+              From brief to{" "}
+              <span className="bg-gradient-to-r from-violet-600 via-blue-600 to-emerald-500 bg-clip-text text-transparent">
+                crypto payout
+              </span>
+            </h2>
+            <p className="mt-5 text-lg text-gray-600 leading-relaxed">
+              Taskdrip keeps creator discovery, campaign execution, proof review, and payments in one clean workflow for both sides of the marketplace.
+            </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl h-80 bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 flex items-center justify-center">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/3 -translate-x-1/3" />
-              <div className="relative z-10 text-center px-8">
-                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl">
-                  <span className="text-5xl">🎯</span>
-                </div>
-                <Badge className="mb-3 bg-white/20 text-white border-white/30 px-3 py-1 backdrop-blur-sm">For Influencers</Badge>
-                <h3 className="text-3xl font-black text-white mb-2">Monetize Your Influence</h3>
-                <p className="text-green-100 text-sm">Join brand campaigns that match your niche.<br />Get paid instantly in USDT or TON.</p>
-                <div className="flex items-center justify-center gap-4 mt-5">
-                  {["TikTok", "YouTube", "Instagram"].map((p) => (
-                    <span key={p} className="text-xs bg-white/15 text-white px-3 py-1 rounded-full border border-white/20">{p}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              {CREATOR_STEPS.map((step) => (
-                <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:border-green-200 transition-all">
-                  <div className="flex-shrink-0 w-11 h-11 bg-black text-white rounded-xl flex items-center justify-center font-black text-sm">{step.num}</div>
-                  <div>
-                    <h3 className="font-bold text-black mb-1">{step.title}</h3>
-                    <p className="text-gray-600 text-sm">{step.desc}</p>
+          <div className="relative">
+            <div className="absolute inset-x-0 top-20 hidden lg:block h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+            <div className="grid md:grid-cols-4 gap-5 mb-16">
+              {[
+                { icon: <Target className="w-6 h-6" />, title: "Match", desc: "Brands define a campaign and creators match by niche, tier, and platform.", tone: "from-violet-600 to-indigo-600" },
+                { icon: <Play className="w-6 h-6" />, title: "Create", desc: "Creators publish the task content and submit links, screenshots, or proof.", tone: "from-blue-600 to-cyan-600" },
+                { icon: <CheckCircle className="w-6 h-6" />, title: "Approve", desc: "Brands review real work before campaign funds are released.", tone: "from-emerald-600 to-teal-600" },
+                { icon: <Wallet className="w-6 h-6" />, title: "Pay", desc: "Approved creators receive tracked Web3 payouts with transparent records.", tone: "from-gray-950 to-violet-700" },
+              ].map((item, i) => (
+                <div key={item.title} className="relative bg-white rounded-3xl border border-gray-100 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.tone} text-white flex items-center justify-center mb-5 shadow-lg`}>
+                    {item.icon}
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0 mt-1" />
+                  <div className="text-xs font-black text-gray-300 mb-2">STEP {String(i + 1).padStart(2, "0")}</div>
+                  <h3 className="text-xl font-black text-black mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 items-stretch">
+            <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-black text-white flex items-center justify-center">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <Badge className="mb-1 bg-emerald-50 text-emerald-700 border-emerald-100">For Creators</Badge>
+                  <h3 className="text-2xl font-black text-black">Earn from your influence</h3>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {CREATOR_STEPS.map((step) => (
+                  <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100">
+                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center font-black text-sm">{step.num}</div>
+                    <div>
+                      <h4 className="font-bold text-black mb-1">{step.title}</h4>
+                      <p className="text-gray-600 text-sm">{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <Link href="/signup?type=creator">
-                <Button className="w-full mt-2 bg-black hover:bg-gray-900 text-white py-5 rounded-xl font-semibold text-base">
+                <Button className="w-full mt-6 bg-black hover:bg-gray-900 text-white py-5 rounded-xl font-semibold text-base">
                   Start Earning Today <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
             </div>
-          </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-4 order-2 lg:order-1">
-              {BRAND_STEPS.map((step) => (
-                <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all">
-                  <div className="flex-shrink-0 w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black text-sm">{step.num}</div>
-                  <div>
-                    <h3 className="font-bold text-black mb-1">{step.title}</h3>
-                    <p className="text-gray-600 text-sm">{step.desc}</p>
+            <div className="rounded-[2rem] border border-gray-100 bg-black p-8 shadow-xl text-white overflow-hidden relative">
+              <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/30 rounded-full blur-3xl" />
+              <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-violet-500/30 rounded-full blur-3xl" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0 mt-1" />
+                  <div>
+                    <Badge className="mb-1 bg-white/10 text-white border-white/20">For Brands</Badge>
+                    <h3 className="text-2xl font-black text-white">Launch campaigns with control</h3>
+                  </div>
                 </div>
-              ))}
-              <Link href="/signup?type=brand">
-                <Button className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-xl font-semibold text-base">
-                  Launch a Campaign <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl h-80 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex items-center justify-center order-1 lg:order-2">
-              <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 -translate-x-1/2" />
-              <div className="absolute bottom-0 right-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/3 translate-x-1/3" />
-              <div className="relative z-10 text-center px-8">
-                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl">
-                  <span className="text-5xl">🏢</span>
-                </div>
-                <Badge className="mb-3 bg-white/20 text-white border-white/30 px-3 py-1 backdrop-blur-sm">For Brands</Badge>
-                <h3 className="text-3xl font-black text-white mb-2">Scale with Creators</h3>
-                <p className="text-blue-100 text-sm">Access 10,000+ verified influencers.<br />Pay only for approved results — zero risk.</p>
-                <div className="flex items-center justify-center gap-3 mt-5">
-                  {["10K+ Creators", "500+ Brands", "$450K+ Paid"].map((s) => (
-                    <span key={s} className="text-xs bg-white/15 text-white px-2 py-1 rounded-full border border-white/20">{s}</span>
+                <div className="space-y-4">
+                  {BRAND_STEPS.map((step) => (
+                    <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm">
+                      <div className="flex-shrink-0 w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-black text-sm">{step.num}</div>
+                      <div>
+                        <h4 className="font-bold text-white mb-1">{step.title}</h4>
+                        <p className="text-white/70 text-sm">{step.desc}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
+                <Link href="/signup?type=brand">
+                  <Button className="w-full mt-6 bg-white hover:bg-gray-100 text-black py-5 rounded-xl font-semibold text-base">
+                    Launch a Campaign <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
