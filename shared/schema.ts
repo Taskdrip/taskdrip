@@ -211,6 +211,7 @@ export const shopProducts = pgTable("shop_products", {
   category: varchar("category").notNull(),
   type: varchar("type").notNull(), // course, software, template, etc.
   featuredImage: varchar("featured_image"),
+  promoVideoUrl: varchar("promo_video_url"),
   galleryImages: text("gallery_images").array().default(sql`ARRAY[]::text[]`),
   downloadUrl: varchar("download_url"),
   demoUrl: varchar("demo_url"),
@@ -722,10 +723,34 @@ export const courseLikes = pgTable("course_likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const courseLessons = pgTable("course_lessons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  videoUrl: varchar("video_url"),
+  videoLink: varchar("video_link"),
+  content: text("content"),
+  order: integer("order").default(0),
+  lessonFiles: jsonb("lesson_files").default(sql`'[]'::jsonb`),
+  isPreview: boolean("is_preview").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const courseMessages = pgTable("course_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCourseEnrollmentSchema = createInsertSchema(courseEnrollments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCourseReviewSchema = createInsertSchema(courseReviews).omit({ id: true, createdAt: true });
 export const insertCourseCommentSchema = createInsertSchema(courseComments).omit({ id: true, createdAt: true });
+export const insertCourseLessonSchema = createInsertSchema(courseLessons).omit({ id: true, createdAt: true });
+export const insertCourseMessageSchema = createInsertSchema(courseMessages).omit({ id: true, createdAt: true });
 
 export type Course = typeof courses.$inferSelect;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
@@ -736,3 +761,6 @@ export type InsertCourseReview = z.infer<typeof insertCourseReviewSchema>;
 export type CourseComment = typeof courseComments.$inferSelect;
 export type InsertCourseComment = z.infer<typeof insertCourseCommentSchema>;
 export type CourseLike = typeof courseLikes.$inferSelect;
+export type CourseLesson = typeof courseLessons.$inferSelect;
+export type InsertCourseLesson = z.infer<typeof insertCourseLessonSchema>;
+export type CourseMessage = typeof courseMessages.$inferSelect;
