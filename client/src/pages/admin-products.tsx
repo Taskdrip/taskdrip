@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Eye, Star, Package, Search, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Star, Package, Search, Filter, Image, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +50,8 @@ export default function AdminProducts() {
   const [newRequirement, setNewRequirement] = useState("");
   const [newTag, setNewTag] = useState("");
   const [newGalleryImage, setNewGalleryImage] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageFileRef = useRef<HTMLInputElement>(null);
 
   const { data: products = [], isLoading } = useQuery<ShopProduct[]>({
     queryKey: ["/api/admin/shop/products"],
@@ -78,6 +80,23 @@ export default function AdminProducts() {
       isFree: false,
     },
   });
+
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd, credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      form.setValue("featuredImage", data.url);
+      toast({ title: "Image uploaded!" });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const createProductMutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
@@ -395,20 +414,48 @@ export default function AdminProducts() {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="featuredImage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Featured Image URL</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                {/* Featured Image Upload */}
+                <div className="space-y-2">
+                  <Label>Featured Image</Label>
+                  <div
+                    className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-violet-400 transition-colors"
+                    onClick={() => imageFileRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleImageUpload(f); }}
+                  >
+                    {form.watch("featuredImage") ? (
+                      <div className="relative">
+                        <img src={form.watch("featuredImage")} alt="Featured" className="w-full h-36 object-cover rounded-lg" />
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          onClick={(e) => { e.stopPropagation(); form.setValue("featuredImage", ""); }}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="py-4">
+                        <Image className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm text-gray-500">{uploadingImage ? "Uploading..." : "Click or drag image to upload from device"}</p>
+                        <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP accepted</p>
+                      </div>
                     )}
-                  />
+                    <input ref={imageFileRef} type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-xs text-gray-400">or paste URL:</span>
+                    <Input
+                      value={form.watch("featuredImage")?.startsWith("http") ? form.watch("featuredImage") : ""}
+                      onChange={(e) => form.setValue("featuredImage", e.target.value)}
+                      placeholder="https://..."
+                      className="text-xs h-8"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="downloadUrl"

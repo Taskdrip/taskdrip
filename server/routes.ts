@@ -3073,7 +3073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin / Premium Influencer: create course
-  app.post('/api/courses', isAuthenticated, async (req: any, res) => {
+  app.post('/api/courses', isAuthenticated, upload.single('thumbnail'), async (req: any, res) => {
     try {
       const u = req.user as any;
       const isAdmin = u.userType === 'admin' || u.role === 'admin';
@@ -3081,7 +3081,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isAdmin && !isPremiumInfluencer) {
         return res.status(403).json({ message: "Only admins or premium verified influencers can create courses" });
       }
-      const course = await storage.createCourse({ ...req.body, instructorId: u.id });
+      const body = { ...req.body };
+      if (req.file) body.thumbnail = `/uploads/${req.file.filename}`;
+      if (typeof body.whatYouLearn === 'string') {
+        try { body.whatYouLearn = JSON.parse(body.whatYouLearn); } catch { body.whatYouLearn = body.whatYouLearn.split('\n').filter(Boolean); }
+      }
+      if (typeof body.requirements === 'string') {
+        try { body.requirements = JSON.parse(body.requirements); } catch { body.requirements = body.requirements.split('\n').filter(Boolean); }
+      }
+      if (body.lessonsCount) body.lessonsCount = parseInt(body.lessonsCount);
+      if (body.isFree !== undefined) body.isFree = body.isFree === 'true' || body.isFree === true;
+      if (body.isPublished !== undefined) body.isPublished = body.isPublished === 'true' || body.isPublished === true;
+      if (body.isFeatured !== undefined) body.isFeatured = body.isFeatured === 'true' || body.isFeatured === true;
+      const course = await storage.createCourse({ ...body, instructorId: u.id });
       res.status(201).json(course);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to create course" });
@@ -3089,7 +3101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin / Instructor: update course
-  app.patch('/api/courses/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/courses/:id', isAuthenticated, upload.single('thumbnail'), async (req: any, res) => {
     try {
       const u = req.user as any;
       const isAdmin = u.userType === 'admin' || u.role === 'admin';
@@ -3098,7 +3110,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isAdmin && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
-      const updated = await storage.updateCourse(req.params.id, req.body);
+      const body = { ...req.body };
+      if (req.file) body.thumbnail = `/uploads/${req.file.filename}`;
+      if (typeof body.whatYouLearn === 'string') {
+        try { body.whatYouLearn = JSON.parse(body.whatYouLearn); } catch { body.whatYouLearn = body.whatYouLearn.split('\n').filter(Boolean); }
+      }
+      if (typeof body.requirements === 'string') {
+        try { body.requirements = JSON.parse(body.requirements); } catch { body.requirements = body.requirements.split('\n').filter(Boolean); }
+      }
+      if (body.lessonsCount) body.lessonsCount = parseInt(body.lessonsCount);
+      if (body.isFree !== undefined) body.isFree = body.isFree === 'true' || body.isFree === true;
+      if (body.isPublished !== undefined) body.isPublished = body.isPublished === 'true' || body.isPublished === true;
+      if (body.isFeatured !== undefined) body.isFeatured = body.isFeatured === 'true' || body.isFeatured === true;
+      const updated = await storage.updateCourse(req.params.id, body);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to update course" });
@@ -3232,6 +3256,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ liked });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to toggle like" });
+    }
+  });
+
+  // ── Lessons ──────────────────────────────────────────────────
+  // GET lessons for a course (public preview + enrolled)
+  app.get('/api/courses/:id/lessons', async (req: any, res) => {
+    try {
+      const lessons = await storage.getLessonsByCourse(req.params.id);
+      res.json(lessons);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch lessons" });
+    }
+  });
+
+  // Admin: create lesson (with optional file uploads)
+  app.post('/api/courses/:id/lessons', isAuthenticated, upload.array('files'), async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      const course = await storage.getCourseById(req.params.id);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      if (!isAdmin && course.instructorId !== u.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const files = (req.files as any[]) || [];
+      const lessonFiles = files.map((f) => ({ name: f.originalname, url: `/uploads/${f.filename}`, size: f.size, mimetype: f.mimetype }));
+      const existingFiles = req.body.lessonFiles ? JSON.parse(req.body.lessonFiles) : [];
+      const lesson = await storage.createLesson({
+        courseId: req.params.id,
+        title: req.body.title,
+        description: req.body.description,
+        videoLink: req.body.videoLink,
+        content: req.body.content,
+        order: req.body.order ? parseInt(req.body.order) : 0,
+        lessonFiles: [...existingFiles, ...lessonFiles],
+        isPreview: req.body.isPreview === 'true',
+      });
+      res.status(201).json(lesson);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to create lesson" });
+    }
+  });
+
+  // Admin: update lesson
+  app.patch('/api/courses/:courseId/lessons/:lessonId', isAuthenticated, upload.array('files'), async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      const course = await storage.getCourseById(req.params.courseId);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      if (!isAdmin && course.instructorId !== u.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const files = (req.files as any[]) || [];
+      const newFiles = files.map((f) => ({ name: f.originalname, url: `/uploads/${f.filename}`, size: f.size, mimetype: f.mimetype }));
+      const existingFiles = req.body.lessonFiles ? JSON.parse(req.body.lessonFiles) : [];
+      const updates: any = {};
+      if (req.body.title !== undefined) updates.title = req.body.title;
+      if (req.body.description !== undefined) updates.description = req.body.description;
+      if (req.body.videoLink !== undefined) updates.videoLink = req.body.videoLink;
+      if (req.body.content !== undefined) updates.content = req.body.content;
+      if (req.body.order !== undefined) updates.order = parseInt(req.body.order);
+      if (req.body.isPreview !== undefined) updates.isPreview = req.body.isPreview === 'true';
+      updates.lessonFiles = [...existingFiles, ...newFiles];
+      const updated = await storage.updateLesson(req.params.lessonId, updates);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update lesson" });
+    }
+  });
+
+  // Admin: delete lesson
+  app.delete('/api/courses/:courseId/lessons/:lessonId', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      const course = await storage.getCourseById(req.params.courseId);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      if (!isAdmin && course.instructorId !== u.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      await storage.deleteLesson(req.params.lessonId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete lesson" });
+    }
+  });
+
+  // ── Course Chat ───────────────────────────────────────────────
+  app.get('/api/courses/:id/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const msgs = await storage.getCourseMessages(req.params.id);
+      res.json(msgs);
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post('/api/courses/:id/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const msg = await storage.createCourseMessage({
+        courseId: req.params.id,
+        senderId: req.user.id,
+        message: req.body.message,
+      });
+      // Fetch with sender info
+      const msgs = await storage.getCourseMessages(req.params.id);
+      const full = msgs.find((m) => m.id === msg.id) || msg;
+      res.status(201).json(full);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to send message" });
+    }
+  });
+
+  // ── Generic image upload ─────────────────────────────────────
+  app.post('/api/upload/image', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ url });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Upload failed" });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,13 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   BookOpen, Users, Star, Clock, Play, CheckCircle2, Lock,
   Heart, MessageCircle, Send, ChevronDown, ChevronUp, Award,
-  Upload, Copy, AlertCircle,
+  Upload, Copy, AlertCircle, File, Video, MessageSquare, ChevronRight,
 } from "lucide-react";
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -63,6 +61,282 @@ function StarRating({ rating, interactive = false, onRate }: { rating: number; i
   );
 }
 
+function getEmbedUrl(url: string): string {
+  if (!url) return "";
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`;
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  return url;
+}
+
+function VideoPlayer({ url, title }: { url: string; title?: string }) {
+  const embedUrl = getEmbedUrl(url);
+  if (!embedUrl) return null;
+  return (
+    <div className="rounded-xl overflow-hidden aspect-video bg-black shadow-lg">
+      <iframe
+        src={embedUrl}
+        className="w-full h-full"
+        allowFullScreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        title={title || "Lesson video"}
+      />
+    </div>
+  );
+}
+
+function CourseChatSection({ courseId, isEnrolled, isInstructor }: { courseId: string; isEnrolled: boolean; isInstructor: boolean }) {
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [message, setMessage] = useState("");
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  const canChat = isAuthenticated && (isEnrolled || isInstructor);
+
+  const { data: messages = [], refetch } = useQuery<any[]>({
+    queryKey: ["/api/courses", courseId, "chat"],
+    queryFn: async () => {
+      const res = await fetch(`/api/courses/${courseId}/chat`, { credentials: "include" });
+      return res.ok ? res.json() : [];
+    },
+    enabled: isAuthenticated,
+    refetchInterval: canChat ? 5000 : false,
+  });
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/courses/${courseId}/chat`, { message });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "chat"] });
+      setMessage("");
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const handleSend = () => {
+    if (!message.trim()) return;
+    sendMutation.mutate();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-violet-50 to-indigo-50">
+        <MessageSquare className="h-5 w-5 text-violet-600" />
+        <h2 className="text-lg font-bold text-gray-900">Course Chat</h2>
+        <Badge className="bg-violet-100 text-violet-700 text-xs ml-1">{messages.length} messages</Badge>
+        {isInstructor && <Badge className="bg-amber-100 text-amber-700 text-xs">Instructor</Badge>}
+      </div>
+
+      {!isAuthenticated ? (
+        <div className="p-8 text-center text-gray-400">
+          <Lock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Sign in to access course chat</p>
+        </div>
+      ) : !canChat ? (
+        <div className="p-8 text-center text-gray-400">
+          <Lock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Enroll in this course to join the chat</p>
+        </div>
+      ) : (
+        <>
+          <div className="h-80 overflow-y-auto p-4 space-y-3">
+            {messages.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No messages yet. Start the conversation!</p>
+              </div>
+            ) : (
+              messages.map((msg: any) => {
+                const isMe = msg.senderId === (user as any)?.id;
+                const isAdmin = msg.sender?.userType === "admin" || msg.sender?.role === "admin";
+                return (
+                  <div key={msg.id} className={`flex gap-3 ${isMe ? "flex-row-reverse" : ""}`}>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex-shrink-0 overflow-hidden">
+                      {msg.sender?.profileImageUrl ? (
+                        <img src={msg.sender.profileImageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">
+                          {msg.sender?.firstName?.[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div className={`max-w-xs ${isMe ? "items-end" : ""} flex flex-col gap-1`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-700">
+                          {isMe ? "You" : `${msg.sender?.firstName} ${msg.sender?.lastName}`}
+                        </span>
+                        {isAdmin && <Badge className="bg-violet-100 text-violet-700 text-xs py-0">Instructor</Badge>}
+                      </div>
+                      <div className={`rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-violet-600 text-white rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"}`}>
+                        {msg.message}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={chatBottomRef} />
+          </div>
+
+          <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+            <div className="flex gap-2">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Ask a question or share a thought..."
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                className="flex-1"
+              />
+              <Button
+                className="bg-violet-600 hover:bg-violet-700 text-white flex-shrink-0"
+                onClick={handleSend}
+                disabled={!message.trim() || sendMutation.isPending}
+                size="icon"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: string; isEnrolled: boolean; isInstructor: boolean }) {
+  const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
+
+  const { data: lessons = [] } = useQuery<any[]>({
+    queryKey: ["/api/courses", courseId, "lessons"],
+    queryFn: async () => {
+      const res = await fetch(`/api/courses/${courseId}/lessons`);
+      return res.ok ? res.json() : [];
+    },
+  });
+
+  if (lessons.length === 0) return null;
+
+  const canView = (lesson: any) => lesson.isPreview || isEnrolled || isInstructor;
+
+  return (
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+      <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <BookOpen className="h-5 w-5 text-violet-600" /> Course Lessons
+      </h2>
+      <p className="text-sm text-gray-500 mb-4">{lessons.length} lessons</p>
+
+      {selectedLesson && (
+        <div className="mb-6 bg-gray-900 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div>
+              <p className="text-white font-semibold text-sm">{selectedLesson.title}</p>
+              {selectedLesson.isPreview && <Badge className="bg-green-500 text-white text-xs mt-1">Free Preview</Badge>}
+            </div>
+            <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setSelectedLesson(null)}>
+              ✕
+            </Button>
+          </div>
+          {(selectedLesson.videoLink || selectedLesson.videoUrl) ? (
+            <div className="aspect-video">
+              <iframe
+                src={getEmbedUrl(selectedLesson.videoLink || selectedLesson.videoUrl)}
+                className="w-full h-full"
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                title={selectedLesson.title}
+              />
+            </div>
+          ) : (
+            <div className="p-6 text-gray-400 text-center">
+              <Video className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No video for this lesson</p>
+            </div>
+          )}
+          {selectedLesson.content && (
+            <div className="p-4 border-t border-gray-700">
+              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{selectedLesson.content}</p>
+            </div>
+          )}
+          {Array.isArray(selectedLesson.lessonFiles) && selectedLesson.lessonFiles.length > 0 && (
+            <div className="p-4 border-t border-gray-700">
+              <p className="text-xs text-gray-400 font-medium mb-2">Lesson Files:</p>
+              <div className="space-y-1">
+                {selectedLesson.lessonFiles.map((f: any, i: number) => (
+                  <a key={i} href={f.url} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                    <File className="h-3 w-3" /> {f.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {lessons.map((lesson: any, idx: number) => {
+          const accessible = canView(lesson);
+          const isSelected = selectedLesson?.id === lesson.id;
+          const isExpanded = expandedLesson === lesson.id;
+
+          return (
+            <div key={lesson.id} className={`border rounded-xl overflow-hidden transition-colors ${isSelected ? "border-violet-300 bg-violet-50" : "border-gray-100 hover:border-gray-200"}`}>
+              <button
+                className="w-full flex items-center gap-3 p-4 text-left"
+                onClick={() => {
+                  if (accessible) {
+                    setSelectedLesson(selectedLesson?.id === lesson.id ? null : lesson);
+                  } else {
+                    setExpandedLesson(isExpanded ? null : lesson.id);
+                  }
+                }}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                  isSelected ? "bg-violet-600 text-white" : "bg-violet-100 text-violet-700"
+                }`}>
+                  {accessible ? <Play className={`h-3 w-3 ${isSelected ? "fill-white" : "fill-violet-700"}`} /> : idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-medium text-sm truncate ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
+                      {lesson.title}
+                    </span>
+                    {lesson.isPreview && <Badge className="bg-green-100 text-green-700 text-xs">Free Preview</Badge>}
+                    {lesson.videoLink && <Badge className="bg-blue-100 text-blue-700 text-xs">Video</Badge>}
+                  </div>
+                  {lesson.description && (
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{lesson.description}</p>
+                  )}
+                </div>
+                {!accessible && <Lock className="h-4 w-4 text-gray-300 flex-shrink-0" />}
+                {accessible && <ChevronRight className={`h-4 w-4 text-gray-400 flex-shrink-0 transition-transform ${isSelected ? "rotate-90 text-violet-500" : ""}`} />}
+              </button>
+              {!accessible && isExpanded && (
+                <div className="px-4 pb-3 border-t border-gray-100 pt-2 bg-gray-50">
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Lock className="h-3 w-3" /> Enroll in this course to unlock this lesson.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function BreedSkoolCourse() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAuth();
@@ -73,7 +347,6 @@ export default function BreedSkoolCourse() {
   const [paymentMethod, setPaymentMethod] = useState("usdt_tron");
   const [txHash, setTxHash] = useState("");
   const [paymentProof, setPaymentProof] = useState("");
-  const [expandedSection, setExpandedSection] = useState<number | null>(0);
   const [comment, setComment] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -207,7 +480,7 @@ export default function BreedSkoolCourse() {
   const rating = parseFloat(course.averageRating || "0");
   const isEnrolled = enrollment?.status === "active" || enrollment?.status === "completed";
   const isPending = enrollment?.status === "pending_payment";
-  const syllabus = Array.isArray(course.syllabus) ? course.syllabus : [];
+  const isInstructor = (user as any)?.id === course.instructorId || (user as any)?.userType === "admin" || (user as any)?.role === "admin";
   const whatYouLearn = Array.isArray(course.whatYouLearn) ? course.whatYouLearn : [];
   const requirements = Array.isArray(course.requirements) ? course.requirements : [];
   const selectedWallet = WALLETS.find(w => w.network === paymentMethod);
@@ -227,10 +500,8 @@ export default function BreedSkoolCourse() {
         <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/80 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-4 py-16">
           <div className="max-w-2xl">
-            <div className="flex gap-2 mb-4">
-              <Badge className={LEVEL_COLORS[course.level] || "bg-gray-100 text-gray-600"}>
-                {course.level}
-              </Badge>
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <Badge className={LEVEL_COLORS[course.level] || "bg-gray-100 text-gray-600"}>{course.level}</Badge>
               {course.isFree ? (
                 <Badge className="bg-green-500 text-white">FREE</Badge>
               ) : (
@@ -241,7 +512,7 @@ export default function BreedSkoolCourse() {
             <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">{course.title}</h1>
             <p className="text-white/70 mb-6 leading-relaxed">{course.shortDescription || course.description.slice(0, 150) + "..."}</p>
 
-            <div className="flex items-center gap-4 text-white/70 text-sm mb-6">
+            <div className="flex items-center gap-4 text-white/70 text-sm mb-6 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <StarRating rating={rating} />
                 <span className="font-semibold text-white">{rating.toFixed(1)}</span>
@@ -249,6 +520,7 @@ export default function BreedSkoolCourse() {
               </div>
               <div className="flex items-center gap-1"><Users className="h-4 w-4" /> {(course.studentsCount || 0).toLocaleString()} students</div>
               {course.duration && <div className="flex items-center gap-1"><Clock className="h-4 w-4" /> {course.duration}</div>}
+              <div className="flex items-center gap-1"><BookOpen className="h-4 w-4" /> {course.lessonsCount || 0} lessons</div>
             </div>
 
             {course.instructor && (
@@ -295,37 +567,8 @@ export default function BreedSkoolCourse() {
               </div>
             )}
 
-            {/* Syllabus */}
-            {syllabus.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-violet-600" /> Course Content
-                </h2>
-                <p className="text-sm text-gray-500 mb-4">{syllabus.length} sections • {course.lessonsCount || 0} lessons • {course.duration}</p>
-                <div className="space-y-2">
-                  {syllabus.map((section: any, i: number) => (
-                    <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
-                      <button
-                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
-                        onClick={() => setExpandedSection(expandedSection === i ? null : i)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-xs font-bold flex items-center justify-center">{i + 1}</div>
-                          <span className="font-medium text-gray-900">{section.title}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          {section.duration && <span>{section.duration}</span>}
-                          {expandedSection === i ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </div>
-                      </button>
-                      {expandedSection === i && section.description && (
-                        <div className="px-4 pb-4 text-sm text-gray-600 border-t border-gray-100 pt-3">{section.description}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Lessons */}
+            {id && <LessonsSection courseId={id} isEnrolled={isEnrolled} isInstructor={isInstructor} />}
 
             {/* Requirements */}
             {requirements.length > 0 && (
@@ -341,11 +584,20 @@ export default function BreedSkoolCourse() {
               </div>
             )}
 
-            {/* Description */}
+            {/* About */}
             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
               <h2 className="text-xl font-bold text-gray-900 mb-3">About This Course</h2>
               <p className="text-gray-600 leading-relaxed whitespace-pre-line">{course.description}</p>
             </div>
+
+            {/* Course Chat */}
+            {id && (
+              <CourseChatSection
+                courseId={id}
+                isEnrolled={isEnrolled}
+                isInstructor={isInstructor}
+              />
+            )}
 
             {/* Reviews */}
             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -412,7 +664,7 @@ export default function BreedSkoolCourse() {
               )}
             </div>
 
-            {/* Comments */}
+            {/* General Discussion */}
             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
               <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-violet-600" />
@@ -506,8 +758,9 @@ export default function BreedSkoolCourse() {
                           <p className="text-xs text-green-600">Progress: {enrollment?.progress || 0}%</p>
                         </div>
                       </div>
-                      <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                        <Play className="h-4 w-4" /> Continue Learning
+                      <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white gap-2"
+                        onClick={() => document.getElementById("lessons-anchor")?.scrollIntoView({ behavior: "smooth" })}>
+                        <Play className="h-4 w-4" /> Start Learning
                       </Button>
                     </div>
                   ) : isPending ? (
@@ -537,6 +790,7 @@ export default function BreedSkoolCourse() {
                       { icon: Users, label: `${(course.studentsCount || 0).toLocaleString()} students enrolled` },
                       { icon: Star, label: `${rating.toFixed(1)} average rating` },
                       { icon: Award, label: `Certificate upon completion` },
+                      { icon: MessageSquare, label: `Course chat included` },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <item.icon className="h-4 w-4 text-violet-500 flex-shrink-0" />

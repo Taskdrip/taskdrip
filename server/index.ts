@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
+import { seedDemoData } from "./seed-demo";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 
@@ -69,6 +70,12 @@ async function ensureAdminExists() {
 
 (async () => {
   await ensureAdminExists();
+
+  // Seed demo content (runs only if DB is empty)
+  const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+  if (adminUser) {
+    await seedDemoData(adminUser.id);
+  }
 
   // Seed database in development
   if (app.get("env") === "development") {

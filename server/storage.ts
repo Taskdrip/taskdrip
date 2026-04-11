@@ -31,6 +31,8 @@ import {
   courseReviews,
   courseComments,
   courseLikes,
+  courseLessons,
+  courseMessages,
   type User,
   type InsertUser,
   type Campaign,
@@ -242,6 +244,14 @@ export interface IStorage {
   createCourseComment(data: { courseId: string; userId: string; content: string; parentId?: string }): Promise<CourseComment>;
   getCourseLike(courseId: string, userId: string): Promise<boolean>;
   toggleCourseLike(courseId: string, userId: string): Promise<boolean>;
+  // Lessons
+  getLessonsByCourse(courseId: string): Promise<any[]>;
+  createLesson(data: { courseId: string; title: string; description?: string; videoUrl?: string; videoLink?: string; content?: string; order?: number; lessonFiles?: any[]; isPreview?: boolean }): Promise<any>;
+  updateLesson(lessonId: string, updates: any): Promise<any>;
+  deleteLesson(lessonId: string): Promise<void>;
+  // Course chat
+  getCourseMessages(courseId: string): Promise<any[]>;
+  createCourseMessage(data: { courseId: string; senderId: string; message: string }): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1504,6 +1514,53 @@ export class DatabaseStorage implements IStorage {
       await db.update(courses).set({ likesCount: sql`${courses.likesCount} + 1` }).where(eq(courses.id, courseId));
       return true;
     }
+  }
+
+  async getLessonsByCourse(courseId: string): Promise<any[]> {
+    return db.select().from(courseLessons).where(eq(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
+  }
+
+  async createLesson(data: { courseId: string; title: string; description?: string; videoUrl?: string; videoLink?: string; content?: string; order?: number; lessonFiles?: any[]; isPreview?: boolean }): Promise<any> {
+    const [lesson] = await db.insert(courseLessons).values({
+      courseId: data.courseId,
+      title: data.title,
+      description: data.description,
+      videoUrl: data.videoUrl,
+      videoLink: data.videoLink,
+      content: data.content,
+      order: data.order ?? 0,
+      lessonFiles: data.lessonFiles ?? [],
+      isPreview: data.isPreview ?? false,
+    }).returning();
+    await db.update(courses).set({ lessonsCount: sql`${courses.lessonsCount} + 1` }).where(eq(courses.id, data.courseId));
+    return lesson;
+  }
+
+  async updateLesson(lessonId: string, updates: any): Promise<any> {
+    const [updated] = await db.update(courseLessons).set(updates).where(eq(courseLessons.id, lessonId)).returning();
+    return updated;
+  }
+
+  async deleteLesson(lessonId: string): Promise<void> {
+    const [lesson] = await db.select().from(courseLessons).where(eq(courseLessons.id, lessonId));
+    if (lesson) {
+      await db.delete(courseLessons).where(eq(courseLessons.id, lessonId));
+      await db.update(courses).set({ lessonsCount: sql`GREATEST(${courses.lessonsCount} - 1, 0)` }).where(eq(courses.id, lesson.courseId));
+    }
+  }
+
+  async getCourseMessages(courseId: string): Promise<any[]> {
+    const msgs = await db.select().from(courseMessages).where(eq(courseMessages.courseId, courseId)).orderBy(courseMessages.createdAt);
+    return Promise.all(msgs.map(async (m) => {
+      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType })
+        .from(users).where(eq(users.id, m.senderId));
+      return { ...m, sender: user || {} };
+    }));
+  }
+
+  async createCourseMessage(data: { courseId: string; senderId: string; message: string }): Promise<any> {
+    const [msg] = await db.insert(courseMessages).values(data).returning();
+    return msg;
   }
 
   async getReferralStats(): Promise<any> {
