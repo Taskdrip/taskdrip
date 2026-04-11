@@ -32,6 +32,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Creators grouped by tier - sorted highest to lowest within each tier
+  app.get('/api/creators/by-tier', async (req, res) => {
+    try {
+      const creators = await storage.getCreators();
+      const tierOrder = ['global_titans', 'power_influencers', 'growth_engines', 'rising_sparks'];
+      const grouped: Record<string, any[]> = {
+        global_titans: [],
+        power_influencers: [],
+        growth_engines: [],
+        rising_sparks: [],
+      };
+      for (const creator of creators) {
+        const { password, ...safe } = creator as any;
+        const tier = safe.creatorTier || 'rising_sparks';
+        if (grouped[tier]) grouped[tier].push(safe);
+        else grouped['rising_sparks'].push(safe);
+      }
+      for (const tier of tierOrder) {
+        grouped[tier].sort((a: any, b: any) => (b.totalFollowers || 0) - (a.totalFollowers || 0));
+      }
+      res.json(grouped);
+    } catch (error) {
+      console.error("Error fetching creators by tier:", error);
+      res.status(500).json({ message: "Failed to fetch creators by tier" });
+    }
+  });
+
   // Admin wallets - public read for payment purposes
   app.get('/api/payment-wallets', async (req, res) => {
     try {
@@ -1524,9 +1551,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       updates.totalFollowers = totalFollowers;
 
-      if (totalFollowers >= 1_000_000) updates.creatorTier = 'global_titans';
-      else if (totalFollowers >= 100_000) updates.creatorTier = 'power_influencers';
-      else if (totalFollowers >= 10_000) updates.creatorTier = 'growth_engines';
+      if (totalFollowers >= 10_000_000) updates.creatorTier = 'global_titans';
+      else if (totalFollowers >= 1_000_000) updates.creatorTier = 'power_influencers';
+      else if (totalFollowers >= 100_000) updates.creatorTier = 'growth_engines';
       else updates.creatorTier = 'rising_sparks';
 
       const updatedUser = await storage.updateUserProfile(req.params.userId, updates);

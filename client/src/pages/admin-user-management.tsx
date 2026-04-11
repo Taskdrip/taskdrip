@@ -5,18 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Key, Shield, UserCheck, UserX, Search, Filter } from "lucide-react";
+import { Plus, Edit2, Trash2, Key, Shield, UserCheck, UserX, Search, Filter, ExternalLink, CheckCircle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Link } from "wouter";
+import { TIER_CONFIG, TIER_ORDER, formatFollowers, type CreatorTier } from "@/lib/tiers";
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -67,6 +70,11 @@ export default function AdminUserManagement() {
       const res = await apiRequest("GET", "/api/admin/users");
       return res.json();
     },
+  });
+
+  // Fetch creators grouped by tier
+  const { data: tierData = {}, isLoading: isTierLoading } = useQuery<Record<string, any[]>>({
+    queryKey: ["/api/creators/by-tier"],
   });
 
   // Filter users
@@ -288,6 +296,7 @@ export default function AdminUserManagement() {
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList>
           <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="tiers">Creator Tiers</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
         </TabsList>
 
@@ -517,6 +526,139 @@ export default function AdminUserManagement() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="tiers" className="space-y-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Creator Tiers</h2>
+            <p className="text-gray-500 text-sm">Creators are automatically assigned to tiers based on their total follower count. Sorted highest to lowest within each group.</p>
+          </div>
+
+          {isTierLoading ? (
+            <div className="text-center py-12 text-gray-500">Loading tier data...</div>
+          ) : (
+            <div className="space-y-6">
+              {TIER_ORDER.map((tierId) => {
+                const tier = TIER_CONFIG[tierId];
+                const creators: any[] = tierData[tierId] || [];
+                return (
+                  <Card key={tierId} className={`border-2 ${tier.border} overflow-hidden`}>
+                    <CardHeader className={`bg-gradient-to-r ${tier.gradient} text-white py-4`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{tier.icon}</span>
+                          <div>
+                            <CardTitle className="text-white text-lg">{tier.name}</CardTitle>
+                            <CardDescription className="text-white/70 text-sm">{tier.range} followers · {tier.description}</CardDescription>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-black text-white">{creators.length}</div>
+                          <div className="text-white/70 text-xs">{creators.length === 1 ? "Creator" : "Creators"}</div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {creators.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 text-sm">No creators in this tier yet</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className={`${tier.bg}`}>
+                              <TableHead className="font-semibold">Rank</TableHead>
+                              <TableHead className="font-semibold">Creator</TableHead>
+                              <TableHead className="font-semibold">Niche</TableHead>
+                              <TableHead className="font-semibold">Total Followers</TableHead>
+                              <TableHead className="font-semibold">Platforms</TableHead>
+                              <TableHead className="font-semibold">Status</TableHead>
+                              <TableHead className="font-semibold">Profile</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {creators.map((creator: any, idx: number) => (
+                              <TableRow key={creator.id} className="hover:bg-gray-50 transition-colors">
+                                <TableCell>
+                                  <span className={`text-sm font-black ${idx === 0 ? tier.text : "text-gray-400"}`}>
+                                    #{idx + 1}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="w-9 h-9">
+                                      <AvatarImage src={creator.profileImageUrl || ""} />
+                                      <AvatarFallback className={`bg-gradient-to-br ${tier.gradient} text-white text-sm font-bold`}>
+                                        {(creator.firstName?.[0] || "C").toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-semibold text-sm flex items-center gap-1">
+                                        {creator.firstName} {creator.lastName}
+                                        {creator.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500" />}
+                                      </div>
+                                      <div className="text-gray-400 text-xs">{creator.email}</div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {creator.niche ? (
+                                    <Badge variant="secondary" className="text-xs">{creator.niche}</Badge>
+                                  ) : (
+                                    <span className="text-gray-300 text-xs">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <span className={`font-black text-sm ${tier.text}`}>
+                                    {formatFollowers(creator.totalFollowers || 0)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {creator.tiktokFollowers > 0 && (
+                                      <span className="text-xs bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full">TikTok {formatFollowers(creator.tiktokFollowers)}</span>
+                                    )}
+                                    {creator.youtubeFollowers > 0 && (
+                                      <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">YT {formatFollowers(creator.youtubeFollowers)}</span>
+                                    )}
+                                    {creator.instagramFollowers > 0 && (
+                                      <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">IG {formatFollowers(creator.instagramFollowers)}</span>
+                                    )}
+                                    {creator.twitterFollowers > 0 && (
+                                      <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">X {formatFollowers(creator.twitterFollowers)}</span>
+                                    )}
+                                    {creator.twitchFollowers > 0 && (
+                                      <span className="text-xs bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded-full">Twitch {formatFollowers(creator.twitchFollowers)}</span>
+                                    )}
+                                    {creator.telegramFollowers > 0 && (
+                                      <span className="text-xs bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded-full">TG {formatFollowers(creator.telegramFollowers)}</span>
+                                    )}
+                                    {!creator.tiktokFollowers && !creator.youtubeFollowers && !creator.instagramFollowers && !creator.twitterFollowers && (
+                                      <span className="text-gray-300 text-xs">—</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={creator.isVerified ? "default" : "outline"} className="text-xs">
+                                    {creator.isVerified ? "✓ Verified" : "Unverified"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Link href={`/profile/${creator.id}`}>
+                                    <Button variant="ghost" size="sm" className={`text-xs ${tier.text} hover:${tier.bg}`}>
+                                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> View
+                                    </Button>
+                                  </Link>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="stats" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
@@ -557,6 +699,36 @@ export default function AdminUserManagement() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div>
+            <h3 className="text-base font-bold text-gray-900 mb-3">Creators by Tier</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {TIER_ORDER.map((tierId) => {
+                const tier = TIER_CONFIG[tierId];
+                const count = (tierData[tierId] || []).length;
+                const totalCreators = users.filter((u: any) => u.userType === 'creator').length;
+                const pct = totalCreators > 0 ? Math.round((count / totalCreators) * 100) : 0;
+                return (
+                  <Card key={tierId} className={`border-2 ${tier.border}`}>
+                    <CardHeader className={`bg-gradient-to-br ${tier.gradient} rounded-t-lg py-3 px-4`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">{tier.icon}</span>
+                        <span className="text-2xl font-black text-white">{count}</span>
+                      </div>
+                      <CardTitle className="text-white text-sm">{tier.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="py-3 px-4">
+                      <p className={`text-xs font-medium ${tier.text}`}>{tier.range}</p>
+                      <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full bg-gradient-to-r ${tier.gradient} rounded-full`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{pct}% of all creators</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
