@@ -140,6 +140,217 @@ const SHOP_TYPES = [
   { value: "saas_tool", label: "SaaS Tool" },
 ];
 
+function LessonManageButton({ course }: { course: any }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [lessonOpen, setLessonOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<any>(null);
+  const [lessonFiles, setLessonFiles] = useState<any[]>([]);
+
+  const { data: lessons = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/courses", course.id, "lessons"],
+    queryFn: async () => {
+      const res = await fetch(`/api/courses/${course.id}/lessons`, { credentials: "include" });
+      return res.ok ? res.json() : [];
+    },
+    enabled: open,
+  });
+
+  const lessonForm = useForm({
+    defaultValues: { title: "", description: "", videoLink: "", content: "", isPreview: false },
+  });
+
+  const saveLessonMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = { ...data, order: lessons.length, lessonFiles };
+      const url = editingLesson ? `/api/courses/${course.id}/lessons/${editingLesson.id}` : `/api/courses/${course.id}/lessons`;
+      const method = editingLesson ? "PATCH" : "POST";
+      const res = await apiRequest(method, url, payload);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message);
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", course.id, "lessons"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/all"] });
+      toast({ title: editingLesson ? "Lesson updated!" : "Lesson added!" });
+      setLessonOpen(false);
+      setEditingLesson(null);
+      setLessonFiles([]);
+      lessonForm.reset({ title: "", description: "", videoLink: "", content: "", isPreview: false });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteLessonMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/courses/${course.id}/lessons/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", course.id, "lessons"] });
+      toast({ title: "Lesson deleted" });
+    },
+  });
+
+  const openAdd = () => { setEditingLesson(null); setLessonFiles([]); lessonForm.reset({ title: "", description: "", videoLink: "", content: "", isPreview: false }); setLessonOpen(true); };
+  const openEdit = (lesson: any) => { setEditingLesson(lesson); setLessonFiles(lesson.lessonFiles || []); lessonForm.reset({ title: lesson.title, description: lesson.description || "", videoLink: lesson.videoLink || lesson.videoUrl || "", content: lesson.content || "", isPreview: lesson.isPreview }); setLessonOpen(true); };
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="text-violet-600 border-violet-200 hover:bg-violet-50 gap-1">
+        <BookOpen className="h-3 w-3" /> Lessons
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between pr-8">
+              <span>Lessons — {course.title}</span>
+              <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={openAdd}>
+                <Plus className="h-4 w-4" /> Add Lesson
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-400">Loading lessons...</div>
+          ) : lessons.length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="mb-3">No lessons yet.</p>
+              <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add First Lesson</Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {lessons.map((lesson: any, idx: number) => (
+                <div key={lesson.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50">
+                  <div className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{lesson.title}</p>
+                    {lesson.description && <p className="text-xs text-gray-400 truncate">{lesson.description}</p>}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(lesson)}><Edit className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600" onClick={() => { if (confirm("Delete lesson?")) deleteLessonMutation.mutate(lesson.id); }}><Trash2 className="h-3 w-3" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={lessonOpen} onOpenChange={(v) => { setLessonOpen(v); if (!v) { setEditingLesson(null); lessonForm.reset(); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingLesson ? "Edit Lesson" : "Add New Lesson"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={lessonForm.handleSubmit((d) => saveLessonMutation.mutate(d))} className="space-y-4">
+            <div>
+              <Label>Lesson Title *</Label>
+              <Input {...lessonForm.register("title", { required: true })} placeholder="e.g. Understanding the Algorithm" />
+            </div>
+            <div>
+              <Label>Short Description</Label>
+              <Input {...lessonForm.register("description")} placeholder="Brief overview of this lesson" />
+            </div>
+            <div>
+              <Label>Video Link (YouTube / Vimeo)</Label>
+              <Input {...lessonForm.register("videoLink")} placeholder="https://www.youtube.com/watch?v=..." />
+              <p className="text-xs text-gray-400 mt-1">Paste a YouTube or Vimeo URL — it will be embedded automatically.</p>
+            </div>
+            <div>
+              <Label>Lesson Content</Label>
+              <Textarea {...lessonForm.register("content")} rows={4} placeholder="Write the lesson text content here..." />
+            </div>
+            <div className="flex items-center gap-3 p-3 border rounded-lg bg-gray-50">
+              <Switch checked={lessonForm.watch("isPreview")} onCheckedChange={(v) => lessonForm.setValue("isPreview", v)} />
+              <div>
+                <Label className="cursor-pointer">Free Preview Lesson</Label>
+                <p className="text-xs text-gray-400">Non-enrolled users can view this lesson</p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white flex-1" disabled={saveLessonMutation.isPending}>
+                {saveLessonMutation.isPending ? "Saving..." : editingLesson ? "Update Lesson" : "Add Lesson"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setLessonOpen(false)}>Cancel</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function EnrollmentPaymentDialog({ enrollment, onApprove, approving }: { enrollment: any; onApprove: () => void; approving: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-1">
+        <Eye className="h-3 w-3" /> View Details
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Course</p>
+                <p className="font-medium text-gray-900 text-xs">{enrollment.course?.title || enrollment.courseId}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Amount</p>
+                <p className="font-bold text-gray-900">${enrollment.amount} USDT</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Student</p>
+                <p className="font-medium text-gray-900 text-xs">{enrollment.user?.firstName} {enrollment.user?.lastName}</p>
+                <p className="text-xs text-gray-500">{enrollment.user?.email}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Network</p>
+                <p className="font-medium text-gray-900">{enrollment.paymentMethod || "N/A"}</p>
+              </div>
+            </div>
+            {enrollment.transactionHash && (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <p className="text-xs text-blue-600 font-medium mb-1">Transaction Hash</p>
+                <p className="font-mono text-xs text-gray-800 break-all">{enrollment.transactionHash}</p>
+              </div>
+            )}
+            {enrollment.paymentProof && (
+              <div className="bg-violet-50 border border-violet-100 rounded-lg p-3">
+                <p className="text-xs text-violet-600 font-medium mb-2">Payment Proof</p>
+                {enrollment.paymentProof.startsWith("http") ? (
+                  <div className="space-y-2">
+                    <img src={enrollment.paymentProof} alt="Payment proof" className="w-full rounded-lg object-cover max-h-48"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    <a href={enrollment.paymentProof} target="_blank" rel="noreferrer" className="text-xs text-violet-600 hover:underline">Open original ↗</a>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-700 break-all">{enrollment.paymentProof}</p>
+                )}
+              </div>
+            )}
+            {enrollment.submittedAt && (
+              <p className="text-xs text-gray-400">Submitted: {new Date(enrollment.submittedAt).toLocaleString()}</p>
+            )}
+            <div className="flex gap-2 pt-2">
+              <Button className="bg-green-600 hover:bg-green-700 text-white flex-1 gap-2"
+                onClick={() => { onApprove(); setOpen(false); }} disabled={approving}>
+                <CheckCircle className="h-4 w-4" />
+                {approving ? "Approving..." : "Approve & Activate"}
+              </Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -148,8 +359,10 @@ export default function AdminMaster() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [editingCampaign, setEditingCampaign] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
+  const [isEditCampaignDialogOpen, setIsEditCampaignDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isBlogDialogOpen, setIsBlogDialogOpen] = useState(false);
@@ -312,13 +525,26 @@ export default function AdminMaster() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
       campaignForm.reset();
       setIsCampaignDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Campaign created successfully",
-      });
+      toast({ title: "Campaign created successfully" });
     },
+  });
+
+  const updateCampaignMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const res = await apiRequest("PATCH", `/api/campaigns/${id}`, updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      setIsEditCampaignDialogOpen(false);
+      setEditingCampaign(null);
+      toast({ title: "Campaign updated!" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const deleteBlogPost = useMutation({
@@ -1875,9 +2101,12 @@ export default function AdminMaster() {
                               )}
                             </div>
                           </div>
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex gap-2 flex-shrink-0 flex-wrap">
                             <Button variant="outline" size="sm" onClick={() => setSelectedCampaign(campaign)} className="text-blue-600 border-blue-200 hover:bg-blue-50">
                               <Eye className="h-4 w-4 mr-1" /> View
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => { setEditingCampaign(campaign); setIsEditCampaignDialogOpen(true); }} className="text-orange-600 border-orange-200 hover:bg-orange-50">
+                              <Edit className="h-4 w-4 mr-1" /> Edit
                             </Button>
                             {campaign.escrowPayment?.status === 'submitted' && (
                               <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveEscrow.mutate(campaign.escrowPayment.id)} disabled={approveEscrow.isPending}>
@@ -2224,15 +2453,18 @@ export default function AdminMaster() {
                           <TableCell>${e.amount}</TableCell>
                           <TableCell>
                             <div className="text-xs">
-                              <p>{e.paymentMethod}</p>
-                              {e.transactionHash && <p className="text-gray-400 truncate max-w-24">{e.transactionHash}</p>}
-                              {e.paymentProof && <a href={e.paymentProof} target="_blank" rel="noreferrer" className="text-blue-500 underline">View proof</a>}
+                              <p className="font-medium">{e.paymentMethod}</p>
+                              {e.transactionHash && <p className="text-gray-400 font-mono truncate max-w-24">{e.transactionHash}</p>}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={() => approveEnrollmentMutation.mutate(e.id)}
-                              disabled={approveEnrollmentMutation.isPending}>Approve</Button>
+                            <div className="flex gap-2">
+                              <EnrollmentPaymentDialog
+                                enrollment={e}
+                                onApprove={() => approveEnrollmentMutation.mutate(e.id)}
+                                approving={approveEnrollmentMutation.isPending}
+                              />
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -2289,7 +2521,8 @@ export default function AdminMaster() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
+                              <LessonManageButton course={course} />
                               <Button size="sm" variant="outline" onClick={() => openEditCourse(course)} data-testid={`button-edit-course-${course.id}`}>
                                 <Edit className="h-3 w-3" />
                               </Button>
@@ -3327,6 +3560,74 @@ export default function AdminMaster() {
                   </div>
                 </form>
               </Form>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Edit Campaign Dialog */}
+        {isEditCampaignDialogOpen && editingCampaign && (
+          <Dialog open={isEditCampaignDialogOpen} onOpenChange={(v) => { setIsEditCampaignDialogOpen(v); if (!v) setEditingCampaign(null); }}>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Campaign</DialogTitle>
+                <DialogDescription>Update campaign details. Toggle "Active on Homepage" to control landing page visibility.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Campaign Title</Label>
+                  <Input defaultValue={editingCampaign.title} onChange={(e) => setEditingCampaign((p: any) => ({ ...p, title: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea rows={3} defaultValue={editingCampaign.description} onChange={(e) => setEditingCampaign((p: any) => ({ ...p, description: e.target.value }))} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Reward (USDT)</Label>
+                    <Input type="number" defaultValue={editingCampaign.reward} onChange={(e) => setEditingCampaign((p: any) => ({ ...p, reward: parseFloat(e.target.value) }))} />
+                  </div>
+                  <div>
+                    <Label>Total Slots</Label>
+                    <Input type="number" defaultValue={editingCampaign.totalSlots} onChange={(e) => setEditingCampaign((p: any) => ({ ...p, totalSlots: parseInt(e.target.value) }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label>Brand Name</Label>
+                  <Input defaultValue={editingCampaign.brandName} onChange={(e) => setEditingCampaign((p: any) => ({ ...p, brandName: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Category</Label>
+                  <Input defaultValue={editingCampaign.category} onChange={(e) => setEditingCampaign((p: any) => ({ ...p, category: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select defaultValue={editingCampaign.status} onValueChange={(v) => setEditingCampaign((p: any) => ({ ...p, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="pending_payment">Pending Payment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between p-4 border rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50">
+                  <div>
+                    <p className="font-semibold text-gray-900">Show on Homepage</p>
+                    <p className="text-xs text-gray-500">Active campaigns appear on the public landing page</p>
+                  </div>
+                  <Switch checked={editingCampaign.isActive ?? true} onCheckedChange={(v) => setEditingCampaign((p: any) => ({ ...p, isActive: v }))} />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                    onClick={() => updateCampaignMutation.mutate({ id: editingCampaign.id, updates: { title: editingCampaign.title, description: editingCampaign.description, reward: editingCampaign.reward, totalSlots: editingCampaign.totalSlots, brandName: editingCampaign.brandName, category: editingCampaign.category, status: editingCampaign.status, isActive: editingCampaign.isActive } })}
+                    disabled={updateCampaignMutation.isPending}>
+                    {updateCampaignMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button variant="outline" onClick={() => { setIsEditCampaignDialogOpen(false); setEditingCampaign(null); }}>Cancel</Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         )}

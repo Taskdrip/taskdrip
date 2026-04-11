@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   PlusCircle, Edit, Trash2, Users, Star, Eye, BookOpen, DollarSign,
-  Upload, Image, Video, FileText, File, X, GripVertical, PlayCircle, ChevronDown, ChevronUp,
+  Upload, Image, Video, FileText, File, X, GripVertical, PlayCircle, ChevronDown, ChevronUp, CheckCircle2,
 } from "lucide-react";
 
 const courseFormSchema = z.object({

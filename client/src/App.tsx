@@ -91,7 +91,10 @@ function Router() {
       <Route path="/leaderboard" component={Leaderboard} />
       {isAuthenticated ? (
         <>
-          <Route path="/dashboard" component={SimpleDashboard} />
+          <Route path="/dashboard" component={() => {
+            if ((user as any)?.userType === 'admin') return <AdminDashboard />;
+            return <SimpleDashboard />;
+          }} />
           <Route path="/brand-dashboard" component={BrandDashboard} />
           <Route path="/admin-dashboard" component={AdminDashboard} />
           <Route path="/campaigns" component={Campaigns} />
