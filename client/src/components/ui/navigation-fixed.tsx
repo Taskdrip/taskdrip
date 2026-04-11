@@ -34,6 +34,7 @@ export function NavigationFixed() {
           { href: "/admin-dashboard", label: "Admin" },
           { href: "/creators", label: "Creators" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/breedskool", label: "BreedSkool" },
         ];
       } else {
         return [

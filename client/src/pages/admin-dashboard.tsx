@@ -39,7 +39,14 @@ import {
   Wallet,
   Star,
   AlertTriangle,
+  BookOpen,
+  GraduationCap,
+  Edit,
+  Trash2,
+  PlusCircle,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -106,6 +113,62 @@ export default function AdminDashboard() {
   const { data: escrowPayments = [] } = useQuery<any[]>({ queryKey: ["/api/admin/escrow-payments"] });
   const { data: payoutRequests = [], isLoading: payoutsLoading } = useQuery<any[]>({ queryKey: ["/api/payout-requests"] });
   const { data: adminUsers = [] } = useQuery<any[]>({ queryKey: ["/api/admin/users"] });
+
+  // ── BreedSkool state ──
+  const [bsSubTab, setBsSubTab] = useState<"courses" | "enrollments" | "payments">("courses");
+  const [courseDialog, setCourseDialog] = useState<{ open: boolean; mode: "create" | "edit"; course: any | null }>({ open: false, mode: "create", course: null });
+  const [courseForm, setCourseForm] = useState({ title: "", description: "", shortDescription: "", category: "instagram_growth", thumbnail: "", price: "0.00", isFree: true, level: "beginner", duration: "", lessonsCount: 0, isPublished: false, isFeatured: false });
+
+  const { data: allCourses = [], isLoading: coursesLoading } = useQuery<any[]>({ queryKey: ["/api/courses"] });
+  const { data: adminEnrollments = [], isLoading: enrollmentsLoading } = useQuery<any[]>({ queryKey: ["/api/courses/admin/enrollments"] });
+
+  const pendingCoursePayments = (adminEnrollments as any[]).filter((e: any) => e.paymentStatus === "pending_verification");
+
+  const createCourseMutation = useMutation({
+    mutationFn: async (data: any) => { const r = await apiRequest("POST", "/api/courses", data); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses"] }); setCourseDialog({ open: false, mode: "create", course: null }); toast({ title: "Course Created!" }); },
+    onError: (e: any) => toast({ title: "Failed to create course", description: e.message, variant: "destructive" }),
+  });
+
+  const updateCourseMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => { const r = await apiRequest("PATCH", `/api/courses/${id}`, data); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses"] }); setCourseDialog({ open: false, mode: "create", course: null }); toast({ title: "Course Updated!" }); },
+    onError: (e: any) => toast({ title: "Failed to update course", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (id: string) => { const r = await apiRequest("DELETE", `/api/courses/${id}`); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses"] }); toast({ title: "Course Deleted" }); },
+    onError: (e: any) => toast({ title: "Failed to delete", description: e.message, variant: "destructive" }),
+  });
+
+  const approveEnrollmentMutation = useMutation({
+    mutationFn: async (id: string) => { const r = await apiRequest("POST", `/api/courses/enrollments/${id}/approve`); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] }); toast({ title: "Enrollment Approved! ✅" }); },
+    onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
+  });
+
+  const rejectEnrollmentMutation = useMutation({
+    mutationFn: async (id: string) => { const r = await apiRequest("POST", `/api/courses/enrollments/${id}/reject`); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] }); toast({ title: "Enrollment Rejected" }); },
+    onError: () => toast({ title: "Failed to reject", variant: "destructive" }),
+  });
+
+  function openCreateCourse() {
+    setCourseForm({ title: "", description: "", shortDescription: "", category: "instagram_growth", thumbnail: "", price: "0.00", isFree: true, level: "beginner", duration: "", lessonsCount: 0, isPublished: false, isFeatured: false });
+    setCourseDialog({ open: true, mode: "create", course: null });
+  }
+
+  function openEditCourse(c: any) {
+    setCourseForm({ title: c.title, description: c.description || "", shortDescription: c.shortDescription || "", category: c.category, thumbnail: c.thumbnail || "", price: c.price || "0.00", isFree: c.isFree, level: c.level || "beginner", duration: c.duration || "", lessonsCount: c.lessonsCount || 0, isPublished: c.isPublished, isFeatured: c.isFeatured });
+    setCourseDialog({ open: true, mode: "edit", course: c });
+  }
+
+  function submitCourseForm() {
+    const payload = { ...courseForm, price: courseForm.isFree ? "0.00" : courseForm.price };
+    if (courseDialog.mode === "create") createCourseMutation.mutate(payload);
+    else updateCourseMutation.mutate({ id: courseDialog.course.id, data: payload });
+  }
 
   const updateAdminProfileMutation = useMutation({
     mutationFn: async (data: any) => apiRequest("PATCH", "/api/admin/profile", data),
@@ -259,7 +322,7 @@ export default function AdminDashboard() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="campaigns" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 h-auto">
+          <TabsList className="grid w-full grid-cols-8 h-auto">
             <TabsTrigger value="campaigns" className="relative py-2 text-xs sm:text-sm">
               Campaigns
               {pendingCampaigns > 0 && (
@@ -279,6 +342,14 @@ export default function AdminDashboard() {
             <TabsTrigger value="overview" className="py-2 text-xs sm:text-sm">Overview</TabsTrigger>
             <TabsTrigger value="users" className="py-2 text-xs sm:text-sm">Users</TabsTrigger>
             <TabsTrigger value="shop" className="py-2 text-xs sm:text-sm">Shop</TabsTrigger>
+            <TabsTrigger value="breedskool" className="relative py-2 text-xs sm:text-sm">
+              BreedSkool
+              {pendingCoursePayments.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {pendingCoursePayments.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="profile" className="py-2 text-xs sm:text-sm">Profile</TabsTrigger>
             <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm">Settings</TabsTrigger>
           </TabsList>
@@ -778,6 +849,235 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ── BREEDSKOOL TAB ── */}
+          <TabsContent value="breedskool" className="space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-purple-600">{allCourses.length}</div><div className="text-sm text-gray-500">Total Courses</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-blue-600">{adminEnrollments.length}</div><div className="text-sm text-gray-500">Enrollments</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-amber-600">{pendingCoursePayments.length}</div><div className="text-sm text-gray-500">Pending Payments</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-green-600">{allCourses.filter((c: any) => c.isFree).length}</div><div className="text-sm text-gray-500">Free Courses</div></CardContent></Card>
+            </div>
+
+            {/* Sub-tab nav */}
+            <div className="flex gap-2 border-b pb-2">
+              {(["courses", "enrollments", "payments"] as const).map(t => (
+                <button key={t} onClick={() => setBsSubTab(t)} className={`px-4 py-2 rounded-t text-sm font-medium capitalize transition-colors ${bsSubTab === t ? "bg-purple-600 text-white" : "text-gray-600 hover:text-purple-600"}`}>
+                  {t === "payments" ? `Payments ${pendingCoursePayments.length > 0 ? `(${pendingCoursePayments.length})` : ""}` : t === "enrollments" ? `Students (${adminEnrollments.length})` : `Courses (${allCourses.length})`}
+                </button>
+              ))}
+              {bsSubTab === "courses" && (
+                <Button size="sm" className="ml-auto bg-purple-600 hover:bg-purple-700" onClick={openCreateCourse}>
+                  <PlusCircle className="w-4 h-4 mr-1" /> Add Course
+                </Button>
+              )}
+            </div>
+
+            {/* COURSES sub-tab */}
+            {bsSubTab === "courses" && (
+              <div className="space-y-3">
+                {coursesLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading courses...</div>
+                ) : allCourses.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                    <p>No courses yet. Create your first course!</p>
+                  </div>
+                ) : allCourses.map((c: any) => (
+                  <Card key={c.id} className="border border-gray-200">
+                    <CardContent className="py-3 px-4">
+                      <div className="flex items-start gap-3">
+                        {c.thumbnail && <img src={c.thumbnail} alt="" className="w-16 h-12 object-cover rounded shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm truncate">{c.title}</span>
+                            <Badge className={c.isPublished ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-600 border-gray-200"} variant="outline">
+                              {c.isPublished ? "Published" : "Draft"}
+                            </Badge>
+                            {c.isFeatured && <Badge className="bg-amber-100 text-amber-700 border-amber-200" variant="outline">Featured</Badge>}
+                            <Badge variant="outline" className="text-xs capitalize">{c.level}</Badge>
+                            <Badge className={c.isFree ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"} variant="outline">
+                              {c.isFree ? "Free" : `$${c.price}`}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1 flex gap-3">
+                            <span><Users className="w-3 h-3 inline mr-1" />{c.studentsCount || 0} students</span>
+                            <span><BookOpen className="w-3 h-3 inline mr-1" />{c.lessonsCount || 0} lessons</span>
+                            <span className="capitalize">{c.category?.replace(/_/g, " ")}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button size="sm" variant="outline" onClick={() => openEditCourse(c)} className="h-7 px-2"><Edit className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => { if (confirm("Delete this course?")) deleteCourseMutation.mutate(c.id); }} className="h-7 px-2 border-red-200 text-red-600 hover:bg-red-50">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* ENROLLMENTS sub-tab */}
+            {bsSubTab === "enrollments" && (
+              <div className="space-y-3">
+                {enrollmentsLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading enrollments...</div>
+                ) : adminEnrollments.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                    <p>No enrollments yet.</p>
+                  </div>
+                ) : adminEnrollments.map((e: any) => (
+                  <Card key={e.id} className="border border-gray-200">
+                    <CardContent className="py-3 px-4">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">{e.user?.firstName} {e.user?.lastName} <span className="text-gray-400 font-normal">({e.user?.email})</span></div>
+                          <div className="text-xs text-gray-500 mt-0.5">{e.course?.title}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{e.enrolledAt ? formatDistanceToNow(new Date(e.enrolledAt), { addSuffix: true }) : ""}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={e.paymentStatus || e.status || "active"} />
+                          {e.completedAt && <Badge className="bg-green-100 text-green-700" variant="outline">Completed</Badge>}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* PENDING PAYMENTS sub-tab */}
+            {bsSubTab === "payments" && (
+              <div className="space-y-3">
+                {pendingCoursePayments.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <CheckCircle2 className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                    <p>No pending course payments. All clear!</p>
+                  </div>
+                ) : pendingCoursePayments.map((e: any) => (
+                  <Card key={e.id} className="border border-amber-200 bg-amber-50">
+                    <CardContent className="py-4 px-4">
+                      <div className="flex items-start gap-3 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm">{e.user?.firstName} {e.user?.lastName}</div>
+                          <div className="text-xs text-gray-600">{e.user?.email}</div>
+                          <div className="text-xs font-medium text-purple-700 mt-1">{e.course?.title}</div>
+                          <div className="text-sm font-semibold mt-1">${e.course?.price} — {e.paymentNetwork || "—"}</div>
+                          {e.txHash && (
+                            <div className="mt-1">
+                              <span className="text-xs text-gray-500">Tx Hash: </span>
+                              <code className="text-xs bg-white border rounded px-1 py-0.5 break-all">{e.txHash}</code>
+                            </div>
+                          )}
+                          {e.paymentProof && (
+                            <a href={e.paymentProof} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1 block">View Payment Proof</a>
+                          )}
+                          <div className="text-xs text-gray-400 mt-1">{e.enrolledAt ? formatDistanceToNow(new Date(e.enrolledAt), { addSuffix: true }) : ""}</div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveEnrollmentMutation.mutate(e.id)} disabled={approveEnrollmentMutation.isPending}>
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                          </Button>
+                          <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => rejectEnrollmentMutation.mutate(e.id)} disabled={rejectEnrollmentMutation.isPending}>
+                            <XCircle className="w-3 h-3 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Course Create/Edit Dialog */}
+          <Dialog open={courseDialog.open} onOpenChange={open => !open && setCourseDialog(d => ({ ...d, open: false }))}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>{courseDialog.mode === "create" ? "Create New Course" : "Edit Course"}</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Course Title *</Label>
+                    <Input placeholder="e.g. Instagram Growth Masterclass" value={courseForm.title} onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Short Description</Label>
+                    <Input placeholder="One-line summary of the course" value={courseForm.shortDescription} onChange={e => setCourseForm(f => ({ ...f, shortDescription: e.target.value }))} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Full Description *</Label>
+                    <Textarea placeholder="Detailed course description..." rows={4} value={courseForm.description} onChange={e => setCourseForm(f => ({ ...f, description: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Category</Label>
+                    <Select value={courseForm.category} onValueChange={v => setCourseForm(f => ({ ...f, category: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="instagram_growth">Instagram Growth</SelectItem>
+                        <SelectItem value="tiktok_mastery">TikTok Mastery</SelectItem>
+                        <SelectItem value="youtube">YouTube Success</SelectItem>
+                        <SelectItem value="monetization">Monetization</SelectItem>
+                        <SelectItem value="content_creation">Content Creation</SelectItem>
+                        <SelectItem value="branding">Personal Branding</SelectItem>
+                        <SelectItem value="general">General Marketing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Level</Label>
+                    <Select value={courseForm.level} onValueChange={v => setCourseForm(f => ({ ...f, level: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Thumbnail URL</Label>
+                    <Input placeholder="https://..." value={courseForm.thumbnail} onChange={e => setCourseForm(f => ({ ...f, thumbnail: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Duration (e.g. 3h 45m)</Label>
+                    <Input placeholder="3h 45m" value={courseForm.duration} onChange={e => setCourseForm(f => ({ ...f, duration: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Number of Lessons</Label>
+                    <Input type="number" min={0} value={courseForm.lessonsCount} onChange={e => setCourseForm(f => ({ ...f, lessonsCount: parseInt(e.target.value) || 0 }))} />
+                  </div>
+                  <div className="flex items-center gap-2 pt-4">
+                    <Switch id="isFree" checked={courseForm.isFree} onCheckedChange={v => setCourseForm(f => ({ ...f, isFree: v }))} />
+                    <Label htmlFor="isFree">Free Course</Label>
+                  </div>
+                  {!courseForm.isFree && (
+                    <div>
+                      <Label>Price (USD)</Label>
+                      <Input placeholder="29.00" value={courseForm.price} onChange={e => setCourseForm(f => ({ ...f, price: e.target.value }))} />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 pt-4">
+                    <Switch id="isPublished" checked={courseForm.isPublished} onCheckedChange={v => setCourseForm(f => ({ ...f, isPublished: v }))} />
+                    <Label htmlFor="isPublished">Published (visible to users)</Label>
+                  </div>
+                  <div className="flex items-center gap-2 pt-4">
+                    <Switch id="isFeatured" checked={courseForm.isFeatured} onCheckedChange={v => setCourseForm(f => ({ ...f, isFeatured: v }))} />
+                    <Label htmlFor="isFeatured">Featured on homepage</Label>
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button className="flex-1 bg-purple-600 hover:bg-purple-700" onClick={submitCourseForm} disabled={createCourseMutation.isPending || updateCourseMutation.isPending}>
+                    {createCourseMutation.isPending || updateCourseMutation.isPending ? "Saving..." : courseDialog.mode === "create" ? "Create Course" : "Save Changes"}
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setCourseDialog(d => ({ ...d, open: false }))}>Cancel</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* ── PROFILE TAB ── */}
           <TabsContent value="profile" className="space-y-6">
