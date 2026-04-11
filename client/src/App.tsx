@@ -28,6 +28,7 @@ import NotFound from "@/pages/not-found";
 import Signup from "@/pages/signup";
 import SimpleSignup from "@/pages/simple-signup";
 import Login from "@/pages/login";
+import AdminLogin from "@/pages/admin-login";
 import ForgotPassword from "@/pages/forgot-password";
 import CampaignDetail from "@/pages/campaign-detail";
 import BrandProfile from "@/pages/brand-profile";
@@ -68,6 +69,7 @@ function Router() {
         FinalLanding} />
       <Route path="/signup" component={SimpleSignup} />
       <Route path="/login" component={Login} />
+      <Route path="/admin-login" component={AdminLogin} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />

@@ -323,7 +323,7 @@ export default function CleanLanding() {
             <div>
               <h3 className="text-xl font-bold mb-4">Taskdrip</h3>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                Professional SocialFi platform connecting creators with brands through crypto rewards.
+                Influencers Marketplace connecting creators with brands through crypto rewards.
               </p>
             </div>
 

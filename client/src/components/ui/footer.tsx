@@ -26,7 +26,7 @@ export function Footer() {
               <h3 className="text-2xl font-bold">Taskdrip</h3>
             </div>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              Professional SocialFi platform connecting creators with brands through crypto rewards.
+              Influencers Marketplace connecting creators with brands through crypto rewards.
             </p>
             <div className="flex space-x-4">
               <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">

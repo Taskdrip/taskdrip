@@ -78,10 +78,20 @@ export function NavigationFixed() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
-              <div>
-                <h1 className="text-2xl font-bold text-black">Taskdrip</h1>
-                <p className="text-xs text-gray-600 -mt-1">Professional SocialFi</p>
+            <Link href="/" className="flex-shrink-0 group">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 flex items-center justify-center shadow-md group-hover:shadow-purple-300 transition-shadow duration-200">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 2C8 2 5 5.5 5 8.5C5 10.433 6.343 12 8 12C9.657 12 11 10.433 11 8.5C11 5.5 8 2 8 2Z" fill="white" fillOpacity="0.9"/>
+                    <circle cx="8" cy="8.5" r="2" fill="white" fillOpacity="0.5"/>
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-xl font-extrabold leading-none bg-gradient-to-r from-violet-700 via-purple-600 to-indigo-600 bg-clip-text text-transparent tracking-tight">
+                    Taskdrip
+                  </h1>
+                  <p className="text-[10px] font-medium text-purple-500 -mt-0.5 tracking-wide uppercase">Influencers Marketplace</p>
+                </div>
               </div>
             </Link>
           </div>
