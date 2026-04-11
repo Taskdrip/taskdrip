@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, Key, Shield, UserCheck, UserX, Search, Filter, ExternalLink, CheckCircle } from "lucide-react";
+import {
+  Plus, Edit2, Trash2, Key, Shield, UserCheck, UserX, Search, Filter,
+  ExternalLink, CheckCircle, DollarSign, Users, TrendingUp, Star, Zap,
+  ArrowUpDown, ChevronDown, ChevronUp, BarChart3, Award, SlidersHorizontal, X
+} from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
@@ -20,6 +24,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
 import { TIER_CONFIG, TIER_ORDER, formatFollowers, type CreatorTier } from "@/lib/tiers";
+
+function formatEarnings(val: string | number | null | undefined): string {
+  const n = parseFloat(String(val || "0"));
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -39,6 +50,437 @@ const passwordResetSchema = z.object({
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
+/* ═══════════════════════════════════════════════
+   WORLD-CLASS ADMIN TIERS DASHBOARD
+═══════════════════════════════════════════════ */
+type SortKey = "rank" | "followers" | "earnings" | "rating" | "campaigns";
+
+function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<string, any[]>; isTierLoading: boolean }) {
+  const [activeTierTab, setActiveTierTab] = useState<CreatorTier | "all">("all");
+  const [search, setSearch] = useState("");
+  const [nicheFilter, setNicheFilter] = useState("all");
+  const [verifiedFilter, setVerifiedFilter] = useState<"all" | "verified" | "unverified">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("followers");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+
+  const allCreators = useMemo(() => {
+    return TIER_ORDER.flatMap(t => (tierData[t] || []).map((c: any) => ({ ...c, _tier: t })));
+  }, [tierData]);
+
+  const tierSummary = useMemo(() => {
+    return TIER_ORDER.map(tierId => {
+      const creators: any[] = tierData[tierId] || [];
+      const totalEarnings = creators.reduce((s: number, c: any) => s + parseFloat(c.totalEarned || "0"), 0);
+      const avgFollowers = creators.length > 0
+        ? Math.round(creators.reduce((s: number, c: any) => s + (c.totalFollowers || 0), 0) / creators.length)
+        : 0;
+      const verified = creators.filter((c: any) => c.isVerified).length;
+      const topCreator = creators[0] || null;
+      return { tierId, creators, totalEarnings, avgFollowers, verified, topCreator };
+    });
+  }, [tierData]);
+
+  const globalStats = useMemo(() => ({
+    total: allCreators.length,
+    totalEarnings: allCreators.reduce((s, c) => s + parseFloat(c.totalEarned || "0"), 0),
+    verified: allCreators.filter(c => c.isVerified).length,
+    avgFollowers: allCreators.length > 0
+      ? Math.round(allCreators.reduce((s, c) => s + (c.totalFollowers || 0), 0) / allCreators.length)
+      : 0,
+    totalCampaigns: allCreators.reduce((s, c) => s + (c.completedCampaigns || 0), 0),
+  }), [allCreators]);
+
+  const filteredCreators = useMemo(() => {
+    const pool = activeTierTab === "all" ? allCreators : (tierData[activeTierTab] || []).map((c: any) => ({ ...c, _tier: activeTierTab }));
+    return pool
+      .filter((c: any) => {
+        if (nicheFilter !== "all" && c.niche !== nicheFilter) return false;
+        if (verifiedFilter === "verified" && !c.isVerified) return false;
+        if (verifiedFilter === "unverified" && c.isVerified) return false;
+        if (search) {
+          const q = search.toLowerCase();
+          return (
+            `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
+            (c.email || "").toLowerCase().includes(q) ||
+            (c.username || "").toLowerCase().includes(q) ||
+            (c.niche || "").toLowerCase().includes(q)
+          );
+        }
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        let va = 0, vb = 0;
+        if (sortKey === "followers") { va = a.totalFollowers || 0; vb = b.totalFollowers || 0; }
+        else if (sortKey === "earnings") { va = parseFloat(a.totalEarned || "0"); vb = parseFloat(b.totalEarned || "0"); }
+        else if (sortKey === "rating") { va = parseFloat(a.rating || "0"); vb = parseFloat(b.rating || "0"); }
+        else if (sortKey === "campaigns") { va = a.completedCampaigns || 0; vb = b.completedCampaigns || 0; }
+        return sortDir === "desc" ? vb - va : va - vb;
+      });
+  }, [activeTierTab, allCreators, tierData, search, nicheFilter, verifiedFilter, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "desc" ? "asc" : "desc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return <ArrowUpDown className="w-3.5 h-3.5 text-gray-300 ml-1 inline" />;
+    return sortDir === "desc"
+      ? <ChevronDown className="w-3.5 h-3.5 text-blue-500 ml-1 inline" />
+      : <ChevronUp className="w-3.5 h-3.5 text-blue-500 ml-1 inline" />;
+  };
+
+  const hasFilters = search || nicheFilter !== "all" || verifiedFilter !== "all";
+
+  const NICHES_LIST = [
+    "Gaming","Fitness","Fashion","Tech","Beauty","Food","Travel","Finance",
+    "Music","Education","Sports","Lifestyle","Comedy","Art","Business","Health","Crypto","Movies"
+  ];
+
+  if (isTierLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Loading tier analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+            <Award className="w-6 h-6 text-purple-600" /> Creator Tier Analytics
+          </h2>
+          <p className="text-gray-500 text-sm mt-0.5">Auto-updated as creators register and update their follower counts</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-sm text-green-600 font-medium">Live</span>
+        </div>
+      </div>
+
+      {/* ── Global KPI Cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[
+          { icon: <Users className="w-5 h-5" />, label: "Total Creators", value: globalStats.total.toString(), color: "text-purple-600", bg: "bg-purple-50" },
+          { icon: <DollarSign className="w-5 h-5" />, label: "Total Paid Out", value: formatEarnings(globalStats.totalEarnings), color: "text-green-600", bg: "bg-green-50" },
+          { icon: <CheckCircle className="w-5 h-5" />, label: "Verified", value: `${globalStats.verified} / ${globalStats.total}`, color: "text-blue-600", bg: "bg-blue-50" },
+          { icon: <TrendingUp className="w-5 h-5" />, label: "Avg Followers", value: formatFollowers(globalStats.avgFollowers), color: "text-orange-600", bg: "bg-orange-50" },
+          { icon: <Zap className="w-5 h-5" />, label: "Campaigns Done", value: globalStats.totalCampaigns.toString(), color: "text-yellow-600", bg: "bg-yellow-50" },
+        ].map((s) => (
+          <div key={s.label} className={`${s.bg} rounded-2xl p-4`}>
+            <div className={`${s.color} mb-2`}>{s.icon}</div>
+            <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+            <div className="text-gray-500 text-xs mt-0.5">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Per-Tier Summary Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {tierSummary.map(({ tierId, creators, totalEarnings, avgFollowers, verified, topCreator }) => {
+          const tier = TIER_CONFIG[tierId];
+          const verifiedPct = creators.length > 0 ? Math.round((verified / creators.length) * 100) : 0;
+          return (
+            <div key={tierId} className={`rounded-2xl border-2 ${tier.border} overflow-hidden`}>
+              <div className={`bg-gradient-to-br ${tier.gradient} px-5 py-4`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-2xl">{tier.icon}</span>
+                  <span className="text-3xl font-black text-white">{creators.length}</span>
+                </div>
+                <div className="text-white font-black text-base">{tier.name}</div>
+                <div className="text-white/60 text-xs">{tier.range}</div>
+              </div>
+              <div className="bg-white px-5 py-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Earnings</span>
+                  <span className="font-bold text-green-600">{formatEarnings(totalEarnings)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Avg Followers</span>
+                  <span className={`font-bold ${tier.text}`}>{formatFollowers(avgFollowers)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Verified</span>
+                  <span className="font-bold text-blue-600">{verifiedPct}%</span>
+                </div>
+                {/* Progress bar */}
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                  <div
+                    className={`h-full bg-gradient-to-r ${tier.gradient} rounded-full transition-all`}
+                    style={{ width: `${verifiedPct}%` }}
+                  />
+                </div>
+                {topCreator && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100 mt-1">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={topCreator.profileImageUrl || ""} />
+                      <AvatarFallback className={`text-xs bg-gradient-to-br ${tier.gradient} text-white`}>
+                        {(topCreator.firstName?.[0] || "C").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-gray-600 truncate flex-1">
+                      {topCreator.firstName} {topCreator.lastName}
+                    </span>
+                    <span className="text-xs font-bold text-yellow-600">👑 #1</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Full Influencer Table ── */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        {/* Table header with filters */}
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-600" />
+              Influencer Directory
+              <Badge variant="secondary" className="text-xs">{filteredCreators.length} shown</Badge>
+            </h3>
+            {hasFilters && (
+              <button
+                onClick={() => { setSearch(""); setNicheFilter("all"); setVerifiedFilter("all"); }}
+                className="flex items-center gap-1 text-red-500 hover:text-red-700 text-sm"
+              >
+                <X className="w-3.5 h-3.5" /> Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Tier filter tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setActiveTierTab("all")}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                activeTierTab === "all" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              All ({allCreators.length})
+            </button>
+            {TIER_ORDER.map(t => {
+              const tier = TIER_CONFIG[t];
+              const count = (tierData[t] || []).length;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setActiveTierTab(t)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    activeTierTab === t
+                      ? `bg-gradient-to-r ${tier.gradient} text-white shadow-md`
+                      : `${tier.bg} ${tier.text} hover:opacity-80`
+                  }`}
+                >
+                  {tier.icon} {tier.name} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search & Filter row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search name, email, username..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 rounded-xl border-gray-200 h-9"
+              />
+            </div>
+            <select
+              value={nicheFilter}
+              onChange={(e) => setNicheFilter(e.target.value)}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 h-9 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              <option value="all">All Niches</option>
+              {NICHES_LIST.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <select
+              value={verifiedFilter}
+              onChange={(e) => setVerifiedFilter(e.target.value as any)}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 h-9 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              <option value="all">All Status</option>
+              <option value="verified">✓ Verified Only</option>
+              <option value="unverified">Unverified Only</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Table */}
+        {filteredCreators.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <Users className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+            <p className="font-semibold">No creators match your filters</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50/80">
+                  <TableHead className="w-12 text-center font-semibold text-gray-600">#</TableHead>
+                  <TableHead className="font-semibold text-gray-600">Creator</TableHead>
+                  <TableHead className="font-semibold text-gray-600">Tier</TableHead>
+                  <TableHead className="font-semibold text-gray-600">Niche</TableHead>
+                  <TableHead className="font-semibold text-gray-600 cursor-pointer select-none" onClick={() => toggleSort("followers")}>
+                    Followers <SortIcon k="followers" />
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-600">Platforms</TableHead>
+                  <TableHead className="font-semibold text-gray-600 cursor-pointer select-none" onClick={() => toggleSort("earnings")}>
+                    Earnings <SortIcon k="earnings" />
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-600 cursor-pointer select-none" onClick={() => toggleSort("campaigns")}>
+                    Campaigns <SortIcon k="campaigns" />
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-600 cursor-pointer select-none" onClick={() => toggleSort("rating")}>
+                    Rating <SortIcon k="rating" />
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-600">Status</TableHead>
+                  <TableHead className="font-semibold text-gray-600 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCreators.map((creator: any, idx: number) => {
+                  const tier = TIER_CONFIG[creator._tier as CreatorTier] || TIER_CONFIG.rising_sparks;
+                  return (
+                    <TableRow key={creator.id} className="hover:bg-gray-50/60 transition-colors group">
+                      {/* Rank */}
+                      <TableCell className="text-center">
+                        <span className={`text-sm font-black ${idx < 3 ? tier.text : "text-gray-300"}`}>
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`}
+                        </span>
+                      </TableCell>
+
+                      {/* Creator */}
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10 flex-shrink-0">
+                            <AvatarImage src={creator.profileImageUrl || ""} />
+                            <AvatarFallback className={`bg-gradient-to-br ${tier.gradient} text-white text-sm font-bold`}>
+                              {(creator.firstName?.[0] || "C").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm text-gray-900 flex items-center gap-1.5 flex-wrap">
+                              <span className="truncate">{creator.firstName} {creator.lastName}</span>
+                              {creator.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                            </div>
+                            <div className="text-gray-400 text-xs truncate">{creator.email}</div>
+                            {creator.username && (
+                              <div className="text-gray-400 text-xs">@{creator.username}</div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Tier */}
+                      <TableCell>
+                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${tier.badge}`}>
+                          {tier.icon} {tier.name}
+                        </span>
+                      </TableCell>
+
+                      {/* Niche */}
+                      <TableCell>
+                        {creator.niche
+                          ? <Badge variant="secondary" className="text-xs">{creator.niche}</Badge>
+                          : <span className="text-gray-300 text-xs">—</span>
+                        }
+                      </TableCell>
+
+                      {/* Followers */}
+                      <TableCell>
+                        <span className={`font-black text-sm ${tier.text}`}>
+                          {formatFollowers(creator.totalFollowers || 0)}
+                        </span>
+                      </TableCell>
+
+                      {/* Platforms */}
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {creator.tiktokFollowers > 0 && <span className="text-xs bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full">TT {formatFollowers(creator.tiktokFollowers)}</span>}
+                          {creator.youtubeFollowers > 0 && <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">YT {formatFollowers(creator.youtubeFollowers)}</span>}
+                          {creator.instagramFollowers > 0 && <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">IG {formatFollowers(creator.instagramFollowers)}</span>}
+                          {creator.twitterFollowers > 0 && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">X {formatFollowers(creator.twitterFollowers)}</span>}
+                          {creator.twitchFollowers > 0 && <span className="text-xs bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded-full">Tw {formatFollowers(creator.twitchFollowers)}</span>}
+                          {creator.telegramFollowers > 0 && <span className="text-xs bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded-full">TG {formatFollowers(creator.telegramFollowers)}</span>}
+                          {!creator.tiktokFollowers && !creator.youtubeFollowers && !creator.instagramFollowers && !creator.twitterFollowers && !creator.twitchFollowers && !creator.telegramFollowers && (
+                            <span className="text-gray-200 text-xs">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Earnings */}
+                      <TableCell>
+                        <span className="font-bold text-green-600 text-sm">
+                          {formatEarnings(creator.totalEarned)}
+                        </span>
+                      </TableCell>
+
+                      {/* Campaigns */}
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5 text-yellow-500" />
+                          <span className="text-sm font-semibold">{creator.completedCampaigns || 0}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Rating */}
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-semibold">{parseFloat(creator.rating || "0").toFixed(1)}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Status */}
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          {creator.isVerified
+                            ? <span className="text-xs bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full w-fit">✓ KYC</span>
+                            : <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full w-fit">Pending</span>
+                          }
+                        </div>
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="text-right">
+                        <Link href={`/profile/${creator.id}`}>
+                          <Button size="sm" variant="outline" className={`text-xs h-8 px-3 rounded-xl ${tier.text} border-current group-hover:shadow-sm`}>
+                            <ExternalLink className="w-3.5 h-3.5 mr-1" /> Profile
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Table footer */}
+        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-gray-400">
+          <span>Showing {filteredCreators.length} of {allCreators.length} creators</span>
+          <span className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            Auto-updates on registration
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminUserManagement() {
   const { user } = useAuth();
@@ -527,136 +969,7 @@ export default function AdminUserManagement() {
         </TabsContent>
 
         <TabsContent value="tiers" className="space-y-6">
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Creator Tiers</h2>
-            <p className="text-gray-500 text-sm">Creators are automatically assigned to tiers based on their total follower count. Sorted highest to lowest within each group.</p>
-          </div>
-
-          {isTierLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading tier data...</div>
-          ) : (
-            <div className="space-y-6">
-              {TIER_ORDER.map((tierId) => {
-                const tier = TIER_CONFIG[tierId];
-                const creators: any[] = tierData[tierId] || [];
-                return (
-                  <Card key={tierId} className={`border-2 ${tier.border} overflow-hidden`}>
-                    <CardHeader className={`bg-gradient-to-r ${tier.gradient} text-white py-4`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{tier.icon}</span>
-                          <div>
-                            <CardTitle className="text-white text-lg">{tier.name}</CardTitle>
-                            <CardDescription className="text-white/70 text-sm">{tier.range} followers · {tier.description}</CardDescription>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-3xl font-black text-white">{creators.length}</div>
-                          <div className="text-white/70 text-xs">{creators.length === 1 ? "Creator" : "Creators"}</div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {creators.length === 0 ? (
-                        <div className="text-center py-8 text-gray-400 text-sm">No creators in this tier yet</div>
-                      ) : (
-                        <Table>
-                          <TableHeader>
-                            <TableRow className={`${tier.bg}`}>
-                              <TableHead className="font-semibold">Rank</TableHead>
-                              <TableHead className="font-semibold">Creator</TableHead>
-                              <TableHead className="font-semibold">Niche</TableHead>
-                              <TableHead className="font-semibold">Total Followers</TableHead>
-                              <TableHead className="font-semibold">Platforms</TableHead>
-                              <TableHead className="font-semibold">Status</TableHead>
-                              <TableHead className="font-semibold">Profile</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {creators.map((creator: any, idx: number) => (
-                              <TableRow key={creator.id} className="hover:bg-gray-50 transition-colors">
-                                <TableCell>
-                                  <span className={`text-sm font-black ${idx === 0 ? tier.text : "text-gray-400"}`}>
-                                    #{idx + 1}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="w-9 h-9">
-                                      <AvatarImage src={creator.profileImageUrl || ""} />
-                                      <AvatarFallback className={`bg-gradient-to-br ${tier.gradient} text-white text-sm font-bold`}>
-                                        {(creator.firstName?.[0] || "C").toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <div className="font-semibold text-sm flex items-center gap-1">
-                                        {creator.firstName} {creator.lastName}
-                                        {creator.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500" />}
-                                      </div>
-                                      <div className="text-gray-400 text-xs">{creator.email}</div>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {creator.niche ? (
-                                    <Badge variant="secondary" className="text-xs">{creator.niche}</Badge>
-                                  ) : (
-                                    <span className="text-gray-300 text-xs">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <span className={`font-black text-sm ${tier.text}`}>
-                                    {formatFollowers(creator.totalFollowers || 0)}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-wrap gap-1">
-                                    {creator.tiktokFollowers > 0 && (
-                                      <span className="text-xs bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full">TikTok {formatFollowers(creator.tiktokFollowers)}</span>
-                                    )}
-                                    {creator.youtubeFollowers > 0 && (
-                                      <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">YT {formatFollowers(creator.youtubeFollowers)}</span>
-                                    )}
-                                    {creator.instagramFollowers > 0 && (
-                                      <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">IG {formatFollowers(creator.instagramFollowers)}</span>
-                                    )}
-                                    {creator.twitterFollowers > 0 && (
-                                      <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">X {formatFollowers(creator.twitterFollowers)}</span>
-                                    )}
-                                    {creator.twitchFollowers > 0 && (
-                                      <span className="text-xs bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded-full">Twitch {formatFollowers(creator.twitchFollowers)}</span>
-                                    )}
-                                    {creator.telegramFollowers > 0 && (
-                                      <span className="text-xs bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded-full">TG {formatFollowers(creator.telegramFollowers)}</span>
-                                    )}
-                                    {!creator.tiktokFollowers && !creator.youtubeFollowers && !creator.instagramFollowers && !creator.twitterFollowers && (
-                                      <span className="text-gray-300 text-xs">—</span>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={creator.isVerified ? "default" : "outline"} className="text-xs">
-                                    {creator.isVerified ? "✓ Verified" : "Unverified"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Link href={`/profile/${creator.id}`}>
-                                    <Button variant="ghost" size="sm" className={`text-xs ${tier.text} hover:${tier.bg}`}>
-                                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> View
-                                    </Button>
-                                  </Link>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          <AdminTiersDashboard tierData={tierData} isTierLoading={isTierLoading} />
         </TabsContent>
 
         <TabsContent value="stats" className="space-y-6">
