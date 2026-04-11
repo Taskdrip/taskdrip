@@ -384,7 +384,8 @@ export default function AdminMaster() {
   // Payment methods state
   const [isPaymentMethodDialogOpen, setIsPaymentMethodDialogOpen] = useState(false);
   const [editingPaymentMethod, setEditingPaymentMethod] = useState<any>(null);
-  const [paymentMethodForm, setPaymentMethodForm] = useState<any>({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 });
+  const [paymentMethodForm, setPaymentMethodForm] = useState<any>({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paypalClientId: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 });
+  const [feedPostForm, setFeedPostForm] = useState({ content: "", imageUrl: "", videoUrl: "" });
 
   // Forms
   const blogForm = useForm({
@@ -494,6 +495,11 @@ export default function AdminMaster() {
     retry: false,
   });
 
+  const { data: adminFeedPosts = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/feed-posts"],
+    retry: false,
+  });
+
   // Admin mutations
   const createBlogPost = useMutation({
     mutationFn: async (data: z.infer<typeof blogPostSchema>) => {
@@ -588,6 +594,33 @@ export default function AdminMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/payment-methods"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
       toast({ title: "Payment method deleted" });
+    },
+  });
+
+  const createFeedPostMutation = useMutation({
+    mutationFn: async (data: typeof feedPostForm) => {
+      const res = await apiRequest("POST", "/api/admin/feed-posts", {
+        content: data.content,
+        imageUrl: data.imageUrl || null,
+        videoUrl: data.videoUrl || null,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/feed-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      setFeedPostForm({ content: "", imageUrl: "", videoUrl: "" });
+      toast({ title: "Feed post published", description: "Your admin post is now featured on the Feed page." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteFeedPostMutation = useMutation({
+    mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/feed-posts/${id}`)).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/feed-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      toast({ title: "Feed post deleted" });
     },
   });
 
@@ -1025,7 +1058,7 @@ export default function AdminMaster() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Mobile-responsive linear tab navigation */}
           <div className="w-full overflow-x-auto pb-2 mb-6">
-            <TabsList className="flex w-max min-w-full lg:grid lg:grid-cols-9 h-auto p-1 bg-muted rounded-lg gap-1">
+            <TabsList className="flex w-max min-w-full lg:grid lg:grid-cols-10 h-auto p-1 bg-muted rounded-lg gap-1">
               <TabsTrigger value="overview" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
                 <Shield className="h-3 w-3 lg:h-4 lg:w-4" />
                 <span className="text-xs lg:text-sm">Overview</span>
@@ -1041,6 +1074,10 @@ export default function AdminMaster() {
               <TabsTrigger value="payments" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
                 <DollarSign className="h-3 w-3 lg:h-4 lg:w-4" />
                 <span className="text-xs lg:text-sm">Payments</span>
+              </TabsTrigger>
+              <TabsTrigger value="feed" className="flex-shrink-0 min-w-[80px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <Send className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Feed</span>
               </TabsTrigger>
               <TabsTrigger value="blog" className="flex-shrink-0 min-w-[70px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
                 <BookOpen className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -2408,6 +2445,120 @@ export default function AdminMaster() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="feed" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Send className="h-6 w-6 text-violet-600" /> Feed Publishing
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">Publish official Taskdrip posts directly to the Feed page.</p>
+              </div>
+              <Button variant="outline" onClick={() => window.open("/feed", "_blank")} data-testid="button-open-feed">
+                <ExternalLink className="h-4 w-4 mr-2" /> View Feed
+              </Button>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-1 border-violet-200">
+                <CardHeader>
+                  <CardTitle>Create Featured Feed Post</CardTitle>
+                  <CardDescription>Posts published here appear in the featured admin section on the public feed.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Post Content *</Label>
+                    <Textarea
+                      rows={7}
+                      value={feedPostForm.content}
+                      onChange={(e) => setFeedPostForm((p) => ({ ...p, content: e.target.value }))}
+                      placeholder="Share platform updates, creator highlights, campaigns, payout announcements..."
+                      data-testid="input-feed-post-content"
+                    />
+                  </div>
+                  <div>
+                    <Label>Image URL (optional)</Label>
+                    <Input
+                      value={feedPostForm.imageUrl}
+                      onChange={(e) => setFeedPostForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                      placeholder="https://..."
+                      data-testid="input-feed-post-image"
+                    />
+                  </div>
+                  <div>
+                    <Label>Video URL (optional)</Label>
+                    <Input
+                      value={feedPostForm.videoUrl}
+                      onChange={(e) => setFeedPostForm((p) => ({ ...p, videoUrl: e.target.value }))}
+                      placeholder="https://..."
+                      data-testid="input-feed-post-video"
+                    />
+                  </div>
+                  <Button
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white"
+                    disabled={createFeedPostMutation.isPending || feedPostForm.content.trim().length === 0}
+                    onClick={() => createFeedPostMutation.mutate(feedPostForm)}
+                    data-testid="button-publish-feed-post"
+                  >
+                    {createFeedPostMutation.isPending ? "Publishing..." : "Publish to Feed"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Recent Feed Posts ({adminFeedPosts.length})</CardTitle>
+                  <CardDescription>Official posts are labeled as featured when shown on the Feed page.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {adminFeedPosts.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3" />
+                      <p className="font-semibold">No feed posts yet</p>
+                      <p className="text-sm">Publish your first platform update from the form.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[650px] overflow-y-auto">
+                      {adminFeedPosts.map((post: any) => (
+                        <div key={post.id} className="border border-gray-100 rounded-xl p-4 bg-white hover:shadow-sm transition-shadow">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge className={post.user?.userType === "admin" || post.user?.role === "admin" ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-700"}>
+                                  {post.user?.userType === "admin" || post.user?.role === "admin" ? "Featured by Taskdrip" : "Community"}
+                                </Badge>
+                                <span className="text-xs text-gray-400">{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Just now"}</span>
+                              </div>
+                              <p className="text-sm text-gray-800 whitespace-pre-wrap line-clamp-4" data-testid={`text-feed-post-${post.id}`}>{post.content}</p>
+                              {post.imageUrl && <p className="text-xs text-blue-600 mt-2 truncate">Image: {post.imageUrl}</p>}
+                              {post.videoUrl && <p className="text-xs text-blue-600 mt-1 truncate">Video: {post.videoUrl}</p>}
+                              <div className="flex flex-wrap gap-3 text-xs text-gray-400 mt-3">
+                                <span>{post.viewCount || 0} views</span>
+                                <span>{post.likeCount || 0} likes</span>
+                                <span>${post.totalTipsReceived || "0.00"} tips</span>
+                              </div>
+                            </div>
+                            {(post.user?.id === user?.id || post.userId === user?.id) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-500 border-red-200 hover:bg-red-50"
+                                disabled={deleteFeedPostMutation.isPending}
+                                onClick={() => { if (confirm("Delete this feed post?")) deleteFeedPostMutation.mutate(post.id); }}
+                                data-testid={`button-delete-feed-post-${post.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* ============ BREEDSKOOL COURSES TAB ============ */}

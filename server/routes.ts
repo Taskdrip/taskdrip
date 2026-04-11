@@ -47,7 +47,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/payment-methods', async (_req, res) => {
     try {
       const methods = await storage.getActivePaymentMethods();
-      res.json(methods);
+      res.json(methods.map((method: any) => ({
+        ...method,
+        paystackSecretKey: undefined,
+        stripeSecretKey: undefined,
+      })));
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch payment methods" });
     }
@@ -166,6 +170,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating post:", error);
       res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.get('/api/admin/feed-posts', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const limit = parseInt(req.query.limit as string) || 50;
+      const feed = await storage.getFeed(limit, 0);
+      res.json(feed);
+    } catch (error) {
+      console.error("Error fetching admin feed posts:", error);
+      res.status(500).json({ message: "Failed to fetch feed posts" });
+    }
+  });
+
+  app.post('/api/admin/feed-posts', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { content, imageUrl, videoUrl } = req.body;
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      const { nanoid } = await import('nanoid');
+      const id = `post_${nanoid()}`;
+      const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
+      const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
+      res.status(201).json(post);
+    } catch (error) {
+      console.error("Error creating admin feed post:", error);
+      res.status(500).json({ message: "Failed to publish feed post" });
+    }
+  });
+
+  app.delete('/api/admin/feed-posts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deletePost(req.params.id, req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete feed post" });
     }
   });
 
@@ -2004,7 +2051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Tip a user — creates a pending crypto tip transaction
+  // Tip a user — records a pending platform-routed tip transaction
   app.post('/api/users/:id/tip', isAuthenticated, upload.single('proofFile'), async (req: any, res) => {
     try {
       const senderId = req.user.id;
@@ -2018,14 +2065,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tipAmount = parseFloat(amount);
       if (!tipAmount || tipAmount <= 0) return res.status(400).json({ message: "Invalid tip amount" });
       if (!network && !paymentMethodType) return res.status(400).json({ message: "Payment method is required" });
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(500).json({ message: "Platform admin account is not configured" });
 
-      // Record as a transaction (pending review)
       await storage.createTransaction({
-        userId: recipientId,
-        type: 'tip_received',
+        userId: admin.id,
+        type: 'platform_tip',
         amount: tipAmount.toString(),
         network: network || paymentMethodType || null,
-        description: `Tip from ${req.user.firstName || 'Anonymous'} via ${network || paymentMethodType || 'payment method'}${paymentMethodId ? ` (${paymentMethodId})` : ''}`,
+        description: `Tip for ${recipient.firstName || 'creator'} ${recipient.lastName || ''} from ${req.user.firstName || 'Anonymous'} via ${network || paymentMethodType || 'payment method'}${paymentMethodId ? ` (${paymentMethodId})` : ''}`,
         status: 'pending',
         transactionHash: txHash || null,
       });

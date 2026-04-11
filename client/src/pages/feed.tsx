@@ -34,11 +34,6 @@ function TipModal({ recipientId, recipientName, postId, open, onClose }: {
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const { data: wallet } = useQuery<any>({
-    queryKey: [`/api/users/${recipientId}/wallet`],
-    enabled: open,
-  });
-
   const { data: paymentMethods = [] } = useQuery<any[]>({
     queryKey: ["/api/payment-methods"],
     enabled: open,
@@ -67,14 +62,7 @@ function TipModal({ recipientId, recipientName, postId, open, onClose }: {
     },
   });
 
-  const creatorWallets = [
-    { id: "creator-USDT-TRC20", type: "crypto", label: "USDT (TRC-20)", network: "USDT-TRC20", currency: "USDT", address: wallet?.usdtTronWallet, instructions: "Send directly to this creator wallet.", source: "Creator wallet" },
-    { id: "creator-USDT-BEP20", type: "crypto", label: "USDT (BEP-20)", network: "USDT-BEP20", currency: "USDT", address: wallet?.usdtBscWallet, instructions: "Send directly to this creator wallet.", source: "Creator wallet" },
-    { id: "creator-TON", type: "crypto", label: "TON", network: "TON", currency: "TON", address: wallet?.tonWallet, instructions: "Send directly to this creator wallet.", source: "Creator wallet" },
-  ].filter((n) => n.addr);
-
-  const adminMethods = (paymentMethods as any[]).map((method) => ({ ...method, source: "Taskdrip checkout" }));
-  const checkoutMethods = [...adminMethods, ...creatorWallets];
+  const checkoutMethods = (paymentMethods as any[]).map((method) => ({ ...method, source: "Taskdrip secure checkout" }));
   const selectedMethod = checkoutMethods.find((method) => method.id === selectedMethodId);
   const readyToConfirm = selectedMethod?.type === "stripe" || selectedMethod?.type === "paystack" || txHash.trim().length > 0;
 
@@ -111,7 +99,7 @@ function TipModal({ recipientId, recipientName, postId, open, onClose }: {
             <div className="rounded-2xl bg-gradient-to-br from-gray-950 to-purple-950 p-5 text-white">
               <p className="text-xs uppercase tracking-[0.25em] text-white/50 mb-2">Creator support</p>
               <h3 className="text-2xl font-black">Send a tip in seconds</h3>
-              <p className="text-white/70 text-sm mt-2">Choose an amount, select a checkout method, and submit confirmation for review.</p>
+              <p className="text-white/70 text-sm mt-2">Choose an amount, pay through a Taskdrip-managed method, and submit confirmation for review.</p>
             </div>
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">Tip Amount</label>
@@ -204,13 +192,13 @@ function TipModal({ recipientId, recipientName, postId, open, onClose }: {
               {selectedMethod.paypalEmail && <p className="text-xs text-gray-700"><span className="font-semibold">PayPal:</span> {selectedMethod.paypalEmail}</p>}
               {selectedMethod.type === "stripe" && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-700">
-                  Stripe checkout is ready in the UI. Connect Stripe in payment settings to process live card payments.
+                  Stripe is configured as a platform payment method. Submit the card/payment reference after payment.
                 </div>
               )}
               {selectedMethod.instructions && <p className="text-xs text-gray-500">{selectedMethod.instructions}</p>}
             </div>
             <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-xl p-3">
-              Send ${parseFloat(amount || "0").toFixed(2)} using the method above. Then continue to submit confirmation.
+              Send ${parseFloat(amount || "0").toFixed(2)} to Taskdrip using the method above. The team will verify and credit the tip.
             </p>
             <Button
               className="w-full bg-black text-white hover:bg-gray-900 rounded-xl"
