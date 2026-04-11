@@ -209,19 +209,20 @@ function LessonManageDialog({ course }: { course: any }) {
 
   const createLessonMutation = useMutation({
     mutationFn: async (data: LessonFormData) => {
-      const fd = new FormData();
-      fd.append("title", data.title);
-      if (data.description) fd.append("description", data.description);
-      if (data.videoLink) fd.append("videoLink", data.videoLink);
-      if (data.content) fd.append("content", data.content);
-      fd.append("isPreview", String(data.isPreview));
-      fd.append("order", String(lessons.length));
-      fd.append("lessonFiles", JSON.stringify(lessonFiles));
+      const payload = {
+        title: data.title,
+        description: data.description || "",
+        videoLink: data.videoLink || "",
+        content: data.content || "",
+        isPreview: data.isPreview,
+        order: lessons.length,
+        lessonFiles,
+      };
       const url = editingLesson
         ? `/api/courses/${course.id}/lessons/${editingLesson.id}`
         : `/api/courses/${course.id}/lessons`;
       const method = editingLesson ? "PATCH" : "POST";
-      const res = await fetch(url, { method, body: fd, credentials: "include" });
+      const res = await apiRequest(method, url, payload);
       const json = await res.json();
       if (!res.ok) throw new Error(json.message);
       return json;
@@ -417,6 +418,83 @@ function getEmbedUrl(url: string): string {
   const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
   if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   return url;
+}
+
+function PaymentDetailDialog({ enrollment, onApprove, approving }: { enrollment: any; onApprove: () => void; approving: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-1">
+        <Eye className="h-3 w-3" /> Details
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Course</p>
+                <p className="font-medium text-gray-900">{enrollment.course?.title || enrollment.courseId}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Amount</p>
+                <p className="font-bold text-gray-900">${enrollment.amount} USDT</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Student</p>
+                <p className="font-medium text-gray-900">{enrollment.user?.firstName} {enrollment.user?.lastName}</p>
+                <p className="text-xs text-gray-500">{enrollment.user?.email}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Network</p>
+                <p className="font-medium text-gray-900">{enrollment.paymentMethod || "N/A"}</p>
+              </div>
+            </div>
+            {enrollment.transactionHash && (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <p className="text-xs text-blue-600 font-medium mb-1">Transaction Hash</p>
+                <p className="font-mono text-xs text-gray-800 break-all">{enrollment.transactionHash}</p>
+              </div>
+            )}
+            {enrollment.paymentProof && (
+              <div className="bg-violet-50 border border-violet-100 rounded-lg p-3">
+                <p className="text-xs text-violet-600 font-medium mb-2">Payment Proof</p>
+                {enrollment.paymentProof.startsWith("http") ? (
+                  <div className="space-y-2">
+                    <img
+                      src={enrollment.paymentProof}
+                      alt="Payment proof"
+                      className="w-full rounded-lg object-cover max-h-48"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                    <a href={enrollment.paymentProof} target="_blank" rel="noreferrer"
+                      className="text-xs text-violet-600 hover:underline flex items-center gap-1">
+                      Open original ↗
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-700 break-all">{enrollment.paymentProof}</p>
+                )}
+              </div>
+            )}
+            {enrollment.submittedAt && (
+              <p className="text-xs text-gray-400">Submitted: {new Date(enrollment.submittedAt).toLocaleString()}</p>
+            )}
+            <div className="flex gap-2 pt-2">
+              <Button className="bg-green-600 hover:bg-green-700 text-white flex-1 gap-2"
+                onClick={() => { onApprove(); setOpen(false); }} disabled={approving}>
+                <CheckCircle2 className="h-4 w-4" />
+                {approving ? "Approving..." : "Approve & Activate"}
+              </Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 export default function AdminCourses() {
@@ -678,24 +756,35 @@ export default function AdminCourses() {
                 <TableBody>
                   {pendingEnrollments.map((e: any) => (
                     <TableRow key={e.id}>
-                      <TableCell className="font-medium">{e.course?.title || e.courseId}</TableCell>
-                      <TableCell>{e.user?.firstName} {e.user?.lastName}</TableCell>
-                      <TableCell>${e.amount}</TableCell>
+                      <TableCell className="font-medium text-sm">{e.course?.title || e.courseId}</TableCell>
                       <TableCell>
-                        <div className="text-xs">
-                          <p>{e.paymentMethod}</p>
-                          {e.transactionHash && <p className="text-gray-400 truncate max-w-24">{e.transactionHash}</p>}
-                          {e.paymentProof && (
-                            <a href={e.paymentProof} target="_blank" rel="noreferrer" className="text-blue-500 underline">View proof</a>
+                        <div>
+                          <p className="font-medium text-sm">{e.user?.firstName} {e.user?.lastName}</p>
+                          <p className="text-xs text-gray-400">{e.user?.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell><span className="font-semibold">${e.amount}</span> <span className="text-xs text-gray-400">USDT</span></TableCell>
+                      <TableCell>
+                        <div className="text-xs space-y-1">
+                          <Badge variant="outline" className="text-xs">{e.paymentMethod || "N/A"}</Badge>
+                          {e.transactionHash && (
+                            <p className="font-mono text-gray-500 truncate max-w-32" title={e.transactionHash}>{e.transactionHash.slice(0, 12)}...</p>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => approveEnrollmentMutation.mutate(e.id)}
-                          disabled={approveEnrollmentMutation.isPending}>
-                          Approve
-                        </Button>
+                        <div className="flex gap-2">
+                          <PaymentDetailDialog
+                            enrollment={e}
+                            onApprove={() => approveEnrollmentMutation.mutate(e.id)}
+                            approving={approveEnrollmentMutation.isPending}
+                          />
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1"
+                            onClick={() => approveEnrollmentMutation.mutate(e.id)}
+                            disabled={approveEnrollmentMutation.isPending}>
+                            <CheckCircle2 className="h-3 w-3" /> Approve
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -16,6 +16,7 @@ import {
   BookOpen, Users, Star, Clock, Play, CheckCircle2, Lock,
   Heart, MessageCircle, Send, ChevronDown, ChevronUp, Award,
   Upload, Copy, AlertCircle, File, Video, MessageSquare, ChevronRight,
+  PartyPopper, Zap,
 } from "lucide-react";
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -344,9 +345,12 @@ export default function BreedSkoolCourse() {
   const { toast } = useToast();
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollStep, setEnrollStep] = useState<"choose" | "pay" | "confirm" | "done">("choose");
   const [paymentMethod, setPaymentMethod] = useState("usdt_tron");
   const [txHash, setTxHash] = useState("");
   const [paymentProof, setPaymentProof] = useState("");
+  const [proofUrl, setProofUrl] = useState("");
+  const [copiedAddr, setCopiedAddr] = useState(false);
   const [comment, setComment] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -822,84 +826,179 @@ export default function BreedSkoolCourse() {
         </div>
       </div>
 
-      {/* Enrollment Modal */}
-      <Dialog open={showEnrollModal} onOpenChange={setShowEnrollModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{course?.isFree ? "Confirm Enrollment" : "Complete Payment"}</DialogTitle>
-          </DialogHeader>
-
-          {course?.isFree ? (
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <p className="font-semibold text-green-800">This course is completely free!</p>
-                <p className="text-sm text-green-600 mt-1">Click below to enroll instantly.</p>
-              </div>
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => enrollMutation.mutate()} disabled={enrollMutation.isPending}>
-                {enrollMutation.isPending ? "Enrolling..." : "Enroll Now — It's Free!"}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-violet-50 border border-violet-100 rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-900">{course?.title}</span>
-                  <span className="text-xl font-bold text-violet-700">${course?.price} USDT</span>
-                </div>
-              </div>
-
-              <div>
-                <Label className="mb-2 block">Select Payment Network</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {WALLETS.map((w) => (
-                    <button
-                      key={w.network}
-                      onClick={() => setPaymentMethod(w.network)}
-                      className={`p-2 rounded-xl border-2 text-xs font-medium transition-all ${
-                        paymentMethod === w.network ? "border-violet-600 bg-violet-50 text-violet-700" : "border-gray-200 text-gray-600 hover:border-violet-300"
-                      }`}
-                    >
-                      {w.label}
-                    </button>
+      {/* Enrollment Modal — Stripe-like */}
+      <Dialog open={showEnrollModal} onOpenChange={(v) => {
+        setShowEnrollModal(v);
+        if (!v) { setEnrollStep("choose"); setTxHash(""); setPaymentProof(""); setProofUrl(""); }
+      }}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden">
+          {enrollStep !== "done" && (
+            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5">
+              <h2 className="text-white font-bold text-lg">{course?.isFree ? "Enroll for Free" : "Complete Enrollment"}</h2>
+              <p className="text-white/70 text-sm mt-0.5">{course?.title}</p>
+              {!course?.isFree && (
+                <div className="flex gap-4 mt-3">
+                  {["choose", "pay", "confirm"].map((s, i) => (
+                    <div key={s} className="flex items-center gap-1.5">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                        enrollStep === s ? "bg-white text-violet-700" :
+                        ["choose","pay","confirm"].indexOf(enrollStep) > i ? "bg-white/40 text-white" : "bg-white/20 text-white/50"
+                      }`}>{["choose","pay","confirm"].indexOf(enrollStep) > i ? "✓" : i + 1}</div>
+                      <span className={`text-xs ${enrollStep === s ? "text-white font-semibold" : "text-white/50"}`}>
+                        {s === "choose" ? "Choose" : s === "pay" ? "Pay" : "Confirm"}
+                      </span>
+                      {i < 2 && <div className="w-4 h-px bg-white/20 mx-1" />}
+                    </div>
                   ))}
                 </div>
-              </div>
-
-              {selectedWallet && (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 mb-1">Send ${course?.price} USDT to:</p>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs font-mono text-gray-800 flex-1 break-all">{selectedWallet.address}</code>
-                    <button onClick={() => { navigator.clipboard.writeText(selectedWallet.address); toast({ title: "Address copied!" }); }}>
-                      <Copy className="h-4 w-4 text-gray-400 hover:text-violet-600" />
-                    </button>
-                  </div>
-                </div>
               )}
-
-              <div>
-                <Label className="mb-1 block">Transaction Hash</Label>
-                <Input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Paste your transaction hash" />
-              </div>
-
-              <div>
-                <Label className="mb-1 block">Payment Proof URL (optional)</Label>
-                <Input value={paymentProof} onChange={(e) => setPaymentProof(e.target.value)} placeholder="Screenshot URL or proof link" />
-              </div>
-
-              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700">After submitting, your enrollment will be activated within 24 hours once payment is verified by admin.</p>
-              </div>
-
-              <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white"
-                onClick={() => enrollMutation.mutate()} disabled={enrollMutation.isPending || !txHash.trim()}>
-                {enrollMutation.isPending ? "Submitting..." : "Submit Payment"}
-              </Button>
             </div>
           )}
+
+          <div className="p-6">
+            {/* Free course */}
+            {course?.isFree && enrollStep !== "done" && (
+              <div className="space-y-5">
+                <div className="bg-green-50 border border-green-100 rounded-2xl p-5 text-center">
+                  <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Zap className="h-7 w-7 text-green-600" />
+                  </div>
+                  <p className="font-bold text-green-800 text-lg mb-1">Completely Free!</p>
+                  <p className="text-sm text-green-700">No payment required. Start learning immediately.</p>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {["Instant access to all lessons", "Course chat & community", "Certificate upon completion", "Lifetime access"].map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-700">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" /> {f}
+                    </div>
+                  ))}
+                </div>
+                <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white text-base font-semibold shadow-lg shadow-green-200"
+                  onClick={() => enrollMutation.mutate()} disabled={enrollMutation.isPending}>
+                  {enrollMutation.isPending ? <><div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full mr-2" />Enrolling...</> : "Enroll Now — It's Free!"}
+                </Button>
+              </div>
+            )}
+
+            {/* Step: Choose network */}
+            {!course?.isFree && enrollStep === "choose" && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600 mb-4">Select your payment network for <span className="font-bold text-gray-900">${course?.price} USDT</span></p>
+                {WALLETS.map((w) => (
+                  <button key={w.network} onClick={() => setPaymentMethod(w.network)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
+                      paymentMethod === w.network ? "border-violet-500 bg-violet-50 shadow-md" : "border-gray-100 bg-gray-50 hover:border-violet-200"
+                    }`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
+                      w.network === "usdt_tron" ? "bg-red-100" : w.network === "usdt_bsc" ? "bg-yellow-100" : "bg-blue-100"
+                    }`}>
+                      {w.network === "usdt_tron" ? "⚡" : w.network === "usdt_bsc" ? "🔶" : "💎"}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-semibold text-gray-900 text-sm">{w.label}</p>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === w.network ? "border-violet-600 bg-violet-600" : "border-gray-300"}`}>
+                      {paymentMethod === w.network && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                  </button>
+                ))}
+                <Button className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white mt-2"
+                  onClick={() => setEnrollStep("pay")}>
+                  Continue <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+
+            {/* Step: Payment address */}
+            {!course?.isFree && enrollStep === "pay" && (
+              <div className="space-y-4">
+                <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-violet-600">Amount to send</p>
+                    <p className="text-2xl font-extrabold text-gray-900">${course?.price} <span className="text-sm text-gray-500">USDT</span></p>
+                  </div>
+                  <Badge className="bg-violet-100 text-violet-700">{selectedWallet?.label}</Badge>
+                </div>
+                <div className="bg-gray-900 rounded-2xl p-4">
+                  <p className="text-gray-400 text-xs mb-2">Send to this address:</p>
+                  <code className="text-green-400 font-mono text-sm break-all leading-relaxed block mb-3">{selectedWallet?.address}</code>
+                  <button onClick={() => { navigator.clipboard.writeText(selectedWallet?.address || ""); setCopiedAddr(true); setTimeout(() => setCopiedAddr(false), 2000); toast({ title: "Copied!" }); }}
+                    className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg transition-colors ${copiedAddr ? "bg-green-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>
+                    {copiedAddr ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copiedAddr ? "Copied!" : "Copy address"}
+                  </button>
+                </div>
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                  <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700">Send only {selectedWallet?.network?.includes("tron") ? "TRC-20" : selectedWallet?.network?.includes("bsc") ? "BEP-20" : "TON"} tokens. Other tokens will be permanently lost.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setEnrollStep("choose")}>← Back</Button>
+                  <Button className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
+                    onClick={() => setEnrollStep("confirm")}>I've Sent It →</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: Confirm */}
+            {!course?.isFree && enrollStep === "confirm" && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Paste your transaction hash to verify your payment</p>
+                <div>
+                  <Label className="text-sm font-semibold mb-1.5 block">Transaction Hash <span className="text-red-500">*</span></Label>
+                  <Input value={txHash} onChange={(e) => setTxHash(e.target.value)}
+                    placeholder="0x... or TXid..." className="font-mono text-sm h-11 bg-gray-50" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold mb-1.5 block">Proof Link <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
+                  <Input value={paymentProof} onChange={(e) => setPaymentProof(e.target.value)}
+                    placeholder="Screenshot URL, proof link..." className="text-sm h-11 bg-gray-50" />
+                </div>
+                <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                  <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-700">Your enrollment will be activated within 24 hours of payment verification.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setEnrollStep("pay")}>← Back</Button>
+                  <Button className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
+                    onClick={() => enrollMutation.mutate()} disabled={!txHash.trim() || enrollMutation.isPending}>
+                    {enrollMutation.isPending ? <><div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full mr-2 inline-block" />Submitting...</> : "Submit Payment"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: Done / Thank you */}
+            {enrollStep === "done" && (
+              <div className="text-center py-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <PartyPopper className="h-10 w-10 text-violet-600" />
+                </div>
+                <h3 className="text-2xl font-extrabold text-gray-900 mb-2">
+                  {course?.isFree ? "You're In! 🎉" : "Payment Submitted! 🎉"}
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  {course?.isFree
+                    ? "Welcome to the course! You now have full access to all lessons, chat, and materials."
+                    : "Thank you for enrolling! Our team will verify your payment within 24 hours and activate your access."}
+                </p>
+                <div className="space-y-2 mb-6">
+                  {(course?.isFree
+                    ? ["Instant access to all lessons", "Join the course chat", "Download materials", "Earn certificate"]
+                    : ["Payment received & queued", "Verification in < 24 hours", "Email notification on approval", "Full access unlocked"]
+                  ).map((step, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 rounded-lg px-4 py-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" /> {step}
+                    </div>
+                  ))}
+                </div>
+                <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white h-12"
+                  onClick={() => { setShowEnrollModal(false); setEnrollStep("choose"); }}>
+                  {course?.isFree ? "Start Learning →" : "Back to Course"}
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

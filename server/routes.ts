@@ -3271,7 +3271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: create lesson (with optional file uploads)
-  app.post('/api/courses/:id/lessons', isAuthenticated, upload.array('files'), async (req: any, res) => {
+  app.post('/api/courses/:id/lessons', isAuthenticated, async (req: any, res) => {
     try {
       const u = req.user as any;
       const isAdmin = u.userType === 'admin' || u.role === 'admin';
@@ -3280,18 +3280,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isAdmin && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
-      const files = (req.files as any[]) || [];
-      const lessonFiles = files.map((f) => ({ name: f.originalname, url: `/uploads/${f.filename}`, size: f.size, mimetype: f.mimetype }));
-      const existingFiles = req.body.lessonFiles ? JSON.parse(req.body.lessonFiles) : [];
+      const body = req.body;
       const lesson = await storage.createLesson({
         courseId: req.params.id,
-        title: req.body.title,
-        description: req.body.description,
-        videoLink: req.body.videoLink,
-        content: req.body.content,
-        order: req.body.order ? parseInt(req.body.order) : 0,
-        lessonFiles: [...existingFiles, ...lessonFiles],
-        isPreview: req.body.isPreview === 'true',
+        title: body.title,
+        description: body.description,
+        videoLink: body.videoLink,
+        content: body.content,
+        order: body.order ? parseInt(body.order) : 0,
+        lessonFiles: Array.isArray(body.lessonFiles) ? body.lessonFiles : [],
+        isPreview: body.isPreview === true || body.isPreview === 'true',
       });
       res.status(201).json(lesson);
     } catch (error: any) {
@@ -3300,7 +3298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: update lesson
-  app.patch('/api/courses/:courseId/lessons/:lessonId', isAuthenticated, upload.array('files'), async (req: any, res) => {
+  app.patch('/api/courses/:courseId/lessons/:lessonId', isAuthenticated, async (req: any, res) => {
     try {
       const u = req.user as any;
       const isAdmin = u.userType === 'admin' || u.role === 'admin';
@@ -3309,17 +3307,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isAdmin && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
-      const files = (req.files as any[]) || [];
-      const newFiles = files.map((f) => ({ name: f.originalname, url: `/uploads/${f.filename}`, size: f.size, mimetype: f.mimetype }));
-      const existingFiles = req.body.lessonFiles ? JSON.parse(req.body.lessonFiles) : [];
+      const body = req.body;
       const updates: any = {};
-      if (req.body.title !== undefined) updates.title = req.body.title;
-      if (req.body.description !== undefined) updates.description = req.body.description;
-      if (req.body.videoLink !== undefined) updates.videoLink = req.body.videoLink;
-      if (req.body.content !== undefined) updates.content = req.body.content;
-      if (req.body.order !== undefined) updates.order = parseInt(req.body.order);
-      if (req.body.isPreview !== undefined) updates.isPreview = req.body.isPreview === 'true';
-      updates.lessonFiles = [...existingFiles, ...newFiles];
+      if (body.title !== undefined) updates.title = body.title;
+      if (body.description !== undefined) updates.description = body.description;
+      if (body.videoLink !== undefined) updates.videoLink = body.videoLink;
+      if (body.content !== undefined) updates.content = body.content;
+      if (body.order !== undefined) updates.order = parseInt(body.order);
+      if (body.isPreview !== undefined) updates.isPreview = body.isPreview === true || body.isPreview === 'true';
+      if (body.lessonFiles !== undefined) updates.lessonFiles = Array.isArray(body.lessonFiles) ? body.lessonFiles : [];
       const updated = await storage.updateLesson(req.params.lessonId, updates);
       res.json(updated);
     } catch (error: any) {
