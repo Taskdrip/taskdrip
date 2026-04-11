@@ -3013,6 +3013,228 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── BreedSkool Course Routes ──────────────────────────────────────────────
+
+  // Public: list all published courses
+  app.get('/api/courses', async (req, res) => {
+    try {
+      const courses = await storage.getAllCourses(true);
+      res.json(courses);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  // Admin: list all courses (including drafts)
+  app.get('/api/courses/admin/all', isAuthenticated, async (req: any, res) => {
+    try {
+      if ((req.user as any).userType !== 'admin' && (req.user as any).role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const courses = await storage.getAllCourses(false);
+      res.json(courses);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  // Admin: list all enrollments
+  app.get('/api/courses/admin/enrollments', isAuthenticated, async (req: any, res) => {
+    try {
+      if ((req.user as any).userType !== 'admin' && (req.user as any).role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const enrollments = await storage.getAllEnrollments();
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch enrollments" });
+    }
+  });
+
+  // Auth: get my enrollments
+  app.get('/api/courses/my-enrollments', isAuthenticated, async (req: any, res) => {
+    try {
+      const enrollments = await storage.getMyEnrollments(req.user.id);
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch enrollments" });
+    }
+  });
+
+  // Public: get a single course
+  app.get('/api/courses/:id', async (req, res) => {
+    try {
+      const course = await storage.getCourseById(req.params.id);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch course" });
+    }
+  });
+
+  // Admin / Premium Influencer: create course
+  app.post('/api/courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      const isPremiumInfluencer = u.subscriptionStatus === 'active' && u.isVerified;
+      if (!isAdmin && !isPremiumInfluencer) {
+        return res.status(403).json({ message: "Only admins or premium verified influencers can create courses" });
+      }
+      const course = await storage.createCourse({ ...req.body, instructorId: u.id });
+      res.status(201).json(course);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to create course" });
+    }
+  });
+
+  // Admin / Instructor: update course
+  app.patch('/api/courses/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      const course = await storage.getCourseById(req.params.id);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      if (!isAdmin && course.instructorId !== u.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const updated = await storage.updateCourse(req.params.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update course" });
+    }
+  });
+
+  // Admin: delete course
+  app.delete('/api/courses/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      if (u.userType !== 'admin' && u.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      await storage.deleteCourse(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete course" });
+    }
+  });
+
+  // Auth: get current user enrollment for a course
+  app.get('/api/courses/:id/enrollment', isAuthenticated, async (req: any, res) => {
+    try {
+      const enrollment = await storage.getCourseEnrollment(req.params.id, req.user.id);
+      if (!enrollment) return res.status(404).json(null);
+      res.json(enrollment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch enrollment" });
+    }
+  });
+
+  // Auth: enroll in a course
+  app.post('/api/courses/:id/enroll', isAuthenticated, async (req: any, res) => {
+    try {
+      const course = await storage.getCourseById(req.params.id);
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      const existing = await storage.getCourseEnrollment(req.params.id, req.user.id);
+      if (existing) return res.status(400).json({ message: "Already enrolled in this course" });
+      const enrollment = await storage.createEnrollment({
+        courseId: req.params.id,
+        userId: req.user.id,
+        isFree: course.isFree,
+        paymentMethod: req.body.paymentMethod,
+        paymentProof: req.body.paymentProof,
+        transactionHash: req.body.transactionHash,
+        amount: course.isFree ? "0.00" : (course.price || "0.00"),
+      });
+      res.status(201).json(enrollment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to enroll" });
+    }
+  });
+
+  // Admin: approve enrollment payment
+  app.post('/api/courses/enrollments/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      if ((req.user as any).userType !== 'admin' && (req.user as any).role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const enrollment = await storage.approveEnrollment(req.params.id, req.user.id);
+      res.json(enrollment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to approve enrollment" });
+    }
+  });
+
+  // Public: get course reviews
+  app.get('/api/courses/:id/reviews', async (req, res) => {
+    try {
+      const reviews = await storage.getCourseReviews(req.params.id);
+      res.json(reviews);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  // Auth: post a review
+  app.post('/api/courses/:id/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const review = await storage.createCourseReview({
+        courseId: req.params.id,
+        userId: req.user.id,
+        rating: req.body.rating,
+        comment: req.body.comment,
+      });
+      res.status(201).json(review);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to post review" });
+    }
+  });
+
+  // Public: get course comments
+  app.get('/api/courses/:id/comments', async (req, res) => {
+    try {
+      const comments = await storage.getCourseComments(req.params.id);
+      res.json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  // Auth: post a comment
+  app.post('/api/courses/:id/comments', isAuthenticated, async (req: any, res) => {
+    try {
+      const comment = await storage.createCourseComment({
+        courseId: req.params.id,
+        userId: req.user.id,
+        content: req.body.content,
+        parentId: req.body.parentId,
+      });
+      res.status(201).json(comment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to post comment" });
+    }
+  });
+
+  // Auth: check if liked
+  app.get('/api/courses/:id/liked', isAuthenticated, async (req: any, res) => {
+    try {
+      const liked = await storage.getCourseLike(req.params.id, req.user.id);
+      res.json(liked);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check like" });
+    }
+  });
+
+  // Auth: toggle like
+  app.post('/api/courses/:id/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const liked = await storage.toggleCourseLike(req.params.id, req.user.id);
+      res.json({ liked });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to toggle like" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

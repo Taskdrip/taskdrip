@@ -30,6 +30,9 @@ import SimpleSignup from "@/pages/simple-signup";
 import Login from "@/pages/login";
 import AdminLogin from "@/pages/admin-login";
 import ForgotPassword from "@/pages/forgot-password";
+import BreedSkool from "@/pages/breedskool";
+import BreedSkoolCourse from "@/pages/breedskool-course";
+import AdminCourses from "@/pages/admin-courses";
 import CampaignDetail from "@/pages/campaign-detail";
 import BrandProfile from "@/pages/brand-profile";
 import WalletSettings from "@/pages/wallet-settings";
@@ -71,6 +74,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/breedskool" component={BreedSkool} />
+      <Route path="/breedskool/:id" component={BreedSkoolCourse} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/shop" component={Shop} />
@@ -111,6 +116,7 @@ function Router() {
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />
+          <Route path="/admin/courses" component={AdminCourses} />
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />

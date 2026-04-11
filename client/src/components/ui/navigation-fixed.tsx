@@ -39,6 +39,7 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/campaigns", label: "Tasks" },
+          { href: "/breedskool", label: "BreedSkool" },
           { href: "/dashboard", label: "Dashboard" },
           { href: "/feed", label: "Feed" },
           { href: "/creators", label: "Influencers" },
@@ -51,6 +52,7 @@ export function NavigationFixed() {
       return [
         { href: "/", label: "Home" },
         { href: "/creators", label: "Influencers" },
+        { href: "/breedskool", label: "BreedSkool" },
         { href: "/feed", label: "Feed" },
         { href: "/blog", label: "Blog" },
         { href: "/shop", label: "Shop" },

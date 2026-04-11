@@ -26,6 +26,11 @@ import {
   payoutRequests,
   payoutMessages,
   referrals,
+  courses,
+  courseEnrollments,
+  courseReviews,
+  courseComments,
+  courseLikes,
   type User,
   type InsertUser,
   type Campaign,
@@ -63,6 +68,11 @@ import {
   type PayoutRequest,
   type PayoutMessage,
   type Referral,
+  type Course,
+  type InsertCourse,
+  type CourseEnrollment,
+  type CourseReview,
+  type CourseComment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -214,6 +224,24 @@ export interface IStorage {
   unfollowBlogCategory(userId: string, category: string): Promise<void>;
   getBlogPostsByCategory(category: string): Promise<BlogPost[]>;
   getAllCreators(): Promise<User[]>;
+
+  // BreedSkool course operations
+  getAllCourses(publishedOnly?: boolean): Promise<(Course & { instructor: Partial<User> })[]>;
+  getCourseById(id: string): Promise<(Course & { instructor: Partial<User> }) | undefined>;
+  createCourse(course: InsertCourse): Promise<Course>;
+  updateCourse(id: string, updates: Partial<InsertCourse>): Promise<Course>;
+  deleteCourse(id: string): Promise<void>;
+  getCourseEnrollment(courseId: string, userId: string): Promise<CourseEnrollment | undefined>;
+  getMyEnrollments(userId: string): Promise<(CourseEnrollment & { course: Course })[]>;
+  getAllEnrollments(): Promise<(CourseEnrollment & { course: Partial<Course>; user: Partial<User> })[]>;
+  createEnrollment(data: { courseId: string; userId: string; isFree: boolean; paymentMethod?: string; paymentProof?: string; transactionHash?: string; amount?: string }): Promise<CourseEnrollment>;
+  approveEnrollment(id: string, approvedBy: string): Promise<CourseEnrollment>;
+  getCourseReviews(courseId: string): Promise<(CourseReview & { user: Partial<User> })[]>;
+  createCourseReview(data: { courseId: string; userId: string; rating: number; comment?: string }): Promise<CourseReview>;
+  getCourseComments(courseId: string): Promise<(CourseComment & { user: Partial<User> })[]>;
+  createCourseComment(data: { courseId: string; userId: string; content: string; parentId?: string }): Promise<CourseComment>;
+  getCourseLike(courseId: string, userId: string): Promise<boolean>;
+  toggleCourseLike(courseId: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1338,6 +1366,144 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.userType, 'admin'))
       .limit(1);
     return admin;
+  }
+
+  // ── BreedSkool ────────────────────────────────────────────────
+  async getAllCourses(publishedOnly = false): Promise<(Course & { instructor: Partial<User> })[]> {
+    const rows = await db.select().from(courses).orderBy(desc(courses.createdAt));
+    const filtered = publishedOnly ? rows.filter(c => c.isPublished) : rows;
+    const result = await Promise.all(filtered.map(async (c) => {
+      const [instructor] = await db.select({
+        id: users.id, firstName: users.firstName, lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl, isVerified: users.isVerified, niche: users.niche,
+      }).from(users).where(eq(users.id, c.instructorId));
+      return { ...c, instructor: instructor || {} };
+    }));
+    return result;
+  }
+
+  async getCourseById(id: string): Promise<(Course & { instructor: Partial<User> }) | undefined> {
+    const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    if (!course) return undefined;
+    const [instructor] = await db.select({
+      id: users.id, firstName: users.firstName, lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl, isVerified: users.isVerified, niche: users.niche,
+    }).from(users).where(eq(users.id, course.instructorId));
+    return { ...course, instructor: instructor || {} };
+  }
+
+  async createCourse(course: InsertCourse): Promise<Course> {
+    const [created] = await db.insert(courses).values(course).returning();
+    return created;
+  }
+
+  async updateCourse(id: string, updates: Partial<InsertCourse>): Promise<Course> {
+    const [updated] = await db.update(courses).set({ ...updates, updatedAt: new Date() }).where(eq(courses.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCourse(id: string): Promise<void> {
+    await db.delete(courses).where(eq(courses.id, id));
+  }
+
+  async getCourseEnrollment(courseId: string, userId: string): Promise<CourseEnrollment | undefined> {
+    const [enrollment] = await db.select().from(courseEnrollments)
+      .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, userId)));
+    return enrollment;
+  }
+
+  async getMyEnrollments(userId: string): Promise<(CourseEnrollment & { course: Course })[]> {
+    const enrollments = await db.select().from(courseEnrollments).where(eq(courseEnrollments.userId, userId));
+    return Promise.all(enrollments.map(async (e) => {
+      const [course] = await db.select().from(courses).where(eq(courses.id, e.courseId));
+      return { ...e, course: course! };
+    }));
+  }
+
+  async getAllEnrollments(): Promise<(CourseEnrollment & { course: Partial<Course>; user: Partial<User> })[]> {
+    const enrollments = await db.select().from(courseEnrollments).orderBy(desc(courseEnrollments.createdAt));
+    return Promise.all(enrollments.map(async (e) => {
+      const [course] = await db.select({ id: courses.id, title: courses.title }).from(courses).where(eq(courses.id, e.courseId));
+      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
+        .from(users).where(eq(users.id, e.userId));
+      return { ...e, course: course || {}, user: user || {} };
+    }));
+  }
+
+  async createEnrollment(data: { courseId: string; userId: string; isFree: boolean; paymentMethod?: string; paymentProof?: string; transactionHash?: string; amount?: string }): Promise<CourseEnrollment> {
+    const status = data.isFree ? "active" : "pending_payment";
+    const isPaid = data.isFree;
+    const [enrollment] = await db.insert(courseEnrollments).values({
+      courseId: data.courseId, userId: data.userId, status, isPaid,
+      paymentMethod: data.paymentMethod || (data.isFree ? "free" : undefined),
+      paymentProof: data.paymentProof, transactionHash: data.transactionHash,
+      amount: data.amount || "0.00",
+    }).returning();
+    if (data.isFree) {
+      await db.update(courses).set({ studentsCount: sql`${courses.studentsCount} + 1` }).where(eq(courses.id, data.courseId));
+    }
+    return enrollment;
+  }
+
+  async approveEnrollment(id: string, approvedBy: string): Promise<CourseEnrollment> {
+    const [existing] = await db.select().from(courseEnrollments).where(eq(courseEnrollments.id, id));
+    const [updated] = await db.update(courseEnrollments).set({
+      status: "active", isPaid: true, approvedBy, approvedAt: new Date(), updatedAt: new Date(),
+    }).where(eq(courseEnrollments.id, id)).returning();
+    if (existing && existing.status !== "active") {
+      await db.update(courses).set({ studentsCount: sql`${courses.studentsCount} + 1` }).where(eq(courses.id, existing.courseId));
+    }
+    return updated;
+  }
+
+  async getCourseReviews(courseId: string): Promise<(CourseReview & { user: Partial<User> })[]> {
+    const reviews = await db.select().from(courseReviews).where(eq(courseReviews.courseId, courseId)).orderBy(desc(courseReviews.createdAt));
+    return Promise.all(reviews.map(async (r) => {
+      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl })
+        .from(users).where(eq(users.id, r.userId));
+      return { ...r, user: user || {} };
+    }));
+  }
+
+  async createCourseReview(data: { courseId: string; userId: string; rating: number; comment?: string }): Promise<CourseReview> {
+    const [review] = await db.insert(courseReviews).values(data).returning();
+    const allReviews = await db.select().from(courseReviews).where(eq(courseReviews.courseId, data.courseId));
+    const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+    await db.update(courses).set({ reviewsCount: allReviews.length, averageRating: avg.toFixed(2) }).where(eq(courses.id, data.courseId));
+    return review;
+  }
+
+  async getCourseComments(courseId: string): Promise<(CourseComment & { user: Partial<User> })[]> {
+    const comments = await db.select().from(courseComments).where(eq(courseComments.courseId, courseId)).orderBy(desc(courseComments.createdAt));
+    return Promise.all(comments.map(async (c) => {
+      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl })
+        .from(users).where(eq(users.id, c.userId));
+      return { ...c, user: user || {} };
+    }));
+  }
+
+  async createCourseComment(data: { courseId: string; userId: string; content: string; parentId?: string }): Promise<CourseComment> {
+    const [comment] = await db.insert(courseComments).values(data).returning();
+    await db.update(courses).set({ commentsCount: sql`${courses.commentsCount} + 1` }).where(eq(courses.id, data.courseId));
+    return comment;
+  }
+
+  async getCourseLike(courseId: string, userId: string): Promise<boolean> {
+    const [like] = await db.select().from(courseLikes).where(and(eq(courseLikes.courseId, courseId), eq(courseLikes.userId, userId)));
+    return !!like;
+  }
+
+  async toggleCourseLike(courseId: string, userId: string): Promise<boolean> {
+    const existing = await this.getCourseLike(courseId, userId);
+    if (existing) {
+      await db.delete(courseLikes).where(and(eq(courseLikes.courseId, courseId), eq(courseLikes.userId, userId)));
+      await db.update(courses).set({ likesCount: sql`GREATEST(${courses.likesCount} - 1, 0)` }).where(eq(courses.id, courseId));
+      return false;
+    } else {
+      await db.insert(courseLikes).values({ courseId, userId });
+      await db.update(courses).set({ likesCount: sql`${courses.likesCount} + 1` }).where(eq(courses.id, courseId));
+      return true;
+    }
   }
 
   async getReferralStats(): Promise<any> {

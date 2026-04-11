@@ -633,3 +633,94 @@ export type InsertAdminWallet = z.infer<typeof insertAdminWalletSchema>;
 
 export type BrandWallet = typeof brandWallets.$inferSelect;
 export type InsertBrandWallet = z.infer<typeof insertBrandWalletSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// BreedSkool – Learning Platform
+// ──────────────────────────────────────────────────────────────
+
+export const courses = pgTable("courses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  shortDescription: varchar("short_description"),
+  category: varchar("category").notNull(),
+  thumbnail: varchar("thumbnail"),
+  previewVideoUrl: varchar("preview_video_url"),
+  instructorId: varchar("instructor_id").notNull().references(() => users.id),
+  price: decimal("price", { precision: 10, scale: 2 }).default("0.00"),
+  isFree: boolean("is_free").default(false),
+  level: varchar("level").default("beginner"),
+  duration: varchar("duration"),
+  lessonsCount: integer("lessons_count").default(0),
+  studentsCount: integer("students_count").default(0),
+  likesCount: integer("likes_count").default(0),
+  commentsCount: integer("comments_count").default(0),
+  reviewsCount: integer("reviews_count").default(0),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }).default("0.00"),
+  syllabus: jsonb("syllabus").default(sql`'[]'::jsonb`),
+  requirements: text("requirements").array(),
+  whatYouLearn: text("what_you_learn").array(),
+  tags: text("tags").array(),
+  status: varchar("status").default("draft"),
+  isPublished: boolean("is_published").default(false),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const courseEnrollments = pgTable("course_enrollments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  status: varchar("status").default("active"),
+  progress: integer("progress").default(0),
+  paymentMethod: varchar("payment_method"),
+  paymentProof: varchar("payment_proof"),
+  transactionHash: varchar("transaction_hash"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).default("0.00"),
+  isPaid: boolean("is_paid").default(false),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const courseReviews = pgTable("course_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const courseComments = pgTable("course_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  parentId: varchar("parent_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const courseLikes = pgTable("course_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCourseEnrollmentSchema = createInsertSchema(courseEnrollments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCourseReviewSchema = createInsertSchema(courseReviews).omit({ id: true, createdAt: true });
+export const insertCourseCommentSchema = createInsertSchema(courseComments).omit({ id: true, createdAt: true });
+
+export type Course = typeof courses.$inferSelect;
+export type InsertCourse = z.infer<typeof insertCourseSchema>;
+export type CourseEnrollment = typeof courseEnrollments.$inferSelect;
+export type InsertCourseEnrollment = z.infer<typeof insertCourseEnrollmentSchema>;
+export type CourseReview = typeof courseReviews.$inferSelect;
+export type InsertCourseReview = z.infer<typeof insertCourseReviewSchema>;
+export type CourseComment = typeof courseComments.$inferSelect;
+export type InsertCourseComment = z.infer<typeof insertCourseCommentSchema>;
+export type CourseLike = typeof courseLikes.$inferSelect;
