@@ -2193,7 +2193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/shop/products', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin') {
+      if (user.role !== 'admin' && user.userType !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -2209,7 +2209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/shop/products', isAuthenticated, upload.single('featuredImage'), async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin') {
+      if (user.role !== 'admin' && user.userType !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -2236,7 +2236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/shop/products/:id', isAuthenticated, upload.single('featuredImage'), async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin') {
+      if (user.role !== 'admin' && user.userType !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -2262,7 +2262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/admin/shop/products/:id', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin') {
+      if (user.role !== 'admin' && user.userType !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -3232,6 +3232,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ liked });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to toggle like" });
+    }
+  });
+
+  // Product like/dislike: get user's reaction
+  app.get('/api/shop/products/:id/reaction', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import('./db');
+      const { productLikes } = await import('@shared/schema');
+      const { eq, and } = await import('drizzle-orm');
+      const reaction = await db.select().from(productLikes)
+        .where(and(eq(productLikes.productId, req.params.id), eq(productLikes.userId, req.user.id)))
+        .limit(1);
+      res.json(reaction[0] || null);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reaction" });
+    }
+  });
+
+  // Product like/dislike: toggle
+  app.post('/api/shop/products/:id/react', isAuthenticated, async (req: any, res) => {
+    try {
+      const { db } = await import('./db');
+      const { productLikes, shopProducts } = await import('@shared/schema');
+      const { eq, and, sql } = await import('drizzle-orm');
+      const { type } = req.body; // 'like' or 'dislike'
+      if (!['like', 'dislike'].includes(type)) {
+        return res.status(400).json({ message: "Invalid reaction type" });
+      }
+      const existing = await db.select().from(productLikes)
+        .where(and(eq(productLikes.productId, req.params.id), eq(productLikes.userId, req.user.id)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        const prev = existing[0];
+        if (prev.type === type) {
+          // Remove reaction
+          await db.delete(productLikes).where(eq(productLikes.id, prev.id));
+          await db.update(shopProducts).set({
+            [type === 'like' ? 'likesCount' : 'dislikesCount']: sql`GREATEST(0, ${type === 'like' ? shopProducts.likesCount : shopProducts.dislikesCount} - 1)`,
+          }).where(eq(shopProducts.id, req.params.id));
+          return res.json({ action: 'removed', type });
+        } else {
+          // Switch reaction
+          await db.update(productLikes).set({ type }).where(eq(productLikes.id, prev.id));
+          await db.update(shopProducts).set({
+            likesCount: sql`CASE WHEN ${type} = 'like' THEN ${shopProducts.likesCount} + 1 ELSE GREATEST(0, ${shopProducts.likesCount} - 1) END`,
+            dislikesCount: sql`CASE WHEN ${type} = 'dislike' THEN ${shopProducts.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts.dislikesCount} - 1) END`,
+          }).where(eq(shopProducts.id, req.params.id));
+          return res.json({ action: 'switched', type });
+        }
+      } else {
+        // Add new reaction
+        await db.insert(productLikes).values({
+          productId: req.params.id,
+          userId: req.user.id,
+          type,
+        });
+        await db.update(shopProducts).set({
+          [type === 'like' ? 'likesCount' : 'dislikesCount']: sql`${type === 'like' ? shopProducts.likesCount : shopProducts.dislikesCount} + 1`,
+        }).where(eq(shopProducts.id, req.params.id));
+        return res.json({ action: 'added', type });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to react" });
+    }
+  });
+
+  // Admin: update own credentials (email/password)
+  app.put('/api/admin/credentials', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin only" });
+      }
+      const { newEmail, newPassword, currentPassword } = req.body;
+      const bcrypt = await import('bcrypt');
+      const valid = await bcrypt.compare(currentPassword, req.user.password);
+      if (!valid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      const updates: any = {};
+      if (newEmail && newEmail !== req.user.email) {
+        const existing = await storage.getUserByEmail(newEmail);
+        if (existing && existing.id !== req.user.id) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+        updates.email = newEmail;
+      }
+      if (newPassword) {
+        if (newPassword.length < 8) {
+          return res.status(400).json({ message: "New password must be at least 8 characters" });
+        }
+        updates.password = await bcrypt.hash(newPassword, 12);
+      }
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No changes provided" });
+      }
+      await storage.updateUserProfile(req.user.id, updates);
+      res.json({ message: "Credentials updated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update credentials" });
     }
   });
 

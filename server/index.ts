@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
+import { storage } from "./storage";
+import bcrypt from "bcrypt";
 
 const app = express();
 app.use(express.json({ limit: '15mb' }));
@@ -37,7 +39,37 @@ app.use((req, res, next) => {
   next();
 });
 
+async function ensureAdminExists() {
+  try {
+    const adminEmail = "demo@taskdrip.online";
+    const existing = await storage.getUserByEmail(adminEmail);
+    if (!existing) {
+      const hashed = await bcrypt.hash("Admin@2024", 12);
+      const genCode = (prefix: string) =>
+        `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+      await storage.createUser({
+        id: `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        firstName: "Admin",
+        lastName: "Taskdrip",
+        email: adminEmail,
+        password: hashed,
+        userType: "admin",
+        bio: "Platform Administrator",
+        location: "",
+        skills: [],
+        referralCodeCreator: genCode("CR"),
+        referralCodeBrand: genCode("BR"),
+      } as any);
+      log("Default admin account created: demo@taskdrip.online");
+    }
+  } catch (err) {
+    console.error("Admin seed error:", err);
+  }
+}
+
 (async () => {
+  await ensureAdminExists();
+
   // Seed database in development
   if (app.get("env") === "development") {
     // await seedDatabase(); // Temporarily disabled during schema updates

@@ -202,49 +202,58 @@ export default function BreedSkool() {
       <NavigationFixed />
 
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-violet-400 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-400 rounded-full blur-3xl" />
+      <div className="relative overflow-hidden min-h-[520px] flex items-center">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&h=700&fit=crop')" }}
+        />
+        {/* Dark overlay with gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/90 via-purple-900/85 to-indigo-900/90" />
+        {/* Glowing orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 py-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">
+        <div className="relative max-w-7xl mx-auto px-4 py-24 w-full text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2 mb-6 shadow-lg">
             <span className="text-2xl">🎓</span>
-            <span className="text-white text-sm font-medium">BreedSkool – Influencer Academy</span>
+            <span className="text-white text-sm font-semibold tracking-wide">BreedSkool – Influencer Academy</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-5 leading-tight drop-shadow-xl">
             Learn, Grow &{" "}
-            <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">
               Earn More
             </span>
           </h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
+          <p className="text-white/75 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             Master Instagram, TikTok, YouTube and beyond. Get certified by top influencers and
             start monetizing your audience today.
           </p>
 
           {/* Stats */}
-          <div className="flex items-center justify-center gap-8 mb-10">
+          <div className="flex items-center justify-center gap-4 md:gap-12 mb-10 flex-wrap">
             {[
-              { value: `${courses.length}+`, label: "Courses" },
-              { value: `${totalStudents.toLocaleString()}+`, label: "Students" },
-              { value: `${freeCourses.length}+`, label: "Free Courses" },
+              { value: `${courses.length}+`, label: "Courses", icon: "📚" },
+              { value: `${totalStudents.toLocaleString()}+`, label: "Students", icon: "🎓" },
+              { value: `${freeCourses.length}+`, label: "Free Courses", icon: "🆓" },
             ].map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-2xl font-bold text-white">{s.value}</p>
+              <div key={s.label} className="text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-4 shadow-lg">
+                <p className="text-3xl mb-1">{s.icon}</p>
+                <p className="text-2xl font-extrabold text-white">{s.value}</p>
                 <p className="text-white/60 text-sm">{s.label}</p>
               </div>
             ))}
           </div>
 
           {/* Search */}
-          <div className="max-w-lg mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <div className="max-w-xl mx-auto relative">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search courses..."
-              className="pl-12 pr-4 py-4 text-base bg-white rounded-2xl border-0 shadow-2xl text-gray-900 placeholder-gray-400"
+              placeholder="Search courses, topics, instructors..."
+              className="pl-14 pr-4 py-5 text-base bg-white/95 backdrop-blur-sm rounded-2xl border-0 shadow-2xl text-gray-900 placeholder-gray-400 h-14"
             />
           </div>
         </div>

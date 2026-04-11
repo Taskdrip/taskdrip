@@ -27,8 +27,9 @@ import {
   Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
-  Copy
+  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 // Form schemas
 const blogPostSchema = z.object({
@@ -61,6 +62,84 @@ const walletSchema = z.object({
   address: z.string().min(10, "Wallet address must be at least 10 characters"),
 });
 
+const courseFormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
+  shortDescription: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+  thumbnail: z.string().optional(),
+  price: z.string().optional(),
+  isFree: z.boolean().default(false),
+  level: z.string().default("beginner"),
+  duration: z.string().optional(),
+  lessonsCount: z.number().int().min(0).optional(),
+  whatYouLearn: z.string().optional(),
+  requirements: z.string().optional(),
+  isPublished: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
+});
+
+const shopProductSchema = z.object({
+  title: z.string().min(3, "Title required"),
+  description: z.string().min(10, "Description required"),
+  shortDescription: z.string().optional(),
+  price: z.string().min(1, "Price required"),
+  originalPrice: z.string().optional(),
+  category: z.string().min(1, "Category required"),
+  type: z.string().min(1, "Type required"),
+  featuredImage: z.string().optional(),
+  demoUrl: z.string().optional(),
+  downloadUrl: z.string().optional(),
+  documentationUrl: z.string().optional(),
+  features: z.string().optional(),
+  requirements: z.string().optional(),
+  tags: z.string().optional(),
+  isFree: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+});
+
+const adminCredentialsSchema = z.object({
+  currentPassword: z.string().min(1, "Current password required"),
+  newEmail: z.string().email("Valid email required").optional().or(z.literal("")),
+  newPassword: z.string().min(8, "Min 8 characters").optional().or(z.literal("")),
+  confirmPassword: z.string().optional().or(z.literal("")),
+}).refine((d) => !d.newPassword || d.newPassword === d.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+const COURSE_CATEGORIES = [
+  { value: "instagram_growth", label: "Instagram Growth" },
+  { value: "tiktok_mastery", label: "TikTok Mastery" },
+  { value: "youtube", label: "YouTube Success" },
+  { value: "monetization", label: "Monetization" },
+  { value: "content_creation", label: "Content Creation" },
+  { value: "branding", label: "Personal Branding" },
+  { value: "general", label: "General Marketing" },
+];
+
+const SHOP_CATEGORIES = [
+  { value: "software", label: "Software & Apps" },
+  { value: "scripts", label: "Scripts & Automation" },
+  { value: "templates", label: "Templates & Designs" },
+  { value: "plugins", label: "Plugins & Extensions" },
+  { value: "tools", label: "Tech Tools" },
+  { value: "courses", label: "Digital Courses" },
+  { value: "equipment", label: "Equipment" },
+  { value: "other", label: "Other" },
+];
+
+const SHOP_TYPES = [
+  { value: "software", label: "Software" },
+  { value: "script", label: "Script" },
+  { value: "template", label: "Template" },
+  { value: "plugin", label: "Plugin" },
+  { value: "digital_course", label: "Digital Course" },
+  { value: "physical_product", label: "Physical Product" },
+  { value: "saas_tool", label: "SaaS Tool" },
+];
+
 export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -76,6 +155,17 @@ export default function AdminMaster() {
   const [isBlogDialogOpen, setIsBlogDialogOpen] = useState(false);
   const [isEditWalletDialogOpen, setIsEditWalletDialogOpen] = useState(false);
   const [editingWallet, setEditingWallet] = useState<{type: string, address: string} | null>(null);
+
+  // Course management state
+  const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+
+  // Shop management state
+  const [isShopProductDialogOpen, setIsShopProductDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+
+  // Admin credentials state
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
 
   // Forms
   const blogForm = useForm({
@@ -120,6 +210,30 @@ export default function AdminMaster() {
     },
   });
 
+  const courseForm = useForm({
+    resolver: zodResolver(courseFormSchema),
+    defaultValues: {
+      isFree: false, isPublished: false, isFeatured: false, level: "beginner",
+      title: "", description: "", category: "", thumbnail: "", price: "", shortDescription: "",
+      duration: "", lessonsCount: 0, whatYouLearn: "", requirements: "",
+    },
+  });
+
+  const shopProductForm = useForm({
+    resolver: zodResolver(shopProductSchema),
+    defaultValues: {
+      isFree: false, isFeatured: false, isActive: true,
+      title: "", description: "", category: "software", type: "software",
+      price: "0.00", featuredImage: "", demoUrl: "", downloadUrl: "",
+      documentationUrl: "", features: "", requirements: "", tags: "",
+    },
+  });
+
+  const adminCredentialsForm = useForm({
+    resolver: zodResolver(adminCredentialsSchema),
+    defaultValues: { currentPassword: "", newEmail: "", newPassword: "", confirmPassword: "" },
+  });
+
   // Data fetching with proper admin endpoints
   const { data: users = [] } = useQuery({
     queryKey: ["/api/admin/users"],
@@ -143,6 +257,21 @@ export default function AdminMaster() {
 
   const { data: escrowPayments = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/escrow-payments"],
+    retry: false,
+  });
+
+  const { data: courses = [] } = useQuery<any[]>({
+    queryKey: ["/api/courses/admin/all"],
+    retry: false,
+  });
+
+  const { data: courseEnrollments = [] } = useQuery<any[]>({
+    queryKey: ["/api/courses/admin/enrollments"],
+    retry: false,
+  });
+
+  const { data: shopProducts = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/shop/products"],
     retry: false,
   });
 
@@ -343,6 +472,138 @@ export default function AdminMaster() {
     },
   });
 
+  // Course mutations
+  const saveCourseMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = {
+        ...data,
+        price: data.isFree ? "0.00" : (data.price || "0.00"),
+        lessonsCount: data.lessonsCount || 0,
+        whatYouLearn: data.whatYouLearn ? data.whatYouLearn.split("\n").filter(Boolean) : [],
+        requirements: data.requirements ? data.requirements.split("\n").filter(Boolean) : [],
+      };
+      const method = editingCourse ? "PATCH" : "POST";
+      const url = editingCourse ? `/api/courses/${editingCourse.id}` : "/api/courses";
+      const res = await apiRequest(method, url, payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      toast({ title: editingCourse ? "Course updated!" : "Course created!" });
+      setIsCourseDialogOpen(false);
+      setEditingCourse(null);
+      courseForm.reset();
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (id: string) => { await apiRequest("DELETE", `/api/courses/${id}`); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/all"] });
+      toast({ title: "Course deleted" });
+    },
+  });
+
+  const approveEnrollmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/courses/enrollments/${id}/approve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] });
+      toast({ title: "Enrollment approved!" });
+    },
+  });
+
+  // Shop product mutations
+  const saveProductMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = {
+        ...data,
+        price: data.isFree ? "0.00" : data.price,
+        originalPrice: data.originalPrice || null,
+        features: data.features ? data.features.split("\n").filter(Boolean) : [],
+        requirements: data.requirements ? data.requirements.split("\n").filter(Boolean) : [],
+        tags: data.tags ? data.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+      };
+      const method = editingProduct ? "PUT" : "POST";
+      const url = editingProduct ? `/api/admin/shop/products/${editingProduct.id}` : "/api/admin/shop/products";
+      const res = await apiRequest(method, url, payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
+      toast({ title: editingProduct ? "Product updated!" : "Product created!" });
+      setIsShopProductDialogOpen(false);
+      setEditingProduct(null);
+      shopProductForm.reset();
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: string) => { await apiRequest("DELETE", `/api/admin/shop/products/${id}`); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
+      toast({ title: "Product deleted" });
+    },
+  });
+
+  // Admin credentials mutation
+  const updateCredentialsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PUT", "/api/admin/credentials", {
+        currentPassword: data.currentPassword,
+        newEmail: data.newEmail || undefined,
+        newPassword: data.newPassword || undefined,
+      });
+      if (!res.ok) throw new Error((await res.json()).message);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Credentials updated", description: "Your login details have been changed successfully." });
+      setIsCredentialsDialogOpen(false);
+      adminCredentialsForm.reset();
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const openEditCourse = (course: any) => {
+    setEditingCourse(course);
+    courseForm.reset({
+      title: course.title, description: course.description,
+      shortDescription: course.shortDescription || "",
+      category: course.category, thumbnail: course.thumbnail || "",
+      price: course.price || "0.00", isFree: course.isFree, level: course.level,
+      duration: course.duration || "", lessonsCount: course.lessonsCount || 0,
+      whatYouLearn: (course.whatYouLearn || []).join("\n"),
+      requirements: (course.requirements || []).join("\n"),
+      isPublished: course.isPublished, isFeatured: course.isFeatured,
+    });
+    setIsCourseDialogOpen(true);
+  };
+
+  const openEditProduct = (product: any) => {
+    setEditingProduct(product);
+    shopProductForm.reset({
+      title: product.title, description: product.description,
+      shortDescription: product.shortDescription || "",
+      price: product.price, originalPrice: product.originalPrice || "",
+      category: product.category, type: product.type,
+      featuredImage: product.featuredImage || "", demoUrl: product.demoUrl || "",
+      downloadUrl: product.downloadUrl || "", documentationUrl: product.documentationUrl || "",
+      features: (product.features || []).join("\n"),
+      requirements: (product.requirements || []).join("\n"),
+      tags: (product.tags || []).join(", "),
+      isFree: product.isFree, isFeatured: product.isFeatured, isActive: product.isActive,
+    });
+    setIsShopProductDialogOpen(true);
+  };
+
   if ((user as any)?.userType !== 'admin') {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -484,7 +745,7 @@ export default function AdminMaster() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Mobile-responsive linear tab navigation */}
           <div className="w-full overflow-x-auto pb-2 mb-6">
-            <TabsList className="flex w-max min-w-full lg:grid lg:grid-cols-7 h-auto p-1 bg-muted rounded-lg gap-1">
+            <TabsList className="flex w-max min-w-full lg:grid lg:grid-cols-9 h-auto p-1 bg-muted rounded-lg gap-1">
               <TabsTrigger value="overview" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
                 <Shield className="h-3 w-3 lg:h-4 lg:w-4" />
                 <span className="text-xs lg:text-sm">Overview</span>
@@ -504,6 +765,14 @@ export default function AdminMaster() {
               <TabsTrigger value="blog" className="flex-shrink-0 min-w-[70px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
                 <BookOpen className="h-3 w-3 lg:h-4 lg:w-4" />
                 <span className="text-xs lg:text-sm">Blog</span>
+              </TabsTrigger>
+              <TabsTrigger value="courses" className="flex-shrink-0 min-w-[100px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <GraduationCap className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">BreedSkool</span>
+              </TabsTrigger>
+              <TabsTrigger value="shop" className="flex-shrink-0 min-w-[70px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
+                <ShoppingBag className="h-3 w-3 lg:h-4 lg:w-4" />
+                <span className="text-xs lg:text-sm">Shop</span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="flex-shrink-0 min-w-[90px] lg:min-w-0 flex items-center gap-1 lg:gap-2 px-3 py-2 whitespace-nowrap">
                 <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4" />
@@ -1811,6 +2080,448 @@ export default function AdminMaster() {
             </Card>
           </TabsContent>
 
+          {/* ============ BREEDSKOOL COURSES TAB ============ */}
+          <TabsContent value="courses" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <GraduationCap className="h-6 w-6 text-violet-600" /> BreedSkool Courses
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">Create and manage courses for the learning platform</p>
+              </div>
+              <Dialog open={isCourseDialogOpen} onOpenChange={(v) => { setIsCourseDialogOpen(v); if (!v) { setEditingCourse(null); courseForm.reset(); } }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
+                    <Plus className="h-4 w-4" /> Add Course
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingCourse ? "Edit Course" : "Create New Course"}</DialogTitle>
+                    <DialogDescription>Fill in the details below to {editingCourse ? "update" : "create"} a course.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={courseForm.handleSubmit((d) => saveCourseMutation.mutate(d))} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <Label>Course Title *</Label>
+                        <Input {...courseForm.register("title")} placeholder="e.g. Instagram Growth Masterclass" />
+                        {courseForm.formState.errors.title && <p className="text-red-500 text-xs mt-1">{String(courseForm.formState.errors.title.message)}</p>}
+                      </div>
+                      <div>
+                        <Label>Category *</Label>
+                        <Select onValueChange={(v) => courseForm.setValue("category", v)} value={courseForm.watch("category")}>
+                          <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                          <SelectContent>
+                            {COURSE_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Level</Label>
+                        <Select onValueChange={(v) => courseForm.setValue("level", v)} value={courseForm.watch("level")}>
+                          <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                          <SelectContent>
+                            {["beginner","intermediate","advanced"].map((l) => <SelectItem key={l} value={l}>{l.charAt(0).toUpperCase()+l.slice(1)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Short Description</Label>
+                        <Input {...courseForm.register("shortDescription")} placeholder="Brief tagline for the course" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Full Description *</Label>
+                        <Textarea {...courseForm.register("description")} rows={4} placeholder="Detailed course description..." />
+                        {courseForm.formState.errors.description && <p className="text-red-500 text-xs mt-1">{String(courseForm.formState.errors.description.message)}</p>}
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Thumbnail URL</Label>
+                        <Input {...courseForm.register("thumbnail")} placeholder="https://..." />
+                      </div>
+                      <div>
+                        <Label>Duration</Label>
+                        <Input {...courseForm.register("duration")} placeholder="e.g. 4h 30m" />
+                      </div>
+                      <div>
+                        <Label>Number of Lessons</Label>
+                        <Input type="number" {...courseForm.register("lessonsCount", { valueAsNumber: true })} placeholder="0" />
+                      </div>
+                      <div className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Switch checked={courseForm.watch("isFree")} onCheckedChange={(v) => courseForm.setValue("isFree", v)} />
+                        <Label className="cursor-pointer">Free Course</Label>
+                      </div>
+                      {!courseForm.watch("isFree") && (
+                        <div>
+                          <Label>Price (USDT)</Label>
+                          <Input {...courseForm.register("price")} placeholder="29.99" />
+                        </div>
+                      )}
+                      <div className="col-span-2">
+                        <Label>What You'll Learn (one per line)</Label>
+                        <Textarea {...courseForm.register("whatYouLearn")} rows={3} placeholder="Grow from 0 to 10k followers&#10;Master the algorithm" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Requirements (one per line)</Label>
+                        <Textarea {...courseForm.register("requirements")} rows={2} placeholder="A smartphone or computer" />
+                      </div>
+                      <div className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Switch checked={courseForm.watch("isPublished")} onCheckedChange={(v) => courseForm.setValue("isPublished", v)} />
+                        <Label>Published</Label>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Switch checked={courseForm.watch("isFeatured")} onCheckedChange={(v) => courseForm.setValue("isFeatured", v)} />
+                        <Label>Featured</Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white flex-1" disabled={saveCourseMutation.isPending}>
+                        {saveCourseMutation.isPending ? "Saving..." : editingCourse ? "Update Course" : "Create Course"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => { setIsCourseDialogOpen(false); setEditingCourse(null); courseForm.reset(); }}>Cancel</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Courses", value: courses.length, icon: BookOpen, color: "text-violet-600" },
+                { label: "Total Students", value: courses.reduce((s: number, c: any) => s + (c.studentsCount || 0), 0), icon: Users, color: "text-blue-600" },
+                { label: "Pending Approvals", value: courseEnrollments.filter((e: any) => e.status === "pending_payment").length, icon: Eye, color: "text-amber-600" },
+                { label: "Revenue", value: `$${courseEnrollments.filter((e: any) => e.isPaid).reduce((s: number, e: any) => s + parseFloat(e.amount || "0"), 0).toFixed(2)}`, icon: DollarSign, color: "text-green-600" },
+              ].map((s) => (
+                <Card key={s.label}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <s.icon className={`h-8 w-8 ${s.color}`} />
+                    <div><p className="text-2xl font-bold">{s.value}</p><p className="text-xs text-gray-500">{s.label}</p></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pending Enrollments */}
+            {courseEnrollments.filter((e: any) => e.status === "pending_payment").length > 0 && (
+              <Card className="border-amber-200">
+                <CardHeader>
+                  <CardTitle className="text-amber-700 flex items-center gap-2">
+                    <Eye className="h-5 w-5" /> Pending Payment Approvals ({courseEnrollments.filter((e: any) => e.status === "pending_payment").length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Course</TableHead><TableHead>User</TableHead><TableHead>Amount</TableHead><TableHead>Payment</TableHead><TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {courseEnrollments.filter((e: any) => e.status === "pending_payment").map((e: any) => (
+                        <TableRow key={e.id}>
+                          <TableCell className="font-medium">{e.course?.title || e.courseId}</TableCell>
+                          <TableCell>{e.user?.firstName} {e.user?.lastName}</TableCell>
+                          <TableCell>${e.amount}</TableCell>
+                          <TableCell>
+                            <div className="text-xs">
+                              <p>{e.paymentMethod}</p>
+                              {e.transactionHash && <p className="text-gray-400 truncate max-w-24">{e.transactionHash}</p>}
+                              {e.paymentProof && <a href={e.paymentProof} target="_blank" rel="noreferrer" className="text-blue-500 underline">View proof</a>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => approveEnrollmentMutation.mutate(e.id)}
+                              disabled={approveEnrollmentMutation.isPending}>Approve</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Courses Table */}
+            <Card>
+              <CardHeader><CardTitle>All Courses ({courses.length})</CardTitle></CardHeader>
+              <CardContent>
+                {courses.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>No courses yet. Create your first course!</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Course</TableHead><TableHead>Category</TableHead><TableHead>Price</TableHead>
+                        <TableHead>Students</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {courses.map((course: any) => (
+                        <TableRow key={course.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {course.thumbnail && <img src={course.thumbnail} alt="" className="w-12 h-8 object-cover rounded" />}
+                              <div>
+                                <p className="font-medium text-sm">{course.title}</p>
+                                <p className="text-xs text-gray-400">{course.level}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {COURSE_CATEGORIES.find(c => c.value === course.category)?.label || course.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {course.isFree ? <Badge className="bg-green-100 text-green-700">Free</Badge> : <span className="font-semibold">${course.price}</span>}
+                          </TableCell>
+                          <TableCell>{course.studentsCount || 0}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 flex-col">
+                              <Badge className={course.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}>
+                                {course.isPublished ? "Published" : "Draft"}
+                              </Badge>
+                              {course.isFeatured && <Badge className="bg-violet-100 text-violet-700">Featured</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => openEditCourse(course)} data-testid={`button-edit-course-${course.id}`}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-red-500 hover:text-red-700"
+                                onClick={() => { if (confirm("Delete this course?")) deleteCourseMutation.mutate(course.id); }}
+                                data-testid={`button-delete-course-${course.id}`}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ============ SHOP TAB ============ */}
+          <TabsContent value="shop" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <ShoppingBag className="h-6 w-6 text-indigo-600" /> Shop Management
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">Add software, scripts, tech tools and digital products</p>
+              </div>
+              <Dialog open={isShopProductDialogOpen} onOpenChange={(v) => { setIsShopProductDialogOpen(v); if (!v) { setEditingProduct(null); shopProductForm.reset(); } }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                    <Plus className="h-4 w-4" /> Add Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+                    <DialogDescription>Add software, scripts, tools or any digital/physical product.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={shopProductForm.handleSubmit((d) => saveProductMutation.mutate(d))} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <Label>Product Title *</Label>
+                        <Input {...shopProductForm.register("title")} placeholder="e.g. Instagram Automation Script Pro" />
+                        {shopProductForm.formState.errors.title && <p className="text-red-500 text-xs mt-1">{String(shopProductForm.formState.errors.title.message)}</p>}
+                      </div>
+                      <div>
+                        <Label>Category *</Label>
+                        <Select onValueChange={(v) => shopProductForm.setValue("category", v)} value={shopProductForm.watch("category")}>
+                          <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                          <SelectContent>
+                            {SHOP_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Product Type *</Label>
+                        <Select onValueChange={(v) => shopProductForm.setValue("type", v)} value={shopProductForm.watch("type")}>
+                          <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectContent>
+                            {SHOP_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Short Description</Label>
+                        <Input {...shopProductForm.register("shortDescription")} placeholder="One-line product summary" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Full Description *</Label>
+                        <Textarea {...shopProductForm.register("description")} rows={4} placeholder="Detailed product description..." />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Featured Image URL</Label>
+                        <Input {...shopProductForm.register("featuredImage")} placeholder="https://..." />
+                      </div>
+                      <div className="flex items-center gap-3 p-3 border rounded-lg col-span-2">
+                        <Switch checked={shopProductForm.watch("isFree")} onCheckedChange={(v) => shopProductForm.setValue("isFree", v)} />
+                        <Label>Free Product</Label>
+                      </div>
+                      {!shopProductForm.watch("isFree") && (
+                        <>
+                          <div>
+                            <Label>Price (USDT) *</Label>
+                            <Input {...shopProductForm.register("price")} placeholder="29.99" />
+                          </div>
+                          <div>
+                            <Label>Original Price (for discount display)</Label>
+                            <Input {...shopProductForm.register("originalPrice")} placeholder="49.99" />
+                          </div>
+                        </>
+                      )}
+                      <div className="col-span-2">
+                        <Label>Demo URL</Label>
+                        <Input {...shopProductForm.register("demoUrl")} placeholder="https://demo.example.com" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Download URL (for digital products)</Label>
+                        <Input {...shopProductForm.register("downloadUrl")} placeholder="https://download.example.com/product.zip" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Documentation URL</Label>
+                        <Input {...shopProductForm.register("documentationUrl")} placeholder="https://docs.example.com" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Key Features (one per line)</Label>
+                        <Textarea {...shopProductForm.register("features")} rows={3} placeholder="Automated posting&#10;Analytics dashboard&#10;Multi-account support" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Requirements (one per line)</Label>
+                        <Textarea {...shopProductForm.register("requirements")} rows={2} placeholder="Windows 10 or macOS&#10;Node.js v18+" />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Tags (comma-separated)</Label>
+                        <Input {...shopProductForm.register("tags")} placeholder="automation, instagram, social media, bot" />
+                      </div>
+                      <div className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Switch checked={shopProductForm.watch("isFeatured")} onCheckedChange={(v) => shopProductForm.setValue("isFeatured", v)} />
+                        <Label>Featured Product</Label>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Switch checked={shopProductForm.watch("isActive")} onCheckedChange={(v) => shopProductForm.setValue("isActive", v)} />
+                        <Label>Active (Visible in shop)</Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white flex-1" disabled={saveProductMutation.isPending}>
+                        {saveProductMutation.isPending ? "Saving..." : editingProduct ? "Update Product" : "Add Product"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => { setIsShopProductDialogOpen(false); setEditingProduct(null); shopProductForm.reset(); }}>Cancel</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Shop Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Products", value: shopProducts.length, icon: Package, color: "text-indigo-600" },
+                { label: "Active Products", value: shopProducts.filter((p: any) => p.isActive).length, icon: CheckCircle, color: "text-green-600" },
+                { label: "Featured", value: shopProducts.filter((p: any) => p.isFeatured).length, icon: Star, color: "text-yellow-600" },
+                { label: "Free Products", value: shopProducts.filter((p: any) => p.isFree).length, icon: ShoppingBag, color: "text-blue-600" },
+              ].map((s) => (
+                <Card key={s.label}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <s.icon className={`h-8 w-8 ${s.color}`} />
+                    <div><p className="text-2xl font-bold">{s.value}</p><p className="text-xs text-gray-500">{s.label}</p></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Products Table */}
+            <Card>
+              <CardHeader><CardTitle>All Products ({shopProducts.length})</CardTitle></CardHeader>
+              <CardContent>
+                {shopProducts.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>No products yet. Add your first product!</p>
+                    <p className="text-sm mt-1">Add software, scripts, tech tools, templates and more.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead><TableHead>Category</TableHead><TableHead>Type</TableHead>
+                        <TableHead>Price</TableHead><TableHead>Sales</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {shopProducts.map((product: any) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {product.featuredImage ? (
+                                <img src={product.featuredImage} alt="" className="w-12 h-8 object-cover rounded" />
+                              ) : (
+                                <div className="w-12 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 rounded flex items-center justify-center">
+                                  <Code className="h-4 w-4 text-indigo-500" />
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-sm">{product.title}</p>
+                                <p className="text-xs text-gray-400 truncate max-w-36">{product.shortDescription}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {SHOP_CATEGORIES.find(c => c.value === product.category)?.label || product.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-xs">
+                              {SHOP_TYPES.find(t => t.value === product.type)?.label || product.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {product.isFree ? <Badge className="bg-green-100 text-green-700">Free</Badge> : <span className="font-semibold">${product.price}</span>}
+                          </TableCell>
+                          <TableCell>{product.salesCount || 0}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 flex-col">
+                              <Badge className={product.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}>
+                                {product.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                              {product.isFeatured && <Badge className="bg-yellow-100 text-yellow-700">Featured</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => openEditProduct(product)} data-testid={`button-edit-product-${product.id}`}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-red-500 hover:text-red-700"
+                                onClick={() => { if (confirm("Delete this product?")) deleteProductMutation.mutate(product.id); }}
+                                data-testid={`button-delete-product-${product.id}`}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Analytics & Insights</h2>
@@ -2267,6 +2978,65 @@ export default function AdminMaster() {
                       Secure
                     </Badge>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Admin Account Credentials */}
+            <Card className="border-2 border-violet-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-violet-600" /> Admin Login Credentials
+                </CardTitle>
+                <CardDescription>Update your admin email and password securely. All passwords are encrypted with bcrypt.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-4 bg-violet-50 rounded-lg">
+                  <div>
+                    <p className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4 text-violet-600" /> Current Admin Account</p>
+                    <p className="text-sm text-gray-600 mt-1">{(user as any)?.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">Password is encrypted and stored securely</p>
+                  </div>
+                  <Dialog open={isCredentialsDialogOpen} onOpenChange={setIsCredentialsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
+                        <Edit className="h-4 w-4" /> Change Credentials
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Update Admin Credentials</DialogTitle>
+                        <DialogDescription>Enter your current password to make changes. Leave new fields blank to keep unchanged.</DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={adminCredentialsForm.handleSubmit((d) => updateCredentialsMutation.mutate(d))} className="space-y-4">
+                        <div>
+                          <Label>Current Password *</Label>
+                          <Input type="password" {...adminCredentialsForm.register("currentPassword")} placeholder="••••••••" />
+                          {adminCredentialsForm.formState.errors.currentPassword && <p className="text-red-500 text-xs mt-1">{String(adminCredentialsForm.formState.errors.currentPassword.message)}</p>}
+                        </div>
+                        <div>
+                          <Label>New Email (optional)</Label>
+                          <Input type="email" {...adminCredentialsForm.register("newEmail")} placeholder="new@taskdrip.online" />
+                          {adminCredentialsForm.formState.errors.newEmail && <p className="text-red-500 text-xs mt-1">{String(adminCredentialsForm.formState.errors.newEmail.message)}</p>}
+                        </div>
+                        <div>
+                          <Label>New Password (optional, min 8 chars)</Label>
+                          <Input type="password" {...adminCredentialsForm.register("newPassword")} placeholder="••••••••" />
+                        </div>
+                        <div>
+                          <Label>Confirm New Password</Label>
+                          <Input type="password" {...adminCredentialsForm.register("confirmPassword")} placeholder="••••••••" />
+                          {adminCredentialsForm.formState.errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{String(adminCredentialsForm.formState.errors.confirmPassword.message)}</p>}
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                          <Button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white flex-1" disabled={updateCredentialsMutation.isPending}>
+                            {updateCredentialsMutation.isPending ? "Updating..." : "Update Credentials"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => { setIsCredentialsDialogOpen(false); adminCredentialsForm.reset(); }}>Cancel</Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>

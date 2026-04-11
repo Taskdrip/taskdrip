@@ -220,6 +220,8 @@ export const shopProducts = pgTable("shop_products", {
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
   reviewCount: integer("review_count").default(0),
   salesCount: integer("sales_count").default(0),
+  likesCount: integer("likes_count").default(0),
+  dislikesCount: integer("dislikes_count").default(0),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   isFree: boolean("is_free").default(false),
@@ -261,6 +263,15 @@ export const productReviews = pgTable("product_reviews", {
   helpfulCount: integer("helpful_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Product likes/dislikes tracking table
+export const productLikes = pgTable("product_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => shopProducts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // 'like' or 'dislike'
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Enhanced Messages table for brand-creator communication
@@ -428,6 +439,7 @@ export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
 export type ProductReview = typeof productReviews.$inferSelect;
 export type InsertProductReview = typeof productReviews.$inferInsert;
+export type ProductLike = typeof productLikes.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type TaskSubmission = typeof taskSubmissions.$inferSelect;

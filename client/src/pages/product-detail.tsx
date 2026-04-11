@@ -4,7 +4,8 @@ import { useRoute } from "wouter";
 import { 
   ShoppingCart, Star, Download, ExternalLink, ChevronLeft, 
   Package, Shield, CheckCircle, MessageCircle, Share2, 
-  Heart, Eye, Calendar, Tag, ArrowRight, PlayCircle 
+  Heart, Eye, Calendar, Tag, ArrowRight, PlayCircle,
+  ThumbsUp, ThumbsDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,28 @@ export default function ProductDetail() {
         variant: "destructive",
       });
     },
+  });
+
+  const { data: myReaction } = useQuery({
+    queryKey: ["/api/shop/products", productId, "reaction"],
+    queryFn: async () => {
+      const res = await fetch(`/api/shop/products/${productId}/reaction`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!productId && !!user,
+  });
+
+  const reactMutation = useMutation({
+    mutationFn: async (type: "like" | "dislike") => {
+      const res = await apiRequest("POST", `/api/shop/products/${productId}/react`, { type });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productId, "reaction"] });
+    },
+    onError: () => toast({ title: "Please log in to react", variant: "destructive" }),
   });
 
   const handleSubmitReview = () => {
@@ -214,6 +237,34 @@ export default function ProductDetail() {
                 <span className="text-gray-500">({reviews.length} reviews)</span>
                 <span className="text-gray-500">•</span>
                 <span className="text-gray-500">{product.salesCount || 0} sales</span>
+              </div>
+
+              {/* Likes / Dislikes */}
+              <div className="flex items-center gap-3 mt-3">
+                <button
+                  data-testid="button-like-product"
+                  onClick={() => reactMutation.mutate("like")}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                    myReaction?.type === "like"
+                      ? "bg-green-500 text-white border-green-500"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-600"
+                  }`}
+                >
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>{product.likesCount || 0}</span>
+                </button>
+                <button
+                  data-testid="button-dislike-product"
+                  onClick={() => reactMutation.mutate("dislike")}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                    myReaction?.type === "dislike"
+                      ? "bg-red-500 text-white border-red-500"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-red-400 hover:text-red-500"
+                  }`}
+                >
+                  <ThumbsDown className="w-4 h-4" />
+                  <span>{product.dislikesCount || 0}</span>
+                </button>
               </div>
             </div>
 
