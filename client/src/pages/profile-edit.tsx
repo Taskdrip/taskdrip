@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,8 +16,8 @@ import { NavigationFixed } from '@/components/ui/navigation-fixed';
 import { Footer } from '@/components/ui/footer';
 import { getTierConfig, formatFollowers, NICHES } from '@/lib/tiers';
 import {
-  Camera, Users, TrendingUp, Award, Link2, Plus, Trash2,
-  Globe, ExternalLink
+  Camera, TrendingUp, Award, Link2, Plus, Trash2,
+  Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
 import {
@@ -56,43 +55,57 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 const BUILT_IN_PLATFORMS = [
-  {
-    handle: 'tiktokHandle' as const, followers: 'tiktokFollowers' as const,
-    label: 'TikTok', icon: SiTiktok, color: 'bg-pink-50 border-pink-200',
-    iconBg: 'bg-black', placeholder: 'https://tiktok.com/@yourusername',
-  },
-  {
-    handle: 'youtubeHandle' as const, followers: 'youtubeFollowers' as const,
-    label: 'YouTube', icon: SiYoutube, color: 'bg-red-50 border-red-200',
-    iconBg: 'bg-red-600', placeholder: 'https://youtube.com/@yourchannel',
-  },
-  {
-    handle: 'instagramHandle' as const, followers: 'instagramFollowers' as const,
-    label: 'Instagram', icon: SiInstagram, color: 'bg-purple-50 border-purple-200',
-    iconBg: 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400',
-    placeholder: 'https://instagram.com/yourusername',
-  },
-  {
-    handle: 'twitterHandle' as const, followers: 'twitterFollowers' as const,
-    label: 'X (Twitter)', icon: SiX, color: 'bg-blue-50 border-blue-200',
-    iconBg: 'bg-black', placeholder: 'https://x.com/yourusername',
-  },
-  {
-    handle: 'twitchHandle' as const, followers: 'twitchFollowers' as const,
-    label: 'Twitch', icon: SiTwitch, color: 'bg-violet-50 border-violet-200',
-    iconBg: 'bg-violet-600', placeholder: 'https://twitch.tv/yourusername',
-  },
-  {
-    handle: 'telegramChannel' as const, followers: 'telegramFollowers' as const,
-    label: 'Telegram', icon: SiTelegram, color: 'bg-sky-50 border-sky-200',
-    iconBg: 'bg-sky-500', placeholder: 'https://t.me/yourchannel',
-  },
-  {
-    handle: 'whatsappChannel' as const, followers: 'whatsappFollowers' as const,
-    label: 'WhatsApp', icon: SiWhatsapp, color: 'bg-green-50 border-green-200',
-    iconBg: 'bg-green-500', placeholder: 'https://wa.me/c/yourchannel',
-  },
+  { handle: 'tiktokHandle' as const, followers: 'tiktokFollowers' as const, label: 'TikTok', icon: SiTiktok, color: 'bg-pink-50 border-pink-200', iconBg: 'bg-black', placeholder: 'https://tiktok.com/@yourusername' },
+  { handle: 'youtubeHandle' as const, followers: 'youtubeFollowers' as const, label: 'YouTube', icon: SiYoutube, color: 'bg-red-50 border-red-200', iconBg: 'bg-red-600', placeholder: 'https://youtube.com/@yourchannel' },
+  { handle: 'instagramHandle' as const, followers: 'instagramFollowers' as const, label: 'Instagram', icon: SiInstagram, color: 'bg-purple-50 border-purple-200', iconBg: 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400', placeholder: 'https://instagram.com/yourusername' },
+  { handle: 'twitterHandle' as const, followers: 'twitterFollowers' as const, label: 'X (Twitter)', icon: SiX, color: 'bg-blue-50 border-blue-200', iconBg: 'bg-black', placeholder: 'https://x.com/yourusername' },
+  { handle: 'twitchHandle' as const, followers: 'twitchFollowers' as const, label: 'Twitch', icon: SiTwitch, color: 'bg-violet-50 border-violet-200', iconBg: 'bg-violet-600', placeholder: 'https://twitch.tv/yourusername' },
+  { handle: 'telegramChannel' as const, followers: 'telegramFollowers' as const, label: 'Telegram', icon: SiTelegram, color: 'bg-sky-50 border-sky-200', iconBg: 'bg-sky-500', placeholder: 'https://t.me/yourchannel' },
+  { handle: 'whatsappChannel' as const, followers: 'whatsappFollowers' as const, label: 'WhatsApp', icon: SiWhatsapp, color: 'bg-green-50 border-green-200', iconBg: 'bg-green-500', placeholder: 'https://wa.me/c/yourchannel' },
 ];
+
+const POPULAR_CUSTOM_PLATFORMS = [
+  { name: 'SoundCloud', emoji: '🎵', color: '#ff5500' },
+  { name: 'Pinterest', emoji: '📌', color: '#e60023' },
+  { name: 'Discord', emoji: '💬', color: '#5865f2' },
+  { name: 'Snapchat', emoji: '👻', color: '#fffc00' },
+  { name: 'Clubhouse', emoji: '🎙️', color: '#f1f0e9' },
+  { name: 'Spotify', emoji: '🎧', color: '#1db954' },
+  { name: 'BeReal', emoji: '📸', color: '#1a1a1a' },
+  { name: 'Threads', emoji: '🧵', color: '#000000' },
+  { name: 'Tumblr', emoji: '📝', color: '#35465c' },
+  { name: 'Reddit', emoji: '🤖', color: '#ff4500' },
+  { name: 'Patreon', emoji: '🎁', color: '#ff424d' },
+  { name: 'OnlyFans', emoji: '🔒', color: '#00aff0' },
+  { name: 'Kick', emoji: '🎮', color: '#53fc18' },
+  { name: 'Rumble', emoji: '📺', color: '#85c742' },
+];
+
+const RATE_TYPES = [
+  { key: 'instagramPost', label: 'Instagram Post', emoji: '📸' },
+  { key: 'instagramStory', label: 'Instagram Story', emoji: '⏱️' },
+  { key: 'instagramReel', label: 'Instagram Reel', emoji: '🎞️' },
+  { key: 'tiktokVideo', label: 'TikTok Video', emoji: '🎵' },
+  { key: 'youtubeVideo', label: 'YouTube Video', emoji: '▶️' },
+  { key: 'youtubeShorts', label: 'YouTube Shorts', emoji: '📱' },
+  { key: 'tweet', label: 'X (Twitter) Post', emoji: '🐦' },
+  { key: 'twitchStream', label: 'Twitch Live Stream', emoji: '🎮' },
+  { key: 'podcastMention', label: 'Podcast Mention', emoji: '🎙️' },
+  { key: 'blogPost', label: 'Blog / Article', emoji: '📝' },
+  { key: 'other', label: 'Custom / Other', emoji: '✨' },
+];
+
+interface CustomChannel {
+  id: string;
+  platformSlug: string;
+  platformName: string;
+  platformColor: string;
+  platformEmoji: string;
+  url: string;
+  followerCount: number;
+  displayOnProfile: boolean;
+  isUserDefined: boolean;
+}
 
 export default function ProfileEdit() {
   const { user } = useAuth();
@@ -100,35 +113,38 @@ export default function ProfileEdit() {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [totalFollowersPreview, setTotalFollowersPreview] = useState(0);
-  const [customLinks, setCustomLinks] = useState<Record<string, { url: string; followerCount: number }>>({});
+
+  // Admin custom platforms (from social_platforms table)
+  const [adminCustomLinks, setAdminCustomLinks] = useState<Record<string, { url: string; followerCount: number }>>({});
+
+  // User-defined custom channels
+  const [customChannels, setCustomChannels] = useState<CustomChannel[]>([]);
+  const [showAddChannel, setShowAddChannel] = useState(false);
+  const [newChannel, setNewChannel] = useState({ platformName: '', platformColor: '#6366f1', platformEmoji: '🌐', url: '', followerCount: 0, displayOnProfile: true });
+
+  // Content rates
+  const [rates, setRates] = useState<Record<string, string>>({});
+  const [showRates, setShowRates] = useState(false);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      tiktokFollowers: 0, youtubeFollowers: 0, instagramFollowers: 0,
-      twitterFollowers: 0, twitchFollowers: 0, telegramFollowers: 0, whatsappFollowers: 0,
-    },
+    defaultValues: { tiktokFollowers: 0, youtubeFollowers: 0, instagramFollowers: 0, twitterFollowers: 0, twitchFollowers: 0, telegramFollowers: 0, whatsappFollowers: 0 },
   });
 
-  const { data: customPlatforms = [] } = useQuery<any[]>({
-    queryKey: ['/api/social-platforms'],
-  });
-
-  const { data: existingCustomLinks = [] } = useQuery<any[]>({
+  const { data: adminPlatforms = [] } = useQuery<any[]>({ queryKey: ['/api/social-platforms'] });
+  const { data: existingLinks = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${(user as any)?.id}/social-links`],
     enabled: !!(user as any)?.id,
   });
 
-  const watchedFollowers = watch([
-    'tiktokFollowers', 'youtubeFollowers', 'instagramFollowers',
-    'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers',
-  ]);
+  const watchedFollowers = watch(['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers']);
 
   useEffect(() => {
-    const total = watchedFollowers.reduce((sum, v) => sum + (Number(v) || 0), 0);
-    const customTotal = Object.values(customLinks).reduce((sum, l) => sum + (l.followerCount || 0), 0);
-    setTotalFollowersPreview(total + customTotal);
-  }, [watchedFollowers, customLinks]);
+    const builtInTotal = watchedFollowers.reduce((sum, v) => sum + (Number(v) || 0), 0);
+    const adminTotal = Object.values(adminCustomLinks).reduce((sum, l) => sum + (l.followerCount || 0), 0);
+    const userDefTotal = customChannels.reduce((sum, c) => sum + (c.followerCount || 0), 0);
+    setTotalFollowersPreview(builtInTotal + adminTotal + userDefTotal);
+  }, [watchedFollowers, adminCustomLinks, customChannels]);
 
   useEffect(() => {
     if (user) {
@@ -158,18 +174,42 @@ export default function ProfileEdit() {
       setValue('telegramFollowers', u.telegramFollowers || 0);
       setValue('whatsappFollowers', u.whatsappFollowers || 0);
       setPreviewUrl(u.profileImageUrl || '');
+      // Load saved rates
+      if (u.contentRates) {
+        const savedRates: Record<string, string> = {};
+        for (const [k, v] of Object.entries(u.contentRates as any)) {
+          savedRates[k] = String(v || '');
+        }
+        setRates(savedRates);
+      }
     }
   }, [user, setValue]);
 
   useEffect(() => {
-    if (existingCustomLinks.length > 0) {
-      const map: Record<string, { url: string; followerCount: number }> = {};
-      for (const link of existingCustomLinks) {
-        map[link.platformSlug] = { url: link.url, followerCount: link.followerCount || 0 };
+    if (existingLinks.length > 0) {
+      const adminMap: Record<string, { url: string; followerCount: number }> = {};
+      const userDefined: CustomChannel[] = [];
+      for (const link of existingLinks) {
+        if (link.isUserDefined) {
+          userDefined.push({
+            id: link.id || String(Math.random()),
+            platformSlug: link.platformSlug,
+            platformName: link.platformName || link.platformSlug,
+            platformColor: link.platformColor || '#6366f1',
+            platformEmoji: link.platformEmoji || '🌐',
+            url: link.url,
+            followerCount: link.followerCount || 0,
+            displayOnProfile: link.displayOnProfile !== false,
+            isUserDefined: true,
+          });
+        } else {
+          adminMap[link.platformSlug] = { url: link.url, followerCount: link.followerCount || 0 };
+        }
       }
-      setCustomLinks(map);
+      setAdminCustomLinks(adminMap);
+      setCustomChannels(userDefined);
     }
-  }, [existingCustomLinks]);
+  }, [existingLinks]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -182,12 +222,36 @@ export default function ProfileEdit() {
     },
   });
 
-  const saveCustomLinksMutation = useMutation({
+  const saveRatesMutation = useMutation({
     mutationFn: async () => {
-      const links = Object.entries(customLinks)
+      const ratesObj: Record<string, number> = {};
+      for (const [k, v] of Object.entries(rates)) {
+        const n = parseFloat(v);
+        if (!isNaN(n) && n > 0) ratesObj[k] = n;
+      }
+      const response = await apiRequest('PATCH', `/api/users/${(user as any)?.id}/rates`, ratesObj);
+      return await response.json();
+    },
+  });
+
+  const saveLinksMutation = useMutation({
+    mutationFn: async () => {
+      const adminLinks = Object.entries(adminCustomLinks)
         .filter(([, v]) => v.url)
-        .map(([platformSlug, v]) => ({ platformSlug, url: v.url, followerCount: v.followerCount || 0 }));
-      const response = await apiRequest('PUT', `/api/users/${(user as any)?.id}/social-links`, { links });
+        .map(([platformSlug, v]) => ({ platformSlug, url: v.url, followerCount: v.followerCount || 0, isUserDefined: false, displayOnProfile: true }));
+      const userLinks = customChannels
+        .filter(c => c.url)
+        .map(c => ({
+          platformSlug: c.platformSlug || `custom_${c.platformName.toLowerCase().replace(/\s+/g, '_')}`,
+          url: c.url,
+          followerCount: c.followerCount || 0,
+          platformName: c.platformName,
+          platformColor: c.platformColor,
+          platformEmoji: c.platformEmoji,
+          isUserDefined: true,
+          displayOnProfile: c.displayOnProfile,
+        }));
+      const response = await apiRequest('PUT', `/api/users/${(user as any)?.id}/social-links`, { links: [...adminLinks, ...userLinks] });
       return await response.json();
     },
   });
@@ -202,16 +266,36 @@ export default function ProfileEdit() {
     }
   };
 
+  const addCustomChannel = () => {
+    if (!newChannel.platformName || !newChannel.url) {
+      toast({ title: "Name and URL are required", variant: "destructive" });
+      return;
+    }
+    const slug = `custom_${newChannel.platformName.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+    setCustomChannels(prev => [...prev, { ...newChannel, id: String(Date.now()), platformSlug: slug, isUserDefined: true }]);
+    setNewChannel({ platformName: '', platformColor: '#6366f1', platformEmoji: '🌐', url: '', followerCount: 0, displayOnProfile: true });
+    setShowAddChannel(false);
+  };
+
+  const removeCustomChannel = (id: string) => {
+    setCustomChannels(prev => prev.filter(c => c.id !== id));
+  };
+
+  const updateCustomChannel = (id: string, field: keyof CustomChannel, value: any) => {
+    setCustomChannels(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
   const onSubmit = async (data: ProfileFormData) => {
     const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
     const profileImageUrl = profileImage ? previewUrl : (user as any)?.profileImageUrl;
     try {
       await Promise.all([
         updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl }),
-        saveCustomLinksMutation.mutateAsync(),
+        saveLinksMutation.mutateAsync(),
+        saveRatesMutation.mutateAsync(),
       ]);
       queryClient.invalidateQueries({ queryKey: [`/api/users/${(user as any)?.id}/social-links`] });
-      toast({ title: "Profile saved!", description: "Your profile has been updated successfully." });
+      toast({ title: "Profile saved! 🎉", description: "Your profile has been updated successfully." });
     } catch (error: any) {
       toast({ title: "Save failed", description: error.message || "Failed to save profile", variant: "destructive" });
     }
@@ -219,13 +303,9 @@ export default function ProfileEdit() {
 
   const displayName = `${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim() || 'User';
   const initials = `${(user as any)?.firstName?.[0] || ''}${(user as any)?.lastName?.[0] || ''}` || 'U';
-  const previewTierConfig = getTierConfig(
-    totalFollowersPreview >= 1_000_000 ? 'global_titans' :
-    totalFollowersPreview >= 100_000 ? 'power_influencers' :
-    totalFollowersPreview >= 10_000 ? 'growth_engines' : 'rising_sparks'
-  );
-
-  const isPending = updateProfileMutation.isPending || saveCustomLinksMutation.isPending;
+  const tier = totalFollowersPreview >= 1_000_000 ? 'global_titans' : totalFollowersPreview >= 100_000 ? 'power_influencers' : totalFollowersPreview >= 10_000 ? 'growth_engines' : 'rising_sparks';
+  const previewTierConfig = getTierConfig(tier);
+  const isPending = updateProfileMutation.isPending || saveLinksMutation.isPending || saveRatesMutation.isPending;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -233,15 +313,13 @@ export default function ProfileEdit() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-black">Edit Profile</h1>
-          <p className="text-gray-500 mt-1">Update your profile, social media links and follower counts</p>
+          <p className="text-gray-500 mt-1">Update your profile, social channels, and content rates</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Profile Image */}
           <Card className="border-gray-100">
-            <CardHeader>
-              <CardTitle className="text-lg">Profile Photo</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Profile Photo</CardTitle></CardHeader>
             <CardContent>
               <div className="flex items-center gap-6">
                 <Avatar className="w-20 h-20 border-2 border-gray-200">
@@ -270,9 +348,7 @@ export default function ProfileEdit() {
                     <Award className={`w-8 h-8 ${previewTierConfig.text}`} />
                     <div>
                       <div className="text-xs text-gray-500 font-medium">Your Creator Tier</div>
-                      <div className={`font-bold ${previewTierConfig.text} text-lg`}>
-                        {previewTierConfig.icon} {previewTierConfig.name}
-                      </div>
+                      <div className={`font-bold ${previewTierConfig.text} text-lg`}>{previewTierConfig.icon} {previewTierConfig.name}</div>
                     </div>
                   </div>
                   <div className="text-right">
@@ -280,9 +356,7 @@ export default function ProfileEdit() {
                     <div className="text-2xl font-black text-black">{formatFollowers(totalFollowersPreview)}</div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
-                  Tier auto-calculated from followers across all platforms. Updates on save.
-                </p>
+                <p className="text-xs text-gray-500 mt-3">Tier auto-calculated from all connected platform followers. Updates on save.</p>
               </CardContent>
             </Card>
           )}
@@ -344,16 +418,13 @@ export default function ProfileEdit() {
             </CardContent>
           </Card>
 
-          {/* Social Media Links */}
+          {/* Built-in Social Media */}
           <Card className="border-gray-100">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Link2 className="w-5 h-5 text-purple-600" />
-                Social Media Links
+                <Link2 className="w-5 h-5 text-purple-600" /> Social Media Links
               </CardTitle>
-              <CardDescription>
-                Enter the full URL of your social media profile. We use follower counts to calculate your creator tier.
-              </CardDescription>
+              <CardDescription>Enter full profile URLs. Follower counts are used to calculate your creator tier.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {BUILT_IN_PLATFORMS.map((platform) => {
@@ -368,35 +439,19 @@ export default function ProfileEdit() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-xs text-gray-500 flex items-center gap-1">
-                          <ExternalLink className="w-3 h-3" /> Profile Link (Full URL)
-                        </Label>
-                        <Input
-                          {...register(platform.handle)}
-                          placeholder={platform.placeholder}
-                          className="mt-1 bg-white text-sm"
-                          data-testid={`input-${platform.handle}`}
-                        />
+                        <Label className="text-xs text-gray-500 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Profile URL</Label>
+                        <Input {...register(platform.handle)} placeholder={platform.placeholder} className="mt-1 bg-white text-sm" data-testid={`input-${platform.handle}`} />
                       </div>
                       <div>
-                        <Label className="text-xs text-gray-500 flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3" /> Follower Count
-                        </Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          {...register(platform.followers, { valueAsNumber: true })}
-                          placeholder="0"
-                          className="mt-1 bg-white text-sm"
-                          data-testid={`input-${platform.followers}`}
-                        />
+                        <Label className="text-xs text-gray-500 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Followers</Label>
+                        <Input type="number" min="0" {...register(platform.followers, { valueAsNumber: true })} placeholder="0" className="mt-1 bg-white text-sm" data-testid={`input-${platform.followers}`} />
                       </div>
                     </div>
                   </div>
                 );
               })}
 
-              {/* LinkedIn (no follower count) */}
+              {/* LinkedIn */}
               <div className="border rounded-xl p-4 bg-blue-50 border-blue-200">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-7 h-7 rounded-lg bg-blue-700 flex items-center justify-center">
@@ -404,28 +459,18 @@ export default function ProfileEdit() {
                   </div>
                   <span className="font-semibold text-sm text-gray-800">LinkedIn</span>
                 </div>
-                <Input
-                  {...register('linkedinHandle')}
-                  placeholder="https://linkedin.com/in/yourprofile"
-                  className="bg-white text-sm"
-                  data-testid="input-linkedinHandle"
-                />
+                <Input {...register('linkedinHandle')} placeholder="https://linkedin.com/in/yourprofile" className="bg-white text-sm" data-testid="input-linkedinHandle" />
               </div>
 
-              {/* Custom Admin Platforms */}
-              {customPlatforms.length > 0 && (
+              {/* Admin-defined Additional Platforms */}
+              {adminPlatforms.length > 0 && (
                 <div className="border-t pt-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-purple-600" /> Additional Platforms
-                  </p>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Additional Platforms</p>
                   <div className="space-y-3">
-                    {customPlatforms.map((platform: any) => (
+                    {adminPlatforms.map((platform: any) => (
                       <div key={platform.slug} className="border rounded-xl p-4 bg-gray-50 border-gray-200">
                         <div className="flex items-center gap-2 mb-3">
-                          <div
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                            style={{ backgroundColor: platform.bgColor || '#6366f1' }}
-                          >
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: platform.bgColor || '#6366f1' }}>
                             {platform.name[0]}
                           </div>
                           <span className="font-semibold text-sm text-gray-800">{platform.name}</span>
@@ -434,25 +479,18 @@ export default function ProfileEdit() {
                           <div>
                             <Label className="text-xs text-gray-500">Profile Link</Label>
                             <Input
-                              value={customLinks[platform.slug]?.url || ''}
-                              onChange={(e) => setCustomLinks(prev => ({
-                                ...prev,
-                                [platform.slug]: { ...prev[platform.slug], url: e.target.value, followerCount: prev[platform.slug]?.followerCount || 0 }
-                              }))}
+                              value={adminCustomLinks[platform.slug]?.url || ''}
+                              onChange={(e) => setAdminCustomLinks(prev => ({ ...prev, [platform.slug]: { ...prev[platform.slug], url: e.target.value, followerCount: prev[platform.slug]?.followerCount || 0 } }))}
                               placeholder={platform.urlPrefix ? `${platform.urlPrefix}yourhandle` : 'https://...'}
                               className="mt-1 bg-white text-sm"
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-gray-500">Follower Count</Label>
+                            <Label className="text-xs text-gray-500">Followers</Label>
                             <Input
-                              type="number"
-                              min="0"
-                              value={customLinks[platform.slug]?.followerCount || 0}
-                              onChange={(e) => setCustomLinks(prev => ({
-                                ...prev,
-                                [platform.slug]: { ...prev[platform.slug], url: prev[platform.slug]?.url || '', followerCount: parseInt(e.target.value) || 0 }
-                              }))}
+                              type="number" min="0"
+                              value={adminCustomLinks[platform.slug]?.followerCount || 0}
+                              onChange={(e) => setAdminCustomLinks(prev => ({ ...prev, [platform.slug]: { ...prev[platform.slug], url: prev[platform.slug]?.url || '', followerCount: parseInt(e.target.value) || 0 } }))}
                               className="mt-1 bg-white text-sm"
                             />
                           </div>
@@ -465,17 +503,191 @@ export default function ProfileEdit() {
             </CardContent>
           </Card>
 
+          {/* Custom Channels (User-defined) */}
+          <Card className="border-gray-100">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-600" /> Custom Social Channels
+              </CardTitle>
+              <CardDescription>Add any social media platform not listed above — SoundCloud, Pinterest, Discord, Spotify, and more.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Existing custom channels */}
+              {customChannels.map((ch) => (
+                <div key={ch.id} className="border rounded-xl p-4 bg-indigo-50 border-indigo-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: ch.platformColor + '20', border: `1px solid ${ch.platformColor}40` }}>
+                        {ch.platformEmoji}
+                      </div>
+                      <span className="font-semibold text-sm text-gray-800">{ch.platformName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => updateCustomChannel(ch.id, 'displayOnProfile', !ch.displayOnProfile)}
+                        className="text-gray-400 hover:text-indigo-600 transition-colors" title={ch.displayOnProfile ? 'Hide from profile' : 'Show on profile'}>
+                        {ch.displayOnProfile ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button type="button" onClick={() => removeCustomChannel(ch.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-500">Profile URL</Label>
+                      <Input
+                        value={ch.url}
+                        onChange={(e) => updateCustomChannel(ch.id, 'url', e.target.value)}
+                        placeholder="https://..."
+                        className="mt-1 bg-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Followers</Label>
+                      <Input
+                        type="number" min="0"
+                        value={ch.followerCount}
+                        onChange={(e) => updateCustomChannel(ch.id, 'followerCount', parseInt(e.target.value) || 0)}
+                        className="mt-1 bg-white text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Popular platform quick-add */}
+              <div>
+                <p className="text-xs text-gray-500 font-medium mb-2">Quick add popular platforms:</p>
+                <div className="flex flex-wrap gap-2">
+                  {POPULAR_CUSTOM_PLATFORMS.map(p => (
+                    <button key={p.name} type="button"
+                      onClick={() => {
+                        const exists = customChannels.find(c => c.platformName === p.name);
+                        if (!exists) {
+                          const slug = `custom_${p.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+                          setCustomChannels(prev => [...prev, { id: String(Date.now()), platformSlug: slug, platformName: p.name, platformColor: p.color, platformEmoji: p.emoji, url: '', followerCount: 0, displayOnProfile: true, isUserDefined: true }]);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50 transition-all text-xs font-medium text-gray-700"
+                    >
+                      <span>{p.emoji}</span> {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add custom channel form */}
+              {showAddChannel ? (
+                <div className="border-2 border-dashed border-indigo-200 rounded-xl p-4 bg-indigo-50/50">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">New Custom Channel</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                      <Label className="text-xs text-gray-500">Platform Name *</Label>
+                      <Input
+                        value={newChannel.platformName}
+                        onChange={e => setNewChannel(p => ({ ...p, platformName: e.target.value }))}
+                        placeholder="e.g. SoundCloud"
+                        className="mt-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Emoji Icon</Label>
+                      <Input
+                        value={newChannel.platformEmoji}
+                        onChange={e => setNewChannel(p => ({ ...p, platformEmoji: e.target.value }))}
+                        placeholder="🎵"
+                        className="mt-1 text-sm"
+                        maxLength={4}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Color</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input type="color" value={newChannel.platformColor} onChange={e => setNewChannel(p => ({ ...p, platformColor: e.target.value }))} className="w-10 h-9 rounded cursor-pointer border border-gray-200" />
+                        <Input value={newChannel.platformColor} onChange={e => setNewChannel(p => ({ ...p, platformColor: e.target.value }))} className="flex-1 text-xs" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Followers</Label>
+                      <Input
+                        type="number" min="0"
+                        value={newChannel.followerCount}
+                        onChange={e => setNewChannel(p => ({ ...p, followerCount: parseInt(e.target.value) || 0 }))}
+                        className="mt-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <Label className="text-xs text-gray-500">Profile URL *</Label>
+                    <Input
+                      value={newChannel.url}
+                      onChange={e => setNewChannel(p => ({ ...p, url: e.target.value }))}
+                      placeholder="https://soundcloud.com/yourprofile"
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={addCustomChannel} className="bg-indigo-600 hover:bg-indigo-700 text-white">Add Channel</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setShowAddChannel(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="w-full border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50" onClick={() => setShowAddChannel(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> Add Custom Channel
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Content Rates */}
+          <Card className="border-gray-100">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-green-600" /> Content Rates
+                  </CardTitle>
+                  <CardDescription>Set your rates for brands. These will be displayed on your public profile.</CardDescription>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowRates(!showRates)} className="text-gray-500">
+                  {showRates ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showRates ? 'Collapse' : 'Expand'}
+                </Button>
+              </div>
+            </CardHeader>
+            {showRates && (
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {RATE_TYPES.map(rt => (
+                    <div key={rt.key} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center text-lg flex-shrink-0">{rt.emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <Label className="text-xs font-semibold text-gray-600 block mb-1 truncate">{rt.label}</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">$</span>
+                          <Input
+                            type="number" min="0" step="0.01"
+                            value={rates[rt.key] || ''}
+                            onChange={e => setRates(prev => ({ ...prev, [rt.key]: e.target.value }))}
+                            placeholder="0.00"
+                            className="pl-6 bg-white text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-3">Leave blank if you prefer to quote on request. All rates are in USD.</p>
+              </CardContent>
+            )}
+          </Card>
+
           {/* Submit */}
           <div className="flex justify-between pt-2">
             <Link href="/dashboard">
               <Button variant="outline" type="button" className="rounded-xl">Cancel</Button>
             </Link>
-            <Button
-              type="submit"
-              className="bg-purple-600 text-white hover:bg-purple-700 px-8 rounded-xl"
-              disabled={isPending}
-              data-testid="button-save-profile"
-            >
+            <Button type="submit" className="bg-purple-600 text-white hover:bg-purple-700 px-8 rounded-xl" disabled={isPending} data-testid="button-save-profile">
               {isPending ? 'Saving...' : 'Save Profile'}
             </Button>
           </div>

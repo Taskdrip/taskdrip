@@ -3701,10 +3701,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/users/:id/social-links', isAuthenticated, async (req: any, res) => {
     try {
       if (req.user.id !== req.params.id && req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      const { links } = req.body; // [{platformSlug, url, followerCount}]
+      const { links } = req.body; // [{platformSlug, url, followerCount, platformName, platformColor, platformEmoji, isUserDefined, displayOnProfile}]
       await storage.replaceUserSocialLinks(req.params.id, links || []);
       const updated = await storage.getUserSocialLinks(req.params.id);
       res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Content rates — what a creator charges per content type
+  app.patch('/api/users/:id/rates', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.id !== req.params.id && req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const updatedUser = await storage.updateUserProfile(req.params.id, { contentRates: req.body });
+      const { password, ...safe } = updatedUser as any;
+      res.json(safe);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

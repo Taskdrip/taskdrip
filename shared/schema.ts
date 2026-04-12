@@ -77,6 +77,9 @@ export const users = pgTable("users", {
   availableBalance: decimal("available_balance", { precision: 10, scale: 2 }).default("0.00"),
   pendingBalance: decimal("pending_balance", { precision: 10, scale: 2 }).default("0.00"),
   role: varchar("role").default("user"), // 'user' or 'admin'
+  // Content rates (what the creator charges brands per content type)
+  contentRates: jsonb("content_rates"), // { instagramPost, instagramStory, instagramReel, tiktokVideo, youtubeVideo, tweet, podcastMention, other }
+  tipsEarned: decimal("tips_earned", { precision: 10, scale: 2 }).default("0.00"),
   // Subscription fields
   subscriptionStatus: varchar("subscription_status").default("free"), // 'free', 'active', 'expired'
   subscriptionPlan: varchar("subscription_plan"), // 'creator_monthly', 'creator_yearly', 'brand_monthly', 'brand_yearly'
@@ -369,6 +372,12 @@ export const userSocialLinks = pgTable("user_social_links", {
   platformSlug: varchar("platform_slug").notNull(),
   url: varchar("url", { length: 500 }).notNull(),
   followerCount: integer("follower_count").default(0),
+  // User-defined custom channels
+  platformName: varchar("platform_name"),
+  platformColor: varchar("platform_color").default("#6366f1"),
+  platformEmoji: varchar("platform_emoji").default("🌐"),
+  isUserDefined: boolean("is_user_defined").default(false),
+  displayOnProfile: boolean("display_on_profile").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
