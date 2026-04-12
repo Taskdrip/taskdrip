@@ -3902,6 +3902,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // PWA Settings routes
+  app.get('/api/pwa-settings', async (_req, res) => {
+    try {
+      const settings = await storage.getPwaSettings();
+      res.json(settings);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/pwa-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const updated = await storage.updatePwaSettings(req.body);
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

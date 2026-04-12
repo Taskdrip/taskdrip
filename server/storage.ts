@@ -38,6 +38,9 @@ import {
   portfolioItems,
   pushSubscriptions,
   pushNotificationCampaigns,
+  pwaSettings,
+  type PwaSettings,
+  type InsertPwaSettings,
   type SocialPlatform,
   type InsertSocialPlatform,
   type UserSocialLink,
@@ -1805,6 +1808,28 @@ export class DatabaseStorage implements IStorage {
       topReferrers,
       recentReferrals,
     };
+  }
+
+  async getPwaSettings(): Promise<PwaSettings | null> {
+    const rows = await db.select().from(pwaSettings).limit(1);
+    if (rows.length === 0) {
+      const inserted = await db.insert(pwaSettings).values({}).returning();
+      return inserted[0] || null;
+    }
+    return rows[0];
+  }
+
+  async updatePwaSettings(data: Partial<InsertPwaSettings>): Promise<PwaSettings> {
+    const existing = await this.getPwaSettings();
+    if (!existing) {
+      const inserted = await db.insert(pwaSettings).values(data as InsertPwaSettings).returning();
+      return inserted[0];
+    }
+    const updated = await db.update(pwaSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(pwaSettings.id, existing.id))
+      .returning();
+    return updated[0];
   }
 }
 

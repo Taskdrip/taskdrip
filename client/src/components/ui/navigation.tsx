@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Bell, MessageCircle, Menu, X } from "lucide-react";
+import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -56,10 +57,19 @@ export function Navigation() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
-              <div>
-                <h1 className="text-2xl font-bold text-black">Taskdrip</h1>
-                <p className="text-xs text-gray-600 -mt-1">SocialFi Platform</p>
+            <Link href="/" className="flex-shrink-0 group">
+              <div className="flex items-center gap-2">
+                <img
+                  src={taskedripLogo}
+                  alt="Taskdrip"
+                  className="w-9 h-9 rounded-xl object-cover shadow-md group-hover:shadow-purple-300 transition-shadow duration-200"
+                />
+                <div>
+                  <h1 className="text-xl font-extrabold leading-none bg-gradient-to-r from-violet-700 via-purple-600 to-indigo-600 bg-clip-text text-transparent tracking-tight">
+                    Taskdrip
+                  </h1>
+                  <p className="text-[10px] font-medium text-purple-500 -mt-0.5 tracking-wide uppercase">Influencers Marketplace</p>
+                </div>
               </div>
             </Link>
           </div>

@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/ui/navigation";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { PWASettingsPanel } from "@/components/PWASettingsPanel";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,7 +29,8 @@ import {
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
-  Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette
+  Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
+  Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -1060,6 +1062,7 @@ export default function AdminMaster() {
                 { value: "push-notifications", icon: <Bell className="h-3.5 w-3.5" />, label: "Push Notify" },
                 { value: "analytics", icon: <TrendingUp className="h-3.5 w-3.5" />, label: "Analytics" },
                 { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
+                { value: "pwa", icon: <Smartphone className="h-3.5 w-3.5" />, label: "PWA" },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -3534,6 +3537,12 @@ export default function AdminMaster() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ── PWA SETTINGS TAB ── */}
+          <TabsContent value="pwa" className="space-y-6">
+            <PWASettingsPanel />
+          </TabsContent>
+
         </Tabs>
 
         {/* Campaign Detail Dialog */}

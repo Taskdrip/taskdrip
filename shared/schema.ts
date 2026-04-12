@@ -887,6 +887,25 @@ export const courseMessages = pgTable("course_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const pwaSettings = pgTable("pwa_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appName: varchar("app_name").notNull().default("Taskdrip"),
+  shortName: varchar("short_name").notNull().default("Taskdrip"),
+  description: text("description").notNull().default("The leading Web3 influencer marketplace connecting global brands with verified creators."),
+  themeColor: varchar("theme_color").notNull().default("#7c3aed"),
+  backgroundColor: varchar("background_color").notNull().default("#0f0f1a"),
+  displayMode: varchar("display_mode").notNull().default("standalone"),
+  promptTitle: varchar("prompt_title").notNull().default("Install Taskdrip App"),
+  promptMessage: text("prompt_message").notNull().default("Get the full experience! Install Taskdrip on your device for faster access, offline support, and instant crypto earnings."),
+  promptEnabled: boolean("prompt_enabled").notNull().default(true),
+  promptDelay: integer("prompt_delay").notNull().default(5),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPwaSettingsSchema = createInsertSchema(pwaSettings).omit({ id: true, updatedAt: true });
+export type PwaSettings = typeof pwaSettings.$inferSelect;
+export type InsertPwaSettings = z.infer<typeof insertPwaSettingsSchema>;
+
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCourseEnrollmentSchema = createInsertSchema(courseEnrollments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCourseReviewSchema = createInsertSchema(courseReviews).omit({ id: true, createdAt: true });

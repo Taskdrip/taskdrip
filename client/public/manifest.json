@@ -1,5 +1,5 @@
 {
-  "name": "Taskdrip - SocialFi Influencer Marketplace",
+  "name": "Taskdrip - Web3 Influencer Marketplace",
   "short_name": "Taskdrip",
   "description": "The leading Web3 influencer marketplace connecting global brands with verified creators.",
   "start_url": "/",
@@ -9,16 +9,22 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/icon-192.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-512.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/taskdrip-logo.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ],
   "categories": ["social", "finance", "business"],
