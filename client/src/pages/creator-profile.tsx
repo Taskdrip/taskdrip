@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +23,7 @@ import {
 import {
   MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink,
   BarChart3, UserPlus, UserCheck, Globe, Briefcase, Zap, Flame, Crown,
-  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles
+  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X
 } from "lucide-react";
 
 function StarRating({ value, onChange, readOnly = false }: { value: number; onChange?: (v: number) => void; readOnly?: boolean }) {
@@ -138,6 +139,123 @@ function FollowListModal({ userId, type, open, onClose }: { userId: string; type
   );
 }
 
+function CreateProfilePost({ creatorId }: { creatorId: string }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [content, setContent] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [showVideoInput, setShowVideoInput] = useState(false);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const formData = new FormData();
+      formData.append("content", content);
+      if (imageFile) formData.append("image", imageFile);
+      if (videoUrl.trim()) formData.append("videoUrl", videoUrl.trim());
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      setContent(""); setImageFile(null); setImagePreview(null); setVideoUrl(""); setShowVideoInput(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/creators/${creatorId}/profile`] });
+      toast({ title: "Posted!", description: "Your update is now live" });
+    },
+    onError: () => toast({ title: "Failed to post", variant: "destructive" }),
+  });
+
+  return (
+    <Card className="border-0 shadow-sm mb-4">
+      <CardContent className="p-4">
+        <div className="flex gap-3">
+          <Avatar className="h-10 w-10 flex-shrink-0">
+            <AvatarImage src={(user as any)?.profileImageUrl} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-sm font-bold">
+              {(user as any)?.firstName?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <Textarea
+              placeholder="Share an update, campaign win, or insight..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="resize-none border-gray-200 rounded-xl text-sm focus:border-purple-300 transition-colors min-h-[80px]"
+              rows={3}
+              data-testid="profile-create-post-content"
+            />
+            {imagePreview && (
+              <div className="relative mt-2">
+                <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-cover rounded-xl" />
+                <button onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            {showVideoInput && (
+              <div className="mt-2 flex gap-2 items-center">
+                <Input
+                  placeholder="Paste YouTube URL..."
+                  value={videoUrl}
+                  onChange={e => setVideoUrl(e.target.value)}
+                  className="rounded-xl text-sm border-gray-200"
+                  data-testid="profile-post-video-url"
+                />
+                {videoUrl && extractYouTubeId(videoUrl) && (
+                  <span className="text-green-500 text-xs whitespace-nowrap">✓ Valid</span>
+                )}
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors px-2 py-1 rounded-lg hover:bg-purple-50" data-testid="profile-upload-image-btn">
+                  📷 <span className="hidden sm:inline">Photo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                </label>
+                <button
+                  onClick={() => setShowVideoInput(!showVideoInput)}
+                  className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-lg ${showVideoInput ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'}`}
+                  data-testid="profile-add-video-btn"
+                >
+                  ▶️ <span className="hidden sm:inline">YouTube</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-400">{content.length}/500</span>
+                <Button
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl px-5 text-sm shadow-md"
+                  onClick={() => createMutation.mutate()}
+                  disabled={createMutation.isPending || !content.trim() || content.length > 500}
+                  data-testid="profile-create-post-submit"
+                >
+                  {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
+                  Post
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CreatorProfile() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -217,6 +335,10 @@ export default function CreatorProfile() {
 
   const isOwnProfile = (user as any)?.id === id;
   const isFollowing = followStatus?.following ?? false;
+
+  // followers/following may be arrays (from joined query) or numbers (from users table)
+  const followersCount = Array.isArray(profile.followers) ? profile.followers.length : (profile.followers || 0);
+  const followingCount = Array.isArray(profile.following) ? profile.following.length : (profile.following || 0);
 
   // Build built-in social links
   const builtInLinks: { icon: any; url: string; followers: number; bg: string; label: string; isBuiltIn: true }[] = [];
@@ -325,13 +447,13 @@ export default function CreatorProfile() {
                 <div className="flex gap-5">
                   <button onClick={() => setFollowModalType('followers')}
                     className="text-center hover:text-purple-600 transition-colors group" data-testid="followers-btn">
-                    <div className="font-black text-2xl text-gray-900 group-hover:text-purple-600 leading-tight">{formatFollowers(profile.followers || 0)}</div>
+                    <div className="font-black text-2xl text-gray-900 group-hover:text-purple-600 leading-tight">{formatFollowers(followersCount)}</div>
                     <div className="text-xs text-gray-400 font-medium">Followers</div>
                   </button>
                   <div className="w-px bg-gray-100" />
                   <button onClick={() => setFollowModalType('following')}
                     className="text-center hover:text-purple-600 transition-colors group" data-testid="following-btn">
-                    <div className="font-black text-2xl text-gray-900 group-hover:text-purple-600 leading-tight">{profile.following || 0}</div>
+                    <div className="font-black text-2xl text-gray-900 group-hover:text-purple-600 leading-tight">{followingCount}</div>
                     <div className="text-xs text-gray-400 font-medium">Following</div>
                   </button>
                 </div>
@@ -761,6 +883,7 @@ export default function CreatorProfile() {
 
           {/* ── Posts Tab ── */}
           <TabsContent value="posts">
+            {isOwnProfile && <CreateProfilePost creatorId={id!} />}
             {!profile.posts?.length ? (
               <Card className="border-0 shadow-sm">
                 <CardContent className="py-16 text-center">
@@ -768,6 +891,7 @@ export default function CreatorProfile() {
                     <Eye className="w-8 h-8 text-gray-300" />
                   </div>
                   <p className="text-gray-400 font-medium">No posts yet</p>
+                  {isOwnProfile && <p className="text-gray-400 text-sm mt-1">Share your first update above!</p>}
                 </CardContent>
               </Card>
             ) : (
@@ -787,6 +911,16 @@ export default function CreatorProfile() {
                       </div>
                       <p className="text-gray-700 whitespace-pre-wrap mb-3 text-sm leading-relaxed">{post.content}</p>
                       {post.imageUrl && <img src={post.imageUrl} alt="Post" className="w-full max-h-80 object-cover rounded-xl mb-3" />}
+                      {post.videoUrl && extractYouTubeId(post.videoUrl) && (
+                        <div className="relative w-full rounded-xl overflow-hidden mb-3" style={{ paddingBottom: '56.25%' }}>
+                          <iframe
+                            src={`https://www.youtube.com/embed/${extractYouTubeId(post.videoUrl)}`}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-4 text-sm text-gray-400 pt-3 border-t border-gray-50">
                         <span className="flex items-center gap-1.5"><Heart className="w-4 h-4" /> {post.likeCount || 0}</span>
                         <span className="flex items-center gap-1.5"><MessageCircle className="w-4 h-4" /> {post.commentCount || 0}</span>
