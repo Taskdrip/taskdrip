@@ -14,7 +14,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { NavigationFixed } from '@/components/ui/navigation-fixed';
 import { Footer } from '@/components/ui/footer';
-import { getTierConfig, formatFollowers, NICHES } from '@/lib/tiers';
+import { getTierConfig, getTierFromFollowers, formatFollowers, NICHES } from '@/lib/tiers';
 import {
   Camera, TrendingUp, Award, Link2, Plus, Trash2,
   Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff
@@ -289,12 +289,13 @@ export default function ProfileEdit() {
     const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
     const profileImageUrl = profileImage ? previewUrl : (user as any)?.profileImageUrl;
     try {
-      await Promise.all([
-        updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl }),
-        saveLinksMutation.mutateAsync(),
-        saveRatesMutation.mutateAsync(),
-      ]);
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${(user as any)?.id}/social-links`] });
+      await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl });
+      await Promise.all([saveLinksMutation.mutateAsync(), saveRatesMutation.mutateAsync()]);
+      const userId = (user as any)?.id;
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/social-links`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
       toast({ title: "Profile saved! 🎉", description: "Your profile has been updated successfully." });
     } catch (error: any) {
       toast({ title: "Save failed", description: error.message || "Failed to save profile", variant: "destructive" });
@@ -303,7 +304,7 @@ export default function ProfileEdit() {
 
   const displayName = `${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim() || 'User';
   const initials = `${(user as any)?.firstName?.[0] || ''}${(user as any)?.lastName?.[0] || ''}` || 'U';
-  const tier = totalFollowersPreview >= 1_000_000 ? 'global_titans' : totalFollowersPreview >= 100_000 ? 'power_influencers' : totalFollowersPreview >= 10_000 ? 'growth_engines' : 'rising_sparks';
+  const tier = getTierFromFollowers(totalFollowersPreview);
   const previewTierConfig = getTierConfig(tier);
   const isPending = updateProfileMutation.isPending || saveLinksMutation.isPending || saveRatesMutation.isPending;
 

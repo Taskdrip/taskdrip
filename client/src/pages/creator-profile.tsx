@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatFollowers } from "@/lib/tiers";
+import { formatFollowers, getTierFromFollowers, getTierConfig } from "@/lib/tiers";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -385,14 +385,13 @@ export default function CreatorProfile() {
     ? (profile.reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / profile.reviews.length).toFixed(1)
     : "0.0";
 
-  const rankInfo = (() => {
-    switch (profile.creatorTier) {
-      case "global_titans": return { label: "Global Titan", color: "bg-gradient-to-r from-purple-600 to-pink-600 text-white", emoji: "👑" };
-      case "power_influencers": return { label: "Power Influencer", color: "bg-gradient-to-r from-blue-600 to-cyan-500 text-white", emoji: "⚡" };
-      case "growth_engines": return { label: "Growth Engine", color: "bg-gradient-to-r from-green-600 to-emerald-500 text-white", emoji: "🚀" };
-      default: return { label: "Rising Spark", color: "bg-gradient-to-r from-amber-500 to-orange-500 text-white", emoji: "✨" };
-    }
-  })();
+  const dynamicTier = getTierFromFollowers(profile.totalFollowers || 0);
+  const tierConf = getTierConfig(dynamicTier);
+  const rankInfo = {
+    label: tierConf.name,
+    color: `bg-gradient-to-r ${tierConf.gradient} text-white`,
+    emoji: tierConf.icon,
+  };
 
   const contentRates: Record<string, number> = profile.contentRates || {};
   const hasRates = Object.values(contentRates).some(v => v > 0);

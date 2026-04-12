@@ -13,9 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Heart, MessageCircle, Share2, Send, Loader2, Sparkles, TrendingUp,
-  Gift, Copy, CheckCircle, Wallet, Eye, CreditCard, Landmark
+  Gift, Copy, CheckCircle, Wallet, Eye, CreditCard, Landmark, Trash2
 } from "lucide-react";
-import { getTierConfig, formatFollowers } from "@/lib/tiers";
+import { getTierConfig, getTierFromFollowers, formatFollowers } from "@/lib/tiers";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
@@ -255,7 +255,7 @@ function extractYouTubeId(url: string): string {
 }
 
 // ── Post Card ──────────────────────────────────────────────────────────────────
-function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }) {
+function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?: string; isAdmin?: boolean }) {
   const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -264,6 +264,7 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
   const [showTip, setShowTip] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editContent, setEditContent] = useState(post.content || "");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: comments = [], refetch: refetchComments } = useQuery<any[]>({
     queryKey: [`/api/posts/${post.id}/comments`],
@@ -309,7 +310,20 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
     onError: () => toast({ title: "Error", description: "Failed to update post", variant: "destructive" }),
   });
 
-  const tier = getTierConfig((post.user?.creatorTier || "rising_sparks") as any);
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/posts/${post.id}`, {});
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      toast({ title: "Post deleted" });
+      setShowDeleteConfirm(false);
+    },
+    onError: () => toast({ title: "Error", description: "Failed to delete post", variant: "destructive" }),
+  });
+
+  const tier = getTierConfig(getTierFromFollowers(post.user?.totalFollowers || 0));
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.origin);
@@ -448,15 +462,28 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
           <Share2 className="w-4 h-4" />
         </button>
 
-        {/* Edit button - only show if own post */}
-        {isSelf && (
-          <button
-            onClick={() => { setEditContent(post.content); setShowEditDialog(true); }}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-blue-500 transition-colors"
-            data-testid={`edit-post-${post.id}`}
-          >
-            ✏️
-          </button>
+        {/* Edit/Delete for own post or admin */}
+        {(isSelf || isAdmin) && (
+          <div className="flex items-center gap-1 ml-auto">
+            {isSelf && (
+              <button
+                onClick={() => { setEditContent(post.content); setShowEditDialog(true); }}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-blue-500 transition-colors p-1 rounded-lg hover:bg-blue-50"
+                data-testid={`edit-post-${post.id}`}
+                title="Edit post"
+              >
+                ✏️
+              </button>
+            )}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
+              data-testid={`delete-post-${post.id}`}
+              title="Delete post"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -553,6 +580,31 @@ function PostCard({ post, currentUserId }: { post: any; currentUserId?: string }
                   {editMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 className="w-5 h-5" /> Delete Post
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600">Are you sure you want to delete this post? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3 mt-2">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+              <Button
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                data-testid={`confirm-delete-post-${post.id}`}
+              >
+                {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -702,6 +754,7 @@ function CreatePost({ userId }: { userId: string }) {
 // ── Feed Page ──────────────────────────────────────────────────────────────────
 export default function FeedPage() {
   const { user, isAuthenticated } = useAuth();
+  const isAdmin = (user as any)?.userType === 'admin';
   const { data: feed = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/feed"] });
   const { data: campaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
   const activeCampaigns = (campaigns as any[]).filter((c: any) => c.status === "active" || c.isActive).slice(0, 3);
@@ -787,7 +840,7 @@ export default function FeedPage() {
                       <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">Official</Badge>
                     </div>
                     {featuredPosts.map((post: any) => (
-                      <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} />
+                      <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} isAdmin={isAdmin} />
                     ))}
                   </section>
                 )}
@@ -804,7 +857,7 @@ export default function FeedPage() {
                     </div>
                   ) : (
                     recentPosts.map((post: any) => (
-                      <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} />
+                      <PostCard key={post.id} post={post} currentUserId={(user as any)?.id} isAdmin={isAdmin} />
                     ))
                   )}
                 </section>
@@ -825,8 +878,8 @@ export default function FeedPage() {
                   </Avatar>
                   <div>
                     <div className="font-bold text-gray-900">{(user as any)?.firstName} {(user as any)?.lastName}</div>
-                    {(user as any)?.creatorTier && (() => {
-                      const tier = getTierConfig((user as any)?.creatorTier);
+                    {(() => {
+                      const tier = getTierConfig(getTierFromFollowers((user as any)?.totalFollowers || 0));
                       return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tier.badge}`}>{tier.icon} {tier.name}</span>;
                     })()}
                   </div>

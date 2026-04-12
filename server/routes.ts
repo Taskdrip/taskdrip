@@ -314,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const admin = await storage.getUser(req.user.id);
       if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      await storage.deletePost(req.params.id, req.user.id);
+      await storage.deletePost(req.params.id, req.user.id, true);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete feed post" });
@@ -338,7 +338,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/posts/:id', isAuthenticated, async (req: any, res) => {
     try {
-      await storage.deletePost(req.params.id, req.user.id);
+      const requester = await storage.getUser(req.user.id);
+      const isAdmin = requester?.userType === 'admin';
+      await storage.deletePost(req.params.id, req.user.id, isAdmin);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete post" });
@@ -3219,6 +3221,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Guide Bot — send AI guide message to user inbox ──────────────────────
+  app.post('/api/guide/send-to-inbox', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(404).json({ message: "System admin not found" });
+      const { subject, content } = req.body;
+      const message = await storage.createMessage({
+        senderId: admin.id,
+        receiverId: req.user.id,
+        subject: subject || 'Your Taskdrip Guide Report',
+        content,
+        messageType: 'general',
+        attachments: [],
+      });
+      res.status(201).json(message);
+    } catch (error) {
+      console.error('Error sending guide message:', error);
+      res.status(500).json({ message: "Failed to send guide message" });
+    }
+  });
+
   // ── Ensure existing users have referral codes ──────────────────────
   app.post('/api/referrals/ensure-codes', isAuthenticated, async (req: any, res) => {
     try {
@@ -3778,8 +3801,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/users/:id/social-links', isAuthenticated, async (req: any, res) => {
     try {
-      if (req.user.id !== req.params.id && req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      const { links } = req.body; // [{platformSlug, url, followerCount, platformName, platformColor, platformEmoji, isUserDefined, displayOnProfile}]
+      const requester = await storage.getUser(req.user.id);
+      if (req.user.id !== req.params.id && requester?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { links } = req.body;
       await storage.replaceUserSocialLinks(req.params.id, links || []);
       const updated = await storage.getUserSocialLinks(req.params.id);
       res.json(updated);

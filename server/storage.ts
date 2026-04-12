@@ -200,7 +200,7 @@ export interface IStorage {
   createPost(id: string, userId: string, content: string, imageUrl?: string, videoUrl?: string): Promise<Post>;
   updatePost(id: string, userId: string, updates: { content?: string; imageUrl?: string; videoUrl?: string }): Promise<Post>;
   incrementPostViews(ids: string[]): Promise<void>;
-  deletePost(id: string, userId: string): Promise<void>;
+  deletePost(id: string, userId: string, isAdmin?: boolean): Promise<void>;
   likePost(postId: string, userId: string): Promise<void>;
   unlikePost(postId: string, userId: string): Promise<void>;
   getPostLike(postId: string, userId: string): Promise<boolean>;
@@ -293,7 +293,7 @@ export interface IStorage {
   getUserSocialLinks(userId: string): Promise<UserSocialLink[]>;
   upsertUserSocialLink(data: { userId: string; platformSlug: string; url: string; followerCount: number }): Promise<UserSocialLink>;
   deleteUserSocialLink(id: string): Promise<void>;
-  replaceUserSocialLinks(userId: string, links: { platformSlug: string; url: string; followerCount: number }[]): Promise<void>;
+  replaceUserSocialLinks(userId: string, links: any[]): Promise<void>;
 
   // Portfolio items
   getUserPortfolio(userId: string): Promise<PortfolioItem[]>;
@@ -1164,8 +1164,12 @@ export class DatabaseStorage implements IStorage {
     }).where(eq(posts.id, postId));
   }
 
-  async deletePost(id: string, userId: string): Promise<void> {
-    await db.delete(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
+  async deletePost(id: string, userId: string, isAdmin = false): Promise<void> {
+    if (isAdmin) {
+      await db.delete(posts).where(eq(posts.id, id));
+    } else {
+      await db.delete(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
+    }
   }
 
   async likePost(postId: string, userId: string): Promise<void> {
@@ -1708,11 +1712,17 @@ export class DatabaseStorage implements IStorage {
     await db.delete(userSocialLinks).where(eq(userSocialLinks.id, id));
   }
 
-  async replaceUserSocialLinks(userId: string, links: { platformSlug: string; url: string; followerCount: number }[]): Promise<void> {
+  async replaceUserSocialLinks(userId: string, links: any[]): Promise<void> {
     await db.delete(userSocialLinks).where(eq(userSocialLinks.userId, userId));
     if (links.length > 0) {
       await db.insert(userSocialLinks).values(links.map(l => ({ id: crypto.randomUUID(), userId, ...l })));
     }
+    const totalFollowers = links.reduce((sum, l) => sum + (Number(l.followerCount) || 0), 0);
+    let creatorTier = 'rising_sparks';
+    if (totalFollowers >= 10_000_000) creatorTier = 'global_titans';
+    else if (totalFollowers >= 1_000_000) creatorTier = 'power_influencers';
+    else if (totalFollowers >= 100_000) creatorTier = 'growth_engines';
+    await db.update(users).set({ totalFollowers, creatorTier, updatedAt: new Date() } as any).where(eq(users.id, userId));
   }
 
   // ── Portfolio Items ──────────────────────────────────────
