@@ -145,7 +145,7 @@ export function Navigation() {
           ) : (
             <div className="flex items-center space-x-4">
               <Button asChild>
-                <a href="/api/login">Login</a>
+                <a href="/login">Login</a>
               </Button>
             </div>
           )}

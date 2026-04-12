@@ -256,7 +256,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      setTimeout(() => { window.location.href = "/api/login"; }, 500);
+      setTimeout(() => { window.location.href = "/login"; }, 500);
     }
   }, [isAuthenticated, isLoading]);
 

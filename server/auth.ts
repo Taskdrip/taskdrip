@@ -211,6 +211,10 @@ export function setupAuth(app: Express) {
     });
   });
 
+  app.get("/api/login", (_req, res) => {
+    res.redirect("/login");
+  });
+
   // Legacy login endpoint for brand dashboard compatibility
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {

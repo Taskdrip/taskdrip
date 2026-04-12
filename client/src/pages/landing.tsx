@@ -446,7 +446,7 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300">
-              <a href="/api/login" className="flex items-center">
+              <a href="/login" className="flex items-center">
                 Create Free Account
                 <ArrowRight className="ml-2 w-5 h-5" />
               </a>
