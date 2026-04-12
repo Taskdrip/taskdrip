@@ -115,7 +115,7 @@ export default function ProfileEdit() {
   const [totalFollowersPreview, setTotalFollowersPreview] = useState(0);
 
   // Admin custom platforms (from social_platforms table)
-  const [adminCustomLinks, setAdminCustomLinks] = useState<Record<string, { url: string; followerCount: number }>>({});
+  const [adminCustomLinks, setAdminCustomLinks] = useState<Record<string, { url: string; followerCount: number; displayOnProfile: boolean }>>({});
 
   // User-defined custom channels
   const [customChannels, setCustomChannels] = useState<CustomChannel[]>([]);

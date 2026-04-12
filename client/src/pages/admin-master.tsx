@@ -4275,122 +4275,203 @@ export default function AdminMaster() {
 // ═══════════════════════════════════════════════════
 // ADMIN SOCIAL CHANNELS PANEL
 // ═══════════════════════════════════════════════════
+const PLATFORM_QUICK_PRESETS = [
+  { name: 'Facebook', slug: 'facebook', emoji: '📘', bgColor: '#1877f2', urlPrefix: 'https://facebook.com/' },
+  { name: 'Snapchat', slug: 'snapchat', emoji: '👻', bgColor: '#fffc00', urlPrefix: 'https://snapchat.com/add/' },
+  { name: 'Pinterest', slug: 'pinterest', emoji: '📌', bgColor: '#e60023', urlPrefix: 'https://pinterest.com/' },
+  { name: 'Discord', slug: 'discord', emoji: '💬', bgColor: '#5865f2', urlPrefix: 'https://discord.gg/' },
+  { name: 'LinkedIn', slug: 'linkedin', emoji: '💼', bgColor: '#0a66c2', urlPrefix: 'https://linkedin.com/in/' },
+  { name: 'SoundCloud', slug: 'soundcloud', emoji: '🎵', bgColor: '#ff5500', urlPrefix: 'https://soundcloud.com/' },
+  { name: 'Spotify', slug: 'spotify', emoji: '🎧', bgColor: '#1db954', urlPrefix: 'https://open.spotify.com/' },
+  { name: 'Threads', slug: 'threads', emoji: '🧵', bgColor: '#000000', urlPrefix: 'https://threads.net/' },
+  { name: 'BeReal', slug: 'bereal', emoji: '📸', bgColor: '#1a1a1a', urlPrefix: '' },
+  { name: 'Reddit', slug: 'reddit', emoji: '🤖', bgColor: '#ff4500', urlPrefix: 'https://reddit.com/u/' },
+  { name: 'Patreon', slug: 'patreon', emoji: '🎁', bgColor: '#ff424d', urlPrefix: 'https://patreon.com/' },
+  { name: 'Kick', slug: 'kick', emoji: '🎮', bgColor: '#53fc18', urlPrefix: 'https://kick.com/' },
+];
+
 function AdminSocialChannelsPanel() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', slug: '', urlPrefix: '', iconClass: '', bgColor: '#6366f1', isBuiltIn: false });
+  const emptyForm = { name: '', slug: '', emoji: '🌐', urlPrefix: '', description: '', bgColor: '#6366f1', isBuiltIn: false, isActive: true };
+  const [form, setForm] = useState(emptyForm);
+  const [presetSearch, setPresetSearch] = useState('');
 
   const { data: platforms = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/admin/social-platforms'],
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
+  };
+
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest('POST', '/api/admin/social-platforms', data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
-      setDialogOpen(false); setEditItem(null); setForm({ name: '', slug: '', urlPrefix: '', iconClass: '', bgColor: '#6366f1', isBuiltIn: false });
-      toast({ title: 'Channel added!' });
-    },
+    mutationFn: async (data: any) => { const res = await apiRequest('POST', '/api/admin/social-platforms', data); return res.json(); },
+    onSuccess: () => { invalidate(); setDialogOpen(false); setEditItem(null); setForm(emptyForm); toast({ title: 'Channel added!' }); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const res = await apiRequest('PUT', `/api/admin/social-platforms/${id}`, data);
+    mutationFn: async ({ id, data }: { id: string; data: any }) => { const res = await apiRequest('PUT', `/api/admin/social-platforms/${id}`, data); return res.json(); },
+    onSuccess: () => { invalidate(); setDialogOpen(false); setEditItem(null); toast({ title: 'Channel updated!' }); },
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const res = await apiRequest('PUT', `/api/admin/social-platforms/${id}`, { isActive });
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
-      setDialogOpen(false); setEditItem(null);
-      toast({ title: 'Channel updated!' });
-    },
+    onSuccess: () => { invalidate(); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => { await apiRequest('DELETE', `/api/admin/social-platforms/${id}`); },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/social-platforms'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/social-platforms'] });
-      toast({ title: 'Channel removed' });
-    },
+    onSuccess: () => { invalidate(); toast({ title: 'Channel removed' }); },
   });
 
   const handleSave = () => {
-    if (!form.name || !form.slug) return;
+    if (!form.name || !form.slug) { toast({ title: 'Name and slug are required', variant: 'destructive' }); return; }
     if (editItem) updateMutation.mutate({ id: editItem.id, data: form });
     else createMutation.mutate(form);
   };
 
   const openEdit = (item: any) => {
     setEditItem(item);
-    setForm({ name: item.name, slug: item.slug, urlPrefix: item.urlPrefix || '', iconClass: item.iconClass || '', bgColor: item.bgColor || '#6366f1', isBuiltIn: item.isBuiltIn || false });
+    setForm({ name: item.name, slug: item.slug, emoji: item.emoji || '🌐', urlPrefix: item.urlPrefix || '', description: item.description || '', bgColor: item.bgColor || '#6366f1', isBuiltIn: item.isBuiltIn || false, isActive: item.isActive !== false });
     setDialogOpen(true);
   };
 
+  const applyPreset = (preset: typeof PLATFORM_QUICK_PRESETS[0]) => {
+    setForm(p => ({ ...p, name: preset.name, slug: preset.slug, emoji: preset.emoji, bgColor: preset.bgColor, urlPrefix: preset.urlPrefix }));
+    setPresetSearch('');
+  };
+
+  const filteredPresets = presetSearch
+    ? PLATFORM_QUICK_PRESETS.filter(p => p.name.toLowerCase().includes(presetSearch.toLowerCase()))
+    : PLATFORM_QUICK_PRESETS;
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Social Channels</h2>
-          <p className="text-gray-400 text-sm mt-1">Manage custom social media platforms creators can link</p>
+          <p className="text-gray-400 text-sm mt-1">Add & manage social platforms creators can link to their profiles</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditItem(null); setForm({ name: '', slug: '', urlPrefix: '', iconClass: '', bgColor: '#6366f1', isBuiltIn: false }); } }}>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditItem(null); setForm(emptyForm); } }}>
           <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="add-channel-btn">
-              <Plus className="w-4 h-4 mr-2" /> Add Channel
+            <Button className="bg-purple-600 hover:bg-purple-700 gap-2" data-testid="add-channel-btn">
+              <Plus className="w-4 h-4" /> Add Channel
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-xl">
             <DialogHeader>
               <DialogTitle>{editItem ? 'Edit Social Channel' : 'Add Social Channel'}</DialogTitle>
-              <DialogDescription>Configure a custom social media platform for creators to link</DialogDescription>
+              <DialogDescription>Configure a platform that creators can link from their settings page</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Platform Name *</Label>
-                  <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Snapchat" className="mt-1" data-testid="channel-name" />
+            <div className="space-y-5">
+              {/* Preview */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm" style={{ backgroundColor: form.bgColor + '20', border: `2px solid ${form.bgColor}40` }}>
+                  {form.emoji || '🌐'}
                 </div>
                 <div>
-                  <Label>Slug (unique ID) *</Label>
-                  <Input value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))} placeholder="e.g. snapchat" className="mt-1" data-testid="channel-slug" />
+                  <p className="font-bold text-gray-900">{form.name || 'Platform Name'}</p>
+                  <p className="text-xs text-gray-400">{form.urlPrefix || 'https://...'}</p>
                 </div>
               </div>
-              <div>
-                <Label>URL Prefix</Label>
-                <Input value={form.urlPrefix} onChange={e => setForm(p => ({ ...p, urlPrefix: e.target.value }))} placeholder="https://snapchat.com/add/" className="mt-1" />
-                <p className="text-xs text-gray-400 mt-1">Shown as placeholder hint when creators enter their link</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Quick presets */}
+              {!editItem && (
                 <div>
-                  <Label>Background Color</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input type="color" value={form.bgColor} onChange={e => setForm(p => ({ ...p, bgColor: e.target.value }))} className="h-9 w-14 rounded border cursor-pointer" />
-                    <Input value={form.bgColor} onChange={e => setForm(p => ({ ...p, bgColor: e.target.value }))} className="flex-1 text-sm" />
+                  <Label className="text-xs text-gray-500 mb-2 block">Quick Presets</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {filteredPresets.map(preset => (
+                      <button key={preset.slug} onClick={() => applyPreset(preset)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50 text-xs font-medium text-gray-700 transition-all">
+                        <span>{preset.emoji}</span> {preset.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Icon Class (optional)</Label>
-                  <Input value={form.iconClass} onChange={e => setForm(p => ({ ...p, iconClass: e.target.value }))} placeholder="e.g. SiSnapchat" className="mt-1" />
+                  <Label>Platform Name <span className="text-red-500">*</span></Label>
+                  <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Facebook Pages" className="mt-1" data-testid="channel-name" />
+                </div>
+                <div>
+                  <Label>Slug (unique ID) <span className="text-red-500">*</span></Label>
+                  <Input value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))} placeholder="e.g. facebook" className="mt-1" data-testid="channel-slug" />
+                  <p className="text-xs text-gray-400 mt-0.5">Lowercase, no spaces</p>
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Emoji Icon</Label>
+                  <Input value={form.emoji} onChange={e => setForm(p => ({ ...p, emoji: e.target.value }))} placeholder="🌐" className="mt-1 text-center text-lg" maxLength={4} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Brand Color</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input type="color" value={form.bgColor} onChange={e => setForm(p => ({ ...p, bgColor: e.target.value }))} className="h-9 w-14 rounded border cursor-pointer flex-shrink-0" />
+                    <Input value={form.bgColor} onChange={e => setForm(p => ({ ...p, bgColor: e.target.value }))} className="flex-1 text-sm font-mono" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label>URL Prefix</Label>
+                <Input value={form.urlPrefix} onChange={e => setForm(p => ({ ...p, urlPrefix: e.target.value }))} placeholder="https://facebook.com/pages/" className="mt-1" />
+                <p className="text-xs text-gray-400 mt-1">Shown as placeholder hint to creators (optional)</p>
+              </div>
+
+              <div>
+                <Label>Description <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
+                <Input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Share your Facebook page link" className="mt-1" />
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">Active</p>
+                  <p className="text-xs text-gray-400">Creators can link this platform when active</p>
+                </div>
+                <button type="button" onClick={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
+                  className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${form.isActive ? 'bg-green-500' : 'bg-gray-300'}`}>
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <div className="flex gap-3">
                 <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
                   className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="save-channel-btn">
                   {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editItem ? 'Update Channel' : 'Add Channel'}
                 </Button>
-                <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">Cancel</Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Total Channels', value: platforms.length, color: 'text-purple-400' },
+          { label: 'Active', value: platforms.filter((p: any) => p.isActive !== false).length, color: 'text-green-400' },
+          { label: 'Inactive', value: platforms.filter((p: any) => p.isActive === false).length, color: 'text-red-400' },
+        ].map(s => (
+          <div key={s.label} className="bg-gray-800/50 border border-gray-700 rounded-2xl p-4 text-center">
+            <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+            <p className="text-gray-500 text-xs mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Platform list */}
       <Card className="border-gray-800 bg-gray-900">
         <CardContent className="p-0">
           {isLoading ? (
@@ -4398,62 +4479,86 @@ function AdminSocialChannelsPanel() {
           ) : platforms.length === 0 ? (
             <div className="py-16 text-center">
               <Link2 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 font-medium">No custom channels yet</p>
-              <p className="text-sm text-gray-500 mt-1">Add channels that creators can link in their profiles</p>
+              <p className="text-gray-400 font-medium">No social channels yet</p>
+              <p className="text-sm text-gray-500 mt-1 mb-4">Add channels creators can link in their profiles</p>
+              <Button className="bg-purple-600 hover:bg-purple-700 gap-2" onClick={() => setDialogOpen(true)}>
+                <Plus className="w-4 h-4" /> Add First Channel
+              </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-800">
-                  <TableHead className="text-gray-400">Platform</TableHead>
-                  <TableHead className="text-gray-400">Slug</TableHead>
-                  <TableHead className="text-gray-400">URL Prefix</TableHead>
-                  <TableHead className="text-gray-400">Color</TableHead>
-                  <TableHead className="text-gray-400">Built-in</TableHead>
-                  <TableHead className="text-gray-400 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {platforms.map((p: any) => (
-                  <TableRow key={p.id} className="border-gray-800 hover:bg-gray-800/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: p.bgColor || '#6366f1' }}>
-                          {p.name[0]}
-                        </div>
-                        <span className="font-semibold text-white">{p.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-400 font-mono text-sm">{p.slug}</TableCell>
-                    <TableCell className="text-gray-500 text-sm max-w-48 truncate">{p.urlPrefix || '—'}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full border border-gray-600" style={{ backgroundColor: p.bgColor || '#6366f1' }} />
-                        <span className="text-gray-400 text-xs font-mono">{p.bgColor || '—'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={p.isBuiltIn ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-400'}>
-                        {p.isBuiltIn ? 'Built-in' : 'Custom'}
+            <div className="divide-y divide-gray-800">
+              {platforms.map((p: any) => (
+                <div key={p.id} className={`flex items-center gap-4 p-4 hover:bg-gray-800/40 transition-colors ${p.isActive === false ? 'opacity-60' : ''}`}>
+                  {/* Icon */}
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 shadow-sm"
+                    style={{ backgroundColor: (p.bgColor || '#6366f1') + '25', border: `2px solid ${p.bgColor || '#6366f1'}40` }}>
+                    {p.emoji || p.name[0]}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-white text-sm">{p.name}</span>
+                      {p.isBuiltIn && <Badge className="bg-blue-900/50 text-blue-300 text-xs border-blue-700">Built-in</Badge>}
+                      <Badge className={`text-xs border-0 ${p.isActive !== false ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+                        {p.isActive !== false ? '● Active' : '● Inactive'}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(p)} className="text-gray-400 hover:text-white" data-testid={`edit-channel-${p.id}`}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        {!p.isBuiltIn && (
-                          <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(p.id)} className="text-gray-400 hover:text-red-400" data-testid={`delete-channel-${p.id}`}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                    <p className="text-gray-500 text-xs font-mono mt-0.5">{p.slug}</p>
+                    {p.urlPrefix && <p className="text-gray-600 text-xs mt-0.5 truncate">{p.urlPrefix}</p>}
+                    {p.description && <p className="text-gray-500 text-xs mt-0.5 italic">{p.description}</p>}
+                  </div>
+
+                  {/* Color swatch */}
+                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full border border-gray-600" style={{ backgroundColor: p.bgColor || '#6366f1' }} />
+                    <span className="text-gray-600 text-xs font-mono">{p.bgColor || '#6366f1'}</span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Active toggle */}
+                    <button
+                      onClick={() => toggleActiveMutation.mutate({ id: p.id, isActive: !(p.isActive !== false) })}
+                      disabled={toggleActiveMutation.isPending}
+                      title={p.isActive !== false ? 'Deactivate (hide from users)' : 'Activate (show to users)'}
+                      className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${p.isActive !== false ? 'bg-green-500' : 'bg-gray-600'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${p.isActive !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </button>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(p)} className="text-gray-400 hover:text-white h-8 w-8 p-0" data-testid={`edit-channel-${p.id}`}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    {!p.isBuiltIn && (
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(p.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" data-testid={`delete-channel-${p.id}`}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* How it works */}
+      <Card className="border-gray-700 bg-gray-800/50">
+        <CardContent className="p-5">
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-purple-400" /> How Social Channels Work
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-400">
+            {[
+              { step: '1', text: 'Admin adds a platform (e.g. Facebook Pages) with name, emoji, color & URL prefix' },
+              { step: '2', text: 'Creators see it in Settings → Social Media Links and can add their link + follower count' },
+              { step: '3', text: 'Creators can toggle visibility on/off per platform so it shows or hides on their public profile' },
+            ].map(s => (
+              <div key={s.step} className="flex gap-2">
+                <div className="w-5 h-5 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 font-bold text-xs flex-shrink-0 mt-0.5">{s.step}</div>
+                <p>{s.text}</p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

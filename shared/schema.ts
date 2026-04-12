@@ -355,10 +355,12 @@ export const socialPlatforms = pgTable("social_platforms", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   slug: varchar("slug").unique().notNull(),
+  emoji: varchar("emoji").default("🌐"),
   iconClass: varchar("icon_class"), // e.g. "SiTwitter", "SiFacebook"
   color: varchar("color").default("#000000"),
   bgColor: varchar("bg_color").default("#6366f1"),
   urlPrefix: varchar("url_prefix"), // e.g. "https://twitter.com/"
+  description: varchar("description"),
   isActive: boolean("is_active").default(true),
   isBuiltIn: boolean("is_built_in").default(false),
   sortOrder: integer("sort_order").default(0),
