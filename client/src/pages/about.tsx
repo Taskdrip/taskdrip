@@ -1,210 +1,328 @@
-import { Navigation } from '@/components/ui/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { NavigationFixed } from '@/components/ui/navigation-fixed';
+import { Footer } from '@/components/ui/footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'wouter';
-import { 
-  Users, 
-  Globe, 
-  Smartphone, 
-  DollarSign, 
-  Shield, 
-  Zap,
-  Target,
-  Award,
-  TrendingUp,
-  Heart,
-  CheckCircle
+import {
+  Users, Globe, DollarSign, Shield, Zap, Target, Award,
+  TrendingUp, CheckCircle, Star, Rocket, Crown, Flame,
+  MessageCircle, BookOpen, ShoppingBag, Briefcase, Bell,
+  Lock, Heart, Sparkles, ChevronRight
 } from 'lucide-react';
+import {
+  SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
+  SiTelegram, SiWhatsapp
+} from 'react-icons/si';
+
+const CREATOR_TIERS = [
+  {
+    name: 'Rising Sparks',
+    emoji: '✨',
+    range: '1K – 10K followers',
+    description: 'New creators just getting started. Access entry-level campaigns and build your first verified portfolio.',
+    color: 'from-amber-400 to-orange-500',
+    border: 'border-amber-200',
+    bg: 'bg-amber-50',
+  },
+  {
+    name: 'Growth Engines',
+    emoji: '🚀',
+    range: '10K – 100K followers',
+    description: 'Established creators with a growing audience. Unlock mid-tier campaigns with higher payouts.',
+    color: 'from-green-400 to-emerald-600',
+    border: 'border-green-200',
+    bg: 'bg-green-50',
+  },
+  {
+    name: 'Power Influencers',
+    emoji: '⚡',
+    range: '100K – 1M followers',
+    description: 'High-reach creators. Premium campaigns, priority placement, and dedicated brand relationships.',
+    color: 'from-blue-500 to-cyan-500',
+    border: 'border-blue-200',
+    bg: 'bg-blue-50',
+  },
+  {
+    name: 'Global Titans',
+    emoji: '👑',
+    range: '1M+ followers',
+    description: 'Elite influencers with massive reach. Exclusive enterprise campaigns and custom deal structures.',
+    color: 'from-purple-600 to-pink-600',
+    border: 'border-purple-200',
+    bg: 'bg-purple-50',
+  },
+];
+
+const PLATFORMS = [
+  { icon: SiTiktok, name: 'TikTok', bg: 'bg-black' },
+  { icon: SiYoutube, name: 'YouTube', bg: 'bg-red-600' },
+  { icon: SiInstagram, name: 'Instagram', bg: 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400' },
+  { icon: SiX, name: 'X / Twitter', bg: 'bg-black' },
+  { icon: SiTwitch, name: 'Twitch', bg: 'bg-violet-600' },
+  { icon: SiTelegram, name: 'Telegram', bg: 'bg-sky-500' },
+  { icon: SiWhatsapp, name: 'WhatsApp', bg: 'bg-green-500' },
+];
+
+const FEATURES = [
+  {
+    icon: Target,
+    title: 'Campaign Engine',
+    description: 'Brands create detailed campaigns with budgets, requirements, and deadlines. Creators apply, get approved, and submit proof — all in one streamlined workflow.',
+    color: 'text-purple-600',
+    bg: 'bg-purple-50',
+  },
+  {
+    icon: Award,
+    title: '4-Tier Creator System',
+    description: 'Auto-calculated tiers from Rising Sparks to Global Titans based on total social reach. Higher tiers unlock more lucrative campaigns and better exposure.',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
+  },
+  {
+    icon: DollarSign,
+    title: 'Crypto Payments',
+    description: 'Earn in USDT (Tron & BSC networks) and TON. Non-custodial payouts go directly to your wallet — no middlemen, no delays.',
+    color: 'text-green-600',
+    bg: 'bg-green-50',
+  },
+  {
+    icon: Shield,
+    title: 'KYC & Verification',
+    description: 'Identity verification keeps the platform safe and builds trust between brands and creators. Verified creators get priority access to premium campaigns.',
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+  },
+  {
+    icon: Briefcase,
+    title: 'Creator Portfolio',
+    description: 'Showcase your best campaigns, collaborations, and content in a public portfolio linked from your profile — your own influencer CV.',
+    color: 'text-indigo-600',
+    bg: 'bg-indigo-50',
+  },
+  {
+    icon: BookOpen,
+    title: 'BreedSkool Academy',
+    description: 'Level up with courses on content creation, social media strategy, brand deals, and crypto basics — taught by industry professionals.',
+    color: 'text-teal-600',
+    bg: 'bg-teal-50',
+  },
+  {
+    icon: MessageCircle,
+    title: 'Seamless DM Chat',
+    description: 'Built-in direct messaging between creators and brands. Real-time conversations, file sharing, and campaign coordination — all without leaving the platform.',
+    color: 'text-pink-600',
+    bg: 'bg-pink-50',
+  },
+  {
+    icon: ShoppingBag,
+    title: 'Creator Shop',
+    description: 'Sell digital products, presets, templates, and branded merchandise directly to your audience through the integrated Taskdrip Shop.',
+    color: 'text-orange-600',
+    bg: 'bg-orange-50',
+  },
+  {
+    icon: Bell,
+    title: 'Push Notifications & PWA',
+    description: 'Install Taskdrip as a native-feeling app on any device. Receive real-time push notifications for new campaigns, messages, and approvals.',
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+  },
+];
+
+const CAMPAIGN_CATEGORIES = [
+  { name: 'Social Media', icon: '📱', desc: 'Posts, reels, stories, and shorts across all platforms' },
+  { name: 'Gaming & Esports', icon: '🎮', desc: 'Game reviews, livestreams, and tournament coverage' },
+  { name: 'Health & Fitness', icon: '💪', desc: 'Wellness products, workout routines, and lifestyle content' },
+  { name: 'Fashion & Beauty', icon: '💄', desc: 'Product reviews, tutorials, and brand lookbooks' },
+  { name: 'Tech & Crypto', icon: '⛓️', desc: 'App reviews, blockchain projects, and DeFi awareness' },
+  { name: 'Food & Travel', icon: '🌍', desc: 'Restaurant features, destination content, and reviews' },
+  { name: 'Education', icon: '🎓', desc: 'Course promotions, webinars, and skill-based content' },
+  { name: 'Entertainment', icon: '🎬', desc: 'Music, movies, events, and pop culture campaigns' },
+];
+
+const STATS = [
+  { number: '10K+', label: 'Verified Creators', icon: Users },
+  { number: '2,500+', label: 'Campaigns Launched', icon: Rocket },
+  { number: '$450K+', label: 'Paid Out in Crypto', icon: DollarSign },
+  { number: '60+', label: 'Countries Represented', icon: Globe },
+];
 
 export default function About() {
-  const features = [
-    {
-      icon: Smartphone,
-      title: "Diverse Task Categories",
-      description: "From app testing to content creation, find tasks that match your skills and interests."
-    },
-    {
-      icon: DollarSign,
-      title: "Crypto Payments",
-      description: "Receive payments in USDT (Tron & BSC) and TON. Fast, secure, and borderless."
-    },
-    {
-      icon: Shield,
-      title: "Secure Platform",
-      description: "Advanced security measures protect your data and earnings."
-    },
-    {
-      icon: Globe,
-      title: "Global Community",
-      description: "Connect with brands and creators from around the world."
-    },
-    {
-      icon: Zap,
-      title: "Instant Verification",
-      description: "Quick task approval process to get you paid faster."
-    },
-    {
-      icon: Award,
-      title: "Reputation System",
-      description: "Build your reputation and unlock higher-paying opportunities."
-    }
-  ];
-
-  const stats = [
-    { number: "50K+", label: "Active Creators" },
-    { number: "1,000+", label: "Brands Connected" },
-    { number: "$2M+", label: "Total Earnings Paid" },
-    { number: "25+", label: "Countries Served" }
-  ];
-
-  const taskCategories = [
-    { name: "App Testing", description: "Test mobile apps and provide feedback", color: "bg-blue-500" },
-    { name: "Content Creation", description: "Create posts, videos, and articles", color: "bg-purple-500" },
-    { name: "Social Media", description: "Engage with social media campaigns", color: "bg-pink-500" },
-    { name: "Trading Tasks", description: "Participate in trading challenges", color: "bg-green-500" },
-    { name: "Local Errands", description: "Complete location-based tasks", color: "bg-orange-500" },
-    { name: "Event Hosting", description: "Host virtual or local events", color: "bg-red-500" }
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-black to-gray-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-5xl font-bold mb-6">
-              About Taskdrip
-            </h1>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              The leading Web3 SocialFi platform connecting creators with brands through 
-              diverse task-based campaigns and crypto reward systems.
-            </p>
-            <div className="flex justify-center space-x-4">
-              <Link href="/signup">
-                <Button size="lg" className="bg-white text-black hover:bg-gray-100">
-                  Join as Creator
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-black">
-                  Contact Us
-                </Button>
-              </Link>
-            </div>
+    <div className="min-h-screen bg-white">
+      <NavigationFixed />
+
+      {/* ── Hero ── */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a] via-purple-950 to-[#0f0f1a]" />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 20% 50%, rgba(124,58,237,0.35) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.2) 0%, transparent 60%)' }} />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-28 text-center">
+          <Badge className="mb-6 bg-purple-600/20 text-purple-300 border border-purple-500/30 px-4 py-1.5 text-sm font-medium">
+            🌐 Web3 SocialFi Influencer Marketplace
+          </Badge>
+          <h1 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
+            The Future of
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent"> Influencer Marketing</span>
+            <br />is On-Chain
+          </h1>
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
+            Taskdrip connects global brands with verified social media creators through transparent campaigns,
+            tier-based discovery, and direct crypto payments — no agencies, no middlemen.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/signup">
+              <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-xl shadow-purple-500/30 px-8 font-semibold">
+                Join as Creator <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button size="lg" className="bg-white/10 border border-white/30 text-white hover:bg-white/20 px-8 font-semibold backdrop-blur-sm">
+                Partner with Us
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Stats ── */}
+      <div className="bg-white border-b border-gray-100 py-14">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-black mb-2">{stat.number}</div>
-                <div className="text-gray-600">{stat.label}</div>
+            {STATS.map(({ number, label, icon: Icon }) => (
+              <div key={label} className="text-center group">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-100 transition-colors">
+                  <Icon className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="text-4xl font-black text-gray-900 mb-1">{number}</div>
+                <div className="text-gray-500 text-sm font-medium">{label}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Mission Section */}
-      <div className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Mission ── */}
+      <div className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
-              <p className="text-lg text-gray-600 mb-6">
-                We're revolutionizing the creator economy by building a decentralized platform 
-                where talent meets opportunity. Our mission is to empower creators worldwide 
-                with fair compensation, transparent processes, and blockchain-based payments.
+              <Badge className="mb-4 bg-purple-100 text-purple-700 border-0">Our Mission</Badge>
+              <h2 className="text-4xl font-black text-gray-900 mb-6 leading-tight">
+                Turning Influence Into
+                <span className="text-purple-600"> Real Income</span>
+              </h2>
+              <p className="text-gray-600 text-lg leading-relaxed mb-8">
+                We built Taskdrip because creators deserve better. Traditional influencer marketing
+                is opaque, slow, and dominated by agencies that take huge cuts. Taskdrip puts creators
+                and brands in direct contact, with verifiable reach metrics, transparent campaign terms,
+                and instant crypto payouts.
               </p>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">Decentralized and transparent</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">Fair compensation for all</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">Global accessibility</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">Community-driven growth</span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 text-white">
-              <Target className="h-12 w-12 mb-6" />
-              <h3 className="text-2xl font-bold mb-4">Why Taskdrip?</h3>
-              <p className="text-blue-100 mb-6">
-                We believe in the power of human creativity and the importance of fair compensation. 
-                Our platform combines cutting-edge blockchain technology with user-friendly design.
-              </p>
-              <div className="flex items-center text-blue-100">
-                <Heart className="h-5 w-5 mr-2" />
-                <span>Built by creators, for creators</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Platform Features</h2>
-            <p className="text-xl text-gray-600">
-              Everything you need to succeed in the creator economy
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="text-center">
-                <CardHeader>
-                  <feature.icon className="h-12 w-12 mx-auto text-black mb-4" />
-                  <CardTitle>{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-gray-600">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Task Categories */}
-      <div className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Task Categories</h2>
-            <p className="text-xl text-gray-600">
-              Diverse opportunities for every skill set
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {taskCategories.map((category, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className={`w-4 h-4 rounded-full ${category.color} mr-3`}></div>
-                    <h3 className="font-semibold text-gray-900">{category.name}</h3>
+              <div className="space-y-3">
+                {[
+                  'No agency fees — direct brand-to-creator deals',
+                  'Verified social reach across 7+ platforms',
+                  'Crypto payments in USDT & TON — your wallet, your money',
+                  'Auto-tiered discovery so the right brands find you',
+                  'Portfolio & review system to build lasting reputation',
+                  'Community learning through BreedSkool Academy',
+                ].map(item => (
+                  <div key={item} className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700">{item}</span>
                   </div>
-                  <p className="text-gray-600 text-sm">{category.description}</p>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-600 rounded-3xl rotate-3 opacity-10" />
+              <div className="relative bg-gradient-to-br from-purple-600 to-blue-700 rounded-3xl p-8 text-white shadow-2xl shadow-purple-500/30">
+                <Sparkles className="w-12 h-12 mb-5 text-purple-200" />
+                <h3 className="text-2xl font-bold mb-4">Why Taskdrip?</h3>
+                <p className="text-purple-100 text-sm leading-relaxed mb-6">
+                  We're not just a marketplace — we're an ecosystem. From campaign management and crypto payments
+                  to education, community feed, and a creator shop, everything a modern influencer needs lives in one place.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Transparent', icon: '🔍' },
+                    { label: 'Borderless', icon: '🌍' },
+                    { label: 'Crypto-native', icon: '⛓️' },
+                    { label: 'Creator-first', icon: '❤️' },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
+                      <span>{item.icon}</span>
+                      <span className="text-sm font-semibold text-white">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Supported Platforms ── */}
+      <div className="py-16 bg-white border-y border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Badge className="mb-4 bg-blue-50 text-blue-700 border-0">Multi-Platform</Badge>
+          <h2 className="text-3xl font-black text-gray-900 mb-3">Verify Reach Across Every Platform</h2>
+          <p className="text-gray-500 mb-10 max-w-xl mx-auto">Connect all your social media accounts. Your combined follower count determines your tier and unlocks higher-paying campaigns.</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            {PLATFORMS.map(({ icon: Icon, name, bg }) => (
+              <div key={name} className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all group">
+                <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center shadow-sm`}>
+                  <Icon className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-semibold text-sm text-gray-700 group-hover:text-purple-700">{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Creator Tiers ── */}
+      <div className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-amber-50 text-amber-700 border-0">Creator Tiers</Badge>
+            <h2 className="text-4xl font-black text-gray-900 mb-3">Your Reach = Your Rank</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
+              Tiers are automatically calculated from your total followers across all linked platforms. As you grow, so do your opportunities.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {CREATOR_TIERS.map((tier) => (
+              <div key={tier.name} className={`${tier.bg} ${tier.border} border-2 rounded-2xl p-6 hover:shadow-lg transition-shadow`}>
+                <div className={`text-3xl mb-3`}>{tier.emoji}</div>
+                <h3 className="font-black text-gray-900 text-lg mb-1">{tier.name}</h3>
+                <div className={`text-xs font-bold bg-gradient-to-r ${tier.color} bg-clip-text text-transparent mb-3`}>{tier.range}</div>
+                <p className="text-gray-600 text-sm leading-relaxed">{tier.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Platform Features ── */}
+      <div className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-purple-50 text-purple-700 border-0">Full Ecosystem</Badge>
+            <h2 className="text-4xl font-black text-gray-900 mb-3">Everything Built In</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
+              Taskdrip is not just a marketplace. It's a complete ecosystem designed to support creators at every stage of their journey.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map((f) => (
+              <Card key={f.title} className="border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all group">
+                <CardContent className="p-6">
+                  <div className={`w-12 h-12 ${f.bg} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <f.icon className={`w-6 h-6 ${f.color}`} />
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">{f.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{f.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -212,27 +330,143 @@ export default function About() {
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="py-16 bg-gradient-to-r from-black to-gray-800 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Start Earning?</h2>
-          <p className="text-xl text-gray-300 mb-8">
-            Join thousands of creators who are already earning crypto rewards through Taskdrip
+      {/* ── Campaign Categories ── */}
+      <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-green-50 text-green-700 border-0">Campaign Categories</Badge>
+            <h2 className="text-4xl font-black text-gray-900 mb-3">Campaigns for Every Niche</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
+              Brands from every industry run campaigns on Taskdrip. Find campaigns that align with your content and audience.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {CAMPAIGN_CATEGORIES.map((cat) => (
+              <div key={cat.name} className="flex items-start gap-3 p-4 rounded-2xl border border-gray-100 bg-white hover:border-purple-200 hover:shadow-md transition-all group">
+                <div className="text-2xl flex-shrink-0">{cat.icon}</div>
+                <div>
+                  <div className="font-bold text-gray-900 text-sm group-hover:text-purple-700 transition-colors">{cat.name}</div>
+                  <div className="text-gray-500 text-xs mt-0.5 leading-relaxed">{cat.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── How It Works ── */}
+      <div className="py-20 bg-white border-t border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <Badge className="mb-4 bg-blue-50 text-blue-700 border-0">How It Works</Badge>
+            <h2 className="text-4xl font-black text-gray-900 mb-3">Simple. Transparent. Rewarding.</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-12">
+            {/* Creators */}
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-black">C</div>
+                <h3 className="text-xl font-black text-gray-900">For Creators</h3>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { step: '1', title: 'Sign up & connect socials', desc: 'Create your profile and link all your social media accounts.' },
+                  { step: '2', title: 'Get auto-tiered', desc: 'Your tier is calculated instantly from your combined follower count.' },
+                  { step: '3', title: 'Browse & apply to campaigns', desc: 'Filter by category, budget, and requirements. Apply with one click.' },
+                  { step: '4', title: 'Complete & submit proof', desc: 'Do the campaign work and upload your proof of completion.' },
+                  { step: '5', title: 'Get paid in crypto', desc: 'Once approved, funds go directly to your wallet in USDT or TON.' },
+                ].map(s => (
+                  <div key={s.step} className="flex gap-4 items-start">
+                    <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">{s.step}</div>
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">{s.title}</div>
+                      <div className="text-gray-500 text-xs mt-0.5">{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Brands */}
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-black">B</div>
+                <h3 className="text-xl font-black text-gray-900">For Brands</h3>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { step: '1', title: 'Create a brand account', desc: 'Set up your company profile and verify your business.' },
+                  { step: '2', title: 'Launch a campaign', desc: 'Define goals, budget, content requirements, and deadline.' },
+                  { step: '3', title: 'Review creator applications', desc: 'Browse applicants filtered by tier, niche, and reach.' },
+                  { step: '4', title: 'Approve & collaborate', desc: 'Approve creators, chat directly, and track progress in real-time.' },
+                  { step: '5', title: 'Verify & process payment', desc: 'Approve submitted proof and release payment through the platform.' },
+                ].map(s => (
+                  <div key={s.step} className="flex gap-4 items-start">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">{s.step}</div>
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">{s.title}</div>
+                      <div className="text-gray-500 text-xs mt-0.5">{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Trust & Security ── */}
+      <div className="py-16 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black text-gray-900 mb-2">Built on Trust & Security</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm">Every layer of Taskdrip is designed to protect creators and brands alike.</p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-6">
+            {[
+              { icon: Shield, title: 'KYC Verification', desc: 'Optional identity verification for creators and brands unlocks higher campaign limits and builds mutual trust.', color: 'text-blue-600', bg: 'bg-blue-50' },
+              { icon: Lock, title: 'Non-Custodial Payments', desc: 'We never hold your crypto. Admin-managed cold wallets process payouts directly — your funds, your control.', color: 'text-green-600', bg: 'bg-green-50' },
+              { icon: Star, title: 'Review System', desc: 'Every completed campaign can be reviewed by both parties. Reputation scores are public and build over time.', color: 'text-amber-600', bg: 'bg-amber-50' },
+            ].map(item => (
+              <div key={item.title} className="bg-white rounded-2xl border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+                <div className={`w-14 h-14 ${item.bg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                  <item.icon className={`w-7 h-7 ${item.color}`} />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CTA ── */}
+      <div className="relative overflow-hidden py-24">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a] via-purple-950 to-[#0f0f1a]" />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 50% 50%, rgba(124,58,237,0.4) 0%, transparent 70%)' }} />
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Flame className="w-14 h-14 text-purple-400 mx-auto mb-5" />
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-5">
+            Ready to Turn Your Influence<br />Into Crypto Income?
+          </h2>
+          <p className="text-gray-300 text-lg mb-10 leading-relaxed">
+            Join thousands of verified creators and hundreds of brands already building the future of influencer marketing on Taskdrip.
           </p>
-          <div className="flex justify-center space-x-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link href="/signup">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-100">
-                Get Started Today
+              <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-2xl shadow-purple-500/40 px-10 font-bold text-base">
+                Create Your Account <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>
             <Link href="/campaigns">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-black">
-                Browse Tasks
+              <Button size="lg" className="bg-white/10 border border-white/30 text-white hover:bg-white/20 px-10 font-bold text-base backdrop-blur-sm">
+                Browse Live Campaigns
               </Button>
             </Link>
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }
