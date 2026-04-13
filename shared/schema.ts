@@ -88,6 +88,9 @@ export const users = pgTable("users", {
   referralCodeCreator: varchar("referral_code_creator").unique(), // Code for inviting creators
   referralCodeBrand: varchar("referral_code_brand").unique(), // Code for inviting brands
   totalReferrals: integer("total_referrals").default(0),
+  referralBonusEarned: decimal("referral_bonus_earned", { precision: 10, scale: 2 }).default("0.00"),
+  // Privacy settings
+  messagePrivacy: varchar("message_privacy").default("everyone"), // 'everyone', 'followers', 'nobody'
   // Brand ranking (for brands): 'bronze', 'silver', 'gold'
   brandRank: varchar("brand_rank").default("bronze"),
   totalTransactionVolume: decimal("total_transaction_volume", { precision: 12, scale: 2 }).default("0.00"),

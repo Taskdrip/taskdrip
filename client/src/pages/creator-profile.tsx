@@ -277,6 +277,13 @@ export default function CreatorProfile() {
     enabled: !!id && isAuthenticated,
   });
 
+  const { data: canMessageData } = useQuery<{ canMessage: boolean; reason: string | null }>({
+    queryKey: [`/api/users/${id}/can-message`],
+    enabled: !!id && isAuthenticated,
+  });
+  const canMessage = canMessageData?.canMessage ?? true;
+  const messageBlockedReason = canMessageData?.reason || null;
+
   const { data: adminPlatforms = [] } = useQuery<any[]>({ queryKey: ['/api/social-platforms'] });
 
   const followMutation = useMutation({
@@ -486,10 +493,17 @@ export default function CreatorProfile() {
                           data-testid="follow-btn">
                           {isFollowing ? <><UserCheck className="w-4 h-4 mr-1.5" />Following</> : <><UserPlus className="w-4 h-4 mr-1.5" />Follow</>}
                         </Button>
-                        <Button variant="outline" onClick={() => navigate(`/chat?to=${id}`)}
-                          className="border-purple-200 text-purple-600 hover:bg-purple-50" data-testid="message-btn">
-                          <MessageCircle className="w-4 h-4 mr-1.5" /> Message
-                        </Button>
+                        {canMessage ? (
+                          <Button variant="outline" onClick={() => navigate(`/chat?to=${id}`)}
+                            className="border-purple-200 text-purple-600 hover:bg-purple-50" data-testid="message-btn">
+                            <MessageCircle className="w-4 h-4 mr-1.5" /> Message
+                          </Button>
+                        ) : (
+                          <Button variant="outline" disabled title={messageBlockedReason || 'Messaging not available'}
+                            className="border-gray-200 text-gray-400 cursor-not-allowed" data-testid="message-btn-disabled">
+                            <MessageCircle className="w-4 h-4 mr-1.5" /> Message
+                          </Button>
+                        )}
                       </>
                     )}
                     {isOwnProfile && (

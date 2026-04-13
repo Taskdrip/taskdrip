@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals } from "@shared/schema";
 import { db } from "./db";
-import { desc, sql, eq } from "drizzle-orm";
+import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcrypt";
@@ -1305,6 +1305,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionUrl: `/wallet`,
           relatedId: submission.id,
         });
+
+        // ── Referral $100 activity bonus ─────────────────────────────
+        try {
+          const creatorUser = await storage.getUser(submission.userId);
+          if (creatorUser) {
+            const totalActivity = parseFloat(creatorUser.totalEarned as any || '0') + parseFloat(creatorUser.totalTransactionVolume as any || '0');
+            if (totalActivity >= 100) {
+              const userReferral = await storage.getReferralByReferredId(submission.userId);
+              if (userReferral && userReferral.status === 'converted') {
+                const referrer = await storage.getUser(userReferral.referrerId);
+                if (referrer) {
+                  const newBonus = parseFloat(referrer.referralBonusEarned as any || '0') + 10;
+                  const newBalance = parseFloat(referrer.availableBalance as any || '0') + 10;
+                  await storage.updateUserProfile(referrer.id, {
+                    referralBonusEarned: newBonus.toFixed(2) as any,
+                    availableBalance: newBalance.toFixed(2) as any,
+                  });
+                  await db.update(referrals).set({ status: 'rewarded' }).where(eq(referrals.id, userReferral.id));
+                  await storage.createNotification({
+                    userId: referrer.id,
+                    type: 'referral_bonus',
+                    title: '🎉 Referral Activity Bonus — $10 Earned!',
+                    content: `Someone you referred has earned or spent over $100 on Taskdrip! You've earned an extra $10 bonus, now added to your available balance.`,
+                    actionUrl: '/referrals',
+                    priority: 'high',
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) { /* non-fatal */ }
       }
 
       res.json(submission);
@@ -2696,6 +2727,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: 'high',
       });
 
+      // ── Referral premium bonus ($5) ──────────────────────────────────
+      try {
+        const userReferral = await storage.getReferralByReferredId(sub.userId);
+        if (userReferral && userReferral.status === 'pending') {
+          const referrer = await storage.getUser(userReferral.referrerId);
+          if (referrer) {
+            const newBonus = parseFloat(referrer.referralBonusEarned as any || '0') + 5;
+            const newBalance = parseFloat(referrer.availableBalance as any || '0') + 5;
+            await storage.updateUserProfile(referrer.id, {
+              referralBonusEarned: newBonus.toFixed(2) as any,
+              availableBalance: newBalance.toFixed(2) as any,
+            });
+            await db.update(referrals).set({ status: 'converted' }).where(eq(referrals.id, userReferral.id));
+            await storage.createNotification({
+              userId: referrer.id,
+              type: 'referral_bonus',
+              title: '💰 Referral Bonus — $5 Earned!',
+              content: `Someone you referred just upgraded to Premium! You've earned a $5 referral bonus. It has been added to your available balance.`,
+              actionUrl: '/referrals',
+              priority: 'high',
+            });
+          }
+        }
+      } catch (e) { /* referral bonus errors are non-fatal */ }
+
       res.json(sub);
     } catch (error) {
       res.status(500).json({ message: "Failed to approve subscription" });
@@ -2841,15 +2897,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/referrals/my', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      const referrals = await storage.getReferralsByReferrer(req.user.id);
+      const rawReferrals = await storage.getReferralsByReferrer(req.user.id);
+      // Enrich each referral with referred user details
+      const enriched = await Promise.all(rawReferrals.map(async (ref) => {
+        const referred = await storage.getUser(ref.referredId);
+        const isFollowing = referred ? await storage.isFollowing(req.user.id, referred.id) : false;
+        const { password: _, ...safeUser } = referred || { password: '' } as any;
+        return {
+          ...ref,
+          referredUser: referred ? safeUser : null,
+          isFollowingReferred: isFollowing,
+        };
+      }));
       res.json({
         referralCodeCreator: user?.referralCodeCreator,
         referralCodeBrand: user?.referralCodeBrand,
         totalReferrals: user?.totalReferrals || 0,
-        referrals,
+        referralBonusEarned: user?.referralBonusEarned || '0.00',
+        referrals: enriched,
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch referrals" });
+    }
+  });
+
+  // ── Check if current user can DM a target user ─────────────────────
+  app.get('/api/users/:id/can-message', isAuthenticated, async (req: any, res) => {
+    try {
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "User not found" });
+      const privacy = target.messagePrivacy || 'everyone';
+      if (privacy === 'everyone') return res.json({ canMessage: true, reason: null });
+      if (privacy === 'nobody') return res.json({ canMessage: false, reason: 'This user is not accepting direct messages.' });
+      // 'followers' — only people they follow back (mutual) OR following them
+      const isFollowing = await storage.isFollowing(req.user.id, target.id);
+      if (isFollowing) return res.json({ canMessage: true, reason: null });
+      return res.json({ canMessage: false, reason: 'This user only accepts messages from people they follow.' });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check message permission" });
+    }
+  });
+
+  // ── Update message privacy setting ──────────────────────────────────
+  app.patch('/api/users/:id/message-privacy', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.id !== req.params.id) return res.status(403).json({ message: "Forbidden" });
+      const { messagePrivacy } = req.body;
+      if (!['everyone', 'followers', 'nobody'].includes(messagePrivacy)) {
+        return res.status(400).json({ message: "Invalid privacy setting" });
+      }
+      await storage.updateUserProfile(req.user.id, { messagePrivacy });
+      res.json({ messagePrivacy });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update message privacy" });
     }
   });
 

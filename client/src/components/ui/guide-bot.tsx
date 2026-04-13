@@ -6,12 +6,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { getTierFromFollowers, getTierConfig, formatFollowers } from "@/lib/tiers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
-  Bot, X, Send, ChevronDown, Sparkles, BookOpen, ShoppingBag,
+  Bot, X, Send, Sparkles, BookOpen, ShoppingBag,
   TrendingUp, CheckCircle, AlertCircle, MessageSquare, Inbox,
-  Users, Star, Zap, ExternalLink
+  Users, Star, Zap, Building2, Target, BarChart3, Award, Mic
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -30,7 +29,48 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-function analyzeProfile(user: any, socialLinks: any[]): Recommendation[] {
+// ── Brand profile analysis ────────────────────────────────────────────────
+function analyzeBrandProfile(user: any): Recommendation[] {
+  const recs: Recommendation[] = [];
+  const hasLogo = !!user?.profileImageUrl;
+  const hasBio = !!(user?.bio && user.bio.length > 20);
+  const hasWebsite = !!user?.website;
+  const hasIndustry = !!user?.industry;
+  const hasCompanyName = !!user?.companyName;
+  const isPremium = user?.subscriptionStatus === 'active';
+  const brandRank = user?.brandRank || 'bronze';
+  const totalVolume = parseFloat(user?.totalTransactionVolume || '0');
+
+  if (!hasCompanyName) {
+    recs.push({ type: "warning", icon: Building2, title: "Add your company name", description: "Creators want to know who they're working with. Add your company name so your brand stands out in campaign listings.", action: { label: "Edit Profile", href: "/profile-edit" } });
+  }
+  if (!hasLogo) {
+    recs.push({ type: "warning", icon: AlertCircle, title: "Upload your brand logo", description: "Brands with logos get 3× more creator applications. Upload your logo to build trust with top influencers.", action: { label: "Update Profile", href: "/profile-edit" } });
+  }
+  if (!hasBio) {
+    recs.push({ type: "warning", icon: AlertCircle, title: "Write your brand description", description: "A clear brand bio helps creators understand your values, target audience, and campaign style — leading to better-fit applications.", action: { label: "Add Description", href: "/profile-edit" } });
+  }
+  if (!hasWebsite) {
+    recs.push({ type: "info", icon: Star, title: "Add your website URL", description: "Adding your website increases creator confidence in your legitimacy and boosts your brand credibility score.", action: { label: "Add Website", href: "/profile-edit" } });
+  }
+  if (!hasIndustry) {
+    recs.push({ type: "info", icon: Target, title: "Set your industry", description: "Setting your industry helps us match your brand with influencers in the right niche — driving better campaign results.", action: { label: "Set Industry", href: "/profile-edit" } });
+  }
+  if (!isPremium) {
+    recs.push({ type: "action", icon: Zap, title: "Upgrade to Brand Premium", description: "Premium brands unlock verified badges, priority creator matching, unlimited campaigns, and advanced analytics. Stand out from free accounts.", action: { label: "View Plans", href: "/subscription" } });
+  }
+  recs.push({ type: "action", icon: TrendingUp, title: "Launch your first campaign", description: "Connect with the right creators for your brand. Set your budget, define requirements, and start receiving applications within minutes.", action: { label: "Create Campaign", href: "/campaigns/create" } });
+  if (totalVolume > 0) {
+    recs.push({ type: "success", icon: CheckCircle, title: `$${totalVolume.toFixed(0)} in campaign spend`, description: `Your investment in influencer marketing is building brand awareness. Keep running campaigns to track ROI and discover your best-performing creators.`, action: { label: "View Campaigns", href: "/campaigns" } });
+  }
+  if (brandRank === 'gold') {
+    recs.push({ type: "success", icon: Award, title: "🥇 Gold Brand Status", description: "You've reached the highest brand tier. Your campaigns are featured first to top-tier creators. Keep spending to maintain your elite status.", action: { label: "Manage Campaigns", href: "/campaigns" } });
+  }
+  return recs;
+}
+
+// ── Creator profile analysis ──────────────────────────────────────────────
+function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] {
   const recs: Recommendation[] = [];
   const totalFollowers = user?.totalFollowers || 0;
   const tier = getTierFromFollowers(totalFollowers);
@@ -41,177 +81,170 @@ function analyzeProfile(user: any, socialLinks: any[]): Recommendation[] {
   const hasLocation = !!user?.location;
   const hasNiche = !!user?.niche;
   const hasSocialLinks = socialLinks.length > 0 || totalFollowers > 0;
+  const niche = user?.niche || 'your niche';
 
   if (tier === "newcomer" || tier === "aspiring") {
     recs.push({
-      type: "action",
-      icon: BookOpen,
-      title: "Grow your audience with BreedSkool",
-      description: `You currently have ${formatFollowers(totalFollowers)} followers. Join BreedSkool to learn proven strategies to grow your social media following and unlock influencer earning tiers (Rising Sparks requires 10K+ followers).`,
+      type: "action", icon: BookOpen,
+      title: "Build your audience with BreedSkool",
+      description: `You have ${formatFollowers(totalFollowers)} followers so far. BreedSkool has free and paid courses on growing your ${niche} audience, viral content creation, and unlocking your first brand deals (Rising Sparks requires 10K+ followers).`,
       action: { label: "Visit BreedSkool", href: "/breedskool" },
     });
   }
-
   if (!hasProfileImage) {
-    recs.push({
-      type: "warning",
-      icon: AlertCircle,
-      title: "Add a profile photo",
-      description: "Profiles with photos get 3x more campaign invitations. Upload a clear, professional headshot to stand out to brands.",
-      action: { label: "Update Profile", href: "/profile-edit" },
-    });
+    recs.push({ type: "warning", icon: AlertCircle, title: "Add a profile photo", description: "Profiles with photos get 3× more campaign invitations. Upload a clear, professional photo to stand out to brands.", action: { label: "Update Profile", href: "/profile-edit" } });
   }
-
   if (!hasBio) {
-    recs.push({
-      type: "warning",
-      icon: AlertCircle,
-      title: "Complete your bio",
-      description: "A compelling bio helps brands understand your niche and expertise. Aim for at least 2–3 sentences describing your content style and audience.",
-      action: { label: "Edit Bio", href: "/profile-edit" },
-    });
+    recs.push({ type: "warning", icon: AlertCircle, title: "Write your creator bio", description: "A compelling bio tells brands what you create, who your audience is, and why they should work with you. Aim for 2–3 engaging sentences.", action: { label: "Edit Bio", href: "/profile-edit" } });
   }
-
   if (!hasNiche) {
-    recs.push({
-      type: "info",
-      icon: Star,
-      title: "Select your content niche",
-      description: "Setting a niche helps match you with relevant brand campaigns. Influencers with a niche earn 40% more on average.",
-      action: { label: "Set Niche", href: "/profile-edit" },
-    });
+    recs.push({ type: "info", icon: Star, title: "Select your content niche", description: "Creators with a defined niche earn 40% more on average because brands target them for relevant campaigns. Set yours in Profile Settings.", action: { label: "Set Niche", href: "/profile-edit" } });
   }
-
   if (!hasSocialLinks) {
-    recs.push({
-      type: "warning",
-      icon: Users,
-      title: "Connect your social channels",
-      description: "Add your social media handles and follower counts so brands can see your reach. This unlocks higher-paying campaigns.",
-      action: { label: "Add Channels", href: "/profile-edit" },
-    });
+    recs.push({ type: "warning", icon: Users, title: "Connect your social channels", description: "Add your social media handles and follower counts so brands see your full reach. More platforms = higher-value campaigns.", action: { label: "Add Channels", href: "/profile-edit" } });
   }
-
   if (completedCampaigns === 0 && totalFollowers >= 10_000) {
-    recs.push({
-      type: "action",
-      icon: TrendingUp,
-      title: "Join your first campaign",
-      description: "You have enough followers to start earning! Browse active campaigns and submit your first application today.",
-      action: { label: "Browse Campaigns", href: "/campaigns" },
-    });
-  } else if (completedCampaigns > 0) {
-    recs.push({
-      type: "success",
-      icon: CheckCircle,
-      title: `${completedCampaigns} campaign${completedCampaigns > 1 ? 's' : ''} completed`,
-      description: `Great work! Keep completing campaigns to level up your profile score and unlock premium brand deals.`,
-      action: { label: "Find More", href: "/campaigns" },
-    });
+    recs.push({ type: "action", icon: TrendingUp, title: "Join your first campaign", description: "You have enough followers to start earning! Browse active campaigns matching your niche and submit your first application today.", action: { label: "Browse Campaigns", href: "/campaigns" } });
+  } else if (completedCampaigns > 0 && completedCampaigns < 5) {
+    recs.push({ type: "success", icon: CheckCircle, title: `${completedCampaigns} campaign${completedCampaigns > 1 ? 's' : ''} completed — keep going!`, description: "Complete 5+ campaigns to earn a Verified Creator badge and unlock premium brand partnerships.", action: { label: "Find More", href: "/campaigns" } });
+  } else if (completedCampaigns >= 5) {
+    recs.push({ type: "success", icon: CheckCircle, title: "Verified creator — great work!", description: `${completedCampaigns} campaigns completed. Brands love your track record. Keep your rates updated and explore exclusive high-budget deals.`, action: { label: "Manage Campaigns", href: "/campaigns" } });
   }
-
-  if (totalFollowers > 0 && tierConf.breedskoolRecommend === false && completedCampaigns < 5) {
-    recs.push({
-      type: "info",
-      icon: ShoppingBag,
-      title: "Explore creator tools in the Shop",
-      description: "Boost your content quality with tools, templates, and resources available in the Taskdrip shop.",
-      action: { label: "Visit Shop", href: "/shop" },
-    });
+  if (tier === "power_influencers" || tier === "global_titans") {
+    recs.push({ type: "action", icon: Mic, title: "Share your expertise — create a course", description: `As a ${tierConf.name} with ${formatFollowers(totalFollowers)} followers, newer creators look up to you! Create a BreedSkool course and earn passive income teaching ${niche} growth strategies.`, action: { label: "Create a Course", href: "/breedskool" } });
   }
-
   if (tier === "rising_sparks" || tier === "growth_engines") {
-    recs.push({
-      type: "info",
-      icon: Zap,
-      title: `You're a ${tierConf.name}!`,
-      description: `Your ${formatFollowers(totalFollowers)} total followers put you in the ${tierConf.name} tier. ${tier === "rising_sparks" ? "Reach 100K followers to become a Growth Engine and unlock premium campaigns." : "Reach 1M followers to become a Power Influencer with top-tier brand deals."}`,
-    });
+    recs.push({ type: "info", icon: Zap, title: `You're a ${tierConf.name} ${tierConf.icon}`, description: `${formatFollowers(totalFollowers)} followers puts you in an active tier. ${tier === "rising_sparks" ? "Reach 100K followers to become a Growth Engine and unlock premium campaigns." : "Reach 1M followers to join Power Influencers — the top 1% of creators."}` });
   }
-
+  if (totalFollowers > 0 && (tier !== "newcomer" && tier !== "aspiring") && completedCampaigns < 5) {
+    recs.push({ type: "info", icon: ShoppingBag, title: "Explore creator tools in the Shop", description: "Boost your content with templates, editing presets, and marketing guides from the Taskdrip Shop.", action: { label: "Visit Shop", href: "/shop" } });
+  }
+  if (!hasLocation) {
+    recs.push({ type: "info", icon: Star, title: "Add your location", description: "Some brands specifically target creators in certain regions. Adding your location improves campaign matching.", action: { label: "Edit Profile", href: "/profile-edit" } });
+  }
   return recs;
 }
 
-function getBotResponse(message: string, user: any, socialLinks: any[]): string {
+// ── Brand chat responses ──────────────────────────────────────────────────
+function getBrandBotResponse(message: string, user: any): string {
+  const lower = message.toLowerCase();
+  const company = user?.companyName || user?.firstName || 'there';
+  const rank = user?.brandRank || 'bronze';
+  const volume = parseFloat(user?.totalTransactionVolume || '0');
+
+  if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+    return `Hey ${company}! 👋 I'm your Taskdrip Brand Advisor. I'm here to help you find the right creators, launch effective campaigns, and maximize your influencer marketing ROI. What can I help you with today?`;
+  }
+  if (lower.includes("influencer") || lower.includes("creator") || lower.includes("find")) {
+    return `Finding the right creator is key! Here's how:\n\n🔍 **Browse Creators** — Visit /influencers to filter by niche, follower count, and tier\n🎯 **Post a Campaign** — Active creators apply directly to your campaign\n⭐ **Creator Tiers** — Rising Sparks (10K–100K), Growth Engines (100K–1M), Power Influencers (1M–10M), Global Titans (10M+)\n\nFor best results, match your campaign budget to the creator's tier. Want me to explain the tier system in more detail?`;
+  }
+  if (lower.includes("campaign") || lower.includes("launch") || lower.includes("create")) {
+    return `Launching a campaign is straightforward:\n\n1️⃣ Go to /campaigns/create\n2️⃣ Set your title, description, and platform target\n3️⃣ Define creator requirements (minimum followers, niche, etc.)\n4️⃣ Set your reward per creator and total slots\n5️⃣ Fund the campaign (crypto payment) to go live\n\nCreators in your target niche will start applying! You review applications and approve the best fits.`;
+  }
+  if (lower.includes("roi") || lower.includes("return") || lower.includes("result") || lower.includes("analytics")) {
+    return `Tracking ROI from influencer campaigns:\n\n📊 **Track completions** — Monitor how many creators completed your campaign\n💰 **Compare spend vs. reach** — Review total follower reach vs. campaign spend\n🔗 **Use trackable links** — Add UTM parameters to your campaign links\n📈 **Repeat top performers** — Message high-performing creators for follow-up deals\n\nBrands that run 3+ campaigns typically see 2–4× better ROI as they refine their creator selection.`;
+  }
+  if (lower.includes("budget") || lower.includes("cost") || lower.includes("price") || lower.includes("pay")) {
+    return `Campaign budgets by tier:\n\n🌱 **Rising Sparks** (10K–100K followers): $50–$200 per creator\n⚡ **Growth Engines** (100K–1M): $200–$1,000 per creator\n🔥 **Power Influencers** (1M–10M): $1,000–$5,000 per creator\n👑 **Global Titans** (10M+): $5,000+ negotiated\n\nFor new brands, we recommend starting with Rising Sparks creators — great engagement at accessible budgets. Want tips on negotiating with creators?`;
+  }
+  if (lower.includes("premium") || lower.includes("upgrade") || lower.includes("plan")) {
+    return `Premium Brand benefits include:\n\n✅ **Verified Brand badge** — Creators trust you immediately\n🚀 **Priority listing** — Your campaigns appear first to top creators\n📊 **Advanced analytics** — Detailed creator performance data\n🎯 **Unlimited campaigns** — No slot restrictions\n💬 **Priority support** — Dedicated account manager\n\nYour current rank: **${rank.charAt(0).toUpperCase() + rank.slice(1)}**. Upgrade at /subscription to unlock these advantages.`;
+  }
+  if (lower.includes("niche") || lower.includes("category") || lower.includes("industry")) {
+    return `Matching your brand with the right niche is critical for conversions:\n\n🎮 **Gaming** — Best for tech products, energy drinks, gaming peripherals\n💄 **Beauty/Fashion** — Skincare, cosmetics, clothing brands\n💪 **Fitness** — Supplements, sportswear, wellness products\n📱 **Tech** — Apps, gadgets, software tools\n✈️ **Travel** — Hotels, luggage, travel apps\n\nSet your industry in Profile Settings so creators know you're a great match for their audience.`;
+  }
+  if (lower.includes("help") || lower.includes("what can")) {
+    return `As your Brand Advisor, I can help with:\n\n🏢 **Profile setup** — "How do I set up my brand profile?"\n🎯 **Finding creators** — "How do I find the right influencers?"\n📣 **Campaign creation** — "How do I launch a campaign?"\n💰 **Budget guidance** — "How much should I pay creators?"\n📊 **ROI tracking** — "How do I measure campaign success?"\n⬆️ **Upgrading** — "What does brand premium include?"\n\nJust ask!`;
+  }
+  return `Great question! As a ${rank} brand with ${volume > 0 ? `$${volume.toFixed(0)} in campaign history` : 'no campaigns yet'}, my top suggestion is: ${volume === 0 ? 'launch your first campaign to start connecting with creators who are ready to promote your brand.' : 'review your best-performing creators and invite them to your next campaign for even better results.'} Is there anything specific I can help you with?`;
+}
+
+// ── Creator chat responses ────────────────────────────────────────────────
+function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): string {
   const lower = message.toLowerCase();
   const totalFollowers = user?.totalFollowers || 0;
   const tier = getTierFromFollowers(totalFollowers);
   const tierConf = getTierConfig(tier);
+  const niche = user?.niche || 'your niche';
+  const firstName = user?.firstName || 'there';
 
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return `Hey ${user?.firstName || "there"}! 👋 I'm your Taskdrip Guide. I'm here to help you maximize your influence and earnings on the platform. Ask me anything — or check the Recommendations tab to see personalized tips for your profile!`;
+    const isPowerUser = tier === 'power_influencers' || tier === 'global_titans';
+    return isPowerUser
+      ? `Welcome back, ${firstName}! 🌟 As a ${tierConf.name}, you're among the elite. I can help you find premium brand deals, mentor new creators, or even launch your own course. What's on your mind?`
+      : `Hey ${firstName}! 👋 I'm your Taskdrip Guide. I analyze your profile to give you personalized tips for growing your influence and earnings. Check the Recommendations tab, or ask me anything!`;
   }
-
   if (lower.includes("tier") || lower.includes("rank") || lower.includes("level")) {
-    return `You're currently a **${tierConf.name}** ${tierConf.icon} with ${formatFollowers(totalFollowers)} total followers. ${
-      tier === "newcomer" ? "Visit BreedSkool to learn how to grow your audience and reach the Rising Sparks tier (10K+ followers)."
-      : tier === "aspiring" ? `You need ${formatFollowers(10_000 - totalFollowers)} more followers to reach Rising Sparks. Keep creating content and use BreedSkool strategies!`
-      : tier === "rising_sparks" ? `You need ${formatFollowers(100_000 - totalFollowers)} more followers to become a Growth Engine.`
-      : tier === "growth_engines" ? `Impressive! You need ${formatFollowers(1_000_000 - totalFollowers)} more followers to become a Power Influencer.`
-      : tier === "power_influencers" ? `Outstanding reach! Power Influencers have access to premium brand deals. Keep growing!`
-      : `You're a Global Titan — the pinnacle of influence on Taskdrip! 👑`
+    const needed = tier === 'newcomer' ? 10_000 - totalFollowers : tier === 'aspiring' ? 10_000 - totalFollowers : tier === 'rising_sparks' ? 100_000 - totalFollowers : tier === 'growth_engines' ? 1_000_000 - totalFollowers : tier === 'power_influencers' ? 10_000_000 - totalFollowers : 0;
+    return `You're currently **${tierConf.name}** ${tierConf.icon} with ${formatFollowers(totalFollowers)} followers. ${
+      tier === 'newcomer' || tier === 'aspiring' ? `You need ${formatFollowers(needed)} more followers to reach Rising Sparks and unlock campaign earnings. BreedSkool has proven strategies for your ${niche} niche!`
+      : tier === 'rising_sparks' ? `You need ${formatFollowers(needed)} more followers to become a Growth Engine. Focus on consistency and engagement in your ${niche} content.`
+      : tier === 'growth_engines' ? `${formatFollowers(needed)} more followers to become a Power Influencer — that's top 2% globally. Premium brands are watching!`
+      : tier === 'power_influencers' ? `${formatFollowers(needed)} more followers to become a Global Titan. You're already attracting premium brand deals. Consider launching a course!`
+      : `You're a Global Titan 👑 — the pinnacle of influence. Your profile is visible to the world's top brands. Time to share your knowledge by creating a BreedSkool course!`
     }`;
   }
-
-  if (lower.includes("earn") || lower.includes("money") || lower.includes("campaign")) {
+  if (lower.includes("earn") || lower.includes("money") || lower.includes("campaign") || lower.includes("paid")) {
     if (totalFollowers < 10_000) {
-      return `To start earning through campaigns, you'll need at least 10,000 followers (Rising Sparks tier). I recommend visiting **BreedSkool** to learn growth strategies! Once you hit 10K, browse campaigns and apply to ones that match your niche.`;
+      return `To earn through campaigns, you'll need at least 10,000 followers (Rising Sparks tier). Focus on growing your ${niche} audience first — BreedSkool has targeted courses for this. Once you hit 10K, you'll unlock campaign applications!`;
     }
-    return `Great question! Here's how to maximize earnings:\n\n1. **Complete more campaigns** — each one builds your reputation\n2. **Negotiate rates** — update your content rate card in Profile Settings\n3. **Engage with your audience** — higher engagement = premium brand deals\n4. **Diversify platforms** — add more social channels to your profile\n\nHead to /campaigns to see what's available right now!`;
+    if (tier === 'power_influencers' || tier === 'global_titans') {
+      return `At your level, you can maximize earnings in multiple ways:\n\n🎯 **Premium campaigns** — Your tier unlocks $1,000–$5,000+ per campaign\n📚 **Create a course** — Teach ${niche} strategies on BreedSkool and earn passive income\n💰 **Update your rate card** — Make sure your content rates reflect your massive reach\n🤝 **Brand partnerships** — Negotiate long-term deals, not just one-off campaigns\n\nYou're a top creator — brands will pay a premium for authenticity.`;
+    }
+    return `Here's how to maximize your earnings as a ${tierConf.name}:\n\n1️⃣ **Complete campaigns** — Each builds your reputation and review score\n2️⃣ **Set competitive rates** — Update your content rate card in Profile Settings\n3️⃣ **Engage consistently** — Higher engagement = better campaign invitations\n4️⃣ **Diversify platforms** — More channels = higher total followers = better tier\n\nHead to /campaigns to see ${niche} opportunities right now!`;
   }
-
   if (lower.includes("breedskool") || lower.includes("course") || lower.includes("learn")) {
-    return `BreedSkool is Taskdrip's learning platform where you can take courses on growing your social media presence, content creation, and influencer marketing. ${totalFollowers < 10_000 ? "Since you're still building your audience, this is the perfect place to start! " : ""}Visit /breedskool to see all available courses. Some are free!`;
+    if (tier === 'power_influencers' || tier === 'global_titans') {
+      return `BreedSkool is where emerging creators learn — and where you can teach! 🎓 With your ${formatFollowers(totalFollowers)} following, you have real-world experience that beginners are dying to learn from. Creating a course earns you passive income and builds your personal brand further. Visit /breedskool to set up your instructor profile.`;
+    }
+    return `BreedSkool is Taskdrip's learning hub! ${totalFollowers < 10_000 ? `Since you're building your ${niche} audience, it's the perfect starting point. ` : ''}You'll find courses on content strategy, audience growth, brand deals, and more. ${totalFollowers < 10_000 ? 'Several courses are specifically for beginners — ' : ''}Visit /breedskool to explore!`;
   }
-
   if (lower.includes("follower") || lower.includes("grow") || lower.includes("audience")) {
-    return `Growing your audience takes consistency! Here are proven tips:\n\n• **Post consistently** — at least 4–5 times per week\n• **Engage with comments** — reply to every comment in the first hour\n• **Use trending hashtags** — research what's working in your niche\n• **Collaborate** — cross-promote with other creators\n• **Optimize posting times** — post when your audience is most active\n\nCheck out BreedSkool for in-depth courses on each of these strategies!`;
+    return `Growing your ${niche} audience — proven tactics:\n\n📅 **Post consistently** — 4–5 times per week minimum\n💬 **Engage every comment** — Reply in the first hour for algorithm boost\n🔥 **Use trending formats** — Reels, TikTok, YouTube Shorts get 5× reach\n🤝 **Collaborate** — Cross-promotions with creators in adjacent niches\n⏰ **Post at peak times** — Analyze when your audience is most active\n\n${(tier === 'newcomer' || tier === 'aspiring') ? 'Check out BreedSkool for in-depth courses on each of these strategies!' : 'Your experience in these areas is valuable — consider sharing it as a BreedSkool course!'}`;
   }
-
+  if (lower.includes("course") || lower.includes("teach") || lower.includes("instructor")) {
+    if (tier === 'power_influencers' || tier === 'global_titans') {
+      return `Yes! As a ${tierConf.name}, you're in a prime position to create courses. Here's how:\n\n📚 Visit /breedskool → "Create Course"\n🎯 Choose your topic (${niche} growth, content strategy, monetization)\n🎬 Record your lessons (video, text, or both)\n💰 Set your price or make it free for exposure\n📣 Promote to your ${formatFollowers(totalFollowers)} followers — they already trust you!\n\nMany top creators earn $2,000–$20,000/month from their courses.`;
+    }
+    return `BreedSkool courses are currently available for Power Influencers (1M+ followers) and above to create. You're on your way! Once you reach that milestone, you'll be able to create courses and earn passive income sharing your ${niche} expertise.`;
+  }
   if (lower.includes("profile") || lower.includes("bio") || lower.includes("setup")) {
     const missing = [];
     if (!user?.profileImageUrl) missing.push("profile photo");
     if (!user?.bio || user.bio.length < 20) missing.push("detailed bio");
     if (!user?.niche) missing.push("content niche");
     if (!user?.location) missing.push("location");
-
-    if (missing.length === 0) {
-      return `Your profile looks great! You have a complete profile with photo, bio, niche, and location. This puts you at the top of brand search results. Keep it updated as you grow! 🌟`;
-    }
-    return `Your profile is missing: **${missing.join(", ")}**. A complete profile gets up to 5x more brand invitations. Head to /profile-edit to fill these in — it takes less than 5 minutes!`;
+    if (missing.length === 0) return `Your profile looks great, ${firstName}! ✨ Complete profile with photo, bio, niche, and location — you're top of brand search results. Keep it updated as you grow!`;
+    return `Hi ${firstName}, your profile is missing: **${missing.join(", ")}**. A complete profile gets up to 5× more brand invitations. Head to /profile-edit — it takes less than 5 minutes!`;
   }
-
-  if (lower.includes("social") || lower.includes("channel") || lower.includes("link")) {
-    return `Adding all your social channels helps brands understand your total reach. Go to **Profile Settings** → **Social Channels** tab to:\n\n• Add TikTok, Instagram, YouTube, Twitter handles\n• Enter your follower counts for each platform\n• Add custom channels (Discord, Snapchat, etc.)\n\nYour combined follower count determines your tier ranking!`;
-  }
-
-  if (lower.includes("tip") || lower.includes("donate") || lower.includes("support")) {
-    return `The Tip feature lets fans and brands send you direct payments as a show of appreciation for your content. When you post to the Feed, viewers can click the gift icon to tip you through Taskdrip's checkout system. Make sure your posts are engaging and valuable to encourage tips!`;
-  }
-
-  if (lower.includes("shop") || lower.includes("product")) {
-    return `The Taskdrip Shop has creator tools, templates, and resources to level up your content. Whether you need editing presets, social media templates, or marketing guides, check out /shop for available products!`;
-  }
-
   if (lower.includes("help") || lower.includes("what can you")) {
-    return `I can help you with:\n\n🎯 **Profile optimization** — "How do I improve my profile?"\n📈 **Tier progression** — "How do I level up?"\n💰 **Earnings** — "How do I earn more?"\n🎓 **Learning** — "What courses should I take?"\n👥 **Growing followers** — "How do I grow my audience?"\n📱 **Social channels** — "How do I add my channels?"\n\nJust ask me anything!`;
+    return `I can help you with:\n\n📈 **Growing followers** — "How do I grow my ${niche} audience?"\n🎯 **Tier progression** — "How do I reach the next tier?"\n💰 **Earnings** — "How do I earn more?"\n🎓 **BreedSkool** — "Should I take a course?"\n${(tier === 'power_influencers' || tier === 'global_titans') ? '📚 **Teaching** — "How do I create a course?"\n' : ''}👤 **Profile** — "How do I improve my profile?"\n📱 **Social channels** — "How do I add my channels?"\n\nJust ask!`;
   }
-
-  return `That's a great question! Based on your profile, my top recommendation is: ${
-    totalFollowers < 10_000
-      ? "visit BreedSkool to build your audience to 10K+ followers and unlock influencer earning tiers."
-      : totalFollowers < 100_000
-      ? "focus on completing campaigns and growing your followers to 100K to reach Growth Engine tier."
-      : "leverage your strong following to negotiate higher rates with brands and diversify your income streams."
-  } Is there something more specific I can help you with?`;
+  return `Good question! Based on your profile as a ${tierConf.name} in the **${niche}** space: ${
+    totalFollowers < 10_000 ? `visit BreedSkool to build your audience to 10K+ and unlock campaign earnings.`
+    : totalFollowers < 100_000 ? `focus on completing campaigns and growing to 100K followers to reach Growth Engine tier.`
+    : totalFollowers < 1_000_000 ? `leverage your strong following to negotiate better rates and diversify your income.`
+    : `consider creating a BreedSkool course to share your expertise and earn passive income — your audience trusts your insights!`
+  } Anything specific I can help with?`;
 }
 
+// ── Profile Score ─────────────────────────────────────────────────────────
 function ProfileScore({ user, socialLinks }: { user: any; socialLinks: any[] }) {
-  const checks = [
+  const isBrand = user?.userType === 'brand';
+  const totalFollowers = user?.totalFollowers || 0;
+
+  const checks = isBrand ? [
+    { label: "Company name", done: !!user?.companyName },
+    { label: "Brand logo", done: !!user?.profileImageUrl },
+    { label: "Description", done: !!(user?.bio && user.bio.length > 20) },
+    { label: "Website added", done: !!user?.website },
+    { label: "Industry set", done: !!user?.industry },
+    { label: "Campaign launched", done: (parseFloat(user?.totalTransactionVolume || '0') > 0) },
+  ] : [
     { label: "Profile photo", done: !!user?.profileImageUrl },
     { label: "Bio written", done: !!(user?.bio && user.bio.length > 20) },
     { label: "Niche selected", done: !!user?.niche },
-    { label: "Social channels added", done: (socialLinks.length > 0 || (user?.totalFollowers || 0) > 0) },
+    { label: "Social channels", done: (socialLinks.length > 0 || totalFollowers > 0) },
     { label: "Campaign completed", done: (user?.completedCampaigns || 0) > 0 },
     { label: "Location set", done: !!user?.location },
   ];
@@ -223,10 +256,7 @@ function ProfileScore({ user, socialLinks }: { user: any; socialLinks: any[] }) 
         <span className={`text-lg font-black ${score >= 80 ? "text-green-600" : score >= 50 ? "text-amber-600" : "text-red-500"}`}>{score}%</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full transition-all ${score >= 80 ? "bg-green-500" : score >= 50 ? "bg-amber-500" : "bg-red-500"}`}
-          style={{ width: `${score}%` }}
-        />
+        <div className={`h-2 rounded-full transition-all ${score >= 80 ? "bg-green-500" : score >= 50 ? "bg-amber-500" : "bg-red-500"}`} style={{ width: `${score}%` }} />
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {checks.map(c => (
@@ -240,6 +270,124 @@ function ProfileScore({ user, socialLinks }: { user: any; socialLinks: any[] }) 
   );
 }
 
+// ── Inbox report generator ────────────────────────────────────────────────
+function generateInboxReport(user: any, socialLinks: any[], recommendations: Recommendation[]): string {
+  const isBrand = user?.userType === 'brand';
+  const firstName = user?.firstName || '';
+  const displayName = isBrand ? (user?.companyName || firstName) : firstName;
+  const now = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  if (isBrand) {
+    const brandRank = (user?.brandRank || 'bronze');
+    const rankLabel = brandRank.charAt(0).toUpperCase() + brandRank.slice(1);
+    const volume = parseFloat(user?.totalTransactionVolume || '0');
+    const isPremium = user?.subscriptionStatus === 'active';
+
+    const score = Math.round([
+      !!user?.companyName,
+      !!user?.profileImageUrl,
+      !!(user?.bio && user?.bio?.length > 20),
+      !!user?.website,
+      !!user?.industry,
+      volume > 0,
+    ].filter(Boolean).length / 6 * 100);
+
+    return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏢  TASKDRIP BRAND REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Prepared for: ${displayName}
+Date: ${now}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊  BRAND OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Brand Rank       : ${rankLabel} ${brandRank === 'gold' ? '🥇' : brandRank === 'silver' ? '🥈' : '🥉'}
+  Account Status   : ${isPremium ? 'Premium ✅' : 'Free Plan'}
+  Total Spend      : $${volume.toFixed(2)}
+  Profile Score    : ${score}%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡  YOUR RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${recommendations.slice(0, 5).map((r, i) => `${i + 1}.  ${r.title}
+    ${r.description}${r.action ? `\n    → Action: ${r.action.label} (taskdrip.com${r.action.href})` : ''}`).join('\n\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯  QUICK WINS FOR YOUR BRAND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  • Complete your brand profile for maximum creator trust
+  • Launch your first (or next) campaign at /campaigns/create
+  • Explore influencers by niche at /influencers
+  ${!isPremium ? '• Upgrade to Brand Premium to unlock verified status and priority matching\n' : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Your Taskdrip Brand Advisor 🤖
+  Generated: ${now}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
+  }
+
+  // Creator report
+  const totalFollowers = user?.totalFollowers || 0;
+  const tier = getTierFromFollowers(totalFollowers);
+  const tierConf = getTierConfig(tier);
+  const completedCampaigns = user?.completedCampaigns || 0;
+  const niche = user?.niche || 'Not set';
+  const earned = parseFloat(user?.totalEarned || '0');
+  const score = Math.round([
+    !!user?.profileImageUrl,
+    !!(user?.bio && user?.bio?.length > 20),
+    !!user?.niche,
+    (socialLinks.length > 0 || totalFollowers > 0),
+    completedCampaigns > 0,
+    !!user?.location,
+  ].filter(Boolean).length / 6 * 100);
+
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨  TASKDRIP CREATOR REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Prepared for: ${displayName}
+Date: ${now}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊  CREATOR OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Creator Tier     : ${tierConf.name} ${tierConf.icon}
+  Total Followers  : ${formatFollowers(totalFollowers)}
+  Content Niche    : ${niche}
+  Campaigns Done   : ${completedCampaigns}
+  Total Earned     : $${earned.toFixed(2)}
+  Profile Score    : ${score}%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡  PERSONALIZED RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${recommendations.slice(0, 5).map((r, i) => `${i + 1}.  ${r.title}
+    ${r.description}${r.action ? `\n    → Action: ${r.action.label} (taskdrip.com${r.action.href})` : ''}`).join('\n\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀  YOUR NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${tier === 'newcomer' || tier === 'aspiring'
+  ? `  1. Visit BreedSkool and enroll in a growth course (taskdrip.com/breedskool)
+  2. Complete your profile — photo, bio, niche, and location
+  3. Connect all your social media channels
+  4. Target 10,000 followers to unlock campaign earnings`
+  : tier === 'rising_sparks' || tier === 'growth_engines'
+  ? `  1. Browse and apply to active campaigns (taskdrip.com/campaigns)
+  2. Update your content rate card to reflect your current reach
+  3. Engage your audience consistently — quality over quantity
+  4. Target the next tier: ${tier === 'rising_sparks' ? '100K followers → Growth Engine' : '1M followers → Power Influencer'}`
+  : `  1. Explore premium brand deal invitations in your campaign inbox
+  2. Update your rates — you deserve top-tier compensation
+  3. Consider creating a BreedSkool course to earn passive income
+  4. Mentor newcomers in your ${niche} niche — it builds your personal brand`}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Your Taskdrip Guide 🤖
+  Generated: ${now}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
+}
+
+// ── Main GuideBot Component ───────────────────────────────────────────────
 export function GuideBot() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -251,21 +399,24 @@ export function GuideBot() {
   const [showPopup, setShowPopup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const isBrand = (user as any)?.userType === 'brand';
+  const isCreator = !isBrand;
+
   const { data: socialLinks = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${(user as any)?.id}/social-links`],
-    enabled: isAuthenticated && !!(user as any)?.id,
+    enabled: isAuthenticated && !!(user as any)?.id && isCreator,
   });
 
   const sendToInboxMutation = useMutation({
     mutationFn: async (content: string) => {
       const res = await apiRequest("POST", "/api/guide/send-to-inbox", {
-        subject: "Your Taskdrip Guide Report",
+        subject: isBrand ? "Your Taskdrip Brand Report" : "Your Taskdrip Creator Report",
         content,
       });
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Report sent to your inbox!", description: "Check Messages for your full guide." });
+      toast({ title: "Report sent to your inbox!", description: "Check Messages for your full personalised guide." });
     },
     onError: () => {
       toast({ title: "Couldn't send report", description: "Please try again later.", variant: "destructive" });
@@ -284,10 +435,14 @@ export function GuideBot() {
 
   useEffect(() => {
     if (isOpen && chatMessages.length === 0) {
+      const firstName = (user as any)?.firstName || 'there';
+      const company = (user as any)?.companyName || firstName;
       const welcome: ChatMessage = {
         id: "welcome",
         role: "bot",
-        content: `Hey ${(user as any)?.firstName || "there"}! 👋 I'm your Taskdrip Guide — powered by smart profile analysis. Check the **Recommendations** tab for personalized tips, or chat with me here for advice on growing your influence and earnings!`,
+        content: isBrand
+          ? `Welcome, ${company}! 👋 I'm your Taskdrip Brand Advisor. I help brands find the right creators, launch campaigns, and get the most out of influencer marketing. Check the **Recommendations** tab for personalised tips, or ask me anything!`
+          : `Hey ${firstName}! 👋 I'm your Taskdrip Guide — powered by real profile analysis. Check the **Recommendations** tab for personalised growth tips, or chat with me for advice on your ${(user as any)?.niche || 'content'} niche and earnings!`,
         timestamp: new Date(),
       };
       setChatMessages([welcome]);
@@ -300,97 +455,48 @@ export function GuideBot() {
 
   const handleSendChat = () => {
     if (!chatInput.trim()) return;
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: chatInput,
-      timestamp: new Date(),
-    };
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: chatInput, timestamp: new Date() };
     setChatMessages(prev => [...prev, userMsg]);
     const input = chatInput;
     setChatInput("");
-
     setTimeout(() => {
-      const botResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "bot",
-        content: getBotResponse(input, user, socialLinks as any[]),
-        timestamp: new Date(),
-      };
+      const response = isBrand
+        ? getBrandBotResponse(input, user)
+        : getCreatorBotResponse(input, user, socialLinks as any[]);
+      const botResponse: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: response, timestamp: new Date() };
       setChatMessages(prev => [...prev, botResponse]);
     }, 600);
   };
 
-  const recommendations = analyzeProfile(user, socialLinks as any[]);
+  const recommendations = isBrand
+    ? analyzeBrandProfile(user)
+    : analyzeCreatorProfile(user, socialLinks as any[]);
+
   const totalFollowers = (user as any)?.totalFollowers || 0;
   const tier = getTierFromFollowers(totalFollowers);
   const tierConf = getTierConfig(tier);
-
-  const generateInboxReport = () => {
-    const score = Math.round(([
-      !!(user as any)?.profileImageUrl,
-      !!((user as any)?.bio && (user as any)?.bio?.length > 20),
-      !!(user as any)?.niche,
-      (socialLinks.length > 0 || totalFollowers > 0),
-      ((user as any)?.completedCampaigns || 0) > 0,
-      !!(user as any)?.location,
-    ].filter(Boolean).length / 6) * 100);
-
-    return `
-Hello ${(user as any)?.firstName}!
-
-Here is your personalized Taskdrip Guide Report:
-
-━━━━━━━━━━━━━━━━━━━━━━
-📊 PROFILE OVERVIEW
-━━━━━━━━━━━━━━━━━━━━━━
-Current Tier: ${tierConf.name} ${tierConf.icon}
-Total Followers: ${formatFollowers(totalFollowers)}
-Campaigns Completed: ${(user as any)?.completedCampaigns || 0}
-Profile Score: ${score}%
-
-━━━━━━━━━━━━━━━━━━━━━━
-💡 YOUR RECOMMENDATIONS
-━━━━━━━━━━━━━━━━━━━━━━
-${recommendations.map((r, i) => `${i + 1}. ${r.title}\n   ${r.description}${r.action ? `\n   → ${r.action.label}: taskdrip.com${r.action.href}` : ''}`).join('\n\n')}
-
-━━━━━━━━━━━━━━━━━━━━━━
-🎯 NEXT STEPS
-━━━━━━━━━━━━━━━━━━━━━━
-${tier === 'newcomer' || tier === 'aspiring' 
-  ? '1. Visit BreedSkool to learn audience growth strategies\n2. Complete your profile (photo, bio, niche)\n3. Add all your social media channels'
-  : '1. Browse and join active campaigns\n2. Update your content rate card\n3. Engage with your audience consistently'
-}
-
-Keep growing! Your Taskdrip Guide 🤖
-    `.trim();
-  };
+  const brandRank = (user as any)?.brandRank || 'bronze';
 
   if (!isAuthenticated) return null;
+
+  const popupTip = recommendations.length > 0
+    ? recommendations[0].description.substring(0, 85) + "..."
+    : isBrand ? "Set up your brand profile to attract top creators!" : "Check your profile score and get personalised growth tips!";
 
   return (
     <>
       {/* Popup notification */}
       {showPopup && !isOpen && (
         <div className="fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-purple-100 p-4 max-w-xs animate-in slide-in-from-bottom-5 duration-300">
-          <button onClick={() => setShowPopup(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={() => setShowPopup(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0">
               <Bot className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-900 mb-1">Your Guide has a tip!</p>
-              <p className="text-xs text-gray-600">
-                {recommendations.length > 0 
-                  ? recommendations[0].description.substring(0, 80) + "..." 
-                  : "Check your profile analysis for personalized growth tips!"}
-              </p>
-              <button
-                onClick={() => { setShowPopup(false); setIsOpen(true); }}
-                className="text-xs font-semibold text-purple-600 hover:text-purple-800 mt-2 block"
-              >
+              <p className="text-xs font-bold text-gray-900 mb-1">{isBrand ? "Brand Advisor tip!" : "Your Guide has a tip!"}</p>
+              <p className="text-xs text-gray-600">{popupTip}</p>
+              <button onClick={() => { setShowPopup(false); setIsOpen(true); }} className="text-xs font-semibold text-purple-600 hover:text-purple-800 mt-2 block">
                 View recommendations →
               </button>
             </div>
@@ -398,57 +504,69 @@ Keep growing! Your Taskdrip Guide 🤖
         </div>
       )}
 
-      {/* Main guide panel */}
+      {/* Main panel */}
       {isOpen && (
         <div className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 140px)" }}>
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 flex items-center justify-between flex-shrink-0">
+          <div className={`p-4 flex items-center justify-between flex-shrink-0 ${isBrand ? "bg-gradient-to-r from-blue-600 to-cyan-600" : "bg-gradient-to-r from-purple-600 to-indigo-600"}`}>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+                {isBrand ? <Building2 className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
               </div>
               <div>
-                <div className="text-white font-bold text-sm">Taskdrip Guide</div>
-                <div className="text-white/70 text-xs">AI-powered growth advisor</div>
+                <div className="text-white font-bold text-sm">{isBrand ? "Brand Advisor" : "Taskdrip Guide"}</div>
+                <div className="text-white/70 text-xs">{isBrand ? `${(user as any)?.companyName || 'Your brand'} · ${brandRank.charAt(0).toUpperCase() + brandRank.slice(1)} Rank` : "AI-powered creator advisor"}</div>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10">
-              <X className="w-5 h-5" />
-            </button>
+            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10"><X className="w-5 h-5" /></button>
           </div>
 
-          {/* Tier banner */}
-          <div className={`px-4 py-2 flex items-center gap-2 ${tierConf.bg} border-b ${tierConf.border} flex-shrink-0`}>
-            <span className="text-base">{tierConf.icon}</span>
-            <div className="flex-1 min-w-0">
-              <span className={`text-xs font-bold ${tierConf.text}`}>{tierConf.name}</span>
-              <span className="text-xs text-gray-500 ml-1">· {formatFollowers(totalFollowers)} followers</span>
+          {/* Tier / Rank banner */}
+          {isCreator ? (
+            <div className={`px-4 py-2 flex items-center gap-2 ${tierConf.bg} border-b ${tierConf.border} flex-shrink-0`}>
+              <span className="text-base">{tierConf.icon}</span>
+              <div className="flex-1 min-w-0">
+                <span className={`text-xs font-bold ${tierConf.text}`}>{tierConf.name}</span>
+                <span className="text-xs text-gray-500 ml-1">· {formatFollowers(totalFollowers)} followers</span>
+              </div>
+              {(tier === "newcomer" || tier === "aspiring") && (
+                <Link href="/breedskool">
+                  <Badge className="text-xs bg-purple-600 text-white hover:bg-purple-700 cursor-pointer">
+                    <BookOpen className="w-3 h-3 mr-1" />BreedSkool
+                  </Badge>
+                </Link>
+              )}
+              {(tier === "power_influencers" || tier === "global_titans") && (
+                <Link href="/breedskool">
+                  <Badge className="text-xs bg-amber-500 text-white hover:bg-amber-600 cursor-pointer">
+                    <Mic className="w-3 h-3 mr-1" />Teach
+                  </Badge>
+                </Link>
+              )}
             </div>
-            {(tier === "newcomer" || tier === "aspiring") && (
-              <Link href="/breedskool">
-                <Badge className="text-xs bg-purple-600 text-white hover:bg-purple-700 cursor-pointer">
-                  <BookOpen className="w-3 h-3 mr-1" />BreedSkool
+          ) : (
+            <div className="px-4 py-2 flex items-center gap-2 bg-blue-50 border-b border-blue-100 flex-shrink-0">
+              <Building2 className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-bold text-blue-700">{brandRank.charAt(0).toUpperCase() + brandRank.slice(1)} Brand</span>
+              {(user as any)?.subscriptionStatus === 'active' && (
+                <Badge className="text-xs bg-blue-600 text-white hover:bg-blue-600">Premium ✓</Badge>
+              )}
+              <Link href="/campaigns/create" className="ml-auto">
+                <Badge className="text-xs bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+                  <Target className="w-3 h-3 mr-1" />New Campaign
                 </Badge>
               </Link>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex border-b border-gray-100 flex-shrink-0">
-            <button
-              onClick={() => setActiveTab("recommendations")}
-              className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "recommendations" ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50" : "text-gray-500 hover:text-gray-700"}`}
-            >
+            <button onClick={() => setActiveTab("recommendations")} className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "recommendations" ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50" : "text-gray-500 hover:text-gray-700"}`}>
               <Sparkles className="w-3.5 h-3.5" />
               Recommendations
-              {recommendations.length > 0 && (
-                <span className="bg-purple-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{recommendations.length}</span>
-              )}
+              {recommendations.length > 0 && (<span className="bg-purple-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{recommendations.length}</span>)}
             </button>
-            <button
-              onClick={() => setActiveTab("chat")}
-              className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "chat" ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50" : "text-gray-500 hover:text-gray-700"}`}
-            >
+            <button onClick={() => setActiveTab("chat")} className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "chat" ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50" : "text-gray-500 hover:text-gray-700"}`}>
               <MessageSquare className="w-3.5 h-3.5" />
               Chat
             </button>
@@ -464,31 +582,16 @@ Keep growing! Your Taskdrip Guide 🤖
                   {recommendations.map((rec, i) => {
                     const Icon = rec.icon;
                     return (
-                      <div key={i} className={`rounded-xl p-3 border ${
-                        rec.type === "success" ? "bg-green-50 border-green-100"
-                        : rec.type === "warning" ? "bg-amber-50 border-amber-100"
-                        : rec.type === "action" ? "bg-purple-50 border-purple-100"
-                        : "bg-blue-50 border-blue-100"
-                      }`}>
+                      <div key={i} className={`rounded-xl p-3 border ${rec.type === "success" ? "bg-green-50 border-green-100" : rec.type === "warning" ? "bg-amber-50 border-amber-100" : rec.type === "action" ? "bg-purple-50 border-purple-100" : "bg-blue-50 border-blue-100"}`}>
                         <div className="flex items-start gap-2">
-                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                            rec.type === "success" ? "text-green-600"
-                            : rec.type === "warning" ? "text-amber-600"
-                            : rec.type === "action" ? "text-purple-600"
-                            : "text-blue-600"
-                          }`} />
+                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${rec.type === "success" ? "text-green-600" : rec.type === "warning" ? "text-amber-600" : rec.type === "action" ? "text-purple-600" : "text-blue-600"}`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-gray-900">{rec.title}</p>
                             <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{rec.description}</p>
                             {rec.action && (
                               <Link href={rec.action.href}>
-                                <button className={`mt-2 text-xs font-semibold flex items-center gap-1 ${
-                                  rec.type === "action" ? "text-purple-600 hover:text-purple-800"
-                                  : rec.type === "warning" ? "text-amber-700 hover:text-amber-900"
-                                  : rec.type === "success" ? "text-green-700 hover:text-green-900"
-                                  : "text-blue-700 hover:text-blue-900"
-                                }`}>
-                                  {rec.action.label} <ExternalLink className="w-3 h-3" />
+                                <button className="text-xs font-semibold text-purple-600 hover:text-purple-800 mt-1.5 flex items-center gap-1">
+                                  {rec.action.label} →
                                 </button>
                               </Link>
                             )}
@@ -497,68 +600,59 @@ Keep growing! Your Taskdrip Guide 🤖
                       </div>
                     );
                   })}
+                  {recommendations.length === 0 && (
+                    <div className="text-center py-6">
+                      <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-700">All looking great!</p>
+                      <p className="text-xs text-gray-400 mt-1">{isBrand ? "Your brand profile is well set up." : "Your creator profile is complete and optimised!"}</p>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => sendToInboxMutation.mutate(generateInboxReport())}
-                  disabled={sendToInboxMutation.isPending}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900 text-white text-xs font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-60"
-                  data-testid="button-send-guide-to-inbox"
-                >
-                  <Inbox className="w-4 h-4" />
-                  {sendToInboxMutation.isPending ? "Sending..." : "Send full report to my inbox"}
-                </button>
+                <div className="border-t border-gray-100 pt-3">
+                  <button
+                    onClick={() => sendToInboxMutation.mutate(generateInboxReport(user, socialLinks as any[], recommendations))}
+                    disabled={sendToInboxMutation.isPending}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
+                    data-testid="button-send-guide-to-inbox"
+                  >
+                    <Inbox className="w-3.5 h-3.5" />
+                    {sendToInboxMutation.isPending ? "Sending..." : "Send full report to Inbox"}
+                  </button>
+                </div>
               </div>
             )}
 
             {activeTab === "chat" && (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 p-4 space-y-3 overflow-y-auto" style={{ minHeight: 200 }}>
-                  {chatMessages.map((msg) => (
-                    <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+              <div className="flex flex-col h-full" style={{ minHeight: "300px" }}>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {chatMessages.map(msg => (
+                    <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       {msg.role === "bot" && (
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-4 h-4 text-white" />
+                        <div className={`w-6 h-6 rounded-full ${isBrand ? "bg-blue-600" : "bg-purple-600"} flex items-center justify-center flex-shrink-0 mr-2 mt-0.5`}>
+                          {isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
                         </div>
                       )}
-                      <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
-                        msg.role === "bot"
-                          ? "bg-gray-100 text-gray-800 rounded-tl-sm"
-                          : "bg-purple-600 text-white rounded-tr-sm"
-                      }`}>
-                        {msg.content.split('\n').map((line, i) => (
-                          <span key={i}>{line.replace(/\*\*(.*?)\*\*/g, '$1')}{i < msg.content.split('\n').length - 1 ? <br /> : null}</span>
-                        ))}
+                      <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-tr-sm" : "bg-gray-100 text-gray-800 rounded-tl-sm"}`}>
+                        {msg.content}
                       </div>
-                      {msg.role === "user" && (
-                        <Avatar className="w-7 h-7 flex-shrink-0">
-                          <AvatarImage src={(user as any)?.profileImageUrl} />
-                          <AvatarFallback className="bg-purple-100 text-purple-700 text-xs">
-                            {(user as any)?.firstName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
-                <div className="p-3 border-t border-gray-100 flex gap-2 flex-shrink-0">
-                  <Input
-                    placeholder="Ask me anything..."
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendChat(); } }}
-                    className="text-xs rounded-xl border-gray-200 flex-1"
-                    data-testid="input-guide-chat"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={handleSendChat}
-                    disabled={!chatInput.trim()}
-                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-3"
-                    data-testid="button-send-guide-chat"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
+                <div className="p-3 border-t border-gray-100 flex-shrink-0">
+                  <div className="flex gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSendChat()}
+                      placeholder={isBrand ? "Ask about campaigns, creators..." : "Ask me anything..."}
+                      className="rounded-xl text-xs border-gray-200 h-9"
+                      data-testid="input-guide-chat"
+                    />
+                    <Button size="sm" onClick={handleSendChat} disabled={!chatInput.trim()} className={`rounded-xl h-9 px-3 ${isBrand ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"} text-white`} data-testid="button-guide-send">
+                      <Send className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -569,19 +663,12 @@ Keep growing! Your Taskdrip Guide 🤖
       {/* Floating button */}
       <button
         onClick={() => { setIsOpen(!isOpen); setShowPopup(false); }}
-        className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 ${
-          isOpen
-            ? "bg-gray-900 text-white"
-            : "bg-gradient-to-br from-purple-600 to-indigo-600 text-white hover:shadow-purple-300/50"
-        }`}
-        data-testid="button-open-guide-bot"
-        title="Open Taskdrip Guide"
+        className={`fixed bottom-6 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${isBrand ? "bg-gradient-to-br from-blue-600 to-cyan-600" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}
+        data-testid="button-guide-bot-toggle"
       >
-        {isOpen ? <X className="w-6 h-6" /> : <Bot className="w-6 h-6" />}
+        {isOpen ? <X className="w-6 h-6 text-white" /> : isBrand ? <Building2 className="w-6 h-6 text-white" /> : <Bot className="w-6 h-6 text-white" />}
         {!isOpen && recommendations.length > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {recommendations.length}
-          </span>
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{recommendations.length}</span>
         )}
       </button>
     </>

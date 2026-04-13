@@ -228,6 +228,7 @@ export interface IStorage {
 
   // Referrals
   getReferralsByReferrer(referrerId: string): Promise<Referral[]>;
+  getReferralByReferredId(referredId: string): Promise<Referral | undefined>;
   createReferral(ref: { referrerId: string; referredId: string; referralType: string; referralCode: string }): Promise<Referral>;
   getUserByReferralCode(code: string): Promise<User | undefined>;
   getTopCreatorsByReferrals(limit?: number): Promise<any[]>;
@@ -1412,6 +1413,11 @@ export class DatabaseStorage implements IStorage {
   // Referrals
   async getReferralsByReferrer(referrerId: string): Promise<Referral[]> {
     return await db.select().from(referrals).where(eq(referrals.referrerId, referrerId)).orderBy(desc(referrals.createdAt));
+  }
+
+  async getReferralByReferredId(referredId: string): Promise<Referral | undefined> {
+    const [ref] = await db.select().from(referrals).where(eq(referrals.referredId, referredId));
+    return ref;
   }
 
   async createReferral(ref: { referrerId: string; referredId: string; referralType: string; referralCode: string }): Promise<Referral> {

@@ -126,6 +126,9 @@ export default function ProfileEdit() {
   const [rates, setRates] = useState<Record<string, string>>({});
   const [showRates, setShowRates] = useState(false);
 
+  // Privacy settings
+  const [messagePrivacy, setMessagePrivacy] = useState<'everyone' | 'followers' | 'nobody'>('everyone');
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: { tiktokFollowers: 0, youtubeFollowers: 0, instagramFollowers: 0, twitterFollowers: 0, twitchFollowers: 0, telegramFollowers: 0, whatsappFollowers: 0 },
@@ -174,6 +177,8 @@ export default function ProfileEdit() {
       setValue('telegramFollowers', u.telegramFollowers || 0);
       setValue('whatsappFollowers', u.whatsappFollowers || 0);
       setPreviewUrl(u.profileImageUrl || '');
+      // Load message privacy setting
+      if (u.messagePrivacy) setMessagePrivacy(u.messagePrivacy as 'everyone' | 'followers' | 'nobody');
       // Load saved rates
       if (u.contentRates) {
         const savedRates: Record<string, string> = {};
@@ -290,7 +295,11 @@ export default function ProfileEdit() {
     const profileImageUrl = profileImage ? previewUrl : (user as any)?.profileImageUrl;
     try {
       await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl });
-      await Promise.all([saveLinksMutation.mutateAsync(), saveRatesMutation.mutateAsync()]);
+      await Promise.all([
+        saveLinksMutation.mutateAsync(),
+        saveRatesMutation.mutateAsync(),
+        apiRequest('PATCH', `/api/users/${(user as any)?.id}/message-privacy`, { messagePrivacy }),
+      ]);
       const userId = (user as any)?.id;
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/social-links`] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
@@ -681,6 +690,33 @@ export default function ProfileEdit() {
                 <p className="text-xs text-gray-400 mt-3">Leave blank if you prefer to quote on request. All rates are in USD.</p>
               </CardContent>
             )}
+          </Card>
+
+          {/* Privacy & Messaging */}
+          <Card className="border-gray-100">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600" /> Privacy &amp; Messaging
+              </CardTitle>
+              <CardDescription>Control who can send you direct messages on Taskdrip.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {([
+                  { value: 'everyone', label: 'Everyone', desc: 'Anyone on Taskdrip can send you a message.', emoji: '🌍' },
+                  { value: 'followers', label: 'People I follow', desc: 'Only people you follow can send you direct messages.', emoji: '👥' },
+                  { value: 'nobody', label: 'No one', desc: 'Turn off direct messages completely.', emoji: '🔒' },
+                ] as const).map(opt => (
+                  <label key={opt.value} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${messagePrivacy === opt.value ? 'border-purple-500 bg-purple-50' : 'border-gray-100 hover:border-gray-300'}`} data-testid={`radio-message-privacy-${opt.value}`}>
+                    <input type="radio" name="messagePrivacy" value={opt.value} checked={messagePrivacy === opt.value} onChange={() => setMessagePrivacy(opt.value)} className="mt-1 accent-purple-600 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold text-sm text-gray-900">{opt.emoji} {opt.label}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </CardContent>
           </Card>
 
           {/* Submit */}
