@@ -30,7 +30,7 @@ import {
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
-  Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone
+  Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -1372,6 +1372,34 @@ export default function AdminMaster() {
                   <div className="text-white/40 text-xs mt-2 group-hover:text-white/60 transition-colors">Click to manage →</div>
                 </button>
               ))}
+            </div>
+
+            {/* ── ROW 4: New Admin Hubs ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <a href="/admin/payments" className="group">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-purple-500/30 hover:border-purple-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-purple-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                    <CreditCard className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">Payment Control Center</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Manage all payment methods, crypto wallets, Stripe, PayPal, bank transfers, and feature access toggles</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                </div>
+              </a>
+              <a href="/admin/ads" className="group">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-blue-500/30 hover:border-blue-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-blue-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                    <Megaphone className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">Ads Control Center</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Manage sponsored ads, Google AdSense integration, placement slots, and advertising applications</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                </div>
+              </a>
             </div>
 
           </TabsContent>

@@ -53,6 +53,9 @@ import MyCampaignsPage from "@/pages/my-campaigns";
 import ReferralsPage from "@/pages/referrals";
 import UnifiedProfile from "@/pages/unified-profile";
 import TasksPage from "@/pages/tasks";
+import AdminPayments from "@/pages/admin-payments";
+import AdminAds from "@/pages/admin-ads";
+import AdvertiseWithUs from "@/pages/advertise-with-us";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -87,6 +90,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/tasks" component={TasksPage} />
+      <Route path="/advertise" component={AdvertiseWithUs} />
       <Route path="/creators" component={Creators} />
       <Route path="/creators/:id" component={CreatorProfile} />
       <Route path="/profile/:id" component={UnifiedProfile} />
@@ -126,6 +130,8 @@ function Router() {
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />
           <Route path="/admin/courses" component={AdminCourses} />
+          <Route path="/admin/payments" component={AdminPayments} />
+          <Route path="/admin/ads" component={AdminAds} />
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />

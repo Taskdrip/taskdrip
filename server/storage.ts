@@ -97,6 +97,9 @@ import {
   siteContent,
   type SiteContent,
   type InsertSiteContent,
+  paymentFeatureToggles,
+  sponsoredAds,
+  advertiseApplications,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -315,6 +318,24 @@ export interface IStorage {
   createPushNotificationCampaign(data: { title: string; body: string; icon?: string; clickUrl?: string; targetType: string; createdBy: string }): Promise<PushNotificationCampaign>;
   updatePushNotificationCampaign(id: string, data: Partial<PushNotificationCampaign>): Promise<PushNotificationCampaign>;
   deletePushNotificationCampaign(id: string): Promise<void>;
+
+  // Payment feature toggles
+  getPaymentFeatureToggles(): Promise<any[]>;
+  upsertPaymentFeatureToggle(paymentMethodId: string, feature: string, isEnabled: boolean): Promise<any>;
+
+  // Sponsored ads
+  getAllSponsoredAds(): Promise<any[]>;
+  getActiveSponsoredAds(placement?: string): Promise<any[]>;
+  createSponsoredAd(data: any): Promise<any>;
+  updateSponsoredAd(id: string, data: any): Promise<any>;
+  deleteSponsoredAd(id: string): Promise<void>;
+  incrementAdImpressions(id: string): Promise<void>;
+  incrementAdClicks(id: string): Promise<void>;
+
+  // Advertise applications
+  getAllAdvertiseApplications(): Promise<any[]>;
+  createAdvertiseApplication(data: any): Promise<any>;
+  updateAdvertiseApplication(id: string, data: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1898,6 +1919,79 @@ export class DatabaseStorage implements IStorage {
     for (const item of defaults) {
       await db.insert(siteContent).values(item).onConflictDoNothing();
     }
+  }
+
+  // Payment feature toggles
+  async getPaymentFeatureToggles(): Promise<any[]> {
+    return await db.select().from(paymentFeatureToggles);
+  }
+
+  async upsertPaymentFeatureToggle(paymentMethodId: string, feature: string, isEnabled: boolean): Promise<any> {
+    const existing = await db.select().from(paymentFeatureToggles)
+      .where(and(eq(paymentFeatureToggles.paymentMethodId, paymentMethodId), eq(paymentFeatureToggles.feature, feature)))
+      .limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(paymentFeatureToggles)
+        .set({ isEnabled, updatedAt: new Date() })
+        .where(and(eq(paymentFeatureToggles.paymentMethodId, paymentMethodId), eq(paymentFeatureToggles.feature, feature)))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(paymentFeatureToggles)
+      .values({ paymentMethodId, feature, isEnabled })
+      .returning();
+    return created;
+  }
+
+  // Sponsored ads
+  async getAllSponsoredAds(): Promise<any[]> {
+    return await db.select().from(sponsoredAds).orderBy(sponsoredAds.sortOrder, desc(sponsoredAds.createdAt));
+  }
+
+  async getActiveSponsoredAds(placement?: string): Promise<any[]> {
+    const now = new Date();
+    const conditions = [eq(sponsoredAds.isActive, true)];
+    if (placement) conditions.push(eq(sponsoredAds.placement, placement));
+    return await db.select().from(sponsoredAds)
+      .where(and(...conditions))
+      .orderBy(sponsoredAds.sortOrder);
+  }
+
+  async createSponsoredAd(data: any): Promise<any> {
+    const [ad] = await db.insert(sponsoredAds).values({ ...data, id: crypto.randomUUID() }).returning();
+    return ad;
+  }
+
+  async updateSponsoredAd(id: string, data: any): Promise<any> {
+    const [ad] = await db.update(sponsoredAds).set({ ...data, updatedAt: new Date() }).where(eq(sponsoredAds.id, id)).returning();
+    return ad;
+  }
+
+  async deleteSponsoredAd(id: string): Promise<void> {
+    await db.delete(sponsoredAds).where(eq(sponsoredAds.id, id));
+  }
+
+  async incrementAdImpressions(id: string): Promise<void> {
+    await db.update(sponsoredAds).set({ impressions: sql`${sponsoredAds.impressions} + 1` }).where(eq(sponsoredAds.id, id));
+  }
+
+  async incrementAdClicks(id: string): Promise<void> {
+    await db.update(sponsoredAds).set({ clicks: sql`${sponsoredAds.clicks} + 1` }).where(eq(sponsoredAds.id, id));
+  }
+
+  // Advertise applications
+  async getAllAdvertiseApplications(): Promise<any[]> {
+    return await db.select().from(advertiseApplications).orderBy(desc(advertiseApplications.createdAt));
+  }
+
+  async createAdvertiseApplication(data: any): Promise<any> {
+    const [app] = await db.insert(advertiseApplications).values({ ...data, id: crypto.randomUUID() }).returning();
+    return app;
+  }
+
+  async updateAdvertiseApplication(id: string, data: any): Promise<any> {
+    const [app] = await db.update(advertiseApplications).set({ ...data, updatedAt: new Date() }).where(eq(advertiseApplications.id, id)).returning();
+    return app;
   }
 }
 

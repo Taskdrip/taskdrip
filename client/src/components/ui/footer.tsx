@@ -12,7 +12,8 @@ import {
   DollarSign,
   Shield,
   MessageCircle,
-  Phone
+  Phone,
+  Megaphone
 } from "lucide-react";
 
 export function Footer() {
@@ -110,6 +111,12 @@ export function Footer() {
                 <Link href="/chat" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Messages
+                </Link>
+              </li>
+              <li>
+                <Link href="/advertise" className="text-gray-400 hover:text-white transition-colors flex items-center font-medium text-purple-300 hover:text-purple-200">
+                  <Megaphone className="h-4 w-4 mr-2" />
+                  Advertise With Us
                 </Link>
               </li>
             </ul>

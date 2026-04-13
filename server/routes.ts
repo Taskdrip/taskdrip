@@ -4483,6 +4483,133 @@ Instructions:
     }
   });
 
+  // ──────────────────────────────────────────────────────────────
+  // Payment Feature Toggles
+  // ──────────────────────────────────────────────────────────────
+  app.get('/api/admin/payment-feature-toggles', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const toggles = await storage.getPaymentFeatureToggles();
+      res.json(toggles);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch toggles' });
+    }
+  });
+
+  app.post('/api/admin/payment-feature-toggles', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { paymentMethodId, feature, isEnabled } = req.body;
+      const toggle = await storage.upsertPaymentFeatureToggle(paymentMethodId, feature, isEnabled);
+      res.json(toggle);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update toggle' });
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  // Sponsored Ads
+  // ──────────────────────────────────────────────────────────────
+  app.get('/api/ads/active', async (req, res) => {
+    try {
+      const placement = req.query.placement as string | undefined;
+      const ads = await storage.getActiveSponsoredAds(placement);
+      res.json(ads);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch ads' });
+    }
+  });
+
+  app.post('/api/ads/:id/impression', async (req, res) => {
+    try {
+      await storage.incrementAdImpressions(req.params.id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to record impression' });
+    }
+  });
+
+  app.post('/api/ads/:id/click', async (req, res) => {
+    try {
+      await storage.incrementAdClicks(req.params.id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to record click' });
+    }
+  });
+
+  app.get('/api/admin/ads', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ads = await storage.getAllSponsoredAds();
+      res.json(ads);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch ads' });
+    }
+  });
+
+  app.post('/api/admin/ads', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ad = await storage.createSponsoredAd(req.body);
+      res.json(ad);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to create ad' });
+    }
+  });
+
+  app.patch('/api/admin/ads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ad = await storage.updateSponsoredAd(req.params.id, req.body);
+      res.json(ad);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update ad' });
+    }
+  });
+
+  app.delete('/api/admin/ads/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteSponsoredAd(req.params.id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to delete ad' });
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  // Advertise Applications
+  // ──────────────────────────────────────────────────────────────
+  app.post('/api/advertise-applications', async (req, res) => {
+    try {
+      const app2 = await storage.createAdvertiseApplication(req.body);
+      res.json(app2);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to submit application' });
+    }
+  });
+
+  app.get('/api/admin/advertise-applications', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const apps = await storage.getAllAdvertiseApplications();
+      res.json(apps);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch applications' });
+    }
+  });
+
+  app.patch('/api/admin/advertise-applications/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const app2 = await storage.updateAdvertiseApplication(req.params.id, req.body);
+      res.json(app2);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update application' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -966,3 +966,72 @@ export type CourseLike = typeof courseLikes.$inferSelect;
 export type CourseLesson = typeof courseLessons.$inferSelect;
 export type InsertCourseLesson = z.infer<typeof insertCourseLessonSchema>;
 export type CourseMessage = typeof courseMessages.$inferSelect;
+
+// ──────────────────────────────────────────────────────────────
+// Payment Feature Toggles — which payment methods are enabled for which features
+// ──────────────────────────────────────────────────────────────
+export const paymentFeatureToggles = pgTable("payment_feature_toggles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentMethodId: varchar("payment_method_id").notNull().references(() => paymentMethods.id, { onDelete: 'cascade' }),
+  feature: varchar("feature").notNull(), // 'shop', 'campaigns', 'subscriptions', 'courses', 'tips', 'payouts'
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPaymentFeatureToggleSchema = createInsertSchema(paymentFeatureToggles).omit({ id: true, updatedAt: true });
+export type PaymentFeatureToggle = typeof paymentFeatureToggles.$inferSelect;
+export type InsertPaymentFeatureToggle = z.infer<typeof insertPaymentFeatureToggleSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Sponsored Ads — admin-managed manual ads
+// ──────────────────────────────────────────────────────────────
+export const sponsoredAds = pgTable("sponsored_ads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url"),
+  linkUrl: varchar("link_url").notNull(),
+  advertiserName: varchar("advertiser_name").notNull(),
+  advertiserLogo: varchar("advertiser_logo"),
+  placement: varchar("placement").notNull(), // 'banner_top', 'sidebar', 'feed', 'shop', 'blog', 'breedskool', 'campaigns', 'between_content'
+  adType: varchar("ad_type").notNull().default("display"), // 'display', 'native', 'video'
+  isActive: boolean("is_active").notNull().default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  impressions: integer("impressions").default(0),
+  clicks: integer("clicks").default(0),
+  budget: decimal("budget", { precision: 10, scale: 2 }),
+  cpm: decimal("cpm", { precision: 6, scale: 2 }), // cost per thousand impressions
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSponsoredAdSchema = createInsertSchema(sponsoredAds).omit({ id: true, impressions: true, clicks: true, createdAt: true, updatedAt: true });
+export type SponsoredAd = typeof sponsoredAds.$inferSelect;
+export type InsertSponsoredAd = z.infer<typeof insertSponsoredAdSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Advertise Applications — from "Advertise With Us" public form
+// ──────────────────────────────────────────────────────────────
+export const advertiseApplications = pgTable("advertise_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: varchar("company_name").notNull(),
+  contactName: varchar("contact_name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
+  website: varchar("website"),
+  industry: varchar("industry"),
+  adType: varchar("ad_type").notNull(), // 'platform_ads', 'social_media', 'influencer_network', 'sponsored_content', 'all'
+  budget: varchar("budget"), // 'under_500', '500_2000', '2000_10000', 'over_10000'
+  goals: text("goals"),
+  message: text("message"),
+  status: varchar("status").notNull().default("pending"), // 'pending', 'contacted', 'approved', 'rejected'
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAdvertiseApplicationSchema = createInsertSchema(advertiseApplications).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
+export type AdvertiseApplication = typeof advertiseApplications.$inferSelect;
+export type InsertAdvertiseApplication = z.infer<typeof insertAdvertiseApplicationSchema>;
