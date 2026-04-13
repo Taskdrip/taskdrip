@@ -26,7 +26,7 @@ export function Footer() {
               <h3 className="text-2xl font-bold">Taskdrip</h3>
             </div>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              Influencers Marketplace connecting creators with brands through crypto rewards.
+              The #1 Web3 influencer marketplace — connecting verified creators with global brands. Earn USDT & TON crypto for every completed task.
             </p>
             <div className="flex space-x-4">
               <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
@@ -49,7 +49,7 @@ export function Footer() {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/campaigns" className="text-gray-400 hover:text-white transition-colors flex items-center">
+                <Link href="/tasks" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Browse Tasks
                 </Link>
@@ -57,19 +57,25 @@ export function Footer() {
               <li>
                 <Link href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <ArrowRight className="h-4 w-4 mr-2" />
-                  Join as Creator
+                  Join as Influencer
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors flex items-center">
+                <Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <ArrowRight className="h-4 w-4 mr-2" />
-                  Creator Dashboard
+                  BreedSkool Academy
+                </Link>
+              </li>
+              <li>
+                <Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors flex items-center">
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Leaderboard
                 </Link>
               </li>
               <li>
                 <Link href="/wallet" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <DollarSign className="h-4 w-4 mr-2" />
-                  Wallet Settings
+                  Wallet & Payouts
                 </Link>
               </li>
             </ul>
@@ -89,15 +95,15 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/brand-dashboard" className="text-gray-400 hover:text-white transition-colors flex items-center">
+                <Link href="/creators" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <ArrowRight className="h-4 w-4 mr-2" />
-                  Brand Dashboard
+                  Find Influencers
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="text-gray-400 hover:text-white transition-colors flex items-center">
+                <Link href="/brand-dashboard" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <ArrowRight className="h-4 w-4 mr-2" />
-                  Creator Network
+                  Brand Dashboard
                 </Link>
               </li>
               <li>
@@ -135,7 +141,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:support@taskdrip.com" className="text-gray-400 hover:text-white transition-colors flex items-center">
+                <a href="mailto:support@taskdrip.online" className="text-gray-400 hover:text-white transition-colors flex items-center">
                   <Mail className="h-4 w-4 mr-2" />
                   Email Support
                 </a>
@@ -167,7 +173,7 @@ export function Footer() {
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
             <p className="text-gray-400 text-center lg:text-left">
-              © 2025 Taskdrip. All rights reserved.
+              © 2026 Taskdrip. All rights reserved.
             </p>
             <div className="flex space-x-6">
               <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">

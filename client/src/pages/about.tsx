@@ -18,7 +18,7 @@ import {
 const CREATOR_TIERS = [
   {
     name: 'Rising Sparks',
-    emoji: '✨',
+    emoji: '🔥',
     range: '1K – 10K followers',
     description: 'New creators just getting started. Access entry-level campaigns and build your first verified portfolio.',
     color: 'from-amber-400 to-orange-500',
@@ -27,30 +27,30 @@ const CREATOR_TIERS = [
   },
   {
     name: 'Growth Engines',
-    emoji: '🚀',
+    emoji: '⚡',
     range: '10K – 100K followers',
-    description: 'Established creators with a growing audience. Unlock mid-tier campaigns with higher payouts.',
-    color: 'from-green-400 to-emerald-600',
-    border: 'border-green-200',
-    bg: 'bg-green-50',
+    description: 'Established creators with a fast-growing audience. Unlock mid-tier campaigns with higher payouts and brand deals.',
+    color: 'from-cyan-400 to-blue-500',
+    border: 'border-cyan-200',
+    bg: 'bg-cyan-50',
   },
   {
     name: 'Power Influencers',
-    emoji: '⚡',
+    emoji: '💎',
     range: '100K – 1M followers',
     description: 'High-reach creators. Premium campaigns, priority placement, and dedicated brand relationships.',
-    color: 'from-blue-500 to-cyan-500',
-    border: 'border-blue-200',
-    bg: 'bg-blue-50',
+    color: 'from-violet-500 to-purple-600',
+    border: 'border-violet-200',
+    bg: 'bg-violet-50',
   },
   {
     name: 'Global Titans',
     emoji: '👑',
-    range: '1M+ followers',
-    description: 'Elite influencers with massive reach. Exclusive enterprise campaigns and custom deal structures.',
-    color: 'from-purple-600 to-pink-600',
-    border: 'border-purple-200',
-    bg: 'bg-purple-50',
+    range: '10M+ followers',
+    description: 'Elite influencers with global cultural reach. Exclusive enterprise campaigns, custom deal structures, and maximum payouts.',
+    color: 'from-yellow-400 to-orange-500',
+    border: 'border-yellow-200',
+    bg: 'bg-yellow-50',
   },
 ];
 
@@ -82,7 +82,7 @@ const FEATURES = [
   {
     icon: DollarSign,
     title: 'Crypto Payments',
-    description: 'Earn in USDT (Tron & BSC networks) and TON. Non-custodial payouts go directly to your wallet — no middlemen, no delays.',
+    description: 'Earn in USDT (TRC-20, BEP-20, ERC-20) and TON. Non-custodial payouts go directly to your wallet — 4 supported networks, no middlemen, no delays.',
     color: 'text-green-600',
     bg: 'bg-green-50',
   },
@@ -222,7 +222,7 @@ export default function About() {
                 {[
                   'No agency fees — direct brand-to-creator deals',
                   'Verified social reach across 7+ platforms',
-                  'Crypto payments in USDT & TON — your wallet, your money',
+                  'Crypto payments in USDT (4 networks) & TON — your wallet, your money',
                   'Auto-tiered discovery so the right brands find you',
                   'Portfolio & review system to build lasting reputation',
                   'Community learning through BreedSkool Academy',
@@ -395,10 +395,10 @@ export default function About() {
               <div className="space-y-4">
                 {[
                   { step: '1', title: 'Create a brand account', desc: 'Set up your company profile and verify your business.' },
-                  { step: '2', title: 'Launch a campaign', desc: 'Define goals, budget, content requirements, and deadline.' },
-                  { step: '3', title: 'Review creator applications', desc: 'Browse applicants filtered by tier, niche, and reach.' },
-                  { step: '4', title: 'Approve & collaborate', desc: 'Approve creators, chat directly, and track progress in real-time.' },
-                  { step: '5', title: 'Verify & process payment', desc: 'Approve submitted proof and release payment through the platform.' },
+                  { step: '2', title: 'Launch a campaign', desc: 'Define goals, budget, content requirements, and deadline. Fund escrow to go live.' },
+                  { step: '3', title: 'Review creator applications', desc: 'Browse applicants filtered by tier, niche, and reach. Admin approves accepted creators.' },
+                  { step: '4', title: 'Review creator submissions', desc: 'You are the primary reviewer — approve or reject each proof submission with notes.' },
+                  { step: '5', title: 'Release payment', desc: 'Approved submissions trigger automatic USDT crypto payouts to creator wallets. Admin mediates any disputes.' },
                 ].map(s => (
                   <div key={s.step} className="flex gap-4 items-start">
                     <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">{s.step}</div>
@@ -424,7 +424,7 @@ export default function About() {
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { icon: Shield, title: 'KYC Verification', desc: 'Optional identity verification for creators and brands unlocks higher campaign limits and builds mutual trust.', color: 'text-blue-600', bg: 'bg-blue-50' },
-              { icon: Lock, title: 'Non-Custodial Payments', desc: 'We never hold your crypto. Admin-managed cold wallets process payouts directly — your funds, your control.', color: 'text-green-600', bg: 'bg-green-50' },
+              { icon: Lock, title: 'Non-Custodial Payments', desc: 'We never hold your crypto. Admin-managed wallets across 4 networks (TRC-20, BEP-20, ERC-20, TON) process payouts directly — your funds, your control.', color: 'text-green-600', bg: 'bg-green-50' },
               { icon: Star, title: 'Review System', desc: 'Every completed campaign can be reviewed by both parties. Reputation scores are public and build over time.', color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map(item => (
               <div key={item.title} className="bg-white rounded-2xl border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">

@@ -15,42 +15,42 @@ const TIERS = [
   {
     key: "rising_sparks",
     name: "Rising Sparks",
-    range: "10K – 100K",
+    range: "1K – 10K",
     gradient: "from-orange-500 to-amber-400",
     glow: "shadow-orange-500/30",
     accent: "text-orange-400",
     border: "border-orange-500/30",
     pill: "bg-orange-500/20 text-orange-300 border-orange-500/30",
     icon: "🔥",
-    desc: "Emerging creators building loyal, engaged audiences from the ground up.",
-    stat: "10K+ creators",
+    desc: "Emerging creators building loyal, engaged audiences. Access entry-level campaigns and build your first verified portfolio.",
+    stat: "Entry-level",
     img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&q=80&auto=format&fit=crop"
   },
   {
     key: "growth_engines",
     name: "Growth Engines",
-    range: "100K – 1M",
+    range: "10K – 100K",
     gradient: "from-cyan-500 to-blue-500",
     glow: "shadow-cyan-500/30",
     accent: "text-cyan-400",
     border: "border-cyan-500/30",
     pill: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
     icon: "⚡",
-    desc: "Fast-rising influencers with high engagement rates and growing brand deals.",
+    desc: "Fast-rising influencers with high engagement rates. Unlock mid-tier campaigns with higher payouts and brand deals.",
     stat: "Strong ROI",
     img: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80&auto=format&fit=crop"
   },
   {
     key: "power_influencers",
     name: "Power Influencers",
-    range: "1M – 10M",
+    range: "100K – 1M",
     gradient: "from-violet-600 to-purple-500",
     glow: "shadow-purple-500/30",
     accent: "text-purple-400",
     border: "border-purple-500/30",
     pill: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     icon: "💎",
-    desc: "Premium creators with massive reach and proven campaign performance.",
+    desc: "Premium creators with massive reach. Priority placement, dedicated brand relationships, and top-tier campaign access.",
     stat: "Top earners",
     img: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=600&q=80&auto=format&fit=crop"
   },
@@ -64,7 +64,7 @@ const TIERS = [
     border: "border-yellow-500/30",
     pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
     icon: "👑",
-    desc: "World-class celebrities and icons with global cultural influence.",
+    desc: "Elite influencers with global cultural reach. Exclusive enterprise campaigns, custom deal structures, and maximum payouts.",
     stat: "Elite access",
     img: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&q=80&auto=format&fit=crop"
   }
@@ -72,16 +72,16 @@ const TIERS = [
 
 const CREATOR_STEPS = [
   { num: "01", title: "Build Your Influencer Profile", desc: "Sign up, link your social channels and follower counts. Auto-classified into your tier instantly — no gatekeepers." },
-  { num: "02", title: "Join Brand Campaigns", desc: "Browse campaigns matching your niche. Apply with one tap — no agencies, no middlemen, no commissions." },
-  { num: "03", title: "Complete Tasks & Submit Proof", desc: "Post content, submit your link or screenshot. Brand reviews and approves within 48 hours." },
-  { num: "04", title: "Earn Crypto Instantly", desc: "Approved tasks pay directly to your wallet in USDT (TRC-20/BEP-20) or TON — anytime, anywhere." },
+  { num: "02", title: "Join Brand Campaigns", desc: "Browse live tasks matching your niche and tier. Apply with one tap — no agencies, no middlemen, no commissions." },
+  { num: "03", title: "Complete Tasks & Submit Proof", desc: "Post content, then submit your link or screenshot as proof. The brand reviews your submission directly." },
+  { num: "04", title: "Earn Crypto Instantly", desc: "Once the brand approves, funds go straight to your wallet in USDT (TRC-20/BEP-20/ERC-20) or TON — anytime, anywhere." },
 ];
 
 const BRAND_STEPS = [
-  { num: "01", title: "Post Your Campaign", desc: "Set your budget, task requirements, and target influencer tier in minutes. Go live same day." },
+  { num: "01", title: "Post Your Campaign", desc: "Set your budget, task requirements, and target influencer tier in minutes. Go live same day via escrow." },
   { num: "02", title: "Reach Verified Influencers", desc: "Filter our 10K+ creator database by tier, niche, platform, location, and follower count." },
-  { num: "03", title: "Review Submissions", desc: "Approve or reject each submission with full transparency. Pay only for results you're satisfied with." },
-  { num: "04", title: "Scale Your Reach", desc: "Run multiple campaigns simultaneously. Reach thousands of authentic influencers worldwide." },
+  { num: "03", title: "Review & Approve Submissions", desc: "You are the primary reviewer — approve or reject each submission with full transparency. Pay only for results you're satisfied with." },
+  { num: "04", title: "Scale Your Reach", desc: "Run multiple campaigns simultaneously. Admin mediates any disputes so you never have to chase creators." },
 ];
 
 const NICHES = [
@@ -122,11 +122,11 @@ const DEMO_CAMPAIGNS = [
 ];
 
 const WHY_FEATURES = [
-  { icon: <Shield className="w-7 h-7" />, title: "Non-Custodial Payments", desc: "We never hold your funds. All crypto goes directly to your wallet — full ownership, always.", color: "bg-green-100 text-green-600" },
+  { icon: <Shield className="w-7 h-7" />, title: "Non-Custodial Payments", desc: "We never hold your funds. All crypto goes directly to your wallet via 4 networks — TRC-20, BEP-20, ERC-20, or TON.", color: "bg-green-100 text-green-600" },
   { icon: <Star className="w-7 h-7" />, title: "Verified Creators Only", desc: "Every creator goes through KYC. Brands get access to real, active influencers — zero bots.", color: "bg-purple-100 text-purple-600" },
-  { icon: <Zap className="w-7 h-7" />, title: "Performance-Based Model", desc: "Pay only for approved work. Brands review each submission before releasing payment.", color: "bg-blue-100 text-blue-600" },
+  { icon: <Zap className="w-7 h-7" />, title: "Brand-First Approval", desc: "Brands are the primary reviewers of every submission. Pay only for results you're genuinely satisfied with.", color: "bg-blue-100 text-blue-600" },
   { icon: <Globe className="w-7 h-7" />, title: "Global Creator Network", desc: "Access creators from 150+ countries across TikTok, YouTube, Instagram, Twitch, Telegram, and X.", color: "bg-orange-100 text-orange-600" },
-  { icon: <TrendingUp className="w-7 h-7" />, title: "Smart Influencer Tiers", desc: "Auto-classifies creators by total social followers. Find the perfect fit for every campaign.", color: "bg-cyan-100 text-cyan-600" },
+  { icon: <TrendingUp className="w-7 h-7" />, title: "Smart Influencer Tiers", desc: "Auto-classifies creators by total social followers into 4 tiers — from Rising Sparks (1K+) to Global Titans (10M+).", color: "bg-cyan-100 text-cyan-600" },
   { icon: <Crown className="w-7 h-7" />, title: "Multiple Income Streams", desc: "Campaigns, BreedSkool courses, referrals, and shop — your influence, fully monetized.", color: "bg-yellow-100 text-yellow-600" },
 ];
 
@@ -178,6 +178,7 @@ const ECOSYSTEM_FEATURES = [
 const PAYMENT_TOKENS = [
   { name: "USDT TRC-20", network: "Tron Network", icon: "⚡", color: "from-red-500 to-orange-500" },
   { name: "USDT BEP-20", network: "BNB Chain", icon: "🔶", color: "from-yellow-500 to-amber-500" },
+  { name: "USDT ERC-20", network: "Ethereum Network", icon: "🔷", color: "from-indigo-500 to-blue-500" },
   { name: "TON", network: "TON Network", icon: "💎", color: "from-blue-500 to-cyan-500" },
 ];
 
