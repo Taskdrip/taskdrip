@@ -1677,9 +1677,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (totalFollowers >= 10_000_000) updates.creatorTier = 'global_titans';
       else if (totalFollowers >= 1_000_000) updates.creatorTier = 'power_influencers';
       else if (totalFollowers >= 100_000) updates.creatorTier = 'growth_engines';
-      else updates.creatorTier = 'rising_sparks';
+      else if (totalFollowers >= 10_000) updates.creatorTier = 'rising_sparks';
+      else if (totalFollowers >= 1) updates.creatorTier = 'aspiring';
+      else updates.creatorTier = 'newcomer';
 
       const updatedUser = await storage.updateUserProfile(req.params.userId, updates);
+      // Refresh the session so the updated tier/followers are reflected site-wide immediately
+      if (req.user && req.user.id === req.params.userId) {
+        req.login(updatedUser as any, (err) => {
+          if (err) console.error('Session refresh error:', err);
+        });
+      }
       res.json(updatedUser);
     } catch (error) {
       console.error("Profile update error:", error);
@@ -3358,38 +3366,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/guide/chat', isAuthenticated, async (req: any, res) => {
     try {
       const { messages, userContext } = req.body;
-      const apiKey = process.env.OPENAI_API_KEY;
+      const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ message: "AI assistant not configured. Please add OPENAI_API_KEY to environment secrets." });
+        return res.status(503).json({ message: "AI assistant not configured." });
       }
-      const { default: OpenAI } = await import('openai');
-      const openai = new OpenAI({ apiKey });
 
       const systemPrompt = `You are Taskdrip Guide, an intelligent personal AI assistant for the Taskdrip Influencer Marketplace platform. You help users grow their influence, earn more, and succeed on the platform.
 
 Platform context:
 - Taskdrip is a SocialFi influencer marketplace where creators earn crypto (USDT) by completing brand campaigns
-- Creator tiers: Explorer (0), Aspiring Creator (1–10K followers), Rising Sparks (10K–100K), Growth Engine (100K–1M), Power Influencer (1M–10M), Global Titan (10M+)
+- Creator tiers: Explorer (0 followers), Aspiring Creator (1–10K followers), Rising Sparks (10K–100K), Growth Engine (100K–1M), Power Influencer (1M–10M), Global Titan (10M+)
 - BreedSkool is Taskdrip's learning platform with courses on Instagram, TikTok, YouTube, content creation, monetization, and branding
 - Brands post campaigns, creators apply and complete them for crypto rewards
 - The Shop sells digital tools, templates, and resources for influencers
 
-User context:
+Current user context:
 ${JSON.stringify(userContext, null, 2)}
 
-Be conversational, helpful, specific, and actionable. Reference the user's actual data when possible. Keep responses concise but valuable. Use emojis sparingly for warmth.`;
+Instructions:
+- Be conversational, helpful, specific, and actionable
+- Reference the user's actual data (tier, followers, niche, campaigns completed) when giving advice
+- Keep responses concise but valuable — 2–5 sentences max unless a list is more helpful
+- Use emojis sparingly for warmth
+- If the user asks anything unrelated to the platform, gently redirect them back to how Taskdrip can help them`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages,
+          ],
+          max_tokens: 600,
+          temperature: 0.7,
+        }),
       });
 
-      const reply = completion.choices[0]?.message?.content || "I'm here to help! Could you rephrase your question?";
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('Groq API error:', errText);
+        return res.status(500).json({ message: 'AI service error' });
+      }
+
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content || "I'm here to help! Could you rephrase your question?";
       res.json({ reply });
     } catch (error: any) {
       console.error('AI chat error:', error);
@@ -4122,6 +4147,7 @@ Be conversational, helpful, specific, and actionable. Reference the user's actua
         requirements: req.body.requirements ? [req.body.requirements] : [],
         deadline: req.body.deadline ? new Date(req.body.deadline) : null,
         featureImage: featureImagePath,
+        instructionVideoUrl: req.body.instructionVideoUrl || null,
         status: 'active',
         paymentStatus: 'completed',
         isActive: true,

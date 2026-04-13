@@ -613,6 +613,41 @@ export default function CampaignDetail() {
                 </CardContent>
               </Card>
 
+              {/* Instruction Video */}
+              {(campaign as any)?.instructionVideoUrl && (() => {
+                const rawUrl = (campaign as any).instructionVideoUrl as string;
+                let videoId = "";
+                try {
+                  const url = new URL(rawUrl);
+                  if (url.hostname.includes("youtu.be")) {
+                    videoId = url.pathname.slice(1);
+                  } else {
+                    videoId = url.searchParams.get("v") || "";
+                  }
+                } catch {}
+                return videoId ? (
+                  <Card className="border-purple-200 bg-purple-50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg text-purple-800 flex items-center gap-2">
+                        📹 Campaign Instruction Video
+                      </CardTitle>
+                      <p className="text-sm text-purple-600">Watch this video to understand exactly how to complete this campaign</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="relative w-full rounded-xl overflow-hidden shadow-lg bg-black" style={{ paddingTop: "56.25%" }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${videoId}?rel=0`}
+                          className="absolute inset-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title="Campaign instruction video"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null;
+              })()}
+
               {/* Application Process */}
               <Card className="border-blue-200 bg-blue-50">
                 <CardHeader className="pb-3">

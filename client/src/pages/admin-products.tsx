@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Eye, Star, Package, Search, Filter, Image, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -450,7 +451,7 @@ export default function AdminProducts() {
                   <div className="flex gap-2 items-center">
                     <span className="text-xs text-gray-400">or paste URL:</span>
                     <Input
-                      value={form.watch("featuredImage")?.startsWith("http") ? form.watch("featuredImage") : ""}
+                      value={form.watch("featuredImage") || ""}
                       onChange={(e) => form.setValue("featuredImage", e.target.value)}
                       placeholder="https://..."
                       className="text-xs h-8"
