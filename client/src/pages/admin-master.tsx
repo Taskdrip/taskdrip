@@ -394,6 +394,7 @@ export default function AdminMaster() {
   const [adminTaskForm, setAdminTaskForm] = useState({
     title: "", description: "", category: "Social Media", reward: "", totalSlots: "10",
     estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official",
+    instructionVideoUrl: "",
   });
 
   // Payment methods state
@@ -671,7 +672,7 @@ export default function AdminMaster() {
       setEditingAdminTask(null);
       setTaskImageFile(null);
       setTaskImagePreview(null);
-      setAdminTaskForm({ title: "", description: "", category: "Social Media", reward: "", totalSlots: "10", estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official" });
+      setAdminTaskForm({ title: "", description: "", category: "Social Media", reward: "", totalSlots: "10", estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official", instructionVideoUrl: "" });
       toast({ title: "✅ Task created!", description: "Task is now live on the Tasks page." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -2282,7 +2283,7 @@ export default function AdminMaster() {
                 onClick={() => {
                   setEditingAdminTask(null);
                   setTaskImageFile(null); setTaskImagePreview(null);
-                  setAdminTaskForm({ title: "", description: "", category: "Social Media", reward: "", totalSlots: "10", estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official" });
+                  setAdminTaskForm({ title: "", description: "", category: "Social Media", reward: "", totalSlots: "10", estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official", instructionVideoUrl: "" });
                   setIsAdminTaskDialogOpen(true);
                 }}
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
@@ -2486,6 +2487,7 @@ export default function AdminMaster() {
                                     requirements: Array.isArray(campaign.requirements) ? campaign.requirements.join('\n') : (campaign.requirements || ""),
                                     platform: campaign.platform || "",
                                     brandName: campaign.brandName || "Taskdrip Official",
+                                    instructionVideoUrl: campaign.instructionVideoUrl || "",
                                   });
                                   setIsAdminTaskDialogOpen(true);
                                 }}
@@ -2669,6 +2671,16 @@ export default function AdminMaster() {
                       value={adminTaskForm.requirements}
                       onChange={(e) => setAdminTaskForm(f => ({ ...f, requirements: e.target.value }))}
                     />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label className="text-sm font-medium mb-1 block">📹 Instruction Video (YouTube URL)</Label>
+                    <Input
+                      placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                      value={adminTaskForm.instructionVideoUrl}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, instructionVideoUrl: e.target.value }))}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Add a YouTube video to guide influencers on how to complete this campaign</p>
                   </div>
                 </div>
 

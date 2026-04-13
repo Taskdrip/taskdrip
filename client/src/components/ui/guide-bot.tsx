@@ -453,19 +453,47 @@ export function GuideBot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  const handleSendChat = () => {
-    if (!chatInput.trim()) return;
+  const [isAiTyping, setIsAiTyping] = useState(false);
+
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || isAiTyping) return;
     const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: chatInput, timestamp: new Date() };
     setChatMessages(prev => [...prev, userMsg]);
     const input = chatInput;
     setChatInput("");
-    setTimeout(() => {
-      const response = isBrand
+    setIsAiTyping(true);
+    try {
+      const history = chatMessages.filter(m => m.id !== "welcome").map(m => ({
+        role: m.role === "bot" ? "assistant" : "user",
+        content: m.content,
+      }));
+      const userContext = {
+        name: (user as any)?.firstName || (user as any)?.companyName,
+        userType: (user as any)?.userType || "creator",
+        niche: (user as any)?.niche,
+        tier: getTierFromFollowers((user as any)?.totalFollowers || 0),
+        totalFollowers: (user as any)?.totalFollowers || 0,
+        completedCampaigns: (user as any)?.completedCampaigns || 0,
+        totalEarned: (user as any)?.totalEarned || "0",
+        location: (user as any)?.location,
+        socialChannels: (socialLinks as any[]).map(l => l.platform),
+      };
+      const res = await apiRequest("POST", "/api/guide/chat", {
+        messages: [...history, { role: "user", content: input }],
+        userContext,
+      });
+      const data = await res.json();
+      const botResponse: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: data.reply || "I'm here to help!", timestamp: new Date() };
+      setChatMessages(prev => [...prev, botResponse]);
+    } catch (err: any) {
+      const fallback = isBrand
         ? getBrandBotResponse(input, user)
         : getCreatorBotResponse(input, user, socialLinks as any[]);
-      const botResponse: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: response, timestamp: new Date() };
+      const botResponse: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: fallback, timestamp: new Date() };
       setChatMessages(prev => [...prev, botResponse]);
-    }, 600);
+    } finally {
+      setIsAiTyping(false);
+    }
   };
 
   const recommendations = isBrand
@@ -637,6 +665,18 @@ export function GuideBot() {
                       </div>
                     </div>
                   ))}
+                  {isAiTyping && (
+                    <div className="flex justify-start">
+                      <div className={`w-6 h-6 rounded-full ${isBrand ? "bg-blue-600" : "bg-purple-600"} flex items-center justify-center flex-shrink-0 mr-2 mt-0.5`}>
+                        {isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
+                      </div>
+                      <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-2.5 flex gap-1 items-center">
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
                 <div className="p-3 border-t border-gray-100 flex-shrink-0">
@@ -648,8 +688,9 @@ export function GuideBot() {
                       placeholder={isBrand ? "Ask about campaigns, creators..." : "Ask me anything..."}
                       className="rounded-xl text-xs border-gray-200 h-9"
                       data-testid="input-guide-chat"
+                      disabled={isAiTyping}
                     />
-                    <Button size="sm" onClick={handleSendChat} disabled={!chatInput.trim()} className={`rounded-xl h-9 px-3 ${isBrand ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"} text-white`} data-testid="button-guide-send">
+                    <Button size="sm" onClick={handleSendChat} disabled={!chatInput.trim() || isAiTyping} className={`rounded-xl h-9 px-3 ${isBrand ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"} text-white`} data-testid="button-guide-send">
                       <Send className="w-3.5 h-3.5" />
                     </Button>
                   </div>

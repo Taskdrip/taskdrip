@@ -3354,6 +3354,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Guide Bot — AI chat endpoint ──────────────────────────────────────────
+  app.post('/api/guide/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const { messages, userContext } = req.body;
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ message: "AI assistant not configured. Please add OPENAI_API_KEY to environment secrets." });
+      }
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey });
+
+      const systemPrompt = `You are Taskdrip Guide, an intelligent personal AI assistant for the Taskdrip Influencer Marketplace platform. You help users grow their influence, earn more, and succeed on the platform.
+
+Platform context:
+- Taskdrip is a SocialFi influencer marketplace where creators earn crypto (USDT) by completing brand campaigns
+- Creator tiers: Explorer (0), Aspiring Creator (1–10K followers), Rising Sparks (10K–100K), Growth Engine (100K–1M), Power Influencer (1M–10M), Global Titan (10M+)
+- BreedSkool is Taskdrip's learning platform with courses on Instagram, TikTok, YouTube, content creation, monetization, and branding
+- Brands post campaigns, creators apply and complete them for crypto rewards
+- The Shop sells digital tools, templates, and resources for influencers
+
+User context:
+${JSON.stringify(userContext, null, 2)}
+
+Be conversational, helpful, specific, and actionable. Reference the user's actual data when possible. Keep responses concise but valuable. Use emojis sparingly for warmth.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      const reply = completion.choices[0]?.message?.content || "I'm here to help! Could you rephrase your question?";
+      res.json({ reply });
+    } catch (error: any) {
+      console.error('AI chat error:', error);
+      res.status(500).json({ message: error.message || "Failed to get AI response" });
+    }
+  });
+
   // ── Ensure existing users have referral codes ──────────────────────
   app.post('/api/referrals/ensure-codes', isAuthenticated, async (req: any, res) => {
     try {

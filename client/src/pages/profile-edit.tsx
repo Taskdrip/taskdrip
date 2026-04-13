@@ -305,6 +305,9 @@ export default function ProfileEdit() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/creators'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({ title: "Profile saved! 🎉", description: "Your profile has been updated successfully." });
     } catch (error: any) {
       toast({ title: "Save failed", description: error.message || "Failed to save profile", variant: "destructive" });

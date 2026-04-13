@@ -1737,10 +1737,12 @@ export class DatabaseStorage implements IStorage {
       await db.insert(userSocialLinks).values(links.map(l => ({ id: crypto.randomUUID(), userId, ...l })));
     }
     const totalFollowers = links.reduce((sum, l) => sum + (Number(l.followerCount) || 0), 0);
-    let creatorTier = 'rising_sparks';
+    let creatorTier = 'newcomer';
     if (totalFollowers >= 10_000_000) creatorTier = 'global_titans';
     else if (totalFollowers >= 1_000_000) creatorTier = 'power_influencers';
     else if (totalFollowers >= 100_000) creatorTier = 'growth_engines';
+    else if (totalFollowers >= 10_000) creatorTier = 'rising_sparks';
+    else if (totalFollowers >= 1) creatorTier = 'aspiring';
     await db.update(users).set({ totalFollowers, creatorTier, updatedAt: new Date() } as any).where(eq(users.id, userId));
   }
 

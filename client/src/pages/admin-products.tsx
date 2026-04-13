@@ -26,6 +26,7 @@ const productSchema = z.object({
   category: z.string().min(1, "Category is required"),
   type: z.string().min(1, "Type is required"),
   featuredImage: z.string().optional(),
+  promoVideoUrl: z.string().optional(),
   galleryImages: z.array(z.string()).default([]),
   downloadUrl: z.string().optional(),
   demoUrl: z.string().optional(),
@@ -68,6 +69,7 @@ export default function AdminProducts() {
       category: "",
       type: "",
       featuredImage: "",
+      promoVideoUrl: "",
       galleryImages: [],
       downloadUrl: "",
       demoUrl: "",
@@ -174,6 +176,7 @@ export default function AdminProducts() {
       category: product.category,
       type: product.type,
       featuredImage: product.featuredImage || "",
+      promoVideoUrl: (product as any).promoVideoUrl || "",
       galleryImages: product.galleryImages || [],
       downloadUrl: product.downloadUrl || "",
       demoUrl: product.demoUrl || "",
@@ -454,6 +457,22 @@ export default function AdminProducts() {
                     />
                   </div>
                 </div>
+
+                {/* YouTube Promo Video */}
+                <FormField
+                  control={form.control}
+                  name="promoVideoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>🎬 Product Video (YouTube URL)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." {...field} />
+                      </FormControl>
+                      <p className="text-xs text-gray-400">Paste a YouTube link — it will be embedded and auto-played on the product page</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

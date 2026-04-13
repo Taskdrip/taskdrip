@@ -165,26 +165,61 @@ export default function ProductDetail() {
 
         {/* Product Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
-          {/* Product Images */}
+          {/* Product Images / Video */}
           <div className="space-y-4">
-            <div className="relative">
-              {images.length > 0 ? (
+            {/* YouTube video if available */}
+            {(product as any).promoVideoUrl && (() => {
+              const rawUrl = (product as any).promoVideoUrl as string;
+              let videoId = "";
+              try {
+                const url = new URL(rawUrl);
+                if (url.hostname.includes("youtu.be")) {
+                  videoId = url.pathname.slice(1);
+                } else {
+                  videoId = url.searchParams.get("v") || "";
+                }
+              } catch {}
+              return videoId ? (
+                <div className="relative w-full rounded-xl overflow-hidden shadow-lg bg-black" style={{ paddingTop: "56.25%" }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&rel=0`}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={`${product.title} promo video`}
+                  />
+                </div>
+              ) : null;
+            })()}
+
+            {/* Images */}
+            {images.length > 0 && (
+              <div className="relative">
                 <img
                   src={images[selectedImage]}
                   alt={product.title}
                   className="w-full h-96 object-cover rounded-lg shadow-lg"
                 />
-              ) : (
+                {discount > 0 && (
+                  <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                    {discount}% OFF
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {!((product as any).promoVideoUrl) && images.length === 0 && (
+              <div className="relative">
                 <div className="w-full h-96 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg flex items-center justify-center">
                   <Package className="w-24 h-24 text-gray-400" />
                 </div>
-              )}
-              {discount > 0 && (
-                <Badge className="absolute top-4 left-4 bg-red-500 text-white">
-                  {discount}% OFF
-                </Badge>
-              )}
-            </div>
+                {discount > 0 && (
+                  <Badge className="absolute top-4 left-4 bg-red-500 text-white">
+                    {discount}% OFF
+                  </Badge>
+                )}
+              </div>
+            )}
             
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto">

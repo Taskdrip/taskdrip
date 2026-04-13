@@ -112,6 +112,7 @@ export const campaigns = pgTable("campaigns", {
   totalBudget: decimal("total_budget", { precision: 10, scale: 2 }),
   budgetPerCreator: decimal("budget_per_creator", { precision: 10, scale: 2 }),
   featureImage: varchar("feature_image", { length: 500 }),
+  instructionVideoUrl: varchar("instruction_video_url", { length: 500 }),
   totalSlots: integer("total_slots").notNull(),
   filledSlots: integer("filled_slots").default(0),
   estimatedTime: varchar("estimated_time"), // "5 min", "30 min", etc.
