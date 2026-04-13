@@ -40,9 +40,19 @@ Design preferences: Clean, professional web app design with white background and
 - Full admin task management: create/edit/delete tasks with image upload, activate/deactivate
 - Task-based completion system for creators
 - Participation tracking and approval workflow (admin approve/reject applicants)
-- Task submission review: creators submit proof URLs/screenshots, admin approves and releases payment
+- **Brand is primary reviewer** of task submissions — approve/reject with notes triggers USDT payment
+- **Admin as mediator** — can oversee all submissions and intervene in disputes
 - Category-based campaign organization (Social Media, Gaming, Technology, Crypto & Web3, etc.)
-- Admin escrow mediation: brands pay → admin verifies → campaign activates → creators apply → submit → admin releases payment
+- Interaction chain: Brand posts → escrow → admin verifies → active → creator applies → admin approves → creator submits → brand reviews → brand releases payment (admin can mediate)
+- Demo brand account: `demobrand@taskdrip.online` / `Brand@2024` with 6 active demo campaigns
+- Admin can edit all campaigns (including demo brand campaigns) from the "Tasks Mgmt" admin tab
+
+#### Payment Networks
+- Admin-controlled payment networks management via "Networks" admin tab
+- Active by default: USDT-Tron (TRC-20), USDT-TON, USDT-BSC (BEP-20), USDT-ETH (ERC-20)
+- Admin can toggle any network active/inactive — only active networks shown to users
+- Admin can set deposit wallet addresses per network
+- Escrow payment page dynamically shows only active networks
 
 #### Crypto Payment System (Non-Custodial)
 - Cold wallet addresses managed by admin

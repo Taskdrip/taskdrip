@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -1272,11 +1272,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Task approval and payment routes
-  app.patch('/api/task-submissions/:id/approve', async (req, res) => {
+  // Task approval and payment routes — brand owner OR admin can approve
+  app.patch('/api/task-submissions/:id/approve', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = (req as any).user?.id;
-      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const userId = req.user.id;
+      const userType = req.user.userType;
+
+      // Load submission to check ownership
+      const existingSubmission = await storage.getTaskSubmission(req.params.id);
+      if (!existingSubmission) return res.status(404).json({ message: "Submission not found" });
+
+      // Verify the approver is the brand that owns this campaign, or an admin
+      if (userType !== 'admin') {
+        const campaign = await storage.getCampaignById(existingSubmission.campaignId);
+        if (!campaign || campaign.brandId !== userId) {
+          return res.status(403).json({ message: "Only the brand that owns this campaign or an admin can approve submissions" });
+        }
+      }
 
       const { notes } = req.body;
       const submission = await storage.approveTaskSubmission(req.params.id, userId, notes);
@@ -4175,6 +4187,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error rejecting participation:', error);
       res.status(500).json({ message: 'Failed to reject participation' });
+    }
+  });
+
+  // ── Payment Networks (public — active only) ─────────────────────────────
+  app.get('/api/payment-networks', async (req, res) => {
+    try {
+      const networks = await db
+        .select()
+        .from(paymentNetworks)
+        .orderBy(paymentNetworks.sortOrder);
+      res.json(networks);
+    } catch (error) {
+      console.error('Error fetching payment networks:', error);
+      res.status(500).json({ message: 'Failed to fetch payment networks' });
+    }
+  });
+
+  // ── Admin: Get ALL payment networks ─────────────────────────────────────
+  app.get('/api/admin/payment-networks', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const networks = await db
+        .select()
+        .from(paymentNetworks)
+        .orderBy(paymentNetworks.sortOrder);
+      res.json(networks);
+    } catch (error) {
+      console.error('Error fetching admin payment networks:', error);
+      res.status(500).json({ message: 'Failed to fetch payment networks' });
+    }
+  });
+
+  // ── Admin: Toggle/Update payment network ────────────────────────────────
+  app.put('/api/admin/payment-networks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const { isActive, walletAddress, name, description } = req.body;
+      const updates: any = { updatedAt: new Date() };
+      if (typeof isActive === 'boolean') updates.isActive = isActive;
+      if (walletAddress !== undefined) updates.walletAddress = walletAddress;
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      const [updated] = await db
+        .update(paymentNetworks)
+        .set(updates)
+        .where(eq(paymentNetworks.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating payment network:', error);
+      res.status(500).json({ message: 'Failed to update payment network' });
+    }
+  });
+
+  // ── Admin: Update campaign (admin edits any campaign, including demo brand campaigns) ──
+  app.put('/api/admin/campaigns/:id', isAuthenticated, upload.single('featuredImage'), async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const id = req.params.id;
+      let updates: any = {};
+      const body = req.body;
+      if (body.title) updates.title = body.title;
+      if (body.description) updates.description = body.description;
+      if (body.category) updates.category = body.category;
+      if (body.reward) updates.reward = body.reward;
+      if (body.totalSlots) updates.totalSlots = parseInt(body.totalSlots);
+      if (body.deadline) updates.deadline = new Date(body.deadline);
+      if (body.requirements) {
+        try { updates.requirements = JSON.parse(body.requirements); } catch { updates.requirements = body.requirements; }
+      }
+      if (body.estimatedTime) updates.estimatedTime = body.estimatedTime;
+      if (body.status) updates.status = body.status;
+      if (body.isActive !== undefined) updates.isActive = body.isActive === 'true' || body.isActive === true;
+      if (body.isFeatured !== undefined) updates.isFeatured = body.isFeatured === 'true' || body.isFeatured === true;
+      if (req.file) updates.featuredImage = `/uploads/${req.file.filename}`;
+      await storage.updateCampaign(id, updates);
+      const updated = await storage.getCampaignById(id);
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating admin campaign:', error);
+      res.status(500).json({ message: 'Failed to update campaign' });
     }
   });
 

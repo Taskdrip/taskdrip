@@ -1,6 +1,8 @@
 import { db } from "./db";
-import { courses, shopProducts, courseLessons, posts, blogPosts } from "@shared/schema";
+import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+import bcrypt from "bcrypt";
+import { storage } from "./storage";
 
 const ADMIN_ID = "demo-admin-seed-id";
 
@@ -333,6 +335,151 @@ const DEMO_BLOG_POSTS = [
   },
 ];
 
+const DEMO_BRAND_EMAIL = "demobrand@taskdrip.online";
+const DEMO_BRAND_ID = "demo-brand-seed-001";
+
+const DEMO_CAMPAIGNS_DATA = [
+  {
+    id: "demo-campaign-001",
+    title: "Promote Taskdrip on Instagram Stories",
+    description: "We want you to share Taskdrip on your Instagram stories. Post 3 consecutive stories showing how you earn crypto on Taskdrip — include your referral code and a CTA for followers to sign up. Tag @taskdrip and use #TaskdripEarns.",
+    category: "Social Media",
+    reward: "25.00",
+    totalSlots: 20,
+    filledSlots: 7,
+    status: "active",
+    isActive: true,
+    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    requirements: ["Instagram account with 1,000+ followers", "Post 3 stories in a row", "Tag @taskdrip", "Include referral link in bio or story link"],
+    estimatedTime: "1-2 hours",
+    featuredImage: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=450&fit=crop",
+    isFeatured: true,
+  },
+  {
+    id: "demo-campaign-002",
+    title: "TikTok Review — Crypto Earning App",
+    description: "Create a 60-90 second TikTok video reviewing your experience using Taskdrip to earn USDT and TON crypto. Show the sign-up process, the tasks page, and a completed task. Authentic reviews only — no scripts provided.",
+    category: "Crypto & Web3",
+    reward: "50.00",
+    totalSlots: 10,
+    filledSlots: 3,
+    status: "active",
+    isActive: true,
+    deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+    requirements: ["TikTok account with 2,000+ followers", "60–90 second video format", "Must show platform walkthrough", "Post public (no private account)"],
+    estimatedTime: "2-3 hours",
+    featuredImage: "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=800&h=450&fit=crop",
+    isFeatured: true,
+  },
+  {
+    id: "demo-campaign-003",
+    title: "YouTube Short — Web3 Creator Economy",
+    description: "Create a 60-second YouTube Short explaining how influencers can get paid in USDT using Taskdrip. Target audience: creators who don't know about crypto earning. Include the link in your description.",
+    category: "YouTube",
+    reward: "40.00",
+    totalSlots: 15,
+    filledSlots: 5,
+    status: "active",
+    isActive: true,
+    deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+    requirements: ["YouTube channel with 500+ subscribers", "60-second Short format", "Add Taskdrip link in description", "Mention USDT payment"],
+    estimatedTime: "2-4 hours",
+    featuredImage: "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=800&h=450&fit=crop",
+    isFeatured: false,
+  },
+  {
+    id: "demo-campaign-004",
+    title: "Twitter/X Thread — Earn Crypto as an Influencer",
+    description: "Write a 5-tweet thread on Twitter/X about how influencers can earn crypto on Taskdrip. Include stats, your personal experience, platform screenshots, and a call to action. Thread must stay up for at least 30 days.",
+    category: "Social Media",
+    reward: "20.00",
+    totalSlots: 30,
+    filledSlots: 12,
+    status: "active",
+    isActive: true,
+    deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+    requirements: ["Twitter/X account with 500+ followers", "5-tweet thread minimum", "Include Taskdrip link", "Thread must remain public for 30 days"],
+    estimatedTime: "1 hour",
+    featuredImage: "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=800&h=450&fit=crop",
+    isFeatured: false,
+  },
+  {
+    id: "demo-campaign-005",
+    title: "Telegram Community Share — Crypto Opportunity",
+    description: "Share the Taskdrip platform in at least 3 active Telegram crypto groups or channels. You must be a real member (not spam accounts). Provide a screenshot of each post with the group name visible.",
+    category: "Crypto & Web3",
+    reward: "15.00",
+    totalSlots: 50,
+    filledSlots: 18,
+    status: "active",
+    isActive: true,
+    deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    requirements: ["Active Telegram account", "Must be real member in 3+ crypto groups", "Share unique message (no copy-paste spam)", "Provide screenshots with group name visible"],
+    estimatedTime: "30 minutes",
+    featuredImage: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=450&fit=crop",
+    isFeatured: false,
+  },
+  {
+    id: "demo-campaign-006",
+    title: "Blog Post — Getting Paid in Crypto as a Creator",
+    description: "Write a 600+ word blog post on Medium, Substack, or your personal blog about how creators can earn USDT/TON using platforms like Taskdrip. The article must include at least 2 links to Taskdrip and be indexed by Google (provide proof after 7 days).",
+    category: "Content Creation",
+    reward: "60.00",
+    totalSlots: 8,
+    filledSlots: 2,
+    status: "active",
+    isActive: true,
+    deadline: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    requirements: ["Blog on Medium, Substack, or personal site", "600+ words", "2+ links to Taskdrip", "Google-indexed proof after 7 days", "Share final URL as proof"],
+    estimatedTime: "3-5 hours",
+    featuredImage: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&h=450&fit=crop",
+    isFeatured: true,
+  },
+];
+
+const PAYMENT_NETWORKS_DATA = [
+  {
+    networkKey: "usdt_tron",
+    name: "USDT - Tron Network",
+    shortName: "TRC-20",
+    network: "tron",
+    currency: "USDT",
+    description: "USDT on Tron blockchain (TRC-20). Fast, low fees. Minimum: 1 USDT.",
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    networkKey: "usdt_ton",
+    name: "USDT - TON Network",
+    shortName: "TON",
+    network: "ton",
+    currency: "USDT",
+    description: "USDT on The Open Network (TON). Native Telegram ecosystem. Minimum: 1 USDT.",
+    isActive: true,
+    sortOrder: 2,
+  },
+  {
+    networkKey: "usdt_bsc",
+    name: "USDT - BSC Network",
+    shortName: "BEP-20",
+    network: "bsc",
+    currency: "USDT",
+    description: "USDT on BNB Smart Chain (BEP-20). Binance ecosystem. Minimum: 1 USDT.",
+    isActive: true,
+    sortOrder: 3,
+  },
+  {
+    networkKey: "usdt_eth",
+    name: "USDT - Ethereum Network",
+    shortName: "ERC-20",
+    network: "eth",
+    currency: "USDT",
+    description: "USDT on Ethereum (ERC-20). Most widely supported. Higher gas fees apply. Minimum: 10 USDT.",
+    isActive: true,
+    sortOrder: 4,
+  },
+];
+
 export async function seedDemoData(adminUserId: string) {
   try {
     // Check if demo data already exists
@@ -408,6 +555,71 @@ export async function seedDemoData(adminUserId: string) {
       }
       console.log(`[seed] Created ${DEMO_BLOG_POSTS.length} demo blog posts.`);
     }
+
+    // ── Demo Brand Account ──────────────────────────────────────────────────
+    const existingBrand = await storage.getUserByEmail(DEMO_BRAND_EMAIL);
+    let demoBrandId = existingBrand?.id || DEMO_BRAND_ID;
+    if (!existingBrand) {
+      console.log("[seed] Creating demo brand account...");
+      const hashed = await bcrypt.hash("Brand@2024", 12);
+      const genCode = (prefix: string) =>
+        `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+      await storage.createUser({
+        id: demoBrandId,
+        firstName: "Taskdrip",
+        lastName: "Brand",
+        email: DEMO_BRAND_EMAIL,
+        password: hashed,
+        userType: "brand",
+        companyName: "Taskdrip Official",
+        bio: "The official Taskdrip demo brand account. Campaigns here are examples of how brands use the platform to connect with creators.",
+        location: "Global",
+        skills: [],
+        referralCodeCreator: genCode("CR"),
+        referralCodeBrand: genCode("BR"),
+        avatarUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
+        verified: true,
+      } as any);
+      console.log("[seed] Demo brand created: demobrand@taskdrip.online / Brand@2024");
+    }
+
+    // ── Demo Campaigns ──────────────────────────────────────────────────────
+    const existingCampaigns = await db.select({ id: campaigns.id }).from(campaigns).limit(1);
+    if (existingCampaigns.length === 0) {
+      console.log("[seed] Seeding demo campaigns...");
+      for (const c of DEMO_CAMPAIGNS_DATA) {
+        await db.insert(campaigns).values({
+          id: c.id,
+          brandId: demoBrandId,
+          brandName: "Taskdrip Official",
+          title: c.title,
+          description: c.description,
+          category: c.category,
+          reward: c.reward,
+          totalSlots: c.totalSlots,
+          filledSlots: c.filledSlots,
+          status: c.status,
+          isActive: c.isActive,
+          deadline: c.deadline ? new Date(c.deadline) : null,
+          requirements: c.requirements as any,
+          estimatedTime: c.estimatedTime,
+          featuredImage: c.featuredImage,
+          isFeatured: c.isFeatured,
+        } as any);
+      }
+      console.log(`[seed] Created ${DEMO_CAMPAIGNS_DATA.length} demo campaigns.`);
+    }
+
+    // ── Payment Networks ────────────────────────────────────────────────────
+    const existingNetworks = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).limit(1);
+    if (existingNetworks.length === 0) {
+      console.log("[seed] Seeding payment networks...");
+      for (const net of PAYMENT_NETWORKS_DATA) {
+        await db.insert(paymentNetworks).values(net as any);
+      }
+      console.log(`[seed] Created ${PAYMENT_NETWORKS_DATA.length} payment networks.`);
+    }
+
   } catch (err) {
     console.error("[seed] Demo seed error:", err);
   }

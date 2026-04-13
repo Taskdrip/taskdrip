@@ -960,6 +960,17 @@ export default function BrandDashboard() {
 
         {selectedTab === "submissions" && (
           <div className="space-y-6">
+            {/* Role clarity banner */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-blue-800 text-sm">You are the primary reviewer</p>
+                <p className="text-blue-600 text-xs mt-0.5">
+                  Review each creator's submitted work and approve or reject it. Approved submissions trigger automatic USDT payment to the creator's wallet.
+                  The Taskdrip admin team oversees all submissions and can mediate any disputes.
+                </p>
+              </div>
+            </div>
             {submissionsLoading ? (
               <div className="text-center py-8">Loading submissions...</div>
             ) : submissions.length === 0 ? (

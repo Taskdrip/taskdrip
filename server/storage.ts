@@ -170,6 +170,7 @@ export interface IStorage {
   getCampaignTaskSubmissions(campaignId: string): Promise<TaskSubmission[]>;
   createTaskSubmission(submission: InsertTaskSubmission): Promise<TaskSubmission>;
   updateTaskSubmission(id: string, updates: Partial<InsertTaskSubmission>): Promise<TaskSubmission>;
+  getTaskSubmission(id: string): Promise<TaskSubmission | undefined>;
   approveTaskSubmission(id: string, reviewedBy: string, notes?: string): Promise<TaskSubmission>;
   rejectTaskSubmission(id: string, reviewedBy: string, notes: string): Promise<TaskSubmission>;
   
@@ -721,6 +722,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(taskSubmissions.id, id))
       .returning();
     return updated;
+  }
+
+  async getTaskSubmission(id: string): Promise<TaskSubmission | undefined> {
+    const [submission] = await db
+      .select()
+      .from(taskSubmissions)
+      .where(eq(taskSubmissions.id, id))
+      .limit(1);
+    return submission;
   }
 
   async approveTaskSubmission(id: string, reviewedBy: string, notes?: string): Promise<TaskSubmission> {

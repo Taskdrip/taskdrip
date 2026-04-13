@@ -34,8 +34,19 @@ interface EscrowPayment {
 
 interface PaymentProof {
   transactionHash: string;
-  network: "tron" | "bsc" | "ton";
+  network: string;
   paymentScreenshot?: File;
+}
+
+interface PaymentNetwork {
+  id: string;
+  networkKey: string;
+  name: string;
+  shortName: string;
+  network: string;
+  walletAddress?: string;
+  description?: string;
+  isActive: boolean;
 }
 
 export default function EscrowPayment() {
@@ -47,7 +58,7 @@ export default function EscrowPayment() {
   const urlParams = new URLSearchParams(window.location.search);
   const campaignId = urlParams.get("campaignId");
   
-  const [selectedNetwork, setSelectedNetwork] = useState<"tron" | "bsc" | "ton">("tron");
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("tron");
   const [paymentProof, setPaymentProof] = useState<PaymentProof>({
     transactionHash: "",
     network: "tron"
@@ -70,6 +81,12 @@ export default function EscrowPayment() {
     },
     onError: () => toast({ title: "Failed to send", description: "Please try WhatsApp instead.", variant: "destructive" }),
   });
+
+  // Fetch active payment networks
+  const { data: paymentNetworks = [] } = useQuery<PaymentNetwork[]>({
+    queryKey: ["/api/payment-networks"],
+  });
+  const activeNetworks = paymentNetworks.filter((n) => n.isActive);
 
   // Fetch escrow payment details
   const { data: escrowPayment, isLoading, refetch } = useQuery<EscrowPayment>({
@@ -247,77 +264,76 @@ export default function EscrowPayment() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Network Selection */}
+                {/* Network Selection — dynamic from admin-controlled active networks */}
                 <div>
                   <Label className="text-sm font-medium mb-3 block">Select Payment Network</Label>
-                  <div className="grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => setSelectedNetwork("tron")}
-                      className={`p-4 border rounded-lg text-center transition-colors ${
-                        selectedNetwork === "tron" ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                      }`}
-                    >
-                      <div className="font-semibold">USDT (Tron)</div>
-                      <div className="text-sm text-gray-600">TRC-20</div>
-                    </button>
-                    <button
-                      onClick={() => setSelectedNetwork("bsc")}
-                      className={`p-4 border rounded-lg text-center transition-colors ${
-                        selectedNetwork === "bsc" ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                      }`}
-                    >
-                      <div className="font-semibold">USDT (BSC)</div>
-                      <div className="text-sm text-gray-600">BEP-20</div>
-                    </button>
-                    <button
-                      onClick={() => setSelectedNetwork("ton")}
-                      className={`p-4 border rounded-lg text-center transition-colors ${
-                        selectedNetwork === "ton" ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                      }`}
-                    >
-                      <div className="font-semibold">USDT (TON)</div>
-                      <div className="text-sm text-gray-600">TON Network</div>
-                    </button>
-                  </div>
+                  {activeNetworks.length === 0 ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm">
+                      No payment networks are currently active. Please contact support.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {activeNetworks.map((net) => {
+                        const networkEmoji: Record<string, string> = { tron: '🔴', ton: '💎', bsc: '🟡', eth: '🔷' };
+                        return (
+                          <button
+                            key={net.networkKey}
+                            onClick={() => setSelectedNetwork(net.network)}
+                            data-testid={`network-btn-${net.networkKey}`}
+                            className={`p-4 border-2 rounded-xl text-center transition-all ${
+                              selectedNetwork === net.network
+                                ? "border-blue-500 bg-blue-50 shadow-md"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="text-2xl mb-1">{networkEmoji[net.network] || '💰'}</div>
+                            <div className="font-semibold text-sm">{net.name.replace(' Network', '').replace('USDT - ', 'USDT ')}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{net.shortName}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* Wallet Address */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <Label className="text-sm font-medium mb-2 block">
-                    {selectedNetwork === "tron" ? "USDT (Tron) Wallet Address" :
-                     selectedNetwork === "bsc" ? "USDT (BSC) Wallet Address" :
-                     "USDT (TON) Wallet Address"}
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={
-                        selectedNetwork === "tron" ? walletAddresses.tron :
-                        selectedNetwork === "bsc" ? walletAddresses.bsc :
-                        walletAddresses.ton
-                      }
-                      readOnly
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        const address = selectedNetwork === "tron" ? walletAddresses.tron :
-                                      selectedNetwork === "bsc" ? walletAddresses.bsc :
-                                      walletAddresses.ton;
-                        const success = await copyToClipboard(selectedNetwork);
-                        if (success) {
-                          toast({
-                            title: "Copied!",
-                            description: "Wallet address copied to clipboard",
-                          });
-                        }
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                {/* Wallet Address — from active network's configured address */}
+                {(() => {
+                  const selected = activeNetworks.find((n) => n.network === selectedNetwork);
+                  const address = selected?.walletAddress
+                    || (selectedNetwork === 'tron' ? walletAddresses.tron
+                      : selectedNetwork === 'bsc' ? walletAddresses.bsc
+                      : selectedNetwork === 'ton' ? walletAddresses.ton
+                      : '');
+                  return (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <Label className="text-sm font-medium mb-2 block">
+                        {selected?.name || 'USDT'} Deposit Address
+                      </Label>
+                      {selected?.description && (
+                        <p className="text-xs text-gray-500 mb-2">{selected.description}</p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={address || 'Wallet address not configured — contact support'}
+                          readOnly
+                          className="font-mono text-sm"
+                        />
+                        {address && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(address);
+                              toast({ title: "Copied!", description: "Wallet address copied to clipboard" });
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Submit Payment Proof */}
                 <div className="pt-4 border-t">

@@ -890,6 +890,26 @@ export const courseMessages = pgTable("course_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Payment Networks — admin toggles which crypto deposit/withdrawal networks are active
+export const paymentNetworks = pgTable("payment_networks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  networkKey: varchar("network_key", { length: 50 }).notNull().unique(), // 'usdt_tron', 'usdt_ton', 'usdt_bsc', 'usdt_eth'
+  name: varchar("name", { length: 100 }).notNull(),           // 'USDT - Tron Network'
+  shortName: varchar("short_name", { length: 30 }).notNull(), // 'TRC-20'
+  network: varchar("network", { length: 20 }).notNull(),       // 'tron', 'ton', 'bsc', 'eth'
+  currency: varchar("currency", { length: 10 }).notNull().default("USDT"),
+  walletAddress: varchar("wallet_address", { length: 200 }),   // admin deposit address for this network
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPaymentNetworkSchema = createInsertSchema(paymentNetworks).omit({ id: true, createdAt: true, updatedAt: true });
+export type PaymentNetwork = typeof paymentNetworks.$inferSelect;
+export type InsertPaymentNetwork = z.infer<typeof insertPaymentNetworkSchema>;
+
 export const pwaSettings = pgTable("pwa_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   appName: varchar("app_name").notNull().default("Taskdrip"),

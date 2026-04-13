@@ -1185,6 +1185,7 @@ export default function AdminMaster() {
                 { value: "users", icon: <Users className="h-3.5 w-3.5" />, label: `Users (${totalUsers})` },
                 { value: "campaigns", icon: <Target className="h-3.5 w-3.5" />, label: "Campaigns" },
                 { value: "tasks", icon: <CheckSquare className="h-3.5 w-3.5" />, label: "Tasks Mgmt" },
+                { value: "networks", icon: <Globe className="h-3.5 w-3.5" />, label: "Networks" },
                 { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
                 { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
@@ -2344,9 +2345,14 @@ export default function AdminMaster() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-600" />
-                  Task Submissions Review
+                  Task Submissions — Oversight & Mediation
                 </CardTitle>
-                <p className="text-sm text-gray-500">Review proof submissions from creators. Approve to release payment, reject to request revision.</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                  <p className="text-sm text-blue-700 font-medium">Admin Mediator Role</p>
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    Brands are the primary reviewers of creator submissions. As admin, you oversee all submissions and can approve or reject as a mediator if needed — for example, to resolve disputes or when a brand is unresponsive.
+                  </p>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
                 {allSubmissions.length === 0 ? (
@@ -2687,6 +2693,13 @@ export default function AdminMaster() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* ════════════════════════════════════════════════════
+               PAYMENT NETWORKS TAB
+          ════════════════════════════════════════════════════ */}
+          <TabsContent value="networks" className="space-y-6">
+            <AdminPaymentNetworksPanel />
+          </TabsContent>
 
           <TabsContent value="payments" className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -4827,6 +4840,200 @@ export default function AdminMaster() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN PAYMENT NETWORKS PANEL
+// ═══════════════════════════════════════════════════
+function AdminPaymentNetworksPanel() {
+  const { toast } = useToast();
+  const [editingNet, setEditingNet] = useState<any>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [editOpen, setEditOpen] = useState(false);
+
+  const { data: networks = [], isLoading } = useQuery<any[]>({
+    queryKey: ['/api/admin/payment-networks'],
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/admin/payment-networks'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/payment-networks'] });
+  };
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const res = await apiRequest('PUT', `/api/admin/payment-networks/${id}`, { isActive });
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      invalidate();
+      toast({ title: vars.isActive ? 'Network activated' : 'Network deactivated' });
+    },
+    onError: () => toast({ title: 'Failed to update network', variant: 'destructive' }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest('PUT', `/api/admin/payment-networks/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidate();
+      setEditOpen(false);
+      toast({ title: 'Network updated' });
+    },
+    onError: () => toast({ title: 'Failed to update network', variant: 'destructive' }),
+  });
+
+  const networkIcons: Record<string, string> = {
+    tron: '🔴',
+    ton: '💎',
+    bsc: '🟡',
+    eth: '🔷',
+  };
+
+  const networkColors: Record<string, string> = {
+    tron: 'border-red-500/30 bg-red-500/5',
+    ton: 'border-blue-500/30 bg-blue-500/5',
+    bsc: 'border-yellow-500/30 bg-yellow-500/5',
+    eth: 'border-indigo-500/30 bg-indigo-500/5',
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Payment Networks</h2>
+          <p className="text-gray-400 text-sm mt-1">
+            Control which crypto deposit &amp; withdrawal networks are available to users. Toggle networks active/inactive and set your receiving wallet addresses.
+          </p>
+        </div>
+      </div>
+
+      {/* Status Banner */}
+      <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+        <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-medium text-green-300">
+            {networks.filter((n: any) => n.isActive).length} of {networks.length} networks active
+          </p>
+          <p className="text-xs text-green-500/70 mt-0.5">
+            Only active networks appear on deposit and withdrawal forms for users.
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-12 text-gray-400">Loading networks...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {networks.map((net: any) => (
+            <Card key={net.id} className={`border ${networkColors[net.network] || 'border-gray-700 bg-gray-800/50'} bg-gray-900/80`} data-testid={`network-card-${net.networkKey}`}>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-2xl">
+                      {networkIcons[net.network] || '💰'}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-base">{net.name}</h3>
+                      <p className="text-xs text-gray-400">{net.shortName} • {net.currency}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={net.isActive ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-400'}>
+                      {net.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    </Badge>
+                    <Switch
+                      checked={net.isActive}
+                      onCheckedChange={(checked) => toggleMutation.mutate({ id: net.id, isActive: checked })}
+                      disabled={toggleMutation.isPending}
+                      data-testid={`toggle-network-${net.networkKey}`}
+                    />
+                  </div>
+                </div>
+                {net.description && (
+                  <p className="text-xs text-gray-500 mb-3">{net.description}</p>
+                )}
+                {net.walletAddress ? (
+                  <div className="bg-gray-800 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-gray-500 mb-1">Deposit Wallet Address</p>
+                    <p className="font-mono text-xs text-green-400 break-all">{net.walletAddress}</p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-yellow-400">No wallet address set — users cannot deposit via this network until you add one.</p>
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full"
+                  onClick={() => {
+                    setEditingNet(net);
+                    setEditForm({ walletAddress: net.walletAddress || '', description: net.description || '' });
+                    setEditOpen(true);
+                  }}
+                  data-testid={`edit-network-${net.networkKey}`}
+                >
+                  <Edit className="h-3.5 w-3.5 mr-2" /> Edit Wallet Address
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle>Edit {editingNet?.name}</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Set the deposit wallet address for this network. Users will send funds here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Deposit Wallet Address</Label>
+              <Input
+                value={editForm.walletAddress}
+                onChange={(e) => setEditForm((p: any) => ({ ...p, walletAddress: e.target.value }))}
+                placeholder="Enter wallet address..."
+                className="bg-gray-800 border-gray-700 text-white font-mono"
+                data-testid="input-network-wallet"
+              />
+              <p className="text-xs text-gray-500">This address will be shown to users when they deposit funds for campaigns or subscriptions.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Network Description</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm((p: any) => ({ ...p, description: e.target.value }))}
+                placeholder="e.g. Fast, low-fee transactions. Minimum 1 USDT."
+                className="bg-gray-800 border-gray-700 text-white"
+                rows={2}
+                data-testid="input-network-description"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                onClick={() => updateMutation.mutate({ id: editingNet?.id, data: editForm })}
+                disabled={updateMutation.isPending}
+                data-testid="btn-save-network"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={() => setEditOpen(false)} className="border-gray-700 text-gray-300">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
