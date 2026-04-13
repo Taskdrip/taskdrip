@@ -930,12 +930,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else updates.creatorTier = 'newcomer';
 
       const updatedUser = await storage.updateUserProfile(userId, updates);
-
-      // Refresh session so tier/followers reflect immediately
-      req.login(updatedUser as any, (err) => {
-        if (err) console.error('Session refresh error:', err);
-      });
-
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -1717,12 +1711,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else updates.creatorTier = 'newcomer';
 
       const updatedUser = await storage.updateUserProfile(req.params.userId, updates);
-      // Refresh the session so the updated tier/followers are reflected site-wide immediately
-      if (req.user && req.user.id === req.params.userId) {
-        req.login(updatedUser as any, (err) => {
-          if (err) console.error('Session refresh error:', err);
-        });
-      }
       res.json(updatedUser);
     } catch (error) {
       console.error("Profile update error:", error);

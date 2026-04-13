@@ -72,11 +72,14 @@ function analyzeBrandProfile(user: any): Recommendation[] {
 // ── Creator profile analysis ──────────────────────────────────────────────
 function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] {
   const recs: Recommendation[] = [];
-  // Calculate totalFollowers from individual platform fields + social links as fallback
+  // Built-in platform followers saved on the user record (or recalculate from fields if not yet saved)
   const platformSum = ['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers']
     .reduce((sum, f) => sum + (parseInt(user?.[f]) || 0), 0);
-  const socialLinksSum = socialLinks.reduce((sum: number, sl: any) => sum + (parseInt(sl.followersCount || sl.followerCount) || 0), 0);
-  const totalFollowers = user?.totalFollowers || platformSum || socialLinksSum || 0;
+  const builtInFollowers = (user?.totalFollowers && user.totalFollowers > 0) ? user.totalFollowers : platformSum;
+  // Custom social channels (user_social_links table) — field is followerCount
+  const customLinksSum = socialLinks.reduce((sum: number, sl: any) => sum + (parseInt(sl.followerCount) || 0), 0);
+  // True total = built-in platforms + custom channel followers
+  const totalFollowers = builtInFollowers + customLinksSum;
   const tier = getTierFromFollowers(totalFollowers);
   const tierConf = getTierConfig(tier);
   const completedCampaigns = user?.completedCampaigns || 0;
