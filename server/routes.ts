@@ -4271,6 +4271,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── SITE CONTENT CMS ──────────────────────────────────────────────────────
+  const SITE_CONTENT_DEFAULTS = [
+    // ── Landing Page: Hero ──────────────────────────────────────────────────
+    { contentKey: 'landing.hero.badge_text', label: 'Hero Badge Text', contentType: 'text', page: 'landing', section: 'Hero Section', defaultValue: '#1 Web3 Influencer Marketplace', value: '', sortOrder: 1 },
+    { contentKey: 'landing.hero.title_line1', label: 'Hero Title — Line 1', contentType: 'text', page: 'landing', section: 'Hero Section', defaultValue: 'Turn Your Influence', value: '', sortOrder: 2 },
+    { contentKey: 'landing.hero.title_line2', label: 'Hero Title — Line 2 (Gold)', contentType: 'text', page: 'landing', section: 'Hero Section', defaultValue: 'Into Crypto Income.', value: '', sortOrder: 3 },
+    { contentKey: 'landing.hero.subtitle', label: 'Hero Subtitle / Description', contentType: 'textarea', page: 'landing', section: 'Hero Section', defaultValue: "Taskdrip is the #1 Web3 influencer marketplace — join brand campaigns, complete tasks, and get paid in USDT (TRC-20, BEP-20, ERC-20, or TON Network). Grow with BreedSkool Academy, climb the leaderboard, and earn across 4 creator tiers — all in one ecosystem.", value: '', sortOrder: 4 },
+    { contentKey: 'landing.hero.cta_creator', label: 'Creator CTA Button Text', contentType: 'text', page: 'landing', section: 'Hero Section', defaultValue: 'Join as Influencer', value: '', sortOrder: 5 },
+    { contentKey: 'landing.hero.cta_brand', label: 'Brand CTA Button Text', contentType: 'text', page: 'landing', section: 'Hero Section', defaultValue: 'Hire Influencers', value: '', sortOrder: 6 },
+    { contentKey: 'landing.hero.bg_image', label: 'Hero Background Image URL', contentType: 'image', page: 'landing', section: 'Hero Section', defaultValue: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1800&q=85&auto=format&fit=crop', value: '', sortOrder: 7 },
+    // ── Landing Page: Stats ─────────────────────────────────────────────────
+    { contentKey: 'landing.stats.influencers_value', label: 'Stat: Influencers Count', contentType: 'text', page: 'landing', section: 'Hero Stats', defaultValue: '10K+', value: '', sortOrder: 10 },
+    { contentKey: 'landing.stats.influencers_label', label: 'Stat: Influencers Label', contentType: 'text', page: 'landing', section: 'Hero Stats', defaultValue: 'Influencers', value: '', sortOrder: 11 },
+    { contentKey: 'landing.stats.campaigns_value', label: 'Stat: Campaigns Count', contentType: 'text', page: 'landing', section: 'Hero Stats', defaultValue: '2.5K+', value: '', sortOrder: 12 },
+    { contentKey: 'landing.stats.campaigns_label', label: 'Stat: Campaigns Label', contentType: 'text', page: 'landing', section: 'Hero Stats', defaultValue: 'Campaigns', value: '', sortOrder: 13 },
+    { contentKey: 'landing.stats.paid_out_value', label: 'Stat: Total Paid Out', contentType: 'text', page: 'landing', section: 'Hero Stats', defaultValue: '$450K+', value: '', sortOrder: 14 },
+    { contentKey: 'landing.stats.paid_out_label', label: 'Stat: Paid Out Label', contentType: 'text', page: 'landing', section: 'Hero Stats', defaultValue: 'Paid Out', value: '', sortOrder: 15 },
+    // ── Landing Page: Tiers ─────────────────────────────────────────────────
+    { contentKey: 'landing.tiers.section_title', label: 'Tiers Section Title', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: 'Every Creator Has a Tier', value: '', sortOrder: 20 },
+    { contentKey: 'landing.tiers.section_subtitle', label: 'Tiers Section Subtitle', contentType: 'textarea', page: 'landing', section: 'Creator Tiers', defaultValue: 'Our smart system auto-classifies creators by total followers across TikTok, YouTube, Instagram, Twitch, and more. Higher tier = bigger campaigns & better rewards.', value: '', sortOrder: 21 },
+    { contentKey: 'landing.tiers.tier1_name', label: 'Tier 1 Name', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: 'Rising Sparks', value: '', sortOrder: 22 },
+    { contentKey: 'landing.tiers.tier1_range', label: 'Tier 1 Follower Range', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: '1K – 10K followers', value: '', sortOrder: 23 },
+    { contentKey: 'landing.tiers.tier1_desc', label: 'Tier 1 Description', contentType: 'textarea', page: 'landing', section: 'Creator Tiers', defaultValue: 'Perfect for emerging creators building their first audience. Access entry-level campaigns and start earning USDT.', value: '', sortOrder: 24 },
+    { contentKey: 'landing.tiers.tier2_name', label: 'Tier 2 Name', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: 'Growth Engines', value: '', sortOrder: 25 },
+    { contentKey: 'landing.tiers.tier2_range', label: 'Tier 2 Follower Range', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: '10K – 100K followers', value: '', sortOrder: 26 },
+    { contentKey: 'landing.tiers.tier2_desc', label: 'Tier 2 Description', contentType: 'textarea', page: 'landing', section: 'Creator Tiers', defaultValue: 'Mid-tier creators with proven engagement. Unlock premium campaigns and higher payout rates.', value: '', sortOrder: 27 },
+    { contentKey: 'landing.tiers.tier3_name', label: 'Tier 3 Name', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: 'Power Influencers', value: '', sortOrder: 28 },
+    { contentKey: 'landing.tiers.tier3_range', label: 'Tier 3 Follower Range', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: '100K – 1M followers', value: '', sortOrder: 29 },
+    { contentKey: 'landing.tiers.tier3_desc', label: 'Tier 3 Description', contentType: 'textarea', page: 'landing', section: 'Creator Tiers', defaultValue: 'Established voices with massive reach. Command exclusive brand deals and featured placement.', value: '', sortOrder: 30 },
+    { contentKey: 'landing.tiers.tier4_name', label: 'Tier 4 Name', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: 'Global Titans', value: '', sortOrder: 31 },
+    { contentKey: 'landing.tiers.tier4_range', label: 'Tier 4 Follower Range', contentType: 'text', page: 'landing', section: 'Creator Tiers', defaultValue: '1M – 10M+ followers', value: '', sortOrder: 32 },
+    { contentKey: 'landing.tiers.tier4_desc', label: 'Tier 4 Description', contentType: 'textarea', page: 'landing', section: 'Creator Tiers', defaultValue: 'Elite global influencers shaping culture. Top-tier campaign access and the highest USDT rewards on Taskdrip.', value: '', sortOrder: 33 },
+    // ── Landing Page: How It Works ───────────────────────────────────────────
+    { contentKey: 'landing.howitworks.section_title', label: 'How It Works — Section Title', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'How Taskdrip Works', value: '', sortOrder: 40 },
+    { contentKey: 'landing.howitworks.creator_step1', label: 'Creator Step 1', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'Sign up & connect your socials', value: '', sortOrder: 41 },
+    { contentKey: 'landing.howitworks.creator_step2', label: 'Creator Step 2', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'Browse & apply to campaigns', value: '', sortOrder: 42 },
+    { contentKey: 'landing.howitworks.creator_step3', label: 'Creator Step 3', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'Complete tasks & get paid in USDT', value: '', sortOrder: 43 },
+    { contentKey: 'landing.howitworks.brand_step1', label: 'Brand Step 1', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'Create a campaign & set your budget', value: '', sortOrder: 44 },
+    { contentKey: 'landing.howitworks.brand_step2', label: 'Brand Step 2', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'Creators apply — you choose the best fit', value: '', sortOrder: 45 },
+    { contentKey: 'landing.howitworks.brand_step3', label: 'Brand Step 3', contentType: 'text', page: 'landing', section: 'How It Works', defaultValue: 'Review submissions & release payment', value: '', sortOrder: 46 },
+    // ── About Page: Hero ────────────────────────────────────────────────────
+    { contentKey: 'about.hero.title', label: 'About Hero Title', contentType: 'text', page: 'about', section: 'Hero Section', defaultValue: 'The Future of Influencer Marketing is On-Chain', value: '', sortOrder: 1 },
+    { contentKey: 'about.hero.subtitle', label: 'About Hero Subtitle', contentType: 'textarea', page: 'about', section: 'Hero Section', defaultValue: 'Taskdrip connects global brands with verified social media creators through transparent campaigns, tier-based discovery, and direct crypto payments — no third-party agencies, no hidden gatekeepers.', value: '', sortOrder: 2 },
+    { contentKey: 'about.hero.bg_image', label: 'About Hero Background Image', contentType: 'image', page: 'about', section: 'Hero Section', defaultValue: '', value: '', sortOrder: 3 },
+    // ── About Page: Stats ───────────────────────────────────────────────────
+    { contentKey: 'about.stats.creators_value', label: 'Stat: Verified Creators', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: '10K+', value: '', sortOrder: 10 },
+    { contentKey: 'about.stats.creators_label', label: 'Stat: Creators Label', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: 'Verified Creators', value: '', sortOrder: 11 },
+    { contentKey: 'about.stats.campaigns_value', label: 'Stat: Campaigns Launched', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: '2,500+', value: '', sortOrder: 12 },
+    { contentKey: 'about.stats.campaigns_label', label: 'Stat: Campaigns Label', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: 'Campaigns Launched', value: '', sortOrder: 13 },
+    { contentKey: 'about.stats.paid_out_value', label: 'Stat: Paid Out in Crypto', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: '$450K+', value: '', sortOrder: 14 },
+    { contentKey: 'about.stats.paid_out_label', label: 'Stat: Paid Out Label', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: 'Paid Out in Crypto', value: '', sortOrder: 15 },
+    { contentKey: 'about.stats.countries_value', label: 'Stat: Countries', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: '60+', value: '', sortOrder: 16 },
+    { contentKey: 'about.stats.countries_label', label: 'Stat: Countries Label', contentType: 'text', page: 'about', section: 'Platform Stats', defaultValue: 'Countries Represented', value: '', sortOrder: 17 },
+    // ── About Page: Mission ─────────────────────────────────────────────────
+    { contentKey: 'about.mission.title', label: 'Mission Section Title', contentType: 'text', page: 'about', section: 'Mission Statement', defaultValue: 'Turning Influence Into Real Income', value: '', sortOrder: 20 },
+    { contentKey: 'about.mission.body', label: 'Mission Body Text', contentType: 'textarea', page: 'about', section: 'Mission Statement', defaultValue: 'We built Taskdrip because creators deserve better. Traditional influencer marketing is opaque, slow, and dominated by agencies that take huge cuts. Taskdrip puts creators and brands in direct contact — with verifiable reach metrics, transparent campaign terms, and instant USDT payouts across 4 networks.', value: '', sortOrder: 21 },
+    // ── Tasks Page: Hero ────────────────────────────────────────────────────
+    { contentKey: 'tasks.hero.badge_text', label: 'Tasks Hero Badge', contentType: 'text', page: 'tasks', section: 'Hero Section', defaultValue: 'Live Tasks — Earn Crypto Today', value: '', sortOrder: 1 },
+    { contentKey: 'tasks.hero.title_line1', label: 'Tasks Title Line 1', contentType: 'text', page: 'tasks', section: 'Hero Section', defaultValue: 'Complete Tasks,', value: '', sortOrder: 2 },
+    { contentKey: 'tasks.hero.title_line2', label: 'Tasks Title Line 2 (Gold)', contentType: 'text', page: 'tasks', section: 'Hero Section', defaultValue: 'Earn Crypto', value: '', sortOrder: 3 },
+    { contentKey: 'tasks.hero.subtitle', label: 'Tasks Hero Subtitle', contentType: 'textarea', page: 'tasks', section: 'Hero Section', defaultValue: 'Join the #1 Web3 influencer marketplace. Browse live brand campaigns, complete tasks, and get paid in USDT across TRC-20, BEP-20, ERC-20, or TON Network — instantly.', value: '', sortOrder: 4 },
+    // ── Global Settings ─────────────────────────────────────────────────────
+    { contentKey: 'global.site.platform_name', label: 'Platform Name', contentType: 'text', page: 'global', section: 'Site Identity', defaultValue: 'Taskdrip', value: '', sortOrder: 1 },
+    { contentKey: 'global.site.tagline', label: 'Tagline (Under Logo)', contentType: 'text', page: 'global', section: 'Site Identity', defaultValue: 'Influencers Marketplace', value: '', sortOrder: 2 },
+    { contentKey: 'global.site.contact_email', label: 'Support Email Address', contentType: 'text', page: 'global', section: 'Site Identity', defaultValue: 'support@taskdrip.online', value: '', sortOrder: 3 },
+    { contentKey: 'global.site.footer_copyright', label: 'Footer Copyright Text', contentType: 'text', page: 'global', section: 'Site Identity', defaultValue: '© 2026 Taskdrip. All rights reserved.', value: '', sortOrder: 4 },
+    { contentKey: 'global.site.footer_description', label: 'Footer Description Text', contentType: 'textarea', page: 'global', section: 'Site Identity', defaultValue: 'The #1 Web3 influencer marketplace — connecting verified creators with global brands. Earn USDT crypto for every completed campaign task.', value: '', sortOrder: 5 },
+    { contentKey: 'global.site.logo_url', label: 'Site Logo Image URL (optional)', contentType: 'image', page: 'global', section: 'Site Identity', defaultValue: '', value: '', sortOrder: 6 },
+    { contentKey: 'global.seo.meta_description', label: 'SEO Meta Description', contentType: 'textarea', page: 'global', section: 'SEO & Meta', defaultValue: 'Taskdrip is the #1 Web3 influencer marketplace. Complete brand campaigns and earn USDT crypto (TRC-20, BEP-20, ERC-20, TON Network). Join 10K+ creators today.', value: '', sortOrder: 10 },
+    { contentKey: 'global.seo.og_title', label: 'Open Graph Title (Social Share)', contentType: 'text', page: 'global', section: 'SEO & Meta', defaultValue: 'Taskdrip — Turn Your Influence Into Crypto Income', value: '', sortOrder: 11 },
+    { contentKey: 'global.seo.og_image', label: 'Open Graph Image URL (Social Share)', contentType: 'image', page: 'global', section: 'SEO & Meta', defaultValue: '', value: '', sortOrder: 12 },
+  ];
+
+  // Init site content defaults on startup
+  await storage.initSiteContent(SITE_CONTENT_DEFAULTS as any);
+
+  // Public: get all site content
+  app.get('/api/site-content', async (req, res) => {
+    try {
+      const content = await storage.getSiteContent();
+      res.json(content);
+    } catch (error) {
+      console.error('Error fetching site content:', error);
+      res.status(500).json({ message: 'Failed to fetch site content' });
+    }
+  });
+
+  // Admin: update a single content field by key
+  app.put('/api/admin/site-content/:key', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const key = decodeURIComponent(req.params.key);
+      const { value } = req.body;
+      if (value === undefined) return res.status(400).json({ message: 'value is required' });
+      const updated = await storage.updateSiteContent(key, value);
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating site content:', error);
+      res.status(500).json({ message: 'Failed to update content' });
+    }
+  });
+
+  // Admin: bulk update multiple content fields
+  app.put('/api/admin/site-content', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const updates: Array<{ key: string; value: string }> = req.body;
+      if (!Array.isArray(updates)) return res.status(400).json({ message: 'Expected array of {key, value}' });
+      const results = [];
+      for (const { key, value } of updates) {
+        const updated = await storage.updateSiteContent(key, value);
+        results.push(updated);
+      }
+      res.json(results);
+    } catch (error) {
+      console.error('Error bulk updating site content:', error);
+      res.status(500).json({ message: 'Failed to update content' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

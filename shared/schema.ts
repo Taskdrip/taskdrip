@@ -911,6 +911,22 @@ export const insertPaymentNetworkSchema = createInsertSchema(paymentNetworks).om
 export type PaymentNetwork = typeof paymentNetworks.$inferSelect;
 export type InsertPaymentNetwork = z.infer<typeof insertPaymentNetworkSchema>;
 
+export const siteContent = pgTable("site_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contentKey: varchar("content_key", { length: 200 }).notNull().unique(),
+  label: varchar("label", { length: 200 }).notNull(),
+  contentType: varchar("content_type", { length: 20 }).notNull().default("text"),
+  page: varchar("page", { length: 50 }).notNull(),
+  section: varchar("section", { length: 100 }).notNull(),
+  value: text("value").notNull().default(""),
+  defaultValue: text("default_value").notNull().default(""),
+  sortOrder: integer("sort_order").default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export const insertSiteContentSchema = createInsertSchema(siteContent).omit({ id: true, updatedAt: true });
+export type SiteContent = typeof siteContent.$inferSelect;
+export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
+
 export const pwaSettings = pgTable("pwa_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   appName: varchar("app_name").notNull().default("Taskdrip"),

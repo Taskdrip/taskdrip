@@ -94,6 +94,9 @@ import {
   platformSettings,
   type PaymentMethod,
   type InsertPaymentMethod,
+  siteContent,
+  type SiteContent,
+  type InsertSiteContent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -1856,6 +1859,34 @@ export class DatabaseStorage implements IStorage {
       .where(eq(pwaSettings.id, existing.id))
       .returning();
     return updated[0];
+  }
+  async getSiteContent(): Promise<SiteContent[]> {
+    return await db.select().from(siteContent).orderBy(siteContent.page, siteContent.sortOrder);
+  }
+
+  async updateSiteContent(key: string, value: string): Promise<SiteContent> {
+    const [updated] = await db.update(siteContent)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(siteContent.contentKey, key))
+      .returning();
+    return updated;
+  }
+
+  async upsertSiteContent(data: InsertSiteContent): Promise<SiteContent> {
+    const [result] = await db.insert(siteContent)
+      .values(data)
+      .onConflictDoUpdate({
+        target: siteContent.contentKey,
+        set: { label: data.label, defaultValue: data.defaultValue, page: data.page, section: data.section, contentType: data.contentType, sortOrder: data.sortOrder, updatedAt: new Date() }
+      })
+      .returning();
+    return result;
+  }
+
+  async initSiteContent(defaults: InsertSiteContent[]): Promise<void> {
+    for (const item of defaults) {
+      await db.insert(siteContent).values(item).onConflictDoNothing();
+    }
   }
 }
 
