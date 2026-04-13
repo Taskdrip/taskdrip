@@ -52,6 +52,7 @@ import PayoutRequestsPage from "@/pages/payout-requests";
 import MyCampaignsPage from "@/pages/my-campaigns";
 import ReferralsPage from "@/pages/referrals";
 import UnifiedProfile from "@/pages/unified-profile";
+import TasksPage from "@/pages/tasks";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/shop/checkout/:id" component={ShopCheckout} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
+      <Route path="/tasks" component={TasksPage} />
       <Route path="/creators" component={Creators} />
       <Route path="/creators/:id" component={CreatorProfile} />
       <Route path="/profile/:id" component={UnifiedProfile} />

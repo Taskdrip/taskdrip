@@ -34,11 +34,15 @@ Design preferences: Clean, professional web app design with white background and
 - User profile management with creator/brand user types
 - Professional signup and login pages with form validation
 
-#### Campaign Engine
-- Campaign creation and management for brands
+#### Campaign & Tasks Engine
+- **Public Tasks Page** (`/tasks`): Visually stunning page with hero, live stats, featured spotlight, category filters, and task cards with featured images
+- Campaign creation by brands (with escrow payment flow) and direct admin task creation
+- Full admin task management: create/edit/delete tasks with image upload, activate/deactivate
 - Task-based completion system for creators
-- Participation tracking and approval workflow
-- Category-based campaign organization (Social Media, Gaming, Health & Fitness, etc.)
+- Participation tracking and approval workflow (admin approve/reject applicants)
+- Task submission review: creators submit proof URLs/screenshots, admin approves and releases payment
+- Category-based campaign organization (Social Media, Gaming, Technology, Crypto & Web3, etc.)
+- Admin escrow mediation: brands pay → admin verifies → campaign activates → creators apply → submit → admin releases payment
 
 #### Crypto Payment System (Non-Custodial)
 - Cold wallet addresses managed by admin

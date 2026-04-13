@@ -40,7 +40,7 @@ export function NavigationFixed() {
       } else {
         return [
           { href: "/", label: "Home" },
-          { href: "/campaigns", label: "Tasks" },
+          { href: "/tasks", label: "Tasks" },
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/dashboard", label: "Dashboard" },
           { href: "/feed", label: "Feed" },
@@ -53,6 +53,7 @@ export function NavigationFixed() {
     } else {
       return [
         { href: "/", label: "Home" },
+        { href: "/tasks", label: "Tasks" },
         { href: "/creators", label: "Influencers" },
         { href: "/breedskool", label: "BreedSkool" },
         { href: "/feed", label: "Feed" },

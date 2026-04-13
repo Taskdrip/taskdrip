@@ -383,6 +383,19 @@ export default function AdminMaster() {
   // Admin credentials state
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
 
+  // Tasks management state
+  const [isAdminTaskDialogOpen, setIsAdminTaskDialogOpen] = useState(false);
+  const [editingAdminTask, setEditingAdminTask] = useState<any>(null);
+  const [taskImageFile, setTaskImageFile] = useState<File | null>(null);
+  const [taskImagePreview, setTaskImagePreview] = useState<string | null>(null);
+  const [submissionsViewCampaignId, setSubmissionsViewCampaignId] = useState<string | null>(null);
+  const [rejectNotes, setRejectNotes] = useState("");
+  const [rejectingSubmissionId, setRejectingSubmissionId] = useState<string | null>(null);
+  const [adminTaskForm, setAdminTaskForm] = useState({
+    title: "", description: "", category: "Social Media", reward: "", totalSlots: "10",
+    estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official",
+  });
+
   // Payment methods state
   const [isPaymentMethodDialogOpen, setIsPaymentMethodDialogOpen] = useState(false);
   const [editingPaymentMethod, setEditingPaymentMethod] = useState<any>(null);
@@ -632,6 +645,124 @@ export default function AdminMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
       toast({ title: "Demo campaigns seeded!", description: data.message });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  // ── Tasks management queries ────────────────────────────────────────────────
+  const { data: allSubmissions = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/all-submissions"],
+    retry: false,
+  });
+
+  const createAdminTask = useMutation({
+    mutationFn: async (data: typeof adminTaskForm & { imageFile?: File | null }) => {
+      const fd = new FormData();
+      Object.entries(data).forEach(([k, v]) => { if (k !== "imageFile" && v) fd.append(k, v as string); });
+      if (data.imageFile) fd.append("featureImage", data.imageFile);
+      const res = await fetch("/api/admin/campaigns", { method: "POST", credentials: "include", body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      setIsAdminTaskDialogOpen(false);
+      setEditingAdminTask(null);
+      setTaskImageFile(null);
+      setTaskImagePreview(null);
+      setAdminTaskForm({ title: "", description: "", category: "Social Media", reward: "", totalSlots: "10", estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official" });
+      toast({ title: "✅ Task created!", description: "Task is now live on the Tasks page." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updateAdminTask = useMutation({
+    mutationFn: async ({ id, data, imageFile }: { id: string; data: any; imageFile?: File | null }) => {
+      const fd = new FormData();
+      Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== "") fd.append(k, String(v)); });
+      if (imageFile) fd.append("featureImage", imageFile);
+      const res = await fetch(`/api/admin/campaigns/${id}`, { method: "PUT", credentials: "include", body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      setIsAdminTaskDialogOpen(false);
+      setEditingAdminTask(null);
+      setTaskImageFile(null);
+      setTaskImagePreview(null);
+      toast({ title: "✅ Task updated!" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteAdminTask = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/campaigns/${id}`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      toast({ title: "Task deleted" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const approveTaskSubmission = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
+      const res = await apiRequest("PATCH", `/api/task-submissions/${id}/approve`, { notes });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/transactions"] });
+      toast({ title: "✅ Submission Approved!", description: "Creator has been paid." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectTaskSubmission = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const res = await apiRequest("PATCH", `/api/task-submissions/${id}/reject`, { notes });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-submissions"] });
+      setRejectingSubmissionId(null);
+      setRejectNotes("");
+      toast({ title: "Submission Rejected", description: "Creator has been notified." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const approveParticipationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/admin/participations/${id}/approve`, {});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      toast({ title: "✅ Application Approved", description: "Creator can now work on this task." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectParticipationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/admin/participations/${id}/reject`, {});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      toast({ title: "Application Rejected" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1053,6 +1184,7 @@ export default function AdminMaster() {
                 { value: "overview", icon: <Shield className="h-3.5 w-3.5" />, label: "Overview" },
                 { value: "users", icon: <Users className="h-3.5 w-3.5" />, label: `Users (${totalUsers})` },
                 { value: "campaigns", icon: <Target className="h-3.5 w-3.5" />, label: "Campaigns" },
+                { value: "tasks", icon: <CheckSquare className="h-3.5 w-3.5" />, label: "Tasks Mgmt" },
                 { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
                 { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
@@ -2137,6 +2269,424 @@ export default function AdminMaster() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ── TASKS MANAGEMENT TAB ─────────────────────────────────────────── */}
+          <TabsContent value="tasks" className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold">Tasks Management</h2>
+                <p className="text-gray-500 text-sm mt-1">Create, edit, and publish tasks — review applications & submissions, and release payments.</p>
+              </div>
+              <Button
+                onClick={() => {
+                  setEditingAdminTask(null);
+                  setTaskImageFile(null); setTaskImagePreview(null);
+                  setAdminTaskForm({ title: "", description: "", category: "Social Media", reward: "", totalSlots: "10", estimatedTime: "30 min", deadline: "", requirements: "", platform: "", brandName: "Taskdrip Official" });
+                  setIsAdminTaskDialogOpen(true);
+                }}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Create New Task
+              </Button>
+            </div>
+
+            {/* Interaction Flow Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Active Tasks", value: (campaigns as any[]).filter((c: any) => c.isActive).length, color: "bg-green-500", icon: "🎯" },
+                { label: "Pending Escrow", value: (escrowPayments as any[]).filter((e: any) => e.status === 'submitted').length, color: "bg-yellow-500", icon: "⏳" },
+                { label: "Submissions", value: allSubmissions.length, color: "bg-blue-500", icon: "📋" },
+                { label: "Pending Review", value: allSubmissions.filter((s: any) => s.status === 'submitted' || s.status === 'under_review').length, color: "bg-orange-500", icon: "🔍" },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                  <div className={`${stat.color} w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>{stat.icon}</div>
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                    <div className="text-xs text-gray-500">{stat.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Escrow Activation Flow */}
+            {(escrowPayments as any[]).filter((e: any) => e.status === 'submitted').length > 0 && (
+              <Card className="border-yellow-200 bg-yellow-50/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-yellow-800 flex items-center gap-2 text-base">
+                    <AlertTriangle className="h-5 w-5" /> Brand Payments Awaiting Verification ({(escrowPayments as any[]).filter((e: any) => e.status === 'submitted').length})
+                  </CardTitle>
+                  <p className="text-sm text-yellow-700">Verify payment to activate the campaign and allow creators to apply.</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(escrowPayments as any[]).filter((e: any) => e.status === 'submitted').map((ep: any) => (
+                    <div key={ep.id} className="bg-white border border-yellow-200 rounded-xl p-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{ep.campaign?.title || "Campaign"}</p>
+                        <p className="text-xs text-gray-500">Brand: {ep.brandEmail} · Amount: ${ep.amount} · Network: {ep.network || "—"}</p>
+                        {ep.transactionHash && <p className="text-xs text-blue-600 font-mono mt-1 truncate">TX: {ep.transactionHash}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveEscrow.mutate(ep.id)} disabled={approveEscrow.isPending}>
+                          <CheckCircle className="h-4 w-4 mr-1" /> Verify & Activate
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => rejectEscrow.mutate({ id: ep.id, reason: "Payment could not be verified." })}>
+                          <XCircle className="h-4 w-4 mr-1" /> Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Task Submissions Review */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  Task Submissions Review
+                </CardTitle>
+                <p className="text-sm text-gray-500">Review proof submissions from creators. Approve to release payment, reject to request revision.</p>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
+                {allSubmissions.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">No submissions yet</p>
+                    <p className="text-sm">Submissions will appear here when creators complete tasks.</p>
+                  </div>
+                ) : (
+                  allSubmissions.map((sub: any) => (
+                    <div key={sub.id} className={`border rounded-xl p-4 ${sub.status === 'approved' ? 'bg-green-50 border-green-200' : sub.status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <Badge className={
+                              sub.status === 'approved' ? 'bg-green-100 text-green-700' :
+                              sub.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              sub.status === 'under_review' ? 'bg-blue-100 text-blue-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }>{sub.status?.replace(/_/g,' ')}</Badge>
+                            <span className="font-semibold text-gray-900 text-sm truncate">{sub.title}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-1">
+                            👤 {sub.creator?.firstName} {sub.creator?.lastName} · 📌 {sub.campaign?.title}
+                          </p>
+                          <p className="text-sm text-gray-600 line-clamp-2">{sub.description}</p>
+                          {sub.proofUrls && Array.isArray(sub.proofUrls) && sub.proofUrls.length > 0 && (
+                            <div className="mt-2 flex gap-2 flex-wrap">
+                              {sub.proofUrls.map((url: string, i: number) => (
+                                <a key={i} href={url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline hover:text-blue-800 flex items-center gap-1">
+                                  <ExternalLink className="w-3 h-3" /> Proof {i+1}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          {rejectingSubmissionId === sub.id && (
+                            <div className="mt-3 flex gap-2">
+                              <input
+                                className="flex-1 border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                placeholder="Rejection reason (required)…"
+                                value={rejectNotes}
+                                onChange={(e) => setRejectNotes(e.target.value)}
+                              />
+                              <Button size="sm" variant="destructive" disabled={!rejectNotes || rejectTaskSubmission.isPending} onClick={() => rejectTaskSubmission.mutate({ id: sub.id, notes: rejectNotes })}>
+                                Confirm
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => { setRejectingSubmissionId(null); setRejectNotes(""); }}>Cancel</Button>
+                            </div>
+                          )}
+                        </div>
+                        {sub.status !== 'approved' && sub.status !== 'rejected' && (
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveTaskSubmission.mutate({ id: sub.id })} disabled={approveTaskSubmission.isPending}>
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve & Pay
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => setRejectingSubmissionId(sub.id)}>
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* All Tasks List */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-purple-600" />
+                  All Tasks ({(campaigns as any[]).length})
+                </CardTitle>
+                <p className="text-sm text-gray-500">Manage tasks visible on the /tasks page. Click edit to update content, images, or status.</p>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+                {(campaigns as any[]).length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Target className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">No tasks yet</p>
+                    <Button className="mt-3 bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setIsAdminTaskDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Create First Task
+                    </Button>
+                  </div>
+                ) : (
+                  (campaigns as any[]).map((campaign: any) => (
+                    <div key={campaign.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all">
+                      <div className="flex">
+                        {/* Featured image thumbnail */}
+                        {campaign.featureImage && (
+                          <div className="w-24 h-24 flex-shrink-0 hidden sm:block">
+                            <img src={campaign.featureImage} alt={campaign.title} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex-1 p-4">
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="font-semibold text-gray-900">{campaign.title}</span>
+                                <Badge className={campaign.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                                  {campaign.isActive ? '● Live' : '○ Inactive'}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">{campaign.category}</Badge>
+                                {campaign.status && <Badge variant="outline" className="text-xs capitalize">{campaign.status.replace(/_/g,' ')}</Badge>}
+                              </div>
+                              <p className="text-xs text-gray-500 line-clamp-1 mb-2">{campaign.description}</p>
+                              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                                <span>💰 ${campaign.reward} USDT</span>
+                                <span>👥 {campaign.filledSlots || 0}/{campaign.totalSlots} slots</span>
+                                <span>⏱ {campaign.estimatedTime || '—'}</span>
+                                <span>🏢 {campaign.brandName}</span>
+                                {campaign.deadline && <span>📅 {new Date(campaign.deadline).toLocaleDateString()}</span>}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0 flex-wrap items-start">
+                              <Button
+                                variant="outline" size="sm"
+                                onClick={() => {
+                                  setEditingAdminTask(campaign);
+                                  setTaskImagePreview(campaign.featureImage || null);
+                                  setTaskImageFile(null);
+                                  setAdminTaskForm({
+                                    title: campaign.title || "",
+                                    description: campaign.description || "",
+                                    category: campaign.category || "Social Media",
+                                    reward: campaign.reward || "",
+                                    totalSlots: String(campaign.totalSlots || 10),
+                                    estimatedTime: campaign.estimatedTime || "30 min",
+                                    deadline: campaign.deadline ? new Date(campaign.deadline).toISOString().split('T')[0] : "",
+                                    requirements: Array.isArray(campaign.requirements) ? campaign.requirements.join('\n') : (campaign.requirements || ""),
+                                    platform: campaign.platform || "",
+                                    brandName: campaign.brandName || "Taskdrip Official",
+                                  });
+                                  setIsAdminTaskDialogOpen(true);
+                                }}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              >
+                                <Edit className="h-3.5 w-3.5 mr-1" /> Edit
+                              </Button>
+                              <Button
+                                variant="outline" size="sm"
+                                onClick={() => {
+                                  if (confirm(`Delete "${campaign.title}"?`)) deleteAdminTask.mutate(campaign.id);
+                                }}
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                disabled={deleteAdminTask.isPending}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                              </Button>
+                              <Button
+                                variant="outline" size="sm"
+                                onClick={() => updateAdminTask.mutate({ id: campaign.id, data: { isActive: !campaign.isActive }, imageFile: null })}
+                                className={campaign.isActive ? "text-orange-600 border-orange-200" : "text-green-600 border-green-200"}
+                              >
+                                {campaign.isActive ? <ToggleRight className="h-3.5 w-3.5 mr-1" /> : <ToggleLeft className="h-3.5 w-3.5 mr-1" />}
+                                {campaign.isActive ? "Deactivate" : "Activate"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Create/Edit Task Dialog ──────────────────────────────────────────── */}
+          <Dialog open={isAdminTaskDialogOpen} onOpenChange={(open) => { if (!open) { setIsAdminTaskDialogOpen(false); setEditingAdminTask(null); setTaskImageFile(null); setTaskImagePreview(null); } }}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-purple-600" />
+                  {editingAdminTask ? "Edit Task" : "Create New Task"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingAdminTask ? "Update task details. Changes appear instantly on the Tasks page." : "Tasks you create are immediately active and visible on the public Tasks page."}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 pt-2">
+                {/* Featured Image Upload */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Featured Image</Label>
+                  <div className={`relative border-2 border-dashed rounded-xl overflow-hidden transition-colors ${taskImagePreview ? 'border-purple-300' : 'border-gray-300 hover:border-purple-400'}`}>
+                    {taskImagePreview ? (
+                      <div className="relative h-40">
+                        <img src={taskImagePreview} alt="preview" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => { setTaskImageFile(null); setTaskImagePreview(null); }}
+                          className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 transition-colors"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center h-36 cursor-pointer p-4 text-center">
+                        <Image className="w-8 h-8 text-gray-400 mb-2" />
+                        <span className="text-sm font-medium text-gray-600">Click to upload featured image</span>
+                        <span className="text-xs text-gray-400">PNG, JPG, WebP up to 5MB</span>
+                        <input
+                          type="file" accept="image/*" className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setTaskImageFile(file);
+                              const reader = new FileReader();
+                              reader.onload = () => setTaskImagePreview(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <Label className="text-sm font-medium mb-1 block">Task Title *</Label>
+                    <Input
+                      placeholder="e.g. Post about our crypto token on Twitter"
+                      value={adminTaskForm.title}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, title: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label className="text-sm font-medium mb-1 block">Description *</Label>
+                    <textarea
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                      rows={4}
+                      placeholder="Describe what creators need to do, what the brand is about, and any specific tone/style…"
+                      value={adminTaskForm.description}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, description: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Category *</Label>
+                    <select
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
+                      value={adminTaskForm.category}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, category: e.target.value }))}
+                    >
+                      {["Social Media","Gaming","Technology","Health & Fitness","Fashion & Beauty","Crypto & Web3","Education","Other"].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Platform</Label>
+                    <Input
+                      placeholder="e.g. Twitter, TikTok, Instagram…"
+                      value={adminTaskForm.platform}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, platform: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Reward (USDT) *</Label>
+                    <Input
+                      type="number" step="0.01" min="0.01"
+                      placeholder="e.g. 25.00"
+                      value={adminTaskForm.reward}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, reward: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Total Slots *</Label>
+                    <Input
+                      type="number" min="1"
+                      placeholder="e.g. 50"
+                      value={adminTaskForm.totalSlots}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, totalSlots: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Estimated Time</Label>
+                    <Input
+                      placeholder="e.g. 30 min, 1 hour"
+                      value={adminTaskForm.estimatedTime}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, estimatedTime: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Deadline</Label>
+                    <Input
+                      type="date"
+                      value={adminTaskForm.deadline}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, deadline: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium mb-1 block">Brand Name</Label>
+                    <Input
+                      placeholder="e.g. Taskdrip Official"
+                      value={adminTaskForm.brandName}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, brandName: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label className="text-sm font-medium mb-1 block">Requirements</Label>
+                    <textarea
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                      rows={3}
+                      placeholder="List requirements e.g. Must have 1000+ followers · Post in English · Use hashtag #Taskdrip"
+                      value={adminTaskForm.requirements}
+                      onChange={(e) => setAdminTaskForm(f => ({ ...f, requirements: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                    disabled={createAdminTask.isPending || updateAdminTask.isPending || !adminTaskForm.title || !adminTaskForm.reward}
+                    onClick={() => {
+                      if (editingAdminTask) {
+                        updateAdminTask.mutate({ id: editingAdminTask.id, data: adminTaskForm, imageFile: taskImageFile });
+                      } else {
+                        createAdminTask.mutate({ ...adminTaskForm, imageFile: taskImageFile });
+                      }
+                    }}
+                  >
+                    {(createAdminTask.isPending || updateAdminTask.isPending) ? "Saving…" : (editingAdminTask ? "Update Task" : "Publish Task")}
+                  </Button>
+                  <Button variant="outline" onClick={() => { setIsAdminTaskDialogOpen(false); setEditingAdminTask(null); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <TabsContent value="payments" className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

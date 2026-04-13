@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -4040,6 +4040,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updated = await storage.updatePwaSettings(req.body);
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Admin: Create campaign directly (no escrow required) ──────────────────
+  app.post('/api/admin/campaigns', isAuthenticated, upload.single('featureImage'), async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const adminUser = await storage.getUser(req.user.id);
+      if (!adminUser) return res.status(404).json({ message: 'Admin user not found' });
+
+      const featureImagePath = req.file ? `/uploads/${req.file.filename}` : req.body.featureImage || null;
+      const campaignId = `campaign_${Date.now()}_${nanoid(9)}`;
+
+      const campaign = await storage.createCampaign({
+        id: campaignId,
+        title: req.body.title,
+        description: req.body.description,
+        category: req.body.category,
+        platform: req.body.platform || null,
+        brandName: req.body.brandName || 'Taskdrip Official',
+        brandLogo: adminUser.profileImageUrl || null,
+        brandId: req.user.id,
+        reward: req.body.reward,
+        totalSlots: parseInt(req.body.totalSlots) || 10,
+        estimatedTime: req.body.estimatedTime || '30 min',
+        requirements: req.body.requirements ? [req.body.requirements] : [],
+        deadline: req.body.deadline ? new Date(req.body.deadline) : null,
+        featureImage: featureImagePath,
+        status: 'active',
+        paymentStatus: 'completed',
+        isActive: true,
+      } as any);
+
+      res.status(201).json(campaign);
+    } catch (error) {
+      console.error('Error creating admin campaign:', error);
+      res.status(500).json({ message: 'Failed to create campaign' });
+    }
+  });
+
+  // ── Admin: Update any campaign ─────────────────────────────────────────────
+  app.put('/api/admin/campaigns/:id', isAuthenticated, upload.single('featureImage'), async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+
+      const updates: Record<string, any> = { ...req.body };
+      if (req.file) updates.featureImage = `/uploads/${req.file.filename}`;
+      if (updates.totalSlots) updates.totalSlots = parseInt(updates.totalSlots);
+      if (updates.deadline) updates.deadline = new Date(updates.deadline);
+      if (updates.requirements && typeof updates.requirements === 'string') updates.requirements = [updates.requirements];
+
+      const campaign = await storage.updateCampaign(req.params.id, updates);
+      res.json(campaign);
+    } catch (error) {
+      console.error('Error updating admin campaign:', error);
+      res.status(500).json({ message: 'Failed to update campaign' });
+    }
+  });
+
+  // ── Admin: Delete campaign ─────────────────────────────────────────────────
+  app.delete('/api/admin/campaigns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      await storage.deleteCampaign(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting admin campaign:', error);
+      res.status(500).json({ message: 'Failed to delete campaign' });
+    }
+  });
+
+  // ── Admin: Get ALL task submissions across all campaigns ────────────────────
+  app.get('/api/admin/all-submissions', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const submissions = await db
+        .select()
+        .from(taskSubmissions)
+        .orderBy(desc(taskSubmissions.submittedAt));
+
+      const enriched = await Promise.all(submissions.map(async (s: any) => {
+        const [creator, campaign] = await Promise.all([
+          storage.getUser(s.userId),
+          storage.getCampaignById(s.campaignId),
+        ]);
+        const { password: _, ...safeCreator } = (creator || {}) as any;
+        return { ...s, creator: safeCreator, campaign };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error('Error fetching all submissions:', error);
+      res.status(500).json({ message: 'Failed to fetch submissions' });
+    }
+  });
+
+  // ── Admin: Approve participation ────────────────────────────────────────────
+  app.patch('/api/admin/participations/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const participation = await storage.updateParticipation(req.params.id, { status: 'approved' });
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      if (campaign) {
+        await storage.createNotification({
+          userId: participation.userId,
+          type: 'campaign_joined',
+          title: 'Application Approved!',
+          content: `Your application for "${campaign.title}" has been approved. You can now complete the task.`,
+          actionUrl: `/campaigns/${campaign.id}`,
+        });
+      }
+      res.json(participation);
+    } catch (error) {
+      console.error('Error approving participation:', error);
+      res.status(500).json({ message: 'Failed to approve participation' });
+    }
+  });
+
+  // ── Admin: Reject participation ─────────────────────────────────────────────
+  app.patch('/api/admin/participations/:id/reject', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const participation = await storage.updateParticipation(req.params.id, { status: 'rejected', adminNotes: req.body.notes || '' });
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      if (campaign) {
+        await storage.createNotification({
+          userId: participation.userId,
+          type: 'task_rejected',
+          title: 'Application Not Selected',
+          content: `Your application for "${campaign.title}" was not selected at this time.`,
+          actionUrl: `/campaigns/${campaign.id}`,
+        });
+      }
+      res.json(participation);
+    } catch (error) {
+      console.error('Error rejecting participation:', error);
+      res.status(500).json({ message: 'Failed to reject participation' });
+    }
   });
 
   const httpServer = createServer(app);
