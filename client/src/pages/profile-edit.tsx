@@ -310,7 +310,16 @@ export default function ProfileEdit() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({ title: "Profile saved! 🎉", description: "Your profile has been updated successfully." });
     } catch (error: any) {
-      toast({ title: "Save failed", description: error.message || "Failed to save profile", variant: "destructive" });
+      let description = "Failed to save profile. Please try again.";
+      try {
+        const errText = error?.message || '';
+        const jsonStart = errText.indexOf('{');
+        if (jsonStart !== -1) {
+          const parsed = JSON.parse(errText.slice(jsonStart));
+          if (parsed?.message) description = parsed.message;
+        }
+      } catch {}
+      toast({ title: "Save failed", description, variant: "destructive" });
     }
   };
 

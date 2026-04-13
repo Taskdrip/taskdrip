@@ -47,7 +47,14 @@ export default function Login() {
       });
       // Small delay to ensure auth state updates before redirect
       setTimeout(() => {
-        setLocation('/dashboard');
+        const userType = data.user?.userType;
+        if (userType === 'admin') {
+          setLocation('/admin-dashboard');
+        } else if (userType === 'brand') {
+          setLocation('/brand-dashboard');
+        } else {
+          setLocation('/dashboard');
+        }
       }, 100);
     },
     onError: (error: any) => {
@@ -62,7 +69,14 @@ export default function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      setLocation('/dashboard');
+      const userType = (user as any)?.userType;
+      if (userType === 'admin') {
+        setLocation('/admin-dashboard');
+      } else if (userType === 'brand') {
+        setLocation('/brand-dashboard');
+      } else {
+        setLocation('/dashboard');
+      }
     }
   }, [user, setLocation]);
 

@@ -72,7 +72,11 @@ function analyzeBrandProfile(user: any): Recommendation[] {
 // ── Creator profile analysis ──────────────────────────────────────────────
 function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] {
   const recs: Recommendation[] = [];
-  const totalFollowers = user?.totalFollowers || 0;
+  // Calculate totalFollowers from individual platform fields + social links as fallback
+  const platformSum = ['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers']
+    .reduce((sum, f) => sum + (parseInt(user?.[f]) || 0), 0);
+  const socialLinksSum = socialLinks.reduce((sum: number, sl: any) => sum + (parseInt(sl.followersCount || sl.followerCount) || 0), 0);
+  const totalFollowers = user?.totalFollowers || platformSum || socialLinksSum || 0;
   const tier = getTierFromFollowers(totalFollowers);
   const tierConf = getTierConfig(tier);
   const completedCampaigns = user?.completedCampaigns || 0;

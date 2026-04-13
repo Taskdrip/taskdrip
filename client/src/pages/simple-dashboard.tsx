@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Sparkles, Share2, Copy, Users } from "lucide-react";
+import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Sparkles, Share2, Copy, Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck } from "lucide-react";
 import { Link } from "wouter";
 
 export default function SimpleDashboard() {
@@ -28,6 +28,11 @@ export default function SimpleDashboard() {
 
   const { data: referralData } = useQuery<any>({
     queryKey: ['/api/referrals/my'],
+    enabled: !!(user as any)?.id,
+  });
+
+  const { data: orders = [] } = useQuery<any[]>({
+    queryKey: ['/api/users', (user as any)?.id, 'purchases'],
     enabled: !!(user as any)?.id,
   });
 
@@ -204,6 +209,68 @@ export default function SimpleDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* My Orders */}
+        {orders.length > 0 && (
+          <Card className="mt-8">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-purple-600" />
+                <CardTitle>My Orders</CardTitle>
+              </div>
+              <Link href="/shop">
+                <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                  Browse Shop
+                </Button>
+              </Link>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(orders as any[]).map((order: any) => {
+                  const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
+                    pending:   { icon: Clock,         color: 'text-yellow-600 bg-yellow-50 border-yellow-200', label: 'Pending Payment' },
+                    paid:      { icon: CheckCircle,   color: 'text-blue-600 bg-blue-50 border-blue-200',       label: 'Payment Confirmed' },
+                    delivered: { icon: Truck,         color: 'text-green-600 bg-green-50 border-green-200',    label: 'Delivered' },
+                    cancelled: { icon: AlertCircle,   color: 'text-red-600 bg-red-50 border-red-200',          label: 'Cancelled' },
+                    refunded:  { icon: AlertCircle,   color: 'text-gray-600 bg-gray-50 border-gray-200',       label: 'Refunded' },
+                  };
+                  const cfg = statusConfig[order.status] || statusConfig.pending;
+                  const StatusIcon = cfg.icon;
+                  return (
+                    <div key={order.id} className="flex items-center gap-4 p-4 rounded-xl border bg-gray-50/50 hover:bg-gray-50 transition-colors" data-testid={`order-row-${order.id}`}>
+                      <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                        <Package className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{order.product?.title || `Order #${order.id.slice(0, 8)}`}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                          {' · '}{order.paymentMethod || 'Crypto'}
+                        </p>
+                        {order.deliveryDetails?.downloadUrl && (
+                          <a href={order.deliveryDetails.downloadUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-purple-600 hover:underline mt-0.5 inline-block">
+                            Download ↗
+                          </a>
+                        )}
+                        {order.adminNote && (
+                          <p className="text-xs text-gray-400 mt-0.5 italic">{order.adminNote}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="font-bold text-gray-900">${parseFloat(order.totalAmount || order.amount || 0).toFixed(2)}</span>
+                        <Badge className={`text-xs border ${cfg.color} flex items-center gap-1`}>
+                          <StatusIcon className="h-3 w-3" />
+                          {cfg.label}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Wallet Setup Reminder */}
         {!(user as any)?.usdtTronWallet && !(user as any)?.usdtBscWallet && !(user as any)?.tonWallet && (

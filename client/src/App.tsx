@@ -96,7 +96,9 @@ function Router() {
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={() => {
-            if ((user as any)?.userType === 'admin') return <AdminDashboard />;
+            const userType = (user as any)?.userType;
+            if (userType === 'admin') return <AdminDashboard />;
+            if (userType === 'brand') return <BrandDashboard />;
             return <SimpleDashboard />;
           }} />
           <Route path="/brand-dashboard" component={BrandDashboard} />

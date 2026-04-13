@@ -900,13 +900,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile management routes
   app.patch('/api/users/:id/profile', async (req, res) => {
     try {
+      if (!req.isAuthenticated() || !req.user || (req.user as any).id !== req.params.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const userId = req.params.id;
-      const updates = req.body;
-      
+      const updates = { ...req.body };
+
+      // Never store empty string username — convert to null to avoid unique constraint violation
+      if (updates.username !== undefined && updates.username.trim() === '') {
+        updates.username = null;
+      }
+
+      // Auto-calculate totalFollowers and creatorTier from platform fields
+      const followerFields = ['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers'];
+      const existingUser = await storage.getUser(userId);
+      let totalFollowers = 0;
+      for (const field of followerFields) {
+        const val = updates[field] !== undefined ? parseInt(updates[field]) || 0 : (existingUser as any)?.[field] || 0;
+        totalFollowers += val;
+      }
+      updates.totalFollowers = totalFollowers;
+
+      if (totalFollowers >= 10_000_000) updates.creatorTier = 'global_titans';
+      else if (totalFollowers >= 1_000_000) updates.creatorTier = 'power_influencers';
+      else if (totalFollowers >= 100_000) updates.creatorTier = 'growth_engines';
+      else if (totalFollowers >= 10_000) updates.creatorTier = 'rising_sparks';
+      else if (totalFollowers >= 1) updates.creatorTier = 'aspiring';
+      else updates.creatorTier = 'newcomer';
+
       const updatedUser = await storage.updateUserProfile(userId, updates);
+
+      // Refresh session so tier/followers reflect immediately
+      req.login(updatedUser as any, (err) => {
+        if (err) console.error('Session refresh error:', err);
+      });
+
       res.json(updatedUser);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error);
+      if (error?.code === '23505' && error?.constraint === 'users_username_unique') {
+        return res.status(409).json({ message: "That username is already taken. Please choose a different one." });
+      }
       res.status(500).json({ message: "Failed to update profile" });
     }
   });
