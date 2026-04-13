@@ -290,9 +290,9 @@ export default function FinalLanding() {
             </h1>
 
             <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl leading-relaxed">
-              Taskdrip is the leading Web3 influencer marketplace — connecting global brands with verified creators.
-              Complete campaigns, enroll in BreedSkool Academy, and earn{" "}
-              <strong className="text-white">USDT & TON crypto</strong> — all in one ecosystem.
+              Taskdrip is the #1 Web3 influencer marketplace — join brand campaigns, complete tasks, and get paid in{" "}
+              <strong className="text-white">USDT (TRC-20, BEP-20, ERC-20, or TON Network)</strong>.
+              Grow with BreedSkool Academy, climb the leaderboard, and earn across 4 creator tiers — all in one ecosystem.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-14">
