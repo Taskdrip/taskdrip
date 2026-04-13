@@ -16,6 +16,7 @@ import { Wallet, Copy, Check, AlertCircle } from 'lucide-react';
 const walletSchema = z.object({
   usdtTronWallet: z.string().optional(),
   usdtBscWallet: z.string().optional(),
+  usdtEthWallet: z.string().optional(),
   tonWallet: z.string().optional(),
 });
 
@@ -38,9 +39,10 @@ export default function WalletSettings() {
   // Set initial values from user data
   useEffect(() => {
     if (user) {
-      setValue('usdtTronWallet', user.usdtTronWallet || '');
-      setValue('usdtBscWallet', user.usdtBscWallet || '');
-      setValue('tonWallet', user.tonWallet || '');
+      setValue('usdtTronWallet', (user as any).usdtTronWallet || '');
+      setValue('usdtBscWallet', (user as any).usdtBscWallet || '');
+      setValue('usdtEthWallet', (user as any).usdtEthWallet || '');
+      setValue('tonWallet', (user as any).tonWallet || '');
     }
   }, [user, setValue]);
 
@@ -81,23 +83,30 @@ export default function WalletSettings() {
 
   const walletNetworks = [
     {
-      name: 'USDT (Tron Network)',
+      name: 'USDT TRC-20',
       key: 'usdtTronWallet' as keyof WalletFormData,
-      description: 'TRC-20 USDT on Tron blockchain',
+      description: 'USDT on Tron Network (TRC-20)',
       placeholder: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t...',
       color: 'from-red-500 to-red-600',
     },
     {
-      name: 'USDT (BSC Network)', 
+      name: 'USDT BEP-20',
       key: 'usdtBscWallet' as keyof WalletFormData,
-      description: 'BEP-20 USDT on Binance Smart Chain',
+      description: 'USDT on BNB Chain (BEP-20)',
       placeholder: '0x742C4B8d7bBb3B4C6c8c89f5D3e1f4E...',
       color: 'from-yellow-500 to-yellow-600',
     },
     {
-      name: 'USDT (TON Network)',
+      name: 'USDT ERC-20',
+      key: 'usdtEthWallet' as keyof WalletFormData,
+      description: 'USDT on Ethereum Network (ERC-20)',
+      placeholder: '0x4e83362442B8d1beC281594c....',
+      color: 'from-indigo-500 to-indigo-600',
+    },
+    {
+      name: 'USDT - TON',
       key: 'tonWallet' as keyof WalletFormData,  
-      description: 'USDT on The Open Network',
+      description: 'USDT on TON Network',
       placeholder: 'EQD5p2L6r4g8J9B3K1r5n6m7c8...',
       color: 'from-blue-500 to-blue-600',
     },
@@ -286,9 +295,10 @@ export default function WalletSettings() {
               <div>
                 <h4 className="font-semibold text-gray-900">Supported Networks</h4>
                 <ul className="text-gray-600 mt-1 space-y-1">
-                  <li>• USDT on Tron (TRC-20)</li>
-                  <li>• USDT on BSC (BEP-20)</li>
-                  <li>• USDT on TON Network</li>
+                  <li>• USDT TRC-20 (Tron Network)</li>
+                  <li>• USDT BEP-20 (BNB Chain)</li>
+                  <li>• USDT ERC-20 (Ethereum Network)</li>
+                  <li>• USDT - TON (TON Network)</li>
                 </ul>
               </div>
               <div>

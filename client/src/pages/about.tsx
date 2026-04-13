@@ -82,7 +82,7 @@ const FEATURES = [
   {
     icon: DollarSign,
     title: 'Crypto Payments',
-    description: 'Earn in USDT (TRC-20, BEP-20, ERC-20) and TON. Non-custodial payouts go directly to your wallet — 4 supported networks, no middlemen, no delays.',
+    description: 'Earn in USDT TRC-20 (Tron), USDT BEP-20 (BNB Chain), USDT ERC-20 (Ethereum), or USDT on TON Network. Non-custodial payouts go directly to your wallet with transparent platform fees.',
     color: 'text-green-600',
     bg: 'bg-green-50',
   },
@@ -168,7 +168,7 @@ export default function About() {
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
             Taskdrip connects global brands with verified social media creators through transparent campaigns,
-            tier-based discovery, and direct crypto payments — no agencies, no middlemen.
+            tier-based discovery, and direct crypto payments — no third-party agencies, no hidden gatekeepers.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/signup">
@@ -222,7 +222,7 @@ export default function About() {
                 {[
                   'No agency fees — direct brand-to-creator deals',
                   'Verified social reach across 7+ platforms',
-                  'Crypto payments in USDT (4 networks) & TON — your wallet, your money',
+                  'Crypto payments: USDT TRC-20, BEP-20, ERC-20 and USDT on TON Network',
                   'Auto-tiered discovery so the right brands find you',
                   'Portfolio & review system to build lasting reputation',
                   'Community learning through BreedSkool Academy',
@@ -424,7 +424,7 @@ export default function About() {
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { icon: Shield, title: 'KYC Verification', desc: 'Optional identity verification for creators and brands unlocks higher campaign limits and builds mutual trust.', color: 'text-blue-600', bg: 'bg-blue-50' },
-              { icon: Lock, title: 'Non-Custodial Payments', desc: 'We never hold your crypto. Admin-managed wallets across 4 networks (TRC-20, BEP-20, ERC-20, TON) process payouts directly — your funds, your control.', color: 'text-green-600', bg: 'bg-green-50' },
+              { icon: Lock, title: 'Non-Custodial Payments', desc: 'We never hold your crypto. Payouts go directly to your wallet across 4 networks: USDT TRC-20 (Tron), USDT BEP-20 (BNB Chain), USDT ERC-20 (Ethereum), or USDT on TON Network.', color: 'text-green-600', bg: 'bg-green-50' },
               { icon: Star, title: 'Review System', desc: 'Every completed campaign can be reviewed by both parties. Reputation scores are public and build over time.', color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map(item => (
               <div key={item.title} className="bg-white rounded-2xl border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">

@@ -72,9 +72,9 @@ const TIERS = [
 
 const CREATOR_STEPS = [
   { num: "01", title: "Build Your Influencer Profile", desc: "Sign up, link your social channels and follower counts. Auto-classified into your tier instantly — no gatekeepers." },
-  { num: "02", title: "Join Brand Campaigns", desc: "Browse live tasks matching your niche and tier. Apply with one tap — no agencies, no middlemen, no commissions." },
+  { num: "02", title: "Join Brand Campaigns", desc: "Browse live tasks matching your niche and tier. Apply with one tap — direct access to brand campaigns, no third-party agencies." },
   { num: "03", title: "Complete Tasks & Submit Proof", desc: "Post content, then submit your link or screenshot as proof. The brand reviews your submission directly." },
-  { num: "04", title: "Earn Crypto Instantly", desc: "Once the brand approves, funds go straight to your wallet in USDT (TRC-20/BEP-20/ERC-20) or TON — anytime, anywhere." },
+  { num: "04", title: "Earn Crypto Instantly", desc: "Once the brand approves, funds go straight to your wallet — USDT TRC-20, BEP-20, ERC-20, or USDT on TON Network." },
 ];
 
 const BRAND_STEPS = [
@@ -122,7 +122,7 @@ const DEMO_CAMPAIGNS = [
 ];
 
 const WHY_FEATURES = [
-  { icon: <Shield className="w-7 h-7" />, title: "Non-Custodial Payments", desc: "We never hold your funds. All crypto goes directly to your wallet via 4 networks — TRC-20, BEP-20, ERC-20, or TON.", color: "bg-green-100 text-green-600" },
+  { icon: <Shield className="w-7 h-7" />, title: "Non-Custodial Payments", desc: "We never hold your funds. All crypto goes directly to your wallet — USDT TRC-20, BEP-20, ERC-20, or USDT on TON Network.", color: "bg-green-100 text-green-600" },
   { icon: <Star className="w-7 h-7" />, title: "Verified Creators Only", desc: "Every creator goes through KYC. Brands get access to real, active influencers — zero bots.", color: "bg-purple-100 text-purple-600" },
   { icon: <Zap className="w-7 h-7" />, title: "Brand-First Approval", desc: "Brands are the primary reviewers of every submission. Pay only for results you're genuinely satisfied with.", color: "bg-blue-100 text-blue-600" },
   { icon: <Globe className="w-7 h-7" />, title: "Global Creator Network", desc: "Access creators from 150+ countries across TikTok, YouTube, Instagram, Twitch, Telegram, and X.", color: "bg-orange-100 text-orange-600" },
@@ -179,7 +179,7 @@ const PAYMENT_TOKENS = [
   { name: "USDT TRC-20", network: "Tron Network", icon: "⚡", color: "from-red-500 to-orange-500" },
   { name: "USDT BEP-20", network: "BNB Chain", icon: "🔶", color: "from-yellow-500 to-amber-500" },
   { name: "USDT ERC-20", network: "Ethereum Network", icon: "🔷", color: "from-indigo-500 to-blue-500" },
-  { name: "TON", network: "TON Network", icon: "💎", color: "from-blue-500 to-cyan-500" },
+  { name: "USDT - TON", network: "TON Network", icon: "💎", color: "from-blue-500 to-cyan-500" },
 ];
 
 function CampaignCard({ campaign }: { campaign: any }) {
@@ -718,8 +718,8 @@ export default function FinalLanding() {
                 {[
                   { title: "Instant settlement", desc: "Payments release the moment your submission is approved — no waiting periods." },
                   { title: "Non-custodial", desc: "We never hold your funds. Your money goes directly to your wallet address." },
-                  { title: "Multi-network support", desc: "Choose from USDT TRC-20, USDT BEP-20, or TON based on your preference." },
-                  { title: "No withdrawal fees", desc: "Keep 100% of what you earn. No hidden fees or platform cuts." },
+                  { title: "4 supported networks", desc: "Choose from USDT TRC-20, USDT BEP-20, USDT ERC-20, or USDT on TON Network — all admin-managed." },
+                  { title: "Transparent pricing", desc: "Small platform fee on successful campaigns. No surprise charges or hidden costs." },
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />

@@ -66,6 +66,7 @@ export const users = pgTable("users", {
   // Crypto wallet addresses for payments
   usdtTronWallet: varchar("usdt_tron_wallet"),
   usdtBscWallet: varchar("usdt_bsc_wallet"),
+  usdtEthWallet: varchar("usdt_eth_wallet"),
   tonWallet: varchar("ton_wallet"),
   isVerified: boolean("is_verified").default(false),
   isKycApproved: boolean("is_kyc_approved").default(false),

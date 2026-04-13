@@ -176,9 +176,10 @@ export default function PayoutRequestsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="USDT-TRC20">USDT (TRC-20) · Tron</SelectItem>
-                        <SelectItem value="USDT-BEP20">USDT (BEP-20) · BSC</SelectItem>
-                        <SelectItem value="USDT-ERC20">USDT (ERC-20) · Ethereum</SelectItem>
+                        <SelectItem value="USDT-TRC20">USDT TRC-20 · Tron Network</SelectItem>
+                        <SelectItem value="USDT-BEP20">USDT BEP-20 · BNB Chain</SelectItem>
+                        <SelectItem value="USDT-ERC20">USDT ERC-20 · Ethereum Network</SelectItem>
+                        <SelectItem value="USDT-TON">USDT · TON Network</SelectItem>
                         <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
                       </SelectContent>
                     </Select>
