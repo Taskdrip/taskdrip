@@ -18,8 +18,8 @@ export const OFFICES = {
   },
   nigeria: {
     name: "Taskdrip Nigeria",
-    address: "Victoria Island",
-    city: "Lagos",
-    country: "Nigeria (Virtual)",
+    address: "927/928 Bishop Aboyade Cole St",
+    city: "Victoria Island, Lagos 106104",
+    country: "Nigeria",
   },
 } as const;

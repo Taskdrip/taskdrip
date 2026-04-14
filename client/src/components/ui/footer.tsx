@@ -27,7 +27,7 @@ export function Footer() {
               <h3 className="text-2xl font-bold">Taskdrip</h3>
             </div>
             <p className="text-gray-400 mb-4 leading-relaxed text-sm">
-              The #1 Web3 influencer marketplace — connecting verified creators with global brands. Earn USDT & TON crypto for every completed task.
+              The #1 Web3 influencer marketplace — where creators turn their reach into real crypto income. Join thousands of influencers earning USDT from top global brands, one task at a time.
             </p>
 
             {/* Social Icons */}

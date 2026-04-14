@@ -10,26 +10,25 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, ChevronDown } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
 
-const communityLinks = [
-  { href: SOCIALS.telegram, label: "Join Telegram", icon: SiTelegram, color: "text-[#229ED9]", external: true },
-  { href: SOCIALS.whatsapp, label: "Chat on WhatsApp", icon: SiWhatsapp, color: "text-[#25D366]", external: true },
-  { href: SOCIALS.x, label: "Follow on X", icon: SiX, color: "text-gray-800", external: true },
-  { href: SOCIALS.instagram, label: "Follow Instagram", icon: SiInstagram, color: "text-[#E1306C]", external: true },
-  { href: SOCIALS.facebook, label: "Facebook", icon: SiFacebook, color: "text-[#1877F2]", external: true },
-  { href: SOCIALS.youtube, label: "YouTube", icon: SiYoutube, color: "text-[#FF0000]", external: true },
-  { href: SOCIALS.tiktok, label: "TikTok", icon: SiTiktok, color: "text-gray-900", external: true },
+const socialLinks = [
+  { href: SOCIALS.telegram, icon: SiTelegram, color: "#229ED9", label: "Telegram" },
+  { href: SOCIALS.whatsapp, icon: SiWhatsapp, color: "#25D366", label: "WhatsApp" },
+  { href: SOCIALS.x, icon: SiX, color: "#111111", label: "X" },
+  { href: SOCIALS.instagram, icon: SiInstagram, color: "#E1306C", label: "Instagram" },
+  { href: SOCIALS.facebook, icon: SiFacebook, color: "#1877F2", label: "Facebook" },
+  { href: SOCIALS.youtube, icon: SiYoutube, color: "#FF0000", label: "YouTube" },
+  { href: SOCIALS.tiktok, icon: SiTiktok, color: "#010101", label: "TikTok" },
 ];
 
 export function NavigationFixed() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileCommunityOpen, setIsMobileCommunityOpen] = useState(false);
 
   const getNavItems = () => {
     if (isAuthenticated) {
@@ -129,57 +128,30 @@ export function NavigationFixed() {
                   {item.label}
                 </Link>
               ))}
-
-              {/* Community Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className={`flex items-center gap-1 px-2 xl:px-3 py-2 text-sm font-medium transition-colors duration-200 whitespace-nowrap text-gray-600 hover:text-black`}>
-                    Community <ChevronDown className="h-3.5 w-3.5 mt-0.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52">
-                  <div className="px-2 py-1.5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Join Us</p>
-                  </div>
-                  {communityLinks.slice(0, 3).map((link) => {
-                    const Icon = link.icon;
-                    return (
-                      <DropdownMenuItem key={link.href} asChild>
-                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
-                          <Icon className={`h-4 w-4 ${link.color}`} />
-                          <span>{link.label}</span>
-                        </a>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                  <DropdownMenuSeparator />
-                  <div className="px-2 py-1.5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Follow Us</p>
-                  </div>
-                  {communityLinks.slice(3).map((link) => {
-                    const Icon = link.icon;
-                    return (
-                      <DropdownMenuItem key={link.href} asChild>
-                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
-                          <Icon className={`h-4 w-4 ${link.color}`} />
-                          <span>{link.label}</span>
-                        </a>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/get-started" className="flex items-center gap-2 cursor-pointer text-purple-700 font-semibold">
-                      🚀 Get Started & Earn Points
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 
+          {/* Social Icons Strip (desktop only) */}
+          <div className="hidden xl:flex items-center gap-1 border-l border-gray-200 pl-3 mr-1">
+            {socialLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={link.label}
+                  className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+                >
+                  <Icon className="h-3.5 w-3.5" style={{ color: link.color }} />
+                </a>
+              );
+            })}
+          </div>
+
           {/* Right side */}
-          <div className="flex items-center space-x-2 flex-shrink-0 ml-auto">
+          <div className="flex items-center space-x-2 flex-shrink-0 ml-auto xl:ml-0">
             {isAuthenticated ? (
               <>
                 <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black">
@@ -338,42 +310,27 @@ export function NavigationFixed() {
                 </Link>
               ))}
 
-              {/* Mobile Community section */}
-              <div>
-                <button
-                  className="flex items-center justify-between w-full px-3 py-2 text-base font-medium text-gray-600 hover:text-black hover:bg-gray-50"
-                  onClick={() => setIsMobileCommunityOpen(!isMobileCommunityOpen)}
-                >
-                  Community
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isMobileCommunityOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isMobileCommunityOpen && (
-                  <div className="pl-4 space-y-1 mt-1">
-                    {communityLinks.map((link) => {
-                      const Icon = link.icon;
-                      return (
-                        <a
-                          key={link.href}
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-50 rounded"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <Icon className={`h-4 w-4 ${link.color}`} />
-                          {link.label}
-                        </a>
-                      );
-                    })}
-                    <Link
-                      href="/get-started"
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50 rounded"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      🚀 Get Started & Earn Points
-                    </Link>
-                  </div>
-                )}
+              {/* Mobile Social Links */}
+              <div className="px-3 pt-2 pb-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Follow Us</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {socialLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Icon className="h-5 w-5" style={{ color: link.color }} />
+                        <span className="text-[10px] text-gray-500 font-medium">{link.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
 
               {!isAuthenticated && (
