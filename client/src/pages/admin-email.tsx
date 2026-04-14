@@ -16,7 +16,8 @@ import {
   Mail, Send, Settings, Zap, BarChart3, Users, FileText, Plus, Trash2,
   Play, Eye, Edit, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw,
   Server, Shield, Globe, Key, TestTube, Inbox, Bot, ChevronRight,
-  ArrowLeft, Copy, Info, Layers
+  ArrowLeft, Copy, Info, Layers, BookOpen, ExternalLink, Terminal, Lock,
+  Database, HelpCircle, Package
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -127,6 +128,506 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Setup Guide Component ─────────────────────────────────────────────────────
+
+function CopyBox({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="mb-3">
+      <p className="text-xs font-semibold text-gray-600 mb-1">{label}</p>
+      <div className={`flex items-start gap-2 bg-gray-900 text-green-400 rounded-lg px-4 py-3 ${mono ? "font-mono" : ""} text-xs break-all`}>
+        <span className="flex-1">{value}</span>
+        <button onClick={copy} className="shrink-0 mt-0.5 text-gray-400 hover:text-white transition-colors">
+          {copied ? <CheckCircle className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StepCard({ step, title, icon: Icon, color, children }: { step: number; title: string; icon: any; color: string; children: React.ReactNode }) {
+  return (
+    <Card className="border border-gray-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-full ${color} text-white flex items-center justify-center text-sm font-bold shrink-0`}>{step}</div>
+          <Icon className="h-4 w-4 text-gray-600" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+function SetupGuide({ domain }: { domain: string }) {
+  const [section, setSection] = useState<"namecheap" | "vps" | "newbiz">("namecheap");
+
+  const spf = `v=spf1 include:privateemail.com ~all`;
+  const dmarc = `v=DMARC1; p=quarantine; rua=mailto:dmarc@${domain}; adkim=s; aspf=s`;
+  const mxRecord = `mail.privateemail.com`;
+
+  return (
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
+        <div className="flex items-center gap-3 mb-3">
+          <BookOpen className="h-7 w-7" />
+          <h2 className="text-xl font-bold">Email & Domain Setup Guide</h2>
+        </div>
+        <p className="text-purple-100 text-sm leading-relaxed">
+          Complete step-by-step instructions to configure your domain, SSL, email delivery, and email marketing for this platform. Includes setup for <strong>Namecheap</strong>, any VPS/server, and a guide for new businesses importing this codebase.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-4">
+          {[
+            { key: "namecheap", label: "Namecheap (taskdrip.online)" },
+            { key: "vps", label: "Custom VPS / Server" },
+            { key: "newbiz", label: "New Business Deployment" },
+          ].map(s => (
+            <button key={s.key} onClick={() => setSection(s.key as any)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${section === s.key ? "bg-white text-purple-700" : "bg-white/20 hover:bg-white/30 text-white"}`}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── NAMECHEAP SECTION ── */}
+      {section === "namecheap" && (
+        <div className="space-y-5">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+            <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <p className="font-semibold mb-1">Before you start — what you need</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Your domain <strong>{domain}</strong> pointing to Namecheap DNS (default)</li>
+                <li>A <strong>Namecheap Private Email</strong> subscription (or other SMTP provider)</li>
+                <li>This app deployed on Replit (SSL is automatic) or your own VPS</li>
+              </ul>
+            </div>
+          </div>
+
+          <StepCard step={1} title="Connect Your Domain to Replit (for Replit Deployment)" icon={Globe} color="bg-purple-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>If you've deployed this app on Replit, SSL is <strong>100% automatic</strong> — no certificates to manage. Just connect your domain:</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>In Replit, go to your app → <strong>Deployments</strong> → <strong>Custom Domain</strong></li>
+                <li>Copy the CNAME value shown (looks like <code className="bg-gray-100 px-1 rounded">your-app.replit.app</code>)</li>
+                <li>In Namecheap → <strong>Domain List</strong> → click <strong>Manage</strong> next to {domain}</li>
+                <li>Go to <strong>Advanced DNS</strong> and add:</li>
+              </ol>
+              <div className="mt-3">
+                <CopyBox label="CNAME Record (Host = @, Points to = your Replit domain)" value={`Type: CNAME\nHost: @\nValue: [your-app].replit.app\nTTL: Automatic`} mono={false} />
+                <CopyBox label="CNAME Record (Host = www)" value={`Type: CNAME\nHost: www\nValue: [your-app].replit.app\nTTL: Automatic`} mono={false} />
+              </div>
+              <p className="text-xs text-gray-500">DNS propagation can take 5–30 minutes. Replit automatically provisions a free SSL certificate (Let's Encrypt) once the DNS is verified.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={2} title="Set Up Namecheap Private Email (SMTP)" icon={Mail} color="bg-blue-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>Namecheap Private Email gives you professional <strong>@{domain}</strong> email addresses. Go to <strong>namecheap.com → Apps → Private Email</strong> and subscribe.</p>
+              <p className="font-semibold">After setting up, use these SMTP settings in the <strong>SMTP / IMAP / Domain</strong> tab:</p>
+              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold text-gray-700">Field</th>
+                      <th className="text-left px-4 py-2 font-semibold text-gray-700">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["SMTP Host", "mail.privateemail.com"],
+                      ["SMTP Port (TLS)", "587"],
+                      ["SMTP Port (SSL)", "465"],
+                      ["Username", `noreply@${domain} (your created mailbox)`],
+                      ["Password", "Your Private Email mailbox password"],
+                      ["From Name", "Taskdrip"],
+                      [`From Email`, `noreply@${domain}`],
+                      ["TLS", "Enabled (STARTTLS)"],
+                      ["IMAP Host", "mail.privateemail.com"],
+                      ["IMAP Port", "993 (SSL)"],
+                    ].map(([field, val]) => (
+                      <tr key={field} className="border-t border-gray-100">
+                        <td className="px-4 py-2 font-medium text-gray-800">{field}</td>
+                        <td className="px-4 py-2 font-mono text-gray-600">{val}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500">First create the <code className="bg-gray-100 px-1 rounded">noreply@{domain}</code> mailbox in Namecheap Private Email control panel, then use those credentials here.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={3} title="Configure DNS Records to Prevent Spam (SPF · DKIM · DMARC · MX)" icon={Shield} color="bg-green-600">
+            <div className="space-y-4 text-sm text-gray-700">
+              <p>Go to <strong>Namecheap → Domain List → Manage → Advanced DNS</strong> and add these records:</p>
+
+              <div className="space-y-1">
+                <p className="font-semibold text-gray-900">📌 MX Record (for receiving email)</p>
+                <CopyBox label="MX Record — Host: @, Priority: 10" value={`mail.privateemail.com`} />
+                <CopyBox label="MX Record — Host: @, Priority: 20 (backup)" value={`mail2.privateemail.com`} />
+              </div>
+
+              <div className="space-y-1">
+                <p className="font-semibold text-gray-900">📌 SPF Record (prevents spoofing)</p>
+                <p className="text-xs text-gray-500">Type: TXT · Host: @ · Value:</p>
+                <CopyBox label="SPF TXT Record" value={spf} />
+              </div>
+
+              <div className="space-y-1">
+                <p className="font-semibold text-gray-900">📌 DKIM Record (email authentication)</p>
+                <p className="text-xs text-gray-500">Get your DKIM key from Namecheap Private Email control panel → Domain Settings → Email Authentication. It will look like this:</p>
+                <CopyBox label="DKIM TXT Record — Host: default._domainkey" value={`v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4...YOUR_ACTUAL_KEY_HERE`} />
+                <p className="text-xs text-amber-700 bg-amber-50 rounded p-2">⚠️ Copy the actual DKIM public key from your Namecheap Email control panel — the above is just a format example.</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="font-semibold text-gray-900">📌 DMARC Record (reporting + policy)</p>
+                <p className="text-xs text-gray-500">Type: TXT · Host: _dmarc · Value:</p>
+                <CopyBox label="DMARC TXT Record" value={dmarc} />
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800">
+                <p className="font-semibold mb-1">✅ DNS Checklist</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>MX record → mail.privateemail.com (priority 10)</li>
+                  <li>SPF TXT record → @ (root domain)</li>
+                  <li>DKIM TXT record → default._domainkey.{domain}</li>
+                  <li>DMARC TXT record → _dmarc.{domain}</li>
+                </ul>
+                <p className="mt-2">Use <a href="https://mxtoolbox.com/SuperTool.aspx" target="_blank" className="underline font-semibold">mxtoolbox.com</a> to verify all records are live (allow 10–60 min for propagation).</p>
+              </div>
+            </div>
+          </StepCard>
+
+          <StepCard step={4} title="SSL Certificate (Automatic on Replit)" icon={Lock} color="bg-indigo-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                <p><strong>If deployed on Replit:</strong> SSL/TLS is fully automatic. Replit provisions and renews a free Let's Encrypt certificate for every custom domain — no action required.</p>
+              </div>
+              <p>Once your CNAME record from Step 1 is live and Replit detects the domain, the padlock 🔒 icon will appear in your browser automatically — usually within 15 minutes.</p>
+              <p className="text-xs text-gray-500">For VPS/server deployments, see the "Custom VPS / Server" tab above.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={5} title="Save Settings & Test Email Delivery" icon={TestTube} color="bg-pink-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Go to the <strong>SMTP / IMAP / Domain</strong> tab and fill in all fields from Step 2</li>
+                <li>Enter your domain in <strong>Domain</strong> and site URL in <strong>Site URL</strong></li>
+                <li>Copy the DNS records from Step 3 into the DNS Records fields and click <strong>Save DNS Records</strong></li>
+                <li>Click <strong>"Test Connection"</strong> to verify SMTP works</li>
+                <li>Enter your email in <strong>"Send Test Email"</strong> and confirm you receive it</li>
+                <li>Check that the test email doesn't land in spam — if it does, double-check your SPF/DKIM/DMARC records</li>
+              </ol>
+            </div>
+          </StepCard>
+
+          <StepCard step={6} title="Free Alternative SMTP Providers" icon={Package} color="bg-orange-500">
+            <div className="text-sm text-gray-700 space-y-3">
+              <p>If you prefer not to use Namecheap Private Email, here are excellent free alternatives:</p>
+              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold">Provider</th>
+                      <th className="text-left px-4 py-2 font-semibold">Free Limit</th>
+                      <th className="text-left px-4 py-2 font-semibold">SMTP Host</th>
+                      <th className="text-left px-4 py-2 font-semibold">Port</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["Brevo (Sendinblue)", "300/day", "smtp-relay.brevo.com", "587"],
+                      ["Mailjet", "200/day", "in-v3.mailjet.com", "587"],
+                      ["Mailgun", "100/day (trial)", "smtp.mailgun.org", "587"],
+                      ["SendGrid", "100/day", "smtp.sendgrid.net", "587"],
+                      ["Zoho Mail", "5GB, custom domain", "smtp.zoho.com", "587"],
+                      ["Gmail (App PW)", "500/day", "smtp.gmail.com", "587"],
+                    ].map(([p, f, h, port]) => (
+                      <tr key={p} className="border-t border-gray-100">
+                        <td className="px-4 py-2 font-medium text-gray-800">{p}</td>
+                        <td className="px-4 py-2 text-green-700">{f}</td>
+                        <td className="px-4 py-2 font-mono text-gray-600">{h}</td>
+                        <td className="px-4 py-2">{port}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500">For production at scale, Brevo or Mailjet are recommended as they are purpose-built for bulk email with good deliverability and free tiers.</p>
+            </div>
+          </StepCard>
+        </div>
+      )}
+
+      {/* ── VPS SECTION ── */}
+      {section === "vps" && (
+        <div className="space-y-5">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
+            <Server className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-800">
+              <p className="font-semibold mb-1">Custom VPS / Server Setup</p>
+              <p>Use this guide if you're hosting on DigitalOcean, AWS EC2, Linode, Hetzner, or any other Linux server.</p>
+            </div>
+          </div>
+
+          <StepCard step={1} title="Install Node.js & Build the App" icon={Terminal} color="bg-gray-700">
+            <div className="space-y-3 text-sm text-gray-700">
+              <CopyBox label="Install Node.js 20 (Ubuntu/Debian)" value={`curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs`} />
+              <CopyBox label="Clone & Install" value={`git clone <your-repo-url> /var/www/taskdrip
+cd /var/www/taskdrip
+npm install`} />
+              <CopyBox label="Build for production" value={`npm run build`} />
+              <CopyBox label="Create .env file" value={`DATABASE_URL=postgresql://user:password@host:5432/dbname
+SESSION_SECRET=your_64_char_random_string_here
+GROQ_API_KEY=your_groq_api_key
+NODE_ENV=production`} />
+            </div>
+          </StepCard>
+
+          <StepCard step={2} title="Run with PM2 (Process Manager)" icon={Database} color="bg-green-700">
+            <div className="space-y-3 text-sm text-gray-700">
+              <CopyBox label="Install PM2 globally" value={`sudo npm install -g pm2`} />
+              <CopyBox label="Start the app" value={`pm2 start dist/index.js --name taskdrip
+pm2 save
+pm2 startup`} />
+              <CopyBox label="Check status" value={`pm2 status\npm2 logs taskdrip`} />
+            </div>
+          </StepCard>
+
+          <StepCard step={3} title="Nginx Reverse Proxy" icon={Globe} color="bg-orange-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <CopyBox label="Install Nginx" value={`sudo apt install nginx`} />
+              <CopyBox label="/etc/nginx/sites-available/taskdrip" value={`server {
+    listen 80;
+    server_name ${domain} www.${domain};
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}`} />
+              <CopyBox label="Enable site & restart Nginx" value={`sudo ln -s /etc/nginx/sites-available/taskdrip /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl restart nginx`} />
+            </div>
+          </StepCard>
+
+          <StepCard step={4} title="Free SSL with Let's Encrypt (Certbot)" icon={Lock} color="bg-indigo-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <CopyBox label="Install Certbot" value={`sudo apt install certbot python3-certbot-nginx`} />
+              <CopyBox label="Issue SSL certificate (auto-configures Nginx)" value={`sudo certbot --nginx -d ${domain} -d www.${domain}`} />
+              <CopyBox label="Auto-renewal (set up once, renews forever)" value={`sudo certbot renew --dry-run`} />
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800">
+                <p className="font-semibold">✅ After this your site will be live at <strong>https://{domain}</strong> with a valid SSL certificate that auto-renews every 90 days.</p>
+              </div>
+            </div>
+          </StepCard>
+
+          <StepCard step={5} title="Database Migration & Seed" icon={Database} color="bg-blue-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <CopyBox label="Push schema to your Neon/Postgres database" value={`npm run db:push`} />
+              <CopyBox label="Seed demo data (optional)" value={`node -e "import('./server/seed-demo.ts')"
+# Or via tsx:
+npx tsx server/seed-demo.ts`} />
+              <p className="text-xs text-gray-500">Make sure your DATABASE_URL in .env points to your Neon or Postgres database before running these commands.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={6} title="DNS Setup for Custom Server" icon={Shield} color="bg-purple-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>In your registrar (Namecheap, GoDaddy, Cloudflare), set:</p>
+              <CopyBox label="A Record — Host: @ → Your server IP" value={`Type: A\nHost: @\nValue: YOUR.SERVER.IP.ADDRESS\nTTL: 300`} mono={false} />
+              <CopyBox label="A Record — Host: www → Your server IP" value={`Type: A\nHost: www\nValue: YOUR.SERVER.IP.ADDRESS\nTTL: 300`} mono={false} />
+              <p className="text-xs text-gray-500">Then add MX, SPF, DKIM, and DMARC records as shown in the Namecheap tab — the same DNS records apply regardless of where you host.</p>
+            </div>
+          </StepCard>
+        </div>
+      )}
+
+      {/* ── NEW BUSINESS DEPLOYMENT GUIDE ── */}
+      {section === "newbiz" && (
+        <div className="space-y-5">
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex gap-3">
+            <Package className="h-5 w-5 text-purple-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-purple-800">
+              <p className="font-semibold mb-1">Deploying this codebase for a new business / client</p>
+              <p>Everything in this platform is configurable without touching a single line of code. This guide walks through all the settings a new owner needs to change.</p>
+            </div>
+          </div>
+
+          <StepCard step={1} title="Change the Domain & Branding" icon={Globe} color="bg-purple-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>In the <strong>Admin → Master Settings</strong> panel, update:</p>
+              <ul className="list-disc list-inside space-y-1.5">
+                <li><strong>Platform Name</strong> — change from "Taskdrip" to your brand name</li>
+                <li><strong>Tagline</strong> — change "Influencers Marketplace" to your tagline</li>
+                <li><strong>Support Email</strong> — update to support@yourdomain.com</li>
+                <li><strong>Footer Copyright</strong> — update to © 2025 YourBrand</li>
+                <li><strong>Logo & Favicon</strong> — upload your brand assets</li>
+              </ul>
+              <p className="text-xs text-gray-500">These settings are stored in the database — no code edits needed. They propagate site-wide instantly.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={2} title="Environment Variables to Configure" icon={Key} color="bg-gray-800">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>Set these in your hosting environment (Replit Secrets, .env file, or server env):</p>
+              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold">Variable</th>
+                      <th className="text-left px-4 py-2 font-semibold">Purpose</th>
+                      <th className="text-left px-4 py-2 font-semibold">Required?</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["DATABASE_URL", "Neon PostgreSQL connection string", "✅ Yes"],
+                      ["SESSION_SECRET", "Random 64-char string for session security", "✅ Yes"],
+                      ["GROQ_API_KEY", "AI Guide Bot (free at console.groq.com)", "✅ Yes"],
+                      ["NODE_ENV", "Set to 'production' on live server", "✅ Yes"],
+                    ].map(([v, p, r]) => (
+                      <tr key={v} className="border-t border-gray-100">
+                        <td className="px-4 py-2 font-mono text-purple-700 font-medium">{v}</td>
+                        <td className="px-4 py-2 text-gray-600">{p}</td>
+                        <td className="px-4 py-2 text-green-700">{r}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500">SMTP credentials are NOT stored as env vars — they're saved directly through this Email CRM admin panel to the database.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={3} title="Change Admin Credentials" icon={Lock} color="bg-red-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+                <p className="text-red-800 text-xs"><strong>IMPORTANT:</strong> Change the default admin credentials immediately after deployment. The default demo account (demo@taskdrip.online / Admin@2024) should not remain on a live server.</p>
+              </div>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Go to <strong>Admin Panel → Admin Credentials</strong> section</li>
+                <li>Change the admin email to your business email</li>
+                <li>Set a strong password (16+ characters, mixed case, symbols)</li>
+                <li>Optionally create additional admin accounts under <strong>User Management</strong></li>
+              </ol>
+            </div>
+          </StepCard>
+
+          <StepCard step={4} title="Configure Payment Methods" icon={Database} color="bg-green-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>Go to <strong>Admin → Master Settings → Payment Methods</strong> to configure how creators get paid:</p>
+              <ul className="list-disc list-inside space-y-1.5">
+                <li><strong>Crypto wallets</strong> — Add USDT wallet addresses for TRC-20, BEP-20, ERC-20, TON</li>
+                <li><strong>Bank Transfer</strong> — Add your bank account details</li>
+                <li><strong>PayPal</strong> — Add PayPal email or client ID</li>
+                <li><strong>Paystack / Stripe</strong> — Add API keys for card payments</li>
+              </ul>
+              <p className="text-xs text-gray-500">All payment method fields are admin-controlled from the UI — no code changes needed.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={5} title="Email Setup for Your Domain" icon={Mail} color="bg-blue-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Register your domain with Namecheap (or any registrar)</li>
+                <li>Subscribe to <strong>Namecheap Private Email</strong> or any SMTP provider (Brevo is free up to 300/day)</li>
+                <li>Add DNS records (MX, SPF, DKIM, DMARC) as shown in the <strong>Namecheap</strong> tab</li>
+                <li>Go to <strong>SMTP / IMAP / Domain</strong> tab and enter your SMTP credentials</li>
+                <li>Update the domain and site URL fields</li>
+                <li>Click <strong>Test Connection</strong> to verify everything works</li>
+              </ol>
+              <p className="text-xs text-gray-500">The email templates (welcome emails, campaign notifications, payout confirmations) automatically use your brand name and domain once saved.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={6} title="Set Up Your First Email Campaign" icon={Send} color="bg-pink-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Go to the <strong>Campaigns</strong> tab and click <strong>New Campaign</strong></li>
+                <li>Choose <strong>Load from AI Template</strong> — pick "welcome creator" or "newsletter"</li>
+                <li>Select your target segment (All Users, Creators Only, Brands Only, etc.)</li>
+                <li>Customize the subject and HTML body with your branding</li>
+                <li>Click <strong>Create</strong> then <strong>Send Now</strong> to blast immediately</li>
+              </ol>
+              <p className="text-xs text-gray-500">Variables like <code className="bg-gray-100 px-1 rounded">{"{{first_name}}"}</code> are automatically replaced with each recipient's real data.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={7} title="Auto-Responders (Set & Forget Email Automation)" icon={Bot} color="bg-indigo-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>Auto-responders send emails automatically when users take actions. Set these up once and they run forever:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  ["User Signs Up", "Send welcome email with getting-started guide"],
+                  ["Joins a Campaign", "Confirm participation + instructions"],
+                  ["Completes a Campaign", "Congratulate + show earnings"],
+                  ["KYC Approved", "Unlock notification + premium campaign access"],
+                  ["Payout Sent", "Confirmation with transaction details"],
+                  ["Makes a Purchase", "Order confirmation + digital product delivery"],
+                ].map(([trigger, desc]) => (
+                  <div key={trigger} className="bg-indigo-50 rounded-lg p-3 text-xs">
+                    <p className="font-semibold text-indigo-900">{trigger}</p>
+                    <p className="text-indigo-700 mt-0.5">{desc}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500">Go to <strong>Auto-Responders</strong> tab → <strong>New Auto-Responder</strong>. Choose the trigger event, load an AI template, and enable it.</p>
+            </div>
+          </StepCard>
+
+          <Card className="border-2 border-purple-200 bg-purple-50">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <HelpCircle className="h-6 w-6 text-purple-600" />
+                <h3 className="font-bold text-purple-900 text-base">Quick Checklist for New Deployment</h3>
+              </div>
+              <div className="grid md:grid-cols-2 gap-2">
+                {[
+                  "✅ Change admin email + password",
+                  "✅ Update platform name & branding",
+                  "✅ Add your domain in Email Settings",
+                  "✅ Configure SMTP credentials",
+                  "✅ Add DNS records (MX, SPF, DKIM, DMARC)",
+                  "✅ Test email delivery",
+                  "✅ Set up payment methods (crypto wallets, bank)",
+                  "✅ Configure Groq API key for AI Guide Bot",
+                  "✅ Create welcome auto-responder",
+                  "✅ Launch first campaign blast",
+                  "✅ Add your Neon database URL",
+                  "✅ Deploy & verify SSL certificate",
+                ].map(item => (
+                  <div key={item} className="flex items-center gap-2 text-xs text-purple-800">
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -323,6 +824,7 @@ export default function AdminEmail() {
             { value: "contacts", icon: Users, label: "Contacts" },
             { value: "logs", icon: Inbox, label: "Email Logs" },
             { value: "settings", icon: Settings, label: "SMTP / IMAP / Domain" },
+            { value: "setup-guide", icon: BookOpen, label: "Setup Guide" },
           ].map(tab => (
             <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1.5 text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white">
               <tab.icon className="h-4 w-4" />{tab.label}
@@ -866,6 +1368,11 @@ export default function AdminEmail() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* ─────────────── SETUP GUIDE ─────────────── */}
+        <TabsContent value="setup-guide">
+          <SetupGuide domain={settings.domain || "taskdrip.online"} />
         </TabsContent>
       </Tabs>
 
