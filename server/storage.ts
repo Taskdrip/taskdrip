@@ -39,6 +39,8 @@ import {
   pushSubscriptions,
   pushNotificationCampaigns,
   pwaSettings,
+  userPoints,
+  welcomeTaskCompletions,
   type PwaSettings,
   type InsertPwaSettings,
   type SocialPlatform,
@@ -341,6 +343,19 @@ export interface IStorage {
   getAllAdvertiseApplications(): Promise<any[]>;
   createAdvertiseApplication(data: any): Promise<any>;
   updateAdvertiseApplication(id: string, data: any): Promise<any>;
+
+  // $TDRIP Points system
+  getUserPoints(userId: string): Promise<any[]>;
+  awardPoints(userId: string, actionType: string, points: number, description?: string, referenceId?: string): Promise<any>;
+  getUserTotalPoints(userId: string): Promise<number>;
+  getTopUsersByPoints(limit?: number): Promise<any[]>;
+  computeAndUpdateLevel(userId: string): Promise<string>;
+  getLeaderboardByPoints(limit?: number): Promise<any[]>;
+
+  // Welcome campaign
+  getWelcomeTaskCompletions(userId: string): Promise<any[]>;
+  completeWelcomeTask(userId: string, taskKey: string): Promise<any>;
+  hasCompletedWelcomeTask(userId: string, taskKey: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2084,6 +2099,94 @@ export class DatabaseStorage implements IStorage {
 
   async getEmailLogsByCampaign(campaignId: string): Promise<any[]> {
     return await db.select().from(emailLogs).where(eq(emailLogs.campaignId, campaignId)).orderBy(desc(emailLogs.sentAt));
+  }
+
+  // ── $TDRIP Points System ─────────────────────────────────────
+  private computeLevel(points: number): string {
+    if (points >= 50000) return "Elite";
+    if (points >= 10000) return "Authority";
+    if (points >= 2000) return "Influencer";
+    if (points >= 500) return "Hustler";
+    return "Starter";
+  }
+
+  async getUserPoints(userId: string): Promise<any[]> {
+    return await db.select().from(userPoints).where(eq(userPoints.userId, userId)).orderBy(desc(userPoints.createdAt));
+  }
+
+  async awardPoints(userId: string, actionType: string, points: number, description?: string, referenceId?: string): Promise<any> {
+    const [record] = await db.insert(userPoints).values({
+      userId,
+      actionType,
+      points,
+      description: description ?? null,
+      referenceId: referenceId ?? null,
+    }).returning();
+
+    // Update total points on user
+    const totalRows = await db.select({ total: sql<number>`COALESCE(SUM(${userPoints.points}), 0)` })
+      .from(userPoints).where(eq(userPoints.userId, userId));
+    const total = Number(totalRows[0]?.total ?? 0);
+    const newLevel = this.computeLevel(total);
+    await db.update(users).set({ totalPoints: total, level: newLevel }).where(eq(users.id, userId));
+
+    return record;
+  }
+
+  async getUserTotalPoints(userId: string): Promise<number> {
+    const [row] = await db.select({ total: sql<number>`COALESCE(SUM(${userPoints.points}), 0)` })
+      .from(userPoints).where(eq(userPoints.userId, userId));
+    return Number(row?.total ?? 0);
+  }
+
+  async computeAndUpdateLevel(userId: string): Promise<string> {
+    const total = await this.getUserTotalPoints(userId);
+    const level = this.computeLevel(total);
+    await db.update(users).set({ totalPoints: total, level }).where(eq(users.id, userId));
+    return level;
+  }
+
+  async getTopUsersByPoints(limit = 10): Promise<any[]> {
+    const rows = await db.select().from(users)
+      .where(sql`${users.userType} != 'admin'`)
+      .orderBy(desc(users.totalPoints))
+      .limit(limit);
+    return rows.map(({ password, ...u }) => u);
+  }
+
+  async getLeaderboardByPoints(limit = 10): Promise<any[]> {
+    return this.getTopUsersByPoints(limit);
+  }
+
+  // ── Welcome Campaign ─────────────────────────────────────────
+  async getWelcomeTaskCompletions(userId: string): Promise<any[]> {
+    return await db.select().from(welcomeTaskCompletions).where(eq(welcomeTaskCompletions.userId, userId));
+  }
+
+  async hasCompletedWelcomeTask(userId: string, taskKey: string): Promise<boolean> {
+    const [row] = await db.select().from(welcomeTaskCompletions)
+      .where(and(eq(welcomeTaskCompletions.userId, userId), eq(welcomeTaskCompletions.taskKey, taskKey)));
+    return !!row;
+  }
+
+  async completeWelcomeTask(userId: string, taskKey: string): Promise<any> {
+    const alreadyDone = await this.hasCompletedWelcomeTask(userId, taskKey);
+    if (alreadyDone) return null;
+
+    const [record] = await db.insert(welcomeTaskCompletions).values({ userId, taskKey }).returning();
+
+    const pointsMap: Record<string, number> = {
+      telegram: 20,
+      twitter: 15,
+      instagram: 15,
+      youtube: 20,
+      whatsapp: 10,
+      profile: 50,
+    };
+    const pts = pointsMap[taskKey] ?? 10;
+    await this.awardPoints(userId, 'social_task', pts, `Welcome task: ${taskKey}`, taskKey);
+
+    return record;
   }
 }
 

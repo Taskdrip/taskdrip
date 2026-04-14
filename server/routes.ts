@@ -4821,6 +4821,74 @@ Instructions:
     } catch (e) { res.status(500).json({ message: 'Failed to fetch contacts' }); }
   });
 
+  // ── $TDRIP Points System ─────────────────────────────────────
+  app.get('/api/points/me', isAuthenticated, async (req: any, res) => {
+    try {
+      const points = await storage.getUserPoints(req.user.id);
+      const total = await storage.getUserTotalPoints(req.user.id);
+      const user = await storage.getUser(req.user.id);
+      res.json({ points, total, level: user?.level ?? 'Starter' });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch points' });
+    }
+  });
+
+  app.get('/api/leaderboard/points', async (_req, res) => {
+    try {
+      const leaders = await storage.getLeaderboardByPoints(10);
+      res.json(leaders);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch points leaderboard' });
+    }
+  });
+
+  // Admin: manually award points to a user
+  app.post('/api/admin/points/award', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { userId, actionType, points, description } = req.body;
+      if (!userId || !points) return res.status(400).json({ message: 'userId and points required' });
+      const record = await storage.awardPoints(userId, actionType ?? 'admin_award', Number(points), description);
+      res.json(record);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to award points' });
+    }
+  });
+
+  // ── Welcome Campaign ─────────────────────────────────────────
+  app.get('/api/welcome-campaign', isAuthenticated, async (req: any, res) => {
+    try {
+      const completions = await storage.getWelcomeTaskCompletions(req.user.id);
+      const completedKeys = completions.map((c: any) => c.taskKey);
+      const tasks = [
+        { key: 'telegram', label: 'Join Telegram Community', points: 20, url: 'https://t.me/taskdrip', icon: 'telegram' },
+        { key: 'twitter', label: 'Follow on X (Twitter)', points: 15, url: 'https://x.com/taskdrip', icon: 'twitter' },
+        { key: 'instagram', label: 'Follow on Instagram', points: 15, url: 'https://www.instagram.com/taskdrip', icon: 'instagram' },
+        { key: 'youtube', label: 'Subscribe on YouTube', points: 20, url: 'https://youtube.com/@taskdriper', icon: 'youtube' },
+        { key: 'whatsapp', label: 'Join WhatsApp Group', points: 10, url: 'https://wa.me/12016800266', icon: 'whatsapp' },
+        { key: 'profile', label: 'Complete Your Profile', points: 50, url: '/profile-edit', icon: 'profile' },
+      ];
+      const enriched = tasks.map(t => ({ ...t, completed: completedKeys.includes(t.key) }));
+      const totalPossible = tasks.reduce((s, t) => s + t.points, 0);
+      const earned = enriched.filter(t => t.completed).reduce((s, t) => s + t.points, 0);
+      res.json({ tasks: enriched, totalPossible, earned, percent: Math.round((earned / totalPossible) * 100) });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch welcome campaign' });
+    }
+  });
+
+  app.post('/api/welcome-campaign/complete/:taskKey', isAuthenticated, async (req: any, res) => {
+    try {
+      const validKeys = ['telegram', 'twitter', 'instagram', 'youtube', 'whatsapp', 'profile'];
+      if (!validKeys.includes(req.params.taskKey)) return res.status(400).json({ message: 'Invalid task key' });
+      const result = await storage.completeWelcomeTask(req.user.id, req.params.taskKey);
+      if (!result) return res.json({ message: 'Already completed', alreadyDone: true });
+      res.json({ success: true, taskKey: req.params.taskKey });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to complete task' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

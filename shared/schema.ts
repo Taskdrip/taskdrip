@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   password: varchar("password").notNull(),
   firstName: varchar("first_name").notNull(),
   lastName: varchar("last_name").notNull(),
+  totalPoints: integer("total_points").default(0),
+  level: varchar("level").default("Starter"),
   userType: varchar("user_type").notNull(), // 'creator' or 'brand'
   profileImageUrl: varchar("profile_image_url"),
   bio: text("bio"),
@@ -430,6 +432,33 @@ export const pushNotificationCampaigns = pgTable("push_notification_campaigns", 
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// $TDRIP Points table — tracks every point-earning action
+export const userPoints = pgTable("user_points", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  actionType: varchar("action_type").notNull(), // 'signup', 'profile_completion', 'join_campaign', 'complete_task', 'referral', 'daily_login', 'social_task'
+  points: integer("points").notNull(),
+  referenceId: varchar("reference_id"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserPointSchema = createInsertSchema(userPoints).omit({ id: true, createdAt: true });
+export type UserPoint = typeof userPoints.$inferSelect;
+export type InsertUserPoint = z.infer<typeof insertUserPointSchema>;
+
+// Welcome campaign task completions
+export const welcomeTaskCompletions = pgTable("welcome_task_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  taskKey: varchar("task_key").notNull(), // 'telegram', 'twitter', 'instagram', 'youtube', 'whatsapp', 'profile'
+  completedAt: timestamp("completed_at").defaultNow(),
+});
+
+export const insertWelcomeTaskCompletionSchema = createInsertSchema(welcomeTaskCompletions).omit({ id: true, completedAt: true });
+export type WelcomeTaskCompletion = typeof welcomeTaskCompletions.$inferSelect;
+export type InsertWelcomeTaskCompletion = z.infer<typeof insertWelcomeTaskCompletionSchema>;
 
 export const insertSocialPlatformSchema = createInsertSchema(socialPlatforms).omit({ id: true, createdAt: true });
 export const insertUserSocialLinkSchema = createInsertSchema(userSocialLinks).omit({ id: true, createdAt: true, updatedAt: true });

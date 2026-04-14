@@ -8,28 +8,39 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, ChevronDown, Users } from "lucide-react";
+import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp } from "react-icons/si";
+import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
+
+const communityLinks = [
+  { href: SOCIALS.telegram, label: "Telegram Community", icon: SiTelegram, color: "text-[#229ED9]" },
+  { href: SOCIALS.x, label: "Follow on X", icon: SiX, color: "text-gray-800" },
+  { href: SOCIALS.instagram, label: "Instagram", icon: SiInstagram, color: "text-[#E1306C]" },
+  { href: SOCIALS.facebook, label: "Facebook", icon: SiFacebook, color: "text-[#1877F2]" },
+  { href: SOCIALS.youtube, label: "YouTube", icon: SiYoutube, color: "text-[#FF0000]" },
+  { href: SOCIALS.tiktok, label: "TikTok", icon: SiTiktok, color: "text-gray-800" },
+  { href: SOCIALS.whatsapp, label: "WhatsApp", icon: SiWhatsapp, color: "text-[#25D366]" },
+];
 
 export function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Fetch unread message count
   const { data: messages = [] } = useQuery({
     queryKey: ['/api/messages'],
     enabled: !!isAuthenticated && !!user,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 
-  // Fetch unread notification count
   const { data: notifications = [] } = useQuery({
     queryKey: ['/api/notifications'],
     enabled: !!isAuthenticated && !!user,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 
   const unreadMessagesCount = Array.isArray(messages) ? messages.filter((m: any) => !m.isRead).length : 0;
@@ -37,12 +48,11 @@ export function Navigation() {
 
   const navItems = [
     { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
     { href: "/campaigns", label: "Earn Rewards" },
+    { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/breedskool", label: "BreedSkool" },
     { href: "/blog", label: "Blog" },
     { href: "/shop", label: "Shop" },
-    { href: "/profile", label: "Profile" },
-    { href: "/contact", label: "Contact" },
   ];
 
   const isActive = (href: string) => {
@@ -75,27 +85,49 @@ export function Navigation() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? "text-black"
-                      : "text-gray-600 hover:text-accent"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+          <div className="hidden md:flex items-baseline space-x-1 ml-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-md ${
+                  isActive(item.href)
+                    ? "text-black bg-gray-100"
+                    : "text-gray-600 hover:text-accent hover:bg-gray-50"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+
+            {/* Community Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-accent hover:bg-gray-50 rounded-md flex items-center gap-1 transition-colors duration-200">
+                  <Users className="h-4 w-4" />
+                  Community
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {communityLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <DropdownMenuItem key={link.href} asChild>
+                      <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
+                        <Icon className={`h-4 w-4 ${link.color}`} />
+                        {link.label}
+                      </a>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* User Menu */}
           {isAuthenticated ? (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               <Link href="/dashboard">
                 <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent relative">
                   <Bell className="h-5 w-5" />
@@ -132,15 +164,19 @@ export function Navigation() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
-{(user as any)?.role === 'admin' && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin">Admin</Link>
-                  </DropdownMenuItem>
+                  {(user as any)?.role === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">Admin</Link>
+                    </DropdownMenuItem>
                   )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="cursor-pointer"
+                    className="cursor-pointer text-red-600"
                     onClick={() => {
                       fetch("/api/auth/logout", { method: "POST" }).then(() => {
                         window.location.href = "/";
@@ -153,9 +189,12 @@ export function Navigation() {
               </DropdownMenu>
             </div>
           ) : (
-            <div className="flex items-center space-x-4">
-              <Button asChild>
-                <a href="/login">Login</a>
+            <div className="flex items-center space-x-3">
+              <Button variant="outline" asChild>
+                <a href="/login">Log In</a>
+              </Button>
+              <Button asChild className="hidden sm:flex">
+                <a href="/signup">Sign Up</a>
               </Button>
             </div>
           )}
@@ -182,9 +221,9 @@ export function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block px-3 py-2 text-base font-medium transition-colors duration-200 ${
+                className={`block px-3 py-2 text-base font-medium transition-colors duration-200 rounded-md ${
                   isActive(item.href)
-                    ? "text-black"
+                    ? "text-black bg-gray-100"
                     : "text-gray-600 hover:text-accent"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -192,6 +231,25 @@ export function Navigation() {
                 {item.label}
               </Link>
             ))}
+            <div className="border-t border-gray-100 pt-2 mt-2">
+              <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Community</p>
+              {communityLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-accent"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon className={`h-4 w-4 ${link.color}`} />
+                    {link.label}
+                  </a>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

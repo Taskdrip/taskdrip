@@ -3,10 +3,21 @@ import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
-import { Trophy, Users, TrendingUp, Crown, Medal, Star, DollarSign } from "lucide-react";
+import { Trophy, Users, TrendingUp, Crown, Medal, Star, DollarSign, Zap } from "lucide-react";
+
+function getLevelColor(level: string) {
+  switch (level) {
+    case "Elite": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "Authority": return "bg-orange-100 text-orange-700 border-orange-200";
+    case "Influencer": return "bg-purple-100 text-purple-700 border-purple-200";
+    case "Hustler": return "bg-blue-100 text-blue-700 border-blue-200";
+    default: return "bg-gray-100 text-gray-600 border-gray-200";
+  }
+}
 
 function RankIcon({ rank }: { rank: number }) {
   if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400" />;
@@ -16,9 +27,9 @@ function RankIcon({ rank }: { rank: number }) {
 }
 
 function LeaderRow({
-  user, rank, metric, metricLabel, accent,
+  user, rank, metric, metricLabel, accent, badge,
 }: {
-  user: any; rank: number; metric: string | number; metricLabel: string; accent: string;
+  user: any; rank: number; metric: string | number; metricLabel: string; accent: string; badge?: string;
 }) {
   const isTop3 = rank <= 3;
   return (
@@ -45,8 +56,11 @@ function LeaderRow({
             {user.firstName} {user.lastName}
             {isTop3 && <span className="ml-2 text-xs">{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}</span>}
           </div>
-          <div className="text-xs text-gray-500 truncate">
-            {user.username ? `@${user.username}` : user.niche || user.companyName || "Creator"}
+          <div className="text-xs text-gray-500 truncate flex items-center gap-2">
+            <span>{user.username ? `@${user.username}` : user.niche || user.companyName || "Creator"}</span>
+            {badge && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getLevelColor(badge)}`}>{badge}</Badge>
+            )}
           </div>
         </div>
         <div className="text-right flex-shrink-0">
@@ -96,6 +110,9 @@ export default function Leaderboard() {
   const { data: activityLeaders = [], isLoading: loadingActivity } = useQuery<any[]>({
     queryKey: ["/api/leaderboard/activity"],
   });
+  const { data: pointsLeaders = [], isLoading: loadingPoints } = useQuery<any[]>({
+    queryKey: ["/api/leaderboard/points"],
+  });
 
   const formatEarned = (v: number) =>
     v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v || 0}`;
@@ -110,150 +127,228 @@ export default function Leaderboard() {
           <Trophy className="w-14 h-14 mx-auto mb-4 text-yellow-400" />
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Monthly Leaderboard</h1>
           <p className="text-gray-400 max-w-lg mx-auto text-lg">
-            Top 10 creators ranked by referrals and platform performance. Rankings reset every month.
+            Top creators ranked by $TDRIP points, referrals, and platform performance. Rankings reset every month.
           </p>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Tabs defaultValue="points" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="points" className="flex items-center gap-1.5">
+              <Zap className="h-4 w-4" /> $TDRIP Points
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="flex items-center gap-1.5">
+              <Users className="h-4 w-4" /> Top Referrers
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4" /> Top Earners
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Section 1: Top Referrers */}
-          <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="bg-purple-600 rounded-xl p-2.5">
-                <Users className="h-6 w-6 text-white" />
+          {/* $TDRIP Points Leaderboard */}
+          <TabsContent value="points">
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="bg-yellow-500 rounded-xl p-2.5">
+                  <Zap className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Top $TDRIP Earners</h2>
+                  <p className="text-sm text-gray-500">Monthly top 10 by points balance</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Top Referrers</h2>
-                <p className="text-sm text-gray-500">Monthly top 10 by referrals</p>
-              </div>
+
+              {!loadingPoints && (pointsLeaders as any[]).length > 0 && (
+                <Card className="mb-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-16 w-16 border-2 border-white/40">
+                        <AvatarImage src={(pointsLeaders as any[])[0].profileImageUrl} />
+                        <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
+                          {(pointsLeaders as any[])[0].firstName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Crown className="h-5 w-5 text-white" />
+                          <span className="font-bold text-lg truncate">
+                            {(pointsLeaders as any[])[0].firstName} {(pointsLeaders as any[])[0].lastName}
+                          </span>
+                        </div>
+                        <Badge className="bg-white/20 text-white border-0 text-xs">
+                          {(pointsLeaders as any[])[0].level || "Starter"}
+                        </Badge>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{((pointsLeaders as any[])[0].totalPoints ?? 0).toLocaleString()}</div>
+                        <div className="text-xs text-white/70">$TDRIP pts</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {loadingPoints ? <LeaderSkeleton /> : (pointsLeaders as any[]).length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-gray-500">
+                    <Zap className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="font-medium">No points yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Start earning $TDRIP points to appear here!</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div>
+                  {(pointsLeaders as any[]).map((u, i) => (
+                    <LeaderRow
+                      key={u.id}
+                      user={u}
+                      rank={i + 1}
+                      metric={`${(u.totalPoints ?? 0).toLocaleString()} pts`}
+                      metricLabel="$TDRIP"
+                      accent={accents[i % accents.length]}
+                      badge={u.level}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+          </TabsContent>
 
-            {/* #1 spotlight */}
-            {!loadingReferrals && (referralLeaders as any[]).length > 0 && (
-              <Card className="mb-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 overflow-hidden">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-white/40">
-                      <AvatarImage src={(referralLeaders as any[])[0].profileImageUrl} />
-                      <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
-                        {(referralLeaders as any[])[0].firstName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Crown className="h-5 w-5 text-yellow-300" />
-                        <span className="font-bold text-lg truncate">
-                          {(referralLeaders as any[])[0].firstName} {(referralLeaders as any[])[0].lastName}
-                        </span>
+          {/* Referrals Leaderboard */}
+          <TabsContent value="referrals">
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="bg-purple-600 rounded-xl p-2.5">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Top Referrers</h2>
+                  <p className="text-sm text-gray-500">Monthly top 10 by referrals</p>
+                </div>
+              </div>
+
+              {!loadingReferrals && (referralLeaders as any[]).length > 0 && (
+                <Card className="mb-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-16 w-16 border-2 border-white/40">
+                        <AvatarImage src={(referralLeaders as any[])[0].profileImageUrl} />
+                        <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
+                          {(referralLeaders as any[])[0].firstName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Crown className="h-5 w-5 text-yellow-300" />
+                          <span className="font-bold text-lg truncate">
+                            {(referralLeaders as any[])[0].firstName} {(referralLeaders as any[])[0].lastName}
+                          </span>
+                        </div>
+                        <p className="text-white/80 text-sm">{(referralLeaders as any[])[0].niche || "Top Creator"}</p>
                       </div>
-                      <p className="text-white/80 text-sm">{(referralLeaders as any[])[0].niche || "Top Creator"}</p>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{(referralLeaders as any[])[0].totalReferrals ?? 0}</div>
+                        <div className="text-xs text-white/70">referrals</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{(referralLeaders as any[])[0].totalReferrals ?? 0}</div>
-                      <div className="text-xs text-white/70">referrals</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  </CardContent>
+                </Card>
+              )}
 
-            {loadingReferrals ? (
-              <LeaderSkeleton />
-            ) : (referralLeaders as any[]).length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-gray-500">
-                  <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="font-medium">No referrals yet</p>
-                  <p className="text-sm text-gray-400 mt-1">Start referring to appear on this board!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div>
-                {(referralLeaders as any[]).map((u, i) => (
-                  <LeaderRow
-                    key={u.id}
-                    user={u}
-                    rank={i + 1}
-                    metric={u.totalReferrals ?? 0}
-                    metricLabel="referrals"
-                    accent={accents[i % accents.length]}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Section 2: Top Performers by Activity/Volume */}
-          <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="bg-green-600 rounded-xl p-2.5">
-                <TrendingUp className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Top Performers</h2>
-                <p className="text-sm text-gray-500">Monthly top 10 by earnings &amp; activity</p>
-              </div>
+              {loadingReferrals ? <LeaderSkeleton /> : (referralLeaders as any[]).length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-gray-500">
+                    <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="font-medium">No referrals yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Start referring to appear on this board!</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div>
+                  {(referralLeaders as any[]).map((u, i) => (
+                    <LeaderRow
+                      key={u.id}
+                      user={u}
+                      rank={i + 1}
+                      metric={u.totalReferrals ?? 0}
+                      metricLabel="referrals"
+                      accent={accents[i % accents.length]}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+          </TabsContent>
 
-            {/* #1 spotlight */}
-            {!loadingActivity && (activityLeaders as any[]).length > 0 && (
-              <Card className="mb-4 bg-gradient-to-r from-green-600 to-teal-600 text-white border-0 overflow-hidden">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-white/40">
-                      <AvatarImage src={(activityLeaders as any[])[0].profileImageUrl} />
-                      <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
-                        {(activityLeaders as any[])[0].firstName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Star className="h-5 w-5 text-yellow-300" />
-                        <span className="font-bold text-lg truncate">
-                          {(activityLeaders as any[])[0].firstName} {(activityLeaders as any[])[0].lastName}
-                        </span>
-                      </div>
-                      <p className="text-white/80 text-sm">{(activityLeaders as any[])[0].niche || "Top Earner"}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">
-                        {formatEarned(Number((activityLeaders as any[])[0].totalEarned || 0))}
-                      </div>
-                      <div className="text-xs text-white/70">total earned</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {loadingActivity ? (
-              <LeaderSkeleton />
-            ) : (activityLeaders as any[]).length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-gray-500">
-                  <TrendingUp className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="font-medium">No activity yet</p>
-                  <p className="text-sm text-gray-400 mt-1">Complete campaigns to appear here!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div>
-                {(activityLeaders as any[]).map((u, i) => (
-                  <LeaderRow
-                    key={u.id}
-                    user={u}
-                    rank={i + 1}
-                    metric={formatEarned(Number(u.totalEarned || 0))}
-                    metricLabel="earned"
-                    accent={accents[i % accents.length]}
-                  />
-                ))}
+          {/* Performance Leaderboard */}
+          <TabsContent value="performance">
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="bg-green-600 rounded-xl p-2.5">
+                  <TrendingUp className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Top Performers</h2>
+                  <p className="text-sm text-gray-500">Monthly top 10 by earnings &amp; activity</p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+
+              {!loadingActivity && (activityLeaders as any[]).length > 0 && (
+                <Card className="mb-4 bg-gradient-to-r from-green-600 to-teal-600 text-white border-0 overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-16 w-16 border-2 border-white/40">
+                        <AvatarImage src={(activityLeaders as any[])[0].profileImageUrl} />
+                        <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
+                          {(activityLeaders as any[])[0].firstName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Star className="h-5 w-5 text-yellow-300" />
+                          <span className="font-bold text-lg truncate">
+                            {(activityLeaders as any[])[0].firstName} {(activityLeaders as any[])[0].lastName}
+                          </span>
+                        </div>
+                        <p className="text-white/80 text-sm">{(activityLeaders as any[])[0].niche || "Top Earner"}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">
+                          {formatEarned(Number((activityLeaders as any[])[0].totalEarned || 0))}
+                        </div>
+                        <div className="text-xs text-white/70">total earned</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {loadingActivity ? <LeaderSkeleton /> : (activityLeaders as any[]).length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-gray-500">
+                    <TrendingUp className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="font-medium">No activity yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Complete campaigns to appear here!</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div>
+                  {(activityLeaders as any[]).map((u, i) => (
+                    <LeaderRow
+                      key={u.id}
+                      user={u}
+                      rank={i + 1}
+                      metric={formatEarned(Number(u.totalEarned || 0))}
+                      metricLabel="earned"
+                      accent={accents[i % accents.length]}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* How rankings work */}
         <Card className="mt-10 bg-gradient-to-r from-gray-900 to-black text-white border-0">
@@ -261,7 +356,11 @@ export default function Leaderboard() {
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-yellow-400" /> How Rankings Work
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-300">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm text-gray-300">
+              <div className="bg-white/10 rounded-lg p-3">
+                <p className="font-semibold text-white mb-1">⚡ Points Rank</p>
+                <p>Based on your total $TDRIP points earned through all platform activities.</p>
+              </div>
               <div className="bg-white/10 rounded-lg p-3">
                 <p className="font-semibold text-white mb-1">📅 Monthly Reset</p>
                 <p>Rankings and scores are refreshed at the beginning of every month.</p>

@@ -1,0 +1,258 @@
+You are a senior full-stack engineer working on an existing SaaS Web3 influencer marketplace called Taskdrip™.
+
+Your task is to UPGRADE the existing platform with the following new systems and features. Maintain clean UI/UX, modular architecture, and scalability.
+
+========================
+1. GLOBAL SOCIAL MEDIA INTEGRATION
+========================
+
+Add a centralized config file:
+
+/config/socials.ts
+
+Export:
+
+- telegram: https://t.me/taskdrip
+- x: https://x.com/taskdrip
+- instagram: https://www.instagram.com/taskdrip
+- facebook: https://web.facebook.com/taskdripllc
+- youtube: https://youtube.com/@taskdriper
+- tiktok: https://www.tiktok.com/@taskdrip
+- whatsapp: https://wa.me/12016800266
+
+Replace ALL previous WhatsApp numbers with:
++1 (201) 680-0266
+
+Add social links in:
+- Navbar (dropdown “Community”)
+- Footer (icons + links)
+- User dashboard sidebar
+- Signup success screen
+
+Add CTA buttons:
+- “Join Telegram Community”
+- “Chat on WhatsApp”
+- “Follow on X”
+
+========================
+2. VIRTUAL OFFICE ADDRESSES
+========================
+
+Add to footer and contact page:
+
+USA Office:
+Taskdrip LLC  
+1309 Coffeen Avenue STE 1200  
+Sheridan, Wyoming 82801, USA  
+
+Nigeria Office (Virtual):
+Taskdrip Nigeria  
+Victoria Island, Lagos, Nigeria  
+
+Make editable via admin panel.
+
+========================
+3. AUTOMATED WELCOME CAMPAIGN (CRITICAL)
+========================
+
+Create a system campaign auto-assigned to ALL new users after signup.
+
+Campaign name:
+“🚀 Welcome to Taskdrip – Get Started & Earn Your First $TDRIP Points”
+
+Type:
+Internal Campaign (admin-owned)
+
+Steps required to complete:
+
+1. Join Telegram → reward 20 points  
+2. Follow X (Twitter) → reward 15 points  
+3. Follow Instagram → reward 15 points  
+4. Subscribe YouTube → reward 20 points  
+5. Join WhatsApp → reward 10 points  
+6. Complete profile → reward 50 points  
+
+Total: 130 points
+
+Implementation:
+
+- Auto-enroll user after signup
+- Track completion status per step
+- Add verification logic:
+  - Manual confirmation button OR
+  - Optional API verification later
+
+UI:
+- Show as “Starter Campaign”
+- Progress bar (0–100%)
+- CTA: “Complete Tasks & Earn Points”
+
+========================
+4. $TDRIP POINT SYSTEM (SITE-WIDE)
+========================
+
+Create a full reward engine.
+
+Database table:
+
+points:
+- id
+- user_id
+- action_type
+- points
+- reference_id
+- created_at
+
+users table:
+- add: total_points (int)
+- add: level (string)
+
+========================
+POINT RULES
+========================
+
+Signup → +50  
+Profile Completion → +100  
+Join Campaign → +20  
+Complete Task → +50  
+Referral → +100  
+Daily Login → +5  
+Social Tasks → varies  
+
+========================
+LEVEL SYSTEM
+========================
+
+0–500 → Starter  
+500–2K → Hustler  
+2K–10K → Influencer  
+10K–50K → Authority  
+50K+ → Elite  
+
+Auto-update user level based on points.
+
+========================
+5. LEADERBOARD SYSTEM
+========================
+
+Create page:
+/leaderboard
+
+Display:
+- Top Users by Points
+- Top Referrers
+- Top Earners
+
+UI:
+- Rank (#1, #2, #3)
+- Username
+- Points
+- Badge
+
+========================
+6. USER PROFILE UPGRADE
+========================
+
+Add to profile page:
+
+- Total Points
+- Current Level Badge
+- Completed Campaigns
+- Social Accounts + follower count
+- Rank position
+
+========================
+7. GUIDE SYSTEM + BOT
+========================
+
+Upgrade existing Guide Bot.
+
+Add:
+
+Floating widget (bottom right):
+“🤖 Taskdrip Guide”
+
+Bot flows:
+
+1. “How to Start”
+2. “How to Earn”
+3. “How to Withdraw”
+4. “How to Get Campaigns”
+5. “Contact Support”
+
+Add quick links:
+- Telegram
+- WhatsApp
+- Support
+
+========================
+8. GET STARTED PAGE
+========================
+
+Create:
+/get-started
+
+Content:
+
+Step 1: Create Account  
+Step 2: Complete Profile  
+Step 3: Join Starter Campaign  
+Step 4: Start Earning  
+
+Add video embed support (YouTube)
+
+========================
+9. DASHBOARD UPDATES
+========================
+
+Add widgets:
+
+- Points Balance
+- Level Badge
+- Leaderboard Rank
+- Active Campaigns
+- Earnings Summary
+
+========================
+10. ADMIN CONTROL
+========================
+
+Admin can:
+
+- Edit reward values
+- Create campaigns
+- Adjust points manually
+- View leaderboard
+- Edit social links
+
+========================
+11. FUTURE TOKEN PREPARATION
+========================
+
+Add note in system:
+
+Points = Off-chain rewards  
+Later convertible to $TDRIP token  
+
+Store all actions cleanly for future blockchain sync.
+
+========================
+12. UI/UX IMPROVEMENTS
+========================
+
+- Add “Earn Points” badge across app
+- Add tooltips explaining rewards
+- Show animations on earning points
+- Mobile responsive
+
+========================
+FINAL OUTPUT
+========================
+
+- Fully integrated reward system
+- Automated onboarding campaign
+- Social ecosystem embedded
+- Clean scalable architecture
+
+Do NOT break existing functionality.
+Ensure compatibility with current Taskdrip system.

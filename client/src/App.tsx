@@ -57,6 +57,7 @@ import AdminPayments from "@/pages/admin-payments";
 import AdminAds from "@/pages/admin-ads";
 import AdminEmail from "@/pages/admin-email";
 import AdvertiseWithUs from "@/pages/advertise-with-us";
+import GetStarted from "@/pages/get-started";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/tasks" component={TasksPage} />
       <Route path="/advertise" component={AdvertiseWithUs} />
+      <Route path="/get-started" component={GetStarted} />
       <Route path="/creators" component={Creators} />
       <Route path="/creators/:id" component={CreatorProfile} />
       <Route path="/profile/:id" component={UnifiedProfile} />

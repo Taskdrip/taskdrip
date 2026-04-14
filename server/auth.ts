@@ -150,6 +150,19 @@ export function setupAuth(app: Express) {
         }
       }
 
+      // Award signup points (+50) and referral points to referrer (+100)
+      try {
+        await storage.awardPoints(user.id, 'signup', 50, 'Welcome bonus for joining Taskdrip!');
+        if (refCode) {
+          const referrer = await storage.getUserByReferralCode(refCode);
+          if (referrer && referrer.id !== user.id) {
+            await storage.awardPoints(referrer.id, 'referral', 100, `Referral bonus: ${user.firstName} joined via your link`);
+          }
+        }
+      } catch (pErr) {
+        console.error('Points award error:', pErr);
+      }
+
       // Log them in automatically
       req.login(user, (err) => {
         if (err) return next(err);
