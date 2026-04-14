@@ -18,6 +18,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware - this now includes all auth routes
   setupAuth(app);
   
+  // Health check endpoint (used by Railway, uptime monitors, etc.)
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() });
+  });
+
   // Serve uploaded files statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

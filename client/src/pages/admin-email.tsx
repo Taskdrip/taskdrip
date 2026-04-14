@@ -184,13 +184,13 @@ function SetupGuide({ domain }: { domain: string }) {
           <h2 className="text-xl font-bold">Email & Domain Setup Guide</h2>
         </div>
         <p className="text-purple-100 text-sm leading-relaxed">
-          Complete step-by-step instructions to configure your domain, SSL, email delivery, and email marketing for this platform. Includes setup for <strong>Namecheap</strong>, any VPS/server, and a guide for new businesses importing this codebase.
+          Complete step-by-step instructions to configure your domain, SSL, email delivery, and email marketing. Deploy via <strong>GitHub → Railway</strong>, connect your Namecheap domain, and get a new business up and running without touching any code.
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
           {[
-            { key: "namecheap", label: "Namecheap (taskdrip.online)" },
-            { key: "vps", label: "Custom VPS / Server" },
-            { key: "newbiz", label: "New Business Deployment" },
+            { key: "namecheap", label: "Namecheap DNS Setup" },
+            { key: "vps", label: "GitHub → Railway Deployment" },
+            { key: "newbiz", label: "New Business Checklist" },
           ].map(s => (
             <button key={s.key} onClick={() => setSection(s.key as any)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${section === s.key ? "bg-white text-purple-700" : "bg-white/20 hover:bg-white/30 text-white"}`}>
@@ -208,27 +208,31 @@ function SetupGuide({ domain }: { domain: string }) {
             <div className="text-sm text-amber-800">
               <p className="font-semibold mb-1">Before you start — what you need</p>
               <ul className="list-disc list-inside space-y-0.5">
-                <li>Your domain <strong>{domain}</strong> pointing to Namecheap DNS (default)</li>
-                <li>A <strong>Namecheap Private Email</strong> subscription (or other SMTP provider)</li>
-                <li>This app deployed on Replit (SSL is automatic) or your own VPS</li>
+                <li>Your domain <strong>{domain}</strong> managed via Namecheap DNS (default)</li>
+                <li>A <strong>Namecheap Private Email</strong> subscription (or any SMTP provider)</li>
+                <li>This app deployed on <strong>Railway</strong> (SSL is automatic) — see the Railway tab for deployment steps</li>
               </ul>
             </div>
           </div>
 
-          <StepCard step={1} title="Connect Your Domain to Replit (for Replit Deployment)" icon={Globe} color="bg-purple-600">
+          <StepCard step={1} title="Connect Your Domain to Railway (SSL Auto-Provisioned)" icon={Globe} color="bg-purple-600">
             <div className="space-y-3 text-sm text-gray-700">
-              <p>If you've deployed this app on Replit, SSL is <strong>100% automatic</strong> — no certificates to manage. Just connect your domain:</p>
+              <p>Once your app is deployed on Railway, SSL is <strong>100% automatic</strong> — Railway provisions a free Let's Encrypt certificate for every custom domain. Here's how to connect {domain}:</p>
               <ol className="list-decimal list-inside space-y-2">
-                <li>In Replit, go to your app → <strong>Deployments</strong> → <strong>Custom Domain</strong></li>
-                <li>Copy the CNAME value shown (looks like <code className="bg-gray-100 px-1 rounded">your-app.replit.app</code>)</li>
-                <li>In Namecheap → <strong>Domain List</strong> → click <strong>Manage</strong> next to {domain}</li>
-                <li>Go to <strong>Advanced DNS</strong> and add:</li>
+                <li>In Railway → open your service → go to <strong>Settings → Domains</strong></li>
+                <li>Click <strong>Add Custom Domain</strong> and type <code className="bg-gray-100 px-1 rounded">{domain}</code></li>
+                <li>Railway will show you a <strong>CNAME value</strong> (looks like <code className="bg-gray-100 px-1 rounded">xxxx.up.railway.app</code>)</li>
+                <li>In Namecheap → <strong>Domain List</strong> → <strong>Manage</strong> → <strong>Advanced DNS</strong> → add:</li>
               </ol>
               <div className="mt-3">
-                <CopyBox label="CNAME Record (Host = @, Points to = your Replit domain)" value={`Type: CNAME\nHost: @\nValue: [your-app].replit.app\nTTL: Automatic`} mono={false} />
-                <CopyBox label="CNAME Record (Host = www)" value={`Type: CNAME\nHost: www\nValue: [your-app].replit.app\nTTL: Automatic`} mono={false} />
+                <CopyBox label="CNAME Record — Host: @ (root domain)" value={`Type: CNAME\nHost: @\nValue: [copy from Railway dashboard].up.railway.app\nTTL: Automatic`} mono={false} />
+                <CopyBox label="CNAME Record — Host: www" value={`Type: CNAME\nHost: www\nValue: [copy from Railway dashboard].up.railway.app\nTTL: Automatic`} mono={false} />
               </div>
-              <p className="text-xs text-gray-500">DNS propagation can take 5–30 minutes. Replit automatically provisions a free SSL certificate (Let's Encrypt) once the DNS is verified.</p>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800">
+                <p className="font-semibold mb-1">ℹ️ Important: Namecheap CNAME on root (@)</p>
+                <p>Namecheap does not support CNAME on the @ (root) record for most plans. Instead, use the <strong>URL Redirect</strong> or switch to <strong>Cloudflare DNS</strong> (free) which supports CNAME flattening on root. Alternatively, add the www CNAME and redirect @ → www from Railway or Cloudflare.</p>
+              </div>
+              <p className="text-xs text-gray-500">DNS changes take 5–30 minutes to propagate. Railway detects the DNS change and auto-provisions your SSL certificate within minutes.</p>
             </div>
           </StepCard>
 
@@ -311,14 +315,14 @@ function SetupGuide({ domain }: { domain: string }) {
             </div>
           </StepCard>
 
-          <StepCard step={4} title="SSL Certificate (Automatic on Replit)" icon={Lock} color="bg-indigo-600">
+          <StepCard step={4} title="SSL Certificate (Automatic on Railway)" icon={Lock} color="bg-indigo-600">
             <div className="space-y-3 text-sm text-gray-700">
               <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-                <p><strong>If deployed on Replit:</strong> SSL/TLS is fully automatic. Replit provisions and renews a free Let's Encrypt certificate for every custom domain — no action required.</p>
+                <p><strong>Deployed on Railway:</strong> SSL/TLS is fully automatic. Railway provisions and auto-renews a free Let's Encrypt certificate for every custom domain — zero configuration required on your part.</p>
               </div>
-              <p>Once your CNAME record from Step 1 is live and Replit detects the domain, the padlock 🔒 icon will appear in your browser automatically — usually within 15 minutes.</p>
-              <p className="text-xs text-gray-500">For VPS/server deployments, see the "Custom VPS / Server" tab above.</p>
+              <p>Once your CNAME record from Step 1 propagates and Railway detects it, the padlock 🔒 appears in your browser automatically — typically within 5–15 minutes of DNS going live.</p>
+              <p className="text-xs text-gray-500">See the "GitHub → Railway Deployment" tab for how to get your app onto Railway before connecting the domain.</p>
             </div>
           </StepCard>
 
@@ -373,91 +377,156 @@ function SetupGuide({ domain }: { domain: string }) {
         </div>
       )}
 
-      {/* ── VPS SECTION ── */}
+      {/* ── RAILWAY DEPLOYMENT SECTION ── */}
       {section === "vps" && (
         <div className="space-y-5">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-            <Server className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">Custom VPS / Server Setup</p>
-              <p>Use this guide if you're hosting on DigitalOcean, AWS EC2, Linode, Hetzner, or any other Linux server.</p>
+          <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-xl p-4 flex gap-3">
+            <Server className="h-5 w-5 text-violet-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-violet-800">
+              <p className="font-semibold mb-1">GitHub → Railway: Zero-Server Deployment</p>
+              <p>Push your code to GitHub, connect it to Railway, and you're live — Railway handles builds, restarts, SSL, scaling, and logs automatically. No server management required.</p>
             </div>
           </div>
 
-          <StepCard step={1} title="Install Node.js & Build the App" icon={Terminal} color="bg-gray-700">
+          <StepCard step={1} title="Push Your Code to GitHub" icon={Terminal} color="bg-gray-800">
             <div className="space-y-3 text-sm text-gray-700">
-              <CopyBox label="Install Node.js 20 (Ubuntu/Debian)" value={`curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs`} />
-              <CopyBox label="Clone & Install" value={`git clone <your-repo-url> /var/www/taskdrip
-cd /var/www/taskdrip
-npm install`} />
-              <CopyBox label="Build for production" value={`npm run build`} />
-              <CopyBox label="Create .env file" value={`DATABASE_URL=postgresql://user:password@host:5432/dbname
-SESSION_SECRET=your_64_char_random_string_here
-GROQ_API_KEY=your_groq_api_key
-NODE_ENV=production`} />
-            </div>
-          </StepCard>
-
-          <StepCard step={2} title="Run with PM2 (Process Manager)" icon={Database} color="bg-green-700">
-            <div className="space-y-3 text-sm text-gray-700">
-              <CopyBox label="Install PM2 globally" value={`sudo npm install -g pm2`} />
-              <CopyBox label="Start the app" value={`pm2 start dist/index.js --name taskdrip
-pm2 save
-pm2 startup`} />
-              <CopyBox label="Check status" value={`pm2 status\npm2 logs taskdrip`} />
-            </div>
-          </StepCard>
-
-          <StepCard step={3} title="Nginx Reverse Proxy" icon={Globe} color="bg-orange-600">
-            <div className="space-y-3 text-sm text-gray-700">
-              <CopyBox label="Install Nginx" value={`sudo apt install nginx`} />
-              <CopyBox label="/etc/nginx/sites-available/taskdrip" value={`server {
-    listen 80;
-    server_name ${domain} www.${domain};
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_cache_bypass $http_upgrade;
-    }
-}`} />
-              <CopyBox label="Enable site & restart Nginx" value={`sudo ln -s /etc/nginx/sites-available/taskdrip /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl restart nginx`} />
-            </div>
-          </StepCard>
-
-          <StepCard step={4} title="Free SSL with Let's Encrypt (Certbot)" icon={Lock} color="bg-indigo-600">
-            <div className="space-y-3 text-sm text-gray-700">
-              <CopyBox label="Install Certbot" value={`sudo apt install certbot python3-certbot-nginx`} />
-              <CopyBox label="Issue SSL certificate (auto-configures Nginx)" value={`sudo certbot --nginx -d ${domain} -d www.${domain}`} />
-              <CopyBox label="Auto-renewal (set up once, renews forever)" value={`sudo certbot renew --dry-run`} />
-              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800">
-                <p className="font-semibold">✅ After this your site will be live at <strong>https://{domain}</strong> with a valid SSL certificate that auto-renews every 90 days.</p>
+              <p>If you haven't already, create a GitHub repository and push your code:</p>
+              <CopyBox label="Initialize and push to GitHub" value={`git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main`} />
+              <p className="text-xs text-gray-500">Make sure your <code className="bg-gray-100 px-1 rounded">.gitignore</code> includes <code className="bg-gray-100 px-1 rounded">.env</code>, <code className="bg-gray-100 px-1 rounded">node_modules/</code>, and <code className="bg-gray-100 px-1 rounded">dist/</code> — never push secrets to GitHub.</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                <p className="font-semibold mb-1">⚠️ Secrets must NOT be in your repo</p>
+                <p>DATABASE_URL, SESSION_SECRET, and GROQ_API_KEY must only be set via Railway's environment variable dashboard — never committed to GitHub.</p>
               </div>
             </div>
           </StepCard>
 
-          <StepCard step={5} title="Database Migration & Seed" icon={Database} color="bg-blue-600">
+          <StepCard step={2} title="Create a Railway Project & Deploy from GitHub" icon={Globe} color="bg-violet-600">
             <div className="space-y-3 text-sm text-gray-700">
-              <CopyBox label="Push schema to your Neon/Postgres database" value={`npm run db:push`} />
-              <CopyBox label="Seed demo data (optional)" value={`node -e "import('./server/seed-demo.ts')"
-# Or via tsx:
-npx tsx server/seed-demo.ts`} />
-              <p className="text-xs text-gray-500">Make sure your DATABASE_URL in .env points to your Neon or Postgres database before running these commands.</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Go to <strong>railway.app</strong> → Sign up / Log in (free tier available)</li>
+                <li>Click <strong>New Project → Deploy from GitHub repo</strong></li>
+                <li>Authorize Railway to access your GitHub account</li>
+                <li>Select your repository (e.g. <code className="bg-gray-100 px-1 rounded">taskdrip</code>)</li>
+                <li>Railway auto-detects Node.js and will use <code className="bg-gray-100 px-1 rounded">npm run build</code> → <code className="bg-gray-100 px-1 rounded">npm start</code></li>
+              </ol>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800">
+                <p className="font-semibold">✅ This app is Railway-ready out of the box</p>
+                <p className="mt-1">The <code className="bg-gray-100 px-1 rounded">package.json</code> already has the correct <code className="bg-gray-100 px-1 rounded">build</code> and <code className="bg-gray-100 px-1 rounded">start</code> scripts. The server automatically reads <code className="bg-gray-100 px-1 rounded">process.env.PORT</code> — exactly what Railway requires.</p>
+              </div>
             </div>
           </StepCard>
 
-          <StepCard step={6} title="DNS Setup for Custom Server" icon={Shield} color="bg-purple-600">
+          <StepCard step={3} title="Set Environment Variables in Railway" icon={Key} color="bg-orange-600">
             <div className="space-y-3 text-sm text-gray-700">
-              <p>In your registrar (Namecheap, GoDaddy, Cloudflare), set:</p>
-              <CopyBox label="A Record — Host: @ → Your server IP" value={`Type: A\nHost: @\nValue: YOUR.SERVER.IP.ADDRESS\nTTL: 300`} mono={false} />
-              <CopyBox label="A Record — Host: www → Your server IP" value={`Type: A\nHost: www\nValue: YOUR.SERVER.IP.ADDRESS\nTTL: 300`} mono={false} />
-              <p className="text-xs text-gray-500">Then add MX, SPF, DKIM, and DMARC records as shown in the Namecheap tab — the same DNS records apply regardless of where you host.</p>
+              <p>In Railway → your service → <strong>Variables</strong> tab → add each one:</p>
+              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold">Variable Name</th>
+                      <th className="text-left px-4 py-2 font-semibold">Value / Where to get it</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["DATABASE_URL", "Neon Postgres → Project → Connection string (pooled)"],
+                      ["SESSION_SECRET", "Generate: openssl rand -hex 32 (any 64-char random string)"],
+                      ["GROQ_API_KEY", "console.groq.com → API Keys → Create key (free)"],
+                      ["NODE_ENV", "production"],
+                    ].map(([v, desc]) => (
+                      <tr key={v} className="border-t border-gray-100">
+                        <td className="px-4 py-2 font-mono text-violet-700 font-semibold text-xs">{v}</td>
+                        <td className="px-4 py-2 text-gray-600 text-xs">{desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <CopyBox label="Generate SESSION_SECRET (run in any terminal)" value={`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`} />
+              <p className="text-xs text-gray-500">Railway automatically sets the PORT variable — do not add it manually. The app reads it correctly already.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={4} title="Set Up Neon PostgreSQL (Free Serverless DB)" icon={Database} color="bg-blue-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Go to <strong>neon.tech</strong> → Create account (free tier = 512MB database)</li>
+                <li>Create a new project → choose region closest to your Railway deployment</li>
+                <li>Copy the <strong>Pooled connection string</strong> from the dashboard</li>
+                <li>Paste it as <code className="bg-gray-100 px-1 rounded">DATABASE_URL</code> in Railway Variables (Step 3)</li>
+                <li>After first deployment, push the database schema:</li>
+              </ol>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Option A — Via Railway CLI (recommended)</p>
+                <CopyBox label="Install Railway CLI and run migration" value={`npm install -g @railway/cli
+railway login
+railway run npm run db:push`} />
+                <p className="text-xs font-semibold text-gray-700 mb-2 mt-3">Option B — Add to Railway build command</p>
+                <p className="text-xs text-gray-600 mb-2">In Railway → service → Settings → Build Command, change to:</p>
+                <CopyBox label="Custom build command (runs migration automatically)" value={`npm run build && npm run db:push`} />
+              </div>
+              <p className="text-xs text-gray-500">Railway PostgreSQL plugin is also available (adds Postgres directly in Railway), but Neon's free tier is more generous and serverless.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={5} title="Connect Custom Domain & Get SSL" icon={Lock} color="bg-green-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>In Railway → your service → <strong>Settings → Networking → Add Custom Domain</strong></li>
+                <li>Enter <code className="bg-gray-100 px-1 rounded">{domain}</code> and <code className="bg-gray-100 px-1 rounded">www.{domain}</code></li>
+                <li>Railway shows a CNAME target (e.g. <code className="bg-gray-100 px-1 rounded">xxxxx.up.railway.app</code>)</li>
+                <li>In Namecheap Advanced DNS, add CNAME records pointing both <code className="bg-gray-100 px-1 rounded">www</code> and <code className="bg-gray-100 px-1 rounded">@</code> to that value</li>
+                <li>Wait 5–30 minutes for DNS to propagate</li>
+                <li>Railway automatically provisions your SSL certificate — the 🔒 padlock appears automatically</li>
+              </ol>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800">
+                <p><strong>✅ SSL is completely free and automatic on Railway.</strong> Certificates are provisioned via Let's Encrypt and auto-renew every 90 days with zero action from you.</p>
+              </div>
+              <p className="text-xs text-gray-500">See the "Namecheap DNS Setup" tab for exact DNS record values including MX, SPF, DKIM, and DMARC for email deliverability.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={6} title="Enable Auto-Deploy on Git Push" icon={RefreshCw} color="bg-pink-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>Railway automatically redeploys your app every time you push to GitHub — no manual steps needed:</p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>In Railway → service → <strong>Settings → Source</strong> — confirm <strong>Auto Deploy</strong> is enabled</li>
+                <li>Make a code change and push to GitHub</li>
+                <li>Railway builds, deploys, and zero-downtime swaps your live app automatically</li>
+              </ol>
+              <CopyBox label="Daily deployment workflow" value={`# Make changes locally
+git add .
+git commit -m "Your change description"
+git push origin main
+# Railway automatically picks this up and redeploys`} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                {[
+                  { label: "Build Logs", desc: "View in Railway → service → Deployments → click any deployment" },
+                  { label: "Live Logs", desc: "Railway → service → Logs tab — real-time server output" },
+                  { label: "Rollback", desc: "Railway → Deployments → click any past deployment → Rollback" },
+                ].map(item => (
+                  <div key={item.label} className="bg-violet-50 rounded-lg p-3 text-xs">
+                    <p className="font-semibold text-violet-900">{item.label}</p>
+                    <p className="text-violet-700 mt-0.5">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </StepCard>
+
+          <StepCard step={7} title="Seed Demo Data After First Deploy" icon={Database} color="bg-indigo-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>After your first successful Railway deployment, run the demo seed to populate the database with sample campaigns, users, and products:</p>
+              <CopyBox label="Run via Railway CLI" value={`railway run npx tsx server/seed-demo.ts`} />
+              <p className="text-xs text-gray-500">This creates the admin account (demo@taskdrip.online / Admin@2024) and demo brand account. <strong>Change the admin password immediately after seeding.</strong></p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                <p>After seeding, go to <strong>Admin Panel → Admin Credentials</strong> and change your email and password before going live.</p>
+              </div>
             </div>
           </StepCard>
         </div>
@@ -490,7 +559,7 @@ npx tsx server/seed-demo.ts`} />
 
           <StepCard step={2} title="Environment Variables to Configure" icon={Key} color="bg-gray-800">
             <div className="space-y-3 text-sm text-gray-700">
-              <p>Set these in your hosting environment (Replit Secrets, .env file, or server env):</p>
+              <p>Set these in <strong>Railway → service → Variables</strong> (or a <code className="bg-gray-100 px-1 rounded">.env</code> file locally for testing):</p>
               <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-100">
@@ -615,8 +684,11 @@ npx tsx server/seed-demo.ts`} />
                   "✅ Configure Groq API key for AI Guide Bot",
                   "✅ Create welcome auto-responder",
                   "✅ Launch first campaign blast",
-                  "✅ Add your Neon database URL",
-                  "✅ Deploy & verify SSL certificate",
+                  "✅ Push code to GitHub",
+                  "✅ Deploy on Railway (auto-detects Node.js)",
+                  "✅ Set env vars in Railway Variables tab",
+                  "✅ Run db:push after first Railway deploy",
+                  "✅ Add custom domain in Railway → SSL auto",
                 ].map(item => (
                   <div key={item} className="flex items-center gap-2 text-xs text-purple-800">
                     <span>{item}</span>
