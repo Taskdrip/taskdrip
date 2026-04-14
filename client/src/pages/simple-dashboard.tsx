@@ -4,12 +4,111 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
+import { WelcomeCampaign } from "@/components/ui/welcome-campaign";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Sparkles, Share2, Copy, Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck } from "lucide-react";
+import {
+  Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Share2, Copy,
+  Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck, Zap, Star, Crown, Medal
+} from "lucide-react";
 import { Link } from "wouter";
+
+function getLevelConfig(level: string) {
+  switch (level) {
+    case "Elite":      return { color: "bg-yellow-100 text-yellow-800 border-yellow-300", icon: "👑", next: null, min: 50000 };
+    case "Authority":  return { color: "bg-orange-100 text-orange-700 border-orange-300", icon: "🔥", next: "Elite", min: 10000, max: 50000 };
+    case "Influencer": return { color: "bg-purple-100 text-purple-700 border-purple-300", icon: "⚡", next: "Authority", min: 2000, max: 10000 };
+    case "Hustler":    return { color: "bg-blue-100 text-blue-700 border-blue-300", icon: "💪", next: "Influencer", min: 500, max: 2000 };
+    default:           return { color: "bg-gray-100 text-gray-700 border-gray-300", icon: "🌱", next: "Hustler", min: 0, max: 500 };
+  }
+}
+
+function PointsWidget({ user }: { user: any }) {
+  const points = user?.totalPoints || 0;
+  const level = user?.level || "Starter";
+  const cfg = getLevelConfig(level);
+
+  const progressToNext = cfg.next && cfg.max
+    ? Math.min(100, Math.round(((points - cfg.min) / (cfg.max - cfg.min)) * 100))
+    : 100;
+  const ptsToNext = cfg.next && cfg.max ? Math.max(0, cfg.max - points) : 0;
+
+  return (
+    <Card className="bg-gradient-to-br from-purple-600 to-indigo-700 text-white overflow-hidden relative">
+      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 70% 20%, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+      <CardHeader className="pb-2 relative">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-purple-100">$TDRIP Points</CardTitle>
+          <Zap className="h-4 w-4 text-yellow-300" />
+        </div>
+      </CardHeader>
+      <CardContent className="relative">
+        <div className="text-3xl font-extrabold mb-1">{points.toLocaleString()}</div>
+        <div className="flex items-center gap-2 mb-3">
+          <Badge className={`${cfg.color} border text-xs font-bold px-2 py-0.5`}>
+            {cfg.icon} {level}
+          </Badge>
+          {cfg.next && (
+            <span className="text-xs text-purple-200">{ptsToNext.toLocaleString()} pts to {cfg.next}</span>
+          )}
+        </div>
+        {cfg.next && (
+          <div className="space-y-1">
+            <Progress value={progressToNext} className="h-1.5 bg-purple-800" />
+          </div>
+        )}
+        {!cfg.next && (
+          <p className="text-xs text-yellow-300 font-semibold">🏆 Maximum Level Reached!</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function LeaderboardRankWidget({ userId }: { userId: string }) {
+  const { data: leaderboard = [] } = useQuery<any[]>({
+    queryKey: ["/api/leaderboard/points"],
+    enabled: !!userId,
+  });
+
+  const rank = (leaderboard as any[]).findIndex((u: any) => u.id === userId) + 1;
+  const total = (leaderboard as any[]).length;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Leaderboard Rank</CardTitle>
+        <Trophy className="h-4 w-4 text-yellow-500" />
+      </CardHeader>
+      <CardContent>
+        {rank > 0 ? (
+          <>
+            <div className="flex items-center gap-2">
+              {rank === 1 && <Crown className="h-5 w-5 text-yellow-400" />}
+              {rank === 2 && <Medal className="h-5 w-5 text-gray-400" />}
+              {rank === 3 && <Medal className="h-5 w-5 text-amber-600" />}
+              <div className="text-2xl font-bold">#{rank}</div>
+            </div>
+            <p className="text-xs text-muted-foreground">of {total} users</p>
+          </>
+        ) : (
+          <>
+            <div className="text-2xl font-bold text-gray-400">–</div>
+            <p className="text-xs text-muted-foreground">Earn points to rank</p>
+          </>
+        )}
+        <Link href="/leaderboard">
+          <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs text-purple-600 hover:text-purple-700 px-0">
+            View leaderboard →
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SimpleDashboard() {
   const { user } = useAuth();
@@ -34,6 +133,11 @@ export default function SimpleDashboard() {
   const { data: orders = [] } = useQuery<any[]>({
     queryKey: ['/api/users', (user as any)?.id, 'purchases'],
     enabled: !!(user as any)?.id,
+  });
+
+  const { data: activeCampaigns = [] } = useQuery<any[]>({
+    queryKey: ['/api/campaigns'],
+    select: (data: any[]) => data.filter((c: any) => c.status === 'active'),
   });
 
   const ensureCodesMutation = useMutation({
@@ -65,7 +169,6 @@ export default function SimpleDashboard() {
     availableBalance: parseFloat((user as any)?.availableBalance || '0'),
     totalEarnings: parseFloat((user as any)?.totalEarned || '0'),
     completedTasks: (user as any)?.completedCampaigns || 0,
-    activeCampaigns: 12, // This would come from API
   };
 
   return (
@@ -80,8 +183,12 @@ export default function SimpleDashboard() {
           <p className="text-gray-600">Here's your influencer dashboard — campaigns, earnings, and community.</p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Top Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Points & Level */}
+          <PointsWidget user={user} />
+
+          {/* Available Balance */}
           <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
@@ -93,6 +200,7 @@ export default function SimpleDashboard() {
             </CardContent>
           </Card>
           
+          {/* Total Earnings */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
@@ -103,7 +211,13 @@ export default function SimpleDashboard() {
               <p className="text-xs text-green-600">All time</p>
             </CardContent>
           </Card>
-          
+
+          {/* Leaderboard Rank */}
+          <LeaderboardRankWidget userId={(user as any)?.id} />
+        </div>
+
+        {/* Second Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
@@ -114,17 +228,59 @@ export default function SimpleDashboard() {
               <p className="text-xs text-muted-foreground">Tasks finished</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available Tasks</CardTitle>
+              <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeCampaigns}</div>
-              <p className="text-xs text-muted-foreground">Ready to start</p>
+              <div className="text-2xl font-bold">{(activeCampaigns as any[]).length}</div>
+              <p className="text-xs text-muted-foreground">Available to join</p>
+              <Link href="/campaigns">
+                <Button variant="ghost" size="sm" className="mt-1 h-7 text-xs text-purple-600 hover:text-purple-700 px-0">
+                  Browse all →
+                </Button>
+              </Link>
             </CardContent>
           </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-yellow-800">Earn More Points</CardTitle>
+              <Star className="h-4 w-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Daily Login</span>
+                  <Badge className="bg-yellow-100 text-yellow-700 border-0 text-[10px]">+5 pts</Badge>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Join Campaign</span>
+                  <Badge className="bg-orange-100 text-orange-700 border-0 text-[10px]">+20 pts</Badge>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600">Complete Task</span>
+                  <Badge className="bg-green-100 text-green-700 border-0 text-[10px]">+50 pts</Badge>
+                </div>
+              </div>
+              <Link href="/get-started">
+                <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs text-yellow-700 hover:text-yellow-800 px-0">
+                  See all ways to earn →
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Welcome / Starter Campaign */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-bold text-gray-900">🚀 Starter Campaign</h2>
+            <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">Earn 130 pts</Badge>
+          </div>
+          <WelcomeCampaign />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -159,6 +315,13 @@ export default function SimpleDashboard() {
                 <Button className="w-full justify-start" variant="outline">
                   <User className="h-4 w-4 mr-2" />
                   Update Influencer Profile
+                </Button>
+              </Link>
+
+              <Link href="/leaderboard">
+                <Button className="w-full justify-start" variant="outline">
+                  <Trophy className="h-4 w-4 mr-2" />
+                  View Leaderboard
                 </Button>
               </Link>
             </CardContent>
@@ -253,9 +416,6 @@ export default function SimpleDashboard() {
                             Download ↗
                           </a>
                         )}
-                        {order.adminNote && (
-                          <p className="text-xs text-gray-400 mt-0.5 italic">{order.adminNote}</p>
-                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
                         <span className="font-bold text-gray-900">${parseFloat(order.totalAmount || order.amount || 0).toFixed(2)}</span>
@@ -301,7 +461,7 @@ export default function SimpleDashboard() {
               <Share2 className="h-6 w-6 text-yellow-400" />
               <div>
                 <h3 className="font-bold text-lg">Your Referral Links</h3>
-                <p className="text-gray-400 text-sm">Invite friends and earn rewards</p>
+                <p className="text-gray-400 text-sm">Invite friends — earn +100 pts per referral</p>
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <Users className="h-4 w-4 text-gray-400" />

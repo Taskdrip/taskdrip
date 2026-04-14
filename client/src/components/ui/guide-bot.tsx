@@ -10,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Bot, X, Send, Sparkles, BookOpen, ShoppingBag,
   TrendingUp, CheckCircle, AlertCircle, MessageSquare, Inbox,
-  Users, Star, Zap, Building2, Target, BarChart3, Award, Mic
+  Users, Star, Zap, Building2, Target, BarChart3, Award, Mic,
+  HelpCircle, DollarSign, Briefcase, HeadphonesIcon, Play
 } from "lucide-react";
+import { SiTelegram, SiWhatsapp } from "react-icons/si";
+import { SOCIALS } from "@/config/socials";
 import { Link } from "wouter";
 
 interface Recommendation {
@@ -142,6 +145,15 @@ function getBrandBotResponse(message: string, user: any): string {
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
     return `Hey ${company}! 👋 I'm your Taskdrip Brand Advisor. I'm here to help you find the right creators, launch effective campaigns, and maximize your influencer marketing ROI. What can I help you with today?`;
   }
+  if (lower.includes("get started") || lower.includes("how to start") || lower.includes("started on taskdrip")) {
+    return `Welcome to Taskdrip! Here's how to get started as a brand:\n\n1️⃣ **Complete your brand profile** — Add your logo, company name, bio, and industry at /profile-edit\n2️⃣ **Fund your account** — Deposit USDT via Tron, BSC, or TON to your brand wallet\n3️⃣ **Create your first campaign** — Go to /campaigns/create and define your task, reward, and requirements\n4️⃣ **Review applications** — Creators apply; you review and approve the best fits\n5️⃣ **Pay approved creators** — After task completion and proof submission, release payment\n\nNeed help? Visit /get-started for a detailed guide.`;
+  }
+  if (lower.includes("withdraw") || lower.includes("payout")) {
+    return `Withdrawals for brands are handled differently — your funds stay in escrow and are distributed to creators when you approve completed tasks.\n\nFor unused campaign funds:\n💰 Contact support via /contact to request a fund withdrawal\n📋 Submit your request with your transaction hash and wallet address\n⏱️ Processing typically takes 2–5 business days\n\nNeed assistance? Message us on WhatsApp: ${SOCIALS.whatsappNumber || "+1 (201) 680-0266"}`;
+  }
+  if (lower.includes("support") || lower.includes("contact") || lower.includes("help")) {
+    return `Need support? Here's how to reach us:\n\n💬 **WhatsApp**: ${SOCIALS.whatsappNumber || "+1 (201) 680-0266"} — fastest response\n📱 **Telegram**: t.me/taskdrip — community + support\n📧 **Contact form**: Visit /contact for formal inquiries\n⏰ **Support hours**: Mon–Fri, 9am–6pm WAT\n\nFor urgent issues, WhatsApp is your best bet for a quick response!`;
+  }
   if (lower.includes("influencer") || lower.includes("creator") || lower.includes("find")) {
     return `Finding the right creator is key! Here's how:\n\n🔍 **Browse Creators** — Visit /influencers to filter by niche, follower count, and tier\n🎯 **Post a Campaign** — Active creators apply directly to your campaign\n⭐ **Creator Tiers** — Rising Sparks (10K–100K), Growth Engines (100K–1M), Power Influencers (1M–10M), Global Titans (10M+)\n\nFor best results, match your campaign budget to the creator's tier. Want me to explain the tier system in more detail?`;
   }
@@ -180,6 +192,18 @@ function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): 
     return isPowerUser
       ? `Welcome back, ${firstName}! 🌟 As a ${tierConf.name}, you're among the elite. I can help you find premium brand deals, mentor new creators, or even launch your own course. What's on your mind?`
       : `Hey ${firstName}! 👋 I'm your Taskdrip Guide. I analyze your profile to give you personalized tips for growing your influence and earnings. Check the Recommendations tab, or ask me anything!`;
+  }
+  if (lower.includes("get started") || lower.includes("how to start") || lower.includes("started on taskdrip")) {
+    return `Welcome to Taskdrip, ${firstName}! Here's how to start:\n\n1️⃣ **Complete your profile** — Add photo, bio, niche, and social channels at /profile-edit (+100 pts)\n2️⃣ **Join the Welcome Campaign** — On your dashboard, complete social tasks to earn 130 $TDRIP points\n3️⃣ **Set up your crypto wallet** — Go to /wallet to add your USDT or TON wallet for payouts\n4️⃣ **Browse campaigns** — Visit /tasks or /campaigns to find brand tasks that match your niche\n5️⃣ **Submit proof** — Complete the task, submit screenshots, and get paid!\n\nVisit /get-started for the full guide.`;
+  }
+  if (lower.includes("withdraw") || lower.includes("payout") || lower.includes("how do i withdraw")) {
+    return `Here's how to withdraw your earnings on Taskdrip:\n\n💳 **Step 1**: Go to /wallet and add your crypto wallet address (USDT on Tron, BSC, or TON)\n📤 **Step 2**: Go to /payout-requests and submit a withdrawal request\n✅ **Step 3**: Admin reviews and approves within 24–72 hours\n🚀 **Step 4**: Funds are sent directly to your crypto wallet\n\n⚠️ **Minimum withdrawal**: $5 USDT\n💡 **Tip**: Make sure your wallet address is correct before requesting — crypto transfers are irreversible!\n\nQuestions? Chat us on WhatsApp: +1 (201) 680-0266`;
+  }
+  if (lower.includes("get campaigns") || lower.includes("how do i get campaigns") || lower.includes("find campaigns")) {
+    return `Here's how to get brand campaigns on Taskdrip:\n\n🔍 **Browse Tasks** — Go to /tasks to see all available campaigns by category and niche\n📝 **Apply** — Click "Apply" on any campaign that matches your audience\n✅ **Get Approved** — Brands review your profile and approve the best fit creators\n📸 **Complete & Submit Proof** — Do the task, submit screenshots/links as proof\n💰 **Get Paid** — Approved submissions receive crypto payment to your wallet\n\n💡 **Pro Tip**: A complete profile with follower counts gets 5× more approvals. Update yours at /profile-edit!`;
+  }
+  if (lower.includes("support") || lower.includes("contact") || lower.includes("how do i contact")) {
+    return `Need help? Here's how to reach our support team:\n\n💬 **WhatsApp**: +1 (201) 680-0266 — fastest response (under 1 hour)\n📱 **Telegram**: t.me/taskdrip — join the community for peer support\n📧 **Contact form**: Visit /contact for formal support tickets\n📨 **Messages**: Use /chat to send a direct message to the team\n⏰ **Hours**: Mon–Fri, 9am–6pm WAT\n\nFor account issues, payments, or disputes, WhatsApp is the fastest way to get help!`;
   }
   if (lower.includes("tier") || lower.includes("rank") || lower.includes("level")) {
     const needed = tier === 'newcomer' ? 10_000 - totalFollowers : tier === 'aspiring' ? 10_000 - totalFollowers : tier === 'rising_sparks' ? 100_000 - totalFollowers : tier === 'growth_engines' ? 1_000_000 - totalFollowers : tier === 'power_influencers' ? 10_000_000 - totalFollowers : 0;
@@ -659,6 +683,43 @@ export function GuideBot() {
 
             {activeTab === "chat" && (
               <div className="flex flex-col h-full" style={{ minHeight: "300px" }}>
+                {/* Quick-reply flow buttons */}
+                <div className="px-3 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Quick Help</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: "How to Start", icon: Play, msg: "How do I get started on Taskdrip?" },
+                      { label: "How to Earn", icon: DollarSign, msg: "How do I earn money on Taskdrip?" },
+                      { label: "How to Withdraw", icon: Zap, msg: "How do I withdraw my earnings?" },
+                      { label: "Get Campaigns", icon: Briefcase, msg: "How do I get campaigns?" },
+                      { label: "Contact Support", icon: HeadphonesIcon, msg: "How do I contact support?" },
+                    ].map((flow) => {
+                      const Icon = flow.icon;
+                      return (
+                        <button
+                          key={flow.label}
+                          onClick={() => {
+                            const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: flow.msg, timestamp: new Date() };
+                            setChatMessages(prev => [...prev, userMsg]);
+                            setIsAiTyping(true);
+                            setTimeout(() => {
+                              const response = isBrand
+                                ? getBrandBotResponse(flow.msg, user)
+                                : getCreatorBotResponse(flow.msg, user, socialLinks as any[]);
+                              const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: response, timestamp: new Date() };
+                              setChatMessages(prev => [...prev, botMsg]);
+                              setIsAiTyping(false);
+                            }, 700);
+                          }}
+                          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors"
+                        >
+                          <Icon className="w-3 h-3" /> {flow.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {chatMessages.map(msg => (
                     <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -686,6 +747,34 @@ export function GuideBot() {
                   )}
                   <div ref={messagesEndRef} />
                 </div>
+                {/* Social quick links */}
+                <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/50 flex-shrink-0">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Quick Links</p>
+                  <div className="flex gap-2">
+                    <a
+                      href={SOCIALS.telegram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1 text-[11px] font-medium px-2 py-1.5 rounded-lg bg-[#229ED9]/10 text-[#229ED9] hover:bg-[#229ED9]/20 border border-[#229ED9]/20 transition-colors"
+                    >
+                      <SiTelegram className="w-3 h-3" /> Telegram
+                    </a>
+                    <a
+                      href={SOCIALS.whatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1 text-[11px] font-medium px-2 py-1.5 rounded-lg bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/20 transition-colors"
+                    >
+                      <SiWhatsapp className="w-3 h-3" /> WhatsApp
+                    </a>
+                    <Link href="/contact" className="flex-1">
+                      <span className="flex items-center justify-center gap-1 text-[11px] font-medium px-2 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors w-full">
+                        <HeadphonesIcon className="w-3 h-3" /> Support
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+
                 <div className="p-3 border-t border-gray-100 flex-shrink-0">
                   <div className="flex gap-2">
                     <Input

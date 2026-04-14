@@ -7,15 +7,29 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2 } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, ChevronDown } from "lucide-react";
+import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
+import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
+
+const communityLinks = [
+  { href: SOCIALS.telegram, label: "Join Telegram", icon: SiTelegram, color: "text-[#229ED9]", external: true },
+  { href: SOCIALS.whatsapp, label: "Chat on WhatsApp", icon: SiWhatsapp, color: "text-[#25D366]", external: true },
+  { href: SOCIALS.x, label: "Follow on X", icon: SiX, color: "text-gray-800", external: true },
+  { href: SOCIALS.instagram, label: "Follow Instagram", icon: SiInstagram, color: "text-[#E1306C]", external: true },
+  { href: SOCIALS.facebook, label: "Facebook", icon: SiFacebook, color: "text-[#1877F2]", external: true },
+  { href: SOCIALS.youtube, label: "YouTube", icon: SiYoutube, color: "text-[#FF0000]", external: true },
+  { href: SOCIALS.tiktok, label: "TikTok", icon: SiTiktok, color: "text-gray-900", external: true },
+];
 
 export function NavigationFixed() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileCommunityOpen, setIsMobileCommunityOpen] = useState(false);
 
   const getNavItems = () => {
     if (isAuthenticated) {
@@ -46,7 +60,6 @@ export function NavigationFixed() {
           { href: "/feed", label: "Feed" },
           { href: "/creators", label: "Influencers" },
           { href: "/leaderboard", label: "Leaderboard" },
-          { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
         ];
       }
@@ -101,8 +114,8 @@ export function NavigationFixed() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:block flex-1 mx-6 overflow-x-hidden">
-            <div className="flex items-baseline space-x-1 xl:space-x-4">
+          <div className="hidden lg:block flex-1 mx-4 overflow-x-hidden">
+            <div className="flex items-center space-x-1 xl:space-x-2">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -116,6 +129,52 @@ export function NavigationFixed() {
                   {item.label}
                 </Link>
               ))}
+
+              {/* Community Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`flex items-center gap-1 px-2 xl:px-3 py-2 text-sm font-medium transition-colors duration-200 whitespace-nowrap text-gray-600 hover:text-black`}>
+                    Community <ChevronDown className="h-3.5 w-3.5 mt-0.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-52">
+                  <div className="px-2 py-1.5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Join Us</p>
+                  </div>
+                  {communityLinks.slice(0, 3).map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <DropdownMenuItem key={link.href} asChild>
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
+                          <Icon className={`h-4 w-4 ${link.color}`} />
+                          <span>{link.label}</span>
+                        </a>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1.5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Follow Us</p>
+                  </div>
+                  {communityLinks.slice(3).map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <DropdownMenuItem key={link.href} asChild>
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
+                          <Icon className={`h-4 w-4 ${link.color}`} />
+                          <span>{link.label}</span>
+                        </a>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/get-started" className="flex items-center gap-2 cursor-pointer text-purple-700 font-semibold">
+                      🚀 Get Started & Earn Points
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -144,6 +203,12 @@ export function NavigationFixed() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                      <p className="text-xs font-semibold text-gray-900">{(user as any)?.firstName} {(user as any)?.lastName}</p>
+                      {(user as any)?.totalPoints !== undefined && (
+                        <p className="text-xs text-purple-600 font-medium">⚡ {(user as any)?.totalPoints || 0} pts · {(user as any)?.level || 'Starter'}</p>
+                      )}
+                    </div>
                     <DropdownMenuItem onClick={() => {
                       const userType = (user as any)?.userType;
                       if (userType === 'admin') {
@@ -196,6 +261,12 @@ export function NavigationFixed() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
+                      <Link href="/leaderboard" className="flex items-center w-full">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Leaderboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
                       <Link href="/subscription" className="flex items-center w-full">
                         <CreditCard className="mr-2 h-4 w-4" />
                         <span>Subscription</span>
@@ -209,6 +280,7 @@ export function NavigationFixed() {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
@@ -235,7 +307,7 @@ export function NavigationFixed() {
             )}
 
             {/* Mobile menu button */}
-            <div className="md:hidden">
+            <div className="lg:hidden">
               <Button
                 variant="ghost"
                 size="icon"
@@ -249,7 +321,7 @@ export function NavigationFixed() {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200">
+          <div className="lg:hidden border-t border-gray-200">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {navItems.map((item) => (
                 <Link
@@ -265,6 +337,45 @@ export function NavigationFixed() {
                   {item.label}
                 </Link>
               ))}
+
+              {/* Mobile Community section */}
+              <div>
+                <button
+                  className="flex items-center justify-between w-full px-3 py-2 text-base font-medium text-gray-600 hover:text-black hover:bg-gray-50"
+                  onClick={() => setIsMobileCommunityOpen(!isMobileCommunityOpen)}
+                >
+                  Community
+                  <ChevronDown className={`h-4 w-4 transition-transform ${isMobileCommunityOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isMobileCommunityOpen && (
+                  <div className="pl-4 space-y-1 mt-1">
+                    {communityLinks.map((link) => {
+                      const Icon = link.icon;
+                      return (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-50 rounded"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Icon className={`h-4 w-4 ${link.color}`} />
+                          {link.label}
+                        </a>
+                      );
+                    })}
+                    <Link
+                      href="/get-started"
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50 rounded"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      🚀 Get Started & Earn Points
+                    </Link>
+                  </div>
+                )}
+              </div>
+
               {!isAuthenticated && (
                 <>
                   <Link

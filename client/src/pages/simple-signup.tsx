@@ -9,11 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { Link, useLocation } from 'wouter';
-import { ArrowLeft, User, Building2 } from 'lucide-react';
+import { ArrowLeft, User, Building2, CheckCircle, Zap, ArrowRight } from 'lucide-react';
+import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiYoutube } from 'react-icons/si';
+import { SOCIALS } from '@/config/socials';
 
 const creatorSignupSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
@@ -42,11 +45,92 @@ const brandSignupSchema = z.object({
 type CreatorSignupData = z.infer<typeof creatorSignupSchema>;
 type BrandSignupData = z.infer<typeof brandSignupSchema>;
 
+function SignupSuccessScreen({ firstName }: { firstName: string }) {
+  const [, setLocation] = useLocation();
+
+  const socialItems = [
+    { href: SOCIALS.telegram, label: "Join Telegram Community", icon: SiTelegram, color: "bg-[#229ED9]", pts: "+20 pts" },
+    { href: SOCIALS.whatsapp, label: "Chat on WhatsApp", icon: SiWhatsapp, color: "bg-[#25D366]", pts: "+10 pts" },
+    { href: SOCIALS.x, label: "Follow on X", icon: SiX, color: "bg-gray-900", pts: "+15 pts" },
+    { href: SOCIALS.instagram, label: "Follow Instagram", icon: SiInstagram, color: "bg-[#E1306C]", pts: "+15 pts" },
+    { href: SOCIALS.youtube, label: "Subscribe YouTube", icon: SiYoutube, color: "bg-[#FF0000]", pts: "+20 pts" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full space-y-6">
+        {/* Success Header */}
+        <div className="text-center">
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
+            <CheckCircle className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-white mb-2">
+            Welcome, {firstName}! 🎉
+          </h1>
+          <p className="text-gray-300">Your account is ready. You've earned your first points!</p>
+          <Badge className="mt-3 bg-yellow-500/20 text-yellow-300 border-yellow-500/30 text-sm px-3 py-1">
+            <Zap className="h-3.5 w-3.5 mr-1" /> +50 $TDRIP Points Credited
+          </Badge>
+        </div>
+
+        {/* Social CTA Card */}
+        <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white text-lg">🚀 Earn More Points — Join Our Community</CardTitle>
+            <CardDescription className="text-gray-300 text-sm">
+              Complete social tasks to earn up to 130 bonus $TDRIP points
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {socialItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all border border-white/10 group"
+                >
+                  <div className={`w-9 h-9 rounded-lg ${item.color} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-white text-sm font-medium flex-1">{item.label}</span>
+                  <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-xs">
+                    {item.pts}
+                  </Badge>
+                </a>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Note about Welcome Campaign */}
+        <div className="bg-purple-500/20 border border-purple-400/30 rounded-xl p-4 text-center">
+          <p className="text-purple-200 text-sm">
+            ✅ These tasks are waiting in your <span className="font-bold text-white">Welcome Campaign</span> on your dashboard. Complete them anytime!
+          </p>
+        </div>
+
+        {/* Go to Dashboard */}
+        <Button
+          onClick={() => setLocation('/dashboard')}
+          className="w-full bg-white text-black hover:bg-gray-100 font-bold h-12 text-base"
+          data-testid="button-go-to-dashboard"
+        >
+          Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function SimpleSignup() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('creator');
+  const [successUser, setSuccessUser] = useState<{ firstName: string } | null>(null);
 
   const creatorForm = useForm<CreatorSignupData>({
     resolver: zodResolver(creatorSignupSchema),
@@ -56,7 +140,6 @@ export default function SimpleSignup() {
     resolver: zodResolver(brandSignupSchema),
   });
 
-  // Capture referral code from URL
   const urlParams = new URLSearchParams(window.location.search);
   const refCode = urlParams.get('ref');
   const refType = urlParams.get('type');
@@ -74,11 +157,7 @@ export default function SimpleSignup() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      toast({
-        title: "Account created successfully!",
-        description: `Welcome to Taskdrip, ${data.user.firstName}!`,
-      });
-      setLocation('/dashboard');
+      setSuccessUser({ firstName: data.user.firstName });
     },
     onError: (error: any) => {
       toast({
@@ -89,12 +168,11 @@ export default function SimpleSignup() {
     },
   });
 
-  // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    if (user && !successUser) {
       setLocation('/dashboard');
     }
-  }, [user, setLocation]);
+  }, [user, successUser, setLocation]);
 
   const onCreatorSubmit = (data: CreatorSignupData) => {
     signupMutation.mutate(data);
@@ -103,6 +181,10 @@ export default function SimpleSignup() {
   const onBrandSubmit = (data: BrandSignupData) => {
     signupMutation.mutate(data);
   };
+
+  if (successUser) {
+    return <SignupSuccessScreen firstName={successUser.firstName} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -118,6 +200,9 @@ export default function SimpleSignup() {
           <p className="mt-2 text-sm text-gray-600">
             Create your account and start earning crypto rewards
           </p>
+          <Badge className="mt-2 bg-purple-100 text-purple-700 border-0">
+            <Zap className="h-3 w-3 mr-1" /> +50 $TDRIP Points on signup
+          </Badge>
         </div>
 
         <Card>
@@ -252,6 +337,7 @@ export default function SimpleSignup() {
                     type="submit"
                     className="w-full bg-black text-white hover:bg-gray-800"
                     disabled={signupMutation.isPending}
+                    data-testid="button-creator-signup"
                   >
                     {signupMutation.isPending ? 'Creating Account...' : 'Create Creator Account'}
                   </Button>
@@ -369,6 +455,7 @@ export default function SimpleSignup() {
                     type="submit"
                     className="w-full bg-black text-white hover:bg-gray-800"
                     disabled={signupMutation.isPending}
+                    data-testid="button-brand-signup"
                   >
                     {signupMutation.isPending ? 'Creating Account...' : 'Create Brand Account'}
                   </Button>
