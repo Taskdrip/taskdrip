@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Navigation } from "@/components/ui/navigation";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,7 +136,7 @@ export default function AdvertiseWithUs() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
+      <NavigationFixed />
 
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-gray-950 via-purple-950/40 to-gray-950 text-white py-28 overflow-hidden">

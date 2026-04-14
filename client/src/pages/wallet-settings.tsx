@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigation } from '@/components/ui/navigation';
+import { NavigationFixed } from '@/components/ui/navigation-fixed';
 import { Wallet, Copy, Check, AlertCircle } from 'lucide-react';
 
 const walletSchema = z.object({
@@ -114,7 +114,7 @@ export default function WalletSettings() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <NavigationFixed />
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">

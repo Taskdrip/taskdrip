@@ -82,7 +82,7 @@ const FEATURES = [
   {
     icon: DollarSign,
     title: 'Crypto Payments',
-    description: 'Earn in USDT TRC-20 (Tron), USDT BEP-20 (BNB Chain), USDT ERC-20 (Ethereum), or USDT on TON Network. Non-custodial payouts go directly to your wallet with transparent platform fees.',
+    description: 'Earn in USDT TRC-20 (Tron), USDT BEP-20 (BNB Chain), or USDT ERC-20 (Ethereum). Payouts go directly to your wallet with transparent platform fees — no agency cuts, no delays.',
     color: 'text-green-600',
     bg: 'bg-green-50',
   },
@@ -222,7 +222,7 @@ export default function About() {
                 {[
                   'No agency fees — direct brand-to-creator deals',
                   'Verified social reach across 7+ platforms',
-                  'Crypto payments: USDT TRC-20, BEP-20, ERC-20 and USDT on TON Network',
+                  'Crypto payments: USDT TRC-20 (Tron), BEP-20 (BNB Chain), ERC-20 (Ethereum)',
                   'Auto-tiered discovery so the right brands find you',
                   'Portfolio & review system to build lasting reputation',
                   'Community learning through BreedSkool Academy',
@@ -374,7 +374,7 @@ export default function About() {
                   { step: '2', title: 'Get auto-tiered', desc: 'Your tier is calculated instantly from your combined follower count.' },
                   { step: '3', title: 'Browse & apply to campaigns', desc: 'Filter by category, budget, and requirements. Apply with one click.' },
                   { step: '4', title: 'Complete & submit proof', desc: 'Do the campaign work and upload your proof of completion.' },
-                  { step: '5', title: 'Get paid in crypto', desc: 'Once approved, funds go directly to your wallet in USDT or TON.' },
+                  { step: '5', title: 'Get paid in crypto', desc: 'Once approved, funds go directly to your wallet in USDT (TRC-20, BEP-20, or ERC-20) within 24–72 hours.' },
                 ].map(s => (
                   <div key={s.step} className="flex gap-4 items-start">
                     <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">{s.step}</div>
@@ -424,7 +424,7 @@ export default function About() {
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { icon: Shield, title: 'KYC Verification', desc: 'Optional identity verification for creators and brands unlocks higher campaign limits and builds mutual trust.', color: 'text-blue-600', bg: 'bg-blue-50' },
-              { icon: Lock, title: 'Non-Custodial Payments', desc: 'We never hold your crypto. Payouts go directly to your wallet across 4 networks: USDT TRC-20 (Tron), USDT BEP-20 (BNB Chain), USDT ERC-20 (Ethereum), or USDT on TON Network.', color: 'text-green-600', bg: 'bg-green-50' },
+              { icon: Lock, title: 'Direct Crypto Payouts', desc: 'We never hold your earnings. Once approved, USDT goes straight to your wallet via TRC-20 (Tron), BEP-20 (BNB Chain), or ERC-20 (Ethereum) — within 24–72 hours.', color: 'text-green-600', bg: 'bg-green-50' },
               { icon: Star, title: 'Review System', desc: 'Every completed campaign can be reviewed by both parties. Reputation scores are public and build over time.', color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map(item => (
               <div key={item.title} className="bg-white rounded-2xl border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
