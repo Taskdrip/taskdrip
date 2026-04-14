@@ -15,7 +15,7 @@ const TIERS = [
   {
     key: "rising_sparks",
     name: "Rising Sparks",
-    range: "1K – 10K",
+    range: "10K – 100K",
     gradient: "from-orange-500 to-amber-400",
     glow: "shadow-orange-500/30",
     accent: "text-orange-400",
@@ -29,7 +29,7 @@ const TIERS = [
   {
     key: "growth_engines",
     name: "Growth Engines",
-    range: "10K – 100K",
+    range: "100K – 1M",
     gradient: "from-cyan-500 to-blue-500",
     glow: "shadow-cyan-500/30",
     accent: "text-cyan-400",
@@ -43,7 +43,7 @@ const TIERS = [
   {
     key: "power_influencers",
     name: "Power Influencers",
-    range: "100K – 1M",
+    range: "1M – 10M",
     gradient: "from-violet-600 to-purple-500",
     glow: "shadow-purple-500/30",
     accent: "text-purple-400",

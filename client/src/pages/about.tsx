@@ -19,7 +19,7 @@ const CREATOR_TIERS = [
   {
     name: 'Rising Sparks',
     emoji: '🔥',
-    range: '1K – 10K followers',
+    range: '10K – 100K followers',
     description: 'New creators just getting started. Access entry-level campaigns and build your first verified portfolio.',
     color: 'from-amber-400 to-orange-500',
     border: 'border-amber-200',
@@ -28,7 +28,7 @@ const CREATOR_TIERS = [
   {
     name: 'Growth Engines',
     emoji: '⚡',
-    range: '10K – 100K followers',
+    range: '100K – 1M followers',
     description: 'Established creators with a fast-growing audience. Unlock mid-tier campaigns with higher payouts and brand deals.',
     color: 'from-cyan-400 to-blue-500',
     border: 'border-cyan-200',
@@ -37,7 +37,7 @@ const CREATOR_TIERS = [
   {
     name: 'Power Influencers',
     emoji: '💎',
-    range: '100K – 1M followers',
+    range: '1M – 10M followers',
     description: 'High-reach creators. Premium campaigns, priority placement, and dedicated brand relationships.',
     color: 'from-violet-500 to-purple-600',
     border: 'border-violet-200',
