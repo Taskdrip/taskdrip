@@ -603,11 +603,17 @@ export async function seedDemoData(adminUserId: string) {
           deadline: c.deadline ? new Date(c.deadline) : null,
           requirements: c.requirements as any,
           estimatedTime: c.estimatedTime,
-          featuredImage: c.featuredImage,
+          featureImage: c.featuredImage,
           isFeatured: c.isFeatured,
         } as any);
       }
       console.log(`[seed] Created ${DEMO_CAMPAIGNS_DATA.length} demo campaigns.`);
+    } else {
+      for (const c of DEMO_CAMPAIGNS_DATA) {
+        await db.update(campaigns)
+          .set({ featureImage: c.featuredImage } as any)
+          .where(sql`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
+      }
     }
 
     // ── Payment Networks ────────────────────────────────────────────────────

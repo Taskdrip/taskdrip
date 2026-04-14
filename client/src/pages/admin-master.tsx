@@ -2484,11 +2484,15 @@ export default function AdminMaster() {
                     <div key={campaign.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all">
                       <div className="flex">
                         {/* Featured image thumbnail */}
-                        {campaign.featureImage && (
-                          <div className="w-24 h-24 flex-shrink-0 hidden sm:block">
+                        <div className="w-24 h-24 flex-shrink-0 hidden sm:block bg-gradient-to-br from-purple-100 to-indigo-100">
+                          {campaign.featureImage ? (
                             <img src={campaign.featureImage} alt={campaign.title} className="w-full h-full object-cover" />
-                          </div>
-                        )}
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-purple-300">
+                              <Image className="w-8 h-8" />
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1 p-4">
                           <div className="flex flex-col sm:flex-row gap-3">
                             <div className="flex-1 min-w-0">
@@ -2583,9 +2587,29 @@ export default function AdminMaster() {
                   <Label className="text-sm font-medium mb-2 block">Featured Image</Label>
                   <div className={`relative border-2 border-dashed rounded-xl overflow-hidden transition-colors ${taskImagePreview ? 'border-purple-300' : 'border-gray-300 hover:border-purple-400'}`}>
                     {taskImagePreview ? (
-                      <div className="relative h-40">
+                      <div className="relative h-44">
                         <img src={taskImagePreview} alt="preview" className="w-full h-full object-cover" />
+                        <label className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-xl bg-white/95 text-gray-800 text-sm font-semibold py-2 cursor-pointer shadow-lg hover:bg-white transition-colors">
+                          <Upload className="w-4 h-4" />
+                          Change featured image
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            data-testid="input-change-task-image"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setTaskImageFile(file);
+                                const reader = new FileReader();
+                                reader.onload = () => setTaskImagePreview(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
                         <button
+                          data-testid="button-remove-task-image"
                           onClick={() => { setTaskImageFile(null); setTaskImagePreview(null); }}
                           className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 transition-colors"
                         >✕</button>
@@ -2596,6 +2620,7 @@ export default function AdminMaster() {
                         <span className="text-sm font-medium text-gray-600">Click to upload featured image</span>
                         <span className="text-xs text-gray-400">PNG, JPG, WebP up to 5MB</span>
                         <input
+                          data-testid="input-upload-task-image"
                           type="file" accept="image/*" className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0];

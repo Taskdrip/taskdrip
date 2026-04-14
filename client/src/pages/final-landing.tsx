@@ -8,7 +8,7 @@ import {
   ArrowRight, Star, Zap, Globe, Shield, TrendingUp, Users, DollarSign,
   CheckCircle, Rocket, Target, Flame, Crown, Play, ChevronRight,
   GraduationCap, ShoppingBag, Gift, Wallet, BarChart3, Lock, Sparkles,
-  Trophy, BookOpen, Package, MessageCircle,
+  Trophy, BookOpen, Package, MessageCircle, Clock,
 } from "lucide-react";
 
 const TIERS = [
@@ -96,6 +96,13 @@ const NICHES = [
 ];
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
+  "social media": "from-violet-600 via-purple-600 to-indigo-700",
+  "crypto & web3": "from-amber-500 via-orange-600 to-yellow-600",
+  "youtube": "from-red-500 via-rose-500 to-orange-500",
+  "content creation": "from-fuchsia-500 via-purple-500 to-indigo-600",
+  "health & fitness": "from-emerald-500 via-green-500 to-teal-600",
+  "fashion & beauty": "from-pink-500 via-rose-500 to-fuchsia-600",
+  "technology": "from-cyan-500 via-blue-500 to-indigo-600",
   gaming: "from-purple-600 via-indigo-600 to-blue-700",
   beauty: "from-pink-500 via-rose-500 to-red-500",
   fitness: "from-green-500 via-emerald-500 to-teal-600",
@@ -108,17 +115,24 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 };
 
 const CATEGORY_EMOJIS: Record<string, string> = {
+  "social media": "📱",
+  "crypto & web3": "🪙",
+  "youtube": "▶️",
+  "content creation": "🎬",
+  "health & fitness": "💪",
+  "fashion & beauty": "✨",
+  "technology": "💻",
   gaming: "🎮", beauty: "💄", fitness: "💪", tech: "📱", travel: "✈️",
   food: "🍜", finance: "💰", fashion: "👗", default: "🚀",
 };
 
 const DEMO_CAMPAIGNS = [
-  { id: "d1", title: "Promote Our New Gaming App — TikTok/YouTube Review", brandName: "NovaByte Gaming", reward: "120", totalSlots: 50, filledSlots: 38, category: "gaming", tag: "Gaming · TikTok" },
-  { id: "d2", title: "Instagram Reel for Premium Skincare Launch", brandName: "GlowLab Beauty", reward: "85", totalSlots: 30, filledSlots: 12, category: "beauty", tag: "Beauty · Instagram" },
-  { id: "d3", title: "Fitness Challenge — 7-Day Transformation Campaign", brandName: "PeakFit Pro", reward: "200", totalSlots: 100, filledSlots: 71, category: "fitness", tag: "Fitness · YouTube" },
-  { id: "d4", title: "Tech Unboxing — Latest Wireless Earbuds Review", brandName: "SoundWave Tech", reward: "150", totalSlots: 40, filledSlots: 22, category: "tech", tag: "Tech · YouTube" },
-  { id: "d5", title: "Travel Vlog Feature — Luxury Resort Partnership", brandName: "Horizon Escapes", reward: "350", totalSlots: 15, filledSlots: 4, category: "travel", tag: "Travel · YouTube" },
-  { id: "d6", title: "Food Reel Campaign — Healthy Meal Delivery App", brandName: "FreshDrop", reward: "75", totalSlots: 80, filledSlots: 53, category: "food", tag: "Food · Instagram" },
+  { id: "d1", title: "Promote Our New Gaming App — TikTok/YouTube Review", brandName: "NovaByte Gaming", reward: "120", totalSlots: 50, filledSlots: 38, category: "gaming", tag: "Gaming · TikTok", featureImage: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d2", title: "Instagram Reel for Premium Skincare Launch", brandName: "GlowLab Beauty", reward: "85", totalSlots: 30, filledSlots: 12, category: "beauty", tag: "Beauty · Instagram", featureImage: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d3", title: "Fitness Challenge — 7-Day Transformation Campaign", brandName: "PeakFit Pro", reward: "200", totalSlots: 100, filledSlots: 71, category: "fitness", tag: "Fitness · YouTube", featureImage: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d4", title: "Tech Unboxing — Latest Wireless Earbuds Review", brandName: "SoundWave Tech", reward: "150", totalSlots: 40, filledSlots: 22, category: "tech", tag: "Tech · YouTube", featureImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d5", title: "Travel Vlog Feature — Luxury Resort Partnership", brandName: "Horizon Escapes", reward: "350", totalSlots: 15, filledSlots: 4, category: "travel", tag: "Travel · YouTube", featureImage: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d6", title: "Food Reel Campaign — Healthy Meal Delivery App", brandName: "FreshDrop", reward: "75", totalSlots: 80, filledSlots: 53, category: "food", tag: "Food · Instagram", featureImage: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=450&q=80&auto=format&fit=crop" },
 ];
 
 const WHY_FEATURES = [
@@ -194,32 +208,33 @@ function CampaignCard({ campaign }: { campaign: any }) {
   const brandName = campaign.brandName || "Brand Partner";
 
   return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all group cursor-pointer">
-      <div className={`h-44 bg-gradient-to-br ${gradient} relative flex items-center justify-center overflow-hidden`}>
+    <div className="border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-white">
+      <div className={`h-48 bg-gradient-to-br ${gradient} relative flex items-center justify-center overflow-hidden`}>
         {campaign.featureImage ? (
-          <img src={campaign.featureImage} alt={campaign.title} className="absolute inset-0 w-full h-full object-cover opacity-50" />
+          <img src={campaign.featureImage} alt={campaign.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         ) : (
           <>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           </>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
         <div className="relative z-10 text-center">
-          <div className="text-6xl mb-2 group-hover:scale-110 transition-transform duration-300">{emoji}</div>
+          <div className="text-6xl mb-2 drop-shadow-xl group-hover:scale-110 transition-transform duration-300">{emoji}</div>
         </div>
         <div className="absolute top-3 left-3">
           <Badge className="bg-green-500 text-white text-xs border-0 shadow-sm">🟢 Active</Badge>
         </div>
         <div className="absolute top-3 right-3">
-          <Badge className="bg-black/70 backdrop-blur-sm text-white text-sm border-0 font-bold px-2 py-1">${reward}</Badge>
+          <Badge className="bg-white text-gray-950 text-sm border-0 font-black px-3 py-1.5 shadow-lg">${reward} USDT</Badge>
         </div>
         <div className="absolute bottom-3 left-3">
-          <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-1 rounded-full border border-white/20">{tag}</span>
+          <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/25">{tag}</span>
         </div>
       </div>
       <div className="p-5 bg-white">
         <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">{brandName}</p>
-        <h3 className="font-bold text-black mb-3 line-clamp-2 text-sm leading-snug">{campaign.title}</h3>
+        <h3 className="font-black text-black mb-3 line-clamp-2 text-base leading-snug group-hover:text-purple-700 transition-colors">{campaign.title}</h3>
         <div className="mb-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>{filledSlots}/{totalSlots} influencers joined</span>
@@ -229,10 +244,10 @@ function CampaignCard({ campaign }: { campaign: any }) {
             <div className={`h-full bg-gradient-to-r ${gradient} rounded-full transition-all`} style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">{totalSlots - filledSlots} spots left</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-gray-400 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {totalSlots - filledSlots} spots left</span>
           <Link href="/login">
-            <Button size="sm" className="bg-black text-white rounded-lg text-xs hover:bg-gray-900 px-4">Apply Now</Button>
+            <Button size="sm" data-testid={`button-apply-campaign-${campaign.id}`} className="bg-black text-white rounded-xl text-xs hover:bg-gray-900 px-4">Apply Now</Button>
           </Link>
         </div>
       </div>

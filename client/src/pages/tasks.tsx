@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import {
   Search, Zap, Users, DollarSign, Clock, Calendar, ChevronRight,
   Flame, Star, TrendingUp, Shield, CheckCircle, ArrowRight, Filter,
-  Target, Award, Sparkles, Globe, Instagram, Youtube, Twitter, Twitch
+  Target, Award, Sparkles, Globe, Instagram, Youtube, Twitter, Twitch,
+  Bot, X, HelpCircle
 } from "lucide-react";
 
 const CATEGORIES = ["All", "Social Media", "Gaming", "Technology", "Health & Fitness", "Fashion & Beauty", "Crypto & Web3", "Education", "Other"];
@@ -259,6 +260,77 @@ function FeaturedTaskCard({ campaign }: { campaign: any }) {
   );
 }
 
+function GuideBot({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [tip, setTip] = useState("Pick a task that matches your audience, check the reward and slots, then open it to apply.");
+  const tips = [
+    { label: "How do I apply?", text: isAuthenticated ? "Click View & Apply on any task, review the brief, then submit your application from the campaign page." : "Create a free creator account first, then return here and click View & Apply on any campaign." },
+    { label: "How do payouts work?", text: "After your proof is approved, the reward is released to your crypto wallet through the supported USDT or TON payment options." },
+    { label: "Find best tasks", text: "Use category filters, search by brand or topic, and sort by Highest Reward when you want the biggest payouts first." },
+    { label: "What should I submit?", text: "Follow the campaign requirements exactly and submit clear proof links or screenshots so review can happen quickly." },
+  ];
+
+  return (
+    <div className="fixed bottom-5 right-4 z-50 flex flex-col items-end gap-3">
+      {open && (
+        <div data-testid="panel-guide-bot" className="w-[calc(100vw-2rem)] max-w-sm bg-white rounded-3xl shadow-2xl border border-purple-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-4 text-white">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold">Taskdrip Guide Bot</h3>
+                  <p className="text-xs text-white/75">Campaign help is active</p>
+                </div>
+              </div>
+              <button data-testid="button-close-guide-bot" onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-3 text-sm text-gray-700 leading-relaxed" data-testid="text-guide-bot-tip">
+              {tip}
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              {tips.map((item) => (
+                <button
+                  key={item.label}
+                  data-testid={`button-guide-tip-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  onClick={() => setTip(item.text)}
+                  className="text-left text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-purple-50 hover:text-purple-700 border border-gray-100 hover:border-purple-200 rounded-xl p-3 transition-colors"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link href={isAuthenticated ? "/profile" : "/signup"}>
+                <Button data-testid="button-guide-primary-action" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs">
+                  {isAuthenticated ? "Open Profile" : "Create Account"}
+                </Button>
+              </Link>
+              <Button data-testid="button-guide-view-tasks" variant="outline" className="flex-1 rounded-xl text-xs" onClick={() => setTip("Scroll the live task grid, compare reward, available slots, deadline, and requirements before applying.")}>
+                Browse Tips
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      <button
+        data-testid="button-open-guide-bot"
+        onClick={() => setOpen((value) => !value)}
+        className="group rounded-full bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-2xl shadow-purple-500/30 px-4 py-3 flex items-center gap-2 hover:scale-105 transition-transform"
+      >
+        {open ? <X className="w-5 h-5" /> : <HelpCircle className="w-5 h-5" />}
+        <span className="font-bold text-sm">Guide Bot</span>
+      </button>
+    </div>
+  );
+}
+
 export default function TasksPage() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -349,7 +421,7 @@ export default function TasksPage() {
               { icon: <Users className="w-5 h-5 text-blue-400" />, value: totalSlots, label: "Open Slots", suffix: "" },
               { icon: <Award className="w-5 h-5 text-yellow-400" />, value: "10K+", label: "Active Creators", suffix: "" },
             ].map((stat, i) => (
-              <div key={i} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
+              <div key={i} data-testid={`stat-tasks-${stat.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
                 <div className="flex justify-center mb-2">{stat.icon}</div>
                 <div className="text-2xl font-extrabold text-white">{stat.value}{stat.suffix}</div>
                 <div className="text-white/60 text-xs mt-1">{stat.label}</div>
@@ -473,7 +545,7 @@ export default function TasksPage() {
 
         {/* Task Grid */}
         {!isLoading && filtered.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
             {filtered.map((campaign: any) => (
               <TaskCard key={campaign.id} campaign={campaign} />
             ))}
@@ -574,6 +646,7 @@ export default function TasksPage() {
         </section>
       </div>
 
+      <GuideBot isAuthenticated={isAuthenticated} />
       <Footer />
     </div>
   );
