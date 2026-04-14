@@ -6,18 +6,26 @@ import { Footer } from "@/components/ui/footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShieldCheck, Users, BarChart3, Settings, Globe, Briefcase } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Users, BarChart3, Globe, Coins, MessageCircle, Heart, Wallet } from "lucide-react";
 
 function AdminProfileView({ admin }: { admin: any }) {
   const [, setLocation] = useLocation();
+  const { data: posts = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${admin.id}/posts`],
+    enabled: !!admin.id,
+  });
   return (
     <div className="min-h-screen bg-slate-950">
       <NavigationFixed />
 
-      {/* Hero */}
       <div className="relative h-48 md:h-64 overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-black">
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(148,163,184,0.5) 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+        {admin.bannerImageUrl ? (
+          <img src={admin.bannerImageUrl} alt="Admin banner" className="w-full h-full object-cover opacity-50" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-950 via-slate-900 to-black" />
+        )}
+        <div className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(167,139,250,0.8) 1px, transparent 0)', backgroundSize: '32px 32px' }} />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent" />
         <button onClick={() => setLocation(-1 as any)}
           className="absolute top-4 left-4 flex items-center gap-2 text-slate-400 hover:text-white bg-black/30 hover:bg-black/50 px-3 py-2 rounded-lg text-sm transition-all">
@@ -60,13 +68,21 @@ function AdminProfileView({ admin }: { admin: any }) {
                     <Globe className="w-4 h-4 text-slate-500" />
                     <span>Global oversight</span>
                   </div>
+                  <div className="flex items-center gap-2 text-violet-300 text-sm font-semibold" data-testid="text-admin-tdrip-points">
+                    <Coins className="w-4 h-4 text-violet-400" />
+                    <span>{(admin.totalPoints || 0).toLocaleString()} $TDrip</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 text-sm" data-testid="status-admin-direct-support">
+                    <Wallet className="w-4 h-4 text-slate-500" />
+                    <span>Support {admin.directSupportEnabled ? 'On' : 'Off'}</span>
+                  </div>
                 </div>
                 {admin.bio && <p className="text-slate-300 text-sm mt-4 leading-relaxed">{admin.bio}</p>}
               </div>
             </div>
 
             {/* Admin Stats */}
-            <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-800">
               <div className="text-center p-4 bg-slate-800/50 rounded-xl">
                 <ShieldCheck className="w-6 h-6 text-violet-400 mx-auto mb-2" />
                 <div className="text-slate-300 text-sm font-medium">Platform Security</div>
@@ -82,6 +98,11 @@ function AdminProfileView({ admin }: { admin: any }) {
                 <div className="text-slate-300 text-sm font-medium">Analytics</div>
                 <div className="text-xs text-slate-500 mt-0.5">Full visibility</div>
               </div>
+              <div className="text-center p-4 bg-violet-950/30 border border-violet-900/40 rounded-xl">
+                <Coins className="w-6 h-6 text-violet-400 mx-auto mb-2" />
+                <div className="text-violet-200 text-sm font-medium">{(admin.totalPoints || 0).toLocaleString()}</div>
+                <div className="text-xs text-violet-400/70 mt-0.5">$TDrip points</div>
+              </div>
             </div>
           </div>
         </div>
@@ -93,6 +114,32 @@ function AdminProfileView({ admin }: { admin: any }) {
           <p className="text-slate-400 text-sm">
             This account has administrative access to the Taskdrip platform. Use the Messages section to contact admin support.
           </p>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden mt-8">
+          <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+            <h2 className="text-white font-semibold flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-violet-400" /> Posts
+            </h2>
+            <span className="text-xs text-slate-500">{posts.length}</span>
+          </div>
+          <div className="p-6 space-y-3">
+            {posts.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-6">No posts yet.</p>
+            ) : (
+              posts.slice(0, 5).map((post: any) => (
+                <div key={post.id} className="bg-slate-800/70 border border-slate-700 rounded-xl p-4" data-testid={`card-admin-post-${post.id}`}>
+                  <p className="text-slate-200 text-sm whitespace-pre-wrap">{post.content}</p>
+                  {post.imageUrl && <img src={post.imageUrl} alt="Post" className="mt-3 rounded-xl max-h-64 w-full object-cover" />}
+                  <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                    <span>{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</span>
+                    <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {post.likeCount || 0}</span>
+                    <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> {post.commentCount || 0}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,7 @@ export default function WalletSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [directSupportEnabled, setDirectSupportEnabled] = useState(false);
 
   const {
     register,
@@ -43,12 +45,13 @@ export default function WalletSettings() {
       setValue('usdtBscWallet', (user as any).usdtBscWallet || '');
       setValue('usdtEthWallet', (user as any).usdtEthWallet || '');
       setValue('tonWallet', (user as any).tonWallet || '');
+      setDirectSupportEnabled(!!(user as any).directSupportEnabled);
     }
   }, [user, setValue]);
 
   const updateWalletMutation = useMutation({
     mutationFn: async (data: WalletFormData) => {
-      const response = await apiRequest('PATCH', `/api/users/${user?.id}/profile`, data);
+      const response = await apiRequest('PATCH', `/api/users/${user?.id}/profile`, { ...data, directSupportEnabled });
       return await response.json();
     },
     onSuccess: () => {
@@ -166,6 +169,19 @@ export default function WalletSettings() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8 border-emerald-200 bg-emerald-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-emerald-900">Direct Wallet Support</h3>
+                <p className="text-emerald-700 text-sm mt-1">Allow users to support you directly through your saved crypto wallets.</p>
+              </div>
+              <Switch checked={directSupportEnabled} onCheckedChange={setDirectSupportEnabled} data-testid="switch-wallet-direct-support" />
+            </div>
+            <p className="text-xs text-emerald-700 mt-3">Current status: {directSupportEnabled ? 'On' : 'Off'}</p>
           </CardContent>
         </Card>
 

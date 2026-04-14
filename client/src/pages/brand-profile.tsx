@@ -19,7 +19,7 @@ import {
   ArrowLeft, Star, Share2, MessageCircle, Building2,
   MapPin, Calendar, Users, DollarSign, Target, Briefcase,
   TrendingUp, CheckCircle, Globe, ExternalLink, Award,
-  UserPlus, UserCheck, Edit3, Link2
+  UserPlus, UserCheck, Edit3, Link2, Coins, Wallet, Heart
 } from 'lucide-react';
 import {
   SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
@@ -127,6 +127,16 @@ export default function BrandProfile() {
     enabled: !!brandId && !!(user as any)?.id,
   });
 
+  const { data: canMessageData } = useQuery<{ canMessage: boolean; reason: string | null }>({
+    queryKey: [`/api/users/${brandId}/can-message`],
+    enabled: !!brandId && !!(user as any)?.id,
+  });
+
+  const { data: posts = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${brandId}/posts`],
+    enabled: !!brandId,
+  });
+
   const { data: socialLinks = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${brandId}/social-links`],
     enabled: !!brandId,
@@ -139,6 +149,7 @@ export default function BrandProfile() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/follow`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/can-message`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/profile`] });
       toast({ title: data.following ? 'Following!' : 'Unfollowed', description: data.following ? `You're now following ${brand?.companyName || brand?.firstName}` : 'Unfollowed successfully.' });
     },
@@ -201,6 +212,7 @@ export default function BrandProfile() {
   const activeCampaigns = (campaigns as any[]).filter((c: any) => c.isActive || c.status === 'active');
   const companyName = brand.companyName || `${brand.firstName} ${brand.lastName}`;
   const initials = (brand.companyName || brand.firstName || 'B')[0].toUpperCase();
+  const canMessage = canMessageData?.canMessage ?? false;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-gray-50">
@@ -297,6 +309,12 @@ export default function BrandProfile() {
                         <Calendar className="w-3.5 h-3.5 text-slate-500" />
                         Since {new Date(brand.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </span>
+                      <span className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/30 px-2.5 py-1 rounded-lg text-violet-300 font-semibold" data-testid="text-brand-tdrip-points">
+                        <Coins className="w-3.5 h-3.5" /> {(brand.totalPoints || 0).toLocaleString()} $TDrip
+                      </span>
+                      <span className={`flex items-center gap-1.5 border px-2.5 py-1 rounded-lg font-semibold ${(brand as any).directSupportEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-slate-700/50 border-slate-600 text-slate-400'}`} data-testid="status-brand-direct-support">
+                        <Wallet className="w-3.5 h-3.5" /> Support {(brand as any).directSupportEnabled ? 'On' : 'Off'}
+                      </span>
                     </div>
                     {brand.bio && <p className="text-slate-300 text-sm leading-relaxed max-w-xl">{brand.bio}</p>}
                   </div>
@@ -314,13 +332,15 @@ export default function BrandProfile() {
                           data-testid="brand-follow-btn">
                           {isFollowing ? <><UserCheck className="w-4 h-4" />Following</> : <><UserPlus className="w-4 h-4" />Follow</>}
                         </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setLocation(`/chat?to=${brandId}`)}
-                          className="gap-2 border-slate-600 text-slate-300 bg-slate-700 hover:bg-slate-600"
-                          data-testid="brand-message-btn">
-                          <MessageCircle className="w-4 h-4" /> Message
-                        </Button>
+                        {canMessage && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setLocation(`/chat?to=${brandId}`)}
+                            className="gap-2 border-slate-600 text-slate-300 bg-slate-700 hover:bg-slate-600"
+                            data-testid="brand-message-btn">
+                            <MessageCircle className="w-4 h-4" /> Message
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={shareProfile} className="text-slate-400 hover:text-white hover:bg-slate-700">
                           <Share2 className="w-4 h-4" />
                         </Button>
@@ -339,12 +359,13 @@ export default function BrandProfile() {
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-700">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-slate-700">
               {[
                 { value: campaigns.length, label: 'Total Campaigns', color: 'text-emerald-400' },
                 { value: activeCampaigns.length, label: 'Active Now', color: 'text-emerald-400', dot: true },
                 { value: `${avgRating.toFixed(1)} ★`, label: `${reviews.length} Reviews`, color: 'text-amber-400' },
                 { value: formatFollowers(brand.followers || 0), label: 'Followers', color: 'text-emerald-400', clickable: () => setFollowModalType('followers') },
+              { value: (brand.totalPoints || 0).toLocaleString(), label: '$TDrip Points', color: 'text-violet-300' },
               ].map((stat, i) => (
                 <button
                   key={i}
@@ -434,6 +455,37 @@ export default function BrandProfile() {
                 </div>
               </div>
             )}
+
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+              <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-emerald-400" /> Posts
+                </h2>
+                <Badge className="bg-slate-700 text-slate-300 border-slate-600">{posts.length}</Badge>
+              </div>
+              <div className="p-6">
+                {posts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageCircle className="h-10 w-10 text-slate-600 mx-auto mb-3" />
+                    <p className="text-slate-400">No posts yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {posts.slice(0, 5).map((post: any) => (
+                      <div key={post.id} className="p-4 bg-slate-700/40 border border-slate-600/50 rounded-xl" data-testid={`card-brand-post-${post.id}`}>
+                        <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                        {post.imageUrl && <img src={post.imageUrl} alt="Post" className="mt-3 rounded-xl max-h-64 w-full object-cover" />}
+                        <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                          <span>{post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : ''}</span>
+                          <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {post.likeCount || 0}</span>
+                          <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> {post.commentCount || 0}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}

@@ -22,7 +22,8 @@ import {
   Clock,
   Plus,
   Minus,
-  Edit3
+  Edit3,
+  Coins
 } from "lucide-react";
 
 export default function Profile() {
@@ -36,6 +37,11 @@ export default function Profile() {
 
   const { data: participations = [] } = useQuery({
     queryKey: ["/api/users", user?.id, "participations"],
+    enabled: !!user?.id,
+  });
+
+  const { data: posts = [] } = useQuery<any[]>({
+    queryKey: [`/api/users/${user?.id}/posts`],
     enabled: !!user?.id,
   });
 
@@ -65,12 +71,20 @@ export default function Profile() {
   const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` || 'U';
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-white">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
-        <div className="bg-gradient-to-r from-accent to-blue-600 rounded-xl p-8 mb-8 text-white">
+      <div className="relative h-52 md:h-64 overflow-hidden">
+        {user.bannerImageUrl ? (
+          <img src={user.bannerImageUrl} alt="Profile banner" className="w-full h-full object-cover opacity-70" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-slate-950" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent" />
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-28 relative z-10 pb-8">
+        <div className="bg-white/95 backdrop-blur rounded-2xl p-8 mb-8 text-slate-950 shadow-2xl border border-white/60">
           <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
               <AvatarImage src={user.profileImageUrl || ""} alt={displayName} />
@@ -84,10 +98,10 @@ export default function Profile() {
                   <CheckCircle className="w-6 h-6 text-blue-200" title="Verified Creator" />
                 )}
               </div>
-              <p className="text-blue-100 mb-2">
+              <p className="text-slate-600 mb-3">
                 {user.bio || "Digital Creator | Content Creator | Crypto Enthusiast"}
               </p>
-              <div className="flex items-center justify-center md:justify-start space-x-4 text-sm">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm text-slate-600">
                 {user.location && (
                   <span className="flex items-center">
                     <MapPin className="w-4 h-4 mr-1" />
@@ -98,12 +112,20 @@ export default function Profile() {
                   <Calendar className="w-4 h-4 mr-1" />
                   Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </span>
+                <span className="flex items-center bg-violet-50 border border-violet-100 text-violet-700 px-2.5 py-1 rounded-lg font-semibold" data-testid="text-profile-tdrip-points">
+                  <Coins className="w-4 h-4 mr-1" />
+                  {(user.totalPoints || 0).toLocaleString()} $TDrip
+                </span>
+                <span className={`flex items-center border px-2.5 py-1 rounded-lg font-semibold ${user.directSupportEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`} data-testid="status-profile-direct-support">
+                  <Wallet className="w-4 h-4 mr-1" />
+                  Direct support {user.directSupportEnabled ? 'On' : 'Off'}
+                </span>
               </div>
             </div>
             
             <div className="text-center">
               <div className="text-3xl font-bold">{user.rating || "0.0"}</div>
-              <div className="text-blue-200 text-sm">Rating</div>
+              <div className="text-slate-500 text-sm">Rating</div>
               <div className="flex text-yellow-300 mt-1">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-current" />
@@ -131,6 +153,10 @@ export default function Profile() {
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="font-semibold text-black mb-4">Profile Stats</h3>
               <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">$TDrip Points</span>
+                  <span className="font-semibold text-violet-700">{(user.totalPoints || 0).toLocaleString()}</span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Followers</span>
                   <span className="font-semibold text-black">{user.followers || 0}</span>
@@ -340,6 +366,27 @@ export default function Profile() {
                     ))
                 ) : (
                   <p className="text-gray-600 text-center py-4">No active campaigns</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="text-xl font-semibold text-black mb-6">Posts</h3>
+              <div className="space-y-4">
+                {posts.length > 0 ? (
+                  posts.slice(0, 5).map((post: any) => (
+                    <div key={post.id} className="bg-white rounded-lg p-4 border border-gray-200" data-testid={`card-profile-post-${post.id}`}>
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{post.content}</p>
+                      {post.imageUrl && <img src={post.imageUrl} alt="Post" className="mt-3 rounded-lg max-h-64 w-full object-cover" />}
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
+                        <span>{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ''}</span>
+                        <span>{post.likeCount || 0} likes</span>
+                        <span>{post.commentCount || 0} comments</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-600 text-center py-4">No posts yet</p>
                 )}
               </div>
             </div>

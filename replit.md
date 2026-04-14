@@ -135,6 +135,11 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Backend `/api/users/:id` route**: Fixed "Brand Not Found" bug by adding generic user lookup endpoint alongside `/api/users/:id/profile`
 ✓ **Sitewide Username Links**: Campaign-detail.tsx brand name links to `/brand/:id`; brand-dashboard.tsx applicant names link to `/profile/:id`; leaderboard already had profile links
 ✓ **UserLink Component**: Reusable `UserLink` component in `client/src/components/ui/user-link.tsx` with `getUserProfileUrl()` helper
+✓ **$TDrip Profile Points**: Creator, brand, admin, and signed-in profile pages now display `totalPoints` as $TDrip points.
+✓ **Profile Wallpaper Coverage**: Public creator, brand, admin, and own profile views use banner wallpapers or polished gradient fallbacks.
+✓ **Mutual-Follow DM Rule**: Direct message buttons only show when both users follow each other; backend `/api/users/:id/can-message` enforces the mutual-follow requirement.
+✓ **Profile Posts**: Brand, admin, creator, and signed-in profile views surface user posts on the profile page.
+✓ **Direct Wallet Support Toggle**: Added `directSupportEnabled` to users, synced the database, and exposed On/Off controls in profile edit and wallet settings.
 
 ## Major Platform Upgrade (March 2026)
 

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,7 +18,7 @@ import { Footer } from '@/components/ui/footer';
 import { getTierConfig, getTierFromFollowers, formatFollowers, NICHES } from '@/lib/tiers';
 import {
   Camera, TrendingUp, Award, Link2, Plus, Trash2,
-  Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff
+  Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff, Wallet
 } from 'lucide-react';
 import { Link } from 'wouter';
 import {
@@ -128,6 +129,7 @@ export default function ProfileEdit() {
 
   // Privacy settings
   const [messagePrivacy, setMessagePrivacy] = useState<'everyone' | 'followers' | 'nobody'>('everyone');
+  const [directSupportEnabled, setDirectSupportEnabled] = useState(false);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -179,6 +181,7 @@ export default function ProfileEdit() {
       setPreviewUrl(u.profileImageUrl || '');
       // Load message privacy setting
       if (u.messagePrivacy) setMessagePrivacy(u.messagePrivacy as 'everyone' | 'followers' | 'nobody');
+      setDirectSupportEnabled(!!u.directSupportEnabled);
       // Load saved rates
       if (u.contentRates) {
         const savedRates: Record<string, string> = {};
@@ -294,7 +297,7 @@ export default function ProfileEdit() {
     const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
     const profileImageUrl = profileImage ? previewUrl : (user as any)?.profileImageUrl;
     try {
-      await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl });
+      await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl, directSupportEnabled });
       await Promise.all([
         saveLinksMutation.mutateAsync(),
         saveRatesMutation.mutateAsync(),
@@ -702,6 +705,24 @@ export default function ProfileEdit() {
                 <p className="text-xs text-gray-400 mt-3">Leave blank if you prefer to quote on request. All rates are in USD.</p>
               </CardContent>
             )}
+          </Card>
+
+          <Card className="border-gray-100">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-emerald-600" /> Direct Support
+              </CardTitle>
+              <CardDescription>Turn on direct wallet support when you want people to send crypto tips to your saved wallets.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div>
+                  <p className="font-semibold text-sm text-gray-900">Wallet support is {directSupportEnabled ? 'On' : 'Off'}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">When off, your profile shows that direct support is unavailable.</p>
+                </div>
+                <Switch checked={directSupportEnabled} onCheckedChange={setDirectSupportEnabled} data-testid="switch-direct-support" />
+              </div>
+            </CardContent>
           </Card>
 
           {/* Privacy & Messaging */}

@@ -23,7 +23,7 @@ import {
 import {
   MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink,
   BarChart3, UserPlus, UserCheck, Globe, Briefcase, Zap, Flame, Crown,
-  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X
+  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X, Coins, Wallet
 } from "lucide-react";
 
 function StarRating({ value, onChange, readOnly = false }: { value: number; onChange?: (v: number) => void; readOnly?: boolean }) {
@@ -293,6 +293,7 @@ export default function CreatorProfile() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${id}/follow`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${id}/can-message`] });
       queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
       toast({ title: data.following ? "Following! 🔥" : "Unfollowed", description: data.following ? `You're now following ${profile?.firstName}` : `You unfollowed ${profile?.firstName}` });
     },
@@ -493,14 +494,9 @@ export default function CreatorProfile() {
                           data-testid="follow-btn">
                           {isFollowing ? <><UserCheck className="w-4 h-4 mr-1.5" />Following</> : <><UserPlus className="w-4 h-4 mr-1.5" />Follow</>}
                         </Button>
-                        {canMessage ? (
+                        {canMessage && (
                           <Button variant="outline" onClick={() => navigate(`/chat?to=${id}`)}
                             className="border-purple-200 text-purple-600 hover:bg-purple-50" data-testid="message-btn">
-                            <MessageCircle className="w-4 h-4 mr-1.5" /> Message
-                          </Button>
-                        ) : (
-                          <Button variant="outline" disabled title={messageBlockedReason || 'Messaging not available'}
-                            className="border-gray-200 text-gray-400 cursor-not-allowed" data-testid="message-btn-disabled">
                             <MessageCircle className="w-4 h-4 mr-1.5" /> Message
                           </Button>
                         )}
@@ -534,6 +530,12 @@ export default function CreatorProfile() {
                       <Globe className="w-3.5 h-3.5" /> Website
                     </a>
                   )}
+                  <span className="flex items-center gap-1.5 bg-violet-50 border border-violet-100 px-2.5 py-1 rounded-lg text-violet-700 font-semibold" data-testid="text-tdrip-points">
+                    <Coins className="w-3.5 h-3.5 text-violet-500" /> {(profile.totalPoints || 0).toLocaleString()} $TDrip
+                  </span>
+                  <span className={`flex items-center gap-1.5 border px-2.5 py-1 rounded-lg font-semibold ${(profile as any).directSupportEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-500'}`} data-testid="status-direct-support">
+                    <Wallet className="w-3.5 h-3.5" /> Direct support {(profile as any).directSupportEnabled ? 'On' : 'Off'}
+                  </span>
                   <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg text-amber-700">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                     {avgRating} ({profile.reviews?.length || 0} reviews)
@@ -584,9 +586,10 @@ export default function CreatorProfile() {
         </Card>
 
         {/* ── Stats Row ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
           {[
             { label: "Total Earned", value: `$${parseFloat(profile.totalEarned || '0').toFixed(0)}`, icon: <TrendingUp className="w-5 h-5 text-green-500" />, color: "from-green-600/10 to-emerald-600/10 border-green-200" },
+            { label: "$TDrip Points", value: (profile.totalPoints || 0).toLocaleString(), icon: <Coins className="w-5 h-5 text-violet-500" />, color: "from-violet-600/10 to-purple-600/10 border-violet-200" },
             { label: "Campaigns", value: profile.completedCampaigns || 0, icon: <Trophy className="w-5 h-5 text-amber-500" />, color: "from-amber-600/10 to-yellow-600/10 border-amber-200" },
             { label: "Platform Followers", value: formatFollowers(profile.followers || 0), icon: <Users className="w-5 h-5 text-blue-500" />, color: "from-blue-600/10 to-cyan-600/10 border-blue-200" },
             { label: "Social Reach", value: formatFollowers(totalSocialFollowers), icon: <Zap className="w-5 h-5 text-purple-500" />, color: "from-purple-600/10 to-violet-600/10 border-purple-200" },

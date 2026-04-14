@@ -2246,6 +2246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const recipient = await storage.getUser(recipientId);
       if (!recipient) return res.status(404).json({ message: "User not found" });
+      if (!(recipient as any).directSupportEnabled) return res.status(403).json({ message: "This user has direct support turned off" });
 
       const { amount, network, txHash, paymentMethodType, paymentMethodId } = req.body;
       const tipAmount = parseFloat(amount);
@@ -2278,8 +2279,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.params.id);
       if (!user) return res.status(404).json({ message: "User not found" });
       res.json({
+        directSupportEnabled: !!(user as any).directSupportEnabled,
         usdtTronWallet: (user as any).usdtTronWallet || null,
         usdtBscWallet: (user as any).usdtBscWallet || null,
+        usdtEthWallet: (user as any).usdtEthWallet || null,
         tonWallet: (user as any).tonWallet || null,
         displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
       });
@@ -2974,13 +2977,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const target = await storage.getUser(req.params.id);
       if (!target) return res.status(404).json({ message: "User not found" });
-      const privacy = target.messagePrivacy || 'everyone';
-      if (privacy === 'everyone') return res.json({ canMessage: true, reason: null });
-      if (privacy === 'nobody') return res.json({ canMessage: false, reason: 'This user is not accepting direct messages.' });
-      // 'followers' — only people they follow back (mutual) OR following them
-      const isFollowing = await storage.isFollowing(req.user.id, target.id);
-      if (isFollowing) return res.json({ canMessage: true, reason: null });
-      return res.json({ canMessage: false, reason: 'This user only accepts messages from people they follow.' });
+      if (req.user.id === target.id) return res.json({ canMessage: false, reason: null });
+      if ((target.messagePrivacy || 'everyone') === 'nobody') return res.json({ canMessage: false, reason: 'This user is not accepting direct messages.' });
+      const viewerFollowsTarget = await storage.isFollowing(req.user.id, target.id);
+      const targetFollowsViewer = await storage.isFollowing(target.id, req.user.id);
+      if (viewerFollowsTarget && targetFollowsViewer) return res.json({ canMessage: true, reason: null });
+      return res.json({ canMessage: false, reason: 'Direct messages unlock when you follow each other.' });
     } catch (error) {
       res.status(500).json({ message: "Failed to check message permission" });
     }

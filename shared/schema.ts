@@ -70,6 +70,7 @@ export const users = pgTable("users", {
   usdtBscWallet: varchar("usdt_bsc_wallet"),
   usdtEthWallet: varchar("usdt_eth_wallet"),
   tonWallet: varchar("ton_wallet"),
+  directSupportEnabled: boolean("direct_support_enabled").default(false),
   isVerified: boolean("is_verified").default(false),
   isKycApproved: boolean("is_kyc_approved").default(false),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),
