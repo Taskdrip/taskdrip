@@ -1035,3 +1035,138 @@ export const advertiseApplications = pgTable("advertise_applications", {
 export const insertAdvertiseApplicationSchema = createInsertSchema(advertiseApplications).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
 export type AdvertiseApplication = typeof advertiseApplications.$inferSelect;
 export type InsertAdvertiseApplication = z.infer<typeof insertAdvertiseApplicationSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Email Settings — SMTP / IMAP / Domain / SSL config (singleton)
+// ──────────────────────────────────────────────────────────────
+export const emailSettings = pgTable("email_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // SMTP
+  smtpHost: varchar("smtp_host"),
+  smtpPort: integer("smtp_port").default(587),
+  smtpUser: varchar("smtp_user"),
+  smtpPass: varchar("smtp_pass"),
+  smtpSsl: boolean("smtp_ssl").default(false),
+  smtpTls: boolean("smtp_tls").default(true),
+  smtpFromEmail: varchar("smtp_from_email"),
+  smtpFromName: varchar("smtp_from_name"),
+  // IMAP
+  imapHost: varchar("imap_host"),
+  imapPort: integer("imap_port").default(993),
+  imapUser: varchar("imap_user"),
+  imapPass: varchar("imap_pass"),
+  imapSsl: boolean("imap_ssl").default(true),
+  // Domain & Site
+  siteUrl: varchar("site_url"),
+  domain: varchar("domain"),
+  unsubscribeUrl: varchar("unsubscribe_url"),
+  logoUrl: varchar("logo_url"),
+  // DNS records (stored for reference)
+  spfRecord: text("spf_record"),
+  dkimPublicKey: text("dkim_public_key"),
+  dmarcRecord: text("dmarc_record"),
+  // Status
+  isVerified: boolean("is_verified").default(false),
+  lastTestedAt: timestamp("last_tested_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type EmailSettings = typeof emailSettings.$inferSelect;
+
+// ──────────────────────────────────────────────────────────────
+// Email Templates — reusable HTML/text templates
+// ──────────────────────────────────────────────────────────────
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  category: varchar("category").notNull().default("general"), // 'welcome', 'campaign', 'newsletter', 'promo', 'auto_responder', 'general'
+  subject: varchar("subject").notNull(),
+  htmlBody: text("html_body").notNull(),
+  textBody: text("text_body"),
+  variables: text("variables").array(), // ['{{first_name}}', '{{campaign_name}}']
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Email Campaigns — blast campaigns to user segments
+// ──────────────────────────────────────────────────────────────
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  subject: varchar("subject").notNull(),
+  htmlBody: text("html_body").notNull(),
+  textBody: text("text_body"),
+  templateId: varchar("template_id"),
+  // Targeting
+  targetSegment: varchar("target_segment").notNull().default("all"), // 'all', 'creators', 'brands', 'tier_rising_sparks', 'tier_growth_engines', 'tier_power_influencers', 'tier_global_titans', 'verified', 'unverified'
+  // Status & scheduling
+  status: varchar("status").notNull().default("draft"), // 'draft', 'scheduled', 'sending', 'sent', 'failed'
+  scheduledAt: timestamp("scheduled_at"),
+  sentAt: timestamp("sent_at"),
+  // Stats
+  totalRecipients: integer("total_recipients").default(0),
+  sent: integer("sent").default(0),
+  delivered: integer("delivered").default(0),
+  opened: integer("opened").default(0),
+  clicked: integer("clicked").default(0),
+  bounced: integer("bounced").default(0),
+  unsubscribed: integer("unsubscribed").default(0),
+  // Meta
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns).omit({ id: true, sent: true, delivered: true, opened: true, clicked: true, bounced: true, unsubscribed: true, sentAt: true, createdAt: true, updatedAt: true });
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Email Auto-Responders — AI-assisted automated sequences
+// ──────────────────────────────────────────────────────────────
+export const emailAutoResponders = pgTable("email_auto_responders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  trigger: varchar("trigger").notNull(), // 'signup', 'campaign_join', 'campaign_complete', 'purchase', 'kyc_approved', 'payout_sent', 'custom'
+  triggerDelay: integer("trigger_delay").default(0), // minutes after trigger
+  subject: varchar("subject").notNull(),
+  htmlBody: text("html_body").notNull(),
+  textBody: text("text_body"),
+  targetUserType: varchar("target_user_type").default("all"), // 'all', 'creator', 'brand'
+  isActive: boolean("is_active").default(true),
+  aiGenerated: boolean("ai_generated").default(false),
+  aiPrompt: text("ai_prompt"),
+  sentCount: integer("sent_count").default(0),
+  openCount: integer("open_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailAutoResponderSchema = createInsertSchema(emailAutoResponders).omit({ id: true, sentCount: true, openCount: true, createdAt: true, updatedAt: true });
+export type EmailAutoResponder = typeof emailAutoResponders.$inferSelect;
+export type InsertEmailAutoResponder = z.infer<typeof insertEmailAutoResponderSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Email Logs — per-recipient send tracking
+// ──────────────────────────────────────────────────────────────
+export const emailLogs = pgTable("email_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: varchar("campaign_id"),
+  autoResponderId: varchar("auto_responder_id"),
+  recipientEmail: varchar("recipient_email").notNull(),
+  recipientName: varchar("recipient_name"),
+  subject: varchar("subject").notNull(),
+  status: varchar("status").notNull().default("sent"), // 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed'
+  errorMessage: text("error_message"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+export type EmailLog = typeof emailLogs.$inferSelect;

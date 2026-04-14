@@ -100,6 +100,11 @@ import {
   paymentFeatureToggles,
   sponsoredAds,
   advertiseApplications,
+  emailSettings,
+  emailTemplates,
+  emailCampaigns,
+  emailAutoResponders,
+  emailLogs,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -1992,6 +1997,93 @@ export class DatabaseStorage implements IStorage {
   async updateAdvertiseApplication(id: string, data: any): Promise<any> {
     const [app] = await db.update(advertiseApplications).set({ ...data, updatedAt: new Date() }).where(eq(advertiseApplications.id, id)).returning();
     return app;
+  }
+
+  // ── Email Settings ──────────────────────────────────────────
+  async getEmailSettings(): Promise<any> {
+    const rows = await db.select().from(emailSettings).limit(1);
+    return rows[0] || null;
+  }
+
+  async upsertEmailSettings(data: any): Promise<any> {
+    const existing = await this.getEmailSettings();
+    if (existing) {
+      const [row] = await db.update(emailSettings).set({ ...data, updatedAt: new Date() }).where(eq(emailSettings.id, existing.id)).returning();
+      return row;
+    }
+    const [row] = await db.insert(emailSettings).values({ ...data, id: crypto.randomUUID() }).returning();
+    return row;
+  }
+
+  // ── Email Templates ─────────────────────────────────────────
+  async getAllEmailTemplates(): Promise<any[]> {
+    return await db.select().from(emailTemplates).orderBy(desc(emailTemplates.createdAt));
+  }
+
+  async createEmailTemplate(data: any): Promise<any> {
+    const [row] = await db.insert(emailTemplates).values({ ...data, id: crypto.randomUUID() }).returning();
+    return row;
+  }
+
+  async updateEmailTemplate(id: string, data: any): Promise<any> {
+    const [row] = await db.update(emailTemplates).set({ ...data, updatedAt: new Date() }).where(eq(emailTemplates.id, id)).returning();
+    return row;
+  }
+
+  async deleteEmailTemplate(id: string): Promise<void> {
+    await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+  }
+
+  // ── Email Campaigns ─────────────────────────────────────────
+  async getAllEmailCampaigns(): Promise<any[]> {
+    return await db.select().from(emailCampaigns).orderBy(desc(emailCampaigns.createdAt));
+  }
+
+  async getEmailCampaign(id: string): Promise<any> {
+    const [row] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
+    return row;
+  }
+
+  async createEmailCampaign(data: any): Promise<any> {
+    const [row] = await db.insert(emailCampaigns).values({ ...data, id: crypto.randomUUID() }).returning();
+    return row;
+  }
+
+  async updateEmailCampaign(id: string, data: any): Promise<any> {
+    const [row] = await db.update(emailCampaigns).set({ ...data, updatedAt: new Date() }).where(eq(emailCampaigns.id, id)).returning();
+    return row;
+  }
+
+  async deleteEmailCampaign(id: string): Promise<void> {
+    await db.delete(emailCampaigns).where(eq(emailCampaigns.id, id));
+  }
+
+  // ── Email Auto-Responders ───────────────────────────────────
+  async getAllEmailAutoResponders(): Promise<any[]> {
+    return await db.select().from(emailAutoResponders).orderBy(desc(emailAutoResponders.createdAt));
+  }
+
+  async createEmailAutoResponder(data: any): Promise<any> {
+    const [row] = await db.insert(emailAutoResponders).values({ ...data, id: crypto.randomUUID() }).returning();
+    return row;
+  }
+
+  async updateEmailAutoResponder(id: string, data: any): Promise<any> {
+    const [row] = await db.update(emailAutoResponders).set({ ...data, updatedAt: new Date() }).where(eq(emailAutoResponders.id, id)).returning();
+    return row;
+  }
+
+  async deleteEmailAutoResponder(id: string): Promise<void> {
+    await db.delete(emailAutoResponders).where(eq(emailAutoResponders.id, id));
+  }
+
+  // ── Email Logs ──────────────────────────────────────────────
+  async getEmailLogs(limit = 100): Promise<any[]> {
+    return await db.select().from(emailLogs).orderBy(desc(emailLogs.sentAt)).limit(limit);
+  }
+
+  async getEmailLogsByCampaign(campaignId: string): Promise<any[]> {
+    return await db.select().from(emailLogs).where(eq(emailLogs.campaignId, campaignId)).orderBy(desc(emailLogs.sentAt));
   }
 }
 

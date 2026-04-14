@@ -55,6 +55,7 @@ import UnifiedProfile from "@/pages/unified-profile";
 import TasksPage from "@/pages/tasks";
 import AdminPayments from "@/pages/admin-payments";
 import AdminAds from "@/pages/admin-ads";
+import AdminEmail from "@/pages/admin-email";
 import AdvertiseWithUs from "@/pages/advertise-with-us";
 
 function Router() {
@@ -132,6 +133,7 @@ function Router() {
           <Route path="/admin/courses" component={AdminCourses} />
           <Route path="/admin/payments" component={AdminPayments} />
           <Route path="/admin/ads" component={AdminAds} />
+          <Route path="/admin/email" component={AdminEmail} />
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />

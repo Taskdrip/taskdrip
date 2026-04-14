@@ -4610,6 +4610,212 @@ Instructions:
     }
   });
 
+  // ──────────────────────────────────────────────────────────────
+  // Email Marketing CRM
+  // ──────────────────────────────────────────────────────────────
+  const { sendEmail, testSmtpConnection, blastCampaign, AI_TEMPLATES, buildDefaultEmailHtml } = await import("./email-service");
+
+  // Email Settings
+  app.get('/api/admin/email/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const settings = await storage.getEmailSettings();
+      // Mask password in response
+      if (settings?.smtpPass) settings.smtpPass = '••••••••';
+      if (settings?.imapPass) settings.imapPass = '••••••••';
+      res.json(settings || {});
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch email settings' }); }
+  });
+
+  app.post('/api/admin/email/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const data: any = { ...req.body };
+      // Don't overwrite passwords if masked
+      const existing = await storage.getEmailSettings();
+      if (data.smtpPass === '••••••••' && existing?.smtpPass) data.smtpPass = existing.smtpPass;
+      if (data.imapPass === '••••••••' && existing?.imapPass) data.imapPass = existing.imapPass;
+      const settings = await storage.upsertEmailSettings(data);
+      res.json(settings);
+    } catch (e) { res.status(500).json({ message: 'Failed to save email settings' }); }
+  });
+
+  app.post('/api/admin/email/test-smtp', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const data: any = { ...req.body };
+      if (data.smtpPass === '••••••••') {
+        const existing = await storage.getEmailSettings();
+        if (existing?.smtpPass) data.smtpPass = existing.smtpPass;
+      }
+      const result = await testSmtpConnection(data);
+      if (result.success) {
+        await storage.upsertEmailSettings({ lastTestedAt: new Date(), isVerified: true });
+      }
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.post('/api/admin/email/send-test', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { to, subject, html } = req.body;
+      const result = await sendEmail({ to, subject, html: html || '<p>Test email from Taskdrip Email CRM.</p>' });
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  // Email Templates
+  app.get('/api/admin/email/templates', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const templates = await storage.getAllEmailTemplates();
+      res.json(templates);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch templates' }); }
+  });
+
+  app.get('/api/admin/email/ai-templates', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      res.json(AI_TEMPLATES);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch AI templates' }); }
+  });
+
+  app.post('/api/admin/email/templates', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const t = await storage.createEmailTemplate(req.body);
+      res.json(t);
+    } catch (e) { res.status(500).json({ message: 'Failed to create template' }); }
+  });
+
+  app.patch('/api/admin/email/templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const t = await storage.updateEmailTemplate(req.params.id, req.body);
+      res.json(t);
+    } catch (e) { res.status(500).json({ message: 'Failed to update template' }); }
+  });
+
+  app.delete('/api/admin/email/templates/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteEmailTemplate(req.params.id);
+      res.json({ success: true });
+    } catch (e) { res.status(500).json({ message: 'Failed to delete template' }); }
+  });
+
+  // Email Campaigns
+  app.get('/api/admin/email/campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const campaigns = await storage.getAllEmailCampaigns();
+      res.json(campaigns);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch campaigns' }); }
+  });
+
+  app.post('/api/admin/email/campaigns', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const c = await storage.createEmailCampaign({ ...req.body, createdBy: req.user.id });
+      res.json(c);
+    } catch (e) { res.status(500).json({ message: 'Failed to create campaign' }); }
+  });
+
+  app.patch('/api/admin/email/campaigns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const c = await storage.updateEmailCampaign(req.params.id, req.body);
+      res.json(c);
+    } catch (e) { res.status(500).json({ message: 'Failed to update campaign' }); }
+  });
+
+  app.delete('/api/admin/email/campaigns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteEmailCampaign(req.params.id);
+      res.json({ success: true });
+    } catch (e) { res.status(500).json({ message: 'Failed to delete campaign' }); }
+  });
+
+  app.post('/api/admin/email/campaigns/:id/send', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      // Run blast in background, return immediately
+      res.json({ success: true, message: 'Campaign blast started' });
+      blastCampaign(req.params.id).catch(console.error);
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  app.get('/api/admin/email/campaigns/:id/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const logs = await storage.getEmailLogsByCampaign(req.params.id);
+      res.json(logs);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch logs' }); }
+  });
+
+  // Auto-Responders
+  app.get('/api/admin/email/auto-responders', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ar = await storage.getAllEmailAutoResponders();
+      res.json(ar);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch auto-responders' }); }
+  });
+
+  app.post('/api/admin/email/auto-responders', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ar = await storage.createEmailAutoResponder(req.body);
+      res.json(ar);
+    } catch (e) { res.status(500).json({ message: 'Failed to create auto-responder' }); }
+  });
+
+  app.patch('/api/admin/email/auto-responders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ar = await storage.updateEmailAutoResponder(req.params.id, req.body);
+      res.json(ar);
+    } catch (e) { res.status(500).json({ message: 'Failed to update auto-responder' }); }
+  });
+
+  app.delete('/api/admin/email/auto-responders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteEmailAutoResponder(req.params.id);
+      res.json({ success: true });
+    } catch (e) { res.status(500).json({ message: 'Failed to delete auto-responder' }); }
+  });
+
+  // Email Logs
+  app.get('/api/admin/email/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const logs = await storage.getEmailLogs(200);
+      res.json(logs);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch logs' }); }
+  });
+
+  // Contacts (from users table)
+  app.get('/api/admin/email/contacts', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const allUsers = await storage.getAllUsers?.() || [];
+      const contacts = allUsers.map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        userType: u.userType,
+        creatorTier: u.creatorTier,
+        isVerified: u.isVerified,
+        totalFollowers: u.totalFollowers,
+      }));
+      res.json(contacts);
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch contacts' }); }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
