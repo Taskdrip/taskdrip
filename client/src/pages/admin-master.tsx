@@ -30,7 +30,8 @@ import {
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
-  Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone
+  Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
+  Briefcase
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -514,6 +515,33 @@ export default function AdminMaster() {
   const { data: adminFeedPosts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/feed-posts"],
     retry: false,
+  });
+
+  const { data: adminDirectHires = [], refetch: refetchDirectHires } = useQuery<any[]>({
+    queryKey: ["/api/admin/direct-hire"],
+    retry: false,
+  });
+
+  const [directHireNoteMap, setDirectHireNoteMap] = useState<Record<string, string>>({});
+
+  const activateDirectHireMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: string; note: string }) =>
+      (await apiRequest("PATCH", `/api/admin/direct-hire/${id}/activate`, { note })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      toast({ title: "Project Activated!", description: "Payment confirmed and project is now live." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectDirectHirePaymentMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: string; note: string }) =>
+      (await apiRequest("PATCH", `/api/admin/direct-hire/${id}/reject-payment`, { note })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      toast({ title: "Payment Rejected", description: "Brand has been notified to resubmit proof." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   // Admin mutations
@@ -1188,6 +1216,7 @@ export default function AdminMaster() {
                 { value: "tasks", icon: <CheckSquare className="h-3.5 w-3.5" />, label: "Tasks Mgmt" },
                 { value: "networks", icon: <Globe className="h-3.5 w-3.5" />, label: "Networks" },
                 { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
+                { value: "direct-hires", icon: <Briefcase className="h-3.5 w-3.5" />, label: "Direct Hires" },
                 { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
                 { value: "courses", icon: <GraduationCap className="h-3.5 w-3.5" />, label: "BreedSkool" },
@@ -4181,6 +4210,120 @@ export default function AdminMaster() {
           {/* ── PWA SETTINGS TAB ── */}
           <TabsContent value="pwa" className="space-y-6">
             <PWASettingsPanel />
+          </TabsContent>
+
+          {/* ── DIRECT HIRES TAB ── */}
+          <TabsContent value="direct-hires" className="space-y-6">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-purple-400" /> Direct Hire Offers
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Review and approve payment submissions from brands to activate projects.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {adminDirectHires.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-8">No direct hire offers yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {adminDirectHires.map((offer: any) => {
+                      const statusColors: Record<string, string> = {
+                        pending: "bg-yellow-900 text-yellow-300",
+                        accepted: "bg-blue-900 text-blue-300",
+                        payment_submitted: "bg-purple-900 text-purple-300",
+                        active: "bg-green-900 text-green-300",
+                        rejected: "bg-red-900 text-red-300",
+                        completed: "bg-gray-700 text-gray-300",
+                      };
+                      const note = directHireNoteMap[offer.id] || "";
+                      return (
+                        <Card key={offer.id} className="bg-gray-800 border-gray-700">
+                          <CardContent className="p-5 space-y-3">
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div>
+                                <p className="font-semibold text-white">{offer.title}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  Brand: {offer.brand?.companyName || `${offer.brand?.firstName} ${offer.brand?.lastName}`} →
+                                  Influencer: {offer.influencer?.firstName} {offer.influencer?.lastName}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-green-400 font-bold">${Number(offer.budget).toFixed(2)}</span>
+                                <Badge className={`text-xs ${statusColors[offer.status] || "bg-gray-700 text-gray-300"}`}>
+                                  {offer.status.replace(/_/g, " ")}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {offer.status === "payment_submitted" && (
+                              <div className="space-y-3 border-t border-gray-700 pt-3">
+                                {offer.transactionHash && (
+                                  <div className="bg-gray-900 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">Transaction Hash</p>
+                                    <p className="text-xs font-mono text-gray-200 break-all">{offer.transactionHash}</p>
+                                  </div>
+                                )}
+                                {offer.paymentProof && (
+                                  <div>
+                                    <p className="text-xs text-gray-400 mb-1">Payment Screenshot</p>
+                                    <a href={offer.paymentProof} target="_blank" rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
+                                      <Eye className="w-3 h-3" /> View Proof
+                                    </a>
+                                  </div>
+                                )}
+                                {offer.paymentNetwork && (
+                                  <p className="text-xs text-gray-400">Network: <span className="text-gray-200">{offer.paymentNetwork.toUpperCase()}</span></p>
+                                )}
+                                <div>
+                                  <label className="text-xs text-gray-400 block mb-1">Admin Note (optional)</label>
+                                  <input
+                                    type="text"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500"
+                                    placeholder="Add a note for the brand..."
+                                    value={note}
+                                    onChange={e => setDirectHireNoteMap(m => ({ ...m, [offer.id]: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    disabled={activateDirectHireMutation.isPending}
+                                    onClick={() => activateDirectHireMutation.mutate({ id: offer.id, note })}
+                                    data-testid={`btn-approve-direct-hire-${offer.id}`}
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> Approve & Activate
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-700 text-red-400 hover:bg-red-900/30"
+                                    disabled={rejectDirectHirePaymentMutation.isPending}
+                                    onClick={() => rejectDirectHirePaymentMutation.mutate({ id: offer.id, note })}
+                                    data-testid={`btn-reject-direct-hire-${offer.id}`}
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 mr-1" /> Reject Payment
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+
+                            {offer.status !== "payment_submitted" && offer.adminNote && (
+                              <p className="text-xs text-gray-400 border-t border-gray-700 pt-2">
+                                Admin note: {offer.adminNote}
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
         </Tabs>

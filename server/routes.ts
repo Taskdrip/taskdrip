@@ -4160,8 +4160,8 @@ Instructions:
         userId: influencerId,
         type: 'direct_hire_offer',
         title: '💼 New Hire Offer!',
-        message: `${req.user.firstName} ${req.user.lastName} wants to hire you for: "${title}"`,
-        data: { offerId: offer.id },
+        content: `${req.user.firstName} ${req.user.lastName} wants to hire you for: "${title}"`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       res.json(offer);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -4224,8 +4224,8 @@ Instructions:
         userId: offer.brandId,
         type: 'direct_hire_accepted',
         title: '🎉 Offer Accepted!',
-        message: `${req.user.firstName} accepted your hire offer "${offer.title}". Please proceed to payment.`,
-        data: { offerId: offer.id },
+        content: `${req.user.firstName} accepted your hire offer "${offer.title}". Please proceed to payment.`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -4244,8 +4244,8 @@ Instructions:
         userId: offer.brandId,
         type: 'direct_hire_rejected',
         title: '❌ Offer Declined',
-        message: `${req.user.firstName} declined your hire offer "${offer.title}".`,
-        data: { offerId: offer.id },
+        content: `${req.user.firstName} declined your hire offer "${offer.title}".`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -4273,8 +4273,8 @@ Instructions:
           userId: admin.id,
           type: 'direct_hire_payment',
           title: '💰 Direct Hire Payment Submitted',
-          message: `Brand "${req.user.firstName}" submitted payment for offer "${offer.title}". Please verify.`,
-          data: { offerId: offer.id },
+          content: `Brand "${req.user.firstName}" submitted payment for offer "${offer.title}". Please verify.`,
+          actionUrl: `/admin?tab=direct-hires`,
         });
       }
       // Notify influencer
@@ -4282,8 +4282,8 @@ Instructions:
         userId: offer.influencerId,
         type: 'direct_hire_payment',
         title: '💳 Payment Submitted',
-        message: `Payment has been submitted for your project "${offer.title}". Awaiting admin confirmation.`,
-        data: { offerId: offer.id },
+        content: `Payment has been submitted for your project "${offer.title}". Awaiting admin confirmation.`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -4305,15 +4305,15 @@ Instructions:
         userId: offer.brandId,
         type: 'direct_hire_active',
         title: '✅ Project Activated!',
-        message: `Your payment was confirmed. Project "${offer.title}" is now active!`,
-        data: { offerId: offer.id },
+        content: `Your payment was confirmed. Project "${offer.title}" is now active!`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       await storage.createNotification({
         userId: offer.influencerId,
         type: 'direct_hire_active',
         title: '🚀 Project Started!',
-        message: `Payment confirmed. Your project "${offer.title}" is now officially active!`,
-        data: { offerId: offer.id },
+        content: `Payment confirmed. Your project "${offer.title}" is now officially active!`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -4333,8 +4333,8 @@ Instructions:
         userId: offer.brandId,
         type: 'direct_hire_payment_failed',
         title: '⚠️ Payment Verification Failed',
-        message: `Your payment for "${offer.title}" could not be verified. Please resubmit proof.`,
-        data: { offerId: offer.id },
+        content: `Your payment for "${offer.title}" could not be verified. Please resubmit proof.`,
+        actionUrl: `/direct-hire/${offer.id}`,
       });
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
