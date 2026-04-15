@@ -2964,6 +2964,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/ledger', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const isAdmin = user.userType === 'admin';
+      const transactionsList = isAdmin ? await storage.getAllTransactions() : await storage.getUserTransactions(req.user.id);
+      const payoutRequestsList = isAdmin ? await storage.getAllPayoutRequests() : await storage.getUserPayoutRequests(req.user.id);
+      const directHireOffersList = isAdmin
+        ? await storage.getAllDirectHireOffers()
+        : user.userType === 'brand'
+          ? await storage.getDirectHireOffersByBrand(req.user.id)
+          : await storage.getDirectHireOffersByInfluencer(req.user.id);
+
+      const allEscrowPayments = await (storage as any).getAllEscrowPayments();
+      const escrowPaymentsList = isAdmin
+        ? allEscrowPayments
+        : user.userType === 'brand'
+          ? allEscrowPayments.filter((payment: any) => payment.brandId === req.user.id)
+          : [];
+
+      const enrichedEscrowPayments = await Promise.all(escrowPaymentsList.map(async (payment: any) => {
+        const campaign = payment.campaignId ? await storage.getCampaignById(payment.campaignId) : null;
+        const brand = isAdmin && payment.brandId ? await storage.getUser(payment.brandId) : null;
+        return {
+          ...payment,
+          campaign: campaign ? {
+            id: campaign.id,
+            title: campaign.title,
+            reward: campaign.reward,
+            totalSlots: campaign.totalSlots,
+            status: campaign.status,
+          } : null,
+          brand: brand ? {
+            id: brand.id,
+            firstName: brand.firstName,
+            lastName: brand.lastName,
+            companyName: brand.companyName,
+            email: brand.email,
+          } : null,
+        };
+      }));
+
+      const { password, ...safeUser } = user as any;
+      res.json({
+        user: safeUser,
+        transactions: transactionsList,
+        payoutRequests: payoutRequestsList,
+        directHireOffers: directHireOffersList,
+        escrowPayments: enrichedEscrowPayments,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching ledger:", error);
+      res.status(500).json({ message: "Failed to fetch ledger" });
+    }
+  });
+
   app.post('/api/payout-requests', isAuthenticated, async (req: any, res) => {
     try {
       const { amount, network, walletAddress } = req.body;

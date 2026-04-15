@@ -246,6 +246,9 @@ export default function SimpleDashboard() {
               <Link href="/payout-requests">
                 <Button variant="outline" data-testid="button-open-payouts">Withdraw</Button>
               </Link>
+              <Link href="/ledger">
+                <Button className="bg-black text-white hover:bg-gray-800" data-testid="button-open-ledger">View ledger</Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

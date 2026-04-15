@@ -212,6 +212,13 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Campaign Launch Alerts**: Admin-created campaigns trigger push alerts to subscribed creators with a direct link to the campaign.
 ✓ **Prompt Customization**: PWA/push opt-in prompt supports admin-controlled title, message, background image, delay timing, and scroll trigger percentage; default prompt is set to a 30-second high-conversion Web3 campaign alert.
 
+## Escrow Ledger System (April 2026)
+
+✓ **Unified Ledger Page**: `/ledger` now gives admins, brands, and creators one place to review balances, pending escrow, completed earnings, platform fees, payout requests, direct-hire escrow, and campaign escrow.
+✓ **Ledger API**: Added authenticated `/api/ledger` endpoint that returns role-scoped transactions, payout requests, direct-hire offers, and campaign escrow payments using existing tables.
+✓ **Campaign Escrow Visibility**: Ledger activity includes campaign escrow funding records with campaign/brand context for admins and brand-specific escrow rows for brands.
+✓ **Navigation Access**: Ledger is available from the main navigation, account dropdown, wallet settings, and creator dashboard wallet card.
+
 ## External Dependencies
 
 ### Core Dependencies

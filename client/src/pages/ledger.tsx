@@ -16,12 +16,13 @@ type LedgerData = {
   transactions: any[];
   payoutRequests: any[];
   directHireOffers: any[];
+  escrowPayments: any[];
   generatedAt: string;
 };
 
 type LedgerEntry = {
   id: string;
-  source: "transaction" | "payout" | "direct_hire";
+  source: "transaction" | "payout" | "direct_hire" | "campaign_escrow";
   type: string;
   title: string;
   amount: number;
@@ -36,6 +37,7 @@ type LedgerEntry = {
 const creditTypes = new Set(["campaign_reward", "bonus", "direct_hire_payout", "platform_revenue", "platform_tip"]);
 const debitTypes = new Set(["payout", "platform_fee", "direct_hire_escrow", "direct_hire_deposit", "campaign_deposit"]);
 const activeDirectHireStatuses = new Set(["payment_submitted", "active", "work_submitted", "revision_requested"]);
+const activeEscrowStatuses = new Set(["pending", "payment_window", "verifying", "submitted", "verified", "approved", "completed"]);
 
 function money(value: unknown) {
   const amount = Number(value || 0);
@@ -139,7 +141,25 @@ export default function LedgerPage() {
         };
       });
 
-    return [...transactionEntries, ...payoutEntries, ...directHireEntries].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    const escrowEntries = (data.escrowPayments || []).map((payment) => {
+      const campaignTitle = payment.campaign?.title || "Campaign";
+      const brandName = payment.brand?.companyName || [payment.brand?.firstName, payment.brand?.lastName].filter(Boolean).join(" ");
+      return {
+        id: `escrow-${payment.id}`,
+        source: "campaign_escrow" as const,
+        type: "campaign_escrow",
+        title: userType === "admin" && brandName ? `Campaign escrow: ${campaignTitle} by ${brandName}` : `Campaign escrow: ${campaignTitle}`,
+        amount: numberValue(payment.amount),
+        direction: userType === "brand" ? "out" as const : "hold" as const,
+        status: payment.status || "pending",
+        date: payment.verifiedAt || payment.submittedAt || payment.updatedAt || payment.createdAt,
+        description: payment.transactionHash ? `Payment proof submitted with transaction ${payment.transactionHash}` : "Campaign funding held for creator rewards and platform fees.",
+        href: payment.campaignId ? `/campaigns/${payment.campaignId}` : undefined,
+        network: payment.network,
+      };
+    });
+
+    return [...transactionEntries, ...payoutEntries, ...directHireEntries, ...escrowEntries].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
   }, [data, user.id, userType]);
 
   const visibleEntries = entries.filter((entry) => filter === "all" || entry.direction === filter || entry.source === filter);
@@ -148,6 +168,7 @@ export default function LedgerPage() {
     const transactions = data?.transactions || [];
     const payouts = data?.payoutRequests || [];
     const directHires = data?.directHireOffers || [];
+    const escrowPayments = data?.escrowPayments || [];
     const completedCredits = transactions
       .filter((transaction) => creditTypes.has(transaction.type) && ["completed", "approved"].includes(transaction.status))
       .reduce((sum, transaction) => sum + numberValue(transaction.amount), 0);
@@ -163,15 +184,21 @@ export default function LedgerPage() {
         const isCreator = offer.influencerId === user.id;
         return sum + (isCreator ? numberValue(offer.influencerPayout || numberValue(offer.budget) * 0.9) : numberValue(offer.brandTotalCharge || numberValue(offer.budget) * 1.1));
       }, 0);
+    const campaignEscrowInProgress = escrowPayments
+      .filter((payment) => activeEscrowStatuses.has(payment.status))
+      .reduce((sum, payment) => sum + numberValue(payment.amount), 0);
+    const directHireFees = directHires
+      .filter((offer) => ["completed", "active", "work_submitted", "revision_requested"].includes(offer.status))
+      .reduce((sum, offer) => sum + numberValue(offer.brandPlatformFee) + numberValue(offer.platformFeeAmount), 0);
 
     return {
       availableBalance: numberValue(user.availableBalance),
       pendingBalance: numberValue(user.pendingBalance),
       totalEarned: numberValue(user.totalEarned) || completedCredits,
       completedCredits,
-      completedFees,
+      completedFees: completedFees + directHireFees,
       pendingWithdrawals,
-      escrowInProgress,
+      escrowInProgress: escrowInProgress + campaignEscrowInProgress,
       payoutCount: payouts.length,
     };
   }, [data, user]);
@@ -314,6 +341,7 @@ export default function LedgerPage() {
                       <SelectItem value="hold">Escrow holds</SelectItem>
                       <SelectItem value="payout">Payout requests</SelectItem>
                       <SelectItem value="direct_hire">Direct hire escrow</SelectItem>
+                      <SelectItem value="campaign_escrow">Campaign escrow</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="mt-4 text-sm text-gray-500" data-testid="text-ledger-generated">
