@@ -268,7 +268,9 @@ export default function CreatorProfile() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
-  const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', url: '', category: '' });
+  const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
+  const [portfolioImageFile, setPortfolioImageFile] = useState<File | null>(null);
+  const [portfolioImagePreview, setPortfolioImagePreview] = useState<string>('');
 
   const { data: profile, isLoading } = useQuery<any>({
     queryKey: [`/api/creators/${id}/profile`],
@@ -319,13 +321,23 @@ export default function CreatorProfile() {
 
   const createPortfolioMutation = useMutation({
     mutationFn: async () => {
+      if (portfolioImageFile) {
+        const fd = new FormData();
+        fd.append('image', portfolioImageFile);
+        Object.entries(portfolioForm).forEach(([k, v]) => { if (v) fd.append(k, v); });
+        const res = await fetch('/api/portfolio', { method: 'POST', body: fd, credentials: 'include' });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
       const res = await apiRequest("POST", "/api/portfolio", portfolioForm);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
       setPortfolioDialogOpen(false);
-      setPortfolioForm({ title: '', description: '', imageUrl: '', url: '', category: '' });
+      setPortfolioForm({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
+      setPortfolioImageFile(null);
+      setPortfolioImagePreview('');
       toast({ title: "Portfolio item added!" });
     },
     onError: () => toast({ title: "Failed to add portfolio item", variant: "destructive" }),
@@ -723,28 +735,61 @@ export default function CreatorProfile() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {profile.portfolio.map((item: any) => (
-                  <a key={item.id} href={item.url || '#'} target={item.url ? "_blank" : undefined} rel="noopener noreferrer" className="group block">
-                    <Card className="overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                      {item.imageUrl && (
-                        <div className="aspect-video overflow-hidden">
+              <div className="space-y-4">
+                {isOwnProfile && (
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="outline" className="gap-2 border-purple-200 text-purple-600 hover:bg-purple-50" onClick={() => setPortfolioDialogOpen(true)} data-testid="button-add-portfolio-more">
+                      <span className="text-lg leading-none">+</span> Add Item
+                    </Button>
+                  </div>
+                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {profile.portfolio.map((item: any) => {
+                  const ytId = item.videoUrl ? extractYouTubeId(item.videoUrl) : null;
+                  const cardContent = (
+                    <Card className="overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full" data-testid={`card-portfolio-${item.id}`}>
+                      {/* YouTube embed takes priority over image */}
+                      {ytId ? (
+                        <div className="aspect-video w-full bg-black overflow-hidden">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${ytId}`}
+                            title={item.title}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-full"
+                            onClick={e => e.stopPropagation()}
+                          />
+                        </div>
+                      ) : item.imageUrl ? (
+                        <div className="aspect-video overflow-hidden bg-gray-100">
                           <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        </div>
+                      ) : (
+                        <div className="aspect-video overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
+                          <Briefcase className="w-10 h-10 text-purple-200" />
                         </div>
                       )}
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <h3 className="font-bold text-gray-900 text-sm truncate">{item.title}</h3>
                             {item.category && <Badge variant="outline" className="text-xs mt-1">{item.category}</Badge>}
                             {item.description && <p className="text-gray-500 text-xs mt-2 line-clamp-2">{item.description}</p>}
                           </div>
-                          {item.url && <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-purple-500 flex-shrink-0 mt-0.5 transition-colors" />}
+                          {item.url && !ytId && <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-purple-500 flex-shrink-0 mt-0.5 transition-colors" />}
                         </div>
                       </CardContent>
                     </Card>
-                  </a>
-                ))}
+                  );
+                  // For YouTube cards, wrap without anchor so iframe clicks work
+                  if (ytId) return <div key={item.id} className="group">{cardContent}</div>;
+                  return (
+                    <a key={item.id} href={item.url || '#'} target={item.url ? "_blank" : undefined} rel="noopener noreferrer" className="group block">
+                      {cardContent}
+                    </a>
+                  );
+                })}
+              </div>
               </div>
             )}
           </TabsContent>
@@ -1001,8 +1046,15 @@ export default function CreatorProfile() {
             )}
           </TabsContent>
         </Tabs>
-        <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
-          <DialogContent className="max-w-lg">
+        <Dialog open={portfolioDialogOpen} onOpenChange={(open) => {
+          setPortfolioDialogOpen(open);
+          if (!open) {
+            setPortfolioForm({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
+            setPortfolioImageFile(null);
+            setPortfolioImagePreview('');
+          }
+        }}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Portfolio Item</DialogTitle>
             </DialogHeader>
@@ -1013,23 +1065,79 @@ export default function CreatorProfile() {
               </div>
               <div>
                 <Label>Category</Label>
-                <Input value={portfolioForm.category} onChange={e => setPortfolioForm(p => ({ ...p, category: e.target.value }))} placeholder="Video, Social Media, Blog" className="mt-1" data-testid="input-portfolio-category-profile" />
+                <Input value={portfolioForm.category} onChange={e => setPortfolioForm(p => ({ ...p, category: e.target.value }))} placeholder="Video, Social Media, Blog, Photography…" className="mt-1" data-testid="input-portfolio-category-profile" />
               </div>
               <div>
                 <Label>Description</Label>
                 <Textarea value={portfolioForm.description} onChange={e => setPortfolioForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe the work and results..." rows={3} className="mt-1" data-testid="textarea-portfolio-description-profile" />
               </div>
+
+              {/* Image section — upload OR external URL */}
+              <div className="space-y-2">
+                <Label>Cover Image</Label>
+                {/* File upload */}
+                <div
+                  className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-purple-400 transition-colors"
+                  onClick={() => document.getElementById('portfolio-image-input')?.click()}
+                  data-testid="dropzone-portfolio-image"
+                >
+                  {portfolioImagePreview ? (
+                    <div className="relative">
+                      <img src={portfolioImagePreview} alt="Preview" className="mx-auto max-h-36 object-contain rounded-lg" />
+                      <button type="button" onClick={e => { e.stopPropagation(); setPortfolioImageFile(null); setPortfolioImagePreview(''); }}
+                        className="absolute top-1 right-1 bg-white/80 rounded-full p-1 text-gray-500 hover:text-red-500">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-gray-400 py-2">
+                      <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center mb-1">
+                        <Share2 className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Click to upload an image</p>
+                      <p className="text-xs">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                  )}
+                  <input id="portfolio-image-input" type="file" accept="image/*" className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setPortfolioImageFile(file);
+                      const reader = new FileReader();
+                      reader.onload = ev => setPortfolioImagePreview(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                      setPortfolioForm(p => ({ ...p, imageUrl: '' }));
+                    }}
+                    data-testid="input-portfolio-image-file"
+                  />
+                </div>
+                {/* OR external URL */}
+                {!portfolioImageFile && (
+                  <div>
+                    <p className="text-xs text-gray-400 text-center mb-1">— or paste an image URL —</p>
+                    <Input value={portfolioForm.imageUrl} onChange={e => setPortfolioForm(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://images.unsplash.com/..." className="mt-1" data-testid="input-portfolio-image-url" />
+                  </div>
+                )}
+              </div>
+
+              {/* Featured YouTube Video */}
               <div>
-                <Label>Project URL</Label>
+                <Label className="flex items-center gap-1.5">
+                  <SiYoutube className="w-4 h-4 text-red-500" />
+                  Featured YouTube Video
+                </Label>
+                <Input value={portfolioForm.videoUrl} onChange={e => setPortfolioForm(p => ({ ...p, videoUrl: e.target.value }))} placeholder="https://youtube.com/watch?v=... or youtu.be/..." className="mt-1" data-testid="input-portfolio-video-url" />
+                <p className="text-xs text-gray-400 mt-1">Paste a YouTube link to embed the video directly in your portfolio card.</p>
+              </div>
+
+              <div>
+                <Label>Project / Campaign Link</Label>
                 <Input value={portfolioForm.url} onChange={e => setPortfolioForm(p => ({ ...p, url: e.target.value }))} placeholder="https://example.com/your-work" className="mt-1" data-testid="input-portfolio-url-profile" />
               </div>
-              <div>
-                <Label>Image URL</Label>
-                <Input value={portfolioForm.imageUrl} onChange={e => setPortfolioForm(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://images.unsplash.com/..." className="mt-1" data-testid="input-portfolio-image-profile" />
-              </div>
+
               <div className="flex gap-3 pt-2">
                 <Button onClick={() => createPortfolioMutation.mutate()} disabled={createPortfolioMutation.isPending || !portfolioForm.title.trim()} className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="button-save-portfolio-profile">
-                  {createPortfolioMutation.isPending ? "Saving..." : "Add to Portfolio"}
+                  {createPortfolioMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : "Add to Portfolio"}
                 </Button>
                 <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)} className="flex-1" data-testid="button-cancel-portfolio-profile">Cancel</Button>
               </div>

@@ -4091,16 +4091,28 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
-  app.post('/api/portfolio', isAuthenticated, async (req: any, res) => {
+  // Upload portfolio image — returns { url }
+  app.post('/api/portfolio/upload-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
-      const item = await storage.createPortfolioItem({ ...req.body, userId: req.user.id });
+      if (!req.file) return res.status(400).json({ message: 'No image file provided' });
+      res.json({ url: `/uploads/${req.file.filename}` });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/portfolio', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      const body = { ...req.body };
+      if (req.file) body.imageUrl = `/uploads/${req.file.filename}`;
+      const item = await storage.createPortfolioItem({ ...body, userId: req.user.id });
       res.json(item);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
-  app.put('/api/portfolio/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/portfolio/:id', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
-      const item = await storage.updatePortfolioItem(req.params.id, req.body);
+      const body = { ...req.body };
+      if (req.file) body.imageUrl = `/uploads/${req.file.filename}`;
+      const item = await storage.updatePortfolioItem(req.params.id, body);
       res.json(item);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });

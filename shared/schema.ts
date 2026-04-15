@@ -399,6 +399,7 @@ export const portfolioItems = pgTable("portfolio_items", {
   title: varchar("title").notNull(),
   description: text("description"),
   imageUrl: varchar("image_url"),
+  videoUrl: varchar("video_url", { length: 500 }),
   url: varchar("url", { length: 500 }),
   category: varchar("category"),
   sortOrder: integer("sort_order").default(0),
