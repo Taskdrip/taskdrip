@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
@@ -5,104 +6,248 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
-  ArrowRight, Star, Zap, Globe, Shield, TrendingUp, Users, DollarSign,
-  CheckCircle, Rocket, Target, Flame, Crown, Play, ChevronRight,
-  GraduationCap, ShoppingBag, Gift, Wallet, BarChart3, Lock, Sparkles,
-  Trophy, BookOpen, Package, MessageCircle, Clock,
+  ArrowRight, ChevronLeft, ChevronRight, Zap, Globe, Shield, TrendingUp,
+  Users, DollarSign, CheckCircle, Rocket, Target, Crown, Sparkles,
+  GraduationCap, ShoppingBag, Gift, Clock, Star,
 } from "lucide-react";
 
-const TIERS = [
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface Slide {
+  id: string;
+  badge?: string | null;
+  headline: string;
+  subheadline?: string | null;
+  ctaPrimaryLabel?: string | null;
+  ctaPrimaryLink?: string | null;
+  ctaSecondaryLabel?: string | null;
+  ctaSecondaryLink?: string | null;
+  backgroundImage?: string | null;
+  overlayColor?: string | null;
+  accentColor?: string | null;
+}
+
+// ─── Fallback slides (shown when DB has no sliders yet) ──────────────────────
+const DEFAULT_SLIDES: Slide[] = [
   {
-    key: "rising_sparks",
-    name: "Rising Sparks",
-    range: "10K – 100K",
-    gradient: "from-orange-500 to-amber-400",
-    glow: "shadow-orange-500/30",
-    accent: "text-orange-400",
-    border: "border-orange-500/30",
-    pill: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-    icon: "🔥",
-    desc: "Emerging creators building loyal, engaged audiences. Access entry-level campaigns and build your first verified portfolio.",
-    stat: "Entry-level",
-    img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600&q=80&auto=format&fit=crop"
+    id: "s1",
+    badge: "For Influencers",
+    headline: "Stop Getting Ghosted by Brands.",
+    subheadline: "You create the content. Brands earn the revenue. Yet you're still waiting on email replies. Taskdrip changes that — browse live paid campaigns, apply in one click, and get paid in USDT the moment your work is approved.",
+    ctaPrimaryLabel: "Start Earning Now",
+    ctaPrimaryLink: "/signup?type=creator",
+    ctaSecondaryLabel: "Browse Campaigns",
+    ctaSecondaryLink: "/campaigns",
+    backgroundImage: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-black/75 to-black/50",
+    accentColor: "from-orange-400 via-pink-400 to-purple-400",
   },
   {
-    key: "growth_engines",
-    name: "Growth Engines",
-    range: "100K – 1M",
-    gradient: "from-cyan-500 to-blue-500",
-    glow: "shadow-cyan-500/30",
-    accent: "text-cyan-400",
-    border: "border-cyan-500/30",
-    pill: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-    icon: "⚡",
-    desc: "Fast-rising influencers with high engagement rates. Unlock mid-tier campaigns with higher payouts and brand deals.",
-    stat: "Strong ROI",
-    img: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80&auto=format&fit=crop"
+    id: "s2",
+    badge: "For Brands",
+    headline: "Tired of Wasting Budget on Fake Influencers?",
+    subheadline: "Bots, inflated follower counts, zero engagement — traditional influencer marketing is broken. Taskdrip gives you access to verified creators, escrow-protected payments, and brand-first approval on every submission.",
+    ctaPrimaryLabel: "Launch a Campaign",
+    ctaPrimaryLink: "/signup?type=brand",
+    ctaSecondaryLabel: "See How It Works",
+    ctaSecondaryLink: "/how-it-works",
+    backgroundImage: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-black/75 to-black/50",
+    accentColor: "from-blue-400 via-cyan-400 to-emerald-400",
   },
   {
-    key: "power_influencers",
-    name: "Power Influencers",
-    range: "1M – 10M",
-    gradient: "from-violet-600 to-purple-500",
-    glow: "shadow-purple-500/30",
-    accent: "text-purple-400",
-    border: "border-purple-500/30",
-    pill: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-    icon: "💎",
-    desc: "Premium creators with massive reach. Priority placement, dedicated brand relationships, and top-tier campaign access.",
-    stat: "Top earners",
-    img: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=600&q=80&auto=format&fit=crop"
+    id: "s3",
+    badge: "Our Solution",
+    headline: "The Marketplace Where Influence Meets Opportunity.",
+    subheadline: "Taskdrip connects 10,000+ verified creators with brands ready to pay. Escrow-backed campaigns. Crypto payouts. Real-time tracking. No middlemen. No drama.",
+    ctaPrimaryLabel: "Join Free Today",
+    ctaPrimaryLink: "/signup",
+    ctaSecondaryLabel: "View Live Campaigns",
+    ctaSecondaryLink: "/campaigns",
+    backgroundImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-black/70 to-black/40",
+    accentColor: "from-purple-400 via-pink-400 to-orange-400",
   },
   {
-    key: "global_titans",
-    name: "Global Titans",
-    range: "10M+",
-    gradient: "from-yellow-400 to-orange-500",
-    glow: "shadow-yellow-500/30",
-    accent: "text-yellow-400",
-    border: "border-yellow-500/30",
-    pill: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-    icon: "👑",
-    desc: "Elite influencers with global cultural reach. Exclusive enterprise campaigns, custom deal structures, and maximum payouts.",
-    stat: "Elite access",
-    img: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&q=80&auto=format&fit=crop"
-  }
+    id: "s4",
+    badge: "BreedSkool Academy",
+    headline: "New to Influencing? Learn from the Best.",
+    subheadline: "BreedSkool is our exclusive mentorship platform where thriving influencers teach the next generation. Access video courses, masterclasses, and live sessions on Instagram, TikTok, YouTube, and monetization — all in one place.",
+    ctaPrimaryLabel: "Explore Courses",
+    ctaPrimaryLink: "/breedskool",
+    ctaSecondaryLabel: "Become a Mentor",
+    ctaSecondaryLink: "/signup?type=creator",
+    backgroundImage: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-indigo-900/60 to-black/50",
+    accentColor: "from-indigo-400 via-blue-400 to-cyan-400",
+  },
+  {
+    id: "s5",
+    badge: "Creator Shop",
+    headline: "Tools Built for Creators Who Mean Business.",
+    subheadline: "Our Shop is stocked with premium templates, plugins, scripts, and digital tools handpicked for influencer success. Buy, sell, or download — everything you need to level up your content game.",
+    ctaPrimaryLabel: "Browse the Shop",
+    ctaPrimaryLink: "/shop",
+    ctaSecondaryLabel: "Sell Your Products",
+    ctaSecondaryLink: "/signup?type=creator",
+    backgroundImage: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-black/70 to-black/50",
+    accentColor: "from-emerald-400 via-teal-400 to-cyan-400",
+  },
 ];
 
-const CREATOR_STEPS = [
-  { num: "01", title: "Build Your Influencer Profile", desc: "Sign up, link your social channels and follower counts. Auto-classified into your tier instantly — no gatekeepers." },
-  { num: "02", title: "Join Brand Campaigns", desc: "Browse live tasks matching your niche and tier. Apply with one tap — direct access to brand campaigns, no third-party agencies." },
-  { num: "03", title: "Complete Tasks & Submit Proof", desc: "Post content, then submit your link or screenshot as proof. The brand reviews your submission directly." },
-  { num: "04", title: "Earn Crypto Instantly", desc: "Once the brand approves, funds go straight to your wallet — USDT TRC-20, BEP-20, ERC-20, or USDT on TON Network." },
-];
+// ─── Hero Slider ──────────────────────────────────────────────────────────────
+function HeroSlider({ slides }: { slides: Slide[] }) {
+  const [current, setCurrent] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-const BRAND_STEPS = [
-  { num: "01", title: "Post Your Campaign", desc: "Set your budget, task requirements, and target influencer tier in minutes. Go live same day via escrow." },
-  { num: "02", title: "Reach Verified Influencers", desc: "Filter our 10K+ creator database by tier, niche, platform, location, and follower count." },
-  { num: "03", title: "Review & Approve Submissions", desc: "You are the primary reviewer — approve or reject each submission with full transparency. Pay only for results you're satisfied with." },
-  { num: "04", title: "Scale Your Reach", desc: "Run multiple campaigns simultaneously. Admin mediates any disputes so you never have to chase creators." },
-];
+  const goTo = useCallback((idx: number) => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrent(idx);
+      setIsTransitioning(false);
+    }, 300);
+  }, [isTransitioning]);
 
-const NICHES = [
-  { name: "Gaming", img: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=300&q=70&auto=format&fit=crop", color: "from-purple-600 to-indigo-700" },
-  { name: "Fitness", img: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&q=70&auto=format&fit=crop", color: "from-green-500 to-emerald-600" },
-  { name: "Fashion", img: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=300&q=70&auto=format&fit=crop", color: "from-pink-500 to-rose-600" },
-  { name: "Tech", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&q=70&auto=format&fit=crop", color: "from-blue-500 to-cyan-600" },
-  { name: "Beauty", img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&q=70&auto=format&fit=crop", color: "from-rose-400 to-pink-600" },
-  { name: "Travel", img: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=300&q=70&auto=format&fit=crop", color: "from-sky-500 to-blue-600" },
-  { name: "Food", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&q=70&auto=format&fit=crop", color: "from-orange-500 to-amber-600" },
-  { name: "Finance", img: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=300&q=70&auto=format&fit=crop", color: "from-emerald-600 to-teal-700" },
-];
+  const prev = () => goTo((current - 1 + slides.length) % slides.length);
+  const next = useCallback(() => goTo((current + 1) % slides.length), [current, slides.length, goTo]);
 
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  "social media": "from-violet-600 via-purple-600 to-indigo-700",
-  "crypto & web3": "from-amber-500 via-orange-600 to-yellow-600",
-  "youtube": "from-red-500 via-rose-500 to-orange-500",
-  "content creation": "from-fuchsia-500 via-purple-500 to-indigo-600",
-  "health & fitness": "from-emerald-500 via-green-500 to-teal-600",
-  "fashion & beauty": "from-pink-500 via-rose-500 to-fuchsia-600",
-  "technology": "from-cyan-500 via-blue-500 to-indigo-600",
+  useEffect(() => {
+    const timer = setInterval(next, 6000);
+    return () => clearInterval(timer);
+  }, [next]);
+
+  const slide = slides[current];
+
+  return (
+    <section className="relative min-h-screen flex items-center overflow-hidden" data-testid="section-hero-slider">
+      {/* Background Images */}
+      <div className="absolute inset-0">
+        {slides.map((s, i) => (
+          <div
+            key={s.id}
+            className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}
+          >
+            {s.backgroundImage && (
+              <img
+                src={s.backgroundImage}
+                alt=""
+                className="w-full h-full object-cover object-center"
+              />
+            )}
+            <div className={`absolute inset-0 bg-gradient-to-r ${s.overlayColor || "from-black/90 via-black/70 to-black/40"}`} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          </div>
+        ))}
+      </div>
+
+      {/* Decorative glow */}
+      <div className="absolute top-1/3 right-16 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Content */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 w-full">
+        <div
+          className={`max-w-3xl transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
+          data-testid="slider-content"
+        >
+          {slide.badge && (
+            <div className="mb-6">
+              <Badge className="px-4 py-2 bg-white/15 backdrop-blur-sm text-white border-white/25 text-sm font-semibold rounded-full inline-flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                {slide.badge}
+              </Badge>
+            </div>
+          )}
+
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.05] tracking-tight mb-6">
+            <span className={`bg-gradient-to-r ${slide.accentColor || "from-purple-400 via-pink-400 to-orange-400"} bg-clip-text text-transparent`}>
+              {slide.headline.split(".")[0]}.
+            </span>
+            {slide.headline.includes(".") && slide.headline.split(".").slice(1).join(".").trim() && (
+              <> {slide.headline.split(".").slice(1).join(".").trim()}</>
+            )}
+          </h1>
+
+          {slide.subheadline && (
+            <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl leading-relaxed">
+              {slide.subheadline}
+            </p>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-12">
+            {slide.ctaPrimaryLabel && slide.ctaPrimaryLink && (
+              <Link href={slide.ctaPrimaryLink}>
+                <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl hover:shadow-white/20 transition-all" data-testid="button-slide-primary">
+                  {slide.ctaPrimaryLabel} <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+            )}
+            {slide.ctaSecondaryLabel && slide.ctaSecondaryLink && (
+              <Link href={slide.ctaSecondaryLink}>
+                <Button size="lg" variant="outline" className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm px-10 py-6 text-lg rounded-xl font-bold transition-all" data-testid="button-slide-secondary">
+                  {slide.ctaSecondaryLabel}
+                </Button>
+              </Link>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-wrap gap-4">
+            {[
+              { label: "Influencers", value: "10K+", icon: <Users className="w-4 h-4" /> },
+              { label: "Campaigns", value: "2.5K+", icon: <Target className="w-4 h-4" /> },
+              { label: "Paid Out", value: "$450K+", icon: <DollarSign className="w-4 h-4" /> },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
+                <span className="text-gray-300">{s.icon}</span>
+                <span className="text-2xl font-black text-white">{s.value}</span>
+                <span className="text-gray-400 text-sm font-medium">{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Arrow Navigation */}
+      <button
+        onClick={prev}
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20"
+        data-testid="button-slider-prev"
+        aria-label="Previous slide"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <button
+        onClick={next}
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20"
+        data-testid="button-slider-next"
+        aria-label="Next slide"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+
+      {/* Dot Navigation */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            data-testid={`button-slide-dot-${i}`}
+            className={`transition-all duration-300 rounded-full ${
+              i === current
+                ? "w-8 h-2.5 bg-white"
+                : "w-2.5 h-2.5 bg-white/40 hover:bg-white/70"
+            }`}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Campaign Card ────────────────────────────────────────────────────────────
+const GRADIENTS: Record<string, string> = {
   gaming: "from-purple-600 via-indigo-600 to-blue-700",
   beauty: "from-pink-500 via-rose-500 to-red-500",
   fitness: "from-green-500 via-emerald-500 to-teal-600",
@@ -114,140 +259,45 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   default: "from-violet-600 via-purple-600 to-indigo-700",
 };
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  "social media": "📱",
-  "crypto & web3": "🪙",
-  "youtube": "▶️",
-  "content creation": "🎬",
-  "health & fitness": "💪",
-  "fashion & beauty": "✨",
-  "technology": "💻",
-  gaming: "🎮", beauty: "💄", fitness: "💪", tech: "📱", travel: "✈️",
-  food: "🍜", finance: "💰", fashion: "👗", default: "🚀",
-};
-
 const DEMO_CAMPAIGNS = [
-  { id: "d1", title: "Promote Our New Gaming App — TikTok/YouTube Review", brandName: "NovaByte Gaming", reward: "120", totalSlots: 50, filledSlots: 38, category: "gaming", tag: "Gaming · TikTok", featureImage: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d2", title: "Instagram Reel for Premium Skincare Launch", brandName: "GlowLab Beauty", reward: "85", totalSlots: 30, filledSlots: 12, category: "beauty", tag: "Beauty · Instagram", featureImage: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d3", title: "Fitness Challenge — 7-Day Transformation Campaign", brandName: "PeakFit Pro", reward: "200", totalSlots: 100, filledSlots: 71, category: "fitness", tag: "Fitness · YouTube", featureImage: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d4", title: "Tech Unboxing — Latest Wireless Earbuds Review", brandName: "SoundWave Tech", reward: "150", totalSlots: 40, filledSlots: 22, category: "tech", tag: "Tech · YouTube", featureImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d5", title: "Travel Vlog Feature — Luxury Resort Partnership", brandName: "Horizon Escapes", reward: "350", totalSlots: 15, filledSlots: 4, category: "travel", tag: "Travel · YouTube", featureImage: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d6", title: "Food Reel Campaign — Healthy Meal Delivery App", brandName: "FreshDrop", reward: "75", totalSlots: 80, filledSlots: 53, category: "food", tag: "Food · Instagram", featureImage: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=450&q=80&auto=format&fit=crop" },
-];
-
-const WHY_FEATURES = [
-  { icon: <Shield className="w-7 h-7" />, title: "Non-Custodial Payments", desc: "We never hold your funds. All crypto goes directly to your wallet — USDT TRC-20, BEP-20, ERC-20, or USDT on TON Network.", color: "bg-green-100 text-green-600" },
-  { icon: <Star className="w-7 h-7" />, title: "Verified Creators Only", desc: "Every creator goes through KYC. Brands get access to real, active influencers — zero bots.", color: "bg-purple-100 text-purple-600" },
-  { icon: <Zap className="w-7 h-7" />, title: "Brand-First Approval", desc: "Brands are the primary reviewers of every submission. Pay only for results you're genuinely satisfied with.", color: "bg-blue-100 text-blue-600" },
-  { icon: <Globe className="w-7 h-7" />, title: "Global Creator Network", desc: "Access creators from 150+ countries across TikTok, YouTube, Instagram, Twitch, Telegram, and X.", color: "bg-orange-100 text-orange-600" },
-  { icon: <TrendingUp className="w-7 h-7" />, title: "Smart Influencer Tiers", desc: "Auto-classifies creators by total social followers into 4 tiers — from Rising Sparks (1K+) to Global Titans (10M+).", color: "bg-cyan-100 text-cyan-600" },
-  { icon: <Crown className="w-7 h-7" />, title: "Multiple Income Streams", desc: "Campaigns, BreedSkool courses, referrals, and shop — your influence, fully monetized.", color: "bg-yellow-100 text-yellow-600" },
-];
-
-const TESTIMONIALS = [
-  { name: "Sarah K.", role: "Beauty Influencer · 180K followers", text: "Taskdrip paid me $800 in USDT within 24 hours of completing my first campaign. Zero hassle — this is the future.", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80&auto=format&fit=crop&facepad=2" },
-  { name: "Marcus T.", role: "Tech Creator · 420K followers", text: "Best influencer platform I've used. The crypto payment is instant and transparent. I've earned over $15,000 this year.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80&auto=format&fit=crop&facepad=2" },
-  { name: "Priya S.", role: "Fitness Coach · 65K followers", text: "I earned $2,400 last month running just 3 campaigns. The tier system makes me feel valued as a creator.", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80&auto=format&fit=crop&facepad=2" },
-];
-
-const ECOSYSTEM_FEATURES = [
-  {
-    icon: <Target className="w-8 h-8" />,
-    title: "Brand Campaigns",
-    desc: "Complete brand-sponsored tasks on TikTok, YouTube, Instagram and more. Earn USDT crypto for every approved post.",
-    badge: "Earn per task",
-    color: "from-violet-500 to-purple-600",
-    bg: "bg-violet-50",
-    border: "border-violet-100",
-  },
-  {
-    icon: <GraduationCap className="w-8 h-8" />,
-    title: "BreedSkool Academy",
-    desc: "Learn from top creators with our exclusive influencer education platform. Master Instagram, TikTok, YouTube and monetization.",
-    badge: "Learn & grow",
-    color: "from-blue-500 to-indigo-600",
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-  },
-  {
-    icon: <ShoppingBag className="w-8 h-8" />,
-    title: "Creator Shop",
-    desc: "Buy and sell premium digital tools, templates, plugins, and scripts designed for influencer success.",
-    badge: "Tools & assets",
-    color: "from-emerald-500 to-teal-600",
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-  },
-  {
-    icon: <Gift className="w-8 h-8" />,
-    title: "Referral Rewards",
-    desc: "Invite creators and brands. Earn passive crypto income for every person who joins through your referral code.",
-    badge: "Passive income",
-    color: "from-orange-500 to-amber-600",
-    bg: "bg-orange-50",
-    border: "border-orange-100",
-  },
-];
-
-const PAYMENT_TOKENS = [
-  { name: "USDT TRC-20", network: "Tron Network", icon: "⚡", color: "from-red-500 to-orange-500" },
-  { name: "USDT BEP-20", network: "BNB Chain", icon: "🔶", color: "from-yellow-500 to-amber-500" },
-  { name: "USDT ERC-20", network: "Ethereum Network", icon: "🔷", color: "from-indigo-500 to-blue-500" },
-  { name: "USDT - TON", network: "TON Network", icon: "💎", color: "from-blue-500 to-cyan-500" },
+  { id: "d1", title: "Promote Our New Gaming App", brandName: "NovaByte Gaming", reward: "120", totalSlots: 50, filledSlots: 38, category: "gaming", tag: "Gaming · TikTok", featureImage: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d2", title: "Instagram Reel for Skincare Launch", brandName: "GlowLab Beauty", reward: "85", totalSlots: 30, filledSlots: 12, category: "beauty", tag: "Beauty · Instagram", featureImage: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d3", title: "7-Day Fitness Transformation", brandName: "PeakFit Pro", reward: "200", totalSlots: 100, filledSlots: 71, category: "fitness", tag: "Fitness · YouTube", featureImage: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d4", title: "Tech Unboxing — Wireless Earbuds Review", brandName: "SoundWave Tech", reward: "150", totalSlots: 40, filledSlots: 22, category: "tech", tag: "Tech · YouTube", featureImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d5", title: "Luxury Resort Travel Vlog", brandName: "Horizon Escapes", reward: "350", totalSlots: 15, filledSlots: 4, category: "travel", tag: "Travel · YouTube", featureImage: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d6", title: "Healthy Meal Delivery Reel", brandName: "FreshDrop", reward: "75", totalSlots: 80, filledSlots: 53, category: "food", tag: "Food · Instagram", featureImage: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=450&q=80&auto=format&fit=crop" },
 ];
 
 function CampaignCard({ campaign }: { campaign: any }) {
-  const cat = (campaign.category || "").toLowerCase();
-  const gradient = CATEGORY_GRADIENTS[cat] || CATEGORY_GRADIENTS.default;
-  const emoji = CATEGORY_EMOJIS[cat] || CATEGORY_EMOJIS.default;
-  const reward = campaign.reward || "0";
-  const totalSlots = campaign.totalSlots || 1;
-  const filledSlots = campaign.filledSlots || 0;
-  const pct = Math.round((filledSlots / totalSlots) * 100);
-  const tag = campaign.tag || `${campaign.category || "General"} · ${campaign.platform || "Multi-platform"}`;
-  const brandName = campaign.brandName || "Brand Partner";
+  const gradient = GRADIENTS[(campaign.category || "").toLowerCase()] || GRADIENTS.default;
+  const pct = Math.round(((campaign.filledSlots || 0) / (campaign.totalSlots || 1)) * 100);
 
   return (
-    <div className="border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-white">
-      <div className={`h-48 bg-gradient-to-br ${gradient} relative flex items-center justify-center overflow-hidden`}>
-        {campaign.featureImage ? (
-          <img src={campaign.featureImage} alt={campaign.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-        ) : (
-          <>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-          </>
+    <div className="border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-white" data-testid={`card-campaign-${campaign.id}`}>
+      <div className="h-44 relative overflow-hidden">
+        {campaign.featureImage && (
+          <img src={campaign.featureImage} alt={campaign.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-        <div className="relative z-10 text-center">
-          <div className="text-6xl mb-2 drop-shadow-xl group-hover:scale-110 transition-transform duration-300">{emoji}</div>
-        </div>
-        <div className="absolute top-3 left-3">
-          <Badge className="bg-green-500 text-white text-xs border-0 shadow-sm">🟢 Active</Badge>
-        </div>
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-white text-gray-950 text-sm border-0 font-black px-3 py-1.5 shadow-lg">${reward} USDT</Badge>
-        </div>
-        <div className="absolute bottom-3 left-3">
-          <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/25">{tag}</span>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <Badge className="absolute top-3 left-3 bg-green-500 text-white text-xs border-0">🟢 Active</Badge>
+        <Badge className="absolute top-3 right-3 bg-white text-gray-900 text-sm border-0 font-black px-3">${campaign.reward} USDT</Badge>
       </div>
-      <div className="p-5 bg-white">
-        <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">{brandName}</p>
-        <h3 className="font-black text-black mb-3 line-clamp-2 text-base leading-snug group-hover:text-purple-700 transition-colors">{campaign.title}</h3>
+      <div className="p-4">
+        <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">{campaign.brandName || "Brand Partner"}</p>
+        <h3 className="font-bold text-gray-900 mb-3 line-clamp-2 text-sm leading-snug">{campaign.title}</h3>
         <div className="mb-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{filledSlots}/{totalSlots} influencers joined</span>
-            <span className="font-semibold text-gray-700">{pct}%</span>
+            <span>{campaign.filledSlots}/{campaign.totalSlots} joined</span>
+            <span className="font-semibold">{pct}%</span>
           </div>
           <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className={`h-full bg-gradient-to-r ${gradient} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+            <div className={`h-full bg-gradient-to-r ${gradient} rounded-full`} style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-gray-400 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {totalSlots - filledSlots} spots left</span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400 flex items-center gap-1"><Clock className="w-3 h-3" />{(campaign.totalSlots - campaign.filledSlots)} spots left</span>
           <Link href="/login">
-            <Button size="sm" data-testid={`button-apply-campaign-${campaign.id}`} className="bg-black text-white rounded-xl text-xs hover:bg-gray-900 px-4">Apply Now</Button>
+            <Button size="sm" className="bg-black text-white rounded-lg text-xs hover:bg-gray-900 px-4 h-8" data-testid={`button-apply-${campaign.id}`}>Apply Now</Button>
           </Link>
         </div>
       </div>
@@ -255,570 +305,231 @@ function CampaignCard({ campaign }: { campaign: any }) {
   );
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function FinalLanding() {
-  const { data: apiCampaigns = [] } = useQuery<any[]>({
-    queryKey: ["/api/campaigns"],
-  });
+  const { data: dbSliders = [] } = useQuery<Slide[]>({ queryKey: ["/api/hero-sliders"] });
+  const { data: apiCampaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
 
-  const activeCampaigns = apiCampaigns.filter((c: any) => c.isActive && c.status === "active").slice(0, 6);
+  const slides = dbSliders.length > 0 ? dbSliders : DEFAULT_SLIDES;
+  const activeCampaigns = (apiCampaigns as any[]).filter((c) => c.isActive && c.status === "active").slice(0, 6);
   const displayCampaigns = activeCampaigns.length >= 3 ? activeCampaigns : DEMO_CAMPAIGNS;
 
   return (
     <div className="min-h-screen bg-white">
       <NavigationFixed />
 
-      {/* ── HERO ── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1800&q=85&auto=format&fit=crop"
-            alt="Influencers collaborating"
-            className="w-full h-full object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        </div>
-        <div className="absolute top-1/4 right-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/3 w-48 h-48 bg-blue-400/15 rounded-full blur-2xl pointer-events-none" />
+      {/* ── HERO SLIDER ── */}
+      <HeroSlider slides={slides} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-3 mb-7 flex-wrap">
-              <Badge className="px-4 py-2 bg-white/15 backdrop-blur-sm text-white border-white/20 text-sm font-semibold rounded-full inline-flex items-center gap-2" data-testid="badge-hero-marketplace">
-                <Rocket className="w-4 h-4 text-yellow-400" /> For creators ready to earn + brands ready to grow
-              </Badge>
-              <Badge className="px-3 py-2 bg-green-500/20 backdrop-blur-sm text-green-300 border-green-400/30 text-xs rounded-full" data-testid="badge-hero-live">
-                Live campaigns open now
-              </Badge>
-            </div>
-
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.05] tracking-tight mb-6">
-              Your next{" "}
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-                paid collab
-              </span>
-              <br />
-              starts{" "}
-              <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-                today.
-              </span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-gray-200 mb-6 max-w-2xl leading-relaxed" data-testid="text-hero-description">
-              Creators: stop waiting for brands to notice you — claim live Web3 tasks, prove your influence, and get paid in{" "}
-              <strong className="text-white">USDT or TON</strong>. Brands: launch fast, hire trusted influencers, and turn attention into measurable growth.
-            </p>
-
-            <div className="grid gap-3 sm:grid-cols-2 mb-8 max-w-3xl">
-              <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-4" data-testid="card-creator-promise">
-                <div className="flex items-center gap-2 text-white font-bold mb-1">
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  For influencers
-                </div>
-                <p className="text-sm text-gray-300">Pick a campaign, submit proof, build your public reputation, and cash out from your creator wallet.</p>
-              </div>
-              <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-4" data-testid="card-brand-promise">
-                <div className="flex items-center gap-2 text-white font-bold mb-1">
-                  <Target className="w-4 h-4 text-blue-300" />
-                  For brands
-                </div>
-                <p className="text-sm text-gray-300">Post a task, attract vetted creators, track submissions, and only release rewards when work is approved.</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <Link href="/signup?type=creator">
-                <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl hover:shadow-white/20 transition-all" data-testid="button-hero-creator-signup">
-                  Start earning now <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-              <Link href="/signup?type=brand">
-                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 px-10 py-6 text-lg rounded-xl font-bold shadow-xl transition-all border-0" data-testid="button-hero-brand-signup">
-                  Launch a campaign <Rocket className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-            </div>
-
-            <p className="text-sm text-gray-300 mb-12" data-testid="text-hero-urgency">
-              Free to join. Live campaigns, escrow tracking, creator tiers, and payout tools are ready the moment you sign up.
-            </p>
-
-            <div className="flex flex-wrap gap-4">
-              {[
-                { label: "Influencers", value: "10K+", icon: <Users className="w-4 h-4" /> },
-                { label: "Campaigns", value: "2.5K+", icon: <Target className="w-4 h-4" /> },
-                { label: "Paid Out", value: "$450K+", icon: <DollarSign className="w-4 h-4" /> },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-                  <span className="text-gray-300">{s.icon}</span>
-                  <span className="text-2xl font-black text-white">{s.value}</span>
-                  <span className="text-gray-400 text-sm font-medium">{s.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-60 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/40 rounded-full flex items-start justify-center p-1">
-            <div className="w-1 h-3 bg-white rounded-full" />
-          </div>
-        </div>
-      </section>
-
-      {/* ── PLATFORM LOGOS ── */}
-      <section className="py-10 bg-gray-50 border-y border-gray-200">
+      {/* ── PLATFORM BAR ── */}
+      <section className="py-8 bg-gray-50 border-y border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-400 text-sm font-medium mb-7 uppercase tracking-widest">Earn across all major platforms</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 opacity-50 grayscale">
-            {["TikTok", "YouTube", "Instagram", "Twitch", "Telegram", "X (Twitter)", "Facebook"].map((brand) => (
-              <span key={brand} className="text-lg font-black text-gray-600 tracking-tight">{brand}</span>
+          <p className="text-center text-gray-400 text-xs font-semibold mb-5 uppercase tracking-widest">Earn across all major platforms</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 opacity-40 grayscale">
+            {["TikTok", "YouTube", "Instagram", "Twitch", "Telegram", "X (Twitter)", "Facebook"].map((b) => (
+              <span key={b} className="text-sm font-black text-gray-600 tracking-tight">{b}</span>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CREATOR TIERS ── */}
-      <section className="py-24 bg-gray-950 relative overflow-hidden">
-        {/* Background glows */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,40,200,0.06),transparent_70%)] pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm font-semibold mb-5">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              Influencer Tiers
-            </div>
-            <h2 className="text-4xl md:text-6xl font-black text-white mb-5 leading-tight tracking-tight">
-              Every Creator Has a{" "}
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 text-transparent bg-clip-text">Tier</span>
-            </h2>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-              Our smart system auto-classifies creators by total followers across TikTok, YouTube, Instagram, Twitch, and more.{" "}
-              <span className="text-white font-semibold">Higher tier = bigger campaigns.</span>
-            </p>
-          </div>
-
-          {/* Tier Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {TIERS.map((tier) => (
-              <Link key={tier.key} href={`/creators?tier=${tier.key}`}>
-                <div className={`group relative rounded-3xl border ${tier.border} bg-gray-900/60 backdrop-blur overflow-hidden cursor-pointer hover:-translate-y-2 hover:shadow-2xl ${tier.glow} transition-all duration-300`}>
-                  {/* Top image with gradient overlay */}
-                  <div className="relative h-44 overflow-hidden">
-                    <img
-                      src={tier.img}
-                      alt={tier.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent`} />
-                    <div className={`absolute inset-0 bg-gradient-to-br ${tier.gradient} opacity-20 group-hover:opacity-30 transition-opacity`} />
-                    {/* Icon badge */}
-                    <div className="absolute top-4 left-4">
-                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${tier.gradient} flex items-center justify-center text-2xl shadow-xl`}>
-                        {tier.icon}
-                      </div>
-                    </div>
-                    {/* Range pill */}
-                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full border text-xs font-bold ${tier.pill}`}>
-                      {tier.range}
-                    </div>
-                  </div>
-
-                  {/* Card body */}
-                  <div className="p-5">
-                    <h3 className={`text-lg font-black text-white mb-1.5 group-hover:${tier.accent} transition-colors`}>{tier.name}</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed mb-4">{tier.desc}</p>
-
-                    {/* Divider */}
-                    <div className={`h-px bg-gradient-to-r ${tier.gradient} opacity-20 mb-4`} />
-
-                    {/* CTA Button */}
-                    <div className={`flex items-center justify-between`}>
-                      <span className={`text-xs font-semibold ${tier.accent} uppercase tracking-wider`}>{tier.stat}</span>
-                      <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r ${tier.gradient} text-white text-xs font-bold shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all`}>
-                        Browse
-                        <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Bottom CTA */}
-          <div className="mt-14 text-center">
-            <p className="text-gray-500 text-sm mb-4">Not sure which tier fits you?</p>
-            <Link href="/creators">
-              <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl px-8 py-5 text-sm font-bold backdrop-blur transition-all hover:scale-105">
-                Browse All Influencers →
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ECOSYSTEM FEATURES ── */}
-      <section className="py-24 bg-gray-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-white/10 text-white border-white/20 px-4 py-1.5 inline-flex items-center gap-1 backdrop-blur-sm">
-              <Sparkles className="w-3 h-3 text-yellow-400" /> Complete Ecosystem
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">One Platform. Infinite Income.</h2>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Taskdrip is more than campaigns — it's a full creator economy platform with four powerful income streams.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {ECOSYSTEM_FEATURES.map((f) => (
-              <div key={f.title} className={`${f.bg} ${f.border} border rounded-2xl p-6 hover:shadow-lg transition-all group`}>
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
-                  {f.icon}
-                </div>
-                <Badge className="mb-3 text-xs bg-white text-gray-700 border-gray-200">{f.badge}</Badge>
-                <h3 className="font-bold text-gray-900 text-base mb-2">{f.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <Link href="/signup">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-base rounded-xl font-bold shadow-2xl">
-                Start Earning For Free <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <Badge className="mb-4 bg-black text-white px-4 py-1.5">How It Works</Badge>
-            <h2 className="text-4xl md:text-6xl font-black text-black tracking-tight">
-              From brief to{" "}
-              <span className="bg-gradient-to-r from-violet-600 via-blue-600 to-emerald-500 bg-clip-text text-transparent">
-                crypto payout
-              </span>
-            </h2>
-            <p className="mt-5 text-lg text-gray-600 leading-relaxed">
-              Taskdrip keeps creator discovery, campaign execution, proof review, and payments in one clean workflow for both sides of the marketplace.
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-x-0 top-20 hidden lg:block h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-            <div className="grid md:grid-cols-4 gap-5 mb-16">
-              {[
-                { icon: <Target className="w-6 h-6" />, title: "Match", desc: "Brands define a campaign and creators match by niche, tier, and platform.", tone: "from-violet-600 to-indigo-600" },
-                { icon: <Play className="w-6 h-6" />, title: "Create", desc: "Creators publish the task content and submit links, screenshots, or proof.", tone: "from-blue-600 to-cyan-600" },
-                { icon: <CheckCircle className="w-6 h-6" />, title: "Approve", desc: "Brands review real work before campaign funds are released.", tone: "from-emerald-600 to-teal-600" },
-                { icon: <Wallet className="w-6 h-6" />, title: "Pay", desc: "Approved creators receive tracked Web3 payouts with transparent records.", tone: "from-gray-950 to-violet-700" },
-              ].map((item, i) => (
-                <div key={item.title} className="relative bg-white rounded-3xl border border-gray-100 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.tone} text-white flex items-center justify-center mb-5 shadow-lg`}>
-                    {item.icon}
-                  </div>
-                  <div className="text-xs font-black text-gray-300 mb-2">STEP {String(i + 1).padStart(2, "0")}</div>
-                  <h3 className="text-xl font-black text-black mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8 items-stretch">
-            <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-2xl bg-black text-white flex items-center justify-center">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div>
-                  <Badge className="mb-1 bg-emerald-50 text-emerald-700 border-emerald-100">For Creators</Badge>
-                  <h3 className="text-2xl font-black text-black">Earn from your influence</h3>
-                </div>
-              </div>
-              <div className="space-y-4">
-                {CREATOR_STEPS.map((step) => (
-                  <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white border border-gray-100">
-                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center font-black text-sm">{step.num}</div>
-                    <div>
-                      <h4 className="font-bold text-black mb-1">{step.title}</h4>
-                      <p className="text-gray-600 text-sm">{step.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link href="/signup?type=creator">
-                <Button className="w-full mt-6 bg-black hover:bg-gray-900 text-white py-5 rounded-xl font-semibold text-base">
-                  Start Earning Today <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-
-            <div className="rounded-[2rem] border border-gray-100 bg-black p-8 shadow-xl text-white overflow-hidden relative">
-              <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/30 rounded-full blur-3xl" />
-              <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-violet-500/30 rounded-full blur-3xl" />
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <Badge className="mb-1 bg-white/10 text-white border-white/20">For Brands</Badge>
-                    <h3 className="text-2xl font-black text-white">Launch campaigns with control</h3>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {BRAND_STEPS.map((step) => (
-                    <div key={step.num} className="flex gap-4 items-start p-4 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm">
-                      <div className="flex-shrink-0 w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-black text-sm">{step.num}</div>
-                      <div>
-                        <h4 className="font-bold text-white mb-1">{step.title}</h4>
-                        <p className="text-white/70 text-sm">{step.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Link href="/signup?type=brand">
-                  <Button className="w-full mt-6 bg-white hover:bg-gray-100 text-black py-5 rounded-xl font-semibold text-base">
-                    Launch a Campaign <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── BREEDSKOOL ACADEMY ── */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <Badge className="mb-4 bg-violet-100 text-violet-700 border-violet-200 px-4 py-1.5 inline-flex items-center gap-2">
-                <GraduationCap className="w-4 h-4" /> BreedSkool Academy
-              </Badge>
-              <h2 className="text-4xl md:text-5xl font-bold text-black mb-6 leading-tight">
-                Learn How to{" "}
-                <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-                  10x Your Influence
-                </span>
-              </h2>
-              <p className="text-gray-600 text-lg mb-8 leading-relaxed">
-                Unlock exclusive courses taught by top-earning creators. Master the skills that turn followers into income — Instagram growth, TikTok virality, YouTube monetization, and crypto earnings.
-              </p>
-              <div className="space-y-4 mb-8">
-                {[
-                  { icon: <BookOpen className="w-5 h-5 text-violet-600" />, text: "Expert-taught courses on Instagram, TikTok & YouTube growth" },
-                  { icon: <Trophy className="w-5 h-5 text-violet-600" />, text: "Earn platform badges and credentials to stand out to brands" },
-                  { icon: <DollarSign className="w-5 h-5 text-violet-600" />, text: "Monetization masterclasses — brand deals, affiliate, and crypto" },
-                  { icon: <Users className="w-5 h-5 text-violet-600" />, text: "Community access and live Q&A sessions with top influencers" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">{item.icon}</div>
-                    <p className="text-gray-700 text-sm font-medium">{item.text}</p>
-                  </div>
-                ))}
-              </div>
-              <Link href="/breedskool">
-                <Button className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-5 rounded-xl font-semibold text-base">
-                  Explore BreedSkool <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 rounded-3xl p-8 text-white">
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {[
-                    { label: "Active Courses", value: "50+", icon: "📚" },
-                    { label: "Students Enrolled", value: "2.1K+", icon: "🎓" },
-                    { label: "Avg Rating", value: "4.9★", icon: "⭐" },
-                    { label: "Expert Instructors", value: "30+", icon: "👨‍🏫" },
-                  ].map((s) => (
-                    <div key={s.label} className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
-                      <div className="text-2xl mb-1">{s.icon}</div>
-                      <div className="text-xl font-black">{s.value}</div>
-                      <div className="text-white/70 text-xs">{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  {[
-                    "Instagram Growth Masterclass",
-                    "TikTok Algorithm Decoded",
-                    "YouTube Monetization Blueprint",
-                    "Crypto Earning for Creators",
-                  ].map((course) => (
-                    <div key={course} className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 backdrop-blur-sm">
-                      <CheckCircle className="w-4 h-4 text-green-300 flex-shrink-0" />
-                      <span className="text-sm font-medium">{course}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── NICHES ── */}
-      <section className="py-24 bg-black">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Creators Across Every Niche</h2>
-            <p className="text-gray-400 text-lg">From gaming to fitness, beauty to tech — find verified creators in your space.</p>
+            <Badge className="mb-4 bg-black text-white px-4 py-1.5 text-xs">How It Works</Badge>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Simple. Fast. Fair.</h2>
+            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">Get started in minutes — whether you're a creator looking to earn or a brand ready to scale.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-            {NICHES.map((niche) => (
-              <Link key={niche.name} href="/creators">
-                <div className="relative rounded-2xl overflow-hidden cursor-pointer group h-36">
-                  <img src={niche.img} alt={niche.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${niche.color} opacity-60 group-hover:opacity-70 transition-opacity`} />
-                  <div className="absolute inset-0 flex items-end p-4">
-                    <span className="text-white font-bold text-lg">{niche.name}</span>
+
+          <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+            {/* For Creators */}
+            <div className="rounded-2xl bg-gray-950 p-8 text-white">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-orange-400" />
+                </div>
+                <span className="font-bold text-lg">For Influencers</span>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { n: "01", t: "Build Your Profile", d: "Link your socials. Get auto-classified into your influencer tier instantly." },
+                  { n: "02", t: "Apply to Campaigns", d: "Browse live brand tasks. Apply with one tap — no agencies, no gatekeepers." },
+                  { n: "03", t: "Submit & Get Paid", d: "Post, submit proof, brand approves, and USDT lands in your wallet." },
+                ].map((s) => (
+                  <div key={s.n} className="flex gap-4">
+                    <span className="text-xs font-black text-gray-600 mt-0.5 w-6 shrink-0">{s.n}</span>
+                    <div>
+                      <p className="font-bold text-sm text-white">{s.t}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{s.d}</p>
+                    </div>
                   </div>
+                ))}
+              </div>
+              <Link href="/signup?type=creator" className="mt-6 block">
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold" data-testid="button-creator-cta">
+                  Start Earning <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* For Brands */}
+            <div className="rounded-2xl bg-gray-950 p-8 text-white">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-blue-400" />
+                </div>
+                <span className="font-bold text-lg">For Brands</span>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { n: "01", t: "Post Your Campaign", d: "Set budget, requirements, and target tier. Go live the same day with escrow." },
+                  { n: "02", t: "Reach Verified Creators", d: "Filter by tier, niche, platform, location, and follower count." },
+                  { n: "03", t: "Pay Only for Results", d: "You review every submission. Release payment only when you're satisfied." },
+                ].map((s) => (
+                  <div key={s.n} className="flex gap-4">
+                    <span className="text-xs font-black text-gray-600 mt-0.5 w-6 shrink-0">{s.n}</span>
+                    <div>
+                      <p className="font-bold text-sm text-white">{s.t}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{s.d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link href="/signup?type=brand" className="mt-6 block">
+                <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold" data-testid="button-brand-cta">
+                  Launch Campaign <Rocket className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CREATOR TIERS ── */}
+      <section className="py-20 bg-gray-950 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,40,200,0.07),transparent_70%)] pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm font-semibold mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+              Influencer Tiers
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+              Every Creator Has a{" "}
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 text-transparent bg-clip-text">Tier</span>
+            </h2>
+            <p className="text-gray-400 text-base max-w-xl mx-auto">Auto-classified by your total social following. Higher tier = bigger campaigns and better payouts.</p>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: "🔥", name: "Rising Sparks", range: "10K–100K", desc: "Entry-level campaigns. Build your verified portfolio.", gradient: "from-orange-500 to-amber-400", border: "border-orange-500/25" },
+              { icon: "⚡", name: "Growth Engines", range: "100K–1M", desc: "High-engagement tier. Mid-tier campaigns, higher payouts.", gradient: "from-cyan-500 to-blue-500", border: "border-cyan-500/25" },
+              { icon: "💎", name: "Power Influencers", range: "1M–10M", desc: "Premium creators. Priority placement and brand deals.", gradient: "from-violet-600 to-purple-500", border: "border-purple-500/25" },
+              { icon: "👑", name: "Global Titans", range: "10M+", desc: "Elite access. Enterprise campaigns, maximum payouts.", gradient: "from-yellow-400 to-orange-500", border: "border-yellow-500/25" },
+            ].map((t) => (
+              <div key={t.name} className={`rounded-2xl border ${t.border} bg-gray-900/60 backdrop-blur p-5 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group`} data-testid={`card-tier-${t.name.toLowerCase().replace(" ", "-")}`}>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg`}>{t.icon}</div>
+                <p className={`text-xs font-bold text-gray-500 mb-1`}>{t.range} followers</p>
+                <h3 className="text-white font-black text-base mb-2">{t.name}</h3>
+                <p className="text-gray-400 text-xs leading-relaxed">{t.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
+            <Link href="/creators">
+              <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl px-8 py-3 text-sm font-bold backdrop-blur">
+                Browse All Creators →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── ECOSYSTEM ── */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-gray-100 text-gray-700 border-gray-200 px-4 py-1.5 text-xs">
+              <Sparkles className="w-3 h-3 mr-1 inline text-yellow-500" /> Complete Ecosystem
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">One Platform. Four Income Streams.</h2>
+            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">Taskdrip is your full creator economy — not just campaigns.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { icon: <Target className="w-6 h-6" />, title: "Brand Campaigns", desc: "Complete paid tasks on TikTok, YouTube, Instagram and more. Earn USDT for every approved post.", badge: "Earn per task", link: "/campaigns", color: "from-violet-500 to-purple-600", bg: "bg-violet-50", border: "border-violet-100" },
+              { icon: <GraduationCap className="w-6 h-6" />, title: "BreedSkool Academy", desc: "Learn from thriving influencers. Master Instagram, TikTok, YouTube and monetization strategies.", badge: "Learn & grow", link: "/breedskool", color: "from-blue-500 to-indigo-600", bg: "bg-blue-50", border: "border-blue-100" },
+              { icon: <ShoppingBag className="w-6 h-6" />, title: "Creator Shop", desc: "Premium templates, plugins, and digital tools built for influencer success. Buy or sell.", badge: "Tools & assets", link: "/shop", color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+              { icon: <Gift className="w-6 h-6" />, title: "Referral Rewards", desc: "Invite creators and brands. Earn passive crypto income for every person who joins your link.", badge: "Passive income", link: "/signup", color: "from-orange-500 to-amber-600", bg: "bg-orange-50", border: "border-orange-100" },
+            ].map((f) => (
+              <Link key={f.title} href={f.link}>
+                <div className={`${f.bg} ${f.border} border rounded-2xl p-6 hover:shadow-lg transition-all group h-full cursor-pointer`} data-testid={`card-ecosystem-${f.title.toLowerCase().replace(" ", "-")}`}>
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-md`}>
+                    {f.icon}
+                  </div>
+                  <Badge className="mb-3 text-xs bg-white text-gray-600 border-gray-200 font-semibold">{f.badge}</Badge>
+                  <h3 className="font-bold text-gray-900 text-base mb-2">{f.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{f.desc}</p>
                 </div>
               </Link>
             ))}
-          </div>
-          <div className="text-center">
-            <Link href="/creators">
-              <Button className="bg-white text-black hover:bg-gray-100 px-8 py-5 rounded-xl text-base font-semibold shadow-lg">
-                Browse All Creators <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
 
       {/* ── LIVE CAMPAIGNS ── */}
-      <section className="py-24 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-12">
+          <div className="flex items-end justify-between mb-10">
             <div>
-              <Badge className="mb-3 bg-orange-100 text-orange-700 border-orange-200 px-4 py-1.5 inline-flex items-center gap-1">
-                <Flame className="w-3 h-3" /> Trending Now
-              </Badge>
-              <h2 className="text-4xl font-bold text-black">Live Campaigns</h2>
-              <p className="text-gray-500 mt-2">Join these active campaigns and start earning today</p>
+              <Badge className="mb-3 bg-green-100 text-green-700 border-green-200 text-xs">🟢 Live Now</Badge>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900">Open Campaigns</h2>
+              <p className="text-gray-500 text-sm mt-1">Apply now — spots fill fast.</p>
             </div>
-            <Link href="/login">
-              <Button variant="outline" className="border-2 border-black rounded-xl font-semibold hidden sm:flex">
-                View All <ArrowRight className="ml-2 w-4 h-4" />
+            <Link href="/campaigns">
+              <Button variant="outline" className="rounded-xl text-sm font-semibold hidden sm:flex">
+                View All <ArrowRight className="ml-1 w-4 h-4" />
               </Button>
             </Link>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayCampaigns.map((campaign: any) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {displayCampaigns.slice(0, 6).map((c: any) => <CampaignCard key={c.id} campaign={c} />)}
           </div>
-          <div className="text-center mt-10">
-            <Link href="/login">
-              <Button variant="outline" className="border-2 border-black rounded-xl font-semibold px-8 py-5">
-                View All Campaigns <ArrowRight className="ml-2 w-4 h-4" />
+          <div className="text-center mt-8">
+            <Link href="/campaigns">
+              <Button size="lg" className="bg-black text-white hover:bg-gray-900 px-10 py-5 rounded-xl font-bold" data-testid="button-view-all-campaigns">
+                View All Campaigns <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── CRYPTO PAYMENTS ── */}
-      <section className="py-24 bg-gray-950">
+      {/* ── WHY TASKDRIP ── */}
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <Badge className="mb-4 bg-white/10 text-white border-white/20 px-4 py-1.5 inline-flex items-center gap-2 backdrop-blur-sm">
-                <Wallet className="w-4 h-4 text-yellow-400" /> Crypto-Native Payments
-              </Badge>
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                Get Paid in{" "}
-                <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-                  Crypto. Instantly.
-                </span>
-              </h2>
-              <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-                No banks. No delays. No middlemen. Taskdrip sends your earnings directly to your crypto wallet the moment a brand approves your work. True financial freedom for creators worldwide.
-              </p>
-              <div className="space-y-4 mb-8">
-                {[
-                  { title: "Instant settlement", desc: "Payments release the moment your submission is approved — no waiting periods." },
-                  { title: "Non-custodial", desc: "We never hold your funds. Your money goes directly to your wallet address." },
-                  { title: "4 supported networks", desc: "Choose from USDT TRC-20, USDT BEP-20, USDT ERC-20, or USDT on TON Network — all admin-managed." },
-                  { title: "Transparent pricing", desc: "Small platform fee on successful campaigns. No surprise charges or hidden costs." },
-                ].map((item) => (
-                  <div key={item.title} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-white font-semibold text-sm">{item.title}</span>
-                      <span className="text-gray-400 text-sm"> — {item.desc}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              {PAYMENT_TOKENS.map((token) => (
-                <div key={token.name} className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm hover:bg-white/10 transition-all">
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${token.color} flex items-center justify-center text-2xl flex-shrink-0`}>
-                    {token.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-white">{token.name}</p>
-                    <p className="text-gray-400 text-sm">{token.network}</p>
-                  </div>
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Supported</Badge>
-                </div>
-              ))}
-              <div className="bg-gradient-to-br from-violet-600/20 to-indigo-600/20 border border-violet-500/30 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Lock className="w-5 h-5 text-violet-400" />
-                  <span className="text-white font-semibold">Escrow-Protected Campaigns</span>
-                </div>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  Brand funds are held in escrow until work is approved — guaranteeing creators always get paid for completed tasks.
-                </p>
-              </div>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-black text-gray-900 mb-3">Why Creators & Brands Choose Taskdrip</h2>
+            <p className="text-gray-500 text-base max-w-xl mx-auto">Built differently — for real results, real trust, real payouts.</p>
           </div>
-        </div>
-      </section>
-
-      {/* ── STATS BANNER ── */}
-      <section className="relative py-24 overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1600&q=80&auto=format&fit=crop"
-            alt="Stats background"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/95 via-blue-900/90 to-cyan-900/85" />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-4xl font-black text-white mb-3">The Numbers Speak for Themselves</h2>
-            <p className="text-blue-200">Taskdrip is the fastest-growing influencer marketplace in Web3</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { value: "10,000+", label: "Registered Influencers", icon: "👥" },
-              { value: "500+", label: "Brand Partners", icon: "🏢" },
-              { value: "$450K+", label: "Total Payouts", icon: "💰" },
-              { value: "2,500+", label: "Campaigns Launched", icon: "🚀" },
-            ].map((s) => (
-              <div key={s.label} className="p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all">
-                <div className="text-4xl mb-3">{s.icon}</div>
-                <div className="text-4xl font-black mb-2">{s.value}</div>
-                <div className="text-blue-200 text-sm font-medium">{s.label}</div>
+              { icon: <Shield className="w-5 h-5" />, title: "Non-Custodial Payments", desc: "Funds go directly to your wallet — USDT TRC-20, BEP-20, ERC-20, or TON. We never hold your money.", color: "bg-green-100 text-green-600" },
+              { icon: <CheckCircle className="w-5 h-5" />, title: "Verified Creators Only", desc: "Every creator goes through KYC. Brands get access to real, active influencers — zero bots.", color: "bg-purple-100 text-purple-600" },
+              { icon: <Zap className="w-5 h-5" />, title: "Brand-First Approval", desc: "Brands review every submission. Pay only for results you're genuinely satisfied with.", color: "bg-blue-100 text-blue-600" },
+              { icon: <Globe className="w-5 h-5" />, title: "Global Creator Network", desc: "Access creators from 150+ countries across all major platforms.", color: "bg-orange-100 text-orange-600" },
+              { icon: <TrendingUp className="w-5 h-5" />, title: "Smart Influencer Tiers", desc: "Auto-classifies creators by total social followers into 4 tiers — from Rising Sparks to Global Titans.", color: "bg-cyan-100 text-cyan-600" },
+              { icon: <Crown className="w-5 h-5" />, title: "Multiple Income Streams", desc: "Campaigns, BreedSkool courses, referrals, and shop — your influence, fully monetized.", color: "bg-yellow-100 text-yellow-600" },
+            ].map((f) => (
+              <div key={f.title} className="flex gap-4 p-5 rounded-2xl border border-gray-100 hover:shadow-md transition-all">
+                <div className={`w-10 h-10 rounded-xl ${f.color} flex items-center justify-center shrink-0`}>{f.icon}</div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm mb-1">{f.title}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -826,29 +537,28 @@ export default function FinalLanding() {
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-20 bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <Badge className="mb-4 bg-yellow-100 text-yellow-700 border-yellow-200 px-4 py-1.5 inline-flex items-center gap-1">
-              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" /> Creator Success Stories
-            </Badge>
-            <h2 className="text-4xl font-bold text-black">Real Creators. Real Crypto Earnings.</h2>
-            <p className="text-gray-600 mt-3">See what influencers are achieving on Taskdrip every day.</p>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-black text-white mb-3">What Creators Are Saying</h2>
+            <p className="text-gray-500 text-sm">Real results from real influencers.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all">
-                <div className="flex items-center gap-1 mb-4">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { name: "Sarah K.", role: "Beauty Influencer · 180K followers", text: "Taskdrip paid me $800 in USDT within 24 hours of completing my first campaign. Zero hassle — this is the future.", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80&auto=format&fit=crop" },
+              { name: "Marcus T.", role: "Tech Creator · 420K followers", text: "Best platform I've used. Instant transparent payments. I've earned over $15,000 this year on Taskdrip.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80&auto=format&fit=crop" },
+              { name: "Priya S.", role: "Fitness Coach · 65K followers", text: "I earned $2,400 last month on just 3 campaigns. The tier system makes me feel valued as a creator.", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80&auto=format&fit=crop" },
+            ].map((t) => (
+              <div key={t.name} className="bg-gray-900 rounded-2xl p-6 border border-white/5" data-testid={`card-testimonial-${t.name.toLowerCase().replace(" ", "-")}`}>
+                <div className="flex gap-1 mb-4">
+                  {Array(5).fill(0).map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
                 </div>
-                <p className="text-gray-700 text-sm leading-relaxed mb-5 italic">"{t.text}"</p>
+                <p className="text-gray-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
                 <div className="flex items-center gap-3">
-                  <img src={t.avatar} alt={t.name} className="w-11 h-11 rounded-full object-cover border-2 border-purple-200" />
+                  <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover" />
                   <div>
-                    <div className="font-bold text-black text-sm">{t.name}</div>
-                    <div className="text-xs text-gray-500">{t.role}</div>
+                    <p className="text-white font-bold text-sm">{t.name}</p>
+                    <p className="text-gray-500 text-xs">{t.role}</p>
                   </div>
                 </div>
               </div>
@@ -857,70 +567,29 @@ export default function FinalLanding() {
         </div>
       </section>
 
-      {/* ── WHY TASKDRIP ── */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <Badge className="mb-4 bg-gray-100 text-gray-700 border-gray-200 px-4 py-1.5">Platform Features</Badge>
-            <h2 className="text-4xl font-bold text-black mb-4">Why Taskdrip?</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Built for the Web3 era. Performance-driven. Fully transparent. Creator-first.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {WHY_FEATURES.map((f) => (
-              <div key={f.title} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-all group">
-                <div className={`w-14 h-14 rounded-xl ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  {f.icon}
-                </div>
-                <h3 className="text-lg font-bold text-black mb-2">{f.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── FINAL CTA ── */}
-      <section className="relative py-28 overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1600&q=80&auto=format&fit=crop"
-            alt="CTA background"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/85" />
-        </div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-48 bg-purple-500/25 blur-3xl rounded-full pointer-events-none" />
-
-        <div className="relative max-w-4xl mx-auto px-4 text-center">
-          <Badge className="mb-5 bg-white/10 text-white border-white/20 px-4 py-1.5 text-sm backdrop-blur-sm">Join Free — No Credit Card Required</Badge>
-          <h2 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
-            Your Influence Is{" "}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-              Your Income.
-            </span>
+      <section className="py-24 bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05),transparent_70%)] pointer-events-none" />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+            Ready to Turn Your Influence Into Income?
           </h2>
-          <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Join 10,000+ influencers and 500+ brands already on Taskdrip. Earn crypto. Grow faster. Learn with BreedSkool. No middlemen. No limits.
+          <p className="text-purple-200 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
+            Join 10,000+ creators already earning on Taskdrip. Free to join. Campaigns available today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup?type=creator">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-12 py-7 text-lg rounded-xl font-black shadow-2xl hover:shadow-white/10 transition-all">
-                Join as Influencer 🚀
+              <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl" data-testid="button-final-cta-creator">
+                I'm a Creator <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/signup?type=brand">
-              <Button size="lg" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 px-12 py-7 text-lg rounded-xl font-black shadow-xl transition-all border-0">
-                Hire Influencers →
+              <Button size="lg" className="bg-white/15 text-white hover:bg-white/25 backdrop-blur border border-white/25 px-10 py-6 text-lg rounded-xl font-bold transition-all" data-testid="button-final-cta-brand">
+                I'm a Brand <Rocket className="ml-2 w-5 h-5" />
               </Button>
             </Link>
           </div>
-
-          <div className="mt-10 flex items-center justify-center gap-6 text-gray-500 text-sm flex-wrap">
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Free to join</span>
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> Instant crypto payouts</span>
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> 150+ countries</span>
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-green-500" /> BreedSkool included</span>
-          </div>
+          <p className="text-purple-300/60 text-sm mt-6">No credit card required. Campaigns ready the moment you sign up.</p>
         </div>
       </section>
 

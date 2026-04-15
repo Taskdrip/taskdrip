@@ -5595,6 +5595,57 @@ Instructions:
     }
   });
 
+  // ── Hero Sliders ──────────────────────────────────────────────
+  app.get('/api/hero-sliders', async (_req, res) => {
+    try {
+      const sliders = await storage.getActiveHeroSliders();
+      res.json(sliders);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch sliders' });
+    }
+  });
+
+  app.get('/api/admin/hero-sliders', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const sliders = await storage.getHeroSliders();
+      res.json(sliders);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch sliders' });
+    }
+  });
+
+  app.post('/api/admin/hero-sliders', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const slider = await storage.createHeroSlider(req.body);
+      res.json(slider);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to create slider' });
+    }
+  });
+
+  app.put('/api/admin/hero-sliders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const slider = await storage.updateHeroSlider(req.params.id, req.body);
+      if (!slider) return res.status(404).json({ message: 'Slider not found' });
+      res.json(slider);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update slider' });
+    }
+  });
+
+  app.delete('/api/admin/hero-sliders/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteHeroSlider(req.params.id);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to delete slider' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

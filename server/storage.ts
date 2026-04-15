@@ -42,6 +42,9 @@ import {
   pwaSettings,
   userPoints,
   welcomeTaskCompletions,
+  heroSliders,
+  type HeroSlider,
+  type InsertHeroSlider,
   type PwaSettings,
   type InsertPwaSettings,
   type SocialPlatform,
@@ -2235,6 +2238,34 @@ export class DatabaseStorage implements IStorage {
     await this.awardPoints(userId, 'social_task', pts, `Welcome task: ${taskKey}`, taskKey);
 
     return record;
+  }
+
+  // ── Hero Sliders ──────────────────────────────────────────────
+  async getHeroSliders(): Promise<HeroSlider[]> {
+    return await db.select().from(heroSliders).orderBy(heroSliders.order);
+  }
+
+  async getActiveHeroSliders(): Promise<HeroSlider[]> {
+    return await db.select().from(heroSliders)
+      .where(eq(heroSliders.isActive, true))
+      .orderBy(heroSliders.order);
+  }
+
+  async createHeroSlider(data: InsertHeroSlider): Promise<HeroSlider> {
+    const [slider] = await db.insert(heroSliders).values(data).returning();
+    return slider;
+  }
+
+  async updateHeroSlider(id: string, data: Partial<InsertHeroSlider>): Promise<HeroSlider | null> {
+    const [slider] = await db.update(heroSliders)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(heroSliders.id, id))
+      .returning();
+    return slider || null;
+  }
+
+  async deleteHeroSlider(id: string): Promise<void> {
+    await db.delete(heroSliders).where(eq(heroSliders.id, id));
   }
 }
 

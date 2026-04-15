@@ -355,6 +355,343 @@ function EnrollmentPaymentDialog({ enrollment, onApprove, approving }: { enrollm
   );
 }
 
+// ─── Hero Sliders Panel ──────────────────────────────────────────────────────
+const sliderFormSchema = z.object({
+  badge: z.string().optional(),
+  headline: z.string().min(3, "Headline is required"),
+  subheadline: z.string().optional(),
+  ctaPrimaryLabel: z.string().optional(),
+  ctaPrimaryLink: z.string().optional(),
+  ctaSecondaryLabel: z.string().optional(),
+  ctaSecondaryLink: z.string().optional(),
+  backgroundImage: z.string().optional(),
+  overlayColor: z.string().optional(),
+  accentColor: z.string().optional(),
+  order: z.number().default(0),
+  isActive: z.boolean().default(true),
+});
+type SliderFormData = z.infer<typeof sliderFormSchema>;
+
+function HeroSlidersPanel() {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingSlider, setEditingSlider] = useState<any>(null);
+
+  const { data: sliders = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/hero-sliders"] });
+
+  const form = useForm<SliderFormData>({
+    resolver: zodResolver(sliderFormSchema),
+    defaultValues: {
+      badge: "", headline: "", subheadline: "",
+      ctaPrimaryLabel: "", ctaPrimaryLink: "", ctaSecondaryLabel: "", ctaSecondaryLink: "",
+      backgroundImage: "", overlayColor: "from-black/90 via-black/70 to-black/40",
+      accentColor: "from-purple-400 via-pink-400 to-orange-400",
+      order: 0, isActive: true,
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: SliderFormData) => apiRequest("POST", "/api/admin/hero-sliders", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-sliders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-sliders"] });
+      toast({ title: "Slider created" });
+      setDialogOpen(false);
+      form.reset();
+    },
+    onError: () => toast({ title: "Error", description: "Failed to create slider", variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: SliderFormData }) => apiRequest("PUT", `/api/admin/hero-sliders/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-sliders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-sliders"] });
+      toast({ title: "Slider updated" });
+      setDialogOpen(false);
+      setEditingSlider(null);
+      form.reset();
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update slider", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/hero-sliders/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-sliders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-sliders"] });
+      toast({ title: "Slider deleted" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to delete slider", variant: "destructive" }),
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiRequest("PUT", `/api/admin/hero-sliders/${id}`, { isActive }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hero-sliders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-sliders"] });
+    },
+  });
+
+  function openCreate() {
+    setEditingSlider(null);
+    form.reset({
+      badge: "", headline: "", subheadline: "",
+      ctaPrimaryLabel: "", ctaPrimaryLink: "", ctaSecondaryLabel: "", ctaSecondaryLink: "",
+      backgroundImage: "", overlayColor: "from-black/90 via-black/70 to-black/40",
+      accentColor: "from-purple-400 via-pink-400 to-orange-400",
+      order: sliders.length, isActive: true,
+    });
+    setDialogOpen(true);
+  }
+
+  function openEdit(slider: any) {
+    setEditingSlider(slider);
+    form.reset({
+      badge: slider.badge || "",
+      headline: slider.headline || "",
+      subheadline: slider.subheadline || "",
+      ctaPrimaryLabel: slider.ctaPrimaryLabel || "",
+      ctaPrimaryLink: slider.ctaPrimaryLink || "",
+      ctaSecondaryLabel: slider.ctaSecondaryLabel || "",
+      ctaSecondaryLink: slider.ctaSecondaryLink || "",
+      backgroundImage: slider.backgroundImage || "",
+      overlayColor: slider.overlayColor || "from-black/90 via-black/70 to-black/40",
+      accentColor: slider.accentColor || "from-purple-400 via-pink-400 to-orange-400",
+      order: slider.order ?? 0,
+      isActive: slider.isActive ?? true,
+    });
+    setDialogOpen(true);
+  }
+
+  function onSubmit(data: SliderFormData) {
+    if (editingSlider) {
+      updateMutation.mutate({ id: editingSlider.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  }
+
+  const ACCENT_PRESETS = [
+    { label: "Purple–Pink–Orange", value: "from-purple-400 via-pink-400 to-orange-400" },
+    { label: "Blue–Cyan–Emerald", value: "from-blue-400 via-cyan-400 to-emerald-400" },
+    { label: "Orange–Pink–Purple", value: "from-orange-400 via-pink-400 to-purple-400" },
+    { label: "Indigo–Blue–Cyan", value: "from-indigo-400 via-blue-400 to-cyan-400" },
+    { label: "Emerald–Teal–Cyan", value: "from-emerald-400 via-teal-400 to-cyan-400" },
+    { label: "Yellow–Orange–Red", value: "from-yellow-400 via-orange-400 to-red-400" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Image className="w-5 h-5 text-purple-400" />
+              Hero Sliders
+            </CardTitle>
+            <CardDescription className="text-gray-400">Manage the auto-sliding hero section on the landing page. Changes appear live immediately.</CardDescription>
+          </div>
+          <Button onClick={openCreate} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-add-slider">
+            <Plus className="w-4 h-4 mr-2" /> Add Slide
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-12 text-gray-500">Loading sliders…</div>
+          ) : sliders.length === 0 ? (
+            <div className="text-center py-12">
+              <Image className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+              <p className="text-gray-500 text-sm mb-2">No custom sliders yet.</p>
+              <p className="text-gray-600 text-xs">The landing page is currently using the default built-in slides.</p>
+              <Button onClick={openCreate} variant="outline" className="mt-4 border-gray-700 text-gray-400 hover:text-white">
+                Create First Slide
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sliders.map((slider: any, idx: number) => (
+                <div key={slider.id} className="flex items-start gap-4 p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 group" data-testid={`slider-card-${idx}`}>
+                  {/* Preview thumbnail */}
+                  <div className="w-28 h-16 rounded-lg overflow-hidden bg-gray-700 shrink-0 relative">
+                    {slider.backgroundImage ? (
+                      <img src={slider.backgroundImage} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">No image</div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40" />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge className="text-xs bg-gray-700 text-gray-300 border-gray-600">#{slider.order ?? idx}</Badge>
+                      {slider.badge && <Badge className="text-xs bg-purple-900/50 text-purple-300 border-purple-700/50">{slider.badge}</Badge>}
+                      <Badge className={`text-xs border-0 ${slider.isActive ? "bg-green-900/50 text-green-400" : "bg-gray-700 text-gray-500"}`}>
+                        {slider.isActive ? "Active" : "Hidden"}
+                      </Badge>
+                    </div>
+                    <p className="text-white font-bold text-sm line-clamp-1">{slider.headline}</p>
+                    {slider.subheadline && <p className="text-gray-400 text-xs line-clamp-1 mt-0.5">{slider.subheadline}</p>}
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                      {slider.ctaPrimaryLabel && <span>🔗 {slider.ctaPrimaryLabel} → {slider.ctaPrimaryLink}</span>}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Switch
+                      checked={slider.isActive}
+                      onCheckedChange={(v) => toggleActiveMutation.mutate({ id: slider.id, isActive: v })}
+                      data-testid={`toggle-slider-${idx}`}
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(slider)} className="text-gray-400 hover:text-white" data-testid={`button-edit-slider-${idx}`}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(slider.id)} className="text-gray-400 hover:text-red-400" data-testid={`button-delete-slider-${idx}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create / Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingSlider(null); form.reset(); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">{editingSlider ? "Edit Slide" : "New Slide"}</DialogTitle>
+            <DialogDescription className="text-gray-400">Configure the content, background, and links for this hero slide.</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="badge" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Badge Label (optional)</FormLabel>
+                    <FormControl><Input {...field} placeholder="e.g. For Influencers" className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-badge" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="order" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Display Order</FormLabel>
+                    <FormControl><Input {...field} type="number" onChange={(e) => field.onChange(+e.target.value)} className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-order" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              <FormField control={form.control} name="headline" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-300 text-xs">Headline *</FormLabel>
+                  <FormControl><Input {...field} placeholder="e.g. Stop Getting Ghosted by Brands." className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-headline" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="subheadline" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-300 text-xs">Subheadline</FormLabel>
+                  <FormControl><Textarea {...field} placeholder="Supporting text below the headline…" rows={3} className="bg-gray-800 border-gray-700 text-white resize-none" data-testid="input-slider-subheadline" /></FormControl>
+                </FormItem>
+              )} />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="ctaPrimaryLabel" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Primary Button Label</FormLabel>
+                    <FormControl><Input {...field} placeholder="e.g. Start Earning Now" className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-cta-primary-label" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="ctaPrimaryLink" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Primary Button Link</FormLabel>
+                    <FormControl><Input {...field} placeholder="/signup?type=creator" className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-cta-primary-link" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="ctaSecondaryLabel" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Secondary Button Label</FormLabel>
+                    <FormControl><Input {...field} placeholder="e.g. Browse Campaigns" className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-cta-secondary-label" /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="ctaSecondaryLink" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Secondary Button Link</FormLabel>
+                    <FormControl><Input {...field} placeholder="/campaigns" className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-cta-secondary-link" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              <FormField control={form.control} name="backgroundImage" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-300 text-xs">Background Image URL</FormLabel>
+                  <FormControl><Input {...field} placeholder="https://images.unsplash.com/…" className="bg-gray-800 border-gray-700 text-white" data-testid="input-slider-bg-image" /></FormControl>
+                  <p className="text-xs text-gray-500">Recommended: 1800px wide, high quality. Use Unsplash or your own hosted image.</p>
+                  {field.value && (
+                    <div className="mt-2 h-24 rounded-lg overflow-hidden relative">
+                      <img src={field.value} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
+                    </div>
+                  )}
+                </FormItem>
+              )} />
+
+              <div className="grid grid-cols-1 gap-4">
+                <FormField control={form.control} name="accentColor" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 text-xs">Headline Accent Gradient</FormLabel>
+                    <div className="grid grid-cols-3 gap-2">
+                      {ACCENT_PRESETS.map((p) => (
+                        <button key={p.value} type="button" onClick={() => field.onChange(p.value)}
+                          className={`px-2 py-1.5 rounded-lg text-xs border transition-all ${field.value === p.value ? "border-purple-500 bg-purple-900/30 text-purple-300" : "border-gray-700 text-gray-400 hover:border-gray-600"}`}
+                          data-testid={`preset-accent-${p.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+                          <div className={`h-2 w-full rounded-full bg-gradient-to-r ${p.value} mb-1`} />
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                    <FormControl><Input {...field} placeholder="from-purple-400 via-pink-400 to-orange-400" className="bg-gray-800 border-gray-700 text-white text-xs mt-2" /></FormControl>
+                  </FormItem>
+                )} />
+              </div>
+
+              <FormField control={form.control} name="overlayColor" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-300 text-xs">Background Overlay (Tailwind gradient class)</FormLabel>
+                  <FormControl><Input {...field} placeholder="from-black/90 via-black/70 to-black/40" className="bg-gray-800 border-gray-700 text-white text-xs" data-testid="input-slider-overlay" /></FormControl>
+                  <p className="text-xs text-gray-500">Controls image darkness. Darker = more text contrast.</p>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="isActive" render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border border-gray-700 p-3">
+                  <div>
+                    <FormLabel className="text-gray-300 text-sm">Active</FormLabel>
+                    <p className="text-xs text-gray-500">Show this slide on the landing page</p>
+                  </div>
+                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="toggle-slider-active" /></FormControl>
+                </FormItem>
+              )} />
+
+              <div className="flex gap-3 pt-2">
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-submit-slider">
+                  {createMutation.isPending || updateMutation.isPending ? "Saving…" : editingSlider ? "Save Changes" : "Create Slide"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="border-gray-700 text-gray-400 hover:text-white">
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1301,6 +1638,7 @@ export default function AdminMaster() {
                 { value: "analytics", icon: <TrendingUp className="h-3.5 w-3.5" />, label: "Analytics" },
                 { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
                 { value: "pwa", icon: <Smartphone className="h-3.5 w-3.5" />, label: "PWA" },
+                { value: "hero-sliders", icon: <Image className="h-3.5 w-3.5" />, label: "Hero Sliders" },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -4420,6 +4758,11 @@ export default function AdminMaster() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ── HERO SLIDERS TAB ── */}
+          <TabsContent value="hero-sliders" className="space-y-6">
+            <HeroSlidersPanel />
           </TabsContent>
 
         </Tabs>

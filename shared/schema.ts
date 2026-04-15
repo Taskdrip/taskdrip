@@ -1249,3 +1249,28 @@ export const emailLogs = pgTable("email_logs", {
 });
 
 export type EmailLog = typeof emailLogs.$inferSelect;
+
+// ──────────────────────────────────────────────────────────────
+// Hero Sliders — admin-managed landing page hero carousel
+// ──────────────────────────────────────────────────────────────
+export const heroSliders = pgTable("hero_sliders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  order: integer("order").default(0),
+  badge: varchar("badge"),
+  headline: text("headline").notNull(),
+  subheadline: text("subheadline"),
+  ctaPrimaryLabel: varchar("cta_primary_label"),
+  ctaPrimaryLink: varchar("cta_primary_link"),
+  ctaSecondaryLabel: varchar("cta_secondary_label"),
+  ctaSecondaryLink: varchar("cta_secondary_link"),
+  backgroundImage: text("background_image"),
+  overlayColor: varchar("overlay_color").default("from-black/90 via-black/70 to-black/40"),
+  accentColor: varchar("accent_color").default("from-purple-400 via-pink-400 to-orange-400"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({ id: true, createdAt: true, updatedAt: true });
+export type HeroSlider = typeof heroSliders.$inferSelect;
+export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;
