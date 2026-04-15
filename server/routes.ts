@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -13,6 +13,83 @@ import path from "path";
 import express from "express";
 
 const upload = multer({ dest: 'uploads/' });
+
+async function verifyBlockchainTransaction(network: string, txHash: string, expectedAmount?: number) {
+  const cleanHash = String(txHash || '').trim();
+  const selectedNetwork = String(network || '').toLowerCase();
+  if (!cleanHash) return { status: 'missing', message: 'No transaction hash was submitted.' };
+
+  try {
+    if (selectedNetwork.includes('tron')) {
+      const response = await fetch(`https://apilist.tronscanapi.com/api/transaction-info?hash=${encodeURIComponent(cleanHash)}`);
+      const data: any = await response.json();
+      const amount = Number(data?.trc20TransferInfo?.[0]?.amount_str || data?.contractData?.amount || 0) / 1_000_000;
+      return {
+        status: data?.confirmed ? 'verified' : 'pending',
+        network: 'Tron',
+        hash: cleanHash,
+        block: data?.block,
+        amount: amount || null,
+        expectedAmount: expectedAmount || null,
+        amountMatches: expectedAmount ? amount >= expectedAmount * 0.99 : null,
+        explorerUrl: `https://tronscan.org/#/transaction/${cleanHash}`,
+        message: data?.confirmed ? 'Transaction found on Tron and confirmed.' : 'Transaction found, but confirmation is still pending.',
+      };
+    }
+
+    if (selectedNetwork.includes('bsc')) {
+      const response = await fetch(`https://api.bscscan.com/api?module=proxy&action=eth_getTransactionReceipt&txhash=${encodeURIComponent(cleanHash)}`);
+      const data: any = await response.json();
+      const receipt = data?.result;
+      return {
+        status: receipt?.status === '0x1' ? 'verified' : receipt ? 'failed' : 'pending',
+        network: 'BNB Smart Chain',
+        hash: cleanHash,
+        block: receipt?.blockNumber,
+        amount: null,
+        expectedAmount: expectedAmount || null,
+        amountMatches: null,
+        explorerUrl: `https://bscscan.com/tx/${cleanHash}`,
+        message: receipt ? 'Transaction receipt found on BNB Smart Chain.' : 'Transaction is not visible yet. It may still be indexing.',
+      };
+    }
+
+    if (selectedNetwork.includes('ton')) {
+      return {
+        status: 'manual_review',
+        network: 'TON',
+        hash: cleanHash,
+        amount: null,
+        expectedAmount: expectedAmount || null,
+        amountMatches: null,
+        explorerUrl: `https://tonviewer.com/transaction/${cleanHash}`,
+        message: 'TON transaction link prepared for admin review.',
+      };
+    }
+
+    return {
+      status: 'manual_review',
+      network: selectedNetwork || 'Unknown',
+      hash: cleanHash,
+      amount: null,
+      expectedAmount: expectedAmount || null,
+      amountMatches: null,
+      explorerUrl: null,
+      message: 'This network needs manual admin review.',
+    };
+  } catch (error: any) {
+    return {
+      status: 'unavailable',
+      network: selectedNetwork,
+      hash: cleanHash,
+      amount: null,
+      expectedAmount: expectedAmount || null,
+      amountMatches: null,
+      explorerUrl: null,
+      message: error?.message || 'Blockchain verification is temporarily unavailable.',
+    };
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -4145,13 +4222,22 @@ Instructions:
       if (!influencerId || !title || !description || !budget) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
+      const baseBudget = Number(budget);
+      const brandPlatformFee = +(baseBudget * 0.10).toFixed(2);
+      const brandTotalCharge = +(baseBudget + brandPlatformFee).toFixed(2);
+      const influencerPlatformFee = +(baseBudget * 0.10).toFixed(2);
+      const influencerPayout = +(baseBudget - influencerPlatformFee).toFixed(2);
       const offer = await storage.createDirectHireOffer({
         brandId: req.user.id,
         influencerId,
         title,
         description,
         deliverables,
-        budget: String(budget),
+        budget: baseBudget.toFixed(2),
+        brandPlatformFee: brandPlatformFee.toFixed(2),
+        brandTotalCharge: brandTotalCharge.toFixed(2),
+        platformFeeAmount: influencerPlatformFee.toFixed(2),
+        influencerPayout: influencerPayout.toFixed(2),
         deadline: deadline ? new Date(deadline) : null,
         status: 'pending',
       });
@@ -4211,6 +4297,213 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.get('/api/direct-hire/:id/blockchain-verification', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const expectedAmount = Number(offer.brandTotalCharge || offer.budget || 0);
+      const report = await verifyBlockchainTransaction(offer.paymentNetwork, offer.transactionHash, expectedAmount);
+      res.json(report);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/direct-hire/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const rows = await db.select().from(messages)
+        .where(and(eq(messages.referenceType, 'direct_hire'), eq(messages.referenceId, offer.id)))
+        .orderBy(messages.createdAt);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/direct-hire/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.status === 'pending') return res.status(400).json({ message: 'Chat opens after the offer is accepted' });
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const content = String(req.body.content || '').trim();
+      if (!content) return res.status(400).json({ message: 'Message is required' });
+      const receiverId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
+      const message = await storage.createMessage({
+        senderId: req.user.id,
+        receiverId,
+        subject: `Direct hire: ${offer.title}`,
+        content,
+        messageType: 'direct_hire',
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+      } as any);
+      await storage.createNotification({
+        userId: receiverId,
+        type: 'direct_hire_message',
+        title: 'New project message',
+        content: `${req.user.firstName} sent a message on "${offer.title}".`,
+        actionUrl: `/direct-hire/${offer.id}`,
+      });
+      res.json(message);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/direct-hire/:id/submit-work', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.influencerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      if (!['active', 'revision_requested'].includes(offer.status)) return res.status(400).json({ message: 'Work can only be submitted on an active project' });
+      const workSubmissionUrl = String(req.body.workSubmissionUrl || '').trim();
+      const workSubmissionNote = String(req.body.workSubmissionNote || '').trim();
+      if (!workSubmissionUrl && !workSubmissionNote) return res.status(400).json({ message: 'Add a link or note for your submitted work' });
+      const updated = await storage.updateDirectHireOffer(offer.id, {
+        status: 'work_submitted',
+        workSubmissionUrl,
+        workSubmissionNote,
+        workSubmittedAt: new Date(),
+        revisionNote: null,
+      });
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_work_submitted',
+        title: 'Work submitted for approval',
+        content: `${req.user.firstName} submitted work for "${offer.title}".`,
+        actionUrl: `/direct-hire/${offer.id}`,
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/direct-hire/:id/request-revision', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      if (offer.status !== 'work_submitted') return res.status(400).json({ message: 'A revision can only be requested after work is submitted' });
+      const revisionNote = String(req.body.revisionNote || '').trim();
+      if (!revisionNote) return res.status(400).json({ message: 'Revision note is required' });
+      const updated = await storage.updateDirectHireOffer(offer.id, { status: 'revision_requested', revisionNote });
+      await storage.createNotification({
+        userId: offer.influencerId,
+        type: 'direct_hire_revision_requested',
+        title: 'Revision requested',
+        content: `The brand requested changes on "${offer.title}".`,
+        actionUrl: `/direct-hire/${offer.id}`,
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/direct-hire/:id/approve-work', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id && req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!['work_submitted', 'active'].includes(offer.status)) return res.status(400).json({ message: 'Work is not ready for approval' });
+      const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
+      const platformFee = Number(offer.platformFeeAmount || Number(offer.budget) * 0.1);
+      const brandFee = Number(offer.brandPlatformFee || Number(offer.budget) * 0.1);
+      const updated = await storage.updateDirectHireOffer(offer.id, { status: 'completed', completedAt: new Date() });
+      await db.update(users).set({
+        availableBalance: sql`${users.availableBalance} + ${payout}`,
+        pendingBalance: sql`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
+        totalEarned: sql`${users.totalEarned} + ${payout}`,
+        completedCampaigns: sql`${users.completedCampaigns} + 1`,
+        updatedAt: new Date(),
+      }).where(eq(users.id, offer.influencerId));
+      await storage.createTransaction({
+        userId: offer.influencerId,
+        amount: payout.toFixed(2),
+        type: 'direct_hire_payout',
+        status: 'completed',
+        description: `Direct hire payout for "${offer.title}" after 10% creator fee`,
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+        processedAt: new Date(),
+      } as any);
+      await storage.createTransaction({
+        userId: offer.influencerId,
+        amount: platformFee.toFixed(2),
+        type: 'platform_fee',
+        status: 'completed',
+        description: `10% creator platform fee for "${offer.title}"`,
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+        processedAt: new Date(),
+      } as any);
+      const admins = await storage.getUsersByType('admin');
+      for (const admin of admins) {
+        await storage.createTransaction({
+          userId: admin.id,
+          amount: (platformFee + brandFee).toFixed(2),
+          type: 'platform_revenue',
+          status: 'completed',
+          description: `Direct hire platform revenue for "${offer.title}"`,
+          referenceType: 'direct_hire',
+          referenceId: offer.id,
+          processedAt: new Date(),
+        } as any);
+      }
+      await storage.createNotification({
+        userId: offer.influencerId,
+        type: 'direct_hire_completed',
+        title: 'Project approved and paid',
+        content: `Your work for "${offer.title}" was approved. $${payout.toFixed(2)} is now available.`,
+        actionUrl: `/direct-hire/${offer.id}`,
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/direct-hire/:id/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const rows = await db.select().from(userReviews)
+        .where(and(eq(userReviews.referenceType, 'direct_hire'), eq(userReviews.referenceId, offer.id)))
+        .orderBy(desc(userReviews.createdAt));
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/direct-hire/:id/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.status !== 'completed') return res.status(400).json({ message: 'Reviews open after the project is completed' });
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      const rating = Number(req.body.rating);
+      const comment = String(req.body.comment || '').trim();
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: 'Rating must be from 1 to 5' });
+      const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
+      const existing = await db.select().from(userReviews)
+        .where(and(eq(userReviews.referenceType, 'direct_hire'), eq(userReviews.referenceId, offer.id), eq(userReviews.reviewerId, req.user.id)));
+      if (existing.length) return res.status(400).json({ message: 'You already reviewed this project' });
+      const [review] = await db.insert(userReviews).values({
+        reviewerId: req.user.id,
+        revieweeId,
+        rating,
+        comment,
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+      }).returning();
+      const ratings = await db.select({ avg: sql<string>`AVG(${userReviews.rating})`, count: sql<string>`COUNT(*)` }).from(userReviews).where(eq(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: new Date() }).where(eq(users.id, revieweeId));
+      res.json(review);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   // Influencer accepts an offer
   app.patch('/api/direct-hire/:id/accept', isAuthenticated, async (req: any, res) => {
     try {
@@ -4260,11 +4553,13 @@ Instructions:
       if (offer.status !== 'accepted') return res.status(400).json({ message: 'Offer must be accepted before payment' });
       const { transactionHash, paymentNetwork } = req.body;
       const paymentProof = req.file ? `/uploads/${req.file.filename}` : null;
+      const verification = await verifyBlockchainTransaction(paymentNetwork, transactionHash, Number(offer.brandTotalCharge || offer.budget || 0));
       const updated = await storage.updateDirectHireOffer(req.params.id, {
         status: 'payment_submitted',
         transactionHash,
         paymentNetwork,
         paymentProof,
+        adminNote: verification.message,
       });
       // Notify admin
       const admins = await storage.getUsersByType('admin');
@@ -4285,7 +4580,7 @@ Instructions:
         content: `Payment has been submitted for your project "${offer.title}". Awaiting admin confirmation.`,
         actionUrl: `/direct-hire/${offer.id}`,
       });
-      res.json(updated);
+      res.json({ ...updated, verification });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
@@ -4300,6 +4595,26 @@ Instructions:
         adminNote: req.body.note || '',
         activatedAt: new Date(),
       });
+      const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
+      const brandTotalCharge = Number(offer.brandTotalCharge || Number(offer.budget) * 1.1);
+      await db.update(users).set({
+        pendingBalance: sql`${users.pendingBalance} + ${payout}`,
+        updatedAt: new Date(),
+      }).where(eq(users.id, offer.influencerId));
+      await storage.createTransaction({
+        userId: offer.brandId,
+        amount: brandTotalCharge.toFixed(2),
+        type: 'direct_hire_escrow',
+        status: 'completed',
+        transactionHash: offer.transactionHash,
+        network: offer.paymentNetwork,
+        description: `Escrow funded for "${offer.title}" including 10% brand platform fee`,
+        approvedBy: req.user.id,
+        approvedAt: new Date(),
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+        processedAt: new Date(),
+      } as any);
       // Notify both parties
       await storage.createNotification({
         userId: offer.brandId,

@@ -18,7 +18,7 @@ import {
   Briefcase, Calendar, Clock, AlertTriangle, Send, MessageCircle, Phone,
   ShieldCheck, Sparkles, ChevronRight
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 interface PaymentNetwork {
   id: string;
@@ -36,10 +36,14 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; description:
   accepted:          { label: "Accepted — Pay Now",   color: "bg-blue-100 text-blue-800",      description: "The influencer accepted! Complete payment to start the project." },
   rejected:          { label: "Declined",             color: "bg-red-100 text-red-800",        description: "The influencer declined this offer." },
   payment_submitted: { label: "Payment Under Review", color: "bg-purple-100 text-purple-800",  description: "Your payment proof is being reviewed by our team." },
-  active:            { label: "Project Active 🚀",    color: "bg-green-100 text-green-800",    description: "Payment confirmed. Your project is live!" },
-  completed:         { label: "Completed ✅",          color: "bg-gray-100 text-gray-800",      description: "This project has been completed." },
+  active:            { label: "Project Active",       color: "bg-green-100 text-green-800",    description: "Payment confirmed. Your project is live!" },
+  work_submitted:    { label: "Work Submitted",       color: "bg-indigo-100 text-indigo-800",  description: "The brand is reviewing the submitted work." },
+  revision_requested:{ label: "Revision Requested",   color: "bg-orange-100 text-orange-800",  description: "The brand asked for changes before approval." },
+  completed:         { label: "Completed",            color: "bg-gray-100 text-gray-800",      description: "This project has been completed." },
   cancelled:         { label: "Cancelled",            color: "bg-gray-100 text-gray-500",      description: "This offer was cancelled." },
 };
+
+const money = (value: any) => Number(value || 0).toFixed(2);
 
 export default function DirectHirePayment() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +58,7 @@ export default function DirectHirePayment() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [adminMsgOpen, setAdminMsgOpen] = useState(false);
   const [adminMsg, setAdminMsg] = useState("");
+  const [proofOpen, setProofOpen] = useState(false);
 
   const { data: offer, isLoading, refetch } = useQuery<any>({
     queryKey: [`/api/direct-hire/${id}`],
@@ -65,6 +70,12 @@ export default function DirectHirePayment() {
     queryKey: ["/api/payment-networks"],
   });
   const activeNetworks = networks.filter((n) => n.isActive);
+
+  const { data: verification } = useQuery<any>({
+    queryKey: [`/api/direct-hire/${id}/blockchain-verification`],
+    enabled: !!id && !!offer?.transactionHash,
+    refetchInterval: offer?.status === 'payment_submitted' ? 15000 : false,
+  });
 
   const submitPaymentMutation = useMutation({
     mutationFn: async () => {
@@ -180,8 +191,8 @@ export default function DirectHirePayment() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-green-50 rounded-xl p-4 text-center">
                 <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                <p className="text-xs text-gray-500">Budget</p>
-                <p className="text-2xl font-bold text-green-700">${Number(offer.budget).toFixed(2)}</p>
+                <p className="text-xs text-gray-500">Project Budget</p>
+                <p className="text-2xl font-bold text-green-700">${money(offer.budget)}</p>
               </div>
               {offer.deadline && (
                 <div className="bg-blue-50 rounded-xl p-4 text-center">
@@ -190,6 +201,23 @@ export default function DirectHirePayment() {
                   <p className="text-lg font-bold text-blue-700">{format(new Date(offer.deadline), "MMM d, yyyy")}</p>
                 </div>
               )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl border bg-white p-3">
+                <p className="text-xs text-gray-500">Brand pays</p>
+                <p className="font-bold text-gray-900" data-testid="text-brand-total">${money(offer.brandTotalCharge || Number(offer.budget) * 1.1)}</p>
+                <p className="text-[11px] text-gray-500">Budget + 10% platform fee</p>
+              </div>
+              <div className="rounded-xl border bg-white p-3">
+                <p className="text-xs text-gray-500">Creator receives</p>
+                <p className="font-bold text-green-700" data-testid="text-influencer-payout">${money(offer.influencerPayout || Number(offer.budget) * 0.9)}</p>
+                <p className="text-[11px] text-gray-500">After creator 10% fee</p>
+              </div>
+              <div className="rounded-xl border bg-white p-3">
+                <p className="text-xs text-gray-500">Platform fees</p>
+                <p className="font-bold text-purple-700" data-testid="text-platform-fees">${money(Number(offer.brandPlatformFee || Number(offer.budget) * 0.1) + Number(offer.platformFeeAmount || Number(offer.budget) * 0.1))}</p>
+                <p className="text-[11px] text-gray-500">Shown in wallet ledger</p>
+              </div>
             </div>
             <div>
               <Label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Description</Label>
@@ -214,12 +242,12 @@ export default function DirectHirePayment() {
           <InfluencerAcceptPanel offerId={offer.id} offerTitle={offer.title} onDone={refetch} />
         )}
 
-        {isInfluencer && offer.status === 'active' && (
+        {isInfluencer && ['active', 'revision_requested'].includes(offer.status) && (
           <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
             <CardContent className="p-6 text-center">
               <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-              <h3 className="text-lg font-bold text-green-800">Your project is live! 🚀</h3>
-              <p className="text-green-700 text-sm mt-1">Payment was confirmed. Deliver your best work!</p>
+              <h3 className="text-lg font-bold text-green-800">{offer.status === 'revision_requested' ? 'Revision requested' : 'Your project is live'}</h3>
+              {offer.revisionNote && <p className="text-orange-700 text-sm mt-1 bg-orange-50 border border-orange-100 rounded-lg p-3">{offer.revisionNote}</p>}
             </CardContent>
           </Card>
         )}
@@ -232,7 +260,7 @@ export default function DirectHirePayment() {
                 <ShieldCheck className="w-5 h-5" /> Complete Payment to Admin Escrow
               </CardTitle>
               <CardDescription className="text-blue-700">
-                Send ${Number(offer.budget).toFixed(2)} USDT to the admin escrow wallet. Your project will be activated once payment is verified.
+                Send ${money(offer.brandTotalCharge || Number(offer.budget) * 1.1)} USDT to the admin escrow wallet. This includes the project budget plus the 10% brand platform fee.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -285,7 +313,7 @@ export default function DirectHirePayment() {
                     <Label className="text-sm font-semibold">{sel?.name || "USDT"} Escrow Wallet Address</Label>
                     {sel?.description && <p className="text-xs text-gray-500">{sel.description}</p>}
                     <div className="flex items-center gap-2">
-                      <Input value={addr || "Address not configured — contact support"} readOnly className="font-mono text-xs" />
+                      <Input value={addr || "Address not configured — contact support"} readOnly className="font-mono text-xs" data-testid="input-escrow-wallet" />
                       {addr && (
                         <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(addr); toast({ title: "Copied!" }); }}>
                           <Copy className="w-4 h-4" />
@@ -294,7 +322,7 @@ export default function DirectHirePayment() {
                     </div>
                     <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-xs text-yellow-800">
                       <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                      Send exactly <strong className="mx-1">${Number(offer.budget).toFixed(2)} USDT</strong> to this address only.
+                      Send exactly <strong className="mx-1">${money(offer.brandTotalCharge || Number(offer.budget) * 1.1)} USDT</strong> to this address only.
                     </div>
                   </div>
                 );
@@ -343,6 +371,7 @@ export default function DirectHirePayment() {
                   </div>
                 ))}
               </div>
+              <PaymentProofAndVerification offer={offer} verification={verification} onOpenProof={() => setProofOpen(true)} />
 
               <div className="mt-6 flex gap-3 justify-center flex-wrap">
                 <button
@@ -366,16 +395,17 @@ export default function DirectHirePayment() {
           <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
             <CardContent className="p-8 text-center">
               <Sparkles className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-green-800 mb-2">Project Active! 🚀</h2>
+              <h2 className="text-2xl font-bold text-green-800 mb-2">Project Active</h2>
               <p className="text-green-700">Payment confirmed. {offer.influencer?.firstName} is ready to start working!</p>
               {offer.activatedAt && (
                 <p className="text-xs text-gray-500 mt-2">Activated {format(new Date(offer.activatedAt), "MMM d, yyyy 'at' h:mm a")}</p>
               )}
-              <Button className="mt-4" onClick={() => setLocation(`/chat?to=${offer.influencerId}`)}>
-                <MessageCircle className="w-4 h-4 mr-2" /> Message Influencer
-              </Button>
             </CardContent>
           </Card>
+        )}
+
+        {['active', 'work_submitted', 'revision_requested', 'completed'].includes(offer.status) && (
+          <ProjectWorkspace offer={offer} isBrand={isBrand} isInfluencer={isInfluencer} currentUserId={user?.id} onDone={refetch} />
         )}
 
         {/* Rejected offer */}
@@ -456,6 +486,18 @@ export default function DirectHirePayment() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={proofOpen} onOpenChange={setProofOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Payment proof</DialogTitle>
+            <DialogDescription>Use your browser zoom controls if you need to inspect small text.</DialogDescription>
+          </DialogHeader>
+          {offer.paymentProof && (
+            <img src={offer.paymentProof} alt="Payment proof" className="max-h-[75vh] w-full object-contain rounded-xl bg-black" data-testid="img-payment-proof-full" />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Admin message dialog */}
       <Dialog open={adminMsgOpen} onOpenChange={setAdminMsgOpen}>
         <DialogContent className="max-w-md">
@@ -487,6 +529,224 @@ export default function DirectHirePayment() {
       </Dialog>
 
       <Footer />
+    </div>
+  );
+}
+
+function PaymentProofAndVerification({ offer, verification, onOpenProof }: { offer: any; verification: any; onOpenProof: () => void }) {
+  if (!offer.paymentProof && !offer.transactionHash) return null;
+  const statusClass: Record<string, string> = {
+    verified: "bg-green-50 text-green-800 border-green-200",
+    pending: "bg-yellow-50 text-yellow-800 border-yellow-200",
+    failed: "bg-red-50 text-red-800 border-red-200",
+    manual_review: "bg-blue-50 text-blue-800 border-blue-200",
+    unavailable: "bg-gray-50 text-gray-700 border-gray-200",
+  };
+
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-3 text-left">
+      {offer.paymentProof && (
+        <button onClick={onOpenProof} className="rounded-xl border bg-white p-3 text-left hover:bg-gray-50" data-testid="button-open-proof">
+          <p className="text-sm font-semibold text-gray-900">Payment screenshot</p>
+          <img src={offer.paymentProof} alt="Payment proof thumbnail" className="mt-2 max-h-40 w-full object-contain rounded-lg bg-gray-100" data-testid="img-payment-proof-thumb" />
+          <p className="mt-2 text-xs text-purple-700">Click to view full screen</p>
+        </button>
+      )}
+      {verification && (
+        <div className={`rounded-xl border p-4 ${statusClass[verification.status] || statusClass.unavailable}`} data-testid="card-blockchain-verification">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-bold">AI blockchain verification</p>
+              <p className="text-xs mt-1">{verification.message}</p>
+            </div>
+            <Badge className="bg-white/70 text-current border-0">{verification.status?.replace("_", " ")}</Badge>
+          </div>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div><span className="font-semibold">Network:</span> {verification.network || offer.paymentNetwork}</div>
+            <div><span className="font-semibold">Expected:</span> ${money(verification.expectedAmount)}</div>
+            <div><span className="font-semibold">Detected:</span> {verification.amount ? `$${money(verification.amount)}` : "Needs explorer check"}</div>
+          </div>
+          {verification.explorerUrl && (
+            <a href={verification.explorerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold underline" data-testid="link-explorer">
+              Open blockchain explorer
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectWorkspace({ offer, isBrand, isInfluencer, currentUserId, onDone }: { offer: any; isBrand: boolean; isInfluencer: boolean; currentUserId?: string; onDone: () => void }) {
+  const { toast } = useToast();
+  const [message, setMessage] = useState("");
+  const [workUrl, setWorkUrl] = useState(offer.workSubmissionUrl || "");
+  const [workNote, setWorkNote] = useState("");
+  const [revisionNote, setRevisionNote] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+
+  const { data: messagesData = [] } = useQuery<any[]>({
+    queryKey: [`/api/direct-hire/${offer.id}/messages`],
+    refetchInterval: offer.status === 'completed' ? false : 15000,
+  });
+
+  const { data: reviews = [] } = useQuery<any[]>({
+    queryKey: [`/api/direct-hire/${offer.id}/reviews`],
+    enabled: offer.status === 'completed',
+  });
+
+  const sendMessage = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/messages`, { content: message }).then(r => r.json()),
+    onSuccess: () => {
+      setMessage("");
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}/messages`] });
+    },
+    onError: (e: Error) => toast({ title: "Message failed", description: e.message, variant: "destructive" }),
+  });
+
+  const submitWork = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/submit-work`, { workSubmissionUrl: workUrl, workSubmissionNote: workNote }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Work submitted", description: "The brand can now approve it or request changes." });
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}`] });
+      onDone();
+    },
+    onError: (e: Error) => toast({ title: "Submission failed", description: e.message, variant: "destructive" }),
+  });
+
+  const requestRevision = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/request-revision`, { revisionNote }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Revision requested" });
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}`] });
+      onDone();
+    },
+    onError: (e: Error) => toast({ title: "Could not request revision", description: e.message, variant: "destructive" }),
+  });
+
+  const approveWork = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/approve-work`).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Project completed", description: "Creator earnings have moved to available balance." });
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}`] });
+      onDone();
+    },
+    onError: (e: Error) => toast({ title: "Approval failed", description: e.message, variant: "destructive" }),
+  });
+
+  const submitReview = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/reviews`, { rating: reviewRating, comment: reviewComment }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Review posted" });
+      setReviewComment("");
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}/reviews`] });
+    },
+    onError: (e: Error) => toast({ title: "Review failed", description: e.message, variant: "destructive" }),
+  });
+
+  const alreadyReviewed = reviews.some((r: any) => r.reviewerId === currentUserId);
+
+  return (
+    <div className="mt-5 space-y-5">
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><MessageCircle className="w-4 h-4 text-purple-600" /> Project chat</CardTitle>
+          <CardDescription>Messages stay attached to this hire after activation.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-h-72 overflow-y-auto rounded-xl border bg-gray-50 p-3 space-y-2">
+            {messagesData.length === 0 && <p className="text-center text-sm text-gray-400 py-6">No project messages yet.</p>}
+            {messagesData.map((m: any) => {
+              const mine = m.senderId === currentUserId;
+              return (
+                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-purple-600 text-white" : "bg-white border text-gray-800"}`} data-testid={`message-${m.id}`}>
+                    <p>{m.content}</p>
+                    <p className={`text-[10px] mt-1 ${mine ? "text-purple-100" : "text-gray-400"}`}>{m.createdAt ? formatDistanceToNow(new Date(m.createdAt), { addSuffix: true }) : ""}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Input value={message} onChange={e => setMessage(e.target.value)} placeholder="Write a project message..." data-testid="input-project-message" />
+            <Button onClick={() => sendMessage.mutate()} disabled={!message.trim() || sendMessage.isPending} data-testid="button-send-project-message">
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isInfluencer && ['active', 'revision_requested'].includes(offer.status) && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Submit work</CardTitle>
+            <CardDescription>Send the final post, content link, or notes for brand approval.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Input value={workUrl} onChange={e => setWorkUrl(e.target.value)} placeholder="Work URL, post link, file link..." data-testid="input-work-url" />
+            <Textarea value={workNote} onChange={e => setWorkNote(e.target.value)} placeholder="Add a short delivery note..." rows={4} data-testid="input-work-note" />
+            <Button onClick={() => submitWork.mutate()} disabled={submitWork.isPending || (!workUrl.trim() && !workNote.trim())} className="bg-green-600 hover:bg-green-700" data-testid="button-submit-work">
+              {submitWork.isPending ? "Submitting..." : "Submit Work"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {offer.status === 'work_submitted' && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Submitted work</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {offer.workSubmissionUrl && <a href={offer.workSubmissionUrl} target="_blank" rel="noreferrer" className="text-sm font-semibold text-purple-700 underline break-all" data-testid="link-submitted-work">{offer.workSubmissionUrl}</a>}
+            {offer.workSubmissionNote && <p className="text-sm text-gray-700 whitespace-pre-line" data-testid="text-submitted-work-note">{offer.workSubmissionNote}</p>}
+            {offer.workSubmittedAt && <p className="text-xs text-gray-500">Submitted {format(new Date(offer.workSubmittedAt), "MMM d, yyyy 'at' h:mm a")}</p>}
+            {isBrand && (
+              <div className="space-y-3 pt-2">
+                <Textarea value={revisionNote} onChange={e => setRevisionNote(e.target.value)} placeholder="Revision note if changes are needed..." rows={3} data-testid="input-revision-note" />
+                <div className="flex gap-3 flex-wrap">
+                  <Button onClick={() => approveWork.mutate()} disabled={approveWork.isPending} className="bg-green-600 hover:bg-green-700" data-testid="button-approve-work">
+                    Approve and Release Payment
+                  </Button>
+                  <Button variant="outline" onClick={() => requestRevision.mutate()} disabled={!revisionNote.trim() || requestRevision.isPending} data-testid="button-request-revision">
+                    Request Revision
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {offer.status === 'completed' && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Mutual reviews</CardTitle>
+            <CardDescription>Reviews from this project appear on user profiles.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {reviews.length === 0 && <p className="text-sm text-gray-500">No reviews yet.</p>}
+            {reviews.map((r: any) => (
+              <div key={r.id} className="rounded-xl border bg-white p-3" data-testid={`review-${r.id}`}>
+                <p className="font-semibold text-yellow-600">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
+                {r.comment && <p className="text-sm text-gray-700 mt-1">{r.comment}</p>}
+              </div>
+            ))}
+            {!alreadyReviewed && (
+              <div className="rounded-xl border bg-gray-50 p-3 space-y-3">
+                <Label>Leave a review</Label>
+                <select value={reviewRating} onChange={e => setReviewRating(Number(e.target.value))} className="w-full rounded-lg border p-2 text-sm" data-testid="select-review-rating">
+                  {[5, 4, 3, 2, 1].map(v => <option key={v} value={v}>{v} star{v === 1 ? "" : "s"}</option>)}
+                </select>
+                <Textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder="Share your experience..." rows={3} data-testid="input-review-comment" />
+                <Button onClick={() => submitReview.mutate()} disabled={submitReview.isPending} data-testid="button-submit-review">Post Review</Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

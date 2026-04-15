@@ -173,6 +173,7 @@ export default function SimpleDashboard() {
 
   const stats = {
     availableBalance: parseFloat((user as any)?.availableBalance || '0'),
+    pendingBalance: parseFloat((user as any)?.pendingBalance || '0'),
     totalEarnings: parseFloat((user as any)?.totalEarned || '0'),
     completedTasks: (user as any)?.completedCampaigns || 0,
   };
@@ -203,6 +204,11 @@ export default function SimpleDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">${stats.availableBalance.toFixed(2)}</div>
               <p className="text-xs opacity-90">Ready for withdrawal</p>
+              <Link href="/payout-requests">
+                <Button size="sm" variant="secondary" className="mt-3 h-8 text-xs" data-testid="button-request-withdrawal">
+                  Request withdrawal
+                </Button>
+              </Link>
             </CardContent>
           </Card>
           
@@ -221,6 +227,28 @@ export default function SimpleDashboard() {
           {/* Leaderboard Rank */}
           <LeaderboardRankWidget userId={(user as any)?.id} />
         </div>
+
+        <Card className="mb-6 border-purple-100 bg-white">
+          <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="font-bold text-gray-900 flex items-center gap-2"><Wallet className="w-5 h-5 text-purple-600" /> Wallet ledger</h2>
+              <p className="text-sm text-gray-500">Available balance is withdrawable. Pending balance is escrowed work waiting for approval.</p>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <div className="rounded-xl bg-green-50 px-4 py-2">
+                <p className="text-xs text-green-700">Available</p>
+                <p className="font-bold text-green-800" data-testid="text-available-balance">${stats.availableBalance.toFixed(2)}</p>
+              </div>
+              <div className="rounded-xl bg-yellow-50 px-4 py-2">
+                <p className="text-xs text-yellow-700">Pending</p>
+                <p className="font-bold text-yellow-800" data-testid="text-pending-balance">${stats.pendingBalance.toFixed(2)}</p>
+              </div>
+              <Link href="/payout-requests">
+                <Button variant="outline" data-testid="button-open-payouts">Withdraw</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Second Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -302,6 +330,8 @@ export default function SimpleDashboard() {
                   rejected:          "bg-gray-100 text-gray-500",
                   payment_submitted: "bg-purple-100 text-purple-800",
                   active:            "bg-green-100 text-green-800",
+                  work_submitted:    "bg-indigo-100 text-indigo-800",
+                  revision_requested:"bg-orange-100 text-orange-800",
                   completed:         "bg-gray-100 text-gray-700",
                 };
                 const statusLabels: Record<string, string> = {
@@ -309,8 +339,10 @@ export default function SimpleDashboard() {
                   accepted:          "Accepted",
                   rejected:          "Declined",
                   payment_submitted: "Payment Pending",
-                  active:            "Active 🚀",
-                  completed:         "Completed ✅",
+                  active:            "Active",
+                  work_submitted:    "Review Work",
+                  revision_requested:"Revision",
+                  completed:         "Completed",
                 };
                 const isPending = hire.status === 'pending';
                 return (

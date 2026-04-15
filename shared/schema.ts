@@ -156,6 +156,8 @@ export const transactions = pgTable("transactions", {
   network: varchar("network", { length: 20 }), // 'tron', 'bsc', 'ton'
   walletAddress: varchar("wallet_address"),
   description: text("description"),
+  referenceType: varchar("reference_type", { length: 50 }),
+  referenceId: varchar("reference_id"),
   approvedBy: varchar("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -296,6 +298,8 @@ export const messages = pgTable("messages", {
   subject: varchar("subject", { length: 200 }),
   content: text("content").notNull(),
   messageType: varchar("message_type", { length: 50 }).default('general'),
+  referenceType: varchar("reference_type", { length: 50 }),
+  referenceId: varchar("reference_id"),
   isRead: boolean("is_read").default(false),
   attachments: jsonb("attachments"),
   parentMessageId: uuid("parent_message_id"),
@@ -403,6 +407,10 @@ export const directHireOffers = pgTable("direct_hire_offers", {
   description: text("description").notNull(),
   deliverables: text("deliverables"),
   budget: decimal("budget", { precision: 10, scale: 2 }).notNull(),
+  brandPlatformFee: decimal("brand_platform_fee", { precision: 10, scale: 2 }).default("0.00"),
+  brandTotalCharge: decimal("brand_total_charge", { precision: 10, scale: 2 }).default("0.00"),
+  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).default("0.00"),
+  influencerPayout: decimal("influencer_payout", { precision: 10, scale: 2 }).default("0.00"),
   deadline: timestamp("deadline"),
   // Workflow status
   status: varchar("status").default("pending"),
@@ -414,7 +422,12 @@ export const directHireOffers = pgTable("direct_hire_offers", {
   paymentNetwork: varchar("payment_network"),
   transactionHash: varchar("transaction_hash"),
   adminNote: text("admin_note"),
+  workSubmissionUrl: varchar("work_submission_url", { length: 500 }),
+  workSubmissionNote: text("work_submission_note"),
+  workSubmittedAt: timestamp("work_submitted_at"),
+  revisionNote: text("revision_note"),
   activatedAt: timestamp("activated_at"),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -698,6 +711,8 @@ export const userReviews = pgTable("user_reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   revieweeId: varchar("reviewee_id").notNull().references(() => users.id), // Who is being reviewed
   reviewerId: varchar("reviewer_id").notNull().references(() => users.id), // Who wrote the review
+  referenceType: varchar("reference_type", { length: 50 }),
+  referenceId: varchar("reference_id"),
   rating: integer("rating").notNull(), // 1-5 stars
   comment: text("comment"),
   createdAt: timestamp("created_at").defaultNow(),
