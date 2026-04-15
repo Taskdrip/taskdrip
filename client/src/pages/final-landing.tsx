@@ -590,7 +590,7 @@ export default function FinalLanding() {
               </Button>
             </Link>
           </div>
-          <p className="text-purple-300/60 text-sm mt-6">{cms.get("final_cta", "disclaimer", "No credit card required. Campaigns ready the moment you sign up.")}</p>
+          <p className="text-purple-300/60 text-sm mt-6">{cms.get("final_cta", "footnote", "No credit card required. Campaigns ready the moment you sign up.")}</p>
         </div>
       </section>
 

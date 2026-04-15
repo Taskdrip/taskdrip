@@ -2332,6 +2332,47 @@ export class DatabaseStorage implements IStorage {
     if (rows.length === 0) return;
     await db.insert(pageContent).values(rows);
   }
+
+  async syncDefaultPageContent(defaults: InsertPageContent[]): Promise<{ inserted: number; updated: number }> {
+    if (defaults.length === 0) return { inserted: 0, updated: 0 };
+
+    const existing = await db.select().from(pageContent);
+    const existingMap = new Map(existing.map((r) => [`${r.page}::${r.section}::${r.key}`, r]));
+
+    let inserted = 0;
+    let updated = 0;
+
+    for (const def of defaults) {
+      const mapKey = `${def.page}::${def.section}::${def.key}`;
+      const found = existingMap.get(mapKey);
+
+      if (!found) {
+        await db.insert(pageContent).values({ ...def, value: null });
+        inserted++;
+      } else {
+        const needsMetaUpdate =
+          found.label !== def.label ||
+          found.type !== def.type ||
+          found.defaultValue !== def.defaultValue ||
+          found.order !== def.order;
+
+        if (needsMetaUpdate) {
+          await db.update(pageContent)
+            .set({
+              label: def.label,
+              type: def.type,
+              defaultValue: def.defaultValue,
+              order: def.order,
+              updatedAt: new Date(),
+            })
+            .where(eq(pageContent.id, found.id));
+          updated++;
+        }
+      }
+    }
+
+    return { inserted, updated };
+  }
 }
 
 export const storage = new DatabaseStorage();

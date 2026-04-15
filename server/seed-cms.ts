@@ -166,7 +166,7 @@ const DEFAULT_PAGE_CONTENT = [
 
 export async function seedCmsContent(): Promise<void> {
   try {
-    // Seed default hero sliders if none exist
+    // ── Hero Sliders: seed only if table is empty (admin fully manages these) ──
     const sliderCount = await storage.countHeroSliders();
     if (sliderCount === 0) {
       for (const slider of DEFAULT_SLIDERS) {
@@ -175,17 +175,22 @@ export async function seedCmsContent(): Promise<void> {
       log(`[CMS] Seeded ${DEFAULT_SLIDERS.length} default hero sliders`);
     }
 
-    // Seed default page content blocks if none exist
-    const contentCount = await storage.countPageContent();
-    if (contentCount === 0) {
-      await storage.bulkInsertPageContent(
-        DEFAULT_PAGE_CONTENT.map((item) => ({
-          ...item,
-          value: null,
-          description: null,
-        })) as any[]
-      );
-      log(`[CMS] Seeded ${DEFAULT_PAGE_CONTENT.length} default page content blocks`);
+    // ── Page Content: smart sync on every startup ────────────────────────────
+    // Inserts any new blocks that don't exist, updates changed metadata (label/type/default),
+    // but NEVER overwrites user-edited values — so content edits made in the admin survive
+    // restarts, code exports, and future code updates.
+    const { inserted, updated } = await storage.syncDefaultPageContent(
+      DEFAULT_PAGE_CONTENT.map((item) => ({
+        ...item,
+        value: null,
+        description: null,
+      })) as any[]
+    );
+
+    if (inserted > 0 || updated > 0) {
+      log(`[CMS] Synced page content — ${inserted} new block(s) added, ${updated} block(s) updated`);
+    } else {
+      log(`[CMS] Page content up to date (${DEFAULT_PAGE_CONTENT.length} blocks)`);
     }
   } catch (err) {
     console.error("[CMS] Seed error:", err);
