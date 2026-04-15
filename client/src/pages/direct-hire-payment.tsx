@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   ArrowLeft, Copy, CheckCircle, Upload, User, DollarSign,
   Briefcase, Calendar, Clock, AlertTriangle, Send, MessageCircle, Phone,
-  ShieldCheck, Sparkles, ChevronRight
+  ShieldCheck, Sparkles, ChevronRight, Bot, ZoomIn, ZoomOut, RotateCcw, ExternalLink
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -59,6 +59,7 @@ export default function DirectHirePayment() {
   const [adminMsgOpen, setAdminMsgOpen] = useState(false);
   const [adminMsg, setAdminMsg] = useState("");
   const [proofOpen, setProofOpen] = useState(false);
+  const [proofZoom, setProofZoom] = useState(1);
 
   const { data: offer, isLoading, refetch } = useQuery<any>({
     queryKey: [`/api/direct-hire/${id}`],
@@ -237,6 +238,20 @@ export default function DirectHirePayment() {
           </CardContent>
         </Card>
 
+        {(offer.paymentProof || offer.transactionHash) && ['payment_submitted', 'active', 'work_submitted', 'revision_requested', 'completed'].includes(offer.status) && (
+          <Card className="mb-5 border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bot className="w-4 h-4 text-purple-600" /> Payment verification report
+              </CardTitle>
+              <CardDescription>Proof, transaction hash, and blockchain check stay attached to this project.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PaymentProofAndVerification offer={offer} verification={verification} onOpenProof={() => setProofOpen(true)} />
+            </CardContent>
+          </Card>
+        )}
+
         {/* ── INFLUENCER VIEW ── */}
         {isInfluencer && offer.status === 'pending' && (
           <InfluencerAcceptPanel offerId={offer.id} offerTitle={offer.title} onDone={refetch} />
@@ -371,8 +386,6 @@ export default function DirectHirePayment() {
                   </div>
                 ))}
               </div>
-              <PaymentProofAndVerification offer={offer} verification={verification} onOpenProof={() => setProofOpen(true)} />
-
               <div className="mt-6 flex gap-3 justify-center flex-wrap">
                 <button
                   onClick={() => setAdminMsgOpen(true)}
@@ -486,14 +499,36 @@ export default function DirectHirePayment() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={proofOpen} onOpenChange={setProofOpen}>
-        <DialogContent className="max-w-4xl">
+      <Dialog open={proofOpen} onOpenChange={(open) => { setProofOpen(open); if (!open) setProofZoom(1); }}>
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle>Payment proof</DialogTitle>
-            <DialogDescription>Use your browser zoom controls if you need to inspect small text.</DialogDescription>
+            <DialogDescription>Zoom in to inspect the full details of the submitted screenshot.</DialogDescription>
           </DialogHeader>
+          <div className="flex items-center justify-between gap-3 rounded-xl border bg-gray-50 p-3">
+            <p className="text-sm font-medium text-gray-700" data-testid="text-proof-zoom">{Math.round(proofZoom * 100)}% zoom</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setProofZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} data-testid="button-proof-zoom-out">
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setProofZoom(1)} data-testid="button-proof-zoom-reset">
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setProofZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))} data-testid="button-proof-zoom-in">
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
           {offer.paymentProof && (
-            <img src={offer.paymentProof} alt="Payment proof" className="max-h-[75vh] w-full object-contain rounded-xl bg-black" data-testid="img-payment-proof-full" />
+            <div className="max-h-[75vh] overflow-auto rounded-xl bg-black p-4">
+              <img
+                src={offer.paymentProof}
+                alt="Payment proof"
+                className="mx-auto rounded-xl"
+                style={{ width: `${proofZoom * 100}%`, maxWidth: proofZoom === 1 ? "100%" : "none" }}
+                data-testid="img-payment-proof-full"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -534,6 +569,7 @@ export default function DirectHirePayment() {
 }
 
 function PaymentProofAndVerification({ offer, verification, onOpenProof }: { offer: any; verification: any; onOpenProof: () => void }) {
+  const { toast } = useToast();
   if (!offer.paymentProof && !offer.transactionHash) return null;
   const statusClass: Record<string, string> = {
     verified: "bg-green-50 text-green-800 border-green-200",
@@ -552,11 +588,30 @@ function PaymentProofAndVerification({ offer, verification, onOpenProof }: { off
           <p className="mt-2 text-xs text-purple-700">Click to view full screen</p>
         </button>
       )}
+      {offer.transactionHash && (
+        <div className="rounded-xl border bg-gray-50 p-4" data-testid="card-transaction-hash">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p className="text-sm font-semibold text-gray-900">Transaction hash</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(offer.transactionHash);
+                toast({ title: "Transaction hash copied" });
+              }}
+              data-testid="button-copy-transaction-hash"
+            >
+              <Copy className="w-4 h-4 mr-1" /> Copy
+            </Button>
+          </div>
+          <p className="font-mono text-xs text-gray-700 break-all" data-testid="text-transaction-hash">{offer.transactionHash}</p>
+        </div>
+      )}
       {verification && (
         <div className={`rounded-xl border p-4 ${statusClass[verification.status] || statusClass.unavailable}`} data-testid="card-blockchain-verification">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-sm font-bold">AI blockchain verification</p>
+              <p className="text-sm font-bold flex items-center gap-2"><Bot className="w-4 h-4" /> AI blockchain verification</p>
               <p className="text-xs mt-1">{verification.message}</p>
             </div>
             <Badge className="bg-white/70 text-current border-0">{verification.status?.replace("_", " ")}</Badge>
@@ -566,9 +621,14 @@ function PaymentProofAndVerification({ offer, verification, onOpenProof }: { off
             <div><span className="font-semibold">Expected:</span> ${money(verification.expectedAmount)}</div>
             <div><span className="font-semibold">Detected:</span> {verification.amount ? `$${money(verification.amount)}` : "Needs explorer check"}</div>
           </div>
+          {verification.amountMatches !== null && verification.amountMatches !== undefined && (
+            <p className="mt-2 text-xs font-medium" data-testid="text-amount-match">
+              Amount check: {verification.amountMatches ? "matches the expected escrow amount" : "does not match the expected escrow amount"}
+            </p>
+          )}
           {verification.explorerUrl && (
-            <a href={verification.explorerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold underline" data-testid="link-explorer">
-              Open blockchain explorer
+            <a href={verification.explorerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold underline" data-testid="link-explorer">
+              <ExternalLink className="w-3 h-3" /> Open blockchain explorer
             </a>
           )}
         </div>

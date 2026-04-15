@@ -4407,7 +4407,7 @@ Instructions:
       const offer = await storage.getDirectHireOffer(req.params.id);
       if (!offer) return res.status(404).json({ message: 'Offer not found' });
       if (offer.brandId !== req.user.id && req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      if (!['work_submitted', 'active'].includes(offer.status)) return res.status(400).json({ message: 'Work is not ready for approval' });
+      if (offer.status !== 'work_submitted') return res.status(400).json({ message: 'Work must be submitted before approval' });
       const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
       const platformFee = Number(offer.platformFeeAmount || Number(offer.budget) * 0.1);
       const brandFee = Number(offer.brandPlatformFee || Number(offer.budget) * 0.1);
@@ -4440,10 +4440,17 @@ Instructions:
         processedAt: new Date(),
       } as any);
       const admins = await storage.getUsersByType('admin');
-      for (const admin of admins) {
+      const primaryAdmin = admins[0];
+      if (primaryAdmin) {
+        const platformRevenue = platformFee + brandFee;
+        await db.update(users).set({
+          availableBalance: sql`${users.availableBalance} + ${platformRevenue}`,
+          totalEarned: sql`${users.totalEarned} + ${platformRevenue}`,
+          updatedAt: new Date(),
+        }).where(eq(users.id, primaryAdmin.id));
         await storage.createTransaction({
-          userId: admin.id,
-          amount: (platformFee + brandFee).toFixed(2),
+          userId: primaryAdmin.id,
+          amount: platformRevenue.toFixed(2),
           type: 'platform_revenue',
           status: 'completed',
           description: `Direct hire platform revenue for "${offer.title}"`,
@@ -4451,6 +4458,15 @@ Instructions:
           referenceId: offer.id,
           processedAt: new Date(),
         } as any);
+      }
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'direct_hire_completed',
+          title: 'Direct hire completed',
+          content: `"${offer.title}" was approved. Platform revenue: $${(platformFee + brandFee).toFixed(2)}.`,
+          actionUrl: `/admin?tab=direct-hires`,
+        });
       }
       await storage.createNotification({
         userId: offer.influencerId,

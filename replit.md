@@ -52,8 +52,10 @@ Design preferences: Clean, professional web app design with white background and
 - Brand views a creator profile → clicks "Hire Me" button (only visible to brand users) → fills offer form (title, description, deliverables, budget, deadline)
 - Influencer accepts or declines from `/direct-hire/:id` page or their dashboard "Hire Offers" section
 - After acceptance, brand pays USDT to admin escrow wallet and submits payment proof (TX hash + screenshot)
+- Payment proof remains visible on the project page with full-screen zoom controls, transaction hash copy action, and an AI-style blockchain verification report.
 - Admin verifies payment and activates the project
-- **Status flow**: `pending` → `accepted` → `payment_submitted` → `active` (or `rejected`/`cancelled`)
+- Active projects include attached brand/creator messaging, influencer work submission, brand revision request or approval, mutual reviews, and wallet ledger allocation.
+- **Status flow**: `pending` → `accepted` → `payment_submitted` → `active` → `work_submitted` → `revision_requested` or `completed` (or `rejected`/`cancelled`)
 - Schema: `directHireOffers` table in `shared/schema.ts`
 - API routes: `POST /api/direct-hire`, `GET /api/direct-hire/sent`, `GET /api/direct-hire/received`, `GET /api/direct-hire/:id`, `PATCH /api/direct-hire/:id/accept`, `PATCH /api/direct-hire/:id/reject`, `POST /api/direct-hire/:id/submit-payment`
 - Admin routes: `PATCH /api/admin/direct-hire/:id/activate`, `PATCH /api/admin/direct-hire/:id/reject-payment`, `GET /api/admin/direct-hire`
