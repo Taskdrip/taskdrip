@@ -404,6 +404,9 @@ export default function AdminMaster() {
   const [paymentMethodForm, setPaymentMethodForm] = useState<any>({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paypalClientId: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 });
   const [feedPostForm, setFeedPostForm] = useState({ content: "", imageUrl: "", videoUrl: "" });
 
+  // Proof preview modal state
+  const [proofModal, setProofModal] = useState<{open: boolean; url?: string; txHash?: string; network?: string; amount?: string; label?: string}>({ open: false });
+
   // Forms
   const blogForm = useForm({
     resolver: zodResolver(blogPostSchema),
@@ -1130,6 +1133,78 @@ export default function AdminMaster() {
   return (
     <div className="min-h-screen bg-[#07070f] w-full overflow-x-hidden">
       <Navigation />
+
+      {/* ── PROOF PREVIEW MODAL ── */}
+      <Dialog open={proofModal.open} onOpenChange={(o) => setProofModal(m => ({ ...m, open: o }))}>
+        <DialogContent className="max-w-2xl w-full bg-gray-900 border border-gray-700 text-white rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-700 bg-gray-900">
+            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <Eye className="w-5 h-5 text-purple-400" />
+              Payment Proof — {proofModal.label || "Submission"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+            {proofModal.amount && (
+              <div className="flex items-center gap-3 bg-green-900/30 border border-green-700/40 rounded-xl px-4 py-3">
+                <DollarSign className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-green-400 font-medium uppercase tracking-wide">Escrow Amount</p>
+                  <p className="text-lg font-bold text-green-300">${proofModal.amount} USDT</p>
+                </div>
+              </div>
+            )}
+            {proofModal.txHash && (
+              <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                <p className="text-xs text-blue-400 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <Link className="w-3 h-3" /> Transaction Hash
+                </p>
+                <p className="font-mono text-sm text-blue-300 break-all leading-relaxed">{proofModal.txHash}</p>
+                {proofModal.network && (
+                  <p className="text-xs text-gray-400 mt-2">Network: <span className="text-gray-200 font-medium">{proofModal.network.toUpperCase()}</span></p>
+                )}
+              </div>
+            )}
+            {proofModal.url && (
+              <div className="space-y-3">
+                <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                  <Image className="w-3 h-3" /> Payment Screenshot
+                </p>
+                {/\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(proofModal.url) || proofModal.url.startsWith("data:image") ? (
+                  <div className="rounded-xl overflow-hidden border border-gray-700 bg-black">
+                    <img
+                      src={proofModal.url}
+                      alt="Payment proof"
+                      className="w-full max-h-96 object-contain"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-gray-700 bg-gray-800 p-6 text-center">
+                    <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-300 mb-1">Non-image file submitted</p>
+                    <p className="text-xs text-gray-500 break-all">{proofModal.url}</p>
+                  </div>
+                )}
+                <a
+                  href={proofModal.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors border border-blue-700/40 rounded-lg px-3 py-2 bg-blue-900/20 hover:bg-blue-900/40"
+                >
+                  <ExternalLink className="w-4 h-4" /> Open original in new tab
+                </a>
+              </div>
+            )}
+            {!proofModal.url && !proofModal.txHash && (
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="w-10 h-10 mx-auto mb-3 text-gray-600" />
+                <p className="text-sm">No proof details available</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="w-full max-w-full px-3 sm:px-5 lg:px-8 py-6 sm:py-8 pb-20 overflow-x-hidden">
 
         {/* ── HERO HEADER ── */}
@@ -2847,12 +2922,22 @@ export default function AdminMaster() {
                             <p className="text-xs text-gray-400">Submitted: {ep.submittedAt ? new Date(ep.submittedAt).toLocaleString() : '—'}</p>
                           </div>
                           <div className="flex flex-col gap-2">
-                            {ep.paymentScreenshot && (
-                              <a href={ep.paymentScreenshot} target="_blank" rel="noreferrer">
-                                <Button variant="outline" size="sm" className="w-full">
-                                  <Eye className="h-4 w-4 mr-1" /> View Proof
-                                </Button>
-                              </a>
+                            {(ep.paymentScreenshot || ep.transactionHash) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
+                                onClick={() => setProofModal({
+                                  open: true,
+                                  url: ep.paymentScreenshot,
+                                  txHash: ep.transactionHash,
+                                  network: ep.network,
+                                  amount: ep.amount,
+                                  label: ep.campaign?.title || "Campaign Payment",
+                                })}
+                              >
+                                <Eye className="h-4 w-4 mr-1" /> View Proof
+                              </Button>
                             )}
                             {ep.status === 'submitted' && (
                               <div className="flex gap-2">
@@ -4265,13 +4350,24 @@ export default function AdminMaster() {
                                     <p className="text-xs font-mono text-gray-200 break-all">{offer.transactionHash}</p>
                                   </div>
                                 )}
-                                {offer.paymentProof && (
+                                {(offer.paymentProof || offer.transactionHash) && (
                                   <div>
-                                    <p className="text-xs text-gray-400 mb-1">Payment Screenshot</p>
-                                    <a href={offer.paymentProof} target="_blank" rel="noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline">
-                                      <Eye className="w-3 h-3" /> View Proof
-                                    </a>
+                                    <p className="text-xs text-gray-400 mb-2">Payment Proof</p>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-purple-600 text-purple-300 hover:bg-purple-900/40 text-xs h-8"
+                                      onClick={() => setProofModal({
+                                        open: true,
+                                        url: offer.paymentProof,
+                                        txHash: offer.transactionHash,
+                                        network: offer.paymentNetwork,
+                                        amount: offer.amount,
+                                        label: `Direct Hire — ${offer.creator?.username || offer.creatorId}`,
+                                      })}
+                                    >
+                                      <Eye className="w-3 h-3 mr-1" /> View Proof
+                                    </Button>
                                   </div>
                                 )}
                                 {offer.paymentNetwork && (
