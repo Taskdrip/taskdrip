@@ -237,6 +237,7 @@ Design preferences: Clean, professional web app design with white background and
 - Vite dev server with HMR (Hot Module Replacement)
 - Automatic middleware setup for development
 - Replit-specific plugins for enhanced development experience
+- Replit migration verified: dependencies installed, database schema synced with Drizzle, and the `Start application` workflow runs on port 5000.
 
 ### Production Build
 - Vite builds client-side assets to `dist/public`
