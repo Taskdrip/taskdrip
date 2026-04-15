@@ -243,6 +243,17 @@ export function PWASettingsPanel() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-gray-300">Prompt Background Image URL</Label>
+                <Input
+                  data-testid="pwa-prompt-image-url"
+                  value={currentSettings.promptImageUrl ?? ""}
+                  onChange={(e) => set("promptImageUrl", e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white"
+                  placeholder="https://images.unsplash.com/..."
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-gray-300 flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-gray-500" />
                   Delay before showing prompt (seconds)
@@ -254,10 +265,26 @@ export function PWASettingsPanel() {
                     value={currentSettings.promptDelay ?? 5}
                     onChange={(e) => set("promptDelay", parseInt(e.target.value) || 0)}
                     min={0}
-                    max={60}
+                    max={120}
                     className="bg-gray-800 border-gray-700 text-white w-28"
                   />
-                  <span className="text-gray-400 text-sm">{currentSettings.promptDelay ?? 5}s after page load</span>
+                  <span className="text-gray-400 text-sm">{currentSettings.promptDelay ?? 30}s after page load</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-300">Scroll trigger percentage</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    data-testid="pwa-prompt-scroll-percent"
+                    value={currentSettings.promptScrollPercent ?? 25}
+                    onChange={(e) => set("promptScrollPercent", parseInt(e.target.value) || 0)}
+                    min={0}
+                    max={100}
+                    className="bg-gray-800 border-gray-700 text-white w-28"
+                  />
+                  <span className="text-gray-400 text-sm">Show after {currentSettings.promptScrollPercent ?? 25}% page scroll</span>
                 </div>
               </div>
             </CardContent>

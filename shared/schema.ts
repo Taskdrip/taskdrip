@@ -966,10 +966,12 @@ export const pwaSettings = pgTable("pwa_settings", {
   themeColor: varchar("theme_color").notNull().default("#7c3aed"),
   backgroundColor: varchar("background_color").notNull().default("#0f0f1a"),
   displayMode: varchar("display_mode").notNull().default("standalone"),
-  promptTitle: varchar("prompt_title").notNull().default("Install Taskdrip App"),
-  promptMessage: text("prompt_message").notNull().default("Get the full experience! Install Taskdrip on your device for faster access, offline support, and instant crypto earnings."),
+  promptTitle: varchar("prompt_title").notNull().default("Never Miss a Crypto Drop"),
+  promptMessage: text("prompt_message").notNull().default("Turn on Taskdrip alerts and be first in line when high-paying Web3 campaigns go live. New tasks move fast — claim your spot before the rewards are gone."),
+  promptImageUrl: varchar("prompt_image_url"),
   promptEnabled: boolean("prompt_enabled").notNull().default(true),
-  promptDelay: integer("prompt_delay").notNull().default(5),
+  promptDelay: integer("prompt_delay").notNull().default(30),
+  promptScrollPercent: integer("prompt_scroll_percent").notNull().default(25),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

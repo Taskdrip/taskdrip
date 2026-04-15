@@ -5420,6 +5420,10 @@ function AdminPushNotificationsPanel() {
     queryKey: ['/api/admin/push-notifications'],
   });
 
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ['/api/admin/users'],
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest('POST', '/api/admin/push-notifications', data);
@@ -5500,6 +5504,11 @@ function AdminPushNotificationsPanel() {
                     <option value="all">All Users</option>
                     <option value="creators">Creators Only</option>
                     <option value="brands">Brands Only</option>
+                    {users.map((u: any) => (
+                      <option key={u.id} value={`user:${u.id}`}>
+                        {u.firstName || u.email} {u.lastName || ''} ({u.userType})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -5573,7 +5582,11 @@ function AdminPushNotificationsPanel() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-gray-800 text-gray-300 capitalize">{c.targetType || 'all'}</Badge>
+                      <Badge className="bg-gray-800 text-gray-300 capitalize">
+                        {(c.targetType || 'all').startsWith('user:')
+                          ? users.find((u: any) => `user:${u.id}` === c.targetType)?.email || 'Specific user'
+                          : c.targetType || 'all'}
+                      </Badge>
                     </TableCell>
                     <TableCell>{statusBadge(c.status || 'draft')}</TableCell>
                     <TableCell className="text-gray-400 text-sm">{c.sentCount || 0}</TableCell>

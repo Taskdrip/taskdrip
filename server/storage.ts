@@ -1837,6 +1837,13 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(users, eq(pushSubscriptions.userId, users.id))
         .where(eq(pushSubscriptions.isActive, true));
     }
+    if (targetType.startsWith('user:')) {
+      const userId = targetType.slice(5);
+      return db.select({ sub: pushSubscriptions, user: { userType: users.userType } })
+        .from(pushSubscriptions)
+        .leftJoin(users, eq(pushSubscriptions.userId, users.id))
+        .where(and(eq(pushSubscriptions.isActive, true), eq(pushSubscriptions.userId, userId)));
+    }
     return db.select({ sub: pushSubscriptions, user: { userType: users.userType } })
       .from(pushSubscriptions)
       .leftJoin(users, eq(pushSubscriptions.userId, users.id))

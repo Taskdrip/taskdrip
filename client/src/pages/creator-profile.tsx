@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -266,6 +267,8 @@ export default function CreatorProfile() {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', url: '', category: '' });
 
   const { data: profile, isLoading } = useQuery<any>({
     queryKey: [`/api/creators/${id}/profile`],
@@ -312,6 +315,20 @@ export default function CreatorProfile() {
       setReviewRating(5);
     },
     onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
+  });
+
+  const createPortfolioMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/portfolio", portfolioForm);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
+      setPortfolioDialogOpen(false);
+      setPortfolioForm({ title: '', description: '', imageUrl: '', url: '', category: '' });
+      toast({ title: "Portfolio item added!" });
+    },
+    onError: () => toast({ title: "Failed to add portfolio item", variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -700,7 +717,7 @@ export default function CreatorProfile() {
                   </div>
                   <p className="text-gray-400 font-medium">No portfolio items yet</p>
                   {isOwnProfile && (
-                    <Link href="/dashboard"><Button variant="outline" className="mt-4">Add Portfolio Items</Button></Link>
+                    <Button variant="outline" className="mt-4" onClick={() => setPortfolioDialogOpen(true)} data-testid="button-add-portfolio-profile">Add Portfolio Items</Button>
                   )}
                 </CardContent>
               </Card>
@@ -983,6 +1000,41 @@ export default function CreatorProfile() {
             )}
           </TabsContent>
         </Tabs>
+        <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add Portfolio Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Title *</Label>
+                <Input value={portfolioForm.title} onChange={e => setPortfolioForm(p => ({ ...p, title: e.target.value }))} placeholder="Campaign, post, or project name" className="mt-1" data-testid="input-portfolio-title-profile" />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Input value={portfolioForm.category} onChange={e => setPortfolioForm(p => ({ ...p, category: e.target.value }))} placeholder="Video, Social Media, Blog" className="mt-1" data-testid="input-portfolio-category-profile" />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea value={portfolioForm.description} onChange={e => setPortfolioForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe the work and results..." rows={3} className="mt-1" data-testid="textarea-portfolio-description-profile" />
+              </div>
+              <div>
+                <Label>Project URL</Label>
+                <Input value={portfolioForm.url} onChange={e => setPortfolioForm(p => ({ ...p, url: e.target.value }))} placeholder="https://example.com/your-work" className="mt-1" data-testid="input-portfolio-url-profile" />
+              </div>
+              <div>
+                <Label>Image URL</Label>
+                <Input value={portfolioForm.imageUrl} onChange={e => setPortfolioForm(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://images.unsplash.com/..." className="mt-1" data-testid="input-portfolio-image-profile" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => createPortfolioMutation.mutate()} disabled={createPortfolioMutation.isPending || !portfolioForm.title.trim()} className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="button-save-portfolio-profile">
+                  {createPortfolioMutation.isPending ? "Saving..." : "Add to Portfolio"}
+                </Button>
+                <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)} className="flex-1" data-testid="button-cancel-portfolio-profile">Cancel</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Footer />

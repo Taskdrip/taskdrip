@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { X, Download, Smartphone, Zap, Shield, Globe } from "lucide-react";
+import { X, Download, Smartphone, Zap, Shield, Globe, Bell, Sparkles } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -10,10 +12,12 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
+  const { user } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | "unsupported">("default");
 
   const { data: settings } = useQuery<any>({
     queryKey: ["/api/pwa-settings"],
@@ -24,6 +28,12 @@ export function PWAInstallPrompt() {
     if (alreadyDismissed) {
       setDismissed(true);
       return;
+    }
+
+    if (!("Notification" in window)) {
+      setPermissionStatus("unsupported");
+    } else {
+      setPermissionStatus(Notification.permission);
     }
 
     if (window.matchMedia("(display-mode: standalone)").matches) {
@@ -42,23 +52,85 @@ export function PWAInstallPrompt() {
   }, []);
 
   useEffect(() => {
-    if (!deferredPrompt || dismissed || isInstalled) return;
+    if (dismissed || isInstalled) return;
     if (settings && !settings.promptEnabled) return;
+    if (!deferredPrompt && (!("Notification" in window) || Notification.permission !== "default")) return;
 
-    const delay = (settings?.promptDelay ?? 5) * 1000;
-    const timer = setTimeout(() => setShowPrompt(true), delay);
-    return () => clearTimeout(timer);
+    let shown = false;
+    const delay = (settings?.promptDelay ?? 30) * 1000;
+    const scrollPercent = settings?.promptScrollPercent ?? 25;
+    const reveal = () => {
+      if (shown) return;
+      shown = true;
+      setShowPrompt(true);
+    };
+    const onScroll = () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const percent = (window.scrollY / scrollable) * 100;
+      if (percent >= scrollPercent) reveal();
+    };
+    const timer = setTimeout(reveal, delay);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [deferredPrompt, dismissed, isInstalled, settings]);
 
+  useEffect(() => {
+    if (!user || !("serviceWorker" in navigator) || !("Notification" in window) || Notification.permission !== "granted") return;
+    subscribeToPush();
+  }, [user]);
+
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  };
+
+  const subscribeToPush = async () => {
+    if (!user || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    const keyRes = await fetch("/api/push/vapid-public-key", { credentials: "include" });
+    if (!keyRes.ok) return false;
+    const { publicKey } = await keyRes.json();
+    const existing = await registration.pushManager.getSubscription();
+    if (existing && localStorage.getItem("taskdrip-vapid-public-key") === publicKey) {
+      await apiRequest("POST", "/api/push/subscribe", existing.toJSON());
+      return true;
+    }
+    if (existing) {
+      await existing.unsubscribe();
+    }
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+    await apiRequest("POST", "/api/push/subscribe", subscription.toJSON());
+    localStorage.setItem("taskdrip-vapid-public-key", publicKey);
+    return true;
+  };
+
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === "accepted") {
-      setIsInstalled(true);
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === "accepted") {
+        setIsInstalled(true);
+      }
+      setDeferredPrompt(null);
+    }
+    if ("Notification" in window && Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      setPermissionStatus(permission);
+      if (permission === "granted") {
+        await subscribeToPush();
+      }
     }
     setShowPrompt(false);
-    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
@@ -69,10 +141,11 @@ export function PWAInstallPrompt() {
 
   if (!showPrompt || isInstalled || dismissed) return null;
 
-  const title = settings?.promptTitle || "Install Taskdrip App";
+  const title = settings?.promptTitle || "Never Miss a Crypto Drop";
   const message =
     settings?.promptMessage ||
-    "Get the full experience! Install Taskdrip on your device for faster access, offline support, and instant crypto earnings.";
+    "Turn on Taskdrip alerts and be first in line when high-paying Web3 campaigns go live. New tasks move fast — claim your spot before the rewards are gone.";
+  const promptImageUrl = settings?.promptImageUrl;
 
   return (
     <div
@@ -82,8 +155,9 @@ export function PWAInstallPrompt() {
       <div
         className="relative overflow-hidden rounded-2xl shadow-2xl"
         style={{
-          background:
-            "linear-gradient(135deg, #0a0a1a 0%, #0f0f2e 40%, #1a0a2e 100%)",
+          background: promptImageUrl
+            ? `linear-gradient(135deg, rgba(10,10,26,.92), rgba(26,10,46,.84)), url(${promptImageUrl}) center/cover`
+            : "linear-gradient(135deg, #0a0a1a 0%, #0f0f2e 40%, #1a0a2e 100%)",
           border: "1px solid rgba(124,58,237,0.4)",
           boxShadow:
             "0 25px 60px rgba(0,0,0,0.7), 0 0 40px rgba(124,58,237,0.2), inset 0 1px 0 rgba(255,255,255,0.05)",
@@ -134,14 +208,14 @@ export function PWAInstallPrompt() {
                 className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
                 style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}
               >
-                <Smartphone className="w-2.5 h-2.5 text-white" />
+                <Bell className="w-2.5 h-2.5 text-white" />
               </div>
             </div>
 
             <div>
               <h3 className="text-white font-bold text-base leading-tight">{title}</h3>
               <p className="text-yellow-400 text-xs font-medium mt-0.5">
-                #1 Web3 Influencer Marketplace
+                Instant Web3 campaign alerts
               </p>
             </div>
           </div>
@@ -155,10 +229,10 @@ export function PWAInstallPrompt() {
               <Zap className="w-3 h-3" /> Fast Access
             </span>
             <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full text-green-300 bg-green-500/10 border border-green-500/20">
-              <Shield className="w-3 h-3" /> Secure
+              <Bell className="w-3 h-3" /> Push Alerts
             </span>
             <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full text-blue-300 bg-blue-500/10 border border-blue-500/20">
-              <Globe className="w-3 h-3" /> Offline Ready
+              <Sparkles className="w-3 h-3" /> Reward Drops
             </span>
           </div>
 
@@ -174,7 +248,7 @@ export function PWAInstallPrompt() {
               }}
             >
               <Download className="w-4 h-4 mr-2" />
-              Install Free
+              Turn On Alerts
             </Button>
             <Button
               onClick={handleDismiss}
@@ -188,7 +262,7 @@ export function PWAInstallPrompt() {
 
           {/* Bottom trust line */}
           <p className="text-center text-gray-500 text-xs mt-3">
-            Free to install · No app store required
+            Free alerts · Campaign launches · Reward deadlines
           </p>
         </div>
 

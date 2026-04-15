@@ -15,8 +15,48 @@ import express from "express";
 const upload = multer({ dest: 'uploads/' });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware - this now includes all auth routes
   setupAuth(app);
+
+  let webPushState: { client: any; publicKey: string } | null = null;
+
+  const getWebPushState = async () => {
+    if (webPushState) return webPushState;
+    const mod: any = await import("web-push");
+    const client = mod.default || mod;
+    let publicKey = process.env.VAPID_PUBLIC_KEY;
+    let privateKey = process.env.VAPID_PRIVATE_KEY;
+    if (!publicKey || !privateKey) {
+      const generated = client.generateVAPIDKeys();
+      publicKey = generated.publicKey;
+      privateKey = generated.privateKey;
+    }
+    client.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:admin@taskdrip.online", publicKey, privateKey);
+    webPushState = { client, publicKey };
+    return webPushState;
+  };
+
+  const sendPushToTarget = async (targetType: string, payload: { title: string; body: string; icon?: string | null; clickUrl?: string | null }) => {
+    const { client } = await getWebPushState();
+    const subs = await storage.getAllPushSubscriptions(targetType || 'all');
+    let sentCount = 0;
+    await Promise.all(subs.map(async (row: any) => {
+      const sub = row.sub || row;
+      try {
+        await client.sendNotification({
+          endpoint: sub.endpoint,
+          keys: sub.keys,
+        }, JSON.stringify(payload));
+        sentCount += 1;
+      } catch (error: any) {
+        if (error?.statusCode === 404 || error?.statusCode === 410) {
+          await storage.removePushSubscription(sub.endpoint);
+        } else {
+          console.error("Push notification failed:", error?.message || error);
+        }
+      }
+    }));
+    return { total: subs.length, sentCount };
+  };
   
   // Health check endpoint (used by Railway, uptime monitors, etc.)
   app.get('/api/health', (_req, res) => {
@@ -4081,6 +4121,13 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.get('/api/push/vapid-public-key', async (_req, res) => {
+    try {
+      const { publicKey } = await getWebPushState();
+      res.json({ publicKey });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   // ═══════════════════════════════════════════════════
   // PUSH NOTIFICATION CAMPAIGNS (admin)
   // ═══════════════════════════════════════════════════
@@ -4125,14 +4172,18 @@ Instructions:
       const campaigns = await storage.getAllPushNotificationCampaigns();
       const campaign = campaigns.find(c => c.id === req.params.id);
       if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
-      const subs = await storage.getAllPushSubscriptions(campaign.targetType || 'all');
-      // Mark as sent (actual push delivery needs web-push library - stored for now)
+      const result = await sendPushToTarget(campaign.targetType || 'all', {
+        title: campaign.title,
+        body: campaign.body,
+        icon: campaign.icon,
+        clickUrl: campaign.clickUrl,
+      });
       await storage.updatePushNotificationCampaign(req.params.id, {
         status: 'sent',
         sentAt: new Date(),
-        sentCount: subs.length,
+        sentCount: result.sentCount,
       });
-      res.json({ success: true, sentCount: subs.length, message: `Notification queued for ${subs.length} subscribers` });
+      res.json({ success: true, sentCount: result.sentCount, message: `Delivered to ${result.sentCount} of ${result.total} subscribers` });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
@@ -4182,6 +4233,13 @@ Instructions:
         paymentStatus: 'completed',
         isActive: true,
       } as any);
+
+      await sendPushToTarget('creators', {
+        title: 'New Taskdrip campaign is live',
+        body: `${campaign.title} is open now. Apply before the creator slots are gone.`,
+        icon: campaign.featureImage || '/icon-192.png',
+        clickUrl: `/campaigns/${campaign.id}`,
+      }).catch((error) => console.error("Campaign launch push failed:", error?.message || error));
 
       res.status(201).json(campaign);
     } catch (error) {

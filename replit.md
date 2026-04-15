@@ -187,6 +187,17 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **PWA Support**: Added manifest.json, service worker (sw.js with push notification handler + offline cache), updated index.html with manifest link + service worker registration, theme color, Apple touch icon meta tags
 ✓ **Chat Redesign**: Completely rebuilt chat.tsx with modern messenger UI — green online dot, real-time 3-second polling, gradient message bubbles with sender avatars, read receipt checkmarks, date separators, search bar for conversations, smooth send button animation, handle URL param `?to=userId` for deep linking from profile pages
 
+## Campaign Cards, Portfolio, and Push Notifications (April 2026)
+
+✓ **Campaign Card Visuals**: Landing and task campaign cards now use featured campaign imagery, stronger typography, hover image scaling, and responsive multi-column layouts.
+✓ **Admin Campaign Images**: Admin task management supports previewing, changing, and removing featured images from campaign edit forms.
+✓ **Guide Bot on Tasks**: Tasks page includes a floating Guide Bot with quick help prompts for creators exploring campaigns.
+✓ **Creator Portfolio Fix**: Own public creator profile now opens an inline Add Portfolio Item dialog instead of redirecting to `/dashboard`.
+✓ **Push Delivery Upgrade**: Push notification sends now use browser Web Push subscriptions with VAPID keys and mark invalid subscriptions inactive.
+✓ **Push Targeting**: Admin push campaigns can target all users, creators, brands, or a specific user from the full admin user list.
+✓ **Campaign Launch Alerts**: Admin-created campaigns trigger push alerts to subscribed creators with a direct link to the campaign.
+✓ **Prompt Customization**: PWA/push opt-in prompt supports admin-controlled title, message, background image, delay timing, and scroll trigger percentage; default prompt is set to a 30-second high-conversion Web3 campaign alert.
+
 ## External Dependencies
 
 ### Core Dependencies
