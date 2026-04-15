@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { usePageContent } from "@/hooks/usePageContent";
 import {
   ArrowRight, ChevronLeft, ChevronRight, Zap, Globe, Shield, TrendingUp,
   Users, DollarSign, CheckCircle, Rocket, Target, Crown, Sparkles,
@@ -309,6 +310,7 @@ function CampaignCard({ campaign }: { campaign: any }) {
 export default function FinalLanding() {
   const { data: dbSliders = [] } = useQuery<Slide[]>({ queryKey: ["/api/hero-sliders"] });
   const { data: apiCampaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
+  const cms = usePageContent("landing");
 
   const slides = dbSliders.length > 0 ? dbSliders : DEFAULT_SLIDES;
   const activeCampaigns = (apiCampaigns as any[]).filter((c) => c.isActive && c.status === "active").slice(0, 6);
@@ -338,8 +340,8 @@ export default function FinalLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <Badge className="mb-4 bg-black text-white px-4 py-1.5 text-xs">How It Works</Badge>
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Simple. Fast. Fair.</h2>
-            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">Get started in minutes — whether you're a creator looking to earn or a brand ready to scale.</p>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">{cms.get("how_it_works", "title", "Simple. Fast. Fair.")}</h2>
+            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">{cms.get("how_it_works", "subtitle", "Get started in minutes — whether you're a creator looking to earn or a brand ready to scale.")}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
@@ -353,9 +355,9 @@ export default function FinalLanding() {
               </div>
               <div className="space-y-4">
                 {[
-                  { n: "01", t: "Build Your Profile", d: "Link your socials. Get auto-classified into your influencer tier instantly." },
-                  { n: "02", t: "Apply to Campaigns", d: "Browse live brand tasks. Apply with one tap — no agencies, no gatekeepers." },
-                  { n: "03", t: "Submit & Get Paid", d: "Post, submit proof, brand approves, and USDT lands in your wallet." },
+                  { n: "01", t: cms.get("how_it_works", "creator_step1_title", "Build Your Profile"), d: cms.get("how_it_works", "creator_step1_desc", "Link your socials. Get auto-classified into your influencer tier instantly.") },
+                  { n: "02", t: cms.get("how_it_works", "creator_step2_title", "Apply to Campaigns"), d: cms.get("how_it_works", "creator_step2_desc", "Browse live brand tasks. Apply with one tap — no agencies, no gatekeepers.") },
+                  { n: "03", t: cms.get("how_it_works", "creator_step3_title", "Submit & Get Paid"), d: cms.get("how_it_works", "creator_step3_desc", "Post, submit proof, brand approves, and USDT lands in your wallet.") },
                 ].map((s) => (
                   <div key={s.n} className="flex gap-4">
                     <span className="text-xs font-black text-gray-600 mt-0.5 w-6 shrink-0">{s.n}</span>
@@ -383,9 +385,9 @@ export default function FinalLanding() {
               </div>
               <div className="space-y-4">
                 {[
-                  { n: "01", t: "Post Your Campaign", d: "Set budget, requirements, and target tier. Go live the same day with escrow." },
-                  { n: "02", t: "Reach Verified Creators", d: "Filter by tier, niche, platform, location, and follower count." },
-                  { n: "03", t: "Pay Only for Results", d: "You review every submission. Release payment only when you're satisfied." },
+                  { n: "01", t: cms.get("how_it_works", "brand_step1_title", "Post Your Campaign"), d: cms.get("how_it_works", "brand_step1_desc", "Set budget, requirements, and target tier. Go live the same day with escrow.") },
+                  { n: "02", t: cms.get("how_it_works", "brand_step2_title", "Reach Verified Creators"), d: cms.get("how_it_works", "brand_step2_desc", "Filter by tier, niche, platform, location, and follower count.") },
+                  { n: "03", t: cms.get("how_it_works", "brand_step3_title", "Pay Only for Results"), d: cms.get("how_it_works", "brand_step3_desc", "You review every submission. Release payment only when you're satisfied.") },
                 ].map((s) => (
                   <div key={s.n} className="flex gap-4">
                     <span className="text-xs font-black text-gray-600 mt-0.5 w-6 shrink-0">{s.n}</span>
@@ -416,10 +418,9 @@ export default function FinalLanding() {
               Influencer Tiers
             </div>
             <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-              Every Creator Has a{" "}
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 text-transparent bg-clip-text">Tier</span>
+              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 text-transparent bg-clip-text">{cms.get("tiers", "title", "Every Creator Has a Tier")}</span>
             </h2>
-            <p className="text-gray-400 text-base max-w-xl mx-auto">Auto-classified by your total social following. Higher tier = bigger campaigns and better payouts.</p>
+            <p className="text-gray-400 text-base max-w-xl mx-auto">{cms.get("tiers", "subtitle", "Auto-classified by your total social following. Higher tier = bigger campaigns and better payouts.")}</p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -455,15 +456,15 @@ export default function FinalLanding() {
             <Badge className="mb-4 bg-gray-100 text-gray-700 border-gray-200 px-4 py-1.5 text-xs">
               <Sparkles className="w-3 h-3 mr-1 inline text-yellow-500" /> Complete Ecosystem
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">One Platform. Four Income Streams.</h2>
-            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">Taskdrip is your full creator economy — not just campaigns.</p>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">{cms.get("ecosystem", "title", "One Platform. Four Income Streams.")}</h2>
+            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">{cms.get("ecosystem", "subtitle", "Taskdrip is your full creator economy — not just campaigns.")}</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: <Target className="w-6 h-6" />, title: "Brand Campaigns", desc: "Complete paid tasks on TikTok, YouTube, Instagram and more. Earn USDT for every approved post.", badge: "Earn per task", link: "/campaigns", color: "from-violet-500 to-purple-600", bg: "bg-violet-50", border: "border-violet-100" },
-              { icon: <GraduationCap className="w-6 h-6" />, title: "BreedSkool Academy", desc: "Learn from thriving influencers. Master Instagram, TikTok, YouTube and monetization strategies.", badge: "Learn & grow", link: "/breedskool", color: "from-blue-500 to-indigo-600", bg: "bg-blue-50", border: "border-blue-100" },
-              { icon: <ShoppingBag className="w-6 h-6" />, title: "Creator Shop", desc: "Premium templates, plugins, and digital tools built for influencer success. Buy or sell.", badge: "Tools & assets", link: "/shop", color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-              { icon: <Gift className="w-6 h-6" />, title: "Referral Rewards", desc: "Invite creators and brands. Earn passive crypto income for every person who joins your link.", badge: "Passive income", link: "/signup", color: "from-orange-500 to-amber-600", bg: "bg-orange-50", border: "border-orange-100" },
+              { icon: <Target className="w-6 h-6" />, title: cms.get("ecosystem", "campaigns_title", "Brand Campaigns"), desc: cms.get("ecosystem", "campaigns_desc", "Complete paid tasks on TikTok, YouTube, Instagram and more. Earn USDT for every approved post."), badge: "Earn per task", link: "/campaigns", color: "from-violet-500 to-purple-600", bg: "bg-violet-50", border: "border-violet-100" },
+              { icon: <GraduationCap className="w-6 h-6" />, title: cms.get("ecosystem", "breedskool_title", "BreedSkool Academy"), desc: cms.get("ecosystem", "breedskool_desc", "Learn from thriving influencers. Master Instagram, TikTok, YouTube and monetization strategies."), badge: "Learn & grow", link: "/breedskool", color: "from-blue-500 to-indigo-600", bg: "bg-blue-50", border: "border-blue-100" },
+              { icon: <ShoppingBag className="w-6 h-6" />, title: cms.get("ecosystem", "shop_title", "Creator Shop"), desc: cms.get("ecosystem", "shop_desc", "Premium templates, plugins, and digital tools built for influencer success. Buy or sell."), badge: "Tools & assets", link: "/shop", color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+              { icon: <Gift className="w-6 h-6" />, title: cms.get("ecosystem", "referral_title", "Referral Rewards"), desc: cms.get("ecosystem", "referral_desc", "Invite creators and brands. Earn passive crypto income for every person who joins your link."), badge: "Passive income", link: "/signup", color: "from-orange-500 to-amber-600", bg: "bg-orange-50", border: "border-orange-100" },
             ].map((f) => (
               <Link key={f.title} href={f.link}>
                 <div className={`${f.bg} ${f.border} border rounded-2xl p-6 hover:shadow-lg transition-all group h-full cursor-pointer`} data-testid={`card-ecosystem-${f.title.toLowerCase().replace(" ", "-")}`}>
@@ -540,8 +541,8 @@ export default function FinalLanding() {
       <section className="py-20 bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-black text-white mb-3">What Creators Are Saying</h2>
-            <p className="text-gray-500 text-sm">Real results from real influencers.</p>
+            <h2 className="text-4xl font-black text-white mb-3">{cms.get("testimonials", "title", "What Creators Are Saying")}</h2>
+            <p className="text-gray-500 text-sm">{cms.get("testimonials", "subtitle", "Real results from real influencers.")}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
@@ -572,24 +573,24 @@ export default function FinalLanding() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05),transparent_70%)] pointer-events-none" />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
-            Ready to Turn Your Influence Into Income?
+            {cms.get("final_cta", "title", "Ready to Turn Your Influence Into Income?")}
           </h2>
           <p className="text-purple-200 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-            Join 10,000+ creators already earning on Taskdrip. Free to join. Campaigns available today.
+            {cms.get("final_cta", "subtitle", "Join 10,000+ creators already earning on Taskdrip. Free to join. Campaigns available today.")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup?type=creator">
               <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl" data-testid="button-final-cta-creator">
-                I'm a Creator <ArrowRight className="ml-2 w-5 h-5" />
+                {cms.get("final_cta", "creator_btn", "I'm a Creator")} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/signup?type=brand">
               <Button size="lg" className="bg-white/15 text-white hover:bg-white/25 backdrop-blur border border-white/25 px-10 py-6 text-lg rounded-xl font-bold transition-all" data-testid="button-final-cta-brand">
-                I'm a Brand <Rocket className="ml-2 w-5 h-5" />
+                {cms.get("final_cta", "brand_btn", "I'm a Brand")} <Rocket className="ml-2 w-5 h-5" />
               </Button>
             </Link>
           </div>
-          <p className="text-purple-300/60 text-sm mt-6">No credit card required. Campaigns ready the moment you sign up.</p>
+          <p className="text-purple-300/60 text-sm mt-6">{cms.get("final_cta", "disclaimer", "No credit card required. Campaigns ready the moment you sign up.")}</p>
         </div>
       </section>
 

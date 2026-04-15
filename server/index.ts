@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 import { seedDemoData } from "./seed-demo";
+import { seedCmsContent } from "./seed-cms";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 
@@ -78,6 +79,9 @@ async function ensureAdminExists() {
   if (adminUser) {
     await seedDemoData(adminUser.id);
   }
+
+  // Seed CMS defaults (sliders + page content blocks)
+  await seedCmsContent();
 
   // Seed database in development
   if (app.get("env") === "development") {

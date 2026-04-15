@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/ui/navigation";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { PWASettingsPanel } from "@/components/PWASettingsPanel";
+import { ContentEditorPanel } from "@/components/ContentEditorPanel";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -1639,6 +1640,7 @@ export default function AdminMaster() {
                 { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
                 { value: "pwa", icon: <Smartphone className="h-3.5 w-3.5" />, label: "PWA" },
                 { value: "hero-sliders", icon: <Image className="h-3.5 w-3.5" />, label: "Hero Sliders" },
+                { value: "content-editor", icon: <Edit className="h-3.5 w-3.5" />, label: "Content Editor" },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -4763,6 +4765,11 @@ export default function AdminMaster() {
           {/* ── HERO SLIDERS TAB ── */}
           <TabsContent value="hero-sliders" className="space-y-6">
             <HeroSlidersPanel />
+          </TabsContent>
+
+          {/* ── CONTENT EDITOR TAB ── */}
+          <TabsContent value="content-editor" className="space-y-6 pb-8">
+            <ContentEditorPanel />
           </TabsContent>
 
         </Tabs>

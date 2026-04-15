@@ -1274,3 +1274,27 @@ export const heroSliders = pgTable("hero_sliders", {
 export const insertHeroSliderSchema = createInsertSchema(heroSliders).omit({ id: true, createdAt: true, updatedAt: true });
 export type HeroSlider = typeof heroSliders.$inferSelect;
 export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Page Content CMS — admin-editable content blocks for all pages
+// ──────────────────────────────────────────────────────────────
+export const pageContent = pgTable("page_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  page: varchar("page").notNull(),        // 'landing', 'breedskool', 'shop', 'campaigns', 'global'
+  section: varchar("section").notNull(), // 'how_it_works', 'features', 'cta', etc.
+  key: varchar("key").notNull(),          // 'title', 'subtitle', 'body', 'image', 'link'
+  value: text("value"),                   // the actual editable content
+  defaultValue: text("default_value"),    // fallback if value is null/empty
+  type: varchar("type").default("text"), // 'text' | 'html' | 'image' | 'url' | 'textarea'
+  label: varchar("label").notNull(),      // human-readable label shown in admin
+  description: text("description"),       // helper text for the admin
+  order: integer("order").default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+},
+(table) => [
+  index("IDX_page_content_page_section").on(table.page, table.section),
+]);
+
+export const insertPageContentSchema = createInsertSchema(pageContent).omit({ id: true, updatedAt: true });
+export type PageContent = typeof pageContent.$inferSelect;
+export type InsertPageContent = z.infer<typeof insertPageContentSchema>;

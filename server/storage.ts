@@ -43,8 +43,11 @@ import {
   userPoints,
   welcomeTaskCompletions,
   heroSliders,
+  pageContent,
   type HeroSlider,
   type InsertHeroSlider,
+  type PageContent,
+  type InsertPageContent,
   type PwaSettings,
   type InsertPwaSettings,
   type SocialPlatform,
@@ -2266,6 +2269,68 @@ export class DatabaseStorage implements IStorage {
 
   async deleteHeroSlider(id: string): Promise<void> {
     await db.delete(heroSliders).where(eq(heroSliders.id, id));
+  }
+
+  async countHeroSliders(): Promise<number> {
+    const rows = await db.select().from(heroSliders);
+    return rows.length;
+  }
+
+  // ── Page Content CMS ──────────────────────────────────────────
+  async getAllPageContent(): Promise<PageContent[]> {
+    return await db.select().from(pageContent).orderBy(pageContent.page, pageContent.section, pageContent.order);
+  }
+
+  async getPageContent(page: string): Promise<PageContent[]> {
+    return await db.select().from(pageContent)
+      .where(eq(pageContent.page, page))
+      .orderBy(pageContent.section, pageContent.order);
+  }
+
+  async getPageContentByKey(page: string, section: string, key: string): Promise<PageContent | null> {
+    const [row] = await db.select().from(pageContent)
+      .where(and(eq(pageContent.page, page), eq(pageContent.section, section), eq(pageContent.key, key)));
+    return row || null;
+  }
+
+  async upsertPageContent(data: InsertPageContent): Promise<PageContent> {
+    const existing = await this.getPageContentByKey(data.page, data.section, data.key);
+    if (existing) {
+      const [updated] = await db.update(pageContent)
+        .set({ value: data.value, updatedAt: new Date() })
+        .where(eq(pageContent.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(pageContent).values(data).returning();
+      return created;
+    }
+  }
+
+  async updatePageContentValue(id: string, value: string): Promise<PageContent | null> {
+    const [row] = await db.update(pageContent)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(pageContent.id, id))
+      .returning();
+    return row || null;
+  }
+
+  async resetPageContentToDefault(id: string): Promise<PageContent | null> {
+    const [row] = await db.update(pageContent)
+      .set({ value: null, updatedAt: new Date() })
+      .where(eq(pageContent.id, id))
+      .returning();
+    return row || null;
+  }
+
+  async countPageContent(): Promise<number> {
+    const rows = await db.select().from(pageContent);
+    return rows.length;
+  }
+
+  async bulkInsertPageContent(rows: InsertPageContent[]): Promise<void> {
+    if (rows.length === 0) return;
+    await db.insert(pageContent).values(rows);
   }
 }
 

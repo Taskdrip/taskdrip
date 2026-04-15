@@ -5595,6 +5595,49 @@ Instructions:
     }
   });
 
+  // ── Page Content CMS ──────────────────────────────────────────
+  app.get('/api/page-content/:page', async (req, res) => {
+    try {
+      const items = await storage.getPageContent(req.params.page);
+      res.json(items);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch page content' });
+    }
+  });
+
+  app.get('/api/admin/page-content', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const items = await storage.getAllPageContent();
+      res.json(items);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch page content' });
+    }
+  });
+
+  app.put('/api/admin/page-content/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { value } = req.body;
+      const item = await storage.updatePageContentValue(req.params.id, value ?? '');
+      if (!item) return res.status(404).json({ message: 'Content block not found' });
+      res.json(item);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update content' });
+    }
+  });
+
+  app.post('/api/admin/page-content/:id/reset', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const item = await storage.resetPageContentToDefault(req.params.id);
+      if (!item) return res.status(404).json({ message: 'Content block not found' });
+      res.json(item);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to reset content' });
+    }
+  });
+
   // ── Hero Sliders ──────────────────────────────────────────────
   app.get('/api/hero-sliders', async (_req, res) => {
     try {
