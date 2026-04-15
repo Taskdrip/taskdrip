@@ -392,6 +392,37 @@ export const userSocialLinks = pgTable("user_social_links", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ──────────────────────────────────────────────────────────────
+// Direct Hire Offers — Brand directly hires an influencer
+// ──────────────────────────────────────────────────────────────
+export const directHireOffers = pgTable("direct_hire_offers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  brandId: varchar("brand_id").notNull().references(() => users.id),
+  influencerId: varchar("influencer_id").notNull().references(() => users.id),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  deliverables: text("deliverables"),
+  budget: decimal("budget", { precision: 10, scale: 2 }).notNull(),
+  deadline: timestamp("deadline"),
+  // Workflow status
+  status: varchar("status").default("pending"),
+  // pending → accepted → payment_pending → payment_submitted → active → completed
+  // OR pending → rejected / cancelled
+  rejectionReason: text("rejection_reason"),
+  // Payment proof
+  paymentProof: varchar("payment_proof"),
+  paymentNetwork: varchar("payment_network"),
+  transactionHash: varchar("transaction_hash"),
+  adminNote: text("admin_note"),
+  activatedAt: timestamp("activated_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDirectHireOfferSchema = createInsertSchema(directHireOffers).omit({ id: true, createdAt: true, updatedAt: true, activatedAt: true });
+export type DirectHireOffer = typeof directHireOffers.$inferSelect;
+export type InsertDirectHireOffer = z.infer<typeof insertDirectHireOfferSchema>;
+
 // Portfolio items
 export const portfolioItems = pgTable("portfolio_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

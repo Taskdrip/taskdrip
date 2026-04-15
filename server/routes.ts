@@ -4132,6 +4132,233 @@ Instructions:
   });
 
   // ═══════════════════════════════════════════════════
+  // DIRECT HIRE OFFERS
+  // ═══════════════════════════════════════════════════
+
+  // Brand sends an offer to an influencer
+  app.post('/api/direct-hire', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'brand' && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Only brands can send hire offers' });
+      }
+      const { influencerId, title, description, deliverables, budget, deadline } = req.body;
+      if (!influencerId || !title || !description || !budget) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      const offer = await storage.createDirectHireOffer({
+        brandId: req.user.id,
+        influencerId,
+        title,
+        description,
+        deliverables,
+        budget: String(budget),
+        deadline: deadline ? new Date(deadline) : null,
+        status: 'pending',
+      });
+      // Notify influencer
+      await storage.createNotification({
+        userId: influencerId,
+        type: 'direct_hire_offer',
+        title: '💼 New Hire Offer!',
+        message: `${req.user.firstName} ${req.user.lastName} wants to hire you for: "${title}"`,
+        data: { offerId: offer.id },
+      });
+      res.json(offer);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Get brand's sent offers
+  app.get('/api/direct-hire/sent', isAuthenticated, async (req: any, res) => {
+    try {
+      const offers = await storage.getDirectHireOffersByBrand(req.user.id);
+      // Enrich with influencer info
+      const enriched = await Promise.all(offers.map(async (o: any) => {
+        const influencer = await storage.getUser(o.influencerId);
+        return { ...o, influencer: influencer ? { id: influencer.id, firstName: influencer.firstName, lastName: influencer.lastName, profileImageUrl: influencer.profileImageUrl, creatorTier: influencer.creatorTier } : null };
+      }));
+      res.json(enriched);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Get influencer's received offers
+  app.get('/api/direct-hire/received', isAuthenticated, async (req: any, res) => {
+    try {
+      const offers = await storage.getDirectHireOffersByInfluencer(req.user.id);
+      const enriched = await Promise.all(offers.map(async (o: any) => {
+        const brand = await storage.getUser(o.brandId);
+        return { ...o, brand: brand ? { id: brand.id, firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, profileImageUrl: brand.profileImageUrl } : null };
+      }));
+      res.json(enriched);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Get single offer (for payment page)
+  app.get('/api/direct-hire/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      // Only brand or influencer involved can view
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const brand = await storage.getUser(offer.brandId);
+      const influencer = await storage.getUser(offer.influencerId);
+      res.json({
+        ...offer,
+        brand: brand ? { id: brand.id, firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, profileImageUrl: brand.profileImageUrl } : null,
+        influencer: influencer ? { id: influencer.id, firstName: influencer.firstName, lastName: influencer.lastName, profileImageUrl: influencer.profileImageUrl } : null,
+      });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Influencer accepts an offer
+  app.patch('/api/direct-hire/:id/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.influencerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      if (offer.status !== 'pending') return res.status(400).json({ message: 'Offer is not pending' });
+      const updated = await storage.updateDirectHireOffer(req.params.id, { status: 'accepted' });
+      // Notify brand
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_accepted',
+        title: '🎉 Offer Accepted!',
+        message: `${req.user.firstName} accepted your hire offer "${offer.title}". Please proceed to payment.`,
+        data: { offerId: offer.id },
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Influencer rejects an offer
+  app.patch('/api/direct-hire/:id/reject', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.influencerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      if (!['pending', 'accepted'].includes(offer.status)) return res.status(400).json({ message: 'Cannot reject at this stage' });
+      const updated = await storage.updateDirectHireOffer(req.params.id, { status: 'rejected', rejectionReason: req.body.reason || '' });
+      // Notify brand
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_rejected',
+        title: '❌ Offer Declined',
+        message: `${req.user.firstName} declined your hire offer "${offer.title}".`,
+        data: { offerId: offer.id },
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Brand submits payment proof for an accepted offer
+  app.post('/api/direct-hire/:id/submit-payment', isAuthenticated, upload.single('paymentScreenshot'), async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      if (offer.status !== 'accepted') return res.status(400).json({ message: 'Offer must be accepted before payment' });
+      const { transactionHash, paymentNetwork } = req.body;
+      const paymentProof = req.file ? `/uploads/${req.file.filename}` : null;
+      const updated = await storage.updateDirectHireOffer(req.params.id, {
+        status: 'payment_submitted',
+        transactionHash,
+        paymentNetwork,
+        paymentProof,
+      });
+      // Notify admin
+      const admins = await storage.getUsersByType('admin');
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'direct_hire_payment',
+          title: '💰 Direct Hire Payment Submitted',
+          message: `Brand "${req.user.firstName}" submitted payment for offer "${offer.title}". Please verify.`,
+          data: { offerId: offer.id },
+        });
+      }
+      // Notify influencer
+      await storage.createNotification({
+        userId: offer.influencerId,
+        type: 'direct_hire_payment',
+        title: '💳 Payment Submitted',
+        message: `Payment has been submitted for your project "${offer.title}". Awaiting admin confirmation.`,
+        data: { offerId: offer.id },
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin activates an offer (confirms payment)
+  app.patch('/api/admin/direct-hire/:id/activate', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      const updated = await storage.updateDirectHireOffer(req.params.id, {
+        status: 'active',
+        adminNote: req.body.note || '',
+        activatedAt: new Date(),
+      });
+      // Notify both parties
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_active',
+        title: '✅ Project Activated!',
+        message: `Your payment was confirmed. Project "${offer.title}" is now active!`,
+        data: { offerId: offer.id },
+      });
+      await storage.createNotification({
+        userId: offer.influencerId,
+        type: 'direct_hire_active',
+        title: '🚀 Project Started!',
+        message: `Payment confirmed. Your project "${offer.title}" is now officially active!`,
+        data: { offerId: offer.id },
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin rejects payment
+  app.patch('/api/admin/direct-hire/:id/reject-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      const updated = await storage.updateDirectHireOffer(req.params.id, {
+        status: 'accepted', // revert to accepted so brand can retry payment
+        adminNote: req.body.note || 'Payment could not be verified',
+      });
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_payment_failed',
+        title: '⚠️ Payment Verification Failed',
+        message: `Your payment for "${offer.title}" could not be verified. Please resubmit proof.`,
+        data: { offerId: offer.id },
+      });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: list all direct hire offers
+  app.get('/api/admin/direct-hire', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const offers = await storage.getAllDirectHireOffers();
+      const enriched = await Promise.all(offers.map(async (o: any) => {
+        const brand = await storage.getUser(o.brandId);
+        const influencer = await storage.getUser(o.influencerId);
+        return {
+          ...o,
+          brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName } : null,
+          influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName } : null,
+        };
+      }));
+      res.json(enriched);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ═══════════════════════════════════════════════════
   // PUSH NOTIFICATION SUBSCRIPTIONS
   // ═══════════════════════════════════════════════════
   app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {

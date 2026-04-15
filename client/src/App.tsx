@@ -58,6 +58,7 @@ import AdminAds from "@/pages/admin-ads";
 import AdminEmail from "@/pages/admin-email";
 import AdvertiseWithUs from "@/pages/advertise-with-us";
 import GetStarted from "@/pages/get-started";
+import DirectHirePayment from "@/pages/direct-hire-payment";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -129,6 +130,7 @@ function Router() {
           <Route path="/payment-deposit" component={PaymentDeposit} />
           <Route path="/profile-edit" component={ProfileEdit} />
           <Route path="/escrow-payment" component={EscrowPayment} />
+          <Route path="/direct-hire/:id" component={DirectHirePayment} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />

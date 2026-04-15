@@ -36,6 +36,7 @@ import {
   socialPlatforms,
   userSocialLinks,
   portfolioItems,
+  directHireOffers,
   pushSubscriptions,
   pushNotificationCampaigns,
   pwaSettings,
@@ -2163,6 +2164,46 @@ export class DatabaseStorage implements IStorage {
 
   async getLeaderboardByPoints(limit = 10): Promise<any[]> {
     return this.getTopUsersByPoints(limit);
+  }
+
+  async getUsersByType(userType: string): Promise<any[]> {
+    return await db.select().from(users).where(eq(users.userType, userType));
+  }
+
+  // ── Direct Hire Offers ───────────────────────────────────────
+  async createDirectHireOffer(data: any): Promise<any> {
+    const [offer] = await db.insert(directHireOffers).values(data).returning();
+    return offer;
+  }
+
+  async getDirectHireOffer(id: string): Promise<any> {
+    const [offer] = await db.select().from(directHireOffers).where(eq(directHireOffers.id, id));
+    return offer;
+  }
+
+  async getDirectHireOffersByBrand(brandId: string): Promise<any[]> {
+    return await db.select().from(directHireOffers)
+      .where(eq(directHireOffers.brandId, brandId))
+      .orderBy(desc(directHireOffers.createdAt));
+  }
+
+  async getDirectHireOffersByInfluencer(influencerId: string): Promise<any[]> {
+    return await db.select().from(directHireOffers)
+      .where(eq(directHireOffers.influencerId, influencerId))
+      .orderBy(desc(directHireOffers.createdAt));
+  }
+
+  async getAllDirectHireOffers(): Promise<any[]> {
+    return await db.select().from(directHireOffers)
+      .orderBy(desc(directHireOffers.createdAt));
+  }
+
+  async updateDirectHireOffer(id: string, data: Partial<any>): Promise<any> {
+    const [updated] = await db.update(directHireOffers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(directHireOffers.id, id))
+      .returning();
+    return updated;
   }
 
   // ── Welcome Campaign ─────────────────────────────────────────

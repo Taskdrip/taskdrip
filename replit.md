@@ -47,6 +47,18 @@ Design preferences: Clean, professional web app design with white background and
 - Demo brand account: `demobrand@taskdrip.online` / `Brand@2024` with 6 active demo campaigns
 - Admin can edit all campaigns (including demo brand campaigns) from the "Tasks Mgmt" admin tab
 
+#### Direct Hire Feature
+- **Direct Hire flow**: Brands can hire influencers directly without a campaign
+- Brand views a creator profile → clicks "Hire Me" button (only visible to brand users) → fills offer form (title, description, deliverables, budget, deadline)
+- Influencer accepts or declines from `/direct-hire/:id` page or their dashboard "Hire Offers" section
+- After acceptance, brand pays USDT to admin escrow wallet and submits payment proof (TX hash + screenshot)
+- Admin verifies payment and activates the project
+- **Status flow**: `pending` → `accepted` → `payment_submitted` → `active` (or `rejected`/`cancelled`)
+- Schema: `directHireOffers` table in `shared/schema.ts`
+- API routes: `POST /api/direct-hire`, `GET /api/direct-hire/sent`, `GET /api/direct-hire/received`, `GET /api/direct-hire/:id`, `PATCH /api/direct-hire/:id/accept`, `PATCH /api/direct-hire/:id/reject`, `POST /api/direct-hire/:id/submit-payment`
+- Admin routes: `PATCH /api/admin/direct-hire/:id/activate`, `PATCH /api/admin/direct-hire/:id/reject-payment`, `GET /api/admin/direct-hire`
+- Frontend pages: `direct-hire-payment.tsx` (brand payment + influencer accept/decline), hire dialog on `creator-profile.tsx`, "Direct Hires" tab in `brand-dashboard.tsx`, "Hire Offers" section in `simple-dashboard.tsx`
+
 #### Payment Networks
 - Admin-controlled payment networks management via "Networks" admin tab
 - Active by default: USDT-Tron (TRC-20), USDT-TON, USDT-BSC (BEP-20), USDT-ETH (ERC-20)

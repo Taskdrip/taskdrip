@@ -267,6 +267,8 @@ export default function CreatorProfile() {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
+  const [hireDialogOpen, setHireDialogOpen] = useState(false);
+  const [hireForm, setHireForm] = useState({ title: '', description: '', deliverables: '', budget: '', deadline: '' });
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
   const [editingPortfolio, setEditingPortfolio] = useState<any>(null);
   const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
@@ -318,6 +320,27 @@ export default function CreatorProfile() {
       setReviewRating(5);
     },
     onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
+  });
+
+  const sendHireOfferMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/direct-hire", {
+        influencerId: id,
+        title: hireForm.title,
+        description: hireForm.description,
+        deliverables: hireForm.deliverables,
+        budget: hireForm.budget,
+        deadline: hireForm.deadline || undefined,
+      });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({ title: "Hire offer sent! 🎉", description: "The influencer will be notified." });
+      setHireDialogOpen(false);
+      setHireForm({ title: '', description: '', deliverables: '', budget: '', deadline: '' });
+      navigate(`/direct-hire/${data.id}`);
+    },
+    onError: (e: Error) => toast({ title: "Failed to send offer", description: (e as any)?.message || "Please try again.", variant: "destructive" }),
   });
 
   const resetPortfolioDialog = () => {
@@ -582,6 +605,15 @@ export default function CreatorProfile() {
                           <Button variant="outline" onClick={() => navigate(`/chat?to=${id}`)}
                             className="border-purple-200 text-purple-600 hover:bg-purple-50" data-testid="message-btn">
                             <MessageCircle className="w-4 h-4 mr-1.5" /> Message
+                          </Button>
+                        )}
+                        {(user as any)?.userType === 'brand' && (
+                          <Button
+                            onClick={() => setHireDialogOpen(true)}
+                            className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg shadow-green-500/30"
+                            data-testid="button-hire-influencer"
+                          >
+                            <Briefcase className="w-4 h-4 mr-1.5" /> Hire Me
                           </Button>
                         )}
                       </>
@@ -1124,6 +1156,113 @@ export default function CreatorProfile() {
             )}
           </TabsContent>
         </Tabs>
+        {/* ── Hire Me Dialog ── */}
+        <Dialog open={hireDialogOpen} onOpenChange={(open) => {
+          setHireDialogOpen(open);
+          if (!open) setHireForm({ title: '', description: '', deliverables: '', budget: '', deadline: '' });
+        }}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-green-600" />
+                Hire {profile?.firstName} {profile?.lastName}
+              </DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">Fill out your offer details. The influencer will review and respond.</p>
+            </DialogHeader>
+
+            {/* Process steps */}
+            <div className="flex items-center gap-1 text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2 mb-1">
+              {["You send offer", "Influencer accepts", "You pay escrow", "Admin confirms", "Project starts"].map((s, i, arr) => (
+                <span key={i} className="flex items-center gap-1">
+                  <span className="font-medium text-gray-600">{s}</span>
+                  {i < arr.length - 1 && <span className="text-gray-300">›</span>}
+                </span>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Project Title *</Label>
+                <Input
+                  value={hireForm.title}
+                  onChange={e => setHireForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="e.g., Instagram Reel for Product Launch"
+                  className="mt-1"
+                  data-testid="input-hire-title"
+                />
+              </div>
+              <div>
+                <Label>Project Description *</Label>
+                <Textarea
+                  value={hireForm.description}
+                  onChange={e => setHireForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Describe what you need done, your brand, the target audience, tone, etc."
+                  rows={4}
+                  className="mt-1"
+                  data-testid="input-hire-description"
+                />
+              </div>
+              <div>
+                <Label>Deliverables</Label>
+                <Textarea
+                  value={hireForm.deliverables}
+                  onChange={e => setHireForm(p => ({ ...p, deliverables: e.target.value }))}
+                  placeholder="List specific outputs, e.g.&#10;- 1 Instagram Reel (60s)&#10;- 3 Story frames&#10;- 2 revisions included"
+                  rows={3}
+                  className="mt-1"
+                  data-testid="input-hire-deliverables"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Budget (USD) *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={hireForm.budget}
+                    onChange={e => setHireForm(p => ({ ...p, budget: e.target.value }))}
+                    placeholder="500"
+                    className="mt-1"
+                    data-testid="input-hire-budget"
+                  />
+                </div>
+                <div>
+                  <Label>Deadline</Label>
+                  <Input
+                    type="date"
+                    value={hireForm.deadline}
+                    onChange={e => setHireForm(p => ({ ...p, deadline: e.target.value }))}
+                    className="mt-1"
+                    data-testid="input-hire-deadline"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+                <strong>How it works:</strong> After the influencer accepts your offer, you'll pay ${hireForm.budget || '—'} to our secure admin escrow. The project activates once payment is confirmed by our team (2–6 hrs).
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <Button
+                  onClick={() => sendHireOfferMutation.mutate()}
+                  disabled={sendHireOfferMutation.isPending || !hireForm.title.trim() || !hireForm.description.trim() || !hireForm.budget}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  data-testid="button-send-hire-offer"
+                >
+                  {sendHireOfferMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+                  ) : (
+                    <><Briefcase className="w-4 h-4 mr-2" /> Send Offer</>
+                  )}
+                </Button>
+                <Button variant="outline" onClick={() => setHireDialogOpen(false)} className="flex-1" data-testid="button-cancel-hire">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={portfolioDialogOpen} onOpenChange={(open) => {
           setPortfolioDialogOpen(open);
           if (!open) resetPortfolioDialog();

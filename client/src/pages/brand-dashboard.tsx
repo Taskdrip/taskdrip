@@ -18,7 +18,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
-  Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil
+  Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
+  Briefcase, ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
@@ -77,7 +78,7 @@ export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "creators">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "creators" | "direct-hires">("overview");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
@@ -108,6 +109,12 @@ export default function BrandDashboard() {
   // Fetch notifications
   const { data: notifications = [], isLoading: notificationsLoading } = useQuery<any[]>({
     queryKey: ["/api/notifications"],
+    retry: false,
+  });
+
+  // Fetch direct hire offers sent by this brand
+  const { data: directHires = [], isLoading: directHiresLoading } = useQuery<any[]>({
+    queryKey: ["/api/direct-hire/sent"],
     retry: false,
   });
 
@@ -640,6 +647,7 @@ export default function BrandDashboard() {
             { id: "applications", label: "Applications", icon: Users },
             { id: "submissions", label: "Submissions", icon: CheckCircle },
             { id: "creators", label: "Creators", icon: Users },
+            { id: "direct-hires", label: "Direct Hires", icon: Briefcase },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1102,6 +1110,93 @@ export default function BrandDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {selectedTab === "direct-hires" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold">Direct Hire Offers</h2>
+                <p className="text-gray-500 text-sm mt-1">Offers you've sent directly to influencers</p>
+              </div>
+              <Link href="/creators">
+                <Button className="bg-green-600 hover:bg-green-700">
+                  <Briefcase className="w-4 h-4 mr-2" /> Hire an Influencer
+                </Button>
+              </Link>
+            </div>
+
+            {directHiresLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}
+              </div>
+            ) : directHires.length === 0 ? (
+              <Card>
+                <CardContent className="py-16 text-center">
+                  <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">No Direct Hires Yet</h3>
+                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">Browse creators and send a direct hire offer to get started.</p>
+                  <Link href="/creators">
+                    <Button variant="outline">Browse Influencers</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {directHires.map((hire: any) => {
+                  const statusColors: Record<string, string> = {
+                    pending: "bg-yellow-100 text-yellow-800",
+                    accepted: "bg-blue-100 text-blue-800",
+                    rejected: "bg-red-100 text-red-800",
+                    payment_submitted: "bg-purple-100 text-purple-800",
+                    active: "bg-green-100 text-green-800",
+                    completed: "bg-gray-100 text-gray-700",
+                    cancelled: "bg-gray-100 text-gray-500",
+                  };
+                  const statusLabels: Record<string, string> = {
+                    pending: "Pending",
+                    accepted: "Accepted — Pay Now",
+                    rejected: "Declined",
+                    payment_submitted: "Under Review",
+                    active: "Active 🚀",
+                    completed: "Completed ✅",
+                    cancelled: "Cancelled",
+                  };
+                  return (
+                    <Card key={hire.id} className="hover:shadow-md transition-shadow" data-testid={`card-direct-hire-${hire.id}`}>
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-gray-900 truncate">{hire.title}</h3>
+                              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColors[hire.status] || "bg-gray-100 text-gray-600"}`}>
+                                {statusLabels[hire.status] || hire.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">
+                              To: {hire.influencer?.firstName} {hire.influencer?.lastName}
+                              {hire.influencer?.username && <span className="text-gray-400"> @{hire.influencer.username}</span>}
+                            </p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                              <span className="font-semibold text-green-700 text-sm">${Number(hire.budget).toFixed(2)} USDT</span>
+                              {hire.deadline && <span>Due {format(new Date(hire.deadline), "MMM d, yyyy")}</span>}
+                              <span>{format(new Date(hire.createdAt), "MMM d, yyyy")}</span>
+                            </div>
+                          </div>
+                          <Link href={`/direct-hire/${hire.id}`}>
+                            <Button size="sm" variant={hire.status === 'accepted' ? 'default' : 'outline'} className={hire.status === 'accepted' ? 'bg-green-600 hover:bg-green-700' : ''} data-testid={`button-view-hire-${hire.id}`}>
+                              {hire.status === 'accepted' ? 'Pay Now' : 'View'}
+                              <ChevronRight className="w-4 h-4 ml-1" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

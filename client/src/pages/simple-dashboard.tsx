@@ -12,7 +12,8 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
   Wallet, TrendingUp, Trophy, Clock, User, DollarSign, Target, Share2, Copy,
-  Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck, Zap, Star, Crown, Medal
+  Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck, Zap, Star, Crown, Medal,
+  Briefcase, ChevronRight, Sparkles
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -138,6 +139,11 @@ export default function SimpleDashboard() {
   const { data: activeCampaigns = [] } = useQuery<any[]>({
     queryKey: ['/api/campaigns'],
     select: (data: any[]) => data.filter((c: any) => c.status === 'active'),
+  });
+
+  const { data: hireOffers = [] } = useQuery<any[]>({
+    queryKey: ['/api/direct-hire/received'],
+    enabled: !!(user as any)?.id,
   });
 
   const ensureCodesMutation = useMutation({
@@ -273,6 +279,71 @@ export default function SimpleDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Direct Hire Offers */}
+        {hireOffers.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-green-600" />
+                <h2 className="text-lg font-bold text-gray-900">Hire Offers</h2>
+                {hireOffers.filter((h: any) => h.status === 'pending').length > 0 && (
+                  <Badge className="bg-green-100 text-green-700 text-xs">
+                    {hireOffers.filter((h: any) => h.status === 'pending').length} new
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="space-y-3">
+              {hireOffers.slice(0, 5).map((hire: any) => {
+                const statusColors: Record<string, string> = {
+                  pending:           "bg-yellow-100 text-yellow-800",
+                  accepted:          "bg-blue-100 text-blue-800",
+                  rejected:          "bg-gray-100 text-gray-500",
+                  payment_submitted: "bg-purple-100 text-purple-800",
+                  active:            "bg-green-100 text-green-800",
+                  completed:         "bg-gray-100 text-gray-700",
+                };
+                const statusLabels: Record<string, string> = {
+                  pending:           "Respond Now",
+                  accepted:          "Accepted",
+                  rejected:          "Declined",
+                  payment_submitted: "Payment Pending",
+                  active:            "Active 🚀",
+                  completed:         "Completed ✅",
+                };
+                const isPending = hire.status === 'pending';
+                return (
+                  <Card key={hire.id} className={`hover:shadow-md transition-shadow ${isPending ? 'border-2 border-green-200 bg-green-50/30' : ''}`} data-testid={`card-hire-offer-${hire.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isPending && <Sparkles className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                            <h3 className="font-semibold text-gray-900 truncate text-sm">{hire.title}</h3>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[hire.status] || "bg-gray-100 text-gray-600"}`}>
+                              {statusLabels[hire.status] || hire.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            From {hire.brand?.companyName || `${hire.brand?.firstName} ${hire.brand?.lastName}`}
+                            <span className="font-semibold text-green-700 ml-2">${Number(hire.budget).toFixed(2)} USDT</span>
+                          </p>
+                        </div>
+                        <Link href={`/direct-hire/${hire.id}`}>
+                          <Button size="sm" className={isPending ? 'bg-green-600 hover:bg-green-700' : ''} variant={isPending ? 'default' : 'outline'} data-testid={`button-view-offer-${hire.id}`}>
+                            {isPending ? 'Respond' : 'View'}
+                            <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Welcome / Starter Campaign */}
         <div className="mb-8">
