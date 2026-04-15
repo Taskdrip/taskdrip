@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -146,12 +147,15 @@ export default function WalletSettings() {
               Ready for withdrawal • Minimum: $10.00
             </p>
             {parseFloat(user?.availableBalance || '0') >= 10 && (
-              <Button 
-                variant="secondary" 
-                className="mt-4 bg-white text-green-600 hover:bg-green-50"
-              >
-                Request Payout
-              </Button>
+              <Link href="/payout-requests">
+                <Button 
+                  variant="secondary" 
+                  className="mt-4 bg-white text-green-600 hover:bg-green-50"
+                  data-testid="button-wallet-request-payout"
+                >
+                  Request Payout
+                </Button>
+              </Link>
             )}
           </CardContent>
         </Card>
@@ -276,9 +280,11 @@ export default function WalletSettings() {
                   </div>
                 </div>
                 {(user?.usdtTronWallet || user?.usdtBscWallet || user?.tonWallet) ? (
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                    Request Payout
-                  </Button>
+                  <Link href="/payout-requests">
+                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white" data-testid="button-payment-request-payout">
+                      Request Payout
+                    </Button>
+                  </Link>
                 ) : (
                   <div className="text-center">
                     <p className="text-yellow-800 text-sm mb-2">Add at least one wallet address to request payouts</p>
@@ -308,6 +314,16 @@ export default function WalletSettings() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <Link href="/ledger">
+                <Button variant="outline" className="w-full justify-start" data-testid="button-wallet-open-ledger">
+                  View escrow ledger
+                </Button>
+              </Link>
+              <Link href="/payout-requests">
+                <Button variant="outline" className="w-full justify-start" data-testid="button-wallet-open-payouts">
+                  Manage payout requests
+                </Button>
+              </Link>
               <div>
                 <h4 className="font-semibold text-gray-900">Supported Networks</h4>
                 <ul className="text-gray-600 mt-1 space-y-1">

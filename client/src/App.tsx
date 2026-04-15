@@ -59,6 +59,7 @@ import AdminEmail from "@/pages/admin-email";
 import AdvertiseWithUs from "@/pages/advertise-with-us";
 import GetStarted from "@/pages/get-started";
 import DirectHirePayment from "@/pages/direct-hire-payment";
+import LedgerPage from "@/pages/ledger";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -127,6 +128,7 @@ function Router() {
           <Route path="/messages" component={Messages} />
           <Route path="/chat" component={Chat} />
           <Route path="/wallet" component={WalletSettings} />
+          <Route path="/ledger" component={LedgerPage} />
           <Route path="/payment-deposit" component={PaymentDeposit} />
           <Route path="/profile-edit" component={ProfileEdit} />
           <Route path="/escrow-payment" component={EscrowPayment} />

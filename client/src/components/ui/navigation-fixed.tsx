@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -38,6 +38,7 @@ export function NavigationFixed() {
           { href: "/brand-dashboard", label: "Dashboard" },
           { href: "/creators", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/ledger", label: "Ledger" },
           { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
           { href: "/shop", label: "Shop" },
@@ -48,6 +49,7 @@ export function NavigationFixed() {
           { href: "/admin-dashboard", label: "Admin" },
           { href: "/creators", label: "Creators" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/ledger", label: "Ledger" },
           { href: "/breedskool", label: "BreedSkool" },
         ];
       } else {
@@ -56,6 +58,7 @@ export function NavigationFixed() {
           { href: "/tasks", label: "Tasks" },
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/dashboard", label: "Dashboard" },
+          { href: "/ledger", label: "Ledger" },
           { href: "/feed", label: "Feed" },
           { href: "/creators", label: "Influencers" },
           { href: "/leaderboard", label: "Leaderboard" },
@@ -220,6 +223,12 @@ export function NavigationFixed() {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem>
+                      <Link href="/ledger" className="flex items-center w-full">
+                        <Landmark className="mr-2 h-4 w-4" />
+                        <span>Ledger</span>
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Link href="/payout-requests" className="flex items-center w-full">
                         <DollarSign className="mr-2 h-4 w-4" />
