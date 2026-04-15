@@ -352,7 +352,7 @@ export default function DirectHirePayment() {
                 >
                   <MessageCircle className="w-4 h-4" /> Message Admin
                 </button>
-                <a href="https://wa.me/2348036622568" target="_blank" rel="noreferrer"
+                <a href="https://wa.me/12016800266" target="_blank" rel="noreferrer"
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-2.5 text-sm font-medium">
                   <Phone className="w-4 h-4" /> WhatsApp Support
                 </a>

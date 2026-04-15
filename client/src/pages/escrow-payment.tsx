@@ -408,7 +408,7 @@ export default function EscrowPayment() {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a
-                    href="https://wa.me/2348036622568"
+                    href="https://wa.me/12016800266"
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 transition-colors font-medium"
@@ -416,7 +416,7 @@ export default function EscrowPayment() {
                     <Phone className="h-5 w-5 flex-shrink-0" />
                     <div>
                       <div className="text-xs opacity-80">WhatsApp</div>
-                      <div>+234 803 662 2568</div>
+                      <div>+1 201 680 0266</div>
                     </div>
                   </a>
                   <button
