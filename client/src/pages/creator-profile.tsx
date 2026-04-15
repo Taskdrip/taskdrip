@@ -24,7 +24,7 @@ import {
 import {
   MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink,
   BarChart3, UserPlus, UserCheck, Globe, Briefcase, Zap, Flame, Crown,
-  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X, Coins, Wallet
+  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X, Coins, Wallet, Trash2, Pencil
 } from "lucide-react";
 
 function StarRating({ value, onChange, readOnly = false }: { value: number; onChange?: (v: number) => void; readOnly?: boolean }) {
@@ -268,6 +268,7 @@ export default function CreatorProfile() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [editingPortfolio, setEditingPortfolio] = useState<any>(null);
   const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
   const [portfolioImageFile, setPortfolioImageFile] = useState<File | null>(null);
   const [portfolioImagePreview, setPortfolioImagePreview] = useState<string>('');
@@ -319,6 +320,28 @@ export default function CreatorProfile() {
     onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
   });
 
+  const resetPortfolioDialog = () => {
+    setPortfolioForm({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
+    setPortfolioImageFile(null);
+    setPortfolioImagePreview('');
+    setEditingPortfolio(null);
+  };
+
+  const openEditPortfolio = (item: any) => {
+    setEditingPortfolio(item);
+    setPortfolioForm({
+      title: item.title || '',
+      description: item.description || '',
+      imageUrl: item.imageUrl || '',
+      videoUrl: item.videoUrl || '',
+      url: item.url || '',
+      category: item.category || '',
+    });
+    setPortfolioImageFile(null);
+    setPortfolioImagePreview(item.imageUrl || '');
+    setPortfolioDialogOpen(true);
+  };
+
   const createPortfolioMutation = useMutation({
     mutationFn: async () => {
       if (portfolioImageFile) {
@@ -335,12 +358,43 @@ export default function CreatorProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
       setPortfolioDialogOpen(false);
-      setPortfolioForm({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
-      setPortfolioImageFile(null);
-      setPortfolioImagePreview('');
+      resetPortfolioDialog();
       toast({ title: "Portfolio item added!" });
     },
     onError: () => toast({ title: "Failed to add portfolio item", variant: "destructive" }),
+  });
+
+  const updatePortfolioMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      if (portfolioImageFile) {
+        const fd = new FormData();
+        fd.append('image', portfolioImageFile);
+        Object.entries(portfolioForm).forEach(([k, v]) => { if (v) fd.append(k, v); });
+        const res = await fetch(`/api/portfolio/${itemId}`, { method: 'PUT', body: fd, credentials: 'include' });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+      const res = await apiRequest("PATCH", `/api/portfolio/${itemId}`, portfolioForm);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
+      setPortfolioDialogOpen(false);
+      resetPortfolioDialog();
+      toast({ title: "Portfolio item updated!" });
+    },
+    onError: () => toast({ title: "Failed to update portfolio item", variant: "destructive" }),
+  });
+
+  const deletePortfolioMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      await apiRequest("DELETE", `/api/portfolio/${itemId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
+      toast({ title: "Portfolio item deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete portfolio item", variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -776,13 +830,37 @@ export default function CreatorProfile() {
                             {item.category && <Badge variant="outline" className="text-xs mt-1">{item.category}</Badge>}
                             {item.description && <p className="text-gray-500 text-xs mt-2 line-clamp-2">{item.description}</p>}
                           </div>
-                          {item.url && !ytId && <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-purple-500 flex-shrink-0 mt-0.5 transition-colors" />}
+                          {item.url && !ytId && !isOwnProfile && <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-purple-500 flex-shrink-0 mt-0.5 transition-colors" />}
                         </div>
+                        {isOwnProfile && (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); openEditPortfolio(item); }}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors"
+                              data-testid={`button-edit-portfolio-${item.id}`}
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </button>
+                            <button
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); if (confirm('Delete this portfolio item?')) deletePortfolioMutation.mutate(item.id); }}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                              data-testid={`button-delete-portfolio-${item.id}`}
+                              disabled={deletePortfolioMutation.isPending}
+                            >
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </button>
+                            {item.url && !ytId && (
+                              <a href={item.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors ml-auto">
+                                <ExternalLink className="w-3 h-3" /> View
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
-                  // For YouTube cards, wrap without anchor so iframe clicks work
-                  if (ytId) return <div key={item.id} className="group">{cardContent}</div>;
+                  // For YouTube cards or own-profile cards, wrap without anchor so iframe/button clicks work
+                  if (ytId || isOwnProfile) return <div key={item.id} className="group">{cardContent}</div>;
                   return (
                     <a key={item.id} href={item.url || '#'} target={item.url ? "_blank" : undefined} rel="noopener noreferrer" className="group block">
                       {cardContent}
@@ -1048,15 +1126,11 @@ export default function CreatorProfile() {
         </Tabs>
         <Dialog open={portfolioDialogOpen} onOpenChange={(open) => {
           setPortfolioDialogOpen(open);
-          if (!open) {
-            setPortfolioForm({ title: '', description: '', imageUrl: '', videoUrl: '', url: '', category: '' });
-            setPortfolioImageFile(null);
-            setPortfolioImagePreview('');
-          }
+          if (!open) resetPortfolioDialog();
         }}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add Portfolio Item</DialogTitle>
+              <DialogTitle>{editingPortfolio ? 'Edit Portfolio Item' : 'Add Portfolio Item'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -1084,7 +1158,7 @@ export default function CreatorProfile() {
                   {portfolioImagePreview ? (
                     <div className="relative">
                       <img src={portfolioImagePreview} alt="Preview" className="mx-auto max-h-36 object-contain rounded-lg" />
-                      <button type="button" onClick={e => { e.stopPropagation(); setPortfolioImageFile(null); setPortfolioImagePreview(''); }}
+                      <button type="button" onClick={e => { e.stopPropagation(); setPortfolioImageFile(null); setPortfolioImagePreview(''); setPortfolioForm(p => ({ ...p, imageUrl: '' })); }}
                         className="absolute top-1 right-1 bg-white/80 rounded-full p-1 text-gray-500 hover:text-red-500">
                         <X className="w-3 h-3" />
                       </button>
@@ -1136,8 +1210,21 @@ export default function CreatorProfile() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <Button onClick={() => createPortfolioMutation.mutate()} disabled={createPortfolioMutation.isPending || !portfolioForm.title.trim()} className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="button-save-portfolio-profile">
-                  {createPortfolioMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : "Add to Portfolio"}
+                <Button
+                  onClick={() => {
+                    if (editingPortfolio) {
+                      updatePortfolioMutation.mutate(editingPortfolio.id);
+                    } else {
+                      createPortfolioMutation.mutate();
+                    }
+                  }}
+                  disabled={(editingPortfolio ? updatePortfolioMutation.isPending : createPortfolioMutation.isPending) || !portfolioForm.title.trim()}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  data-testid="button-save-portfolio-profile"
+                >
+                  {(editingPortfolio ? updatePortfolioMutation.isPending : createPortfolioMutation.isPending)
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                    : editingPortfolio ? "Save Changes" : "Add to Portfolio"}
                 </Button>
                 <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)} className="flex-1" data-testid="button-cancel-portfolio-profile">Cancel</Button>
               </div>

@@ -4117,6 +4117,13 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.patch('/api/portfolio/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const item = await storage.updatePortfolioItem(req.params.id, req.body);
+      res.json(item);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.delete('/api/portfolio/:id', isAuthenticated, async (req: any, res) => {
     try {
       await storage.deletePortfolioItem(req.params.id);
