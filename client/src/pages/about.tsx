@@ -131,14 +131,20 @@ const FEATURES = [
 ];
 
 const CAMPAIGN_CATEGORIES = [
+  { name: 'Crypto / Blockchain', icon: '🔗', desc: 'Token launches, exchange promotions, and crypto awareness' },
+  { name: 'Web3 & DeFi', icon: '⛓️', desc: 'Decentralized apps, DeFi protocols, and blockchain projects' },
+  { name: 'NFT & Digital Assets', icon: '🖼️', desc: 'NFT drops, digital collectibles, and metaverse assets' },
   { name: 'Social Media', icon: '📱', desc: 'Posts, reels, stories, and shorts across all platforms' },
+  { name: 'Technology', icon: '💻', desc: 'App reviews, SaaS tools, and tech product launches' },
   { name: 'Gaming & Esports', icon: '🎮', desc: 'Game reviews, livestreams, and tournament coverage' },
+  { name: 'Finance & Investment', icon: '💰', desc: 'Trading platforms, fintech apps, and investment tools' },
   { name: 'Health & Fitness', icon: '💪', desc: 'Wellness products, workout routines, and lifestyle content' },
   { name: 'Fashion & Beauty', icon: '💄', desc: 'Product reviews, tutorials, and brand lookbooks' },
-  { name: 'Tech & Crypto', icon: '⛓️', desc: 'App reviews, blockchain projects, and DeFi awareness' },
-  { name: 'Food & Travel', icon: '🌍', desc: 'Restaurant features, destination content, and reviews' },
+  { name: 'Food & Beverage', icon: '🍕', desc: 'Restaurant features, food brands, and beverage campaigns' },
+  { name: 'Travel', icon: '✈️', desc: 'Destination content, hotel features, and travel apps' },
   { name: 'Education', icon: '🎓', desc: 'Course promotions, webinars, and skill-based content' },
   { name: 'Entertainment', icon: '🎬', desc: 'Music, movies, events, and pop culture campaigns' },
+  { name: 'Sports', icon: '⚽', desc: 'Sports brands, events, and athletic product promotions' },
 ];
 
 const STATS = [

@@ -67,11 +67,21 @@ export function CampaignCard({ campaign, onJoin, showJoinButton = true }: Campai
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
+      case 'Crypto / Blockchain': return '🔗';
+      case 'Web3 & DeFi': return '⛓️';
+      case 'NFT & Digital Assets': return '🖼️';
+      case 'Finance & Investment': return '💰';
       case 'Social Media': return '📱';
       case 'Gaming': return '🎮';
       case 'Health & Fitness': return '💪';
       case 'Technology': return '💻';
       case 'Fashion & Beauty': return '💄';
+      case 'Fashion': return '👗';
+      case 'Food & Beverage': return '🍕';
+      case 'Travel': return '✈️';
+      case 'Education': return '🎓';
+      case 'Entertainment': return '🎬';
+      case 'Sports': return '⚽';
       default: return '📝';
     }
   };

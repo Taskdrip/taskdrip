@@ -404,14 +404,20 @@ export default function BrandDashboard() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="Social Media">Social Media</SelectItem>
-                                <SelectItem value="Gaming">Gaming</SelectItem>
-                                <SelectItem value="Health & Fitness">Health & Fitness</SelectItem>
-                                <SelectItem value="Technology">Technology</SelectItem>
-                                <SelectItem value="Fashion">Fashion</SelectItem>
-                                <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
-                                <SelectItem value="Travel">Travel</SelectItem>
-                                <SelectItem value="Education">Education</SelectItem>
+                                <SelectItem value="Crypto / Blockchain">🔗 Crypto / Blockchain</SelectItem>
+                                <SelectItem value="Web3 & DeFi">⛓️ Web3 & DeFi</SelectItem>
+                                <SelectItem value="NFT & Digital Assets">🖼️ NFT & Digital Assets</SelectItem>
+                                <SelectItem value="Social Media">📱 Social Media</SelectItem>
+                                <SelectItem value="Technology">💻 Technology</SelectItem>
+                                <SelectItem value="Gaming">🎮 Gaming</SelectItem>
+                                <SelectItem value="Finance & Investment">💰 Finance & Investment</SelectItem>
+                                <SelectItem value="Health & Fitness">💪 Health & Fitness</SelectItem>
+                                <SelectItem value="Fashion & Beauty">💄 Fashion & Beauty</SelectItem>
+                                <SelectItem value="Food & Beverage">🍕 Food & Beverage</SelectItem>
+                                <SelectItem value="Travel">✈️ Travel</SelectItem>
+                                <SelectItem value="Education">🎓 Education</SelectItem>
+                                <SelectItem value="Entertainment">🎬 Entertainment</SelectItem>
+                                <SelectItem value="Sports">⚽ Sports</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />

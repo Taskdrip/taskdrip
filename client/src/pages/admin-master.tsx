@@ -2694,7 +2694,7 @@ export default function AdminMaster() {
                       value={adminTaskForm.category}
                       onChange={(e) => setAdminTaskForm(f => ({ ...f, category: e.target.value }))}
                     >
-                      {["Social Media","Gaming","Technology","Health & Fitness","Fashion & Beauty","Crypto & Web3","Education","Other"].map(c => (
+                      {["Crypto / Blockchain","Web3 & DeFi","NFT & Digital Assets","Social Media","Technology","Gaming","Finance & Investment","Health & Fitness","Fashion & Beauty","Food & Beverage","Travel","Education","Entertainment","Sports","Other"].map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
