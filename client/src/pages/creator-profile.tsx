@@ -707,7 +707,7 @@ export default function CreatorProfile() {
             { label: "Total Earned", value: `$${parseFloat(profile.totalEarned || '0').toFixed(0)}`, icon: <TrendingUp className="w-5 h-5 text-green-500" />, color: "from-green-600/10 to-emerald-600/10 border-green-200" },
             { label: "$TDrip Points", value: (profile.totalPoints || 0).toLocaleString(), icon: <Coins className="w-5 h-5 text-violet-500" />, color: "from-violet-600/10 to-purple-600/10 border-violet-200" },
             { label: "Campaigns", value: profile.completedCampaigns || 0, icon: <Trophy className="w-5 h-5 text-amber-500" />, color: "from-amber-600/10 to-yellow-600/10 border-amber-200" },
-            { label: "Platform Followers", value: formatFollowers(profile.followers || 0), icon: <Users className="w-5 h-5 text-blue-500" />, color: "from-blue-600/10 to-cyan-600/10 border-blue-200" },
+            { label: "Platform Followers", value: formatFollowers(followersCount), icon: <Users className="w-5 h-5 text-blue-500" />, color: "from-blue-600/10 to-cyan-600/10 border-blue-200" },
             { label: "Social Reach", value: formatFollowers(totalSocialFollowers), icon: <Zap className="w-5 h-5 text-purple-500" />, color: "from-purple-600/10 to-violet-600/10 border-purple-200" },
           ].map(stat => (
             <Card key={stat.label} className={`bg-gradient-to-br ${stat.color} border shadow-sm hover:shadow-md transition-shadow`}>
@@ -740,7 +740,7 @@ export default function CreatorProfile() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   { label: "Total Social Reach", value: formatFollowers(totalSocialFollowers), icon: <Globe className="w-5 h-5 text-blue-500" />, bg: "bg-blue-50" },
-                  { label: "Platform Followers", value: formatFollowers(profile.followers || 0), icon: <Users className="w-5 h-5 text-purple-500" />, bg: "bg-purple-50" },
+                  { label: "Platform Followers", value: formatFollowers(followersCount), icon: <Users className="w-5 h-5 text-purple-500" />, bg: "bg-purple-50" },
                   { label: "Est. Engagement Rate", value: `${engagementRate}%`, icon: <Zap className="w-5 h-5 text-amber-500" />, bg: "bg-amber-50" },
                   { label: "Completed Campaigns", value: profile.completedCampaigns || 0, icon: <Trophy className="w-5 h-5 text-green-500" />, bg: "bg-green-50" },
                   { label: "Average Rating", value: `${avgRating} / 5`, icon: <Star className="w-5 h-5 fill-amber-400 text-amber-400" />, bg: "bg-amber-50" },
