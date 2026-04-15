@@ -410,7 +410,8 @@ export default function CreatorProfile() {
     ? (profile.reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / profile.reviews.length).toFixed(1)
     : "0.0";
 
-  const dynamicTier = getTierFromFollowers(profile.totalFollowers || 0);
+  // Always compute tier from live social links data (most up-to-date source)
+  const dynamicTier = getTierFromFollowers(totalSocialFollowers || profile.totalFollowers || 0);
   const tierConf = getTierConfig(dynamicTier);
   const rankInfo = {
     label: tierConf.name,

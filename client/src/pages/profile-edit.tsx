@@ -308,6 +308,7 @@ export default function ProfileEdit() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/creators/${userId}/profile`] });
       queryClient.invalidateQueries({ queryKey: ['/api/creators'] });
       queryClient.invalidateQueries({ queryKey: ['/api/leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });

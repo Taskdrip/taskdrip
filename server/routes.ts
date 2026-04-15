@@ -4056,7 +4056,18 @@ Instructions:
       const { links } = req.body;
       await storage.replaceUserSocialLinks(req.params.id, links || []);
       const updated = await storage.getUserSocialLinks(req.params.id);
-      res.json(updated);
+
+      // Recalculate totalFollowers and creatorTier from the saved links
+      const totalFollowers = updated.reduce((sum: number, l: any) => sum + (Number(l.followerCount) || 0), 0);
+      let creatorTier = 'newcomer';
+      if (totalFollowers >= 10_000_000) creatorTier = 'global_titans';
+      else if (totalFollowers >= 1_000_000) creatorTier = 'power_influencers';
+      else if (totalFollowers >= 100_000) creatorTier = 'growth_engines';
+      else if (totalFollowers >= 10_000) creatorTier = 'rising_sparks';
+      else if (totalFollowers >= 1) creatorTier = 'aspiring';
+      await storage.updateUserProfile(req.params.id, { totalFollowers, creatorTier } as any);
+
+      res.json({ links: updated, totalFollowers, creatorTier });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
