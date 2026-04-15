@@ -284,44 +284,64 @@ export default function FinalLanding() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-7 flex-wrap">
-              <Badge className="px-4 py-2 bg-white/15 backdrop-blur-sm text-white border-white/20 text-sm font-semibold rounded-full inline-flex items-center gap-2">
-                <Rocket className="w-4 h-4 text-yellow-400" /> #1 Web3 Influencer Marketplace
+              <Badge className="px-4 py-2 bg-white/15 backdrop-blur-sm text-white border-white/20 text-sm font-semibold rounded-full inline-flex items-center gap-2" data-testid="badge-hero-marketplace">
+                <Rocket className="w-4 h-4 text-yellow-400" /> For creators ready to earn + brands ready to grow
               </Badge>
-              <Badge className="px-3 py-2 bg-green-500/20 backdrop-blur-sm text-green-300 border-green-400/30 text-xs rounded-full">
-                🟢 Live Now
+              <Badge className="px-3 py-2 bg-green-500/20 backdrop-blur-sm text-green-300 border-green-400/30 text-xs rounded-full" data-testid="badge-hero-live">
+                Live campaigns open now
               </Badge>
             </div>
 
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.05] tracking-tight mb-6">
-              Turn Your{" "}
+              Your next{" "}
               <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-                Influence
+                paid collab
               </span>
               <br />
-              Into{" "}
+              starts{" "}
               <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-                Crypto Income.
+                today.
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl leading-relaxed">
-              Taskdrip is the #1 Web3 influencer marketplace — join brand campaigns, complete tasks, and get paid in{" "}
-              <strong className="text-white">USDT (TRC-20, BEP-20, ERC-20, or TON Network)</strong>.
-              Grow with BreedSkool Academy, climb the leaderboard, and earn across 4 creator tiers — all in one ecosystem.
+            <p className="text-lg md:text-xl text-gray-200 mb-6 max-w-2xl leading-relaxed" data-testid="text-hero-description">
+              Creators: stop waiting for brands to notice you — claim live Web3 tasks, prove your influence, and get paid in{" "}
+              <strong className="text-white">USDT or TON</strong>. Brands: launch fast, hire trusted influencers, and turn attention into measurable growth.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-14">
+            <div className="grid gap-3 sm:grid-cols-2 mb-8 max-w-3xl">
+              <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-4" data-testid="card-creator-promise">
+                <div className="flex items-center gap-2 text-white font-bold mb-1">
+                  <Sparkles className="w-4 h-4 text-yellow-300" />
+                  For influencers
+                </div>
+                <p className="text-sm text-gray-300">Pick a campaign, submit proof, build your public reputation, and cash out from your creator wallet.</p>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-4" data-testid="card-brand-promise">
+                <div className="flex items-center gap-2 text-white font-bold mb-1">
+                  <Target className="w-4 h-4 text-blue-300" />
+                  For brands
+                </div>
+                <p className="text-sm text-gray-300">Post a task, attract vetted creators, track submissions, and only release rewards when work is approved.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <Link href="/signup?type=creator">
-                <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl hover:shadow-white/20 transition-all">
-                  Join as Influencer <ArrowRight className="ml-2 w-5 h-5" />
+                <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl hover:shadow-white/20 transition-all" data-testid="button-hero-creator-signup">
+                  Start earning now <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
               <Link href="/signup?type=brand">
-                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 px-10 py-6 text-lg rounded-xl font-bold shadow-xl transition-all border-0">
-                  Hire Influencers <Rocket className="ml-2 w-5 h-5" />
+                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 px-10 py-6 text-lg rounded-xl font-bold shadow-xl transition-all border-0" data-testid="button-hero-brand-signup">
+                  Launch a campaign <Rocket className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
             </div>
+
+            <p className="text-sm text-gray-300 mb-12" data-testid="text-hero-urgency">
+              Free to join. Live campaigns, escrow tracking, creator tiers, and payout tools are ready the moment you sign up.
+            </p>
 
             <div className="flex flex-wrap gap-4">
               {[
