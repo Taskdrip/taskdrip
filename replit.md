@@ -238,6 +238,7 @@ Design preferences: Clean, professional web app design with white background and
 - Automatic middleware setup for development
 - Replit-specific plugins for enhanced development experience
 - Replit migration verified: dependencies installed, database schema synced with Drizzle, and the `Start application` workflow runs on port 5000.
+- Replit import migration completed April 15, 2026: workflow configured as a web preview on port 5000, deployment build/run configured for `dist/index.js`, and runtime verified through `/api/health` plus the HTTPS preview URL.
 
 ### Production Build
 - Vite builds client-side assets to `dist/public`
@@ -256,6 +257,7 @@ Design preferences: Clean, professional web app design with white background and
 - Input validation using Zod schemas
 - Secure session storage with PostgreSQL
 - Environment variable validation
+- Production session startup requires `SESSION_SECRET`; development uses a local-only fallback so the preview can run safely without exposing production behavior.
 
 ### Scaling Architecture
 - Stateless server design for horizontal scaling

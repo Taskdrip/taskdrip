@@ -30,9 +30,14 @@ export const isAuthenticated = (req: any, res: any, next: any) => {
 
 export function setupAuth(app: Express) {
   const PostgresSessionStore = connectPg(session);
+  const sessionSecret = process.env.SESSION_SECRET;
+
+  if (!sessionSecret && process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
   
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "default-secret-change-in-production",
+    secret: sessionSecret || "development-session-secret",
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
@@ -41,8 +46,9 @@ export function setupAuth(app: Express) {
       tableName: 'sessions',
     }),
     cookie: {
-      secure: false, // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   };
