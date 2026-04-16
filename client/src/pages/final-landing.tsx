@@ -101,6 +101,19 @@ const DEFAULT_SLIDES: Slide[] = [
     overlayColor: "from-black/90 via-black/70 to-black/50",
     accentColor: "from-emerald-400 via-teal-400 to-cyan-400",
   },
+  {
+    id: "s6",
+    badge: "🔗 P2P Marketplace — Now Live",
+    headline: "Trade Crypto, Sell Services & Products.",
+    subheadline: "The Taskdrip P2P Hub lets you post crypto trades, digital services, and products — all protected by admin-controlled escrow, a private deal-room chat, and a dispute resolution system.",
+    ctaPrimaryLabel: "Open P2P Hub",
+    ctaPrimaryLink: "/p2p-hub",
+    ctaSecondaryLabel: "List Something to Sell",
+    ctaSecondaryLink: "/p2p-hub",
+    backgroundImage: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/95 via-violet-950/80 to-black/60",
+    accentColor: "from-violet-400 via-fuchsia-400 to-pink-400",
+  },
 ];
 
 function HeroSlider({ slides }: { slides: Slide[] }) {

@@ -34,7 +34,7 @@ import {
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
-  Briefcase
+  Briefcase, Store
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -1633,6 +1633,7 @@ export default function AdminMaster() {
                 { value: "networks", icon: <Globe className="h-3.5 w-3.5" />, label: "Networks" },
                 { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
                 { value: "direct-hires", icon: <Briefcase className="h-3.5 w-3.5" />, label: "Direct Hires" },
+                { value: "p2p", icon: <Store className="h-3.5 w-3.5" />, label: "P2P Market" },
                 { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
                 { value: "courses", icon: <GraduationCap className="h-3.5 w-3.5" />, label: "BreedSkool" },
@@ -4778,6 +4779,111 @@ export default function AdminMaster() {
                     })}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── P2P MARKET TAB ── */}
+          <TabsContent value="p2p" className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <a href="/admin/p2p-transactions" target="_blank" rel="noreferrer" className="block">
+                <Card className="bg-gray-900 border-gray-800 hover:border-purple-600 transition-colors cursor-pointer">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center flex-shrink-0">
+                      <Store className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">P2P Transactions</p>
+                      <p className="text-sm text-gray-400">Approve listings, release escrow, resolve disputes</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+              <a href="/admin/p2p-fees" target="_blank" rel="noreferrer" className="block">
+                <Card className="bg-gray-900 border-gray-800 hover:border-blue-600 transition-colors cursor-pointer">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center flex-shrink-0">
+                      <DollarSign className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">P2P Fee Config</p>
+                      <p className="text-sm text-gray-400">Set fees per transaction type (crypto/product/service)</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+              <a href="/admin/platform-fees" target="_blank" rel="noreferrer" className="block">
+                <Card className="bg-gray-900 border-gray-800 hover:border-green-600 transition-colors cursor-pointer">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-green-600/20 flex items-center justify-center flex-shrink-0">
+                      <Settings className="w-6 h-6 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">Platform Fees</p>
+                      <p className="text-sm text-gray-400">Manage campaign, withdrawal & listing fees</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            </div>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Store className="w-5 h-5 text-purple-400" />
+                  How the P2P Marketplace Works
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-800/60 rounded-xl p-4 border border-gray-700">
+                    <p className="font-semibold text-purple-300 mb-2">📋 Listing Flow</p>
+                    <ol className="space-y-1 list-decimal list-inside text-gray-400 text-xs">
+                      <li>User creates listing (crypto / product / service)</li>
+                      <li>Listing is submitted for admin approval</li>
+                      <li>Admin approves → listing goes live on P2P Hub</li>
+                      <li>Buyer clicks Accept Offer → Deal Room created</li>
+                    </ol>
+                  </div>
+                  <div className="bg-gray-800/60 rounded-xl p-4 border border-gray-700">
+                    <p className="font-semibold text-blue-300 mb-2">💰 Escrow Flow</p>
+                    <ol className="space-y-1 list-decimal list-inside text-gray-400 text-xs">
+                      <li>Buyer sends funds to admin escrow wallet</li>
+                      <li>Buyer clicks Mark as Paid (with proof)</li>
+                      <li>Admin confirms payment → Seller delivers</li>
+                      <li>Buyer confirms received → Admin releases funds</li>
+                    </ol>
+                  </div>
+                  <div className="bg-gray-800/60 rounded-xl p-4 border border-gray-700">
+                    <p className="font-semibold text-yellow-300 mb-2">⚠️ Dispute System</p>
+                    <ol className="space-y-1 list-decimal list-inside text-gray-400 text-xs">
+                      <li>Either party opens a dispute in the Deal Room</li>
+                      <li>Admin reviews chat history and proof</li>
+                      <li>Admin decides winner and releases or refunds funds</li>
+                    </ol>
+                  </div>
+                  <div className="bg-gray-800/60 rounded-xl p-4 border border-gray-700">
+                    <p className="font-semibold text-green-300 mb-2">⚡ Admin Actions</p>
+                    <ul className="space-y-1 list-disc list-inside text-gray-400 text-xs">
+                      <li>Approve / reject listings</li>
+                      <li>Confirm payments received</li>
+                      <li>Release funds to seller</li>
+                      <li>Refund buyer on disputes</li>
+                      <li>Suspend users or remove listings</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  <a href="/admin/p2p-transactions" target="_blank" rel="noreferrer">
+                    <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                      <Store className="w-4 h-4 mr-2" /> Open P2P Admin Panel
+                    </Button>
+                  </a>
+                  <a href="/p2p-hub" target="_blank" rel="noreferrer">
+                    <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
+                      View P2P Hub (Public)
+                    </Button>
+                  </a>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -49,6 +49,7 @@ export function Navigation() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/campaigns", label: "Earn Rewards" },
+    { href: "/p2p-hub", label: "P2P Market" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/breedskool", label: "BreedSkool" },
     { href: "/blog", label: "Blog" },

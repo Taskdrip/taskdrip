@@ -38,6 +38,7 @@ export function NavigationFixed() {
           { href: "/brand-dashboard", label: "Dashboard" },
           { href: "/creators", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/p2p-hub", label: "P2P Market" },
           { href: "/ledger", label: "Ledger" },
           { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
@@ -49,6 +50,7 @@ export function NavigationFixed() {
           { href: "/admin-dashboard", label: "Admin" },
           { href: "/creators", label: "Creators" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/p2p-hub", label: "P2P Market" },
           { href: "/ledger", label: "Ledger" },
           { href: "/breedskool", label: "BreedSkool" },
         ];
@@ -57,6 +59,7 @@ export function NavigationFixed() {
           { href: "/", label: "Home" },
           { href: "/tasks", label: "Tasks" },
           { href: "/breedskool", label: "BreedSkool" },
+          { href: "/p2p-hub", label: "P2P Market" },
           { href: "/dashboard", label: "Dashboard" },
           { href: "/ledger", label: "Ledger" },
           { href: "/feed", label: "Feed" },
@@ -69,6 +72,7 @@ export function NavigationFixed() {
       return [
         { href: "/", label: "Home" },
         { href: "/tasks", label: "Tasks" },
+        { href: "/p2p-hub", label: "P2P Market" },
         { href: "/creators", label: "Influencers" },
         { href: "/breedskool", label: "BreedSkool" },
         { href: "/feed", label: "Feed" },
