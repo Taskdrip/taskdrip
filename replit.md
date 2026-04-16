@@ -69,9 +69,10 @@ Design preferences: Clean, professional web app design with white background and
 - Frontend pages: `direct-hire-payment.tsx` (brand payment + influencer accept/decline), hire dialog on `creator-profile.tsx`, "Direct Hires" tab in `brand-dashboard.tsx`, "Hire Offers" section in `simple-dashboard.tsx`
 
 #### P2P Marketplace
-- **P2P Hub** (`/p2p-hub`): Public marketplace for approved crypto trades, products, and services with logged-in create-listing and accept-offer actions.
+- **P2P Hub** (`/p2p-hub`): Public marketplace with a full-screen 3D blockchain hero image, listing grid (cards with thumbnails, price badges, seller avatar, type badges), 3-tab filter (Crypto/Product/Service), create-listing dialog, and accept-offer flow.
 - **Deal Rooms** (`/p2p-deals`, `/p2p-deals/:id`): Buyer/seller escrow workspace with payment proof upload, delivery confirmation, buyer receipt confirmation, dispute creation, file-enabled chat, and WhatsApp admin alert links.
-- **Admin Escrow Control** (`/admin/p2p-transactions`): Admin dashboard for listing approvals, payment confirmation, release/refund decisions, dispute handling, and P2P revenue stats.
+- **Admin Escrow Control** (`/admin/p2p-transactions`): Full admin management — listing thumbnails, edit dialog (title/description/price/method/image/type/status/adminNote via PUT /api/admin/p2p-listings/:id), approve/reject/note quick actions, transaction confirm/release/refund with deal room links.
+- **Seed Demo Data**: Button in admin panel and `POST /api/admin/p2p-seed` endpoint seeds 9 approved demo listings (3 crypto, 3 product, 3 service) using the admin account as seller. Initial seed done directly via DB.
 - **P2P Fee Settings** (`/admin/p2p-fees`): Admin-configurable fee type, value, minimum, and maximum fee per transaction type (`crypto`, `product`, `service`).
 - **Platform Fee Settings** (`/admin/platform-fees`): Admin-editable campaign, withdrawal, and listing fee records backed by `platformFees`.
 - Backend schema: `p2pListings`, `p2pTransactions`, `p2pMessages`, `p2pFeeConfigs`, `platformFees`, and `p2pActionLogs`.

@@ -5351,6 +5351,63 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // Admin: seed demo P2P listings
+  app.post('/api/admin/p2p-seed', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const sellerId = req.user.id;
+      const demoListings = [
+        // Crypto trades
+        { title: 'Buy 1,000 USDT (TRC-20) — Fast Settlement', listingType: 'crypto', description: 'Looking to buy 1,000 USDT on the Tron (TRC-20) network. Payment via bank transfer or PayPal. Fast settlement within 30 minutes. Reputable seller with 50+ completed trades. Admin-escrow protected for safety.', price: '1000.00', paymentMethod: 'Bank Transfer / USDT', featuredImage: 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=600&q=80' },
+        { title: 'Sell 0.05 BTC for USDT — Market Rate', listingType: 'crypto', description: 'Selling 0.05 BTC (Bitcoin) for USDT at current market rate. Trade fully protected by Taskdrip escrow. Funds confirmed before BTC release. Deal room chat included for smooth communication.', price: '3200.00', paymentMethod: 'USDT (BSC / TRC-20)', featuredImage: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=600&q=80' },
+        { title: 'ETH → USDT Swap, No Delays', listingType: 'crypto', description: 'Swap your Ethereum (ETH) for USDT instantly via the Taskdrip P2P Deal Room. No unnecessary KYC, admin-escrow protected. Minimum 0.2 ETH per trade. Verified account, 100% trade completion rate.', price: '490.00', paymentMethod: 'ETH / USDT', featuredImage: 'https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=600&q=80' },
+        // Products
+        { title: 'NFT Creator Pro Toolkit (200+ Templates)', listingType: 'product', description: 'Complete NFT art creation toolkit with 200+ layered PSD & Canva templates, rarity tier configuration guide, metadata JSON generator script, and a step-by-step launch checklist. Perfect for Web3 creators launching their first collection.', price: '49.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1646753522408-077ef9839300?w=600&q=80' },
+        { title: 'Crypto Trading Signals Bot (Python)', listingType: 'product', description: 'Automated Python bot that connects to Binance API, sends Telegram alerts on RSI/MACD crossovers, and manages stop-loss automatically. Includes full source code, setup guide, and 30 days of email support. Works on any Linux/Mac server.', price: '129.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80' },
+        { title: 'Web3 Brand Identity Pack (Logo + Docs)', listingType: 'product', description: 'Full brand identity kit for crypto startups: vector logo (SVG + PNG), whitepaper template (20-page), investor pitch deck, social media banner kit, tokenomics diagram, and community guidelines template. Delivered as a zipped folder within 24 hours.', price: '299.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&q=80' },
+        // Services
+        { title: 'Crypto Twitter Promotion — 25K Impressions', listingType: 'service', description: 'Promote your token, NFT project, or DeFi protocol to my 25,000+ crypto-native Twitter audience. Package includes 3 promotional posts, 1 detailed thread, and a 24-hour mention in my Twitter Space. Results delivered within 5 business days.', price: '150.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1611605698335-8441a18e5dc2?w=600&q=80' },
+        { title: 'Smart Contract Basic Security Audit', listingType: 'service', description: 'Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.', price: '500.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80' },
+        { title: 'Crypto Content Writing — 10-Article Pack', listingType: 'service', description: 'Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.', price: '200.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80' },
+      ];
+      const existing = await db.select().from(p2pListings).where(eq(p2pListings.sellerId, sellerId));
+      if (existing.length >= 9) return res.json({ message: 'Demo listings already seeded', count: existing.length });
+      const inserted = [];
+      for (const demo of demoListings) {
+        const [row] = await db.insert(p2pListings).values({ sellerId, ...demo, status: 'approved', approvedBy: sellerId, approvedAt: new Date() }).returning();
+        inserted.push(row);
+      }
+      res.json({ message: `Seeded ${inserted.length} demo listings`, listings: inserted });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: full edit of a listing (title, description, price, paymentMethod, featuredImage, type, status)
+  app.put('/api/admin/p2p-listings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const { title, description, price, paymentMethod, featuredImage, listingType, status, adminNote } = req.body;
+      const validStatuses = ['pending', 'approved', 'rejected'];
+      const validTypes = ['crypto', 'product', 'service'];
+      const updates: any = { updatedAt: new Date() };
+      if (title) updates.title = String(title).trim();
+      if (description) updates.description = String(description).trim();
+      if (price) updates.price = String(Number(price).toFixed(2));
+      if (paymentMethod) updates.paymentMethod = String(paymentMethod).trim();
+      if (featuredImage !== undefined) updates.featuredImage = featuredImage || null;
+      if (listingType && validTypes.includes(listingType)) updates.listingType = listingType;
+      if (status && validStatuses.includes(status)) {
+        updates.status = status;
+        updates.approvedBy = status === 'approved' ? req.user.id : null;
+        updates.approvedAt = status === 'approved' ? new Date() : null;
+      }
+      if (adminNote !== undefined) updates.adminNote = adminNote;
+      const [listing] = await db.update(p2pListings).set(updates).where(eq(p2pListings.id, req.params.id)).returning();
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      await logP2PAction(req.user.id, 'listing_edited', { listingId: listing.id, details: `Admin edited listing` });
+      res.json(await enrichP2PListing(listing));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.get('/api/admin/p2p-transactions', isAuthenticated, async (req: any, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
