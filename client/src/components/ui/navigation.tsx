@@ -169,6 +169,9 @@ export function Navigation() {
                   <DropdownMenuItem asChild>
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/security">Security</Link>
+                  </DropdownMenuItem>
                   {(user as any)?.role === 'admin' && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin">Admin</Link>

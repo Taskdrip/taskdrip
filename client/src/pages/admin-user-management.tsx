@@ -15,7 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Edit2, Trash2, Key, Shield, UserCheck, UserX, Search, Filter,
   ExternalLink, CheckCircle, DollarSign, Users, TrendingUp, Star, Zap,
-  ArrowUpDown, ChevronDown, ChevronUp, BarChart3, Award, SlidersHorizontal, X
+  ArrowUpDown, ChevronDown, ChevronUp, BarChart3, Award, SlidersHorizontal, X,
+  Mail, ShieldOff, ShieldCheck
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -491,6 +492,8 @@ export default function AdminUserManagement() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
+  const [isEmailUpdateOpen, setIsEmailUpdateOpen] = useState(false);
+  const [newEmailInput, setNewEmailInput] = useState("");
 
   // Check if user is admin
   if (user?.userType !== 'admin') {
@@ -669,6 +672,41 @@ export default function AdminUserManagement() {
     },
   });
 
+  // Update user email mutation (admin)
+  const updateEmailMutation = useMutation({
+    mutationFn: async ({ userId, newEmail }: { userId: string; newEmail: string }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/update-email`, { newEmail });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsEmailUpdateOpen(false);
+      setSelectedUser(null);
+      setNewEmailInput("");
+      toast({ title: "Email Updated", description: "User email has been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Disable 2FA for a user (admin)
+  const disable2faMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/toggle-2fa`, { enabled: false });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "2FA Disabled", description: "Two-factor authentication disabled for this user." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEditUser = (user: any) => {
     setSelectedUser(user);
     editForm.reset({
@@ -710,26 +748,33 @@ export default function AdminUserManagement() {
         <p className="text-gray-600">Manage all users, their permissions, and account settings.</p>
       </div>
 
-      {/* Admin Credentials Card */}
+      {/* Demo Credentials Card */}
       <Card className="mb-8 border-blue-200 bg-blue-50">
         <CardHeader>
           <CardTitle className="text-blue-900 flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Master Admin Credentials
+            Demo Account Credentials
           </CardTitle>
           <CardDescription className="text-blue-700">
-            Use these credentials to access the admin panel
+            Pre-configured demo accounts for testing the platform
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-blue-900 font-medium">Email</Label>
-              <p className="text-blue-800 font-mono bg-blue-100 p-2 rounded border">admin@taskdrip.com</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg p-3 border border-blue-200">
+              <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Admin</p>
+              <p className="text-sm font-mono text-gray-700">demo@taskdrip.online</p>
+              <p className="text-sm font-mono text-gray-500">Admin@2024</p>
             </div>
-            <div>
-              <Label className="text-blue-900 font-medium">Password</Label>
-              <p className="text-blue-800 font-mono bg-blue-100 p-2 rounded border">AdminPassword123!</p>
+            <div className="bg-white rounded-lg p-3 border border-blue-200">
+              <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Brand</p>
+              <p className="text-sm font-mono text-gray-700">demobrand@taskdrip.online</p>
+              <p className="text-sm font-mono text-gray-500">Brand@2024</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-blue-200">
+              <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Creator</p>
+              <p className="text-sm font-mono text-gray-700">democreator@taskdrip.online</p>
+              <p className="text-sm font-mono text-gray-500">Creator@2024</p>
             </div>
           </div>
         </CardContent>
@@ -891,6 +936,7 @@ export default function AdminUserManagement() {
                       <TableHead>Email</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>2FA</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -914,32 +960,65 @@ export default function AdminUserManagement() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.isVerified ? 'success' : 'outline'}>
+                          <Badge variant={user.isVerified ? 'default' : 'outline'}>
                             {user.isVerified ? 'Verified' : 'Unverified'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.twoFactorEnabled
+                            ? <Badge variant="default" className="bg-green-100 text-green-800 border-green-200"><ShieldCheck className="h-3 w-3 mr-1" />On</Badge>
+                            : <Badge variant="outline" className="text-gray-500"><ShieldOff className="h-3 w-3 mr-1" />Off</Badge>
+                          }
                         </TableCell>
                         <TableCell>
                           {new Date(user.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 flex-wrap">
                             <Button
                               variant="ghost"
                               size="sm"
+                              title="Edit user"
                               onClick={() => handleEditUser(user)}
+                              data-testid={`button-edit-user-${user.id}`}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
+                              title="Reset password"
                               onClick={() => handlePasswordReset(user)}
+                              data-testid={`button-reset-password-${user.id}`}
                             >
                               <Key className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
+                              title="Update email"
+                              onClick={() => { setSelectedUser(user); setNewEmailInput(user.email); setIsEmailUpdateOpen(true); }}
+                              data-testid={`button-update-email-${user.id}`}
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            {user.twoFactorEnabled && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Disable 2FA"
+                                onClick={() => disable2faMutation.mutate(user.id)}
+                                className="text-orange-600 hover:text-orange-700"
+                                disabled={disable2faMutation.isPending}
+                                data-testid={`button-disable-2fa-${user.id}`}
+                              >
+                                <ShieldOff className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title={user.isVerified ? 'Unverify' : 'Verify'}
                               onClick={() => toggleVerificationMutation.mutate({ 
                                 id: user.id, 
                                 isVerified: !user.isVerified 
@@ -953,6 +1032,7 @@ export default function AdminUserManagement() {
                                 size="sm"
                                 onClick={() => deleteUserMutation.mutate(user.id)}
                                 className="text-red-600 hover:text-red-700"
+                                data-testid={`button-delete-user-${user.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1127,6 +1207,40 @@ export default function AdminUserManagement() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Update Modal */}
+      <Dialog open={isEmailUpdateOpen} onOpenChange={setIsEmailUpdateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Email</DialogTitle>
+            <DialogDescription>
+              Change the email address for {selectedUser?.firstName} {selectedUser?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="adminNewEmail">New Email Address</Label>
+              <Input
+                id="adminNewEmail"
+                type="email"
+                value={newEmailInput}
+                onChange={(e) => setNewEmailInput(e.target.value)}
+                placeholder="new@email.com"
+                data-testid="input-admin-new-email"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => selectedUser && updateEmailMutation.mutate({ userId: selectedUser.id, newEmail: newEmailInput })}
+                disabled={updateEmailMutation.isPending || !newEmailInput}
+                data-testid="button-admin-update-email"
+              >
+                {updateEmailMutation.isPending ? "Updating..." : "Update Email"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

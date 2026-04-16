@@ -337,6 +337,8 @@ const DEMO_BLOG_POSTS = [
 
 const DEMO_BRAND_EMAIL = "demobrand@taskdrip.online";
 const DEMO_BRAND_ID = "demo-brand-seed-001";
+const DEMO_CREATOR_EMAIL = "democreator@taskdrip.online";
+const DEMO_CREATOR_ID = "demo-creator-seed-001";
 
 const DEMO_CAMPAIGNS_DATA = [
   {
@@ -581,6 +583,45 @@ export async function seedDemoData(adminUserId: string) {
         verified: true,
       } as any);
       console.log("[seed] Demo brand created: demobrand@taskdrip.online / Brand@2024");
+    }
+
+    // ── Demo Creator Account ────────────────────────────────────────────────
+    const existingCreator = await storage.getUserByEmail(DEMO_CREATOR_EMAIL);
+    if (!existingCreator) {
+      console.log("[seed] Creating demo creator account...");
+      const hashed = await bcrypt.hash("Creator@2024", 12);
+      const genCode = (prefix: string) =>
+        `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+      await storage.createUser({
+        id: DEMO_CREATOR_ID,
+        firstName: "Alex",
+        lastName: "Creator",
+        email: DEMO_CREATOR_EMAIL,
+        password: hashed,
+        userType: "creator",
+        username: "alex_creator",
+        bio: "Demo creator account for Taskdrip. I create content around crypto, tech, and social media growth. This is a showcase account.",
+        location: "Lagos, Nigeria",
+        niche: "Tech",
+        skills: ["Content Creation", "Social Media", "Crypto"],
+        instagramHandle: "@alexcreates",
+        tiktokHandle: "@alexcreates",
+        youtubeHandle: "@alexcreates",
+        twitterHandle: "@alexcreates",
+        instagramFollowers: 12500,
+        tiktokFollowers: 28000,
+        youtubeFollowers: 5400,
+        twitterFollowers: 8900,
+        totalFollowers: 54800,
+        creatorTier: "growth_engines",
+        isVerified: true,
+        completedCampaigns: 12,
+        totalEarned: "340.00",
+        availableBalance: "85.00",
+        referralCodeCreator: genCode("CR"),
+        referralCodeBrand: genCode("BR"),
+      } as any);
+      console.log("[seed] Demo creator created: democreator@taskdrip.online / Creator@2024");
     }
 
     // ── Demo Campaigns ──────────────────────────────────────────────────────

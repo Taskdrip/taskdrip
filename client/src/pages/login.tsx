@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { Link, useLocation } from 'wouter';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ShieldCheck } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -25,6 +25,9 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [pendingCredentials, setPendingCredentials] = useState<LoginFormData | null>(null);
 
   const {
     register,
@@ -35,27 +38,30 @@ export default function Login() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
+    mutationFn: async (data: LoginFormData & { twoFactorToken?: string }) => {
       const response = await apiRequest('POST', '/api/auth/login', data);
       return await response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      if (data.requiresTwoFactor) {
+        setRequiresTwoFactor(true);
+        return;
+      }
+      // Immediately set auth state so route guards update before redirect
+      queryClient.setQueryData(['/api/user'], data.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       toast({
         title: "Login successful",
         description: `Welcome back, ${data.user.firstName}!`,
       });
-      // Small delay to ensure auth state updates before redirect
-      setTimeout(() => {
-        const userType = data.user?.userType;
-        if (userType === 'admin') {
-          setLocation('/admin-dashboard');
-        } else if (userType === 'brand') {
-          setLocation('/brand-dashboard');
-        } else {
-          setLocation('/dashboard');
-        }
-      }, 100);
+      const userType = data.user?.userType;
+      if (userType === 'admin') {
+        setLocation('/admin-dashboard');
+      } else if (userType === 'brand') {
+        setLocation('/brand-dashboard');
+      } else {
+        setLocation('/dashboard');
+      }
     },
     onError: (error: any) => {
       toast({
@@ -66,7 +72,6 @@ export default function Login() {
     },
   });
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       const userType = (user as any)?.userType;
@@ -81,7 +86,13 @@ export default function Login() {
   }, [user, setLocation]);
 
   const onSubmit = (data: LoginFormData) => {
+    setPendingCredentials(data);
     loginMutation.mutate(data);
+  };
+
+  const onSubmit2FA = () => {
+    if (!pendingCredentials) return;
+    loginMutation.mutate({ ...pendingCredentials, twoFactorToken });
   };
 
   return (
@@ -102,89 +113,133 @@ export default function Login() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+            <CardTitle>{requiresTwoFactor ? 'Two-Factor Verification' : 'Sign In'}</CardTitle>
             <CardDescription>
-              Enter your email and password to access your account
+              {requiresTwoFactor
+                ? 'Enter the 6-digit code from your authenticator app'
+                : 'Enter your email and password to access your account'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <Label htmlFor="email">Email address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  {...register('email')}
-                  className={errors.email ? 'border-red-500' : ''}
-                />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    {...register('password')}
-                    className={errors.password ? 'border-red-500' : ''}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
+            {requiresTwoFactor ? (
+              <div className="space-y-6">
+                <div className="flex justify-center">
+                  <ShieldCheck className="h-16 w-16 text-blue-500" />
                 </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                )}
+                <div>
+                  <Label htmlFor="twoFactorToken">Authenticator Code</Label>
+                  <Input
+                    id="twoFactorToken"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={twoFactorToken}
+                    onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, ''))}
+                    className="text-center text-2xl tracking-widest"
+                    data-testid="input-2fa-token"
+                  />
+                </div>
+                <Button
+                  className="w-full bg-black text-white hover:bg-gray-800"
+                  onClick={onSubmit2FA}
+                  disabled={loginMutation.isPending || twoFactorToken.length !== 6}
+                  data-testid="button-verify-2fa"
+                >
+                  {loginMutation.isPending ? 'Verifying...' : 'Verify & Sign In'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => { setRequiresTwoFactor(false); setTwoFactorToken(''); }}
+                >
+                  Back to Login
+                </Button>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div>
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    {...register('email')}
+                    className={errors.email ? 'border-red-500' : ''}
+                    data-testid="input-email"
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  )}
+                </div>
 
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <Link href="/forgot-password" className="text-blue-600 hover:text-blue-500">
-                    Forgot your password?
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      {...register('password')}
+                      className={errors.password ? 'border-red-500' : ''}
+                      data-testid="input-password"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <Link href="/forgot-password" className="text-blue-600 hover:text-blue-500">
+                      Forgot your password?
+                    </Link>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-black text-white hover:bg-gray-800"
+                  disabled={loginMutation.isPending}
+                  data-testid="button-login"
+                >
+                  {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
+                </Button>
+              </form>
+            )}
+
+            {!requiresTwoFactor && (
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Don't have an account?</span>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Link href="/signup">
+                    <Button variant="outline" className="w-full">
+                      Create new account
+                    </Button>
                   </Link>
                 </div>
               </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-black text-white hover:bg-gray-800"
-                disabled={loginMutation.isPending}
-              >
-                {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Don't have an account?</span>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <Link href="/signup">
-                  <Button variant="outline" className="w-full">
-                    Create new account
-                  </Button>
-                </Link>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

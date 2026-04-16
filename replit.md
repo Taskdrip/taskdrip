@@ -33,6 +33,13 @@ Design preferences: Clean, professional web app design with white background and
 - Comprehensive password recovery system with token generation
 - User profile management with creator/brand user types
 - Professional signup and login pages with form validation
+- **Two-Factor Authentication (2FA)**: TOTP-based 2FA via speakeasy + QR code setup at `/security`
+- **Password Change**: Users can change their password from the Security Settings page
+- **Email Change**: Users can update their email (requires password confirmation)
+- **Admin User Controls**: Admins can reset passwords, update emails, and disable 2FA for any user
+- **Login 2FA Flow**: Login page handles 2FA step with code input screen
+- **Fixed brand login 404**: Login now immediately sets auth state via `queryClient.setQueryData` before redirecting
+- Demo accounts: admin `demo@taskdrip.online / Admin@2024`, brand `demobrand@taskdrip.online / Brand@2024`, creator `democreator@taskdrip.online / Creator@2024`
 
 #### Campaign & Tasks Engine
 - **Public Tasks Page** (`/tasks`): Visually stunning page with hero, live stats, featured spotlight, category filters, and task cards with featured images

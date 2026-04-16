@@ -60,6 +60,7 @@ import AdvertiseWithUs from "@/pages/advertise-with-us";
 import GetStarted from "@/pages/get-started";
 import DirectHirePayment from "@/pages/direct-hire-payment";
 import LedgerPage from "@/pages/ledger";
+import SecuritySettings from "@/pages/security-settings";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -144,6 +145,7 @@ function Router() {
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
           <Route path="/referrals" component={ReferralsPage} />
+          <Route path="/security" component={SecuritySettings} />
         </>
       ) : (
         <>
