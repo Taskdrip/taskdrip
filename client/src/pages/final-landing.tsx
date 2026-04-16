@@ -7,12 +7,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { usePageContent } from "@/hooks/usePageContent";
 import {
-  ArrowRight, ChevronLeft, ChevronRight, Zap, Globe, Shield, TrendingUp,
-  Users, DollarSign, CheckCircle, Rocket, Target, Crown, Sparkles,
-  GraduationCap, ShoppingBag, Gift, Clock, Star,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Zap,
+  Shield,
+  Users,
+  DollarSign,
+  CheckCircle,
+  Rocket,
+  Target,
+  Sparkles,
+  Clock,
 } from "lucide-react";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 interface Slide {
   id: string;
   badge?: string | null;
@@ -27,13 +35,12 @@ interface Slide {
   accentColor?: string | null;
 }
 
-// ─── Fallback slides (shown when DB has no sliders yet) ──────────────────────
 const DEFAULT_SLIDES: Slide[] = [
   {
     id: "s1",
     badge: "For Influencers",
     headline: "Stop Getting Ghosted by Brands.",
-    subheadline: "You create the content. Brands earn the revenue. Yet you're still waiting on email replies. Taskdrip changes that — browse live paid campaigns, apply in one click, and get paid in USDT the moment your work is approved.",
+    subheadline: "You create the content. Brands earn the revenue. Taskdrip lets you browse live paid campaigns, apply in one click, and get paid in USDT when your work is approved.",
     ctaPrimaryLabel: "Start Earning Now",
     ctaPrimaryLink: "/signup?type=creator",
     ctaSecondaryLabel: "Browse Campaigns",
@@ -46,11 +53,11 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s2",
     badge: "For Brands",
     headline: "Tired of Wasting Budget on Fake Influencers?",
-    subheadline: "Bots, inflated follower counts, zero engagement — traditional influencer marketing is broken. Taskdrip gives you access to verified creators, escrow-protected payments, and brand-first approval on every submission.",
+    subheadline: "Reach verified creators, protect campaign funds with escrow, and approve every submission before payouts are released.",
     ctaPrimaryLabel: "Launch a Campaign",
     ctaPrimaryLink: "/signup?type=brand",
-    ctaSecondaryLabel: "See How It Works",
-    ctaSecondaryLink: "/how-it-works",
+    ctaSecondaryLabel: "View Live Campaigns",
+    ctaSecondaryLink: "/campaigns",
     backgroundImage: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-black/75 to-black/50",
     accentColor: "from-blue-400 via-cyan-400 to-emerald-400",
@@ -59,7 +66,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s3",
     badge: "Our Solution",
     headline: "The Marketplace Where Influence Meets Opportunity.",
-    subheadline: "Taskdrip connects 10,000+ verified creators with brands ready to pay. Escrow-backed campaigns. Crypto payouts. Real-time tracking. No middlemen. No drama.",
+    subheadline: "Taskdrip connects verified creators with brands ready to pay. Escrow-backed campaigns, crypto payouts, real-time tracking, and no middlemen.",
     ctaPrimaryLabel: "Join Free Today",
     ctaPrimaryLink: "/signup",
     ctaSecondaryLabel: "View Live Campaigns",
@@ -72,7 +79,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s4",
     badge: "BreedSkool Academy",
     headline: "New to Influencing? Learn from the Best.",
-    subheadline: "BreedSkool is our exclusive mentorship platform where thriving influencers teach the next generation. Access video courses, masterclasses, and live sessions on Instagram, TikTok, YouTube, and monetization — all in one place.",
+    subheadline: "BreedSkool gives creators practical courses, masterclasses, and mentorship for Instagram, TikTok, YouTube, and monetization.",
     ctaPrimaryLabel: "Explore Courses",
     ctaPrimaryLink: "/breedskool",
     ctaSecondaryLabel: "Become a Mentor",
@@ -85,7 +92,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s5",
     badge: "Creator Shop",
     headline: "Tools Built for Creators Who Mean Business.",
-    subheadline: "Our Shop is stocked with premium templates, plugins, scripts, and digital tools handpicked for influencer success. Buy, sell, or download — everything you need to level up your content game.",
+    subheadline: "Find templates, plugins, scripts, and digital tools that help creators improve content, sell assets, and grow faster.",
     ctaPrimaryLabel: "Browse the Shop",
     ctaPrimaryLink: "/shop",
     ctaSecondaryLabel: "Sell Your Products",
@@ -96,61 +103,49 @@ const DEFAULT_SLIDES: Slide[] = [
   },
 ];
 
-// ─── Hero Slider ──────────────────────────────────────────────────────────────
 function HeroSlider({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const goTo = useCallback((idx: number) => {
-    if (isTransitioning) return;
+    if (isTransitioning || slides.length === 0) return;
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrent(idx);
       setIsTransitioning(false);
     }, 300);
-  }, [isTransitioning]);
+  }, [isTransitioning, slides.length]);
 
   const prev = () => goTo((current - 1 + slides.length) % slides.length);
   const next = useCallback(() => goTo((current + 1) % slides.length), [current, slides.length, goTo]);
 
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(next, 6000);
     return () => clearInterval(timer);
-  }, [next]);
+  }, [next, slides.length]);
 
-  const slide = slides[current];
+  const slide = slides[current] || DEFAULT_SLIDES[0];
+  const headlineParts = slide.headline.split(".");
+  const accentHeadline = headlineParts[0];
+  const restHeadline = headlineParts.slice(1).join(".").trim();
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden" data-testid="section-hero-slider">
-      {/* Background Images */}
       <div className="absolute inset-0">
         {slides.map((s, i) => (
-          <div
-            key={s.id}
-            className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}
-          >
-            {s.backgroundImage && (
-              <img
-                src={s.backgroundImage}
-                alt=""
-                className="w-full h-full object-cover object-center"
-              />
-            )}
+          <div key={s.id} className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}>
+            {s.backgroundImage && <img src={s.backgroundImage} alt="" className="w-full h-full object-cover object-center" />}
             <div className={`absolute inset-0 bg-gradient-to-r ${s.overlayColor || "from-black/90 via-black/70 to-black/40"}`} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
           </div>
         ))}
       </div>
 
-      {/* Decorative glow */}
       <div className="absolute top-1/3 right-16 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 w-full">
-        <div
-          className={`max-w-3xl transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
-          data-testid="slider-content"
-        >
+        <div className={`max-w-3xl transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`} data-testid="slider-content">
           {slide.badge && (
             <div className="mb-6">
               <Badge className="px-4 py-2 bg-white/15 backdrop-blur-sm text-white border-white/25 text-sm font-semibold rounded-full inline-flex items-center gap-2">
@@ -162,18 +157,12 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.05] tracking-tight mb-6">
             <span className={`bg-gradient-to-r ${slide.accentColor || "from-purple-400 via-pink-400 to-orange-400"} bg-clip-text text-transparent`}>
-              {slide.headline.split(".")[0]}.
+              {accentHeadline}{slide.headline.includes(".") ? "." : ""}
             </span>
-            {slide.headline.includes(".") && slide.headline.split(".").slice(1).join(".").trim() && (
-              <> {slide.headline.split(".").slice(1).join(".").trim()}</>
-            )}
+            {restHeadline && <> {restHeadline}</>}
           </h1>
 
-          {slide.subheadline && (
-            <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl leading-relaxed">
-              {slide.subheadline}
-            </p>
-          )}
+          {slide.subheadline && <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl leading-relaxed">{slide.subheadline}</p>}
 
           <div className="flex flex-col sm:flex-row gap-4 mb-12">
             {slide.ctaPrimaryLabel && slide.ctaPrimaryLink && (
@@ -192,10 +181,9 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
             )}
           </div>
 
-          {/* Stats */}
           <div className="flex flex-wrap gap-4">
             {[
-              { label: "Influencers", value: "10K+", icon: <Users className="w-4 h-4" /> },
+              { label: "Creators", value: "10K+", icon: <Users className="w-4 h-4" /> },
               { label: "Campaigns", value: "2.5K+", icon: <Target className="w-4 h-4" /> },
               { label: "Paid Out", value: "$450K+", icon: <DollarSign className="w-4 h-4" /> },
             ].map((s) => (
@@ -209,45 +197,25 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
         </div>
       </div>
 
-      {/* Arrow Navigation */}
-      <button
-        onClick={prev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20"
-        data-testid="button-slider-prev"
-        aria-label="Previous slide"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      <button
-        onClick={next}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20"
-        data-testid="button-slider-next"
-        aria-label="Next slide"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
-
-      {/* Dot Navigation */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => goTo(i)}
-            data-testid={`button-slide-dot-${i}`}
-            className={`transition-all duration-300 rounded-full ${
-              i === current
-                ? "w-8 h-2.5 bg-white"
-                : "w-2.5 h-2.5 bg-white/40 hover:bg-white/70"
-            }`}
-            aria-label={`Go to slide ${i + 1}`}
-          />
-        ))}
-      </div>
+      {slides.length > 1 && (
+        <>
+          <button onClick={prev} className="absolute right-20 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20" data-testid="button-slider-prev" aria-label="Previous slide">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20" data-testid="button-slider-next" aria-label="Next slide">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
+            {slides.map((_, i) => (
+              <button key={i} onClick={() => goTo(i)} data-testid={`button-slide-dot-${i}`} className={`transition-all duration-300 rounded-full ${i === current ? "w-8 h-2.5 bg-white" : "w-2.5 h-2.5 bg-white/40 hover:bg-white/70"}`} aria-label={`Go to slide ${i + 1}`} />
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
-// ─── Campaign Card ────────────────────────────────────────────────────────────
 const GRADIENTS: Record<string, string> = {
   gaming: "from-purple-600 via-indigo-600 to-blue-700",
   beauty: "from-pink-500 via-rose-500 to-red-500",
@@ -261,34 +229,31 @@ const GRADIENTS: Record<string, string> = {
 };
 
 const DEMO_CAMPAIGNS = [
-  { id: "d1", title: "Promote Our New Gaming App", brandName: "NovaByte Gaming", reward: "120", totalSlots: 50, filledSlots: 38, category: "gaming", tag: "Gaming · TikTok", featureImage: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d2", title: "Instagram Reel for Skincare Launch", brandName: "GlowLab Beauty", reward: "85", totalSlots: 30, filledSlots: 12, category: "beauty", tag: "Beauty · Instagram", featureImage: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d3", title: "7-Day Fitness Transformation", brandName: "PeakFit Pro", reward: "200", totalSlots: 100, filledSlots: 71, category: "fitness", tag: "Fitness · YouTube", featureImage: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d4", title: "Tech Unboxing — Wireless Earbuds Review", brandName: "SoundWave Tech", reward: "150", totalSlots: 40, filledSlots: 22, category: "tech", tag: "Tech · YouTube", featureImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d5", title: "Luxury Resort Travel Vlog", brandName: "Horizon Escapes", reward: "350", totalSlots: 15, filledSlots: 4, category: "travel", tag: "Travel · YouTube", featureImage: "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&h=450&q=80&auto=format&fit=crop" },
-  { id: "d6", title: "Healthy Meal Delivery Reel", brandName: "FreshDrop", reward: "75", totalSlots: 80, filledSlots: 53, category: "food", tag: "Food · Instagram", featureImage: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d1", title: "Promote Our New Gaming App", brandName: "NovaByte Gaming", reward: "120", totalSlots: 50, filledSlots: 38, category: "gaming", featureImage: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d2", title: "Instagram Reel for Skincare Launch", brandName: "GlowLab Beauty", reward: "85", totalSlots: 30, filledSlots: 12, category: "beauty", featureImage: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=450&q=80&auto=format&fit=crop" },
+  { id: "d3", title: "7-Day Fitness Transformation", brandName: "PeakFit Pro", reward: "200", totalSlots: 100, filledSlots: 71, category: "fitness", featureImage: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=450&q=80&auto=format&fit=crop" },
 ];
 
 function CampaignCard({ campaign }: { campaign: any }) {
   const gradient = GRADIENTS[(campaign.category || "").toLowerCase()] || GRADIENTS.default;
-  const pct = Math.round(((campaign.filledSlots || 0) / (campaign.totalSlots || 1)) * 100);
+  const totalSlots = Number(campaign.totalSlots || 1);
+  const filledSlots = Number(campaign.filledSlots || 0);
+  const pct = Math.round((filledSlots / totalSlots) * 100);
 
   return (
     <div className="border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer bg-white" data-testid={`card-campaign-${campaign.id}`}>
       <div className="h-44 relative overflow-hidden">
-        {campaign.featureImage && (
-          <img src={campaign.featureImage} alt={campaign.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        )}
+        {campaign.featureImage && <img src={campaign.featureImage} alt={campaign.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        <Badge className="absolute top-3 left-3 bg-green-500 text-white text-xs border-0">🟢 Active</Badge>
+        <Badge className="absolute top-3 left-3 bg-green-500 text-white text-xs border-0">Active</Badge>
         <Badge className="absolute top-3 right-3 bg-white text-gray-900 text-sm border-0 font-black px-3">${campaign.reward} USDT</Badge>
       </div>
       <div className="p-4">
-        <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">{campaign.brandName || "Brand Partner"}</p>
+        <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">{campaign.brandName || campaign.brand?.companyName || "Brand Partner"}</p>
         <h3 className="font-bold text-gray-900 mb-3 line-clamp-2 text-sm leading-snug">{campaign.title}</h3>
         <div className="mb-3">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{campaign.filledSlots}/{campaign.totalSlots} joined</span>
+            <span>{filledSlots}/{totalSlots} joined</span>
             <span className="font-semibold">{pct}%</span>
           </div>
           <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -296,7 +261,7 @@ function CampaignCard({ campaign }: { campaign: any }) {
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400 flex items-center gap-1"><Clock className="w-3 h-3" />{(campaign.totalSlots - campaign.filledSlots)} spots left</span>
+          <span className="text-xs text-gray-400 flex items-center gap-1"><Clock className="w-3 h-3" />{Math.max(totalSlots - filledSlots, 0)} spots left</span>
           <Link href="/login">
             <Button size="sm" className="bg-black text-white rounded-lg text-xs hover:bg-gray-900 px-4 h-8" data-testid={`button-apply-${campaign.id}`}>Apply Now</Button>
           </Link>
@@ -306,291 +271,174 @@ function CampaignCard({ campaign }: { campaign: any }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function FinalLanding() {
   const { data: dbSliders = [] } = useQuery<Slide[]>({ queryKey: ["/api/hero-sliders"] });
   const { data: apiCampaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
   const cms = usePageContent("landing");
 
   const slides = dbSliders.length > 0 ? dbSliders : DEFAULT_SLIDES;
-  const activeCampaigns = (apiCampaigns as any[]).filter((c) => c.isActive && c.status === "active").slice(0, 6);
+  const activeCampaigns = (apiCampaigns as any[]).filter((c) => c.isActive && c.status === "active").slice(0, 3);
   const displayCampaigns = activeCampaigns.length >= 3 ? activeCampaigns : DEMO_CAMPAIGNS;
 
   return (
     <div className="min-h-screen bg-white">
       <NavigationFixed />
-
-      {/* ── HERO SLIDER ── */}
       <HeroSlider slides={slides} />
 
-      {/* ── PLATFORM BAR ── */}
-      <section className="py-8 bg-gray-50 border-y border-gray-200">
+      <section className="py-7 bg-gray-50 border-y border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-400 text-xs font-semibold mb-5 uppercase tracking-widest">Earn across all major platforms</p>
-          <div className="flex flex-wrap items-center justify-center gap-8 opacity-40 grayscale">
-            {["TikTok", "YouTube", "Instagram", "Twitch", "Telegram", "X (Twitter)", "Facebook"].map((b) => (
-              <span key={b} className="text-sm font-black text-gray-600 tracking-tight">{b}</span>
+          <p className="text-center text-gray-400 text-xs font-semibold mb-5 uppercase tracking-widest">{cms.get("platform_bar", "label", "Earn across all major platforms")}</p>
+          <div className="flex flex-wrap items-center justify-center gap-7 opacity-50 grayscale">
+            {["TikTok", "YouTube", "Instagram", "Twitch", "Telegram", "X (Twitter)", "Facebook"].map((platform) => (
+              <span key={platform} className="text-sm font-black text-gray-600 tracking-tight">{platform}</span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section className="py-20 bg-white">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <Badge className="mb-4 bg-black text-white px-4 py-1.5 text-xs">How It Works</Badge>
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">{cms.get("how_it_works", "title", "Simple. Fast. Fair.")}</h2>
-            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">{cms.get("how_it_works", "subtitle", "Get started in minutes — whether you're a creator looking to earn or a brand ready to scale.")}</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
-            {/* For Creators */}
-            <div className="rounded-2xl bg-gray-950 p-8 text-white">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-orange-400" />
-                </div>
-                <span className="font-bold text-lg">For Influencers</span>
-              </div>
-              <div className="space-y-4">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 items-start">
+            <div className="lg:sticky lg:top-24">
+              <Badge className="mb-4 bg-black text-white px-4 py-1.5 text-xs">How It Works</Badge>
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight max-w-xl">{cms.get("how_it_works", "title", "Simple. Fast. Fair.")}</h2>
+              <p className="text-gray-500 mt-4 text-base max-w-lg leading-relaxed">{cms.get("how_it_works", "subtitle", "Creators earn crypto from verified campaigns. Brands launch performance-driven creator marketing with protected escrow.")}</p>
+              <div className="grid sm:grid-cols-3 lg:grid-cols-1 gap-3 mt-8">
                 {[
-                  { n: "01", t: cms.get("how_it_works", "creator_step1_title", "Build Your Profile"), d: cms.get("how_it_works", "creator_step1_desc", "Link your socials. Get auto-classified into your influencer tier instantly.") },
-                  { n: "02", t: cms.get("how_it_works", "creator_step2_title", "Apply to Campaigns"), d: cms.get("how_it_works", "creator_step2_desc", "Browse live brand tasks. Apply with one tap — no agencies, no gatekeepers.") },
-                  { n: "03", t: cms.get("how_it_works", "creator_step3_title", "Submit & Get Paid"), d: cms.get("how_it_works", "creator_step3_desc", "Post, submit proof, brand approves, and USDT lands in your wallet.") },
-                ].map((s) => (
-                  <div key={s.n} className="flex gap-4">
-                    <span className="text-xs font-black text-gray-600 mt-0.5 w-6 shrink-0">{s.n}</span>
-                    <div>
-                      <p className="font-bold text-sm text-white">{s.t}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{s.d}</p>
-                    </div>
+                  { icon: <Shield className="w-4 h-4" />, label: "Escrow protected" },
+                  { icon: <Zap className="w-4 h-4" />, label: "Fast crypto payouts" },
+                  { icon: <CheckCircle className="w-4 h-4" />, label: "Admin verified work" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-800">
+                    <span className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-900">{item.icon}</span>
+                    {item.label}
                   </div>
                 ))}
               </div>
-              <Link href="/signup?type=creator" className="mt-6 block">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold" data-testid="button-creator-cta">
-                  Start Earning <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
             </div>
 
-            {/* For Brands */}
-            <div className="rounded-2xl bg-gray-950 p-8 text-white">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <Target className="w-4 h-4 text-blue-400" />
-                </div>
-                <span className="font-bold text-lg">For Brands</span>
-              </div>
-              <div className="space-y-4">
-                {[
-                  { n: "01", t: cms.get("how_it_works", "brand_step1_title", "Post Your Campaign"), d: cms.get("how_it_works", "brand_step1_desc", "Set budget, requirements, and target tier. Go live the same day with escrow.") },
-                  { n: "02", t: cms.get("how_it_works", "brand_step2_title", "Reach Verified Creators"), d: cms.get("how_it_works", "brand_step2_desc", "Filter by tier, niche, platform, location, and follower count.") },
-                  { n: "03", t: cms.get("how_it_works", "brand_step3_title", "Pay Only for Results"), d: cms.get("how_it_works", "brand_step3_desc", "You review every submission. Release payment only when you're satisfied.") },
-                ].map((s) => (
-                  <div key={s.n} className="flex gap-4">
-                    <span className="text-xs font-black text-gray-600 mt-0.5 w-6 shrink-0">{s.n}</span>
-                    <div>
-                      <p className="font-bold text-sm text-white">{s.t}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{s.d}</p>
-                    </div>
+            <div className="grid sm:grid-cols-2 gap-5">
+              {[
+                {
+                  title: "Creators",
+                  icon: <Sparkles className="w-5 h-5 text-orange-500" />,
+                  steps: [
+                    cms.get("how_it_works", "creator_step1_title", "Build Your Profile"),
+                    cms.get("how_it_works", "creator_step2_title", "Apply to Campaigns"),
+                    cms.get("how_it_works", "creator_step3_title", "Submit & Get Paid"),
+                  ],
+                  href: "/signup?type=creator",
+                  button: "Start Earning",
+                  color: "bg-orange-500 hover:bg-orange-600",
+                },
+                {
+                  title: "Brands",
+                  icon: <Target className="w-5 h-5 text-blue-500" />,
+                  steps: [
+                    cms.get("how_it_works", "brand_step1_title", "Post Your Campaign"),
+                    cms.get("how_it_works", "brand_step2_title", "Reach Verified Creators"),
+                    cms.get("how_it_works", "brand_step3_title", "Pay Only for Results"),
+                  ],
+                  href: "/signup?type=brand",
+                  button: "Launch Campaign",
+                  color: "bg-blue-600 hover:bg-blue-700",
+                },
+              ].map((path) => (
+                <div key={path.title} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-11 h-11 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">{path.icon}</div>
+                    <h3 className="font-black text-xl text-gray-950">{path.title}</h3>
                   </div>
-                ))}
-              </div>
-              <Link href="/signup?type=brand" className="mt-6 block">
-                <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold" data-testid="button-brand-cta">
-                  Launch Campaign <Rocket className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CREATOR TIERS ── */}
-      <section className="py-20 bg-gray-950 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,40,200,0.07),transparent_70%)] pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-sm font-semibold mb-5">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              Influencer Tiers
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 text-transparent bg-clip-text">{cms.get("tiers", "title", "Every Creator Has a Tier")}</span>
-            </h2>
-            <p className="text-gray-400 text-base max-w-xl mx-auto">{cms.get("tiers", "subtitle", "Auto-classified by your total social following. Higher tier = bigger campaigns and better payouts.")}</p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { icon: "🔥", name: "Rising Sparks", range: "10K–100K", desc: "Entry-level campaigns. Build your verified portfolio.", gradient: "from-orange-500 to-amber-400", border: "border-orange-500/25" },
-              { icon: "⚡", name: "Growth Engines", range: "100K–1M", desc: "High-engagement tier. Mid-tier campaigns, higher payouts.", gradient: "from-cyan-500 to-blue-500", border: "border-cyan-500/25" },
-              { icon: "💎", name: "Power Influencers", range: "1M–10M", desc: "Premium creators. Priority placement and brand deals.", gradient: "from-violet-600 to-purple-500", border: "border-purple-500/25" },
-              { icon: "👑", name: "Global Titans", range: "10M+", desc: "Elite access. Enterprise campaigns, maximum payouts.", gradient: "from-yellow-400 to-orange-500", border: "border-yellow-500/25" },
-            ].map((t) => (
-              <div key={t.name} className={`rounded-2xl border ${t.border} bg-gray-900/60 backdrop-blur p-5 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group`} data-testid={`card-tier-${t.name.toLowerCase().replace(" ", "-")}`}>
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg`}>{t.icon}</div>
-                <p className={`text-xs font-bold text-gray-500 mb-1`}>{t.range} followers</p>
-                <h3 className="text-white font-black text-base mb-2">{t.name}</h3>
-                <p className="text-gray-400 text-xs leading-relaxed">{t.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-10">
-            <Link href="/creators">
-              <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl px-8 py-3 text-sm font-bold backdrop-blur">
-                Browse All Creators →
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ECOSYSTEM ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-gray-100 text-gray-700 border-gray-200 px-4 py-1.5 text-xs">
-              <Sparkles className="w-3 h-3 mr-1 inline text-yellow-500" /> Complete Ecosystem
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">{cms.get("ecosystem", "title", "One Platform. Four Income Streams.")}</h2>
-            <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">{cms.get("ecosystem", "subtitle", "Taskdrip is your full creator economy — not just campaigns.")}</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { icon: <Target className="w-6 h-6" />, title: cms.get("ecosystem", "campaigns_title", "Brand Campaigns"), desc: cms.get("ecosystem", "campaigns_desc", "Complete paid tasks on TikTok, YouTube, Instagram and more. Earn USDT for every approved post."), badge: "Earn per task", link: "/campaigns", color: "from-violet-500 to-purple-600", bg: "bg-violet-50", border: "border-violet-100" },
-              { icon: <GraduationCap className="w-6 h-6" />, title: cms.get("ecosystem", "breedskool_title", "BreedSkool Academy"), desc: cms.get("ecosystem", "breedskool_desc", "Learn from thriving influencers. Master Instagram, TikTok, YouTube and monetization strategies."), badge: "Learn & grow", link: "/breedskool", color: "from-blue-500 to-indigo-600", bg: "bg-blue-50", border: "border-blue-100" },
-              { icon: <ShoppingBag className="w-6 h-6" />, title: cms.get("ecosystem", "shop_title", "Creator Shop"), desc: cms.get("ecosystem", "shop_desc", "Premium templates, plugins, and digital tools built for influencer success. Buy or sell."), badge: "Tools & assets", link: "/shop", color: "from-emerald-500 to-teal-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-              { icon: <Gift className="w-6 h-6" />, title: cms.get("ecosystem", "referral_title", "Referral Rewards"), desc: cms.get("ecosystem", "referral_desc", "Invite creators and brands. Earn passive crypto income for every person who joins your link."), badge: "Passive income", link: "/signup", color: "from-orange-500 to-amber-600", bg: "bg-orange-50", border: "border-orange-100" },
-            ].map((f) => (
-              <Link key={f.title} href={f.link}>
-                <div className={`${f.bg} ${f.border} border rounded-2xl p-6 hover:shadow-lg transition-all group h-full cursor-pointer`} data-testid={`card-ecosystem-${f.title.toLowerCase().replace(" ", "-")}`}>
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-md`}>
-                    {f.icon}
+                  <div className="space-y-3">
+                    {path.steps.map((step, index) => (
+                      <div key={step} className="flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-full bg-gray-950 text-white text-xs font-black flex items-center justify-center">{index + 1}</span>
+                        <span className="text-sm font-bold text-gray-800">{step}</span>
+                      </div>
+                    ))}
                   </div>
-                  <Badge className="mb-3 text-xs bg-white text-gray-600 border-gray-200 font-semibold">{f.badge}</Badge>
-                  <h3 className="font-bold text-gray-900 text-base mb-2">{f.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{f.desc}</p>
+                  <Link href={path.href} className="mt-6 block">
+                    <Button className={`w-full rounded-xl font-bold text-white ${path.color}`} data-testid={`button-${path.title.toLowerCase()}-path`}>
+                      {path.button} <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </Link>
                 </div>
-              </Link>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── LIVE CAMPAIGNS ── */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-16 bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
+          <div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-10 items-center">
             <div>
-              <Badge className="mb-3 bg-green-100 text-green-700 border-green-200 text-xs">🟢 Live Now</Badge>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900">Open Campaigns</h2>
-              <p className="text-gray-500 text-sm mt-1">Apply now — spots fill fast.</p>
+              <Badge className="mb-4 bg-white/10 text-white border-white/20 px-4 py-1.5 text-xs">Platform Revenue Model</Badge>
+              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Transparent fees. Clear payouts.</h2>
+              <p className="text-gray-400 mt-4 leading-relaxed">Brands fund campaigns with a 10% platform fee. Creators receive 90% of approved earnings after the creator-side platform fee. Everyone sees the ledger clearly.</p>
+              <Link href="/signup" className="mt-7 inline-block">
+                <Button className="bg-white text-black hover:bg-gray-100 rounded-xl font-bold px-7" data-testid="button-fee-model-signup">
+                  Join Taskdrip <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[
+                { value: "10%", label: "Brand platform fee" },
+                { value: "90%", label: "Creator payout" },
+                { value: "USDT", label: "Crypto settlement" },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-3xl bg-white/5 border border-white/10 p-6">
+                  <p className="text-4xl font-black bg-gradient-to-r from-purple-300 via-pink-300 to-orange-300 bg-clip-text text-transparent">{stat.value}</p>
+                  <p className="text-sm text-gray-400 mt-2 font-semibold">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between gap-5 mb-9">
+            <div>
+              <Badge className="mb-3 bg-green-100 text-green-700 border-green-200 text-xs">Live Now</Badge>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900">{cms.get("campaigns_preview", "title", "Open Campaigns")}</h2>
+              <p className="text-gray-500 text-sm mt-1">{cms.get("campaigns_preview", "subtitle", "Apply now — spots fill fast.")}</p>
             </div>
             <Link href="/campaigns">
-              <Button variant="outline" className="rounded-xl text-sm font-semibold hidden sm:flex">
+              <Button variant="outline" className="rounded-xl text-sm font-semibold hidden sm:flex" data-testid="button-view-campaigns-top">
                 View All <ArrowRight className="ml-1 w-4 h-4" />
               </Button>
             </Link>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {displayCampaigns.slice(0, 6).map((c: any) => <CampaignCard key={c.id} campaign={c} />)}
-          </div>
-          <div className="text-center mt-8">
-            <Link href="/campaigns">
-              <Button size="lg" className="bg-black text-white hover:bg-gray-900 px-10 py-5 rounded-xl font-bold" data-testid="button-view-all-campaigns">
-                View All Campaigns <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
+            {displayCampaigns.slice(0, 3).map((campaign: any) => <CampaignCard key={campaign.id} campaign={campaign} />)}
           </div>
         </div>
       </section>
 
-      {/* ── WHY TASKDRIP ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black text-gray-900 mb-3">Why Creators & Brands Choose Taskdrip</h2>
-            <p className="text-gray-500 text-base max-w-xl mx-auto">Built differently — for real results, real trust, real payouts.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { icon: <Shield className="w-5 h-5" />, title: "Non-Custodial Payments", desc: "Funds go directly to your wallet — USDT TRC-20, BEP-20, ERC-20, or TON. We never hold your money.", color: "bg-green-100 text-green-600" },
-              { icon: <CheckCircle className="w-5 h-5" />, title: "Verified Creators Only", desc: "Every creator goes through KYC. Brands get access to real, active influencers — zero bots.", color: "bg-purple-100 text-purple-600" },
-              { icon: <Zap className="w-5 h-5" />, title: "Brand-First Approval", desc: "Brands review every submission. Pay only for results you're genuinely satisfied with.", color: "bg-blue-100 text-blue-600" },
-              { icon: <Globe className="w-5 h-5" />, title: "Global Creator Network", desc: "Access creators from 150+ countries across all major platforms.", color: "bg-orange-100 text-orange-600" },
-              { icon: <TrendingUp className="w-5 h-5" />, title: "Smart Influencer Tiers", desc: "Auto-classifies creators by total social followers into 4 tiers — from Rising Sparks to Global Titans.", color: "bg-cyan-100 text-cyan-600" },
-              { icon: <Crown className="w-5 h-5" />, title: "Multiple Income Streams", desc: "Campaigns, BreedSkool courses, referrals, and shop — your influence, fully monetized.", color: "bg-yellow-100 text-yellow-600" },
-            ].map((f) => (
-              <div key={f.title} className="flex gap-4 p-5 rounded-2xl border border-gray-100 hover:shadow-md transition-all">
-                <div className={`w-10 h-10 rounded-xl ${f.color} flex items-center justify-center shrink-0`}>{f.icon}</div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-sm mb-1">{f.title}</h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section className="py-20 bg-gray-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-black text-white mb-3">{cms.get("testimonials", "title", "What Creators Are Saying")}</h2>
-            <p className="text-gray-500 text-sm">{cms.get("testimonials", "subtitle", "Real results from real influencers.")}</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { name: "Sarah K.", role: "Beauty Influencer · 180K followers", text: "Taskdrip paid me $800 in USDT within 24 hours of completing my first campaign. Zero hassle — this is the future.", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80&auto=format&fit=crop" },
-              { name: "Marcus T.", role: "Tech Creator · 420K followers", text: "Best platform I've used. Instant transparent payments. I've earned over $15,000 this year on Taskdrip.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80&auto=format&fit=crop" },
-              { name: "Priya S.", role: "Fitness Coach · 65K followers", text: "I earned $2,400 last month on just 3 campaigns. The tier system makes me feel valued as a creator.", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80&auto=format&fit=crop" },
-            ].map((t) => (
-              <div key={t.name} className="bg-gray-900 rounded-2xl p-6 border border-white/5" data-testid={`card-testimonial-${t.name.toLowerCase().replace(" ", "-")}`}>
-                <div className="flex gap-1 mb-4">
-                  {Array(5).fill(0).map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
-                </div>
-                <p className="text-gray-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover" />
-                  <div>
-                    <p className="text-white font-bold text-sm">{t.name}</p>
-                    <p className="text-gray-500 text-xs">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ── */}
-      <section className="py-24 bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.05),transparent_70%)] pointer-events-none" />
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-black text-gray-950 mb-4 tracking-tight">
             {cms.get("final_cta", "title", "Ready to Turn Your Influence Into Income?")}
           </h2>
-          <p className="text-purple-200 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-            {cms.get("final_cta", "subtitle", "Join 10,000+ creators already earning on Taskdrip. Free to join. Campaigns available today.")}
+          <p className="text-gray-500 text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
+            {cms.get("final_cta", "subtitle", "Join creators and brands using Taskdrip for verified campaigns, escrow protection, and crypto payouts.")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup?type=creator">
-              <Button size="lg" className="bg-white text-black hover:bg-gray-100 px-10 py-6 text-lg rounded-xl font-bold shadow-2xl" data-testid="button-final-cta-creator">
+              <Button size="lg" className="bg-black text-white hover:bg-gray-900 px-10 py-6 text-lg rounded-xl font-bold" data-testid="button-final-cta-creator">
                 {cms.get("final_cta", "creator_btn", "I'm a Creator")} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/signup?type=brand">
-              <Button size="lg" className="bg-white/15 text-white hover:bg-white/25 backdrop-blur border border-white/25 px-10 py-6 text-lg rounded-xl font-bold transition-all" data-testid="button-final-cta-brand">
+              <Button size="lg" variant="outline" className="border-gray-300 text-gray-950 hover:bg-white px-10 py-6 text-lg rounded-xl font-bold" data-testid="button-final-cta-brand">
                 {cms.get("final_cta", "brand_btn", "I'm a Brand")} <Rocket className="ml-2 w-5 h-5" />
               </Button>
             </Link>
           </div>
-          <p className="text-purple-300/60 text-sm mt-6">{cms.get("final_cta", "footnote", "No credit card required. Campaigns ready the moment you sign up.")}</p>
+          <p className="text-gray-400 text-sm mt-6">{cms.get("final_cta", "footnote", "No credit card required. Campaigns ready the moment you sign up.")}</p>
         </div>
       </section>
 

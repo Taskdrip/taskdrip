@@ -229,6 +229,9 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Admin Conversation Viewer**: New `AdminConversationDrawer.tsx` — slide-in drawer showing full role-color-coded message thread for any campaign or direct-hire conversation; accessible from campaign rows (Thread button), direct-hire rows (View Conversation button), and payout rows.
 ✓ **Payout Source Linkage**: `payout_requests` table extended with `campaign_id`, `direct_hire_id`, `source_type` columns; `/api/admin/campaigns/:id/thread` and `/api/admin/direct-hire/:id/thread` routes return full message threads; `/api/admin/payouts` and `/api/admin/payouts/:id` handle all payout operations.
 ✓ **CMS Smart Sync**: `storage.syncDefaultPageContent()` runs on every startup — inserts missing blocks, updates metadata, never overwrites user edits; 69 blocks confirmed synced.
+✓ **Admin-Managed Landing Sliders**: Five default landing hero slides are seeded into `hero_sliders` on startup and editable from the admin Hero Sliders tab; the public landing page reads active slides from `/api/hero-sliders`.
+✓ **Landing Page Cleanup**: Simplified the public landing page to a focused slider-first layout with platform bar, concise how-it-works cards, transparent fee model, live campaign preview, and final CTA.
+✓ **2FA Package Restore**: Added missing `speakeasy` and `qrcode` runtime dependencies so the authentication server starts correctly.
 
 ## External Dependencies
 
