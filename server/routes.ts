@@ -5408,6 +5408,16 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // Admin: get all P2P listings (all statuses)
+  app.get('/api/admin/p2p-listings', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const rows = await db.select().from(p2pListings).orderBy(desc(p2pListings.createdAt));
+      const enriched = await Promise.all(rows.map(enrichP2PListing));
+      res.json(enriched);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.get('/api/admin/p2p-transactions', isAuthenticated, async (req: any, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });

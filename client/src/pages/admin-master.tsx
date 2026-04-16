@@ -31,7 +31,7 @@ import {
   Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
-  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog,
+  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog, Coins,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
   Briefcase, Store
@@ -692,6 +692,349 @@ function HeroSlidersPanel() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function AdminP2PListingsPanel() {
+  const { toast } = useToast();
+  const [editListing, setEditListing] = useState<any>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+
+  const { data: listings = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/p2p-listings"],
+    queryFn: () => fetch("/api/admin/p2p-listings", { credentials: "include" }).then(r => r.json()),
+  });
+
+  const seedMutation = useMutation({
+    mutationFn: () => fetch("/api/admin/p2p-seed", { method: "POST", credentials: "include" }).then(r => r.json()),
+    onSuccess: (data) => {
+      toast({ title: "Demo listings seeded!", description: data.message });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/listings"] });
+    },
+    onError: () => toast({ title: "Seed failed", variant: "destructive" }),
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status, adminNote }: { id: string; status: string; adminNote?: string }) =>
+      fetch(`/api/admin/p2p-listings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status, adminNote }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Listing status updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/listings"] });
+    },
+    onError: () => toast({ title: "Failed to update status", variant: "destructive" }),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: (form: any) =>
+      fetch(`/api/admin/p2p-listings/${editListing.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(form),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Listing updated!" });
+      setEditListing(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/listings"] });
+    },
+    onError: () => toast({ title: "Failed to update listing", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/admin/p2p-listings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "removed" }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Listing removed" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-listings"] });
+    },
+    onError: () => toast({ title: "Failed to remove listing", variant: "destructive" }),
+  });
+
+  const openEdit = (listing: any) => {
+    setEditListing(listing);
+    setEditForm({
+      title: listing.title,
+      description: listing.description,
+      price: listing.price,
+      paymentMethod: listing.paymentMethod,
+      listingType: listing.listingType,
+      featuredImage: listing.featuredImage || "",
+      status: listing.status,
+      adminNote: listing.adminNote || "",
+    });
+  };
+
+  const filtered = listings.filter((l: any) =>
+    (filterStatus === "all" || l.status === filterStatus) &&
+    (filterType === "all" || l.listingType === filterType)
+  );
+
+  const statusBadge = (s: string) => {
+    const map: Record<string, string> = {
+      approved: "bg-green-500/20 text-green-300 border-green-500/30",
+      pending: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+      rejected: "bg-red-500/20 text-red-300 border-red-500/30",
+      removed: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+    };
+    return map[s] || "bg-gray-500/20 text-gray-300 border-gray-500/30";
+  };
+
+  const typeBadge = (t: string) => {
+    const map: Record<string, string> = {
+      crypto: "bg-orange-500/20 text-orange-300",
+      product: "bg-blue-500/20 text-blue-300",
+      service: "bg-purple-500/20 text-purple-300",
+    };
+    return map[t] || "bg-gray-500/20 text-gray-300";
+  };
+
+  return (
+    <Card className="bg-gray-900 border-gray-800">
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Package className="w-5 h-5 text-purple-400" />
+              All P2P Listings
+            </CardTitle>
+            <CardDescription className="text-gray-400 mt-1">
+              Edit, approve, reject or remove any listing. Seed demo content below.
+            </CardDescription>
+          </div>
+          <Button
+            onClick={() => seedMutation.mutate()}
+            disabled={seedMutation.isPending}
+            className="bg-green-600 hover:bg-green-700 text-white text-sm"
+            data-testid="button-seed-demo-listings"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {seedMutation.isPending ? "Seeding..." : "Seed Demo Listings"}
+          </Button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-2 flex-wrap mt-3">
+          {["all", "pending", "approved", "rejected"].map(s => (
+            <button key={s} onClick={() => setFilterStatus(s)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${filterStatus === s ? "bg-purple-600 text-white border-purple-600" : "border-gray-700 text-gray-400 hover:border-gray-500"}`}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+          <div className="w-px bg-gray-700 mx-1" />
+          {["all", "crypto", "product", "service"].map(t => (
+            <button key={t} onClick={() => setFilterType(t)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${filterType === t ? "bg-blue-600 text-white border-blue-600" : "border-gray-700 text-gray-400 hover:border-gray-500"}`}>
+              {t === "all" ? "All Types" : t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-800 rounded-xl animate-pulse" />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <Store className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+            <p className="text-gray-400">No listings found. Use "Seed Demo Listings" to add demo content.</p>
+          </div>
+        ) : (
+          filtered.map((listing: any) => (
+            <div key={listing.id} className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 flex gap-4 items-start hover:border-gray-600 transition-colors" data-testid={`admin-listing-${listing.id}`}>
+              {/* Thumbnail */}
+              <div className="w-20 h-16 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                {listing.featuredImage ? (
+                  <img src={listing.featuredImage} alt={listing.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    {listing.listingType === "crypto" ? <Coins className="w-6 h-6 text-gray-500" /> : listing.listingType === "product" ? <Package className="w-6 h-6 text-gray-500" /> : <Briefcase className="w-6 h-6 text-gray-500" />}
+                  </div>
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2 flex-wrap mb-1">
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${typeBadge(listing.listingType)}`}>
+                    {listing.listingType}
+                  </span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${statusBadge(listing.status)}`}>
+                    {listing.status}
+                  </span>
+                  <span className="text-green-400 text-xs font-bold">${Number(listing.price).toFixed(2)}</span>
+                </div>
+                <p className="text-white text-sm font-semibold truncate">{listing.title}</p>
+                <p className="text-gray-400 text-xs truncate mt-0.5">{listing.description?.slice(0, 80)}...</p>
+                <p className="text-gray-500 text-xs mt-1">by {listing.seller?.username || listing.seller?.firstName || "Unknown"} · {listing.paymentMethod}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 h-7 text-xs" onClick={() => openEdit(listing)} data-testid={`button-edit-listing-${listing.id}`}>
+                  <Edit className="w-3 h-3 mr-1" /> Edit
+                </Button>
+                {listing.status !== 'approved' && (
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 h-7 text-xs" onClick={() => statusMutation.mutate({ id: listing.id, status: 'approved' })} data-testid={`button-approve-listing-${listing.id}`}>
+                    <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                  </Button>
+                )}
+                {listing.status === 'approved' && (
+                  <Button size="sm" variant="outline" className="border-red-700 text-red-400 hover:bg-red-900/20 h-7 text-xs" onClick={() => statusMutation.mutate({ id: listing.id, status: 'rejected' })} data-testid={`button-reject-listing-${listing.id}`}>
+                    <XCircle className="w-3 h-3 mr-1" /> Reject
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="border-gray-700 text-gray-500 hover:bg-gray-800 hover:text-red-400 h-7 text-xs" onClick={() => { if (confirm("Remove this listing?")) deleteMutation.mutate(listing.id); }} data-testid={`button-remove-listing-${listing.id}`}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Remove
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editListing} onOpenChange={(open) => !open && setEditListing(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Edit className="w-4 h-4 text-purple-400" /> Edit Listing
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Update any field and save. Changes are immediate.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editListing && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-gray-300 text-xs">Listing Type</Label>
+                  <select
+                    value={editForm.listingType}
+                    onChange={e => setEditForm((f: any) => ({ ...f, listingType: e.target.value }))}
+                    className="w-full mt-1 bg-gray-800 border border-gray-600 text-white rounded-lg p-2 text-sm"
+                  >
+                    <option value="crypto">Crypto Trade</option>
+                    <option value="product">Product</option>
+                    <option value="service">Service</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-xs">Status</Label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => setEditForm((f: any) => ({ ...f, status: e.target.value }))}
+                    className="w-full mt-1 bg-gray-800 border border-gray-600 text-white rounded-lg p-2 text-sm"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-gray-300 text-xs">Title</Label>
+                <Input
+                  value={editForm.title}
+                  onChange={e => setEditForm((f: any) => ({ ...f, title: e.target.value }))}
+                  className="mt-1 bg-gray-800 border-gray-600 text-white"
+                  data-testid="input-edit-listing-title"
+                />
+              </div>
+
+              <div>
+                <Label className="text-gray-300 text-xs">Description</Label>
+                <Textarea
+                  value={editForm.description}
+                  onChange={e => setEditForm((f: any) => ({ ...f, description: e.target.value }))}
+                  rows={4}
+                  className="mt-1 bg-gray-800 border-gray-600 text-white resize-none"
+                  data-testid="input-edit-listing-description"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-gray-300 text-xs">Price (USD)</Label>
+                  <Input
+                    type="number"
+                    value={editForm.price}
+                    onChange={e => setEditForm((f: any) => ({ ...f, price: e.target.value }))}
+                    className="mt-1 bg-gray-800 border-gray-600 text-white"
+                    data-testid="input-edit-listing-price"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-xs">Payment Method</Label>
+                  <Input
+                    value={editForm.paymentMethod}
+                    onChange={e => setEditForm((f: any) => ({ ...f, paymentMethod: e.target.value }))}
+                    className="mt-1 bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-gray-300 text-xs">Featured Image URL</Label>
+                <Input
+                  value={editForm.featuredImage}
+                  onChange={e => setEditForm((f: any) => ({ ...f, featuredImage: e.target.value }))}
+                  placeholder="https://..."
+                  className="mt-1 bg-gray-800 border-gray-600 text-white"
+                  data-testid="input-edit-listing-image"
+                />
+                {editForm.featuredImage && (
+                  <img src={editForm.featuredImage} alt="preview" className="mt-2 h-24 object-cover rounded-lg w-full" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                )}
+              </div>
+
+              <div>
+                <Label className="text-gray-300 text-xs">Admin Note (visible to user)</Label>
+                <Textarea
+                  value={editForm.adminNote}
+                  onChange={e => setEditForm((f: any) => ({ ...f, adminNote: e.target.value }))}
+                  rows={2}
+                  placeholder="e.g. Please update your description..."
+                  className="mt-1 bg-gray-800 border-gray-600 text-white resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={() => editMutation.mutate(editForm)}
+                  disabled={editMutation.isPending}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  data-testid="button-save-listing-edit"
+                >
+                  {editMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button variant="outline" className="border-gray-600 text-gray-300" onClick={() => setEditListing(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
 
@@ -4886,6 +5229,9 @@ export default function AdminMaster() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* ── ALL LISTINGS MANAGEMENT ── */}
+            <AdminP2PListingsPanel />
           </TabsContent>
 
           {/* ── HERO SLIDERS TAB ── */}
