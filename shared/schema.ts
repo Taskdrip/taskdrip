@@ -439,6 +439,106 @@ export const insertDirectHireOfferSchema = createInsertSchema(directHireOffers).
 export type DirectHireOffer = typeof directHireOffers.$inferSelect;
 export type InsertDirectHireOffer = z.infer<typeof insertDirectHireOfferSchema>;
 
+export const p2pListings = pgTable("p2p_listings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  title: varchar("title").notNull(),
+  listingType: varchar("listing_type").notNull(),
+  description: text("description").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method").notNull(),
+  featuredImage: varchar("featured_image"),
+  status: varchar("status").notNull().default("pending"),
+  adminNote: text("admin_note"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const p2pFeeConfigs = pgTable("p2p_fee_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionType: varchar("transaction_type").notNull().unique(),
+  feeType: varchar("fee_type").notNull().default("percentage"),
+  feeValue: decimal("fee_value", { precision: 10, scale: 2 }).notNull().default("2.00"),
+  minFee: decimal("min_fee", { precision: 10, scale: 2 }).default("0.00"),
+  maxFee: decimal("max_fee", { precision: 10, scale: 2 }),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const platformFees = pgTable("platform_fees", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(),
+  feeType: varchar("fee_type").notNull().default("percentage"),
+  value: decimal("value", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const p2pTransactions = pgTable("p2p_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => p2pListings.id),
+  buyerId: varchar("buyer_id").notNull().references(() => users.id),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  adminId: varchar("admin_id").references(() => users.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  fee: decimal("fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  transactionType: varchar("transaction_type").notNull(),
+  status: varchar("status").notNull().default("pending"),
+  paymentMarkedAt: timestamp("payment_marked_at"),
+  paymentProof: varchar("payment_proof"),
+  paymentNote: text("payment_note"),
+  fundedAt: timestamp("funded_at"),
+  deliveredAt: timestamp("delivered_at"),
+  deliveryNote: text("delivery_note"),
+  buyerConfirmedAt: timestamp("buyer_confirmed_at"),
+  disputeReason: text("dispute_reason"),
+  disputeWinnerId: varchar("dispute_winner_id").references(() => users.id),
+  releasedAt: timestamp("released_at"),
+  refundedAt: timestamp("refunded_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  adminNote: text("admin_note"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const p2pMessages = pgTable("p2p_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: varchar("transaction_id").notNull().references(() => p2pTransactions.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  attachmentUrl: varchar("attachment_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const p2pActionLogs = pgTable("p2p_action_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  transactionId: varchar("transaction_id").references(() => p2pTransactions.id),
+  listingId: varchar("listing_id").references(() => p2pListings.id),
+  actorId: varchar("actor_id").notNull().references(() => users.id),
+  action: varchar("action").notNull(),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertP2PListingSchema = createInsertSchema(p2pListings).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true });
+export const insertP2PTransactionSchema = createInsertSchema(p2pTransactions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertP2PMessageSchema = createInsertSchema(p2pMessages).omit({ id: true, createdAt: true });
+export const insertP2PFeeConfigSchema = createInsertSchema(p2pFeeConfigs).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPlatformFeeSchema = createInsertSchema(platformFees).omit({ id: true, createdAt: true, updatedAt: true });
+export type P2PListing = typeof p2pListings.$inferSelect;
+export type InsertP2PListing = z.infer<typeof insertP2PListingSchema>;
+export type P2PTransaction = typeof p2pTransactions.$inferSelect;
+export type InsertP2PTransaction = z.infer<typeof insertP2PTransactionSchema>;
+export type P2PMessage = typeof p2pMessages.$inferSelect;
+export type P2PFeeConfig = typeof p2pFeeConfigs.$inferSelect;
+export type PlatformFee = typeof platformFees.$inferSelect;
+
 // Portfolio items
 export const portfolioItems = pgTable("portfolio_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

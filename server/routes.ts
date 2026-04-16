@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -89,6 +89,77 @@ async function verifyBlockchainTransaction(network: string, txHash: string, expe
       message: error?.message || 'Blockchain verification is temporarily unavailable.',
     };
   }
+}
+
+const p2pTypes = ['crypto', 'product', 'service'];
+
+function isAdminUser(user: any) {
+  return user?.userType === 'admin' || user?.role === 'admin';
+}
+
+async function logP2PAction(actorId: string, action: string, data: { transactionId?: string; listingId?: string; details?: string }) {
+  await db.insert(p2pActionLogs).values({
+    actorId,
+    action,
+    transactionId: data.transactionId,
+    listingId: data.listingId,
+    details: data.details || '',
+  });
+}
+
+async function getP2PFeeConfig(type: string) {
+  const safeType = p2pTypes.includes(type) ? type : 'service';
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq(p2pFeeConfigs.transactionType, safeType));
+  if (existing) return existing;
+  const [created] = await db.insert(p2pFeeConfigs).values({
+    transactionType: safeType,
+    feeType: 'percentage',
+    feeValue: '2.00',
+    minFee: '0.00',
+    maxFee: null,
+  }).returning();
+  return created;
+}
+
+function calculateP2PFee(amount: number, config: any) {
+  let fee = config.feeType === 'fixed' ? Number(config.feeValue || 0) : amount * (Number(config.feeValue || 0) / 100);
+  const minFee = Number(config.minFee || 0);
+  const maxFee = config.maxFee === null || config.maxFee === undefined ? null : Number(config.maxFee);
+  if (fee < minFee) fee = minFee;
+  if (maxFee !== null && fee > maxFee) fee = maxFee;
+  return Number(fee.toFixed(2));
+}
+
+async function enrichP2PListing(listing: any) {
+  const seller = await storage.getUser(listing.sellerId);
+  return {
+    ...listing,
+    seller: seller ? {
+      id: seller.id,
+      username: seller.username,
+      firstName: seller.firstName,
+      lastName: seller.lastName,
+      profileImageUrl: seller.profileImageUrl,
+      rating: seller.rating,
+      userType: seller.userType,
+    } : null,
+  };
+}
+
+async function enrichP2PTransaction(tx: any) {
+  const [listing, buyer, seller, admin] = await Promise.all([
+    db.select().from(p2pListings).where(eq(p2pListings.id, tx.listingId)).then(rows => rows[0]),
+    storage.getUser(tx.buyerId),
+    storage.getUser(tx.sellerId),
+    tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null),
+  ]);
+  return {
+    ...tx,
+    listing,
+    buyer: buyer ? { id: buyer.id, firstName: buyer.firstName, lastName: buyer.lastName, username: buyer.username, profileImageUrl: buyer.profileImageUrl } : null,
+    seller: seller ? { id: seller.id, firstName: seller.firstName, lastName: seller.lastName, username: seller.username, profileImageUrl: seller.profileImageUrl } : null,
+    admin: admin ? { id: admin.id, firstName: admin.firstName, lastName: admin.lastName, username: admin.username } : null,
+  };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -5016,6 +5087,337 @@ Instructions:
         offer: { ...offer, brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, email: brand.email } : null, influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName, email: influencer.email } : null },
         messages: enrichedMessages,
       });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/p2p/listings', async (req: any, res) => {
+    try {
+      const type = String(req.query.type || 'all');
+      const rows = await db.select().from(p2pListings)
+        .where(type !== 'all' && p2pTypes.includes(type) ? and(eq(p2pListings.status, 'approved'), eq(p2pListings.listingType, type)) : eq(p2pListings.status, 'approved'))
+        .orderBy(desc(p2pListings.createdAt));
+      res.json(await Promise.all(rows.map(enrichP2PListing)));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/p2p/listings', isAuthenticated, upload.single('featuredImage'), async (req: any, res) => {
+    try {
+      const listingType = String(req.body.listingType || '').toLowerCase();
+      if (!p2pTypes.includes(listingType)) return res.status(400).json({ message: 'Invalid listing type' });
+      const title = String(req.body.title || '').trim();
+      const description = String(req.body.description || '').trim();
+      const price = Number(req.body.price);
+      const paymentMethod = String(req.body.paymentMethod || '').trim();
+      if (!title || !description || !paymentMethod || !Number.isFinite(price) || price <= 0) {
+        return res.status(400).json({ message: 'Title, description, price, and payment method are required' });
+      }
+      const [listing] = await db.insert(p2pListings).values({
+        sellerId: req.user.id,
+        title,
+        listingType,
+        description,
+        price: price.toFixed(2),
+        paymentMethod,
+        featuredImage: req.file ? `/uploads/${req.file.filename}` : null,
+        status: 'pending',
+      }).returning();
+      await logP2PAction(req.user.id, 'listing_created', { listingId: listing.id });
+      const admins = await storage.getUsersByType('admin');
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'p2p_listing_pending',
+          title: 'New P2P listing pending',
+          content: `${req.user.firstName} submitted "${title}" for approval.`,
+          actionUrl: '/admin/p2p-transactions',
+        });
+      }
+      res.json(listing);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/p2p/listings/:id/accept', isAuthenticated, async (req: any, res) => {
+    try {
+      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, req.params.id));
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      if (listing.status !== 'approved') return res.status(400).json({ message: 'Listing is not live yet' });
+      if (listing.sellerId === req.user.id) return res.status(400).json({ message: 'You cannot accept your own listing' });
+      const active = await db.select().from(p2pTransactions).where(sql`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
+      if (active.length) return res.status(400).json({ message: 'You already have an active deal for this listing' });
+      const admins = await storage.getUsersByType('admin');
+      const config = await getP2PFeeConfig(listing.listingType);
+      const amount = Number(listing.price);
+      const fee = calculateP2PFee(amount, config);
+      const totalAmount = amount + fee;
+      const [tx] = await db.insert(p2pTransactions).values({
+        listingId: listing.id,
+        buyerId: req.user.id,
+        sellerId: listing.sellerId,
+        adminId: admins[0]?.id || null,
+        amount: amount.toFixed(2),
+        fee: fee.toFixed(2),
+        netAmount: amount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        transactionType: listing.listingType,
+        status: 'pending',
+      }).returning();
+      await db.insert(p2pMessages).values({
+        transactionId: tx.id,
+        senderId: req.user.id,
+        content: `I accepted this ${listing.listingType} offer. Total due: $${totalAmount.toFixed(2)}.`,
+      });
+      await logP2PAction(req.user.id, 'transaction_created', { transactionId: tx.id, listingId: listing.id });
+      await storage.createNotification({
+        userId: listing.sellerId,
+        type: 'p2p_transaction_created',
+        title: 'New P2P deal started',
+        content: `${req.user.firstName} accepted "${listing.title}".`,
+        actionUrl: `/p2p-deals/${tx.id}`,
+      });
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'p2p_transaction_created',
+          title: 'P2P transaction alert',
+          content: `New P2P deal: "${listing.title}" for $${totalAmount.toFixed(2)}.`,
+          actionUrl: `/admin/p2p-transactions`,
+        });
+      }
+      res.json(await enrichP2PTransaction(tx));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/p2p/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = isAdminUser(req.user)
+        ? await db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt))
+        : await db.select().from(p2pTransactions).where(sql`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc(p2pTransactions.createdAt));
+      res.json(await Promise.all(rows.map(enrichP2PTransaction)));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/p2p/transactions/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      res.json(await enrichP2PTransaction(tx));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/p2p/transactions/:id/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      const rows = await db.select().from(p2pMessages).where(eq(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/p2p/transactions/:id/messages', isAuthenticated, upload.single('attachment'), async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      const content = String(req.body.content || '').trim();
+      if (!content && !req.file) return res.status(400).json({ message: 'Message or file is required' });
+      const [message] = await db.insert(p2pMessages).values({
+        transactionId: tx.id,
+        senderId: req.user.id,
+        content: content || 'Uploaded a file',
+        attachmentUrl: req.file ? `/uploads/${req.file.filename}` : null,
+      }).returning();
+      res.json(message);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/p2p/transactions/:id/mark-paid', isAuthenticated, upload.single('paymentProof'), async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (tx.buyerId !== req.user.id) return res.status(403).json({ message: 'Only buyer can mark paid' });
+      if (tx.status !== 'pending') return res.status(400).json({ message: 'Payment can only be marked while pending' });
+      const [updated] = await db.update(p2pTransactions).set({
+        paymentMarkedAt: new Date(),
+        paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
+        paymentNote: String(req.body.paymentNote || ''),
+        updatedAt: new Date(),
+      }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await logP2PAction(req.user.id, 'payment_marked', { transactionId: tx.id });
+      const admins = await storage.getUsersByType('admin');
+      for (const admin of admins) {
+        await storage.createNotification({ userId: admin.id, type: 'p2p_payment_marked', title: 'P2P payment marked', content: `Buyer marked transaction ${tx.id} as paid.`, actionUrl: '/admin/p2p-transactions' });
+      }
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/p2p-transactions/:id/confirm-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (tx.status !== 'pending') return res.status(400).json({ message: 'Only pending deals can be funded' });
+      const [updated] = await db.update(p2pTransactions).set({ status: 'funded', fundedAt: new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: new Date() }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await logP2PAction(req.user.id, 'payment_confirmed', { transactionId: tx.id, details: req.body.note || '' });
+      await storage.createNotification({ userId: tx.sellerId, type: 'p2p_funded', title: 'P2P escrow funded', content: 'Admin confirmed payment. You can deliver now.', actionUrl: `/p2p-deals/${tx.id}` });
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/p2p/transactions/:id/deliver', isAuthenticated, async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (tx.sellerId !== req.user.id) return res.status(403).json({ message: 'Only seller can deliver' });
+      if (tx.status !== 'funded') return res.status(400).json({ message: 'Deal must be funded before delivery' });
+      const [updated] = await db.update(p2pTransactions).set({ status: 'delivered', deliveredAt: new Date(), deliveryNote: String(req.body.deliveryNote || ''), updatedAt: new Date() }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await logP2PAction(req.user.id, 'delivered', { transactionId: tx.id });
+      await storage.createNotification({ userId: tx.buyerId, type: 'p2p_delivered', title: 'P2P delivery submitted', content: 'Seller delivered. Please confirm when received.', actionUrl: `/p2p-deals/${tx.id}` });
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/p2p/transactions/:id/confirm-received', isAuthenticated, async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (tx.buyerId !== req.user.id) return res.status(403).json({ message: 'Only buyer can confirm received' });
+      if (tx.status !== 'delivered') return res.status(400).json({ message: 'Deal must be delivered first' });
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: new Date(), updatedAt: new Date() }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await logP2PAction(req.user.id, 'buyer_confirmed', { transactionId: tx.id });
+      const admins = await storage.getUsersByType('admin');
+      for (const admin of admins) {
+        await storage.createNotification({ userId: admin.id, type: 'p2p_ready_release', title: 'P2P ready for release', content: `Buyer confirmed receipt for ${tx.id}.`, actionUrl: '/admin/p2p-transactions' });
+      }
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/p2p/transactions/:id/dispute', isAuthenticated, async (req: any, res) => {
+    try {
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: 'Only buyer or seller can dispute' });
+      if (!['pending', 'funded', 'delivered'].includes(tx.status)) return res.status(400).json({ message: 'This deal cannot be disputed now' });
+      const [updated] = await db.update(p2pTransactions).set({ status: 'disputed', disputeReason: String(req.body.reason || ''), updatedAt: new Date() }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await logP2PAction(req.user.id, 'dispute_opened', { transactionId: tx.id, details: req.body.reason || '' });
+      const admins = await storage.getUsersByType('admin');
+      for (const admin of admins) {
+        await storage.createNotification({ userId: admin.id, type: 'p2p_dispute', title: 'P2P dispute opened', content: `A dispute was opened for ${tx.id}.`, actionUrl: '/admin/p2p-transactions' });
+      }
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/p2p-transactions/:id/release', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (!['delivered', 'disputed'].includes(tx.status)) return res.status(400).json({ message: 'Deal must be delivered or disputed before release' });
+      await db.update(users).set({ availableBalance: sql`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: new Date() }).where(eq(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: 'completed', releasedAt: new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: new Date() }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: 'p2p_payout', status: 'completed', description: `P2P escrow release for transaction ${tx.id}`, referenceType: 'p2p', referenceId: tx.id, processedAt: new Date() } as any);
+      await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: 'p2p_fee_revenue', status: 'completed', description: `P2P fee revenue for transaction ${tx.id}`, referenceType: 'p2p', referenceId: tx.id, processedAt: new Date() } as any);
+      await logP2PAction(req.user.id, 'funds_released', { transactionId: tx.id, details: req.body.note || '' });
+      await storage.createNotification({ userId: tx.sellerId, type: 'p2p_released', title: 'P2P funds released', content: `$${Number(tx.netAmount).toFixed(2)} has been added to your balance.`, actionUrl: `/p2p-deals/${tx.id}` });
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/p2p-transactions/:id/refund', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
+      if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+      if (['completed', 'refunded', 'cancelled'].includes(tx.status)) return res.status(400).json({ message: 'Deal is already closed' });
+      const [updated] = await db.update(p2pTransactions).set({ status: 'refunded', refundedAt: new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: new Date() }).where(eq(p2pTransactions.id, tx.id)).returning();
+      await logP2PAction(req.user.id, 'refunded', { transactionId: tx.id, details: req.body.note || '' });
+      await storage.createNotification({ userId: tx.buyerId, type: 'p2p_refunded', title: 'P2P refund approved', content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
+      res.json(await enrichP2PTransaction(updated));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/p2p-listings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const status = String(req.body.status || '');
+      if (!['approved', 'rejected', 'pending', 'removed'].includes(status)) return res.status(400).json({ message: 'Invalid listing status' });
+      const [listing] = await db.update(p2pListings).set({ status, adminNote: req.body.adminNote || '', approvedBy: status === 'approved' ? req.user.id : null, approvedAt: status === 'approved' ? new Date() : null, updatedAt: new Date() }).where(eq(p2pListings.id, req.params.id)).returning();
+      await logP2PAction(req.user.id, `listing_${status}`, { listingId: listing.id, details: req.body.adminNote || '' });
+      res.json(await enrichP2PListing(listing));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/p2p-transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const rows = await db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt));
+      const allListings = await db.select().from(p2pListings).orderBy(desc(p2pListings.createdAt));
+      const revenue = rows.filter((r: any) => r.status === 'completed').reduce((sum: number, r: any) => sum + Number(r.fee || 0), 0);
+      res.json({
+        stats: {
+          totalTransactions: rows.length,
+          activeTrades: rows.filter((r: any) => ['pending', 'funded', 'delivered'].includes(r.status)).length,
+          disputes: rows.filter((r: any) => r.status === 'disputed').length,
+          revenue,
+        },
+        transactions: await Promise.all(rows.map(enrichP2PTransaction)),
+        listings: await Promise.all(allListings.map(enrichP2PListing)),
+      });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/p2p-fees', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const configs = await Promise.all(p2pTypes.map(getP2PFeeConfig));
+      res.json(configs);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/p2p-fees/:type', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const type = String(req.params.type);
+      if (!p2pTypes.includes(type)) return res.status(400).json({ message: 'Invalid transaction type' });
+      const current = await getP2PFeeConfig(type);
+      const payload = {
+        feeType: req.body.feeType === 'fixed' ? 'fixed' : 'percentage',
+        feeValue: String(Number(req.body.feeValue || 0).toFixed(2)),
+        minFee: String(Number(req.body.minFee || 0).toFixed(2)),
+        maxFee: req.body.maxFee === '' || req.body.maxFee === null || req.body.maxFee === undefined ? null : String(Number(req.body.maxFee).toFixed(2)),
+        updatedBy: req.user.id,
+        updatedAt: new Date(),
+      };
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq(p2pFeeConfigs.id, current.id)).returning();
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/platform-fees', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      for (const name of ['campaign_fee', 'withdrawal_fee', 'listing_fee']) {
+        const [existing] = await db.select().from(platformFees).where(eq(platformFees.name, name));
+        if (!existing) await db.insert(platformFees).values({ name, feeType: 'percentage', value: '0.00' });
+      }
+      res.json(await db.select().from(platformFees).orderBy(platformFees.name));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/platform-fees/:name', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const name = String(req.params.name);
+      const [current] = await db.select().from(platformFees).where(eq(platformFees.name, name));
+      const payload = { feeType: req.body.feeType === 'fixed' ? 'fixed' : 'percentage', value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: new Date() };
+      const [row] = current
+        ? await db.update(platformFees).set(payload).where(eq(platformFees.name, name)).returning()
+        : await db.insert(platformFees).values({ name, ...payload }).returning();
+      res.json(row);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

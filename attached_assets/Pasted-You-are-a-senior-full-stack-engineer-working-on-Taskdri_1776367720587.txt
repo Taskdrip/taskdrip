@@ -1,0 +1,231 @@
+You are a senior full-stack engineer working on Taskdrip™, a Web3 influencer marketplace.
+
+Your task is to build a COMPLETE P2P MARKETPLACE SYSTEM with:
+
+1. Admin-controlled escrow
+2. Admin-controlled fees (P2P + platform-wide)
+3. Full admin visibility over all transactions
+4. In-app chat between buyer, seller, and admin
+
+Ensure clean architecture, scalability, and security.
+
+========================
+1. P2P MARKETPLACE HUB
+========================
+
+Create page:
+/p2p-hub
+
+Tabs:
+- Crypto Trades
+- Products
+- Services
+
+Each listing must include:
+- Title
+- Type (crypto/product/service)
+- Description
+- Price / rate
+- Payment method
+- Featured image (for product/service)
+- User info (rating, username)
+- “Accept Offer” button
+
+Add:
++ “Create Listing” button
+
+========================
+2. LISTING SYSTEM
+========================
+
+Users can:
+- Create listings (crypto, product, service)
+- Submit for admin approval
+
+Status:
+- pending
+- approved
+- rejected
+
+Only approved listings go live.
+
+========================
+3. ESCROW TRANSACTION SYSTEM
+========================
+
+When a user clicks “Accept Offer”:
+
+- Create transaction
+- Assign:
+  buyer_id
+  seller_id
+  admin_id
+- Set status:
+  pending → funded → delivered → completed
+
+Flow:
+
+1. Buyer accepts offer
+2. Buyer sends funds to ADMIN escrow wallet
+3. Buyer clicks “Mark as Paid”
+4. Seller delivers product/service/crypto
+5. Buyer clicks “Confirm Received”
+6. Admin releases funds to seller
+
+========================
+4. ADMIN ESCROW CONTROL
+========================
+
+Admin must:
+
+- View all transactions
+- Manually confirm payment received
+- Release funds to seller
+- Cancel/refund transaction
+
+Admin dashboard page:
+/admin/p2p-transactions
+
+Display:
+- Transaction ID
+- Buyer
+- Seller
+- Amount
+- Fee
+- Status
+- Actions (Release / Refund / Dispute)
+
+========================
+5. P2P FEE SYSTEM (ADMIN CONTROLLED)
+========================
+
+Create table:
+
+p2p_fee_config:
+- transaction_type (crypto/product/service)
+- fee_type (percentage/fixed)
+- fee_value
+- min_fee
+- max_fee
+
+Admin page:
+/admin/p2p-fees
+
+Admin can:
+- Set fee per transaction type
+- Update anytime (no redeploy)
+
+========================
+6. PLATFORM FEES SYSTEM
+========================
+
+Create:
+
+platform_fees:
+- name (campaign_fee, withdrawal_fee, listing_fee)
+- type (percentage/fixed)
+- value
+
+Admin page:
+/admin/platform-fees
+
+========================
+7. APPLY FEES
+========================
+
+During transaction:
+
+- Calculate fee dynamically
+- Show:
+
+Amount: $100
+Fee: $2
+Total: $102
+
+Store:
+- amount
+- fee
+- net_amount
+
+========================
+8. DEAL ROOM (CHAT SYSTEM)
+========================
+
+Each transaction creates a private chat:
+
+Participants:
+- Buyer
+- Seller
+- Admin
+
+Features:
+- Real-time messaging
+- File/image upload (proof)
+- Buttons:
+  - Mark as Paid
+  - Confirm Delivery
+  - Open Dispute
+
+========================
+9. DISPUTE SYSTEM
+========================
+
+Users can click “Open Dispute”
+
+Admin can:
+- Review chat + proof
+- Decide winner
+- Release or refund funds
+
+========================
+10. ADMIN FULL OVERSIGHT
+========================
+
+Admin dashboard must show:
+
+- Total transactions
+- Active trades
+- Disputes
+- Revenue from fees
+
+Admin can:
+- Suspend users
+- Remove listings
+- Override any transaction
+
+========================
+11. NOTIFICATIONS
+========================
+
+Trigger alerts for:
+
+- New transaction
+- Payment marked
+- Delivery confirmed
+- Dispute opened
+
+Add quick WhatsApp alert button:
+
+https://wa.me/12016800266?text=P2P%20Transaction%20Alert
+
+========================
+12. SECURITY
+========================
+
+- Only admin can release funds
+- Prevent duplicate transactions
+- Validate all inputs
+- Log all actions
+
+========================
+FINAL RESULT
+========================
+
+- Fully functional P2P marketplace
+- Admin-controlled escrow system
+- Dynamic fee engine
+- Real-time chat + dispute system
+- Full admin oversight of all transactions
+
+Do NOT break existing Taskdrip features.
+Ensure mobile responsiveness and clean UI.

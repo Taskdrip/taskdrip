@@ -61,6 +61,11 @@ import GetStarted from "@/pages/get-started";
 import DirectHirePayment from "@/pages/direct-hire-payment";
 import LedgerPage from "@/pages/ledger";
 import SecuritySettings from "@/pages/security-settings";
+import P2PHub from "@/pages/p2p-hub";
+import P2PDealRoom from "@/pages/p2p-deal-room";
+import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
+import AdminP2PFees from "@/pages/admin-p2p-fees";
+import AdminPlatformFees from "@/pages/admin-platform-fees";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -103,6 +108,7 @@ function Router() {
       <Route path="/brand/:id" component={BrandProfile} />
       <Route path="/feed" component={FeedPage} />
       <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/p2p-hub" component={P2PHub} />
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={() => {
@@ -134,6 +140,8 @@ function Router() {
           <Route path="/profile-edit" component={ProfileEdit} />
           <Route path="/escrow-payment" component={EscrowPayment} />
           <Route path="/direct-hire/:id" component={DirectHirePayment} />
+          <Route path="/p2p-deals" component={P2PDealRoom} />
+          <Route path="/p2p-deals/:id" component={P2PDealRoom} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />
@@ -141,6 +149,9 @@ function Router() {
           <Route path="/admin/payments" component={AdminPayments} />
           <Route path="/admin/ads" component={AdminAds} />
           <Route path="/admin/email" component={AdminEmail} />
+          <Route path="/admin/p2p-transactions" component={AdminP2PTransactions} />
+          <Route path="/admin/p2p-fees" component={AdminP2PFees} />
+          <Route path="/admin/platform-fees" component={AdminPlatformFees} />
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
@@ -154,6 +165,8 @@ function Router() {
           <Route path="/campaigns" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/profile" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/admin" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/p2p-deals" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/p2p-deals/:id" component={() => { window.location.href = '/login'; return null; }} />
         </>
       )}
       <Route component={NotFound} />
