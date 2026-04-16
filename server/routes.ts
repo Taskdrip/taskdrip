@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -1789,6 +1789,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error rejecting application:", error);
       res.status(500).json({ message: "Failed to reject application" });
     }
+  });
+
+  // Campaign participation reviews — GET
+  app.get('/api/participations/:id/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const participation = await storage.getParticipationById(req.params.id);
+      if (!participation) return res.status(404).json({ message: 'Participation not found' });
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const isParty = participation.userId === req.user.id || (campaign as any).brandId === req.user.id || req.user.userType === 'admin';
+      if (!isParty) return res.status(403).json({ message: 'Forbidden' });
+      const rows = await db.select().from(userReviews)
+        .where(and(eq(userReviews.referenceType, 'campaign_participation'), eq(userReviews.referenceId, participation.id)))
+        .orderBy(desc(userReviews.createdAt));
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Campaign participation reviews — POST
+  app.post('/api/participations/:id/reviews', isAuthenticated, async (req: any, res) => {
+    try {
+      const participation = await storage.getParticipationById(req.params.id);
+      if (!participation) return res.status(404).json({ message: 'Participation not found' });
+      if (participation.status !== 'completed') return res.status(400).json({ message: 'Reviews open after the participation is completed' });
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const brandId = (campaign as any).brandId;
+      const creatorId = participation.userId;
+      const isParty = req.user.id === brandId || req.user.id === creatorId;
+      if (!isParty) return res.status(403).json({ message: 'Forbidden' });
+      const rating = Number(req.body.rating);
+      const comment = String(req.body.comment || '').trim();
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: 'Rating must be from 1 to 5' });
+      const existing = await db.select().from(userReviews)
+        .where(and(eq(userReviews.referenceType, 'campaign_participation'), eq(userReviews.referenceId, participation.id), eq(userReviews.reviewerId, req.user.id)));
+      if (existing.length) return res.status(400).json({ message: 'You already reviewed this' });
+      const revieweeId = req.user.id === brandId ? creatorId : brandId;
+      const [review] = await db.insert(userReviews).values({
+        reviewerId: req.user.id,
+        revieweeId,
+        rating,
+        comment,
+        referenceType: 'campaign_participation',
+        referenceId: participation.id,
+      }).returning();
+      const ratings = await db.select({ avg: sql<string>`AVG(${userReviews.rating})` }).from(userReviews).where(eq(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: new Date() }).where(eq(users.id, revieweeId));
+      res.json(review);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Campaign participation mediation request
+  app.post('/api/participations/:id/request-mediation', isAuthenticated, async (req: any, res) => {
+    try {
+      const participation = await storage.getParticipationById(req.params.id);
+      if (!participation) return res.status(404).json({ message: 'Participation not found' });
+      const campaign = await storage.getCampaignById(participation.campaignId);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const brandId = (campaign as any).brandId;
+      const creatorId = participation.userId;
+      const isParty = req.user.id === brandId || req.user.id === creatorId;
+      if (!isParty) return res.status(403).json({ message: 'Forbidden' });
+      const reason = String(req.body.reason || '').trim();
+      const admin = await storage.getAdminUser();
+      if (admin) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'mediation_request',
+          title: '⚖️ Mediation Requested',
+          content: `${req.user.firstName} requested mediation for campaign "${(campaign as any).title}". ${reason ? `Reason: ${reason}` : ''}`,
+          actionUrl: `/admin/participations`,
+          isRead: false,
+        } as any);
+      }
+      await storage.createNotification({
+        userId: req.user.id === brandId ? creatorId : brandId,
+        type: 'mediation_request',
+        title: '⚖️ Mediation Requested',
+        content: `${req.user.firstName} has requested admin mediation for campaign "${(campaign as any).title}".`,
+        actionUrl: `/campaigns/${participation.campaignId}`,
+        isRead: false,
+      } as any);
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   app.get('/api/brand/stats', async (req, res) => {
@@ -4575,6 +4659,49 @@ Instructions:
       const ratings = await db.select({ avg: sql<string>`AVG(${userReviews.rating})`, count: sql<string>`COUNT(*)` }).from(userReviews).where(eq(userReviews.revieweeId, revieweeId));
       await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: new Date() }).where(eq(users.id, revieweeId));
       res.json(review);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Request mediation for a direct hire offer
+  app.post('/api/direct-hire/:id/request-mediation', isAuthenticated, async (req: any, res) => {
+    try {
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+      if (!['active', 'work_submitted', 'revision_requested'].includes(offer.status)) {
+        return res.status(400).json({ message: 'Mediation can only be requested on active projects' });
+      }
+      const reason = String(req.body.reason || '').trim();
+      const admin = await storage.getAdminUser();
+      const systemContent = `⚖️ Mediation requested by ${req.user.firstName}${reason ? `: "${reason}"` : ''}. An admin has been notified and will join shortly.`;
+      await storage.createMessage({
+        senderId: req.user.id,
+        receiverId: req.user.id === offer.brandId ? offer.influencerId : offer.brandId,
+        subject: `Direct hire: ${offer.title}`,
+        content: systemContent,
+        messageType: 'direct_hire',
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+      } as any);
+      if (admin) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'mediation_request',
+          title: '⚖️ Mediation Requested',
+          content: `${req.user.firstName} requested mediation on direct hire "${offer.title}". ${reason ? `Reason: ${reason}` : ''}`,
+          actionUrl: `/direct-hire/${offer.id}`,
+          isRead: false,
+        } as any);
+      }
+      await storage.createNotification({
+        userId: req.user.id === offer.brandId ? offer.influencerId : offer.brandId,
+        type: 'mediation_request',
+        title: '⚖️ Mediation Requested',
+        content: `${req.user.firstName} has requested admin mediation for "${offer.title}".`,
+        actionUrl: `/direct-hire/${offer.id}`,
+        isRead: false,
+      } as any);
+      res.json({ success: true });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

@@ -645,6 +645,9 @@ function ProjectWorkspace({ offer, isBrand, isInfluencer, currentUserId, onDone 
   const [revisionNote, setRevisionNote] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [mediationOpen, setMediationOpen] = useState(false);
+  const [mediationReason, setMediationReason] = useState("");
+  const [mediationSent, setMediationSent] = useState(false);
 
   const { data: messagesData = [] } = useQuery<any[]>({
     queryKey: [`/api/direct-hire/${offer.id}/messages`],
@@ -703,6 +706,17 @@ function ProjectWorkspace({ offer, isBrand, isInfluencer, currentUserId, onDone 
       queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}/reviews`] });
     },
     onError: (e: Error) => toast({ title: "Review failed", description: e.message, variant: "destructive" }),
+  });
+
+  const requestMediation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/request-mediation`, { reason: mediationReason }).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Mediation requested", description: "An admin has been notified and will review your dispute." });
+      setMediationOpen(false);
+      setMediationSent(true);
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}/messages`] });
+    },
+    onError: (e: Error) => toast({ title: "Request failed", description: e.message, variant: "destructive" }),
   });
 
   const alreadyReviewed = reviews.some((r: any) => r.reviewerId === currentUserId);
@@ -807,6 +821,70 @@ function ProjectWorkspace({ offer, isBrand, isInfluencer, currentUserId, onDone 
           </CardContent>
         </Card>
       )}
+
+      {/* Mediation card — visible during active / disputed phases */}
+      {['active', 'work_submitted', 'revision_requested'].includes(offer.status) && (
+        <Card className="border border-orange-200 shadow-sm bg-orange-50/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-orange-800">
+              <AlertTriangle className="w-4 h-4" /> Dispute & Mediation
+            </CardTitle>
+            <CardDescription className="text-orange-700/80">
+              Having an issue? Request admin mediation to resolve a dispute.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {mediationSent ? (
+              <div className="flex items-center gap-2 py-2 text-sm text-orange-800 font-medium">
+                <ShieldCheck className="w-4 h-4 text-green-600" />
+                Mediation request sent — an admin will review your case.
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                onClick={() => setMediationOpen(true)}
+                data-testid="button-request-mediation"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" /> Request Mediation
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Mediation dialog */}
+      <Dialog open={mediationOpen} onOpenChange={setMediationOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" /> Request Mediation
+            </DialogTitle>
+            <DialogDescription>
+              Describe the issue. An admin will be notified and join your project chat.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            rows={4}
+            placeholder="What is the dispute about? (optional)"
+            value={mediationReason}
+            onChange={e => setMediationReason(e.target.value)}
+            data-testid="input-mediation-reason"
+          />
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => setMediationOpen(false)}>Cancel</Button>
+            <Button
+              className="flex-1 bg-orange-600 hover:bg-orange-700"
+              onClick={() => requestMediation.mutate()}
+              disabled={requestMediation.isPending}
+              data-testid="button-confirm-mediation"
+            >
+              {requestMediation.isPending ? "Sending..." : "Send Request"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

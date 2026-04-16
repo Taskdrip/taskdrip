@@ -100,6 +100,12 @@ export default function PayoutRequestsPage() {
   const [form, setForm] = useState({ amount: "", walletAddress: "", network: "USDT-TRC20", notes: "" });
 
   const userType = (user as any)?.userType;
+  const availableBalance = parseFloat((user as any)?.availableBalance || "0");
+
+  const setAmountPercent = (pct: number) => {
+    const amt = ((availableBalance * pct) / 100).toFixed(2);
+    setForm(f => ({ ...f, amount: amt }));
+  };
 
   const { data: requests = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/payout-requests'],
@@ -158,6 +164,15 @@ export default function PayoutRequestsPage() {
                   <DialogTitle>Request a Payout</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
+                  {/* Balance display */}
+                  <div className="rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-green-700 font-medium uppercase tracking-wide">Available Balance</p>
+                      <p className="text-2xl font-bold text-green-800" data-testid="available-balance">${availableBalance.toFixed(2)}</p>
+                    </div>
+                    <DollarSign className="w-9 h-9 text-green-400" />
+                  </div>
+
                   <div>
                     <Label>Amount (USD) *</Label>
                     <Input
@@ -168,6 +183,21 @@ export default function PayoutRequestsPage() {
                       min="10"
                       data-testid="payout-amount"
                     />
+                    {/* Percentage quick-select */}
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      {[25, 50, 75, 100].map(pct => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => setAmountPercent(pct)}
+                          disabled={availableBalance <= 0}
+                          className="text-xs py-1.5 rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          data-testid={`payout-pct-${pct}`}
+                        >
+                          {pct === 100 ? "All" : `${pct}%`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <Label>Network *</Label>

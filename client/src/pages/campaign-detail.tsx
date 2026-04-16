@@ -19,7 +19,8 @@ import {
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
   Target, TrendingUp, Award, MessageSquare, Clipboard, FileText, Trash2,
-  MessageCircle, Upload, Send, Hourglass, PartyPopper, XCircle, Link2
+  MessageCircle, Upload, Send, Hourglass, PartyPopper, XCircle, Link2,
+  AlertTriangle, ShieldCheck
 } from 'lucide-react';
 
 const editCampaignSchema = z.object({
@@ -48,6 +49,11 @@ export default function CampaignDetail() {
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [submitUrl, setSubmitUrl] = useState('');
   const [submitText, setSubmitText] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [mediationOpen, setMediationOpen] = useState(false);
+  const [mediationReason, setMediationReason] = useState('');
+  const [mediationSent, setMediationSent] = useState(false);
 
   const campaignId = params.id;
 
@@ -236,6 +242,38 @@ export default function CampaignDetail() {
         variant: 'destructive',
       });
     },
+  });
+
+  const { data: participationReviews = [] } = useQuery<any[]>({
+    queryKey: ['/api/participations', myParticipation?.id, 'reviews'],
+    enabled: !!myParticipation?.id && participationStatus === 'completed',
+    queryFn: async () => {
+      const res = await fetch(`/api/participations/${myParticipation?.id}/reviews`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const alreadyReviewed = (participationReviews as any[]).some((r: any) => r.reviewerId === (user as any)?.id);
+
+  const submitReviewMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/participations/${myParticipation?.id}/reviews`, { rating: reviewRating, comment: reviewComment }).then((r: any) => r.json()),
+    onSuccess: () => {
+      toast({ title: 'Review posted!' });
+      setReviewComment('');
+      queryClient.invalidateQueries({ queryKey: ['/api/participations', myParticipation?.id, 'reviews'] });
+    },
+    onError: (e: any) => toast({ title: 'Review failed', description: e.message, variant: 'destructive' }),
+  });
+
+  const requestMediationMutation = useMutation({
+    mutationFn: () => apiRequest('POST', `/api/participations/${myParticipation?.id}/request-mediation`, { reason: mediationReason }).then((r: any) => r.json()),
+    onSuccess: () => {
+      toast({ title: 'Mediation requested', description: 'An admin has been notified and will review your dispute.' });
+      setMediationOpen(false);
+      setMediationSent(true);
+    },
+    onError: (e: any) => toast({ title: 'Request failed', description: e.message, variant: 'destructive' }),
   });
 
   if (isLoading) {
@@ -874,6 +912,21 @@ export default function CampaignDetail() {
                         <p className="text-green-700 text-xs mt-0.5">Complete the task and submit your work for payment.</p>
                       </div>
                     </div>
+                    {/* Mediation button for approved state */}
+                    {!mediationSent ? (
+                      <button
+                        type="button"
+                        className="w-full text-xs py-2 px-3 rounded-lg border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 font-medium transition-colors flex items-center justify-center gap-1"
+                        onClick={() => setMediationOpen(true)}
+                        data-testid="button-request-campaign-mediation-approved"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" /> Request Mediation
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-orange-800 font-medium py-2">
+                        <ShieldCheck className="h-4 w-4 text-green-600" /> Mediation request sent
+                      </div>
+                    )}
                     <Button 
                       className="w-full bg-green-600 hover:bg-green-700"
                       onClick={() => setIsSubmitDialogOpen(true)}
@@ -921,6 +974,21 @@ export default function CampaignDetail() {
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message Brand
                     </Button>
+                    {/* Mediation button for submitted state */}
+                    {!mediationSent ? (
+                      <button
+                        type="button"
+                        className="w-full text-xs py-2 px-3 rounded-lg border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 font-medium transition-colors flex items-center justify-center gap-1"
+                        onClick={() => setMediationOpen(true)}
+                        data-testid="button-request-campaign-mediation-submitted"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" /> Request Mediation
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-orange-800 font-medium py-2">
+                        <ShieldCheck className="h-4 w-4 text-green-600" /> Mediation request sent
+                      </div>
+                    )}
                   </div>
 
                 /* === STEP 5: Completed and paid === */
@@ -937,6 +1005,47 @@ export default function CampaignDetail() {
                       <DollarSign className="h-4 w-4 mr-2" />
                       View Wallet Balance
                     </Button>
+
+                    {/* Mutual reviews */}
+                    <div className="border-t pt-3 space-y-3">
+                      <p className="text-sm font-semibold text-gray-700 flex items-center gap-1"><Star className="h-4 w-4 text-yellow-500" /> Mutual Reviews</p>
+                      {(participationReviews as any[]).length === 0 && <p className="text-xs text-gray-400">No reviews yet.</p>}
+                      {(participationReviews as any[]).map((r: any) => (
+                        <div key={r.id} className="rounded-lg border bg-white p-3" data-testid={`review-${r.id}`}>
+                          <p className="font-semibold text-yellow-600 text-sm">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
+                          {r.comment && <p className="text-xs text-gray-700 mt-1">{r.comment}</p>}
+                        </div>
+                      ))}
+                      {!alreadyReviewed && (
+                        <div className="rounded-lg border bg-gray-50 p-3 space-y-2">
+                          <p className="text-xs font-medium text-gray-700">Leave a review for the brand</p>
+                          <select
+                            value={reviewRating}
+                            onChange={e => setReviewRating(Number(e.target.value))}
+                            className="w-full rounded-lg border p-2 text-sm"
+                            data-testid="select-campaign-review-rating"
+                          >
+                            {[5, 4, 3, 2, 1].map(v => <option key={v} value={v}>{v} star{v === 1 ? "" : "s"}</option>)}
+                          </select>
+                          <Textarea
+                            value={reviewComment}
+                            onChange={e => setReviewComment(e.target.value)}
+                            placeholder="Share your experience with this campaign..."
+                            rows={3}
+                            data-testid="input-campaign-review-comment"
+                          />
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => submitReviewMutation.mutate()}
+                            disabled={submitReviewMutation.isPending}
+                            data-testid="button-submit-campaign-review"
+                          >
+                            {submitReviewMutation.isPending ? "Posting..." : "Post Review"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                 /* === Rejected === */
@@ -1118,6 +1227,38 @@ export default function CampaignDetail() {
           </div>
         </div>
       </div>
+
+      {/* Campaign Mediation Dialog */}
+      <Dialog open={mediationOpen} onOpenChange={setMediationOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" /> Request Mediation
+            </DialogTitle>
+            <DialogDescription>
+              Describe the issue. An admin will be notified and will review your dispute.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            rows={4}
+            placeholder="What is the dispute about? (optional)"
+            value={mediationReason}
+            onChange={e => setMediationReason(e.target.value)}
+            data-testid="input-campaign-mediation-reason"
+          />
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => setMediationOpen(false)}>Cancel</Button>
+            <Button
+              className="flex-1 bg-orange-600 hover:bg-orange-700"
+              onClick={() => requestMediationMutation.mutate()}
+              disabled={requestMediationMutation.isPending}
+              data-testid="button-confirm-campaign-mediation"
+            >
+              {requestMediationMutation.isPending ? "Sending..." : "Send Request"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
