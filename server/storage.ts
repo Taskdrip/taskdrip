@@ -738,6 +738,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(messages.createdAt));
   }
 
+  async getMessagesByReference(referenceType: string, referenceId: string): Promise<Message[]> {
+    return await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.referenceType, referenceType), eq(messages.referenceId, referenceId)))
+      .orderBy(messages.createdAt);
+  }
+
   async createMessage(message: InsertMessage): Promise<Message> {
     const [newMessage] = await db.insert(messages).values(message).returning();
     return newMessage;

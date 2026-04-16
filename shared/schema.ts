@@ -752,6 +752,10 @@ export const payoutRequests = pgTable("payout_requests", {
   transactionHash: varchar("transaction_hash"),
   processedBy: varchar("processed_by").references(() => users.id),
   processedAt: timestamp("processed_at"),
+  // Source linkage — tracks exactly which campaign or direct hire generated this payout
+  campaignId: varchar("campaign_id").references(() => campaigns.id),
+  directHireId: varchar("direct_hire_id").references(() => directHireOffers.id),
+  sourceType: varchar("source_type", { length: 30 }).default("manual"), // 'campaign', 'direct_hire', 'manual'
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

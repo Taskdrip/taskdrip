@@ -225,6 +225,10 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Ledger API**: Added authenticated `/api/ledger` endpoint that returns role-scoped transactions, payout requests, direct-hire offers, and campaign escrow payments using existing tables.
 ✓ **Campaign Escrow Visibility**: Ledger activity includes campaign escrow funding records with campaign/brand context for admins and brand-specific escrow rows for brands.
 ✓ **Navigation Access**: Ledger is available from the main navigation, account dropdown, wallet settings, and creator dashboard wallet card.
+✓ **Admin Payouts Operations Center**: New `AdminPayoutsCenter.tsx` component — stats (total, pending, approved, rejected), filter by status, approve with TX hash, reject with refund, mark-processing; full audit trail; source linkage (campaign / direct-hire); conversation thread preview button per payout row.
+✓ **Admin Conversation Viewer**: New `AdminConversationDrawer.tsx` — slide-in drawer showing full role-color-coded message thread for any campaign or direct-hire conversation; accessible from campaign rows (Thread button), direct-hire rows (View Conversation button), and payout rows.
+✓ **Payout Source Linkage**: `payout_requests` table extended with `campaign_id`, `direct_hire_id`, `source_type` columns; `/api/admin/campaigns/:id/thread` and `/api/admin/direct-hire/:id/thread` routes return full message threads; `/api/admin/payouts` and `/api/admin/payouts/:id` handle all payout operations.
+✓ **CMS Smart Sync**: `storage.syncDefaultPageContent()` runs on every startup — inserts missing blocks, updates metadata, never overwrites user edits; 69 blocks confirmed synced.
 
 ## External Dependencies
 

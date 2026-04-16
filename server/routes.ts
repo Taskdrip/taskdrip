@@ -4874,6 +4874,151 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // ── Admin: Full payout center (enriched with campaign/direct-hire linkage) ──
+  app.get('/api/admin/payouts', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const all = await storage.getAllPayoutRequests();
+      const enriched = await Promise.all(all.map(async (r: any) => {
+        const user = await storage.getUser(r.userId);
+        const processedByUser = r.processedBy ? await storage.getUser(r.processedBy) : null;
+        // Fetch linked source
+        let campaignData = null;
+        let directHireData = null;
+        if (r.campaignId) {
+          campaignData = await storage.getCampaign(r.campaignId);
+        }
+        if (r.directHireId) {
+          const offer = await storage.getDirectHireOffer(r.directHireId);
+          if (offer) {
+            const brand = await storage.getUser(offer.brandId);
+            directHireData = { ...offer, brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName } : null };
+          }
+        }
+        // Fetch payout messages
+        const msgs = await storage.getPayoutMessages(r.id);
+        return {
+          ...r,
+          user: user ? { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, profileImageUrl: (user as any).profileImageUrl, creatorTier: (user as any).creatorTier, walletAddress: (user as any).walletAddress } : null,
+          processedByUser: processedByUser ? { firstName: processedByUser.firstName, lastName: processedByUser.lastName } : null,
+          campaign: campaignData,
+          directHire: directHireData,
+          messageCount: msgs.length,
+          messages: msgs,
+        };
+      }));
+      // Sort: pending first, then by newest
+      enriched.sort((a, b) => {
+        const order = ['pending', 'processing', 'completed', 'rejected'];
+        const ai = order.indexOf(a.status);
+        const bi = order.indexOf(b.status);
+        if (ai !== bi) return ai - bi;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      res.json(enriched);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: process a payout (approve with tx hash / reject with notes) — bank-level audit
+  app.patch('/api/admin/payouts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const { status, adminNotes, transactionHash } = req.body;
+      if (!['processing', 'completed', 'rejected'].includes(status)) return res.status(400).json({ message: 'Invalid status' });
+
+      const all = await storage.getAllPayoutRequests();
+      const current = all.find((r: any) => r.id === req.params.id);
+      if (!current) return res.status(404).json({ message: 'Payout request not found' });
+
+      // Prevent re-processing a completed or rejected request
+      if (['completed', 'rejected'].includes(current.status)) {
+        return res.status(409).json({ message: `Cannot change a ${current.status} payout request` });
+      }
+      if (status === 'completed' && !transactionHash) {
+        return res.status(400).json({ message: 'Transaction hash is required to mark payout as completed' });
+      }
+
+      const updated = await storage.updatePayoutRequest(req.params.id, {
+        status,
+        adminNotes,
+        transactionHash,
+        processedBy: req.user.id,
+        processedAt: new Date(),
+      } as any);
+
+      // Refund on rejection
+      if (status === 'rejected' && current.status !== 'rejected') {
+        const refundAmount = parseFloat(current.amount || '0');
+        if (refundAmount > 0) await storage.updateUserBalance(current.userId, refundAmount, 'add');
+      }
+
+      // Notify influencer
+      await storage.createNotification({
+        userId: current.userId,
+        type: 'payout_update',
+        title: status === 'completed' ? 'Payout Sent! 🎉' : status === 'rejected' ? 'Payout Rejected — Funds Returned' : 'Payout Being Processed...',
+        content: adminNotes || (status === 'completed' ? `Your payout of $${current.amount} USDT has been sent. TX: ${transactionHash}` : status === 'rejected' ? 'Your payout was rejected. Funds have been returned to your wallet balance.' : 'Admin is processing your payout request.'),
+        isRead: false,
+      } as any);
+
+      // Post a system message on the payout thread
+      await storage.createPayoutMessage(req.params.id, req.user.id,
+        status === 'completed'
+          ? `✅ Payout completed. Transaction hash: ${transactionHash}${adminNotes ? `\n\nNotes: ${adminNotes}` : ''}`
+          : status === 'rejected'
+            ? `❌ Payout rejected and funds refunded.${adminNotes ? `\n\nReason: ${adminNotes}` : ''}`
+            : `⏳ Payout marked as processing.${adminNotes ? `\n\nNotes: ${adminNotes}` : ''}`
+      );
+
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: get full conversation thread for a campaign (all participants + messages)
+  app.get('/api/admin/campaigns/:id/thread', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const participations = await storage.getCampaignParticipations(req.params.id);
+      const allMessages = await storage.getCampaignMessages(req.params.id);
+      // Enrich participations with user info
+      const enrichedParticipations = await Promise.all(participations.map(async (p: any) => {
+        const user = await storage.getUser(p.userId);
+        return { ...p, user: user ? { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, profileImageUrl: (user as any).profileImageUrl, creatorTier: (user as any).creatorTier } : null };
+      }));
+      // Enrich messages with sender info
+      const enrichedMessages = await Promise.all(allMessages.map(async (m: any) => {
+        const sender = await storage.getUser(m.senderId);
+        const receiver = await storage.getUser(m.receiverId);
+        return { ...m, sender: sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType } : null, receiver: receiver ? { id: receiver.id, firstName: receiver.firstName, lastName: receiver.lastName, userType: receiver.userType } : null };
+      }));
+      res.json({ campaign, participations: enrichedParticipations, messages: enrichedMessages });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: get full conversation thread for a direct hire offer
+  app.get('/api/admin/direct-hire/:id/thread', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Direct hire offer not found' });
+      const brand = await storage.getUser(offer.brandId);
+      const influencer = await storage.getUser(offer.influencerId);
+      // Get messages linked to this direct hire via referenceType/referenceId
+      const allMessages = await storage.getMessagesByReference('direct_hire', req.params.id);
+      const enrichedMessages = await Promise.all(allMessages.map(async (m: any) => {
+        const sender = await storage.getUser(m.senderId);
+        const receiver = await storage.getUser(m.receiverId);
+        return { ...m, sender: sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType } : null, receiver: receiver ? { id: receiver.id, firstName: receiver.firstName, lastName: receiver.lastName, userType: receiver.userType } : null };
+      }));
+      res.json({
+        offer: { ...offer, brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, email: brand.email } : null, influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName, email: influencer.email } : null },
+        messages: enrichedMessages,
+      });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   // ═══════════════════════════════════════════════════
   // PUSH NOTIFICATION SUBSCRIPTIONS
   // ═══════════════════════════════════════════════════

@@ -20,6 +20,8 @@ import { Navigation } from "@/components/ui/navigation";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { PWASettingsPanel } from "@/components/PWASettingsPanel";
 import { ContentEditorPanel } from "@/components/ContentEditorPanel";
+import { AdminPayoutsCenter } from "@/components/AdminPayoutsCenter";
+import { AdminConversationDrawer } from "@/components/AdminConversationDrawer";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -738,6 +740,7 @@ export default function AdminMaster() {
 
   // Payment methods state
   const [isPaymentMethodDialogOpen, setIsPaymentMethodDialogOpen] = useState(false);
+  const [conversationDrawer, setConversationDrawer] = useState<{ open: boolean; type: "campaign" | "direct_hire"; id: string; title: string } | null>(null);
   const [editingPaymentMethod, setEditingPaymentMethod] = useState<any>(null);
   const [paymentMethodForm, setPaymentMethodForm] = useState<any>({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paypalClientId: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 });
   const [feedPostForm, setFeedPostForm] = useState({ content: "", imageUrl: "", videoUrl: "" });
@@ -1640,6 +1643,7 @@ export default function AdminMaster() {
                 { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
                 { value: "pwa", icon: <Smartphone className="h-3.5 w-3.5" />, label: "PWA" },
                 { value: "hero-sliders", icon: <Image className="h-3.5 w-3.5" />, label: "Hero Sliders" },
+                { value: "payout-center", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payouts" },
                 { value: "content-editor", icon: <Edit className="h-3.5 w-3.5" />, label: "Content Editor" },
               ].map((tab) => (
                 <TabsTrigger
@@ -2740,6 +2744,13 @@ export default function AdminMaster() {
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => { setEditingCampaign(campaign); setIsEditCampaignDialogOpen(true); }} className="text-orange-600 border-orange-200 hover:bg-orange-50">
                               <Edit className="h-4 w-4 mr-1" /> Edit
+                            </Button>
+                            <Button variant="outline" size="sm"
+                              onClick={() => setConversationDrawer({ open: true, type: "campaign", id: campaign.id, title: campaign.title })}
+                              className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                              data-testid={`btn-view-thread-${campaign.id}`}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-1" /> Thread
                             </Button>
                             {campaign.escrowPayment?.status === 'submitted' && (
                               <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveEscrow.mutate(campaign.escrowPayment.id)} disabled={approveEscrow.isPending}>
@@ -4743,6 +4754,15 @@ export default function AdminMaster() {
                                   >
                                     <XCircle className="w-3.5 h-3.5 mr-1" /> Reject Payment
                                   </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
+                                    onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title })}
+                                    data-testid={`btn-view-conversation-${offer.id}`}
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5 mr-1" /> View Conversation
+                                  </Button>
                                 </div>
                               </div>
                             )}
@@ -4765,6 +4785,11 @@ export default function AdminMaster() {
           {/* ── HERO SLIDERS TAB ── */}
           <TabsContent value="hero-sliders" className="space-y-6">
             <HeroSlidersPanel />
+          </TabsContent>
+
+          {/* ── PAYOUT CENTER TAB ── */}
+          <TabsContent value="payout-center" className="space-y-6 pb-8">
+            <AdminPayoutsCenter />
           </TabsContent>
 
           {/* ── CONTENT EDITOR TAB ── */}
@@ -6201,6 +6226,17 @@ function AdminPushNotificationsPanel() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Global Conversation Viewer Drawer ── */}
+      {conversationDrawer && (
+        <AdminConversationDrawer
+          open={conversationDrawer.open}
+          onClose={() => setConversationDrawer(null)}
+          type={conversationDrawer.type}
+          id={conversationDrawer.id}
+          title={conversationDrawer.title}
+        />
+      )}
     </div>
   );
 }
