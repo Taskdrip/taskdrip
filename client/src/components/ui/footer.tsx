@@ -12,6 +12,11 @@ import {
   Megaphone,
   Mail,
   MapPin,
+  ShoppingBag,
+  BookOpen,
+  Newspaper,
+  Trophy,
+  Store,
 } from "lucide-react";
 import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp } from "react-icons/si";
 import { SOCIALS, OFFICES } from "@/config/socials";
@@ -87,7 +92,13 @@ export function Footer() {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/tasks" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                <Link href="/shop" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-shop">
+                  <ShoppingBag className="h-4 w-4 mr-2 flex-shrink-0" />
+                  Shop
+                </Link>
+              </li>
+              <li>
+                <Link href="/tasks" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-tasks">
                   <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   Browse Tasks
                 </Link>
@@ -105,14 +116,14 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                <Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-breedskool">
+                  <BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />
                   BreedSkool Academy
                 </Link>
               </li>
               <li>
-                <Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                <Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-leaderboard">
+                  <Trophy className="h-4 w-4 mr-2 flex-shrink-0" />
                   Leaderboard
                 </Link>
               </li>
@@ -139,25 +150,25 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-influencers">
                   <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   Find Influencers
                 </Link>
               </li>
               <li>
-                <Link href="/brand-dashboard" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Brand Dashboard
+                <Link href="/p2p-hub" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-p2p-market">
+                  <Store className="h-4 w-4 mr-2 flex-shrink-0" />
+                  P2P Market
                 </Link>
               </li>
               <li>
-                <Link href="/chat" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <MessageCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Messages
+                <Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-feed">
+                  <Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />
+                  Feed
                 </Link>
               </li>
               <li>
-                <Link href="/advertise" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm font-medium text-purple-300 hover:text-purple-200">
+                <Link href="/advertise" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm font-medium text-purple-300 hover:text-purple-200" data-testid="link-footer-advertise">
                   <Megaphone className="h-4 w-4 mr-2 flex-shrink-0" />
                   Advertise With Us
                 </Link>
@@ -173,19 +184,19 @@ export function Footer() {
             </h4>
             <ul className="space-y-3 mb-6">
               <li>
-                <Link href="/about" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                <Link href="/about" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-about">
                   <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                <Link href="/contact" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-contact">
                   <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   Contact Support
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                <Link href="/blog" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-blog">
                   <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   Blog & Updates
                 </Link>

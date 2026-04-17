@@ -25,6 +25,24 @@ const socialLinks = [
   { href: SOCIALS.tiktok, icon: SiTiktok, color: "#010101", label: "TikTok" },
 ];
 
+const publicMainItems = [
+  { href: "/", label: "Home" },
+  { href: "/tasks", label: "Tasks" },
+  { href: "/shop", label: "Shop" },
+  { href: "/p2p-hub", label: "P2P Market" },
+  { href: "/influencers", label: "Influencers" },
+  { href: "/breedskool", label: "BreedSkool" },
+];
+
+const secondaryMainItems = [
+  { href: "/feed", label: "Feed" },
+  { href: "/blog", label: "Blog" },
+  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/advertise", label: "Advertise" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+];
+
 export function NavigationFixed() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -36,18 +54,19 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
+          { href: "/shop", label: "Shop" },
           { href: "/influencers", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/ledger", label: "Ledger" },
           { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
-          { href: "/shop", label: "Shop" },
         ];
       } else if ((user as any)?.userType === 'admin') {
         return [
           { href: "/", label: "Home" },
           { href: "/admin-dashboard", label: "Admin" },
+          { href: "/shop", label: "Shop" },
           { href: "/influencers", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
@@ -58,6 +77,7 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/tasks", label: "Tasks" },
+          { href: "/shop", label: "Shop" },
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/dashboard", label: "Dashboard" },
@@ -65,24 +85,15 @@ export function NavigationFixed() {
           { href: "/feed", label: "Feed" },
           { href: "/influencers", label: "Influencers" },
           { href: "/leaderboard", label: "Leaderboard" },
-          { href: "/shop", label: "Shop" },
         ];
       }
     } else {
-      return [
-        { href: "/", label: "Home" },
-        { href: "/tasks", label: "Tasks" },
-        { href: "/p2p-hub", label: "P2P Market" },
-        { href: "/influencers", label: "Influencers" },
-        { href: "/breedskool", label: "BreedSkool" },
-        { href: "/feed", label: "Feed" },
-        { href: "/blog", label: "Blog" },
-        { href: "/shop", label: "Shop" },
-      ];
+      return publicMainItems;
     }
   };
 
   const navItems = getNavItems();
+  const moreItems = isAuthenticated ? secondaryMainItems.filter((item) => !navItems.some((navItem) => navItem.href === item.href)) : secondaryMainItems;
 
   const isActive = (href: string) => {
     if (href === "/" && location === "/") return true;
@@ -119,13 +130,14 @@ export function NavigationFixed() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:block flex-1 mx-4 overflow-x-hidden">
-            <div className="flex items-center space-x-1 xl:space-x-2">
+          <div className="hidden lg:block flex-1 mx-3 overflow-visible">
+            <div className="flex items-center gap-0.5 xl:gap-1">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-2 xl:px-3 py-2 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
+                  data-testid={`link-header-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  className={`px-2 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
                     isActive(item.href)
                       ? "text-black border-b-2 border-black"
                       : "text-gray-600 hover:text-black"
@@ -134,6 +146,31 @@ export function NavigationFixed() {
                   {item.label}
                 </Link>
               ))}
+              {moreItems.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      data-testid="button-header-more"
+                      className="px-2 py-2 text-xs xl:text-sm font-medium text-gray-600 hover:text-black transition-colors duration-200 whitespace-nowrap"
+                    >
+                      More
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {moreItems.map((item) => (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link
+                          href={item.href}
+                          data-testid={`link-header-more-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                          className="w-full"
+                        >
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
 
@@ -298,6 +335,22 @@ export function NavigationFixed() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  data-testid={`link-mobile-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-colors ${
+                    isActive(item.href)
+                      ? "text-black bg-gray-100 font-bold"
+                      : "text-gray-700 hover:text-black hover:bg-gray-50"
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {moreItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  data-testid={`link-mobile-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
                   className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-colors ${
                     isActive(item.href)
                       ? "text-black bg-gray-100 font-bold"
