@@ -62,7 +62,7 @@ export default function EscrowPayment() {
   const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [paymentProof, setPaymentProof] = useState<PaymentProof>({
     transactionHash: "",
-    network: "tron"
+    network: ""
   });
   const [countdown, setCountdown] = useState<number>(0);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -345,7 +345,11 @@ export default function EscrowPayment() {
                 {/* Submit Payment Proof */}
                 <div className="pt-4 border-t">
                   <Button 
-                    onClick={() => setPaymentDialogOpen(true)}
+                    onClick={() => {
+                      const currentNet = activeNetworks.find((m: any) => m.id === selectedNetwork) || activeNetworks[0];
+                      setPaymentProof(prev => ({ ...prev, network: currentNet?.id || "" }));
+                      setPaymentDialogOpen(true);
+                    }}
                     className="w-full bg-green-600 hover:bg-green-700"
                     size="lg"
                   >
@@ -668,20 +672,37 @@ export default function EscrowPayment() {
                 <Input
                   value={paymentProof.transactionHash}
                   onChange={(e) => setPaymentProof(prev => ({ ...prev, transactionHash: e.target.value }))}
-                  placeholder="Enter transaction hash"
+                  placeholder="Enter transaction hash or reference ID"
+                  className="font-mono text-sm"
+                  data-testid="input-proof-tx-hash"
                 />
               </div>
               <div>
-                <Label>Network</Label>
-                <select
-                  value={paymentProof.network}
-                  onChange={(e) => setPaymentProof(prev => ({ ...prev, network: e.target.value as any }))}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="tron">USDT (Tron)</option>
-                  <option value="bsc">USDT (BSC)</option>
-                  <option value="ton">USDT (TON)</option>
-                </select>
+                <Label>Payment Network</Label>
+                {activeNetworks.length > 0 ? (
+                  <select
+                    value={paymentProof.network}
+                    onChange={(e) => setPaymentProof(prev => ({ ...prev, network: e.target.value }))}
+                    className="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    data-testid="select-proof-network"
+                  >
+                    <option value="">— Select network —</option>
+                    {activeNetworks.map((m: any) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}{m.network ? ` (${m.network})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={paymentProof.network}
+                    onChange={(e) => setPaymentProof(prev => ({ ...prev, network: e.target.value }))}
+                    placeholder="e.g. TRC20, BSC, TON, Pi"
+                    className="text-sm"
+                    data-testid="input-proof-network"
+                  />
+                )}
+                <p className="text-xs text-gray-500 mt-1">Select the network you used to send payment</p>
               </div>
               <div>
                 <Label>Payment Screenshot (Optional)</Label>
@@ -694,13 +715,18 @@ export default function EscrowPayment() {
                       setPaymentProof(prev => ({ ...prev, paymentScreenshot: file }));
                     }
                   }}
+                  data-testid="input-proof-screenshot"
                 />
               </div>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => submitProofMutation.mutate(paymentProof)}
+                  onClick={() => {
+                    const networkLabel = activeNetworks.find((m: any) => m.id === paymentProof.network)?.label || paymentProof.network;
+                    submitProofMutation.mutate({ ...paymentProof, network: networkLabel || paymentProof.network });
+                  }}
                   disabled={!paymentProof.transactionHash || submitProofMutation.isPending}
                   className="flex-1"
+                  data-testid="button-submit-proof"
                 >
                   {submitProofMutation.isPending ? "Submitting..." : "Submit Proof"}
                 </Button>
