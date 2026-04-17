@@ -1064,7 +1064,10 @@ export default function AdminMaster() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const { walletAddresses, updateWalletAddress, copyToClipboard } = useWallets();
-  const currentRole = ((user as any)?.role || ((user as any)?.userType === "admin" ? "admin" : "user")) as string;
+  const rawRole = (user as any)?.role;
+  const currentRole = ((user as any)?.userType === "admin"
+    ? "admin"
+    : (rawRole && rawRole !== "user" ? rawRole : "user")) as string;
   const allowedTabs = ROLE_TABS[currentRole] || [];
   const isFullAdmin = currentRole === "admin" || (user as any)?.userType === "admin";
   const canManageContent = isFullAdmin || currentRole === "content_editor";

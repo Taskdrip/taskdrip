@@ -58,6 +58,7 @@ async function ensureAdminExists() {
         email: adminEmail,
         password: hashed,
         userType: "admin",
+        role: "admin",
         bio: "Platform Administrator",
         location: "",
         skills: [],
