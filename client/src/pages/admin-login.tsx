@@ -51,15 +51,13 @@ export default function AdminLogin() {
         });
         return;
       }
-      queryClient.setQueryData(['/api/user'], data.user);
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       toast({
         title: 'Welcome, Admin',
         description: `Signed in as ${data.user.firstName} ${data.user.lastName}`,
       });
       setTimeout(() => {
-        setLocation('/admin-dashboard');
-      }, 100);
+        window.location.href = '/admin-dashboard';
+      }, 600);
     },
     onError: (error: any) => {
       toast({

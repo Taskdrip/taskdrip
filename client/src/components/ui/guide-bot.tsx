@@ -11,7 +11,8 @@ import {
   Bot, X, Send, Sparkles, BookOpen, ShoppingBag,
   TrendingUp, CheckCircle, AlertCircle, MessageSquare, Inbox,
   Users, Star, Zap, Building2, Target, BarChart3, Award, Mic,
-  HelpCircle, DollarSign, Briefcase, HeadphonesIcon, Play
+  HelpCircle, DollarSign, Briefcase, HeadphonesIcon, Play,
+  Shield, UserCheck, Clock, Activity
 } from "lucide-react";
 import { SiTelegram, SiWhatsapp } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
@@ -133,6 +134,127 @@ function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] 
     recs.push({ type: "info", icon: Star, title: "Add your location", description: "Some brands specifically target influencers in certain regions. Adding your location improves campaign matching.", action: { label: "Edit Profile", href: "/profile-edit" } });
   }
   return recs;
+}
+
+// ── Admin platform analysis ──────────────────────────────────────────────
+function analyzeAdminPlatform(users: any[], transactions: any[], campaigns: any[]): Recommendation[] {
+  const recs: Recommendation[] = [];
+  const pendingPayouts = transactions.filter((t: any) => t.status === 'pending');
+  const unverifiedUsers = users.filter((u: any) => !u.isVerified && u.userType !== 'admin');
+  const activeCampaigns = campaigns.filter((c: any) => c.status === 'active');
+  const creators = users.filter((u: any) => u.userType === 'creator');
+  const brands = users.filter((u: any) => u.userType === 'brand');
+  const completedTx = transactions.filter((t: any) => t.status === 'completed');
+  const totalRevenue = completedTx.reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
+  const verifiedCreators = creators.filter((u: any) => u.isVerified).length;
+
+  if (pendingPayouts.length > 0) {
+    recs.push({
+      type: "warning", icon: DollarSign,
+      title: `${pendingPayouts.length} pending payout request${pendingPayouts.length !== 1 ? 's' : ''}`,
+      description: `Creators are waiting to receive their earnings. Review and process these payouts promptly to maintain trust on the platform.`,
+      action: { label: "Process Payouts", href: "/admin-dashboard" },
+    });
+  }
+
+  if (unverifiedUsers.length > 0) {
+    recs.push({
+      type: "warning", icon: UserCheck,
+      title: `${unverifiedUsers.length} user${unverifiedUsers.length !== 1 ? 's' : ''} awaiting verification`,
+      description: `Verified creators unlock premium campaigns and higher-budget brand deals. Review and verify qualified influencers to grow platform activity.`,
+      action: { label: "Review Users", href: "/admin-dashboard" },
+    });
+  }
+
+  if (activeCampaigns.length > 0) {
+    recs.push({
+      type: "success", icon: Target,
+      title: `${activeCampaigns.length} active campaign${activeCampaigns.length !== 1 ? 's' : ''} running`,
+      description: `Monitor active campaigns for completed submissions. Approve verified proof to release creator payments promptly.`,
+      action: { label: "View Campaigns", href: "/admin-dashboard" },
+    });
+  } else {
+    recs.push({
+      type: "action", icon: TrendingUp,
+      title: "No active campaigns right now",
+      description: "Encourage brands to create campaigns or reach out to existing brand accounts to launch new influencer partnerships.",
+      action: { label: "Manage Campaigns", href: "/admin-dashboard" },
+    });
+  }
+
+  recs.push({
+    type: "info", icon: Users,
+    title: `${users.length} registered users on the platform`,
+    description: `${creators.length} creators (${verifiedCreators} verified, ${creators.length - verifiedCreators} pending) · ${brands.length} brand accounts. ${unverifiedUsers.length > 0 ? `${unverifiedUsers.length} need verification.` : 'All creators are verified.'}`,
+    action: { label: "Manage Users", href: "/admin-dashboard" },
+  });
+
+  if (totalRevenue > 0) {
+    recs.push({
+      type: "success", icon: BarChart3,
+      title: `$${totalRevenue.toFixed(2)} total platform volume`,
+      description: `${completedTx.length} completed transaction${completedTx.length !== 1 ? 's' : ''} processed. Keep brands active and running campaigns to grow platform revenue.`,
+    });
+  } else {
+    recs.push({
+      type: "action", icon: Activity,
+      title: "No completed transactions yet",
+      description: "Revenue starts when campaigns are fully processed. Encourage brands to fund campaigns and creators to submit proof.",
+    });
+  }
+
+  if (pendingPayouts.length === 0 && unverifiedUsers.length === 0) {
+    recs.push({
+      type: "success", icon: CheckCircle,
+      title: "Platform is fully up to date",
+      description: "No pending payouts or verification requests. Great work keeping the platform running smoothly!",
+    });
+  }
+
+  return recs;
+}
+
+// ── Admin chat responses ──────────────────────────────────────────────────
+function getAdminBotResponse(message: string, data: { users: any[], transactions: any[], campaigns: any[] }): string {
+  const lower = message.toLowerCase();
+  const { users, transactions, campaigns } = data;
+  const pendingPayouts = transactions.filter((t: any) => t.status === 'pending');
+  const unverifiedUsers = users.filter((u: any) => !u.isVerified && u.userType !== 'admin');
+  const activeCampaigns = campaigns.filter((c: any) => c.status === 'active');
+  const completedTx = transactions.filter((t: any) => t.status === 'completed');
+  const totalRevenue = completedTx.reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
+  const creators = users.filter((u: any) => u.userType === 'creator');
+  const brands = users.filter((u: any) => u.userType === 'brand');
+
+  if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+    return `Hello, Admin! 👋 Here's your platform snapshot:\n\n⏳ **${pendingPayouts.length}** pending payouts\n👤 **${unverifiedUsers.length}** users awaiting verification\n🎯 **${activeCampaigns.length}** active campaigns\n💰 **$${totalRevenue.toFixed(2)}** total volume\n\nWhat would you like to review?`;
+  }
+  if (lower.includes("payout") || lower.includes("withdrawal") || lower.includes("payment")) {
+    return `Payout overview:\n\n⏳ **Pending**: ${pendingPayouts.length} requests awaiting processing\n✅ **Completed**: ${completedTx.length} transactions\n💰 **Total volume**: $${totalRevenue.toFixed(2)}\n\nTo process payouts, go to Admin Dashboard → Transactions tab. Always verify wallet addresses before approving — crypto transfers are irreversible!`;
+  }
+  if (lower.includes("user") || lower.includes("creator") || lower.includes("verify") || lower.includes("verification")) {
+    return `User overview:\n\n👥 **Total**: ${users.length} registered users\n🎨 **Creators**: ${creators.length} (${creators.filter((u: any) => u.isVerified).length} verified)\n🏢 **Brands**: ${brands.length}\n⏳ **Awaiting verification**: ${unverifiedUsers.length}\n\nTo verify creators, go to Users tab in the Admin Dashboard and set their verification status.`;
+  }
+  if (lower.includes("campaign")) {
+    const totalCampaigns = campaigns.length;
+    const suspendedCampaigns = campaigns.filter((c: any) => c.status === 'suspended').length;
+    return `Campaign overview:\n\n🎯 **Active**: ${activeCampaigns.length} campaigns running\n📋 **Total**: ${totalCampaigns} campaigns\n⛔ **Suspended**: ${suspendedCampaigns}\n\nManage all campaigns in Admin Dashboard → Campaigns tab. You can suspend, approve, or edit campaigns there.`;
+  }
+  if (lower.includes("revenue") || lower.includes("stats") || lower.includes("analytics") || lower.includes("overview")) {
+    return `Platform analytics:\n\n💹 **Total volume**: $${totalRevenue.toFixed(2)}\n✅ **Completed transactions**: ${completedTx.length}\n⏳ **Pending payouts**: ${pendingPayouts.length}\n👥 **Total users**: ${users.length}\n🎯 **Active campaigns**: ${activeCampaigns.length}\n🏢 **Brands**: ${brands.length} · 🎨 **Creators**: ${creators.length}`;
+  }
+  if (lower.includes("help") || lower.includes("what can")) {
+    return `As your Admin Assistant, I can help with:\n\n💰 **Payouts** — "How many pending payouts are there?"\n👤 **Users** — "How many users need verification?"\n🎯 **Campaigns** — "What campaigns are active?"\n📊 **Analytics** — "Show me platform stats"\n🔧 **Platform health** — "Is everything running OK?"\n\nJust ask!`;
+  }
+  const alerts = [
+    pendingPayouts.length > 0 ? `• **${pendingPayouts.length} pending payout${pendingPayouts.length !== 1 ? 's'  : ''}** — process in Transactions tab` : null,
+    unverifiedUsers.length > 0 ? `• **${unverifiedUsers.length} user${unverifiedUsers.length !== 1 ? 's' : ''} to verify** — review in Users tab` : null,
+    activeCampaigns.length === 0 ? `• **No active campaigns** — encourage brands to create campaigns` : null,
+  ].filter(Boolean);
+  if (alerts.length > 0) {
+    return `Current action items:\n\n${alerts.join('\n')}\n\nAsk me about payouts, users, campaigns, or revenue for more detail.`;
+  }
+  return `Everything looks good! No immediate action required.\n\n✅ No pending payouts · ✅ All users verified · 🎯 ${activeCampaigns.length} active campaigns\n\nAsk me about specific topics like payouts, users, campaigns, or revenue.`;
 }
 
 // ── Brand chat responses ──────────────────────────────────────────────────
@@ -430,18 +552,34 @@ export function GuideBot() {
   const [showPopup, setShowPopup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const isBrand = (user as any)?.userType === 'brand';
-  const isCreator = !isBrand;
+  const isAdmin = (user as any)?.userType === 'admin' || ['admin', 'content_editor', 'moderator', 'store_manager'].includes((user as any)?.role);
+  const isBrand = !isAdmin && (user as any)?.userType === 'brand';
+  const isCreator = !isAdmin && !isBrand;
 
   const { data: socialLinks = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${(user as any)?.id}/social-links`],
     enabled: isAuthenticated && !!(user as any)?.id && isCreator,
   });
 
+  const { data: adminUsers = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/users"],
+    enabled: isAuthenticated && isAdmin,
+  });
+
+  const { data: adminTransactions = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/transactions"],
+    enabled: isAuthenticated && isAdmin,
+  });
+
+  const { data: adminCampaigns = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/campaigns"],
+    enabled: isAuthenticated && isAdmin,
+  });
+
   const sendToInboxMutation = useMutation({
     mutationFn: async (content: string) => {
       const res = await apiRequest("POST", "/api/guide/send-to-inbox", {
-        subject: isBrand ? "Your Taskdrip Brand Report" : "Your Taskdrip Influencer Report",
+        subject: isAdmin ? "Taskdrip Admin Platform Report" : isBrand ? "Your Taskdrip Brand Report" : "Your Taskdrip Influencer Report",
         content,
       });
       return res.json();
@@ -466,12 +604,16 @@ export function GuideBot() {
 
   useEffect(() => {
     if (isOpen && chatMessages.length === 0) {
-      const firstName = (user as any)?.firstName || 'there';
+      const firstName = (user as any)?.firstName || 'Admin';
       const company = (user as any)?.companyName || firstName;
+      const pendingCount = (adminTransactions as any[]).filter((t: any) => t.status === 'pending').length;
+      const unverifiedCount = (adminUsers as any[]).filter((u: any) => !u.isVerified && u.userType !== 'admin').length;
       const welcome: ChatMessage = {
         id: "welcome",
         role: "bot",
-        content: isBrand
+        content: isAdmin
+          ? `Hello, ${firstName}! 🛡️ I'm your Admin Assistant — monitoring the platform in real time.\n\n${pendingCount > 0 ? `⚠️ **${pendingCount}** pending payout${pendingCount !== 1 ? 's' : ''} need attention.\n` : ''}${unverifiedCount > 0 ? `👤 **${unverifiedCount}** user${unverifiedCount !== 1 ? 's' : ''} awaiting verification.\n` : ''}${pendingCount === 0 && unverifiedCount === 0 ? '✅ All caught up — no urgent actions required.\n' : ''}\nCheck the **Alerts** tab for a full platform overview, or ask me anything.`
+          : isBrand
           ? `Welcome, ${company}! 👋 I'm your Taskdrip Brand Advisor. I help brands find the right influencers, launch campaigns, and get the most out of influencer marketing. Check the **Recommendations** tab for personalised tips, or ask me anything!`
           : `Hey ${firstName}! 👋 I'm your Taskdrip Guide — powered by real profile analysis. Check the **Recommendations** tab for personalised growth tips, or chat with me for advice on your ${(user as any)?.niche || 'content'} niche and earnings!`,
         timestamp: new Date(),
@@ -517,7 +659,9 @@ export function GuideBot() {
       const botResponse: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: data.reply || "I'm here to help!", timestamp: new Date() };
       setChatMessages(prev => [...prev, botResponse]);
     } catch (err: any) {
-      const fallback = isBrand
+      const fallback = isAdmin
+        ? getAdminBotResponse(input, { users: adminUsers as any[], transactions: adminTransactions as any[], campaigns: adminCampaigns as any[] })
+        : isBrand
         ? getBrandBotResponse(input, user)
         : getCreatorBotResponse(input, user, socialLinks as any[]);
       const botResponse: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: fallback, timestamp: new Date() };
@@ -527,7 +671,9 @@ export function GuideBot() {
     }
   };
 
-  const recommendations = isBrand
+  const recommendations = isAdmin
+    ? analyzeAdminPlatform(adminUsers as any[], adminTransactions as any[], adminCampaigns as any[])
+    : isBrand
     ? analyzeBrandProfile(user)
     : analyzeCreatorProfile(user, socialLinks as any[]);
 
@@ -535,28 +681,30 @@ export function GuideBot() {
   const tier = getTierFromFollowers(totalFollowers);
   const tierConf = getTierConfig(tier);
   const brandRank = (user as any)?.brandRank || 'bronze';
+  const pendingAlerts = isAdmin ? recommendations.filter(r => r.type === 'warning').length : 0;
 
   if (!isAuthenticated) return null;
 
   const popupTip = recommendations.length > 0
     ? recommendations[0].description.substring(0, 85) + "..."
+    : isAdmin ? "Check platform health — view pending payouts and user verifications."
     : isBrand ? "Set up your brand profile to attract top influencers!" : "Check your profile score and get personalised growth tips!";
 
   return (
     <>
       {/* Popup notification */}
       {showPopup && !isOpen && (
-        <div className="fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-purple-100 p-4 max-w-xs animate-in slide-in-from-bottom-5 duration-300">
+        <div className={`fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 max-w-xs animate-in slide-in-from-bottom-5 duration-300 ${isAdmin ? "border border-amber-200" : "border border-purple-100"}`}>
           <button onClick={() => setShowPopup(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0">
-              <Bot className="w-5 h-5 text-white" />
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isAdmin ? "bg-gradient-to-br from-slate-700 to-slate-900" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}>
+              {isAdmin ? <Shield className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-900 mb-1">{isBrand ? "Brand Advisor tip!" : "Your Guide has a tip!"}</p>
+              <p className="text-xs font-bold text-gray-900 mb-1">{isAdmin ? "Admin alert!" : isBrand ? "Brand Advisor tip!" : "Your Guide has a tip!"}</p>
               <p className="text-xs text-gray-600">{popupTip}</p>
-              <button onClick={() => { setShowPopup(false); setIsOpen(true); }} className="text-xs font-semibold text-purple-600 hover:text-purple-800 mt-2 block">
-                View recommendations →
+              <button onClick={() => { setShowPopup(false); setIsOpen(true); }} className={`text-xs font-semibold mt-2 block ${isAdmin ? "text-slate-700 hover:text-slate-900" : "text-purple-600 hover:text-purple-800"}`}>
+                {isAdmin ? "View platform alerts →" : "View recommendations →"}
               </button>
             </div>
           </div>
@@ -567,21 +715,32 @@ export function GuideBot() {
       {isOpen && (
         <div className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 140px)" }}>
           {/* Header */}
-          <div className={`p-4 flex items-center justify-between flex-shrink-0 ${isBrand ? "bg-gradient-to-r from-blue-600 to-cyan-600" : "bg-gradient-to-r from-purple-600 to-indigo-600"}`}>
+          <div className={`p-4 flex items-center justify-between flex-shrink-0 ${isAdmin ? "bg-gradient-to-r from-slate-800 to-slate-900" : isBrand ? "bg-gradient-to-r from-blue-600 to-cyan-600" : "bg-gradient-to-r from-purple-600 to-indigo-600"}`}>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                {isBrand ? <Building2 className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
+                {isAdmin ? <Shield className="w-5 h-5 text-white" /> : isBrand ? <Building2 className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
               </div>
               <div>
-                <div className="text-white font-bold text-sm">{isBrand ? "Brand Advisor" : "Taskdrip Guide"}</div>
-                <div className="text-white/70 text-xs">{isBrand ? `${(user as any)?.companyName || 'Your brand'} · ${brandRank.charAt(0).toUpperCase() + brandRank.slice(1)} Rank` : "AI-powered influencer advisor"}</div>
+                <div className="text-white font-bold text-sm">{isAdmin ? "Admin Assistant" : isBrand ? "Brand Advisor" : "Taskdrip Guide"}</div>
+                <div className="text-white/70 text-xs">{isAdmin ? `${(user as any)?.firstName || 'Admin'} · Platform Operations` : isBrand ? `${(user as any)?.companyName || 'Your brand'} · ${brandRank.charAt(0).toUpperCase() + brandRank.slice(1)} Rank` : "AI-powered influencer advisor"}</div>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10"><X className="w-5 h-5" /></button>
           </div>
 
-          {/* Tier / Rank banner */}
-          {isCreator ? (
+          {/* Tier / Rank / Admin banner */}
+          {isAdmin ? (
+            <div className="px-4 py-2 flex items-center gap-2 bg-amber-50 border-b border-amber-100 flex-shrink-0">
+              <Activity className="w-4 h-4 text-amber-600" />
+              <span className="text-xs font-bold text-amber-700">Platform Health Monitor</span>
+              {pendingAlerts > 0 && (
+                <Badge className="text-xs bg-red-500 text-white ml-auto">{pendingAlerts} alert{pendingAlerts !== 1 ? 's' : ''}</Badge>
+              )}
+              {pendingAlerts === 0 && (
+                <Badge className="text-xs bg-green-500 text-white ml-auto">All clear</Badge>
+              )}
+            </div>
+          ) : isCreator ? (
             <div className={`px-4 py-2 flex items-center gap-2 ${tierConf.bg} border-b ${tierConf.border} flex-shrink-0`}>
               <span className="text-base">{tierConf.icon}</span>
               <div className="flex-1 min-w-0">
@@ -620,14 +779,14 @@ export function GuideBot() {
 
           {/* Tabs */}
           <div className="flex border-b border-gray-100 flex-shrink-0">
-            <button onClick={() => setActiveTab("recommendations")} className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "recommendations" ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50" : "text-gray-500 hover:text-gray-700"}`}>
-              <Sparkles className="w-3.5 h-3.5" />
-              Recommendations
-              {recommendations.length > 0 && (<span className="bg-purple-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{recommendations.length}</span>)}
+            <button onClick={() => setActiveTab("recommendations")} className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "recommendations" ? (isAdmin ? "text-slate-800 border-b-2 border-slate-800 bg-slate-50" : "text-purple-600 border-b-2 border-purple-600 bg-purple-50") : "text-gray-500 hover:text-gray-700"}`}>
+              {isAdmin ? <Activity className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {isAdmin ? "Alerts" : "Recommendations"}
+              {recommendations.length > 0 && (<span className={`text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center ${isAdmin && pendingAlerts > 0 ? "bg-red-500" : isAdmin ? "bg-slate-700" : "bg-purple-600"}`}>{recommendations.length}</span>)}
             </button>
-            <button onClick={() => setActiveTab("chat")} className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "chat" ? "text-purple-600 border-b-2 border-purple-600 bg-purple-50" : "text-gray-500 hover:text-gray-700"}`}>
+            <button onClick={() => setActiveTab("chat")} className={`flex-1 py-2.5 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${activeTab === "chat" ? (isAdmin ? "text-slate-800 border-b-2 border-slate-800 bg-slate-50" : "text-purple-600 border-b-2 border-purple-600 bg-purple-50") : "text-gray-500 hover:text-gray-700"}`}>
               <MessageSquare className="w-3.5 h-3.5" />
-              Chat
+              {isAdmin ? "Ask Admin Bot" : "Chat"}
             </button>
           </div>
 
@@ -635,15 +794,31 @@ export function GuideBot() {
           <div className="flex-1 overflow-y-auto">
             {activeTab === "recommendations" && (
               <div className="p-4 space-y-4">
-                <ProfileScore user={user} socialLinks={socialLinks as any[]} />
+                {!isAdmin && <ProfileScore user={user} socialLinks={socialLinks as any[]} />}
+                {isAdmin && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-xl p-3 bg-slate-50 border border-slate-200 text-center">
+                      <div className="text-lg font-bold text-slate-800">{(adminUsers as any[]).filter((u: any) => u.userType !== 'admin').length}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">Users</div>
+                    </div>
+                    <div className="rounded-xl p-3 bg-amber-50 border border-amber-200 text-center">
+                      <div className="text-lg font-bold text-amber-700">{(adminTransactions as any[]).filter((t: any) => t.status === 'pending').length}</div>
+                      <div className="text-[10px] text-amber-600 mt-0.5">Pending</div>
+                    </div>
+                    <div className="rounded-xl p-3 bg-blue-50 border border-blue-200 text-center">
+                      <div className="text-lg font-bold text-blue-700">{(adminCampaigns as any[]).filter((c: any) => c.status === 'active').length}</div>
+                      <div className="text-[10px] text-blue-600 mt-0.5">Active</div>
+                    </div>
+                  </div>
+                )}
                 <div className="border-t border-gray-100 pt-3 space-y-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Action Items</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{isAdmin ? "Platform Alerts" : "Action Items"}</p>
                   {recommendations.map((rec, i) => {
                     const Icon = rec.icon;
                     return (
-                      <div key={i} className={`rounded-xl p-3 border ${rec.type === "success" ? "bg-green-50 border-green-100" : rec.type === "warning" ? "bg-amber-50 border-amber-100" : rec.type === "action" ? "bg-purple-50 border-purple-100" : "bg-blue-50 border-blue-100"}`}>
+                      <div key={i} className={`rounded-xl p-3 border ${rec.type === "success" ? "bg-green-50 border-green-100" : rec.type === "warning" ? "bg-amber-50 border-amber-100" : rec.type === "action" ? (isAdmin ? "bg-slate-50 border-slate-200" : "bg-purple-50 border-purple-100") : "bg-blue-50 border-blue-100"}`}>
                         <div className="flex items-start gap-2">
-                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${rec.type === "success" ? "text-green-600" : rec.type === "warning" ? "text-amber-600" : rec.type === "action" ? "text-purple-600" : "text-blue-600"}`} />
+                          <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${rec.type === "success" ? "text-green-600" : rec.type === "warning" ? "text-amber-600" : rec.type === "action" ? (isAdmin ? "text-slate-700" : "text-purple-600") : "text-blue-600"}`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-gray-900">{rec.title}</p>
                             <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{rec.description}</p>
@@ -687,13 +862,19 @@ export function GuideBot() {
                 <div className="px-3 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Quick Help</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {[
+                    {(isAdmin ? [
+                      { label: "Pending Payouts", icon: Clock, msg: "Show me all pending payout transactions." },
+                      { label: "Unverified Users", icon: UserCheck, msg: "How many users are unverified?" },
+                      { label: "Active Campaigns", icon: Briefcase, msg: "How many active campaigns are running?" },
+                      { label: "Platform Revenue", icon: DollarSign, msg: "What is the platform revenue summary?" },
+                      { label: "Contact Support", icon: HeadphonesIcon, msg: "How do I escalate a support issue?" },
+                    ] : [
                       { label: "How to Start", icon: Play, msg: "How do I get started on Taskdrip?" },
                       { label: "How to Earn", icon: DollarSign, msg: "How do I earn money on Taskdrip?" },
                       { label: "How to Withdraw", icon: Zap, msg: "How do I withdraw my earnings?" },
                       { label: "Get Campaigns", icon: Briefcase, msg: "How do I get campaigns?" },
                       { label: "Contact Support", icon: HeadphonesIcon, msg: "How do I contact support?" },
-                    ].map((flow) => {
+                    ]).map((flow) => {
                       const Icon = flow.icon;
                       return (
                         <button
@@ -703,7 +884,9 @@ export function GuideBot() {
                             setChatMessages(prev => [...prev, userMsg]);
                             setIsAiTyping(true);
                             setTimeout(() => {
-                              const response = isBrand
+                              const response = isAdmin
+                                ? getAdminBotResponse(flow.msg, { users: adminUsers as any[], transactions: adminTransactions as any[], campaigns: adminCampaigns as any[] })
+                                : isBrand
                                 ? getBrandBotResponse(flow.msg, user)
                                 : getCreatorBotResponse(flow.msg, user, socialLinks as any[]);
                               const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: "bot", content: response, timestamp: new Date() };
@@ -711,7 +894,7 @@ export function GuideBot() {
                               setIsAiTyping(false);
                             }, 700);
                           }}
-                          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors"
+                          className={`flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg transition-colors border ${isAdmin ? "bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200" : "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"}`}
                         >
                           <Icon className="w-3 h-3" /> {flow.label}
                         </button>
@@ -724,8 +907,8 @@ export function GuideBot() {
                   {chatMessages.map(msg => (
                     <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       {msg.role === "bot" && (
-                        <div className={`w-6 h-6 rounded-full ${isBrand ? "bg-blue-600" : "bg-purple-600"} flex items-center justify-center flex-shrink-0 mr-2 mt-0.5`}>
-                          {isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-0.5 ${isAdmin ? "bg-slate-800" : isBrand ? "bg-blue-600" : "bg-purple-600"}`}>
+                          {isAdmin ? <Shield className="w-3 h-3 text-white" /> : isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
                         </div>
                       )}
                       <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-tr-sm" : "bg-gray-100 text-gray-800 rounded-tl-sm"}`}>
@@ -735,8 +918,8 @@ export function GuideBot() {
                   ))}
                   {isAiTyping && (
                     <div className="flex justify-start">
-                      <div className={`w-6 h-6 rounded-full ${isBrand ? "bg-blue-600" : "bg-purple-600"} flex items-center justify-center flex-shrink-0 mr-2 mt-0.5`}>
-                        {isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-0.5 ${isAdmin ? "bg-slate-800" : isBrand ? "bg-blue-600" : "bg-purple-600"}`}>
+                        {isAdmin ? <Shield className="w-3 h-3 text-white" /> : isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
                       </div>
                       <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-2.5 flex gap-1 items-center">
                         <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -781,12 +964,12 @@ export function GuideBot() {
                       value={chatInput}
                       onChange={e => setChatInput(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSendChat()}
-                      placeholder={isBrand ? "Ask about campaigns, influencers..." : "Ask me anything..."}
+                      placeholder={isAdmin ? "Ask about users, payouts, campaigns..." : isBrand ? "Ask about campaigns, influencers..." : "Ask me anything..."}
                       className="rounded-xl text-xs border-gray-200 h-9"
                       data-testid="input-guide-chat"
                       disabled={isAiTyping}
                     />
-                    <Button size="sm" onClick={handleSendChat} disabled={!chatInput.trim() || isAiTyping} className={`rounded-xl h-9 px-3 ${isBrand ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"} text-white`} data-testid="button-guide-send">
+                    <Button size="sm" onClick={handleSendChat} disabled={!chatInput.trim() || isAiTyping} className={`rounded-xl h-9 px-3 ${isAdmin ? "bg-slate-800 hover:bg-slate-900" : isBrand ? "bg-blue-600 hover:bg-blue-700" : "bg-purple-600 hover:bg-purple-700"} text-white`} data-testid="button-guide-send">
                       <Send className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -800,10 +983,10 @@ export function GuideBot() {
       {/* Floating button */}
       <button
         onClick={() => { setIsOpen(!isOpen); setShowPopup(false); }}
-        className={`fixed bottom-6 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${isBrand ? "bg-gradient-to-br from-blue-600 to-cyan-600" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}
+        className={`fixed bottom-6 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${isAdmin ? "bg-gradient-to-br from-slate-800 to-slate-900" : isBrand ? "bg-gradient-to-br from-blue-600 to-cyan-600" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}
         data-testid="button-guide-bot-toggle"
       >
-        {isOpen ? <X className="w-6 h-6 text-white" /> : isBrand ? <Building2 className="w-6 h-6 text-white" /> : <Bot className="w-6 h-6 text-white" />}
+        {isOpen ? <X className="w-6 h-6 text-white" /> : isAdmin ? <Shield className="w-6 h-6 text-white" /> : isBrand ? <Building2 className="w-6 h-6 text-white" /> : <Bot className="w-6 h-6 text-white" />}
         {!isOpen && recommendations.length > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{recommendations.length}</span>
         )}
