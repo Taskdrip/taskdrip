@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -6520,6 +6520,75 @@ Instructions:
     } catch (e) {
       res.status(500).json({ message: 'Failed to delete slider' });
     }
+  });
+
+  // ── My Orders: unified view of all user orders/transactions ──────────────────
+  app.get('/api/my-orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+
+      // Shop purchases
+      const shopOrders = await storage.getUserPurchases(userId);
+
+      // Course enrollments
+      const courseOrders = await storage.getMyEnrollments(userId);
+
+      // P2P transactions (buyer or seller)
+      const p2pRows = await db
+        .select()
+        .from(p2pTransactions)
+        .where(sql`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`)
+        .orderBy(desc(p2pTransactions.createdAt));
+      const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
+
+      // Campaign escrow (only for brands or admins)
+      let escrowOrders: any[] = [];
+      if (user.userType === 'brand' || user.userType === 'admin') {
+        const allEscrow = await (storage as any).getAllEscrowPayments();
+        const userEscrow = user.userType === 'admin' ? allEscrow : allEscrow.filter((p: any) => p.brandId === userId);
+        escrowOrders = await Promise.all(userEscrow.map(async (payment: any) => {
+          const campaign = payment.campaignId ? await storage.getCampaignById(payment.campaignId) : null;
+          return {
+            ...payment,
+            campaign: campaign ? { id: campaign.id, title: campaign.title, budget: campaign.budget, reward: campaign.reward, totalSlots: campaign.totalSlots } : null,
+          };
+        }));
+      }
+
+      // Direct hire offers
+      let directHireOrders: any[] = [];
+      if (user.userType === 'brand') {
+        directHireOrders = await storage.getDirectHireOffersByBrand(userId);
+      } else if (user.userType === 'influencer') {
+        directHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
+      }
+
+      res.json({
+        shopOrders,
+        courseOrders,
+        p2pTransactions: enrichedP2P,
+        escrowOrders,
+        directHireOrders,
+        userType: user.userType,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error fetching my orders:', error);
+      res.status(500).json({ message: 'Failed to fetch orders' });
+    }
+  });
+
+  // ── My Orders detail by type/id ───────────────────────────────────────────
+  app.get('/api/my-orders/shop/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const purchase = await storage.getPurchaseById(req.params.id);
+      if (!purchase) return res.status(404).json({ message: 'Order not found' });
+      if (purchase.userId !== req.user.id && req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const [product] = await db.select().from(shopProducts).where(eq(shopProducts.id, purchase.productId));
+      res.json({ ...purchase, product: product || null });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   const httpServer = createServer(app);

@@ -310,3 +310,19 @@ Design preferences: Clean, professional web app design with white background and
 - Database connection pooling with Neon
 - CDN-ready static asset serving
 - Session store supports multiple server instances
+### My Orders & Transactions System (Added April 2026)
+- **Page**: `/my-orders` — unified orders/transactions dashboard for all users
+- **Backend API**: `GET /api/my-orders` — aggregates all transaction types for authenticated user
+- **Covered transaction types**: Shop orders, Course enrollments, P2P trades, Campaign escrow payments, Direct hire offers
+- **Features**:
+  - Filter by transaction type (shop, course, p2p, campaign, direct_hire) and time period
+  - In-app order preview dialog with full details (no external redirects)
+  - Complete charge breakdown: base amount + 10% platform fee + total
+  - Shipping/delivery details for shop orders
+  - Course progress bars for enrolled courses
+  - Download as professional PDF (jspdf + jspdf-autotable) or Excel (xlsx/SheetJS)
+  - Summary stats (total orders, total charged, pending, completed)
+- **Libraries added**: jspdf, jspdf-autotable, xlsx
+- **Enhanced proof-submitted page** (`/escrow-payment`): Shows order summary, before/after charge breakdown with platform fees, payment details, and "View My Orders" button
+- **Navigation**: "My Orders" link added to user dropdown menu in navigation
+- **Dashboard links**: Quick-access buttons added in user dashboard and brand dashboard

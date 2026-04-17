@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -220,6 +220,11 @@ export function NavigationFixed() {
                     <DropdownMenuItem>
                       <Link href="/ledger" className="flex items-center w-full">
                         <Landmark className="mr-2 h-4 w-4" /><span>Ledger</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link href="/my-orders" className="flex items-center w-full">
+                        <Package className="mr-2 h-4 w-4" /><span>My Orders</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>

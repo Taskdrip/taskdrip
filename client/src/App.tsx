@@ -68,6 +68,7 @@ import P2PListing from "@/pages/p2p-listing";
 import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
 import AdminP2PFees from "@/pages/admin-p2p-fees";
 import AdminPlatformFees from "@/pages/admin-platform-fees";
+import MyOrdersPage from "@/pages/my-orders";
 
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
@@ -162,6 +163,7 @@ function Router() {
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
+          <Route path="/my-orders" component={MyOrdersPage} />
           <Route path="/referrals" component={ReferralsPage} />
           <Route path="/security" component={SecuritySettings} />
         </>

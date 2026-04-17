@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
-  Briefcase, ChevronRight
+  Briefcase, ChevronRight, Package
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
@@ -712,6 +712,15 @@ export default function BrandDashboard() {
                       <div className="text-xs opacity-75">Manage your network</div>
                     </div>
                   </Button>
+                  <Link href="/my-orders">
+                    <Button variant="outline" className="flex items-center gap-2 h-auto p-4 w-full" data-testid="button-open-my-orders-brand">
+                      <Package className="h-5 w-5" />
+                      <div className="text-left">
+                        <div className="font-medium">My Orders</div>
+                        <div className="text-xs opacity-75">View all transactions</div>
+                      </div>
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

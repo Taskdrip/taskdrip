@@ -6,12 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useWallets } from "@/hooks/useWallets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Copy, Clock, Wallet, CheckCircle, AlertTriangle, Upload, MessageCircle, Phone, Mail, Send } from "lucide-react";
+import { ArrowLeft, Copy, Clock, Wallet, CheckCircle, AlertTriangle, Upload, MessageCircle, Phone, Send, ReceiptText, ShieldCheck, Package } from "lucide-react";
 import { format } from "date-fns";
 
 interface EscrowPayment {
@@ -80,6 +81,12 @@ export default function EscrowPayment() {
       setAdminMsgText("");
     },
     onError: () => toast({ title: "Failed to send", description: "Please try WhatsApp instead.", variant: "destructive" }),
+  });
+
+  // Fetch campaign details for order summary
+  const { data: campaignDetails } = useQuery<any>({
+    queryKey: ["/api/campaigns", campaignId],
+    enabled: !!campaignId,
   });
 
   // Fetch active payment networks
@@ -373,6 +380,121 @@ export default function EscrowPayment() {
               </CardContent>
             </Card>
 
+            {/* Order Summary */}
+            <Card className="border border-gray-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ReceiptText className="h-5 w-5 text-gray-600" />
+                  Order Summary
+                </CardTitle>
+                {campaignDetails?.title && (
+                  <CardDescription className="text-gray-600 font-medium">{campaignDetails.title}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* What they ordered */}
+                <div className="rounded-xl bg-gray-50 p-4 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">What you ordered</p>
+                  {campaignDetails && (
+                    <div className="space-y-1.5 text-sm">
+                      {campaignDetails.title && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Campaign name</span>
+                          <span className="font-semibold text-gray-900">{campaignDetails.title}</span>
+                        </div>
+                      )}
+                      {campaignDetails.totalSlots && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Influencer slots</span>
+                          <span className="font-semibold text-gray-900">{campaignDetails.totalSlots}</span>
+                        </div>
+                      )}
+                      {campaignDetails.reward && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Per-influencer reward</span>
+                          <span className="font-semibold text-gray-900">${Number(campaignDetails.reward).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Charge breakdown — before vs after */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Before paying */}
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 overflow-hidden">
+                    <div className="px-4 py-2 bg-blue-100">
+                      <p className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <ShieldCheck className="h-3.5 w-3.5" /> Before Payment
+                      </p>
+                    </div>
+                    <div className="px-4 py-3 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Campaign budget</span>
+                        <span className="font-semibold text-blue-900">${Number(escrowPayment.amount).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Platform fee (10%)</span>
+                        <span className="font-semibold text-orange-700">+${(Number(escrowPayment.amount) * 0.1).toFixed(2)}</span>
+                      </div>
+                      <Separator className="bg-blue-200" />
+                      <div className="flex justify-between">
+                        <span className="font-bold text-blue-900">Quoted total</span>
+                        <span className="font-black text-blue-900">${(Number(escrowPayment.amount) * 1.1).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* After paying */}
+                  <div className="rounded-xl border border-green-100 bg-green-50 overflow-hidden">
+                    <div className="px-4 py-2 bg-green-100">
+                      <p className="text-xs font-bold text-green-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <CheckCircle className="h-3.5 w-3.5" /> Amount You Paid
+                      </p>
+                    </div>
+                    <div className="px-4 py-3 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-green-700">Campaign budget</span>
+                        <span className="font-semibold text-green-900">${Number(escrowPayment.amount).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-green-700">Platform fee</span>
+                        <span className="font-semibold text-orange-700">+${(Number(escrowPayment.amount) * 0.1).toFixed(2)}</span>
+                      </div>
+                      <Separator className="bg-green-200" />
+                      <div className="flex justify-between">
+                        <span className="font-bold text-green-900">Total charged</span>
+                        <span className="font-black text-green-900">${(Number(escrowPayment.amount) * 1.1).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment details */}
+                {((escrowPayment as any).transactionHash || (escrowPayment as any).network) && (
+                  <div className="rounded-xl border border-gray-100 bg-white divide-y divide-gray-50">
+                    <p className="px-4 pt-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Payment details</p>
+                    {(escrowPayment as any).network && (
+                      <div className="flex justify-between items-center px-4 py-2.5 text-sm">
+                        <span className="text-gray-500">Network</span>
+                        <span className="font-medium uppercase">{(escrowPayment as any).network}</span>
+                      </div>
+                    )}
+                    {(escrowPayment as any).transactionHash && (
+                      <div className="flex justify-between items-start px-4 py-2.5 text-sm gap-3">
+                        <span className="text-gray-500 shrink-0">Transaction hash</span>
+                        <span className="font-mono text-xs text-gray-700 break-all text-right">{(escrowPayment as any).transactionHash}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center px-4 py-2.5 text-sm">
+                      <span className="text-gray-500">Submitted</span>
+                      <span className="font-medium">{format(new Date(), "MMM d, yyyy · h:mm a")}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* What happens next */}
             <Card>
               <CardHeader>
@@ -484,8 +606,16 @@ export default function EscrowPayment() {
                 variant="outline" 
                 className="flex-1"
                 onClick={() => setLocation("/brand-dashboard")}
+                data-testid="button-back-dashboard"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
+              </Button>
+              <Button
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                onClick={() => setLocation("/my-orders")}
+                data-testid="button-view-my-orders"
+              >
+                <Package className="h-4 w-4 mr-2" /> View My Orders
               </Button>
             </div>
           </div>
