@@ -75,7 +75,7 @@ function TierHeroCard({
             </div>
             <div className="text-right">
               <div className="text-5xl font-black text-white tabular-nums">{count}</div>
-              <div className="text-white/60 text-xs mt-0.5">{count === 1 ? "Creator" : "Creators"}</div>
+              <div className="text-white/60 text-xs mt-0.5">{count === 1 ? "Influencer" : "Influencers"}</div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-5">
@@ -96,7 +96,7 @@ function TierHeroCard({
           </div>
           {topCreators.length > 0 && (
             <div className="mb-5">
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2.5">Top Creators</p>
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2.5">Top Influencers</p>
               <div className="flex -space-x-2">
                 {topCreators.slice(0, 5).map((c, i) => (
                   <Avatar key={c.id} className="w-9 h-9 border-2 border-white/40 shadow-lg" style={{ zIndex: 5 - i }}>
@@ -799,7 +799,7 @@ export default function Creators() {
               </div>
               <div className="flex flex-wrap gap-4 mt-6">
                 {[
-                  { icon: <Users className="w-4 h-4" />, label: "Creators", value: `${tierStats[activeTier]?.count || 0}` },
+                  { icon: <Users className="w-4 h-4" />, label: "Influencers", value: `${tierStats[activeTier]?.count || 0}` },
                   { icon: <DollarSign className="w-4 h-4" />, label: "Total Earned", value: formatEarnings(tierStats[activeTier]?.totalEarnings || 0) },
                   { icon: <TrendingUp className="w-4 h-4" />, label: "Avg Followers", value: formatFollowers(Math.round(tierStats[activeTier]?.avgFollowers || 0)) },
                   { icon: <BarChart3 className="w-4 h-4" />, label: "Showing", value: `${filteredCreators.length} results` },
@@ -825,11 +825,11 @@ export default function Creators() {
                 <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 text-transparent bg-clip-text">Influencer</span>
               </h1>
               <p className="text-white/50 text-lg max-w-xl mx-auto mb-8 leading-relaxed">
-                Discover {totalCreators} verified creators across 4 elite tiers — filter by niche, platform, reach & engagement.
+                Discover {totalCreators} verified influencers across 4 elite tiers — filter by niche, platform, reach & engagement.
               </p>
               <div className="flex flex-wrap justify-center gap-4 mb-6">
                 {[
-                  { icon: "🌍", label: "Total Creators", value: totalCreators.toString() },
+                  { icon: "🌍", label: "Total Influencers", value: totalCreators.toString() },
                   { icon: "💰", label: "Total Paid Out", value: formatEarnings(totalEarningsAll) },
                   { icon: "👑", label: "Tiers", value: "4" },
                   { icon: "🤖", label: "AI Compare", value: "Free" },
@@ -845,7 +845,7 @@ export default function Creators() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
                 <input
                   type="text"
-                  placeholder="Search creators by name, niche, or location..."
+                  placeholder="Search influencers by name, niche, or location..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 backdrop-blur focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-sm"
@@ -1003,11 +1003,11 @@ export default function Creators() {
 
               {/* Verified only */}
               <div className="flex flex-col justify-between">
-                <label className="text-white/60 text-xs font-semibold mb-2 block">✅ Creator Options</label>
+                <label className="text-white/60 text-xs font-semibold mb-2 block">✅ Influencer Options</label>
                 <button onClick={() => setVerifiedOnly((v) => !v)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all ${verifiedOnly ? "bg-blue-600/30 border-blue-400 text-blue-300" : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10"}`}>
                   <CheckCircle className={`w-4 h-4 ${verifiedOnly ? "text-blue-400" : "text-white/30"}`} />
-                  Verified creators only
+                  Verified influencers only
                 </button>
               </div>
             </div>

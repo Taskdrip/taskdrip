@@ -10,7 +10,7 @@ export function Hero() {
               Connect, Create, <span className="text-accent">Earn</span> with Web3
             </h1>
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Join thousands of creators and brands on the leading SocialFi platform. Complete campaigns, earn crypto rewards, and build your digital reputation.
+              Join thousands of influencers and brands on the leading SocialFi platform. Complete campaigns, earn crypto rewards, and build your digital reputation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-accent text-white hover:bg-blue-700">
@@ -25,7 +25,7 @@ export function Hero() {
             <div className="grid grid-cols-3 gap-8 mt-12 pt-8 border-t border-gray-200">
               <div className="text-center">
                 <div className="text-2xl font-bold text-black">25,847</div>
-                <div className="text-sm text-gray-600">Active Creators</div>
+                <div className="text-sm text-gray-600">Active Influencers</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-black">$2.4M</div>

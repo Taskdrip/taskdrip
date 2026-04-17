@@ -79,11 +79,11 @@ export function Footer() {
             </div>
           </div>
 
-          {/* For Creators */}
+          {/* For Influencers */}
           <div>
             <h4 className="font-semibold mb-6 text-lg flex items-center">
               <Users className="h-5 w-5 mr-2" />
-              For Creators
+              For Influencers
             </h4>
             <ul className="space-y-3">
               <li>

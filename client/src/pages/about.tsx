@@ -148,7 +148,7 @@ const CAMPAIGN_CATEGORIES = [
 ];
 
 const STATS = [
-  { number: '10K+', label: 'Verified Creators', icon: Users },
+  { number: '10K+', label: 'Verified Influencers', icon: Users },
   { number: '2,500+', label: 'Campaigns Launched', icon: Rocket },
   { number: '$450K+', label: 'Paid Out in Crypto', icon: DollarSign },
   { number: '60+', label: 'Countries Represented', icon: Globe },

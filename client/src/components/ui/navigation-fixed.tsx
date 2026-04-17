@@ -48,7 +48,7 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/admin-dashboard", label: "Admin" },
-          { href: "/creators", label: "Creators" },
+          { href: "/creators", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/ledger", label: "Ledger" },

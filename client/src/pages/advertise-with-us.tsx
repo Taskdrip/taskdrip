@@ -87,7 +87,7 @@ function Monitor2(props: any) {
 }
 
 const STATS = [
-  { value: "10K+", label: "Verified Creators", icon: Users },
+  { value: "10K+", label: "Verified Influencers", icon: Users },
   { value: "2.5K+", label: "Active Campaigns", icon: Target },
   { value: "500K+", label: "Social Reach", icon: Globe },
   { value: "4", label: "Crypto Networks", icon: Zap },

@@ -16,7 +16,7 @@ import {
   Plus, Edit2, Trash2, Key, Shield, UserCheck, UserX, Search, Filter,
   ExternalLink, CheckCircle, DollarSign, Users, TrendingUp, Star, Zap,
   ArrowUpDown, ChevronDown, ChevronUp, BarChart3, Award, SlidersHorizontal, X,
-  Mail, ShieldOff, ShieldCheck
+  Mail, ShieldOff, ShieldCheck, UserCog, PenSquare, AlertTriangle, Store, Crown
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -156,9 +156,9 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-            <Award className="w-6 h-6 text-purple-600" /> Creator Tier Analytics
+            <Award className="w-6 h-6 text-purple-600" /> Influencer Tier Analytics
           </h2>
-          <p className="text-gray-500 text-sm mt-0.5">Auto-updated as creators register and update their follower counts</p>
+          <p className="text-gray-500 text-sm mt-0.5">Auto-updated as influencers register and update their follower counts</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -169,7 +169,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
       {/* ── Global KPI Cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { icon: <Users className="w-5 h-5" />, label: "Total Creators", value: globalStats.total.toString(), color: "text-purple-600", bg: "bg-purple-50" },
+          { icon: <Users className="w-5 h-5" />, label: "Total Influencers", value: globalStats.total.toString(), color: "text-purple-600", bg: "bg-purple-50" },
           { icon: <DollarSign className="w-5 h-5" />, label: "Total Paid Out", value: formatEarnings(globalStats.totalEarnings), color: "text-green-600", bg: "bg-green-50" },
           { icon: <CheckCircle className="w-5 h-5" />, label: "Verified", value: `${globalStats.verified} / ${globalStats.total}`, color: "text-blue-600", bg: "bg-blue-50" },
           { icon: <TrendingUp className="w-5 h-5" />, label: "Avg Followers", value: formatFollowers(globalStats.avgFollowers), color: "text-orange-600", bg: "bg-orange-50" },
@@ -322,7 +322,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
         {filteredCreators.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Users className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-            <p className="font-semibold">No creators match your filters</p>
+            <p className="font-semibold">No influencers match your filters</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -330,7 +330,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
               <TableHeader>
                 <TableRow className="bg-gray-50/80">
                   <TableHead className="w-12 text-center font-semibold text-gray-600">#</TableHead>
-                  <TableHead className="font-semibold text-gray-600">Creator</TableHead>
+                  <TableHead className="font-semibold text-gray-600">Influencer</TableHead>
                   <TableHead className="font-semibold text-gray-600">Tier</TableHead>
                   <TableHead className="font-semibold text-gray-600">Niche</TableHead>
                   <TableHead className="font-semibold text-gray-600 cursor-pointer select-none" onClick={() => toggleSort("followers")}>
@@ -472,7 +472,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
 
         {/* Table footer */}
         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-gray-400">
-          <span>Showing {filteredCreators.length} of {allCreators.length} creators</span>
+          <span>Showing {filteredCreators.length} of {allCreators.length} influencers</span>
           <span className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             Auto-updates on registration
@@ -494,6 +494,8 @@ export default function AdminUserManagement() {
   const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
   const [isEmailUpdateOpen, setIsEmailUpdateOpen] = useState(false);
   const [newEmailInput, setNewEmailInput] = useState("");
+  const [isGrantRoleOpen, setIsGrantRoleOpen] = useState(false);
+  const [grantRoleUser, setGrantRoleUser] = useState<any>(null);
 
   // Check if user is admin
   if (user?.userType !== 'admin') {
@@ -707,6 +709,24 @@ export default function AdminUserManagement() {
     },
   });
 
+  // Grant role mutation
+  const grantRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/role`, { role });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsGrantRoleOpen(false);
+      setGrantRoleUser(null);
+      toast({ title: "Role Updated", description: "User role has been updated successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEditUser = (user: any) => {
     setSelectedUser(user);
     editForm.reset({
@@ -772,7 +792,7 @@ export default function AdminUserManagement() {
               <p className="text-sm font-mono text-gray-500">Brand@2024</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-blue-200">
-              <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Creator</p>
+              <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Influencer</p>
               <p className="text-sm font-mono text-gray-700">democreator@taskdrip.online</p>
               <p className="text-sm font-mono text-gray-500">Creator@2024</p>
             </div>
@@ -783,7 +803,7 @@ export default function AdminUserManagement() {
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList>
           <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="tiers">Creator Tiers</TabsTrigger>
+          <TabsTrigger value="tiers">Influencer Tiers</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
         </TabsList>
 
@@ -807,7 +827,7 @@ export default function AdminUserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="creator">Creators</SelectItem>
+                  <SelectItem value="creator">Influencers</SelectItem>
                   <SelectItem value="brand">Brands</SelectItem>
                   <SelectItem value="admin">Admins</SelectItem>
                 </SelectContent>
@@ -897,7 +917,7 @@ export default function AdminUserManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="creator">Creator</SelectItem>
+                              <SelectItem value="creator">Influencer</SelectItem>
                               <SelectItem value="brand">Brand</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
@@ -952,12 +972,32 @@ export default function AdminUserManagement() {
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={
-                            user.userType === 'admin' ? 'destructive' :
-                            user.userType === 'brand' ? 'default' : 'secondary'
-                          }>
-                            {user.userType}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={
+                              user.userType === 'admin' ? 'destructive' :
+                              user.userType === 'brand' ? 'default' : 'secondary'
+                            }>
+                              {user.userType === 'creator' ? 'Influencer' : user.userType}
+                            </Badge>
+                            {user.role && user.role !== 'user' && (
+                              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${
+                                user.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                user.role === 'content_editor' ? 'bg-blue-100 text-blue-700' :
+                                user.role === 'moderator' ? 'bg-orange-100 text-orange-700' :
+                                user.role === 'store_manager' ? 'bg-green-100 text-green-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {user.role === 'admin' && <Crown className="w-3 h-3" />}
+                                {user.role === 'content_editor' && <PenSquare className="w-3 h-3" />}
+                                {user.role === 'moderator' && <AlertTriangle className="w-3 h-3" />}
+                                {user.role === 'store_manager' && <Store className="w-3 h-3" />}
+                                {user.role === 'admin' ? 'Admin' :
+                                 user.role === 'content_editor' ? 'Content Editor' :
+                                 user.role === 'moderator' ? 'Moderator' :
+                                 user.role === 'store_manager' ? 'Store Manager' : user.role}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={user.isVerified ? 'default' : 'outline'}>
@@ -1026,6 +1066,16 @@ export default function AdminUserManagement() {
                             >
                               {user.isVerified ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Grant Role"
+                              onClick={() => { setGrantRoleUser(user); setIsGrantRoleOpen(true); }}
+                              className="text-purple-600 hover:text-purple-700"
+                              data-testid={`button-grant-role-${user.id}`}
+                            >
+                              <UserCog className="h-4 w-4" />
+                            </Button>
                             {user.id !== 'admin_master_001' && (
                               <Button
                                 variant="ghost"
@@ -1064,7 +1114,7 @@ export default function AdminUserManagement() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Creators</CardTitle>
+                <CardTitle className="text-sm font-medium">Influencers</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -1095,7 +1145,7 @@ export default function AdminUserManagement() {
           </div>
 
           <div>
-            <h3 className="text-base font-bold text-gray-900 mb-3">Creators by Tier</h3>
+            <h3 className="text-base font-bold text-gray-900 mb-3">Influencers by Tier</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {TIER_ORDER.map((tierId) => {
                 const tier = TIER_CONFIG[tierId];
@@ -1116,7 +1166,7 @@ export default function AdminUserManagement() {
                       <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div className={`h-full bg-gradient-to-r ${tier.gradient} rounded-full`} style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">{pct}% of all creators</p>
+                      <p className="text-xs text-gray-400 mt-1">{pct}% of all influencers</p>
                     </CardContent>
                   </Card>
                 );
@@ -1191,7 +1241,7 @@ export default function AdminUserManagement() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="creator">Creator</SelectItem>
+                        <SelectItem value="creator">Influencer</SelectItem>
                         <SelectItem value="brand">Brand</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
@@ -1288,6 +1338,108 @@ export default function AdminUserManagement() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Grant Role Dialog */}
+      <Dialog open={isGrantRoleOpen} onOpenChange={setIsGrantRoleOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <UserCog className="h-5 w-5 text-purple-600" />
+              Grant Role & Privileges
+            </DialogTitle>
+            <DialogDescription>
+              Assign a role to <span className="font-semibold text-gray-900">{grantRoleUser?.firstName} {grantRoleUser?.lastName}</span>. This controls what features they can manage on the platform.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {[
+              {
+                role: 'user',
+                label: 'Basic User',
+                description: 'Standard account with no elevated privileges.',
+                icon: <Users className="w-5 h-5" />,
+                color: 'border-gray-200 hover:border-gray-400',
+                activeBg: 'bg-gray-50 border-gray-500',
+                iconBg: 'bg-gray-100 text-gray-600',
+              },
+              {
+                role: 'content_editor',
+                label: 'Content Editor',
+                description: 'Can create, edit, and publish Blog posts and Feed content.',
+                icon: <PenSquare className="w-5 h-5" />,
+                color: 'border-blue-200 hover:border-blue-400',
+                activeBg: 'bg-blue-50 border-blue-500',
+                iconBg: 'bg-blue-100 text-blue-600',
+              },
+              {
+                role: 'moderator',
+                label: 'Moderator / Mediator',
+                description: 'Can review, moderate, and mediate disputes and platform content.',
+                icon: <AlertTriangle className="w-5 h-5" />,
+                color: 'border-orange-200 hover:border-orange-400',
+                activeBg: 'bg-orange-50 border-orange-500',
+                iconBg: 'bg-orange-100 text-orange-600',
+              },
+              {
+                role: 'store_manager',
+                label: 'Store Manager',
+                description: 'Can manage the Shop and P2P Marketplace — products, orders, and listings.',
+                icon: <Store className="w-5 h-5" />,
+                color: 'border-green-200 hover:border-green-400',
+                activeBg: 'bg-green-50 border-green-500',
+                iconBg: 'bg-green-100 text-green-600',
+              },
+              {
+                role: 'admin',
+                label: 'Administrator',
+                description: 'Full platform access — campaigns, payouts, users, and all settings.',
+                icon: <Crown className="w-5 h-5" />,
+                color: 'border-red-200 hover:border-red-400',
+                activeBg: 'bg-red-50 border-red-500',
+                iconBg: 'bg-red-100 text-red-600',
+              },
+            ].map(({ role, label, description, icon, color, activeBg, iconBg }) => {
+              const isCurrent = grantRoleUser?.role === role || (!grantRoleUser?.role && role === 'user');
+              return (
+                <button
+                  key={role}
+                  onClick={() => !grantRoleMutation.isPending && grantRoleMutation.mutate({ userId: grantRoleUser.id, role })}
+                  disabled={grantRoleMutation.isPending || isCurrent}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                    isCurrent ? activeBg + ' cursor-default' : color + ' bg-white hover:shadow-sm cursor-pointer'
+                  } disabled:opacity-60`}
+                  data-testid={`role-option-${role}`}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                    {icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 text-sm">{label}</span>
+                      {isCurrent && (
+                        <span className="text-xs font-semibold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">Current</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                  </div>
+                  {!isCurrent && (
+                    <span className="text-xs font-medium text-purple-600 flex-shrink-0">
+                      {grantRoleMutation.isPending ? '...' : 'Grant →'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsGrantRoleOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

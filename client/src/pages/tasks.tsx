@@ -419,7 +419,7 @@ export default function TasksPage() {
               { icon: <Target className="w-5 h-5 text-purple-400" />, value: campaigns.length, label: "Active Tasks", suffix: "" },
               { icon: <DollarSign className="w-5 h-5 text-green-400" />, value: totalRewards.toFixed(0), label: "Total Rewards", suffix: " USDT" },
               { icon: <Users className="w-5 h-5 text-blue-400" />, value: totalSlots, label: "Open Slots", suffix: "" },
-              { icon: <Award className="w-5 h-5 text-yellow-400" />, value: "10K+", label: "Active Creators", suffix: "" },
+              { icon: <Award className="w-5 h-5 text-yellow-400" />, value: "10K+", label: "Active Influencers", suffix: "" },
             ].map((stat, i) => (
               <div key={i} data-testid={`stat-tasks-${stat.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center">
                 <div className="flex justify-center mb-2">{stat.icon}</div>

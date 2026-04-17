@@ -217,7 +217,7 @@ export default function SimpleSignup() {
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="creator" className="flex items-center">
                   <User className="h-4 w-4 mr-2" />
-                  Creator
+                  Influencer
                 </TabsTrigger>
                 <TabsTrigger value="brand" className="flex items-center">
                   <Building2 className="h-4 w-4 mr-2" />
@@ -339,7 +339,7 @@ export default function SimpleSignup() {
                     disabled={signupMutation.isPending}
                     data-testid="button-creator-signup"
                   >
-                    {signupMutation.isPending ? 'Creating Account...' : 'Create Creator Account'}
+                    {signupMutation.isPending ? 'Creating Account...' : 'Create Influencer Account'}
                   </Button>
                 </form>
               </TabsContent>

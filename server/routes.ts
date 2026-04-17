@@ -2156,6 +2156,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin grant role route
+  app.patch('/api/admin/users/:id/role', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const admin = await storage.getUser(userId);
+      if (!admin || admin.userType !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const validRoles = ['user', 'content_editor', 'moderator', 'store_manager', 'admin'];
+      const { role } = req.body;
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+      const updatedUser = await storage.updateUser(req.params.id, { role });
+      const { password: _, ...userResponse } = updatedUser;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error granting role:", error);
+      res.status(500).json({ message: "Failed to grant role" });
+    }
+  });
+
   // Admin wallet routes
   app.get('/api/admin/wallets/escrow', async (req, res) => {
     try {
