@@ -507,7 +507,12 @@ function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any;
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Seller</span>
-              <span className="font-semibold text-gray-700">{listing?.seller?.username || listing?.seller?.firstName} · ⭐ {Number(listing?.seller?.rating || 4.8).toFixed(1)}</span>
+              <span className="font-semibold text-gray-700">
+                <Link href={`/profile/${listing?.seller?.id}`} className="hover:underline text-violet-700">
+                  {listing?.seller?.username || listing?.seller?.firstName}
+                </Link>
+                {" "}· ⭐ {Number(listing?.seller?.rating || 4.8).toFixed(1)}
+              </span>
             </div>
             {listing?.country && (
               <div className="flex justify-between text-sm">
@@ -675,9 +680,11 @@ function ListingCard({ listing, onAccept, currentUserId, isAuthenticated }: { li
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-800 truncate">
-                {listing.seller?.username || `${listing.seller?.firstName || "Seller"} ${listing.seller?.lastName || ""}`.trim()}
-              </p>
+              <Link href={`/profile/${listing.seller?.id}`} onClick={e => e.stopPropagation()}>
+                <p className="text-xs font-semibold text-gray-800 truncate hover:underline cursor-pointer">
+                  {listing.seller?.username || `${listing.seller?.firstName || "Seller"} ${listing.seller?.lastName || ""}`.trim()}
+                </p>
+              </Link>
               <p className="text-[10px] text-yellow-600 flex items-center gap-0.5">
                 <Star className="w-2.5 h-2.5 fill-yellow-500" />
                 {Number(listing.seller?.rating || 4.8).toFixed(1)}

@@ -362,7 +362,9 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               {post.user?.username && (
-                <span className="text-xs text-gray-400">@{post.user.username}</span>
+                <Link href={`/influencers/${post.user.id}`}>
+                  <span className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">@{post.user.username}</span>
+                </Link>
               )}
               {post.user?.niche && (
                 <Badge variant="secondary" className="text-xs py-0 px-2">{post.user.niche}</Badge>
@@ -502,7 +504,11 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
                   </Avatar>
                   <div className="bg-gray-50 rounded-xl px-3 py-2 flex-1">
                     <div className="text-xs font-semibold text-gray-700">
-                      {comment.user?.firstName} {comment.user?.lastName}
+                      <Link href={`/influencers/${comment.user?.id}`}>
+                        <span className="hover:underline cursor-pointer">
+                          {comment.user?.firstName} {comment.user?.lastName}
+                        </span>
+                      </Link>
                     </div>
                     <div className="text-xs text-gray-600 mt-0.5">{comment.content}</div>
                   </div>

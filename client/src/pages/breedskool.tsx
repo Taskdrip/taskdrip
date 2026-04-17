@@ -150,7 +150,9 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
                 )}
               </div>
               <span className="text-[11px] text-gray-500">
-                {course.instructor.firstName} {course.instructor.lastName}
+                <Link href={`/profile/${course.instructor.id}`} className="hover:underline cursor-pointer">
+                  {course.instructor.firstName} {course.instructor.lastName}
+                </Link>
                 {course.instructor.isVerified && <span className="ml-1 text-blue-500">✓</span>}
               </span>
             </div>

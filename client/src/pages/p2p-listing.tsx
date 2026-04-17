@@ -171,9 +171,11 @@ export default function P2PListing() {
                     {(listing.seller?.username || listing.seller?.firstName || "S")[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 text-lg">
-                      {listing.seller?.username || `${listing.seller?.firstName || "Seller"} ${listing.seller?.lastName || ""}`.trim()}
-                    </p>
+                    <Link href={`/profile/${listing.seller?.id}`}>
+                      <p className="font-bold text-gray-900 text-lg hover:underline cursor-pointer">
+                        {listing.seller?.username || `${listing.seller?.firstName || "Seller"} ${listing.seller?.lastName || ""}`.trim()}
+                      </p>
+                    </Link>
                     <div className="flex items-center gap-1 mt-0.5">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       <span className="text-sm font-semibold text-yellow-700">{Number(listing.seller?.rating || 4.8).toFixed(1)}</span>

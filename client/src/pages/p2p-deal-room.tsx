@@ -306,13 +306,19 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
   const amountStr = money(tx.totalAmount, currencyCode);
 
   const payMethod = (tx.listing?.paymentMethod || "").toLowerCase();
-  const matchedNet = cryptoMethods.find((m: any) =>
-    payMethod.includes((m.network || "").toLowerCase()) ||
-    payMethod.includes((m.currency || "").toLowerCase()) ||
-    payMethod.includes((m.label || "").toLowerCase())
-  );
-  // Prefer the seller's wallet captured at deal creation time, then matched method's address
-  const walletAddress = tx.sellerCryptoWallet || matchedNet?.address || "";
+
+  // Match admin escrow wallet by payment method keywords
+  const matchedNet = cryptoMethods.find((m: any) => {
+    const net = (m.network || "").toLowerCase();
+    const lbl = (m.label || "").toLowerCase();
+    if ((payMethod.includes("trc20") || payMethod.includes("tron")) && (net.includes("trc") || net.includes("tron"))) return true;
+    if ((payMethod.includes("bep20") || payMethod.includes("bsc")) && (net.includes("bep") || net.includes("bsc"))) return true;
+    if ((payMethod.includes("ton") || payMethod.includes("telegram")) && net.includes("ton")) return true;
+    if (payMethod.includes("pi") && (net.includes("pi") || lbl.includes("pi"))) return true;
+    return false;
+  });
+  // Use admin's escrow wallet address (admin collects funds, pays seller after confirmation)
+  const walletAddress = matchedNet?.address || "";
 
   const { copied: copiedWallet, copy: copyWallet } = useCopy(walletAddress);
   const { copied: copiedAmt, copy: copyAmt } = useCopy(amountStr);
@@ -396,7 +402,7 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
                 <p className="text-xs text-gray-500 mb-1.5">Payment method</p>
                 <div className="rounded-xl bg-gray-800 border border-gray-700 px-3 py-2.5">
                   <p className="text-white font-semibold text-sm">{tx.listing?.paymentMethod || "Contact admin"}</p>
-                  {matchedNet && <p className="text-xs text-gray-500 mt-0.5">{matchedNet.name}</p>}
+                  {matchedNet && <p className="text-xs text-gray-500 mt-0.5">{matchedNet.label}</p>}
                 </div>
               </div>
 
@@ -700,7 +706,12 @@ export default function P2PDealRoom() {
                   </div>
                   <div>
                     <h2 className="font-bold text-white">{deal.listing?.title || "P2P Deal"}</h2>
-                    <p className="text-sm text-gray-400">Buyer: {deal.buyer?.username || deal.buyer?.firstName} · Seller: {deal.seller?.username || deal.seller?.firstName}</p>
+                    <p className="text-sm text-gray-400">
+                      Buyer:{" "}
+                      <Link href={`/profile/${deal.buyer?.id}`} className="hover:underline text-violet-300">{deal.buyer?.username || deal.buyer?.firstName}</Link>
+                      {" "}· Seller:{" "}
+                      <Link href={`/profile/${deal.seller?.id}`} className="hover:underline text-violet-300">{deal.seller?.username || deal.seller?.firstName}</Link>
+                    </p>
                     <p className="text-sm font-semibold text-violet-300 mt-0.5">{money(deal.totalAmount, deal.currency)} total · {money(deal.fee, deal.currency)} fee</p>
                   </div>
                 </div>
@@ -1150,17 +1161,23 @@ export default function P2PDealRoom() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm pt-4">
                 {[
-                  { label: "Buyer",  value: tx.buyer?.username  || tx.buyer?.firstName  || "—", tag: isBuyer  ? "you" : "" },
-                  { label: "Seller", value: tx.seller?.username || tx.seller?.firstName || "—", tag: isSeller ? "you" : "" },
-                  { label: "Admin",  value: tx.admin?.username  || tx.admin?.firstName  || "Platform admin", tag: "" },
-                ].map(({ label, value, tag }) => (
+                  { label: "Buyer",  value: tx.buyer?.username  || tx.buyer?.firstName  || "—", id: tx.buyer?.id,  tag: isBuyer  ? "you" : "" },
+                  { label: "Seller", value: tx.seller?.username || tx.seller?.firstName || "—", id: tx.seller?.id, tag: isSeller ? "you" : "" },
+                  { label: "Admin",  value: tx.admin?.username  || tx.admin?.firstName  || "Platform admin", id: null, tag: "" },
+                ].map(({ label, value, id, tag }) => (
                   <div key={label} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0">
                       <ShieldCheck className="w-4 h-4 text-gray-500" />
                     </div>
                     <div>
                       <p className="text-gray-500 text-xs">{label}{tag ? ` (${tag})` : ""}</p>
-                      <p className="text-white font-semibold">{value}</p>
+                      {id ? (
+                        <Link href={`/profile/${id}`}>
+                          <p className="text-white font-semibold hover:underline cursor-pointer">{value}</p>
+                        </Link>
+                      ) : (
+                        <p className="text-white font-semibold">{value}</p>
+                      )}
                     </div>
                   </div>
                 ))}
