@@ -63,6 +63,7 @@ import LedgerPage from "@/pages/ledger";
 import SecuritySettings from "@/pages/security-settings";
 import P2PHub from "@/pages/p2p-hub";
 import P2PDealRoom from "@/pages/p2p-deal-room";
+import P2PListing from "@/pages/p2p-listing";
 import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
 import AdminP2PFees from "@/pages/admin-p2p-fees";
 import AdminPlatformFees from "@/pages/admin-platform-fees";
@@ -109,6 +110,7 @@ function Router() {
       <Route path="/feed" component={FeedPage} />
       <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/p2p-hub" component={P2PHub} />
+      <Route path="/p2p/:id" component={P2PListing} />
       {isAuthenticated ? (
         <>
           <Route path="/dashboard" component={() => {

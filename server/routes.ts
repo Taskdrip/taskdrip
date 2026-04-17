@@ -5113,6 +5113,24 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.get('/api/p2p/listings/featured', async (req: any, res) => {
+    try {
+      const rows = await db.select().from(p2pListings)
+        .where(and(eq(p2pListings.status, 'approved'), eq(p2pListings.isFeatured, true)))
+        .orderBy(desc(p2pListings.createdAt))
+        .limit(6);
+      res.json(await Promise.all(rows.map(enrichP2PListing)));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/p2p/listings/:id', async (req: any, res) => {
+    try {
+      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, req.params.id));
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      res.json(await enrichP2PListing(listing));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.get('/api/p2p/listings', async (req: any, res) => {
     try {
       const type = String(req.query.type || 'all');
@@ -5366,10 +5384,19 @@ Instructions:
   app.patch('/api/admin/p2p-listings/:id', isAuthenticated, async (req: any, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
-      const status = String(req.body.status || '');
-      if (!['approved', 'rejected', 'pending', 'removed'].includes(status)) return res.status(400).json({ message: 'Invalid listing status' });
-      const [listing] = await db.update(p2pListings).set({ status, adminNote: req.body.adminNote || '', approvedBy: status === 'approved' ? req.user.id : null, approvedAt: status === 'approved' ? new Date() : null, updatedAt: new Date() }).where(eq(p2pListings.id, req.params.id)).returning();
-      await logP2PAction(req.user.id, `listing_${status}`, { listingId: listing.id, details: req.body.adminNote || '' });
+      const updates: any = { updatedAt: new Date() };
+      if (req.body.status !== undefined) {
+        const status = String(req.body.status);
+        if (!['approved', 'rejected', 'pending', 'removed', 'expired'].includes(status)) return res.status(400).json({ message: 'Invalid listing status' });
+        updates.status = status;
+        updates.approvedBy = status === 'approved' ? req.user.id : null;
+        updates.approvedAt = status === 'approved' ? new Date() : null;
+      }
+      if (req.body.adminNote !== undefined) updates.adminNote = req.body.adminNote;
+      if (req.body.isFeatured !== undefined) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === 'true';
+      const [listing] = await db.update(p2pListings).set(updates).where(eq(p2pListings.id, req.params.id)).returning();
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
@@ -5409,7 +5436,7 @@ Instructions:
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
       const { title, description, price, paymentMethod, featuredImage, listingType, status, adminNote } = req.body;
-      const validStatuses = ['pending', 'approved', 'rejected'];
+      const validStatuses = ['pending', 'approved', 'rejected', 'expired'];
       const validTypes = ['crypto', 'product', 'service'];
       const updates: any = { updatedAt: new Date() };
       if (title) updates.title = String(title).trim();
@@ -5424,6 +5451,7 @@ Instructions:
         updates.approvedAt = status === 'approved' ? new Date() : null;
       }
       if (adminNote !== undefined) updates.adminNote = adminNote;
+      if (req.body.isFeatured !== undefined) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === 'true';
       const [listing] = await db.update(p2pListings).set(updates).where(eq(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: 'Listing not found' });
       await logP2PAction(req.user.id, 'listing_edited', { listingId: listing.id, details: `Admin edited listing` });

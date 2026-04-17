@@ -449,9 +449,11 @@ export const p2pListings = pgTable("p2p_listings", {
   paymentMethod: varchar("payment_method").notNull(),
   featuredImage: varchar("featured_image"),
   status: varchar("status").notNull().default("pending"),
+  isFeatured: boolean("is_featured").default(false),
   adminNote: text("admin_note"),
   approvedBy: varchar("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

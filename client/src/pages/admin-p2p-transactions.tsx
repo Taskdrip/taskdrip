@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   AlertTriangle, CheckCircle, Database, DollarSign, Edit3,
-  ExternalLink, RefreshCcw, ShieldCheck, Store, XCircle,
+  ExternalLink, RefreshCcw, ShieldCheck, Star, Store, XCircle, Clock, Zap,
 } from "lucide-react";
 
 function money(value: any) {
@@ -31,6 +31,7 @@ function StatusBadge({ status }: { status: string }) {
     approved: "bg-green-100 text-green-800 border-green-200",
     rejected: "bg-red-100 text-red-800 border-red-200",
     cancelled: "bg-gray-100 text-gray-600 border-gray-200",
+    expired: "bg-orange-100 text-orange-700 border-orange-200",
   };
   return <Badge variant="outline" className={`capitalize font-semibold ${map[status] || "bg-gray-100 text-gray-700 border-gray-200"}`}>{status}</Badge>;
 }
@@ -47,6 +48,7 @@ function EditListingDialog({ listing, onSave }: { listing: any; onSave: () => vo
     listingType: listing.listingType || "crypto",
     status: listing.status || "pending",
     adminNote: listing.adminNote || "",
+    isFeatured: listing.isFeatured || false,
   });
 
   const editMutation = useMutation({
@@ -86,6 +88,7 @@ function EditListingDialog({ listing, onSave }: { listing: any; onSave: () => vo
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
+                <option value="expired">Expired</option>
               </select>
             </div>
           </div>
@@ -113,6 +116,16 @@ function EditListingDialog({ listing, onSave }: { listing: any; onSave: () => vo
             {form.featuredImage && (
               <img src={form.featuredImage} alt="preview" className="mt-2 h-24 w-full object-cover rounded-lg border" />
             )}
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="isFeatured"
+              checked={form.isFeatured}
+              onChange={e => setForm(f => ({ ...f, isFeatured: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 accent-purple-600"
+            />
+            <label htmlFor="isFeatured" className="text-sm font-semibold cursor-pointer">⭐ Feature on Homepage</label>
           </div>
           <div>
             <Label className="text-xs font-semibold mb-1 block">Admin note</Label>
@@ -147,8 +160,8 @@ export default function AdminP2PTransactions() {
   });
 
   const listingAction = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiRequest("PATCH", `/api/admin/p2p-listings/${id}`, { status, adminNote: note[id] || "" }).then(r => r.json()),
+    mutationFn: ({ id, updates }: { id: string; updates: Record<string, any> }) =>
+      apiRequest("PATCH", `/api/admin/p2p-listings/${id}`, { ...updates, adminNote: note[id] || "" }).then(r => r.json()),
     onSuccess: () => {
       toast({ title: "Listing updated" });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-transactions"] });
@@ -176,7 +189,7 @@ export default function AdminP2PTransactions() {
         <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">P2P Escrow Control</h1>
-            <p className="text-gray-500 text-sm mt-1">Manage listings, confirm payments, release funds, refund buyers, and resolve disputes.</p>
+            <p className="text-gray-500 text-sm mt-1">Manage listings, feature on homepage, expire, reactivate, confirm payments, and resolve disputes.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
@@ -226,7 +239,7 @@ export default function AdminP2PTransactions() {
           </Card>
         </div>
 
-        {/* Listing approvals + management */}
+        {/* Listing management */}
         <Card className="mb-8 border-0 shadow-sm">
           <CardHeader className="border-b border-gray-100 pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -260,7 +273,10 @@ export default function AdminP2PTransactions() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div>
-                        <h3 className="font-bold text-gray-900 leading-tight">{listing.title}</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-gray-900 leading-tight">{listing.title}</h3>
+                          {listing.isFeatured && <Badge className="bg-yellow-100 text-yellow-800 border-0 text-xs gap-1"><Star className="w-3 h-3" />Featured</Badge>}
+                        </div>
                         <p className="text-xs text-gray-500 mt-0.5 capitalize">
                           {listing.listingType} · ${money(listing.price)} · {listing.paymentMethod}
                           {listing.seller && <> · by <span className="font-medium text-gray-700">{listing.seller.username || listing.seller.firstName}</span></>}
@@ -273,25 +289,67 @@ export default function AdminP2PTransactions() {
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2 mt-3">
                       <EditListingDialog listing={listing} onSave={invalidate} />
+
+                      {/* Approve */}
                       <Button
                         size="sm"
                         className="gap-1.5 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => listingAction.mutate({ id: listing.id, status: "approved" })}
+                        onClick={() => listingAction.mutate({ id: listing.id, updates: { status: "approved" } })}
                         disabled={listingAction.isPending || listing.status === "approved"}
                         data-testid={`button-approve-listing-${listing.id}`}
                       >
                         <CheckCircle className="w-3.5 h-3.5" /> Approve
                       </Button>
+
+                      {/* Expire */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50"
+                        onClick={() => listingAction.mutate({ id: listing.id, updates: { status: "expired" } })}
+                        disabled={listingAction.isPending || listing.status === "expired"}
+                        data-testid={`button-expire-listing-${listing.id}`}
+                      >
+                        <Clock className="w-3.5 h-3.5" /> Expire
+                      </Button>
+
+                      {/* Reactivate */}
+                      {listing.status === "expired" && (
+                        <Button
+                          size="sm"
+                          className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white"
+                          onClick={() => listingAction.mutate({ id: listing.id, updates: { status: "approved" } })}
+                          disabled={listingAction.isPending}
+                          data-testid={`button-reactivate-listing-${listing.id}`}
+                        >
+                          <Zap className="w-3.5 h-3.5" /> Reactivate
+                        </Button>
+                      )}
+
+                      {/* Feature toggle */}
+                      <Button
+                        size="sm"
+                        variant={listing.isFeatured ? "default" : "outline"}
+                        className={`gap-1.5 ${listing.isFeatured ? "bg-yellow-500 hover:bg-yellow-600 text-white border-0" : "border-yellow-300 text-yellow-700 hover:bg-yellow-50"}`}
+                        onClick={() => listingAction.mutate({ id: listing.id, updates: { isFeatured: !listing.isFeatured } })}
+                        disabled={listingAction.isPending}
+                        data-testid={`button-feature-listing-${listing.id}`}
+                      >
+                        <Star className="w-3.5 h-3.5" /> {listing.isFeatured ? "Unfeature" : "Feature"}
+                      </Button>
+
+                      {/* Reject */}
                       <Button
                         size="sm"
                         variant="destructive"
                         className="gap-1.5"
-                        onClick={() => listingAction.mutate({ id: listing.id, status: "rejected" })}
+                        onClick={() => listingAction.mutate({ id: listing.id, updates: { status: "rejected" } })}
                         disabled={listingAction.isPending || listing.status === "rejected"}
                         data-testid={`button-reject-listing-${listing.id}`}
                       >
                         <XCircle className="w-3.5 h-3.5" /> Reject
                       </Button>
+
                       <div className="flex-1">
                         <Input
                           value={note[listing.id] || ""}
@@ -301,6 +359,15 @@ export default function AdminP2PTransactions() {
                           data-testid={`input-listing-note-${listing.id}`}
                         />
                       </div>
+                    </div>
+
+                    {/* View on site */}
+                    <div className="mt-2">
+                      <Link href={`/p2p/${listing.id}`}>
+                        <Button size="sm" variant="ghost" className="text-xs h-7 gap-1 text-purple-700 hover:text-purple-900" data-testid={`button-view-listing-${listing.id}`}>
+                          <ExternalLink className="w-3 h-3" /> View public page
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>

@@ -5,21 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { TrendingUp, Users, Coins, Target, ExternalLink, Smartphone, Calendar, MapPin } from "lucide-react";
+import { TrendingUp, Users, Coins, Target, ExternalLink, Smartphone, Calendar, MapPin, Briefcase, Package, Zap, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+
+const TYPE_GRADIENTS: Record<string, string> = {
+  crypto: "from-orange-900/60 to-yellow-900/40",
+  product: "from-blue-900/60 to-cyan-900/40",
+  service: "from-purple-900/60 to-pink-900/40",
+};
+const TYPE_BADGE: Record<string, string> = {
+  crypto: "bg-orange-100 text-orange-800",
+  product: "bg-blue-100 text-blue-800",
+  service: "bg-purple-100 text-purple-800",
+};
+
+function money(v: any) {
+  return Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 export default function Home() {
   const { user } = useAuth();
-  
-  // Redirect brands to their dedicated dashboard
+
   if ((user as any)?.userType === 'brand') {
     window.location.href = '/brand-dashboard';
     return null;
   }
 
-  const { data: campaigns = [] } = useQuery({
-    queryKey: ["/api/campaigns"],
-  });
+  const { data: campaigns = [] } = useQuery({ queryKey: ["/api/campaigns"] });
+  const { data: featuredListings = [] } = useQuery<any[]>({ queryKey: ["/api/p2p/listings/featured"] });
 
   const activeCampaigns = Array.isArray(campaigns) ? campaigns.filter((c: any) => c.filledSlots < c.totalSlots) : [];
   const stats = {
@@ -27,7 +40,6 @@ export default function Home() {
     availableBalance: (user as any)?.availableBalance || 325.50,
     activeCampaigns: activeCampaigns.length,
     completedTasks: (user as any)?.completedCampaigns || 47,
-    followers: (user as any)?.followers || 12500
   };
 
   const featuredCampaigns = activeCampaigns.slice(0, 3);
@@ -42,7 +54,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, {(user as any)?.firstName || 'Influencer'}!</h1>
@@ -61,7 +73,7 @@ export default function Home() {
               <p className="text-xs opacity-90">Ready for withdrawal</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
@@ -72,7 +84,7 @@ export default function Home() {
               <p className="text-xs text-green-600">+12% this month</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Available Tasks</CardTitle>
@@ -83,7 +95,7 @@ export default function Home() {
               <p className="text-xs text-muted-foreground">Ready to start</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed</CardTitle>
@@ -142,27 +154,17 @@ export default function Home() {
                       <h3 className="font-semibold text-lg">{campaign.title}</h3>
                       <p className="text-sm text-gray-600">{campaign.brandName}</p>
                     </div>
-                    <Badge className="bg-green-100 text-green-800 text-lg px-3 py-1">
-                      ${campaign.reward}
-                    </Badge>
+                    <Badge className="bg-green-100 text-green-800 text-lg px-3 py-1">${campaign.reward}</Badge>
                   </div>
                   <p className="text-gray-700 mb-3 line-clamp-2">{campaign.description}</p>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {campaign.estimatedTime}
-                      </span>
-                      <span className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {campaign.totalSlots - campaign.filledSlots} spots
-                      </span>
+                      <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" />{campaign.estimatedTime}</span>
+                      <span className="flex items-center"><Users className="h-3 w-3 mr-1" />{campaign.totalSlots - campaign.filledSlots} spots</span>
                       <Badge variant="outline">{campaign.category}</Badge>
                     </div>
                     <Link href={`/campaigns/${campaign.id}`}>
-                      <Button size="sm" className="bg-black text-white hover:bg-gray-800">
-                        Apply Now
-                      </Button>
+                      <Button size="sm" className="bg-black text-white hover:bg-gray-800">Apply Now</Button>
                     </Link>
                   </div>
                 </div>
@@ -171,43 +173,103 @@ export default function Home() {
           </Card>
         </div>
 
+        {/* ── Featured P2P Deals ── */}
+        {Array.isArray(featuredListings) && featuredListings.length > 0 && (
+          <div className="mt-10">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                  <Zap className="w-6 h-6 text-violet-600" /> Featured P2P Deals
+                </h2>
+                <p className="text-gray-500 text-sm mt-0.5">Hand-picked crypto trades, products &amp; services — protected by admin escrow</p>
+              </div>
+              <Link href="/p2p-hub">
+                <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-view-all-p2p">
+                  View All <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {featuredListings.map((listing: any) => {
+                const TypeIcon = listing.listingType === "crypto" ? Coins : listing.listingType === "product" ? Package : Briefcase;
+                return (
+                  <Link key={listing.id} href={`/p2p/${listing.id}`}>
+                    <div className="group rounded-2xl border border-gray-100 bg-white overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" data-testid={`card-featured-p2p-${listing.id}`}>
+                      {/* Image */}
+                      <div className="relative h-40 overflow-hidden bg-gray-100">
+                        {listing.featuredImage ? (
+                          <img src={listing.featuredImage} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        ) : (
+                          <div className={`h-full bg-gradient-to-br ${TYPE_GRADIENTS[listing.listingType] || "from-gray-800 to-gray-900"} flex items-center justify-center`}>
+                            <TypeIcon className="w-14 h-14 text-white/20" />
+                          </div>
+                        )}
+                        <div className="absolute top-2.5 left-2.5">
+                          <Badge className={`text-xs font-bold uppercase tracking-wide ${TYPE_BADGE[listing.listingType]}`}>{listing.listingType}</Badge>
+                        </div>
+                        <div className="absolute top-2.5 right-2.5">
+                          <div className="bg-black/70 backdrop-blur-sm text-white text-sm font-black px-2.5 py-0.5 rounded-xl">${money(listing.price)}</div>
+                        </div>
+                        <div className="absolute bottom-2 left-2.5">
+                          <Badge className="bg-yellow-400/90 text-yellow-900 text-xs font-bold">⭐ Featured</Badge>
+                        </div>
+                      </div>
+                      {/* Info */}
+                      <div className="p-4">
+                        <h3 className="font-bold text-gray-900 leading-snug line-clamp-2 mb-1 group-hover:text-violet-700 transition-colors">{listing.title}</h3>
+                        <p className="text-xs text-gray-500 line-clamp-2 mb-3">{listing.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                              {(listing.seller?.username || listing.seller?.firstName || "S")[0].toUpperCase()}
+                            </div>
+                            <span className="text-xs text-gray-600 font-medium">
+                              {listing.seller?.username || listing.seller?.firstName || "Seller"}
+                            </span>
+                          </div>
+                          <span className="text-xs text-violet-600 font-semibold group-hover:underline">View Deal →</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardContent className="p-6 text-center">
               <Target className="h-8 w-8 mx-auto mb-3" />
               <h3 className="font-semibold mb-2">Find Tasks</h3>
               <p className="text-sm opacity-90 mb-4">Browse available campaigns and start earning</p>
-              <Link href="/campaigns">
-                <Button variant="secondary" size="sm">Browse Tasks</Button>
-              </Link>
+              <Link href="/campaigns"><Button variant="secondary" size="sm">Browse Tasks</Button></Link>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <Card className="bg-gradient-to-r from-violet-500 to-purple-600 text-white">
             <CardContent className="p-6 text-center">
-              <Users className="h-8 w-8 mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Your Profile</h3>
-              <p className="text-sm opacity-90 mb-4">Update skills and track your progress</p>
-              <Link href="/profile">
-                <Button variant="secondary" size="sm">View Profile</Button>
-              </Link>
+              <Coins className="h-8 w-8 mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">P2P Market</h3>
+              <p className="text-sm opacity-90 mb-4">Trade crypto, products &amp; services securely</p>
+              <Link href="/p2p-hub"><Button variant="secondary" size="sm">Open Market</Button></Link>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
             <CardContent className="p-6 text-center">
-              <Coins className="h-8 w-8 mx-auto mb-3" />
+              <TrendingUp className="h-8 w-8 mx-auto mb-3" />
               <h3 className="font-semibold mb-2">Earnings</h3>
               <p className="text-sm opacity-90 mb-4">View detailed earnings and request payouts</p>
-              <Link href="/dashboard">
-                <Button variant="secondary" size="sm">View Dashboard</Button>
-              </Link>
+              <Link href="/dashboard"><Button variant="secondary" size="sm">View Dashboard</Button></Link>
             </CardContent>
           </Card>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   );
