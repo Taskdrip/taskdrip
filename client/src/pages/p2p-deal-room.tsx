@@ -18,8 +18,19 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
-function money(value: any) {
-  return Number(value || 0).toFixed(2);
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD:"$", EUR:"€", GBP:"£", NGN:"₦", GHS:"₵", KES:"KSh", ZAR:"R",
+  EGP:"E£", CAD:"C$", AUD:"A$", INR:"₹", PKR:"₨", PHP:"₱",
+  BRL:"R$", AED:"د.إ", TRY:"₺", UAH:"₴",
+};
+
+function getCurrSym(code?: string) {
+  return CURRENCY_SYMBOLS[code || "USD"] || "$";
+}
+
+function money(value: any, currency?: string) {
+  const sym = getCurrSym(currency);
+  return sym + Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function useCopy(text: string) {
@@ -99,7 +110,7 @@ function getAIGuidance(tx: any, isBuyer: boolean, isSeller: boolean): AIGuide | 
     if (isBuyer) return {
       tone: "info",
       heading: "Step 1 — Send funds to escrow",
-      body: `Copy the escrow wallet address below and send exactly $${money(tx.totalAmount)} (including the platform fee). Once sent, upload your payment proof and click "Submit Payment". Your funds are held safely until ${typeLabel} is delivered.`,
+      body: `Copy the escrow wallet address below and send exactly ${money(tx.totalAmount, tx.currency)} (including the platform fee). Once sent, upload your payment proof and click "Submit Payment". Your funds are held safely until ${typeLabel} is delivered.`,
     };
     if (isSeller) return {
       tone: "info",
@@ -125,7 +136,7 @@ function getAIGuidance(tx: any, isBuyer: boolean, isSeller: boolean): AIGuide | 
     if (isBuyer) return {
       tone: "success",
       heading: "Funds confirmed in escrow",
-      body: `$${money(tx.totalAmount)} is now secured in the admin escrow wallet. The seller has been notified and will deliver your ${typeLabel} shortly. You'll receive a notification when delivery is submitted.`,
+      body: `${money(tx.totalAmount, tx.currency)} is now secured in the admin escrow wallet. The seller has been notified and will deliver your ${typeLabel} shortly. You'll receive a notification when delivery is submitted.`,
     };
     if (isSeller) return {
       tone: "success",
@@ -287,8 +298,8 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
   const [paymentNote, setPaymentNote] = useState("");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const { data: networks = [] } = useQuery<any[]>({ queryKey: ["/api/payment-networks"] });
-  const amountStr = money(tx.totalAmount);
   const currencyCode = tx.currency || "USD";
+  const amountStr = money(tx.totalAmount, currencyCode);
 
   const payMethod = (tx.listing?.paymentMethod || "").toLowerCase();
   const matchedNet = (networks as any[]).find((n: any) =>
@@ -335,15 +346,21 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-800">
                 <span className="text-gray-400 text-sm">Offer amount</span>
-                <span className="text-white font-semibold">${money(tx.amount)}</span>
+                <span className="text-white font-semibold">{money(tx.amount, currencyCode)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-800">
-                <span className="text-gray-400 text-sm">Platform fee</span>
-                <span className="text-violet-400 font-semibold">${money(tx.fee)}</span>
+                <span className="text-gray-400 text-sm">Buyer fee</span>
+                <span className="text-violet-400 font-semibold">{money(tx.buyerFee ?? tx.fee, currencyCode)}</span>
               </div>
+              {Number(tx.sellerFee || 0) > 0 && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-800">
+                  <span className="text-gray-400 text-sm">Seller fee (deducted at release)</span>
+                  <span className="text-orange-400 font-semibold">{money(tx.sellerFee, currencyCode)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center py-2">
                 <span className="text-gray-300 font-bold">Total to send</span>
-                <span className="text-2xl font-black text-white">${money(tx.totalAmount)}</span>
+                <span className="text-2xl font-black text-white">{money(tx.totalAmount, currencyCode)}</span>
               </div>
             </div>
 
@@ -366,7 +383,7 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
             <div className="rounded-xl bg-amber-950/30 border border-amber-800/40 p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-amber-300 leading-relaxed">
-                Send <strong>exactly ${amountStr}</strong> to the escrow wallet below. Include no extra or less — mismatched amounts delay confirmation.
+                Send <strong>exactly {amountStr}</strong> to the escrow wallet below. Include no extra or less — mismatched amounts delay confirmation.
               </p>
             </div>
 
@@ -398,7 +415,7 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
               <div>
                 <p className="text-xs text-gray-500 mb-1.5">Exact amount to send</p>
                 <div className="flex items-center gap-2 rounded-xl bg-gray-800 border border-gray-700 px-3 py-2.5">
-                  <span className="flex-1 font-mono text-lg font-black text-white">${amountStr}</span>
+                  <span className="flex-1 font-mono text-lg font-black text-white">{amountStr}</span>
                   <button onClick={copyAmt} className="flex-shrink-0 text-gray-500 hover:text-white transition-colors" data-testid="copy-amount">
                     {copiedAmt ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                   </button>
@@ -498,7 +515,7 @@ function PaymentUnderReview({ tx }: { tx: any }) {
           </div>
           <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-3">
             <p className="text-xs text-gray-500 mb-1">Amount</p>
-            <p className="text-white text-sm font-bold">${money(tx.totalAmount)}</p>
+            <p className="text-white text-sm font-bold">{money(tx.totalAmount, tx.currency)}</p>
           </div>
         </div>
       )}
@@ -548,7 +565,7 @@ function EscrowFundedBanner({ tx }: { tx: any }) {
         </div>
         <div className="rounded-xl bg-gray-800/60 border border-gray-700 p-3">
           <p className="text-xs text-gray-500 mb-1">Held in escrow</p>
-          <p className="text-2xl font-black text-green-400">${money(tx.totalAmount)}</p>
+          <p className="text-2xl font-black text-green-400">{money(tx.totalAmount, tx.currency)}</p>
         </div>
       </div>
     </div>
@@ -680,7 +697,7 @@ export default function P2PDealRoom() {
                   <div>
                     <h2 className="font-bold text-white">{deal.listing?.title || "P2P Deal"}</h2>
                     <p className="text-sm text-gray-400">Buyer: {deal.buyer?.username || deal.buyer?.firstName} · Seller: {deal.seller?.username || deal.seller?.firstName}</p>
-                    <p className="text-sm font-semibold text-violet-300 mt-0.5">${money(deal.totalAmount)} total · ${money(deal.fee)} fee</p>
+                    <p className="text-sm font-semibold text-violet-300 mt-0.5">{money(deal.totalAmount, deal.currency)} total · {money(deal.fee, deal.currency)} fee</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1038,22 +1055,21 @@ export default function P2PDealRoom() {
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
                 {[
-                  { label: "Offer Amount", val: `$${money(tx.amount)}`, color: "text-white" },
-                  { label: "Platform Fee", val: `$${money(tx.fee)}`, color: "text-violet-400" },
-                  { label: "Total to Send", val: `$${money(tx.totalAmount)}`, color: "text-green-400" },
-                  { label: "Seller Receives", val: `$${money(tx.netAmount)}`, color: "text-blue-400" },
-                ].map(({ label, val, color }) => (
-                  <div key={label} className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">{label}</span>
-                    <span className={`font-bold ${color}`}>{val}</span>
+                  { label: "Offer Amount", val: money(tx.amount, tx.currency), color: "text-white" },
+                  { label: "Buyer Fee", val: money(tx.buyerFee ?? tx.fee, tx.currency), color: "text-violet-400" },
+                  Number(tx.sellerFee || 0) > 0 ? { label: "Seller Fee", val: money(tx.sellerFee, tx.currency), color: "text-orange-400" } : null,
+                  { label: "Total to Send", val: money(tx.totalAmount, tx.currency), color: "text-green-400" },
+                  { label: "Seller Receives", val: money(tx.netAmount, tx.currency), color: "text-blue-400" },
+                ].filter(Boolean).map((item: any) => (
+                  <div key={item.label} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">{item.label}</span>
+                    <span className={`font-bold ${item.color}`}>{item.val}</span>
                   </div>
                 ))}
-                {tx.currency && tx.currency !== "USD" && (
-                  <div className="flex justify-between items-center text-sm border-t border-gray-800 pt-3">
-                    <span className="text-gray-500">Currency</span>
-                    <span className="font-bold text-yellow-400 flex items-center gap-1"><Globe className="w-3.5 h-3.5" />{tx.currency}</span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center text-sm border-t border-gray-800 pt-3">
+                  <span className="text-gray-500">Currency</span>
+                  <span className="font-bold text-yellow-400 flex items-center gap-1"><Globe className="w-3.5 h-3.5" />{tx.currency || "USD"}</span>
+                </div>
               </CardContent>
             </Card>
 

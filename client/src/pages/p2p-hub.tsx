@@ -50,13 +50,35 @@ const CURRENCIES = [
   { code: "UAH", symbol: "₴", name: "Ukrainian Hryvnia" },
 ];
 
-const CRYPTO_ASSETS = ["USDT","BTC","ETH","BNB","TON","DOGE","XRP","SOL","MATIC","TRX"];
+const CRYPTO_ASSETS = ["USDT","BTC","TON","TRX","XRP","DOGE","PI","BNB","LTC"];
 
+// Only crypto payments — low gas fee networks
 const PAYMENT_METHODS = [
-  "USDT TRC20 (TRON)","USDT BEP20 (BSC)","USDT ERC20 (ETH)","BTC (Bitcoin)",
-  "ETH (Ethereum)","TON (Telegram)","Bank Transfer","Mobile Money","PayPal",
-  "Wise Transfer","Cash (In Person)","Other",
+  "USDT TRC20 (TRON)",
+  "USDT BEP20 (BSC)",
+  "TON (Telegram Open Network)",
+  "Pi Network (Pi Coin)",
+  "BTC (Bitcoin)",
+  "TRX (TRON)",
+  "XRP (Ripple)",
+  "DOGE (Dogecoin)",
+  "BNB (BEP20)",
+  "LTC (Litecoin)",
 ];
+
+// Map payment method → wallet key on user profile
+const PAYMENT_TO_WALLET: Record<string, { key: string; label: string }> = {
+  "USDT TRC20 (TRON)":           { key: "usdtTronWallet", label: "USDT TRC20 Wallet" },
+  "USDT BEP20 (BSC)":            { key: "usdtBscWallet",  label: "USDT BEP20 Wallet" },
+  "TON (Telegram Open Network)": { key: "tonWallet",      label: "TON Wallet" },
+  "Pi Network (Pi Coin)":        { key: "piWallet",       label: "Pi Network Wallet" },
+  "BTC (Bitcoin)":               { key: "btcWallet",      label: "Bitcoin Wallet" },
+  "TRX (TRON)":                  { key: "usdtTronWallet", label: "TRON (TRX) Wallet" },
+  "XRP (Ripple)":                { key: "btcWallet",      label: "XRP/Ripple Wallet" },
+  "DOGE (Dogecoin)":             { key: "btcWallet",      label: "DOGE Wallet" },
+  "BNB (BEP20)":                 { key: "usdtBscWallet",  label: "BNB (BEP20) Wallet" },
+  "LTC (Litecoin)":              { key: "btcWallet",      label: "Litecoin Wallet" },
+};
 
 const CATEGORY_TABS = [
   { key: "all",      label: "All",              icon: Store,   color: "text-gray-600" },
@@ -152,9 +174,9 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
     preferredCurrency: user?.preferredCurrency || "USD",
     usdtTronWallet: user?.usdtTronWallet || "",
     usdtBscWallet: user?.usdtBscWallet || "",
-    usdtEthWallet: user?.usdtEthWallet || "",
     tonWallet: user?.tonWallet || "",
     btcWallet: user?.btcWallet || "",
+    piWallet: user?.piWallet || "",
   });
 
   const save = useMutation({
@@ -211,14 +233,17 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
             <p className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Wallet className="w-4 h-4 text-violet-500" /> Crypto Wallets (for receiving payments & refunds)</p>
             <div className="space-y-3">
               {[
-                { key: "usdtTronWallet", label: "USDT TRC20 (TRON)", placeholder: "TXxx... address" },
-                { key: "usdtBscWallet",  label: "USDT BEP20 (BSC)",  placeholder: "0x... address" },
-                { key: "usdtEthWallet",  label: "USDT ERC20 (ETH)",  placeholder: "0x... address" },
-                { key: "tonWallet",      label: "TON Wallet",         placeholder: "UQxx... address" },
-                { key: "btcWallet",      label: "Bitcoin (BTC)",      placeholder: "bc1... or 1... address" },
-              ].map(({ key, label, placeholder }) => (
+                { key: "usdtTronWallet", label: "USDT TRC20 (TRON)", placeholder: "TXxx... address", badge: "Low Gas" },
+                { key: "usdtBscWallet",  label: "USDT BEP20 (BSC)",  placeholder: "0x... address",   badge: "Low Gas" },
+                { key: "tonWallet",      label: "TON (Telegram)",     placeholder: "UQxx... address", badge: "Low Gas" },
+                { key: "piWallet",       label: "Pi Network",         placeholder: "Your Pi username or wallet", badge: "Low Gas" },
+                { key: "btcWallet",      label: "Bitcoin / XRP / DOGE / LTC", placeholder: "Address for BTC, XRP, DOGE or LTC", badge: "" },
+              ].map(({ key, label, placeholder, badge }) => (
                 <div key={key}>
-                  <Label className="text-xs text-gray-500 mb-1 block">{label}</Label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label className="text-xs text-gray-500">{label}</Label>
+                    {badge && <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full uppercase">{badge}</span>}
+                  </div>
                   <Input
                     value={(form as any)[key]}
                     onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
@@ -428,13 +453,21 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
 function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any; onClose: () => void }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [buyerWallet, setBuyerWallet] = useState(user?.usdtTronWallet || "");
-  const [shippingAddr, setShippingAddr] = useState("");
   const isPhysical = listing?.productSubtype === "physical";
+
+  // Build list of user's saved wallets for the matching payment method
+  const pmInfo = PAYMENT_TO_WALLET[listing?.paymentMethod || ""] || null;
+  const savedWallet = pmInfo ? ((user as any)?.[pmInfo.key] || "") : "";
+
+  const [walletMode, setWalletMode] = useState<"saved" | "custom">(savedWallet ? "saved" : "custom");
+  const [customWallet, setCustomWallet] = useState("");
+  const [shippingAddr, setShippingAddr] = useState("");
+
+  const resolvedWallet = walletMode === "saved" ? savedWallet : customWallet;
 
   const acceptOffer = useMutation({
     mutationFn: async () => {
-      const body: any = { buyerCryptoWallet: buyerWallet };
+      const body: any = { buyerCryptoWallet: resolvedWallet };
       if (isPhysical) body.shippingAddress = shippingAddr;
       const res = await fetch(`/api/p2p/listings/${listing.id}/accept`, {
         method: "POST",
@@ -452,9 +485,11 @@ function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any;
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const sym = getCurrencySymbol(listing?.currency || "USD");
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" data-testid="modal-accept-offer">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
         <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-5">
           <h2 className="text-white font-black text-lg">Accept Offer</h2>
           <p className="text-violet-200 text-sm mt-0.5">{listing?.title}</p>
@@ -464,39 +499,72 @@ function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any;
           <div className="rounded-xl bg-gray-50 border border-gray-100 p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Price</span>
-              <span className="font-bold">{getCurrencySymbol(listing?.currency || "USD")}{Number(listing?.price || 0).toFixed(2)} {listing?.currency || "USD"}</span>
+              <span className="font-bold">{sym}{Number(listing?.price || 0).toLocaleString()} {listing?.currency || "USD"}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Payment via</span>
-              <span className="font-semibold text-gray-700">{listing?.paymentMethod}</span>
+              <span className="text-gray-500">Pay via</span>
+              <span className="font-semibold text-violet-700 flex items-center gap-1"><Coins className="w-3 h-3" />{listing?.paymentMethod}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Seller</span>
               <span className="font-semibold text-gray-700">{listing?.seller?.username || listing?.seller?.firstName} · ⭐ {Number(listing?.seller?.rating || 4.8).toFixed(1)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Country</span>
-              <span className="font-semibold text-gray-700 flex items-center gap-1"><MapPin className="w-3 h-3" />{listing?.country || "Global"}</span>
-            </div>
+            {listing?.country && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Country</span>
+                <span className="font-semibold text-gray-700 flex items-center gap-1"><MapPin className="w-3 h-3" />{listing.country}</span>
+              </div>
+            )}
           </div>
 
-          {/* Buyer crypto wallet */}
+          {/* Refund wallet selection */}
           <div>
-            <Label className="text-sm font-bold mb-1.5 block">Your Crypto Wallet (for refunds)</Label>
-            <Input
-              value={buyerWallet}
-              onChange={e => setBuyerWallet(e.target.value)}
-              placeholder="Your wallet address for refund if needed"
-              className="rounded-xl font-mono text-sm"
-              data-testid="input-buyer-wallet"
-            />
-            <p className="text-xs text-gray-400 mt-1">This is only used if admin needs to issue a refund</p>
+            <Label className="text-sm font-bold mb-2 block text-gray-800">
+              <Wallet className="w-4 h-4 inline mr-1.5 text-violet-500" />Your Refund Wallet
+            </Label>
+            <p className="text-xs text-gray-400 mb-2">If admin issues a refund, it will be sent to this wallet. Select your saved wallet or enter a custom address.</p>
+
+            {savedWallet && (
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => setWalletMode("saved")}
+                  className={`flex-1 rounded-xl border text-xs font-semibold py-2 px-3 transition-all ${walletMode === "saved" ? "border-violet-400 bg-violet-50 text-violet-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                  data-testid="wallet-mode-saved"
+                >
+                  ✓ Use Saved {pmInfo?.label}
+                </button>
+                <button
+                  onClick={() => setWalletMode("custom")}
+                  className={`flex-1 rounded-xl border text-xs font-semibold py-2 px-3 transition-all ${walletMode === "custom" ? "border-violet-400 bg-violet-50 text-violet-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                  data-testid="wallet-mode-custom"
+                >
+                  + Custom Address
+                </button>
+              </div>
+            )}
+
+            {walletMode === "saved" && savedWallet ? (
+              <div className="rounded-xl bg-violet-50 border border-violet-200 px-3 py-2.5">
+                <p className="text-xs text-violet-500 mb-1">{pmInfo?.label}</p>
+                <p className="font-mono text-sm text-violet-800 break-all">{savedWallet}</p>
+              </div>
+            ) : (
+              <Input
+                value={customWallet}
+                onChange={e => setCustomWallet(e.target.value)}
+                placeholder="Enter your wallet address for this trade"
+                className="rounded-xl font-mono text-sm"
+                data-testid="input-buyer-wallet"
+              />
+            )}
           </div>
 
           {/* Shipping address for physical */}
           {isPhysical && (
             <div>
-              <Label className="text-sm font-bold mb-1.5 block text-emerald-700">📦 Shipping Address *</Label>
+              <Label className="text-sm font-bold mb-1.5 block text-emerald-700">
+                <Truck className="w-4 h-4 inline mr-1.5" />Shipping Address *
+              </Label>
               <Textarea
                 value={shippingAddr}
                 onChange={e => setShippingAddr(e.target.value)}
@@ -505,7 +573,7 @@ function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any;
                 className="rounded-xl text-sm"
                 data-testid="input-shipping-address"
               />
-              <p className="text-xs text-gray-400 mt-1">Seller will ship your product to this address</p>
+              <p className="text-xs text-gray-400 mt-1">Seller will ship to this address</p>
             </div>
           )}
 
@@ -513,7 +581,7 @@ function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any;
           <div className="rounded-xl bg-green-50 border border-green-100 p-3 flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
             <p className="text-green-700 text-xs leading-relaxed">
-              Your payment is protected by <strong>admin escrow</strong>. Funds are only released after you confirm receipt.
+              Payment is protected by <strong>admin escrow</strong>. Funds release only after you confirm receipt.
             </p>
           </div>
 
@@ -522,7 +590,7 @@ function AcceptOfferModal({ listing, user, onClose }: { listing: any; user: any;
             <Button
               className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-700 font-bold"
               onClick={() => acceptOffer.mutate()}
-              disabled={acceptOffer.isPending || (isPhysical && !shippingAddr.trim())}
+              disabled={acceptOffer.isPending || !resolvedWallet.trim() || (isPhysical && !shippingAddr.trim())}
               data-testid="button-confirm-accept"
             >
               {acceptOffer.isPending ? "Opening..." : "Enter Deal Room →"}

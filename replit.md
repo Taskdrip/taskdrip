@@ -76,7 +76,11 @@ Design preferences: Clean, professional web app design with white background and
 - **Admin Escrow Control** (`/admin/p2p-transactions`): Full admin management — listing thumbnails, edit dialog (title/description/price/method/image/type/status/adminNote via PUT /api/admin/p2p-listings/:id), approve/reject/note quick actions, Feature/Expire/Reactivate buttons, transaction confirm/release/refund with deal room links.
 - **Seed Demo Data**: Button in admin panel and `POST /api/admin/p2p-seed` endpoint seeds 9 approved demo listings (3 crypto, 3 product, 3 service) using the admin account as seller. Initial seed done directly via DB.
 - **P2P Listing Removal**: Admin P2P removal is a permanent DELETE action (`DELETE /api/admin/p2p-listings/:id`), public listing details only return approved listings, and demo seeding only restores missing demo titles instead of duplicating existing listings.
-- **P2P Fee Settings** (`/admin/p2p-fees`): Admin-configurable fee type, value, minimum, and maximum fee per transaction type (`crypto`, `product`, `service`).
+- **P2P Fee Settings** (`/admin/p2p-fees`): Admin-configurable per-party fees — set separate buyer fee (added to buyer's total) and seller fee (deducted from payout) per transaction type (`crypto`, `product`, `service`). Both support fixed or percentage modes with min/max caps.
+- **Crypto-only Payments**: All P2P listings use crypto payment methods only — USDT TRC20, USDT BEP20, TON, Pi Network, BTC, TRX, XRP, DOGE, BNB (BEP20), LTC. No fiat/bank options.
+- **Pi Network Wallet**: Users can set their Pi Network wallet in Trading Profile; supported as a payment method.
+- **Currency-aware Deal Rooms**: All amounts show the correct currency symbol (₦ for NGN, € for EUR, etc.) — never hardcoded $.
+- **Smart Accept Modal**: When accepting an offer, buyers can use their saved wallet for the matching network or enter a custom one-time wallet address for refunds.
 - **Platform Fee Settings** (`/admin/platform-fees`): Admin-editable campaign, withdrawal, and listing fee records backed by `platformFees`.
 - Backend schema: `p2pListings`, `p2pTransactions`, `p2pMessages`, `p2pFeeConfigs`, `platformFees`, and `p2pActionLogs`.
 - Schema additions: `p2pListings` now has `isFeatured` (boolean) and `expiresAt` (timestamp). Status enum extended to include `'expired'`.

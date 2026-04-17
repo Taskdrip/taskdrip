@@ -105,6 +105,7 @@ export const users = pgTable("users", {
   country: varchar("country"),
   preferredCurrency: varchar("preferred_currency").default("USD"),
   btcWallet: varchar("btc_wallet"),
+  piWallet: varchar("pi_wallet"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -472,10 +473,21 @@ export const p2pListings = pgTable("p2p_listings", {
 export const p2pFeeConfigs = pgTable("p2p_fee_config", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   transactionType: varchar("transaction_type").notNull().unique(),
+  // Combined fee (legacy / total fallback)
   feeType: varchar("fee_type").notNull().default("percentage"),
   feeValue: decimal("fee_value", { precision: 10, scale: 2 }).notNull().default("2.00"),
   minFee: decimal("min_fee", { precision: 10, scale: 2 }).default("0.00"),
   maxFee: decimal("max_fee", { precision: 10, scale: 2 }),
+  // Buyer-specific fee (paid on top of amount)
+  buyerFeeType: varchar("buyer_fee_type").default("percentage"),
+  buyerFeeValue: decimal("buyer_fee_value", { precision: 10, scale: 2 }).default("2.00"),
+  buyerMinFee: decimal("buyer_min_fee", { precision: 10, scale: 2 }).default("0.00"),
+  buyerMaxFee: decimal("buyer_max_fee", { precision: 10, scale: 2 }),
+  // Seller-specific fee (deducted from payout)
+  sellerFeeType: varchar("seller_fee_type").default("percentage"),
+  sellerFeeValue: decimal("seller_fee_value", { precision: 10, scale: 2 }).default("0.00"),
+  sellerMinFee: decimal("seller_min_fee", { precision: 10, scale: 2 }).default("0.00"),
+  sellerMaxFee: decimal("seller_max_fee", { precision: 10, scale: 2 }),
   updatedBy: varchar("updated_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -499,6 +511,8 @@ export const p2pTransactions = pgTable("p2p_transactions", {
   adminId: varchar("admin_id").references(() => users.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   fee: decimal("fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  buyerFee: decimal("buyer_fee", { precision: 10, scale: 2 }).default("0.00"),
+  sellerFee: decimal("seller_fee", { precision: 10, scale: 2 }).default("0.00"),
   netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency").default("USD"),

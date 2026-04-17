@@ -137,17 +137,43 @@ async function getP2PFeeConfig(type: string) {
     feeValue: '2.00',
     minFee: '0.00',
     maxFee: null,
+    buyerFeeType: 'percentage',
+    buyerFeeValue: '2.00',
+    buyerMinFee: '0.00',
+    buyerMaxFee: null,
+    sellerFeeType: 'percentage',
+    sellerFeeValue: '0.00',
+    sellerMinFee: '0.00',
+    sellerMaxFee: null,
   }).returning();
   return created;
 }
 
+function calcFeeForParty(amount: number, feeType: string, feeValue: string | null, minFee: string | null, maxFee: string | null) {
+  const raw = feeType === 'fixed' ? Number(feeValue || 0) : amount * (Number(feeValue || 0) / 100);
+  const min = Number(minFee || 0);
+  const max = maxFee === null || maxFee === undefined ? null : Number(maxFee);
+  let fee = Math.max(raw, min);
+  if (max !== null && fee > max) fee = max;
+  return Number(fee.toFixed(2));
+}
+
 function calculateP2PFee(amount: number, config: any) {
+  // Use buyer fee if defined, otherwise fall back to combined fee
+  const useBuyerSeller = Number(config.buyerFeeValue || 0) > 0 || Number(config.sellerFeeValue || 0) > 0;
+  if (useBuyerSeller) {
+    return calcFeeForParty(amount, config.buyerFeeType || 'percentage', config.buyerFeeValue, config.buyerMinFee, config.buyerMaxFee);
+  }
   let fee = config.feeType === 'fixed' ? Number(config.feeValue || 0) : amount * (Number(config.feeValue || 0) / 100);
   const minFee = Number(config.minFee || 0);
   const maxFee = config.maxFee === null || config.maxFee === undefined ? null : Number(config.maxFee);
   if (fee < minFee) fee = minFee;
   if (maxFee !== null && fee > maxFee) fee = maxFee;
   return Number(fee.toFixed(2));
+}
+
+function calculateSellerFee(amount: number, config: any) {
+  return calcFeeForParty(amount, config.sellerFeeType || 'percentage', config.sellerFeeValue, config.sellerMinFee, config.sellerMaxFee);
 }
 
 async function enrichP2PListing(listing: any) {
@@ -4421,7 +4447,7 @@ Instructions:
   // P2P trading profile settings (country, currency, crypto wallets)
   app.patch('/api/user/p2p-settings', isAuthenticated, async (req: any, res) => {
     try {
-      const allowed = ['country', 'preferredCurrency', 'usdtTronWallet', 'usdtBscWallet', 'usdtEthWallet', 'tonWallet', 'btcWallet'];
+      const allowed = ['country', 'preferredCurrency', 'usdtTronWallet', 'usdtBscWallet', 'tonWallet', 'btcWallet', 'piWallet'];
       const updates: Record<string, any> = {};
       for (const key of allowed) {
         if (req.body[key] !== undefined) updates[key] = String(req.body[key] || '').trim() || null;
@@ -5266,17 +5292,23 @@ Instructions:
       const seller = await storage.getUser(listing.sellerId);
       const config = await getP2PFeeConfig(listing.listingType);
       const amount = Number(listing.price);
-      const fee = calculateP2PFee(amount, config);
-      const totalAmount = amount + fee;
+      const buyerFee = calculateP2PFee(amount, config);
+      const sellerFee = calculateSellerFee(amount, config);
+      const fee = buyerFee; // buyer's fee = total escrow obligation
+      const totalAmount = amount + buyerFee;
+      const netAmount = amount - sellerFee; // seller receives amount minus their fee
 
       // Determine seller's receiving wallet based on payment method
       const payMethod = (listing.paymentMethod || '').toLowerCase();
       let sellerWallet = '';
-      if (payMethod.includes('tron') || payMethod.includes('trc')) sellerWallet = (seller as any)?.usdtTronWallet || '';
-      else if (payMethod.includes('bsc') || payMethod.includes('bep')) sellerWallet = (seller as any)?.usdtBscWallet || '';
-      else if (payMethod.includes('eth') || payMethod.includes('erc')) sellerWallet = (seller as any)?.usdtEthWallet || '';
+      if (payMethod.includes('tron') || payMethod.includes('trc20')) sellerWallet = (seller as any)?.usdtTronWallet || '';
+      else if (payMethod.includes('bsc') || payMethod.includes('bep20')) sellerWallet = (seller as any)?.usdtBscWallet || '';
       else if (payMethod.includes('ton')) sellerWallet = (seller as any)?.tonWallet || '';
+      else if (payMethod.includes('pi network') || payMethod.includes('pi coin')) sellerWallet = (seller as any)?.piWallet || '';
       else if (payMethod.includes('btc') || payMethod.includes('bitcoin')) sellerWallet = (seller as any)?.btcWallet || '';
+      else if (payMethod.includes('trx') || payMethod.includes('tron')) sellerWallet = (seller as any)?.usdtTronWallet || '';
+      else if (payMethod.includes('xrp') || payMethod.includes('ripple')) sellerWallet = (seller as any)?.btcWallet || '';
+      else if (payMethod.includes('doge')) sellerWallet = (seller as any)?.btcWallet || '';
 
       // Buyer's crypto wallet for refund (from body or profile)
       const buyerCryptoWallet = String(req.body.buyerCryptoWallet || (req.user as any).usdtTronWallet || '');
@@ -5290,7 +5322,9 @@ Instructions:
         adminId: admins[0]?.id || null,
         amount: amount.toFixed(2),
         fee: fee.toFixed(2),
-        netAmount: amount.toFixed(2),
+        buyerFee: buyerFee.toFixed(2),
+        sellerFee: sellerFee.toFixed(2),
+        netAmount: netAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
         currency: listing.currency || 'USD',
         transactionType: listing.listingType,
@@ -5617,11 +5651,21 @@ Instructions:
       const type = String(req.params.type);
       if (!p2pTypes.includes(type)) return res.status(400).json({ message: 'Invalid transaction type' });
       const current = await getP2PFeeConfig(type);
+      const toNum = (v: any) => String(Number(v || 0).toFixed(2));
+      const toNullable = (v: any) => (v === '' || v === null || v === undefined) ? null : String(Number(v).toFixed(2));
       const payload = {
         feeType: req.body.feeType === 'fixed' ? 'fixed' : 'percentage',
-        feeValue: String(Number(req.body.feeValue || 0).toFixed(2)),
-        minFee: String(Number(req.body.minFee || 0).toFixed(2)),
-        maxFee: req.body.maxFee === '' || req.body.maxFee === null || req.body.maxFee === undefined ? null : String(Number(req.body.maxFee).toFixed(2)),
+        feeValue: toNum(req.body.feeValue),
+        minFee: toNum(req.body.minFee),
+        maxFee: toNullable(req.body.maxFee),
+        buyerFeeType: req.body.buyerFeeType === 'fixed' ? 'fixed' : 'percentage',
+        buyerFeeValue: toNum(req.body.buyerFeeValue),
+        buyerMinFee: toNum(req.body.buyerMinFee),
+        buyerMaxFee: toNullable(req.body.buyerMaxFee),
+        sellerFeeType: req.body.sellerFeeType === 'fixed' ? 'fixed' : 'percentage',
+        sellerFeeValue: toNum(req.body.sellerFeeValue),
+        sellerMinFee: toNum(req.body.sellerMinFee),
+        sellerMaxFee: toNullable(req.body.sellerMaxFee),
         updatedBy: req.user.id,
         updatedAt: new Date(),
       };
