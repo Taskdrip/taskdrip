@@ -297,18 +297,22 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
   const [step, setStep] = useState(1);
   const [paymentNote, setPaymentNote] = useState("");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
-  const { data: networks = [] } = useQuery<any[]>({ queryKey: ["/api/payment-networks"] });
+  const { data: paymentMethods = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods", "p2p"],
+    queryFn: () => fetch("/api/payment-methods?feature=p2p", { credentials: "include" }).then(r => r.json()),
+  });
+  const cryptoMethods = (paymentMethods as any[]).filter((m: any) => m.type === "crypto");
   const currencyCode = tx.currency || "USD";
   const amountStr = money(tx.totalAmount, currencyCode);
 
   const payMethod = (tx.listing?.paymentMethod || "").toLowerCase();
-  const matchedNet = (networks as any[]).find((n: any) =>
-    payMethod.includes(n.shortName?.toLowerCase()) ||
-    payMethod.includes(n.network?.toLowerCase()) ||
-    payMethod.includes(n.currency?.toLowerCase())
+  const matchedNet = cryptoMethods.find((m: any) =>
+    payMethod.includes((m.network || "").toLowerCase()) ||
+    payMethod.includes((m.currency || "").toLowerCase()) ||
+    payMethod.includes((m.label || "").toLowerCase())
   );
-  // Prefer the seller's wallet captured at deal creation time
-  const walletAddress = tx.sellerCryptoWallet || matchedNet?.walletAddress || "";
+  // Prefer the seller's wallet captured at deal creation time, then matched method's address
+  const walletAddress = tx.sellerCryptoWallet || matchedNet?.address || "";
 
   const { copied: copiedWallet, copy: copyWallet } = useCopy(walletAddress);
   const { copied: copiedAmt, copy: copyAmt } = useCopy(amountStr);

@@ -59,7 +59,7 @@ export default function EscrowPayment() {
   const urlParams = new URLSearchParams(window.location.search);
   const campaignId = urlParams.get("campaignId");
   
-  const [selectedNetwork, setSelectedNetwork] = useState<string>("tron");
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [paymentProof, setPaymentProof] = useState<PaymentProof>({
     transactionHash: "",
     network: "tron"
@@ -89,11 +89,12 @@ export default function EscrowPayment() {
     enabled: !!campaignId,
   });
 
-  // Fetch active payment networks
-  const { data: paymentNetworks = [] } = useQuery<PaymentNetwork[]>({
-    queryKey: ["/api/payment-networks"],
+  // Fetch active payment methods for campaigns (feature-filtered)
+  const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods", "campaigns"],
+    queryFn: () => fetch("/api/payment-methods?feature=campaigns", { credentials: "include" }).then(r => r.json()),
   });
-  const activeNetworks = paymentNetworks.filter((n) => n.isActive);
+  const activeNetworks = paymentMethodsRaw.filter((m: any) => m.type === "crypto" && m.isActive !== false);
 
   // Fetch escrow payment details
   const { data: escrowPayment, isLoading, refetch } = useQuery<EscrowPayment>({
@@ -276,26 +277,29 @@ export default function EscrowPayment() {
                   <Label className="text-sm font-medium mb-3 block">Select Payment Network</Label>
                   {activeNetworks.length === 0 ? (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm">
-                      No payment networks are currently active. Please contact support.
+                      No crypto payment methods are currently active. Please contact support.
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {activeNetworks.map((net) => {
-                        const networkEmoji: Record<string, string> = { tron: '🔴', ton: '💎', bsc: '🟡', eth: '🔷' };
+                      {activeNetworks.map((method: any) => {
+                        const networkKey = (method.network || "").toLowerCase();
+                        const emojiMap: Record<string, string> = { tron: '🔴', 'trc-20': '🔴', ton: '💎', bsc: '🟡', 'bep-20': '🟡', eth: '🔷', 'erc-20': '🔷', pi: '🟣', btc: '🟠' };
+                        const emoji = emojiMap[networkKey] || '🪙';
+                        const isSelected = selectedNetwork === method.id || (!selectedNetwork && activeNetworks[0]?.id === method.id);
                         return (
                           <button
-                            key={net.networkKey}
-                            onClick={() => setSelectedNetwork(net.network)}
-                            data-testid={`network-btn-${net.networkKey}`}
+                            key={method.id}
+                            onClick={() => setSelectedNetwork(method.id)}
+                            data-testid={`network-btn-${method.id}`}
                             className={`p-4 border-2 rounded-xl text-center transition-all ${
-                              selectedNetwork === net.network
+                              isSelected
                                 ? "border-blue-500 bg-blue-50 shadow-md"
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
-                            <div className="text-2xl mb-1">{networkEmoji[net.network] || '💰'}</div>
-                            <div className="font-semibold text-sm">{net.name.replace(' Network', '').replace('USDT - ', 'USDT ')}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">{net.shortName}</div>
+                            <div className="text-2xl mb-1">{emoji}</div>
+                            <div className="font-semibold text-sm">{method.label}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{method.network || method.currency}</div>
                           </button>
                         );
                       })}
@@ -303,21 +307,17 @@ export default function EscrowPayment() {
                   )}
                 </div>
 
-                {/* Wallet Address — from active network's configured address */}
+                {/* Wallet Address — from selected payment method */}
                 {(() => {
-                  const selected = activeNetworks.find((n) => n.network === selectedNetwork);
-                  const address = selected?.walletAddress
-                    || (selectedNetwork === 'tron' ? walletAddresses.tron
-                      : selectedNetwork === 'bsc' ? walletAddresses.bsc
-                      : selectedNetwork === 'ton' ? walletAddresses.ton
-                      : '');
+                  const selected = activeNetworks.find((m: any) => m.id === selectedNetwork) || activeNetworks[0];
+                  const address = selected?.address || '';
                   return (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <Label className="text-sm font-medium mb-2 block">
-                        {selected?.name || 'USDT'} Deposit Address
+                        {selected?.label || 'Crypto'} {selected?.network === 'Pi' || selected?.network === 'pi' ? 'Username / Wallet' : 'Deposit Address'}
                       </Label>
-                      {selected?.description && (
-                        <p className="text-xs text-gray-500 mb-2">{selected.description}</p>
+                      {selected?.instructions && (
+                        <p className="text-xs text-gray-500 mb-2">{selected.instructions}</p>
                       )}
                       <div className="flex items-center gap-2">
                         <Input

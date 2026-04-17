@@ -220,9 +220,10 @@ function MethodDetails({ method, amount }: { method: any; amount: string }) {
 
 // Fallback payment methods if admin hasn't configured any
 const FALLBACK_METHODS = [
-  { id: "f1", type: "crypto", label: "USDT TRC-20", network: "TRC-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
-  { id: "f2", type: "crypto", label: "USDT BEP-20", network: "BEP-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
-  { id: "f3", type: "crypto", label: "TON", network: "TON", currency: "TON", address: "", instructions: "Contact admin for wallet address" },
+  { id: "f1", type: "crypto", label: "USDT – TON Network", network: "TON", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
+  { id: "f2", type: "crypto", label: "USDT – Tron (TRC-20)", network: "TRC-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
+  { id: "f3", type: "crypto", label: "USDT – BNB Smart Chain (BEP-20)", network: "BEP-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
+  { id: "f4", type: "crypto", label: "Pi Network", network: "Pi", currency: "PI", address: "", instructions: "Contact admin for Pi wallet address or username" },
 ];
 
 export default function ShopCheckout() {
@@ -245,7 +246,8 @@ export default function ShopCheckout() {
   });
 
   const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
-    queryKey: ["/api/payment-methods"],
+    queryKey: ["/api/payment-methods", "shop"],
+    queryFn: () => fetch("/api/payment-methods?feature=shop", { credentials: "include" }).then(r => r.json()),
   });
 
   const paymentMethods = paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_METHODS;

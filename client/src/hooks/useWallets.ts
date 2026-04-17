@@ -5,6 +5,7 @@ type WalletAddresses = {
   tron: string;
   bsc: string;
   ton: string;
+  piNetwork: string;
 };
 
 export function useWallets() {
@@ -13,10 +14,7 @@ export function useWallets() {
   );
 
   useEffect(() => {
-    // Subscribe to wallet address changes
     const unsubscribe = walletManager.subscribe(setWalletAddresses);
-    
-    // Cleanup subscription on unmount
     return unsubscribe;
   }, []);
 

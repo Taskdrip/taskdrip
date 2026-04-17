@@ -5,13 +5,15 @@ type WalletAddresses = {
   tron: string;
   bsc: string;
   ton: string;
+  piNetwork: string;
 };
 
 class WalletManager {
   private walletAddresses: WalletAddresses = {
-    tron: 'TQn9Y2khEsLJqX8xJ7B3K9VfW2mP4nC5dR',
-    bsc: '0x742d35Cc6528890B1c8B0CfA3B2f9D8E1a3F4C5B',
-    ton: 'EQC3dNlesgVD9YbAxkwsKW9Lzy8K2mJ5rQp8'
+    tron: '',
+    bsc: '',
+    ton: '',
+    piNetwork: '',
   };
 
   private listeners: Array<(addresses: WalletAddresses) => void> = [];
@@ -82,7 +84,8 @@ class WalletManager {
     const networkNames = {
       tron: 'USDT (Tron Network) - TRC-20',
       bsc: 'USDT (BSC Network) - BEP-20',
-      ton: 'USDT (TON Network)'
+      ton: 'USDT (TON Network)',
+      piNetwork: 'Pi Network',
     };
     return networkNames[network];
   }

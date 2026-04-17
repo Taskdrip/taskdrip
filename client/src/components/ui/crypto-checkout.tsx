@@ -16,44 +16,33 @@ interface CryptoCheckoutProps {
   description?: string;
   campaignId?: string;
   productId?: string;
+  feature?: string;
   onSuccess?: () => void;
 }
 
-const NETWORKS = [
-  {
-    id: "tron",
-    label: "USDT (TRC-20)",
-    currency: "USDT",
-    icon: "🔴",
-    color: "border-red-200 bg-red-50",
-    selectedColor: "border-red-500 bg-red-50 ring-2 ring-red-400",
-    badge: "bg-red-100 text-red-700",
-    fee: "~$1",
-    time: "1-3 min",
-  },
-  {
-    id: "bsc",
-    label: "USDT (BEP-20)",
-    currency: "USDT",
-    icon: "🟡",
-    color: "border-yellow-200 bg-yellow-50",
-    selectedColor: "border-yellow-500 bg-yellow-50 ring-2 ring-yellow-400",
-    badge: "bg-yellow-100 text-yellow-700",
-    fee: "~$0.2",
-    time: "3-5 min",
-  },
-  {
-    id: "ton",
-    label: "TON",
-    currency: "TON",
-    icon: "🔵",
-    color: "border-blue-200 bg-blue-50",
-    selectedColor: "border-blue-500 bg-blue-50 ring-2 ring-blue-400",
-    badge: "bg-blue-100 text-blue-700",
-    fee: "~$0.01",
-    time: "30 sec",
-  },
-];
+const NETWORK_META: Record<string, { label: string; icon: string; color: string; selectedColor: string; badge: string; fee: string; time: string }> = {
+  ton: { label: "USDT (TON)", icon: "🔵", color: "border-blue-200 bg-blue-50", selectedColor: "border-blue-500 bg-blue-50 ring-2 ring-blue-400", badge: "bg-blue-100 text-blue-700", fee: "~$0.01", time: "30 sec" },
+  "ton-usdt": { label: "USDT (TON)", icon: "🔵", color: "border-blue-200 bg-blue-50", selectedColor: "border-blue-500 bg-blue-50 ring-2 ring-blue-400", badge: "bg-blue-100 text-blue-700", fee: "~$0.01", time: "30 sec" },
+  tron: { label: "USDT (TRC-20)", icon: "🔴", color: "border-red-200 bg-red-50", selectedColor: "border-red-500 bg-red-50 ring-2 ring-red-400", badge: "bg-red-100 text-red-700", fee: "~$1", time: "1-3 min" },
+  "trc-20": { label: "USDT (TRC-20)", icon: "🔴", color: "border-red-200 bg-red-50", selectedColor: "border-red-500 bg-red-50 ring-2 ring-red-400", badge: "bg-red-100 text-red-700", fee: "~$1", time: "1-3 min" },
+  bsc: { label: "USDT (BEP-20)", icon: "🟡", color: "border-yellow-200 bg-yellow-50", selectedColor: "border-yellow-500 bg-yellow-50 ring-2 ring-yellow-400", badge: "bg-yellow-100 text-yellow-700", fee: "~$0.2", time: "3-5 min" },
+  "bep-20": { label: "USDT (BEP-20)", icon: "🟡", color: "border-yellow-200 bg-yellow-50", selectedColor: "border-yellow-500 bg-yellow-50 ring-2 ring-yellow-400", badge: "bg-yellow-100 text-yellow-700", fee: "~$0.2", time: "3-5 min" },
+  pi: { label: "Pi Network", icon: "🟣", color: "border-purple-200 bg-purple-50", selectedColor: "border-purple-500 bg-purple-50 ring-2 ring-purple-400", badge: "bg-purple-100 text-purple-700", fee: "Near zero", time: "Instant" },
+  "pi-network": { label: "Pi Network", icon: "🟣", color: "border-purple-200 bg-purple-50", selectedColor: "border-purple-500 bg-purple-50 ring-2 ring-purple-400", badge: "bg-purple-100 text-purple-700", fee: "Near zero", time: "Instant" },
+};
+
+function getNetworkMeta(method: any) {
+  const key = (method.network || "").toLowerCase().replace(/\s/g, "-");
+  return NETWORK_META[key] || {
+    label: method.label || method.currency || "Crypto",
+    icon: "🪙",
+    color: "border-gray-200 bg-gray-50",
+    selectedColor: "border-gray-500 bg-gray-50 ring-2 ring-gray-400",
+    badge: "bg-gray-100 text-gray-700",
+    fee: "Varies",
+    time: "Varies",
+  };
+}
 
 type Step = "select" | "pay" | "confirm" | "done";
 
@@ -65,26 +54,31 @@ export function CryptoCheckoutModal({
   description,
   campaignId,
   productId,
+  feature = "campaigns",
   onSuccess,
 }: CryptoCheckoutProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("select");
-  const [selectedNetwork, setSelectedNetwork] = useState<string>("tron");
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const { data: wallets = [] } = useQuery<any[]>({
-    queryKey: ["/api/payment-wallets"],
+  const { data: allMethods = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods", feature],
+    queryFn: () => fetch(`/api/payment-methods?feature=${feature}`, { credentials: "include" }).then(r => r.json()),
   });
 
-  const activeWallet = wallets.find((w: any) => w.network === selectedNetwork && w.isActive);
-  const network = NETWORKS.find((n) => n.id === selectedNetwork)!;
+  // Only show crypto methods in this modal
+  const methods = allMethods.filter((m: any) => m.type === "crypto" && m.isActive !== false);
+
+  const selectedMethod = methods.find((m: any) => m.id === selectedMethodId) || methods[0];
+  const networkMeta = selectedMethod ? getNetworkMeta(selectedMethod) : null;
 
   const copyAddress = () => {
-    if (activeWallet?.walletAddress) {
-      navigator.clipboard.writeText(activeWallet.walletAddress);
+    if (selectedMethod?.address) {
+      navigator.clipboard.writeText(selectedMethod.address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
@@ -130,8 +124,8 @@ export function CryptoCheckoutModal({
     setUploading(false);
     submitPaymentMutation.mutate({
       amount: amount.toFixed(2),
-      network: selectedNetwork,
-      walletAddress: activeWallet?.walletAddress || "",
+      network: selectedMethod?.network || "",
+      walletAddress: selectedMethod?.address || "",
       transactionHash: txHash || undefined,
       paymentProof: proofUrl || undefined,
       campaignId: campaignId || undefined,
@@ -141,13 +135,11 @@ export function CryptoCheckoutModal({
 
   const handleClose = () => {
     setStep("select");
-    setSelectedNetwork("tron");
+    setSelectedMethodId("");
     setTxHash("");
     setProofFile(null);
     onClose();
   };
-
-  const TON_EQUIVALENT = selectedNetwork === "ton" ? (amount / 6.5).toFixed(2) : null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -163,12 +155,10 @@ export function CryptoCheckoutModal({
               <p className="text-white/70 text-xs">{purpose}</p>
             </div>
           </div>
-          {/* Amount */}
           <div className="mt-4 bg-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
             <span className="text-white/70 text-sm">Amount Due</span>
             <div className="text-right">
               <div className="text-2xl font-black text-white">${amount.toFixed(2)}</div>
-              {TON_EQUIVALENT && <div className="text-xs text-white/60">≈ {TON_EQUIVALENT} TON</div>}
             </div>
           </div>
         </div>
@@ -178,42 +168,53 @@ export function CryptoCheckoutModal({
           {step === "select" && (
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-3">Choose payment network:</p>
-              <div className="space-y-2 mb-6">
-                {NETWORKS.map((net) => {
-                  const wallet = wallets.find((w: any) => w.network === net.id && w.isActive);
-                  return (
-                    <button
-                      key={net.id}
-                      onClick={() => setSelectedNetwork(net.id)}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                        selectedNetwork === net.id ? net.selectedColor : net.color + " hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{net.icon}</span>
-                          <div>
-                            <div className="font-semibold text-gray-900 text-sm">{net.label}</div>
-                            <div className="text-xs text-gray-500">Fee {net.fee} • {net.time}</div>
+              {methods.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Wallet className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm">No crypto payment methods configured.</p>
+                  <p className="text-xs text-gray-400 mt-1">Please contact the admin.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 mb-6">
+                  {methods.map((method: any) => {
+                    const meta = getNetworkMeta(method);
+                    const isSelected = (selectedMethodId === method.id) || (!selectedMethodId && methods[0]?.id === method.id);
+                    return (
+                      <button
+                        key={method.id}
+                        onClick={() => setSelectedMethodId(method.id)}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected ? meta.selectedColor : meta.color + " hover:border-gray-300"}`}
+                        data-testid={`select-network-${method.id}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{meta.icon}</span>
+                            <div>
+                              <div className="font-semibold text-gray-900 text-sm">{method.label}</div>
+                              <div className="text-xs text-gray-500">
+                                {method.network && <span className="mr-2">{method.network}</span>}
+                                Fee {meta.fee} · {meta.time}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {method.address ? (
+                              <Badge className={`text-xs border-0 ${meta.badge}`}>Available</Badge>
+                            ) : (
+                              <Badge className="text-xs border-0 bg-gray-100 text-gray-400">No wallet</Badge>
+                            )}
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {wallet ? (
-                            <Badge className={`text-xs border-0 ${net.badge}`}>Available</Badge>
-                          ) : (
-                            <Badge className="text-xs border-0 bg-gray-100 text-gray-400">No wallet</Badge>
-                          )}
-                          {selectedNetwork === net.id && (
-                            <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {description && (
                 <div className="bg-gray-50 rounded-xl p-3 mb-4 text-xs text-gray-600">
@@ -224,7 +225,8 @@ export function CryptoCheckoutModal({
               <Button
                 className="w-full bg-black text-white hover:bg-gray-900 rounded-xl h-12 font-semibold"
                 onClick={() => setStep("pay")}
-                disabled={!wallets.find((w: any) => w.network === selectedNetwork && w.isActive)}
+                disabled={methods.length === 0 || !selectedMethod?.address}
+                data-testid="button-continue-payment"
               >
                 Continue <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -232,29 +234,30 @@ export function CryptoCheckoutModal({
           )}
 
           {/* Step: Pay */}
-          {step === "pay" && (
+          {step === "pay" && networkMeta && (
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <button onClick={() => setStep("select")} className="text-gray-400 hover:text-black text-sm">← Back</button>
                 <span className="text-sm text-gray-500">Send payment to:</span>
               </div>
 
-              {/* Network badge */}
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${network.badge}`}>
-                {network.icon} {network.label}
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${networkMeta.badge}`}>
+                {networkMeta.icon} {selectedMethod?.label}
               </div>
 
-              {/* Wallet Address */}
-              {activeWallet ? (
+              {selectedMethod?.address ? (
                 <div className="mb-4">
-                  <label className="text-xs text-gray-500 font-medium mb-1 block">Wallet Address</label>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">
+                    {selectedMethod.network === "Pi" || selectedMethod.network === "pi" ? "Pi Wallet / Username" : "Wallet Address"}
+                  </label>
                   <div className="flex gap-2">
                     <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-mono text-xs text-gray-800 break-all select-all">
-                      {activeWallet.walletAddress}
+                      {selectedMethod.address}
                     </div>
                     <button
                       onClick={copyAddress}
                       className="px-3 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
+                      data-testid="button-copy-address"
                     >
                       {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                     </button>
@@ -267,25 +270,23 @@ export function CryptoCheckoutModal({
                 </div>
               )}
 
-              {/* QR Code Placeholder */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center mb-4">
-                <div className="w-24 h-24 mx-auto bg-black rounded-lg grid grid-cols-6 gap-0.5 p-2 mb-2">
-                  {Array.from({ length: 36 }).map((_, i) => (
-                    <div key={i} className={`rounded-sm ${Math.random() > 0.5 ? 'bg-white' : 'bg-black'}`} />
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500">Scan QR or copy address above</p>
-                <p className="text-sm font-bold text-gray-900 mt-1">Send ${amount.toFixed(2)} USDT</p>
-              </div>
-
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 flex gap-2">
                 <Shield className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-blue-700">Send exactly <strong>${amount.toFixed(2)} USDT</strong> to the address above. After sending, click below to confirm.</p>
+                <p className="text-xs text-blue-700">
+                  Send exactly <strong>${amount.toFixed(2)} {selectedMethod?.currency || "USDT"}</strong> to the address above. After sending, click below to confirm.
+                </p>
               </div>
+
+              {selectedMethod?.instructions && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4 text-xs text-amber-700">
+                  {selectedMethod.instructions}
+                </div>
+              )}
 
               <Button
                 className="w-full bg-black text-white hover:bg-gray-900 rounded-xl h-12 font-semibold"
                 onClick={() => setStep("confirm")}
+                data-testid="button-ive-sent-payment"
               >
                 I've Sent the Payment <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -302,12 +303,13 @@ export function CryptoCheckoutModal({
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 mb-1 block">Transaction Hash (optional)</label>
+                  <label className="text-xs font-semibold text-gray-700 mb-1 block">Transaction Hash / Reference (optional)</label>
                   <Input
-                    placeholder="0x... or txid..."
+                    placeholder="0x... or txid or Pi transaction ref..."
                     value={txHash}
                     onChange={(e) => setTxHash(e.target.value)}
                     className="font-mono text-xs rounded-xl border-gray-200"
+                    data-testid="input-tx-hash"
                   />
                 </div>
 
@@ -316,7 +318,7 @@ export function CryptoCheckoutModal({
                   <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                     <Upload className="w-5 h-5 text-gray-400 mb-1" />
                     <span className="text-xs text-gray-500">{proofFile ? proofFile.name : "Click to upload screenshot"}</span>
-                    <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} data-testid="input-proof-file" />
                   </label>
                 </div>
               </div>
@@ -325,6 +327,7 @@ export function CryptoCheckoutModal({
                 className="w-full bg-black text-white hover:bg-gray-900 rounded-xl h-12 font-semibold"
                 onClick={handleSubmitPayment}
                 disabled={submitPaymentMutation.isPending || uploading}
+                data-testid="button-submit-proof"
               >
                 {(submitPaymentMutation.isPending || uploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Submit Payment for Verification
@@ -349,7 +352,7 @@ export function CryptoCheckoutModal({
                 </div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-500">Network</span>
-                  <span className="font-semibold">{network.label}</span>
+                  <span className="font-semibold">{selectedMethod?.label}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Status</span>
@@ -359,6 +362,7 @@ export function CryptoCheckoutModal({
               <Button
                 className="w-full bg-black text-white hover:bg-gray-900 rounded-xl h-12 font-semibold"
                 onClick={handleClose}
+                data-testid="button-done"
               >
                 Done
               </Button>

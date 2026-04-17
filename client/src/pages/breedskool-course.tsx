@@ -36,9 +36,10 @@ const CATEGORY_FALLBACK_IMAGES: Record<string, string> = {
 };
 
 const FALLBACK_PAYMENT_METHODS = [
-  { id: "f1", type: "crypto", label: "USDT TRC-20", network: "TRC-20", currency: "USDT", address: "" },
-  { id: "f2", type: "crypto", label: "USDT BEP-20", network: "BEP-20", currency: "USDT", address: "" },
-  { id: "f3", type: "crypto", label: "TON", network: "TON", currency: "TON", address: "" },
+  { id: "f1", type: "crypto", label: "USDT – TON Network", network: "TON", currency: "USDT", address: "" },
+  { id: "f2", type: "crypto", label: "USDT – Tron (TRC-20)", network: "TRC-20", currency: "USDT", address: "" },
+  { id: "f3", type: "crypto", label: "USDT – BNB Smart Chain (BEP-20)", network: "BEP-20", currency: "USDT", address: "" },
+  { id: "f4", type: "crypto", label: "Pi Network", network: "Pi", currency: "PI", address: "" },
 ];
 
 function StarRating({ rating, interactive = false, onRate }: { rating: number; interactive?: boolean; onRate?: (r: number) => void }) {
@@ -401,7 +402,8 @@ export default function BreedSkoolCourse() {
   });
 
   const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
-    queryKey: ["/api/payment-methods"],
+    queryKey: ["/api/payment-methods", "courses"],
+    queryFn: () => fetch("/api/payment-methods?feature=courses", { credentials: "include" }).then(r => r.json()),
   });
 
   const paymentMethods = (paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_PAYMENT_METHODS) as any[];

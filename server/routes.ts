@@ -391,9 +391,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Payment Methods (unified: crypto, bank, paypal, paystack, stripe) ──
   // Public: active payment methods for checkout display
-  app.get('/api/payment-methods', async (_req, res) => {
+  // Optional ?feature=shop|courses|campaigns|p2p|subscriptions|tips|payouts
+  app.get('/api/payment-methods', async (req, res) => {
     try {
-      const methods = await storage.getActivePaymentMethods();
+      const feature = req.query.feature as string | undefined;
+      const methods = await storage.getActivePaymentMethods(feature);
       res.json(methods.map((method: any) => ({
         ...method,
         paystackSecretKey: undefined,

@@ -25,23 +25,26 @@ import { Link } from "wouter";
 const FEATURES = [
   { key: "shop", label: "Shop / Products", icon: ShoppingCart, color: "text-blue-500" },
   { key: "campaigns", label: "Campaigns (Escrow)", icon: Target, color: "text-purple-500" },
-  { key: "subscriptions", label: "Account Upgrades", icon: Crown, color: "text-amber-500" },
   { key: "courses", label: "BreedSkool Courses", icon: BookOpen, color: "text-green-500" },
+  { key: "p2p", label: "P2P Market / Escrow", icon: Globe, color: "text-teal-500" },
+  { key: "subscriptions", label: "Account Upgrades", icon: Crown, color: "text-amber-500" },
   { key: "tips", label: "Influencer Tips", icon: Heart, color: "text-pink-500" },
   { key: "payouts", label: "Payouts / Withdrawals", icon: ArrowDownToLine, color: "text-indigo-500" },
 ];
 
 const METHOD_TYPES = [
   { value: "crypto", label: "Cryptocurrency Wallet" },
-  { value: "stripe", label: "Stripe" },
-  { value: "paypal", label: "PayPal" },
   { value: "bank", label: "Bank Transfer" },
+  { value: "paypal", label: "PayPal" },
+  { value: "paystack", label: "Paystack" },
+  { value: "stripe", label: "Stripe" },
 ];
 
 const TYPE_ICONS: Record<string, any> = {
   crypto: Bitcoin,
   stripe: CreditCard,
   paypal: Globe,
+  paystack: Zap,
   bank: Building2,
 };
 
@@ -49,18 +52,23 @@ const TYPE_COLORS: Record<string, string> = {
   crypto: "bg-orange-50 border-orange-200 text-orange-700",
   stripe: "bg-purple-50 border-purple-200 text-purple-700",
   paypal: "bg-blue-50 border-blue-200 text-blue-700",
+  paystack: "bg-teal-50 border-teal-200 text-teal-700",
   bank: "bg-green-50 border-green-200 text-green-700",
 };
 
 const CRYPTO_NETWORKS = [
-  { network: "TRC-20", currency: "USDT", label: "USDT – Tron (TRC-20)" },
-  { network: "BEP-20", currency: "USDT", label: "USDT – BNB Smart Chain (BEP-20)" },
+  { network: "TON", currency: "USDT", label: "USDT – TON Network (Default)" },
+  { network: "TRC-20", currency: "USDT", label: "USDT – Tron (TRC-20, Default)" },
+  { network: "BEP-20", currency: "USDT", label: "USDT – BNB Smart Chain (BEP-20, Default)" },
+  { network: "Pi", currency: "PI", label: "Pi Network (Default)" },
   { network: "ERC-20", currency: "USDT", label: "USDT – Ethereum (ERC-20)" },
-  { network: "TON", currency: "TON", label: "TON Network" },
   { network: "BTC", currency: "BTC", label: "Bitcoin (BTC)" },
   { network: "ETH", currency: "ETH", label: "Ethereum (ETH)" },
   { network: "SOL", currency: "SOL", label: "Solana (SOL)" },
   { network: "TRX", currency: "TRX", label: "TRON (TRX)" },
+  { network: "XRP", currency: "XRP", label: "XRP (Ripple)" },
+  { network: "LTC", currency: "LTC", label: "Litecoin (LTC)" },
+  { network: "DOGE", currency: "DOGE", label: "Dogecoin (DOGE)" },
 ];
 
 const EMPTY_METHOD = {
@@ -78,6 +86,8 @@ const EMPTY_METHOD = {
   bankCurrency: "",
   paypalEmail: "",
   paypalClientId: "",
+  paystackPublicKey: "",
+  paystackSecretKey: "",
   stripePublicKey: "",
   stripeSecretKey: "",
   instructions: "",
@@ -161,6 +171,20 @@ function MethodForm({ form, setForm }: { form: any; setForm: (f: any) => void })
           <div>
             <Label>Wallet Address *</Label>
             <Input data-testid="input-wallet-address" value={form.address} onChange={e => set("address", e.target.value)} placeholder="Enter wallet address" className="font-mono text-sm" />
+          </div>
+        </div>
+      )}
+
+      {form.type === "paystack" && (
+        <div className="space-y-3 border border-teal-100 bg-teal-50/50 rounded-lg p-4">
+          <p className="text-sm font-medium text-teal-700 flex items-center gap-2"><Zap className="h-4 w-4" /> Paystack Configuration</p>
+          <div>
+            <Label>Public Key</Label>
+            <Input data-testid="input-paystack-public" value={form.paystackPublicKey || ""} onChange={e => set("paystackPublicKey", e.target.value)} placeholder="pk_live_..." />
+          </div>
+          <div>
+            <Label>Secret Key</Label>
+            <SecretInput value={form.paystackSecretKey || ""} onChange={v => set("paystackSecretKey", v)} placeholder="sk_live_..." />
           </div>
         </div>
       )}
@@ -385,6 +409,12 @@ export default function AdminPayments() {
                           <div className="mb-3 bg-gray-50 rounded-lg p-2.5">
                             <p className="text-xs text-gray-500 mb-1">PayPal</p>
                             <p className="text-xs text-gray-700">{m.paypalEmail}</p>
+                          </div>
+                        )}
+                        {m.type === "paystack" && (
+                          <div className="mb-3 bg-gray-50 rounded-lg p-2.5">
+                            <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Zap className="h-3 w-3" /> Paystack</p>
+                            <p className="text-xs text-gray-700">{m.paystackPublicKey ? `${m.paystackPublicKey.slice(0, 12)}...` : "Keys configured"}</p>
                           </div>
                         )}
                         {m.type === "stripe" && (

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks } from "@shared/schema";
+import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks, paymentMethods } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
@@ -480,6 +480,60 @@ const PAYMENT_NETWORKS_DATA = [
     isActive: true,
     sortOrder: 4,
   },
+  {
+    networkKey: "pi_network",
+    name: "Pi Network",
+    shortName: "Pi",
+    network: "pi",
+    currency: "PI",
+    description: "Pi cryptocurrency on the Pi Network. Use your Pi username or wallet address.",
+    isActive: true,
+    sortOrder: 5,
+  },
+];
+
+// Default payment methods seeded into payment_methods table
+const DEFAULT_PAYMENT_METHODS_DATA = [
+  {
+    type: "crypto",
+    label: "USDT – TON Network",
+    network: "TON",
+    currency: "USDT",
+    address: "",
+    instructions: "Send USDT on the TON network to this address. Minimum 1 USDT. Low gas fees.",
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    type: "crypto",
+    label: "USDT – Tron (TRC-20)",
+    network: "TRC-20",
+    currency: "USDT",
+    address: "",
+    instructions: "Send USDT on the Tron TRC-20 network. Fast and cheap transactions.",
+    isActive: true,
+    sortOrder: 2,
+  },
+  {
+    type: "crypto",
+    label: "USDT – BNB Smart Chain (BEP-20)",
+    network: "BEP-20",
+    currency: "USDT",
+    address: "",
+    instructions: "Send USDT on BNB Smart Chain (BEP-20). Low fees via Binance ecosystem.",
+    isActive: true,
+    sortOrder: 3,
+  },
+  {
+    type: "crypto",
+    label: "Pi Network",
+    network: "Pi",
+    currency: "PI",
+    address: "",
+    instructions: "Send Pi to the wallet address or username shown. Enter your Pi username or wallet in the reference field.",
+    isActive: true,
+    sortOrder: 4,
+  },
 ];
 
 export async function seedDemoData(adminUserId: string) {
@@ -658,13 +712,31 @@ export async function seedDemoData(adminUserId: string) {
     }
 
     // ── Payment Networks ────────────────────────────────────────────────────
-    const existingNetworks = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).limit(1);
-    if (existingNetworks.length === 0) {
-      console.log("[seed] Seeding payment networks...");
-      for (const net of PAYMENT_NETWORKS_DATA) {
+    // Upsert payment networks so new entries (like Pi Network) are always added
+    let networksCreated = 0;
+    for (const net of PAYMENT_NETWORKS_DATA) {
+      const existing = await db.select({ id: paymentNetworks.id })
+        .from(paymentNetworks)
+        .where(eq(paymentNetworks.networkKey, net.networkKey))
+        .limit(1);
+      if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net as any);
+        networksCreated++;
       }
-      console.log(`[seed] Created ${PAYMENT_NETWORKS_DATA.length} payment networks.`);
+    }
+    if (networksCreated > 0) {
+      console.log(`[seed] Seeding payment networks... Created ${networksCreated} payment network(s).`);
+    }
+
+    // ── Default Payment Methods ─────────────────────────────────────────────
+    // Seed the 4 default crypto payment methods if payment_methods table is empty
+    const existingMethods = await db.select({ id: paymentMethods.id }).from(paymentMethods).limit(1);
+    if (existingMethods.length === 0) {
+      console.log("[seed] Seeding default payment methods...");
+      for (const method of DEFAULT_PAYMENT_METHODS_DATA) {
+        await db.insert(paymentMethods).values({ ...method, id: crypto.randomUUID() } as any);
+      }
+      console.log(`[seed] Created ${DEFAULT_PAYMENT_METHODS_DATA.length} default payment methods.`);
     }
 
   } catch (err) {

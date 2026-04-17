@@ -208,7 +208,7 @@ export interface IStorage {
 
   // Payment methods (unified: crypto, bank, paypal, paystack, stripe)
   getAllPaymentMethods(): Promise<PaymentMethod[]>;
-  getActivePaymentMethods(): Promise<PaymentMethod[]>;
+  getActivePaymentMethods(feature?: string): Promise<PaymentMethod[]>;
   createPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
   updatePaymentMethod(id: string, data: Partial<InsertPaymentMethod>): Promise<PaymentMethod>;
   deletePaymentMethod(id: string): Promise<void>;
@@ -1722,10 +1722,18 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(paymentMethods).orderBy(paymentMethods.sortOrder, paymentMethods.createdAt);
   }
 
-  async getActivePaymentMethods(): Promise<PaymentMethod[]> {
-    return await db.select().from(paymentMethods)
+  async getActivePaymentMethods(feature?: string): Promise<PaymentMethod[]> {
+    const all = await db.select().from(paymentMethods)
       .where(eq(paymentMethods.isActive, true))
       .orderBy(paymentMethods.sortOrder, paymentMethods.createdAt);
+    if (!feature) return all;
+    const toggles = await db.select().from(paymentFeatureToggles)
+      .where(eq(paymentFeatureToggles.feature, feature));
+    return all.filter(method => {
+      const toggle = toggles.find((t: any) => t.paymentMethodId === method.id);
+      if (!toggle) return true;
+      return toggle.isEnabled;
+    });
   }
 
   async createPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {

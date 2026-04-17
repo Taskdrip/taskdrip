@@ -20,6 +20,7 @@ const walletSchema = z.object({
   usdtBscWallet: z.string().optional(),
   usdtEthWallet: z.string().optional(),
   tonWallet: z.string().optional(),
+  piWallet: z.string().optional(),
 });
 
 type WalletFormData = z.infer<typeof walletSchema>;
@@ -46,6 +47,7 @@ export default function WalletSettings() {
       setValue('usdtBscWallet', (user as any).usdtBscWallet || '');
       setValue('usdtEthWallet', (user as any).usdtEthWallet || '');
       setValue('tonWallet', (user as any).tonWallet || '');
+      setValue('piWallet', (user as any).piWallet || '');
       setDirectSupportEnabled(!!(user as any).directSupportEnabled);
     }
   }, [user, setValue]);
@@ -113,6 +115,13 @@ export default function WalletSettings() {
       description: 'USDT on TON Network',
       placeholder: 'EQD5p2L6r4g8J9B3K1r5n6m7c8...',
       color: 'from-blue-500 to-blue-600',
+    },
+    {
+      name: 'Pi Network',
+      key: 'piWallet' as keyof WalletFormData,
+      description: 'Pi Network username or wallet address',
+      placeholder: '@yourPiUsername or Pi wallet address...',
+      color: 'from-purple-500 to-purple-600',
     },
   ];
 
@@ -279,7 +288,7 @@ export default function WalletSettings() {
                     <p className="text-green-600 text-sm">Available</p>
                   </div>
                 </div>
-                {(user?.usdtTronWallet || user?.usdtBscWallet || user?.tonWallet) ? (
+                {(user?.usdtTronWallet || user?.usdtBscWallet || user?.tonWallet || (user as any)?.piWallet) ? (
                   <Link href="/payout-requests">
                     <Button className="w-full bg-green-600 hover:bg-green-700 text-white" data-testid="button-payment-request-payout">
                       Request Payout
