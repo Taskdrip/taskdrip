@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link as RouterLink } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -5129,7 +5130,7 @@ export default function AdminMaster() {
           {/* ── P2P MARKET TAB ── */}
           <TabsContent value="p2p" className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <a href="/admin/p2p-transactions" target="_blank" rel="noreferrer" className="block">
+              <RouterLink href="/admin/p2p-transactions" className="block">
                 <Card className="bg-gray-900 border-gray-800 hover:border-purple-600 transition-colors cursor-pointer">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center flex-shrink-0">
@@ -5141,8 +5142,8 @@ export default function AdminMaster() {
                     </div>
                   </CardContent>
                 </Card>
-              </a>
-              <a href="/admin/p2p-fees" target="_blank" rel="noreferrer" className="block">
+              </RouterLink>
+              <RouterLink href="/admin/p2p-fees" className="block">
                 <Card className="bg-gray-900 border-gray-800 hover:border-blue-600 transition-colors cursor-pointer">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center flex-shrink-0">
@@ -5154,8 +5155,8 @@ export default function AdminMaster() {
                     </div>
                   </CardContent>
                 </Card>
-              </a>
-              <a href="/admin/platform-fees" target="_blank" rel="noreferrer" className="block">
+              </RouterLink>
+              <RouterLink href="/admin/platform-fees" className="block">
                 <Card className="bg-gray-900 border-gray-800 hover:border-green-600 transition-colors cursor-pointer">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-green-600/20 flex items-center justify-center flex-shrink-0">
@@ -5167,7 +5168,7 @@ export default function AdminMaster() {
                     </div>
                   </CardContent>
                 </Card>
-              </a>
+              </RouterLink>
             </div>
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
@@ -5216,16 +5217,16 @@ export default function AdminMaster() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 mt-4">
-                  <a href="/admin/p2p-transactions" target="_blank" rel="noreferrer">
+                  <RouterLink href="/admin/p2p-transactions">
                     <Button className="bg-purple-600 hover:bg-purple-700 text-white">
                       <Store className="w-4 h-4 mr-2" /> Open P2P Admin Panel
                     </Button>
-                  </a>
-                  <a href="/p2p-hub" target="_blank" rel="noreferrer">
+                  </RouterLink>
+                  <RouterLink href="/p2p-hub">
                     <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
                       View P2P Hub (Public)
                     </Button>
-                  </a>
+                  </RouterLink>
                 </div>
               </CardContent>
             </Card>
