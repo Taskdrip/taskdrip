@@ -723,15 +723,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Campaign created:", campaign);
       
       // Create escrow payment session with 30-minute window
-      // Add 5% platform fee to total campaign budget
+      // Brands pay the exact total campaign budget — no platform fee added to brands
       const totalReward = parseFloat(req.body.reward) * parseInt(req.body.totalSlots);
-      const platformFee = totalReward * 0.05;
-      const totalAmount = totalReward + platformFee;
+      const totalAmount = totalReward; // No brand fee; only influencers pay the 10% fee
       const escrowPaymentData = {
         id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         campaignId: campaign.id,
         brandId: user.id,
-        amount: totalAmount, // Total campaign budget + 5% platform fee
+        amount: totalAmount, // Exact total campaign budget (reward × slots)
         status: 'payment_window',
         paymentWindowStart: new Date(),
         paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
@@ -4481,9 +4480,9 @@ Instructions:
         return res.status(400).json({ message: 'Missing required fields' });
       }
       const baseBudget = Number(budget);
-      const brandPlatformFee = +(baseBudget * 0.10).toFixed(2);
-      const brandTotalCharge = +(baseBudget + brandPlatformFee).toFixed(2);
-      const influencerPlatformFee = +(baseBudget * 0.10).toFixed(2);
+      const brandPlatformFee = 0; // Brands pay no platform fee
+      const brandTotalCharge = baseBudget; // Brand pays exact budget amount
+      const influencerPlatformFee = +(baseBudget * 0.10).toFixed(2); // 10% deducted from influencer only
       const influencerPayout = +(baseBudget - influencerPlatformFee).toFixed(2);
       const offer = await storage.createDirectHireOffer({
         brandId: req.user.id,
@@ -4562,7 +4561,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
         return res.status(403).json({ message: 'Forbidden' });
       }
-      const expectedAmount = Number(offer.brandTotalCharge || offer.budget || 0);
+      const expectedAmount = Number(offer.budget || 0); // Brand pays exact budget (no brand fee)
       const report = await verifyBlockchainTransaction(offer.paymentNetwork, offer.transactionHash, expectedAmount);
       res.json(report);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -4668,7 +4667,7 @@ Instructions:
       if (offer.status !== 'work_submitted') return res.status(400).json({ message: 'Work must be submitted before approval' });
       const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
       const platformFee = Number(offer.platformFeeAmount || Number(offer.budget) * 0.1);
-      const brandFee = Number(offer.brandPlatformFee || Number(offer.budget) * 0.1);
+      const brandFee = 0; // Brands pay no platform fee
       const updated = await storage.updateDirectHireOffer(offer.id, { status: 'completed', completedAt: new Date() });
       await db.update(users).set({
         availableBalance: sql`${users.availableBalance} + ${payout}`,
@@ -4913,7 +4912,7 @@ Instructions:
         activatedAt: new Date(),
       });
       const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
-      const brandTotalCharge = Number(offer.brandTotalCharge || Number(offer.budget) * 1.1);
+      const brandTotalCharge = Number(offer.budget || 0); // Brand pays exact budget — no brand fee
       await db.update(users).set({
         pendingBalance: sql`${users.pendingBalance} + ${payout}`,
         updatedAt: new Date(),
@@ -4925,7 +4924,7 @@ Instructions:
         status: 'completed',
         transactionHash: offer.transactionHash,
         network: offer.paymentNetwork,
-        description: `Escrow funded for "${offer.title}" including 10% brand platform fee`,
+        description: `Escrow funded for "${offer.title}"`,
         approvedBy: req.user.id,
         approvedAt: new Date(),
         referenceType: 'direct_hire',

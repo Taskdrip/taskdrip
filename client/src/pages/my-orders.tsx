@@ -206,8 +206,7 @@ function normaliseOrders(data: any): UnifiedOrder[] {
   // Direct hire
   (data.directHireOrders || []).forEach((o: any) => {
     const base = +o.budget;
-    const brandFee = +o.brandPlatformFee || pct(base);
-    const total = +o.brandTotalCharge || base + brandFee;
+    const total = base; // Brands pay exact budget — no brand fee
     orders.push({
       id: o.id,
       type: "direct_hire",
@@ -495,12 +494,7 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                   <span className="text-sm text-gray-500">Influencer payout</span>
                   <span className="text-sm font-semibold text-emerald-700">{money(+raw.influencerPayout || 0)}</span>
                 </div>
-                {raw.brandPlatformFee && (
-                  <div className="flex justify-between items-center px-4 py-3">
-                    <span className="text-sm text-gray-500">Brand platform fee</span>
-                    <span className="text-sm font-semibold text-orange-600">+{money(+raw.brandPlatformFee)}</span>
-                  </div>
-                )}
+                {/* Brand platform fee: $0 — brands pay exact budget only */}
               </div>
             </div>
           )}
@@ -674,7 +668,7 @@ export default function MyOrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-gray-950" data-testid="text-summary-spent">{money(summary.totalSpent)}</div>
-                <p className="text-xs text-gray-400 mt-1">Including platform fees</p>
+                <p className="text-xs text-gray-400 mt-1">Total charged (no brand markup)</p>
               </CardContent>
             </Card>
             <Card className="border-0 shadow-sm">
@@ -844,7 +838,7 @@ export default function MyOrdersPage() {
         {/* Fee Info Footer */}
         <div className="mt-6 p-4 rounded-2xl bg-blue-50 border border-blue-100">
           <p className="text-xs text-blue-700 font-medium">
-            <span className="font-bold">Platform fee policy:</span> A 10% platform fee is applied to all transactions. For shop orders, this is added on top of the product price. For campaigns and direct hires, the brand pays 10% extra and the influencer receives their payout minus 10%.
+            <span className="font-bold">Platform fee policy:</span> Brands pay the exact campaign or project budget — no platform fee is added for brands. A 10% fee is deducted from influencer earnings only. For shop orders, the listed price is what you pay.
           </p>
         </div>
       </main>

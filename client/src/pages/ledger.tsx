@@ -125,7 +125,7 @@ export default function LedgerPage() {
       .map((offer) => {
         const isCreator = offer.influencerId === user.id;
         const isAdmin = userType === "admin";
-        const amount = isCreator ? numberValue(offer.influencerPayout || numberValue(offer.budget) * 0.9) : numberValue(offer.brandTotalCharge || numberValue(offer.budget) * 1.1);
+        const amount = isCreator ? numberValue(offer.influencerPayout || numberValue(offer.budget) * 0.9) : numberValue(offer.budget); // Brands pay exact budget — no brand fee
         return {
           id: `direct-${offer.id}`,
           source: "direct_hire" as const,
@@ -182,14 +182,14 @@ export default function LedgerPage() {
       .filter((offer) => activeDirectHireStatuses.has(offer.status))
       .reduce((sum, offer) => {
         const isCreator = offer.influencerId === user.id;
-        return sum + (isCreator ? numberValue(offer.influencerPayout || numberValue(offer.budget) * 0.9) : numberValue(offer.brandTotalCharge || numberValue(offer.budget) * 1.1));
+        return sum + (isCreator ? numberValue(offer.influencerPayout || numberValue(offer.budget) * 0.9) : numberValue(offer.budget)); // Brands pay exact budget
       }, 0);
     const campaignEscrowInProgress = escrowPayments
       .filter((payment) => activeEscrowStatuses.has(payment.status))
       .reduce((sum, payment) => sum + numberValue(payment.amount), 0);
     const directHireFees = directHires
       .filter((offer) => ["completed", "active", "work_submitted", "revision_requested"].includes(offer.status))
-      .reduce((sum, offer) => sum + numberValue(offer.brandPlatformFee) + numberValue(offer.platformFeeAmount), 0);
+      .reduce((sum, offer) => sum + numberValue(offer.platformFeeAmount), 0); // Only influencer fee counts
 
     return {
       availableBalance: numberValue(user.availableBalance),
@@ -306,10 +306,10 @@ export default function LedgerPage() {
                   <CardDescription>Taskdrip records the full fee split so every party can audit what happened.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-2xl bg-gray-50 p-4" data-testid="text-brand-fee-policy">
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4" data-testid="text-brand-fee-policy">
                     <p className="text-sm font-semibold text-gray-900">Brand platform fee</p>
-                    <p className="mt-1 text-2xl font-black text-gray-950">10%</p>
-                    <p className="mt-1 text-xs text-gray-500">Added on top of campaign or direct-hire budget.</p>
+                    <p className="mt-1 text-2xl font-black text-emerald-700">0%</p>
+                    <p className="mt-1 text-xs text-gray-500">Brands pay the exact campaign or project budget — no markup.</p>
                   </div>
                   <div className="rounded-2xl bg-gray-50 p-4" data-testid="text-influencer-fee-policy">
                     <p className="text-sm font-semibold text-gray-900">Influencer fee</p>
@@ -319,7 +319,7 @@ export default function LedgerPage() {
                   <div className="rounded-2xl bg-gray-50 p-4" data-testid="text-fees-paid">
                     <p className="text-sm font-semibold text-gray-900">Fees posted here</p>
                     <p className="mt-1 text-2xl font-black text-gray-950">{money(summary.completedFees)}</p>
-                    <p className="mt-1 text-xs text-gray-500">Completed platform-fee ledger deductions.</p>
+                    <p className="mt-1 text-xs text-gray-500">Completed platform-fee ledger deductions (influencer only).</p>
                   </div>
                 </CardContent>
               </Card>

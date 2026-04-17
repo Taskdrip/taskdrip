@@ -206,18 +206,18 @@ export default function DirectHirePayment() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="rounded-xl border bg-white p-3">
                 <p className="text-xs text-gray-500">Brand pays</p>
-                <p className="font-bold text-gray-900" data-testid="text-brand-total">${money(offer.brandTotalCharge || Number(offer.budget) * 1.1)}</p>
-                <p className="text-[11px] text-gray-500">Budget + 10% platform fee</p>
+                <p className="font-bold text-gray-900" data-testid="text-brand-total">${money(offer.budget)}</p>
+                <p className="text-[11px] text-gray-500">Exact project budget (no brand fee)</p>
               </div>
               <div className="rounded-xl border bg-white p-3">
                 <p className="text-xs text-gray-500">Influencer receives</p>
                 <p className="font-bold text-green-700" data-testid="text-influencer-payout">${money(offer.influencerPayout || Number(offer.budget) * 0.9)}</p>
-                <p className="text-[11px] text-gray-500">After influencer 10% fee</p>
+                <p className="text-[11px] text-gray-500">After 10% influencer fee deducted</p>
               </div>
               <div className="rounded-xl border bg-white p-3">
-                <p className="text-xs text-gray-500">Platform fees</p>
-                <p className="font-bold text-purple-700" data-testid="text-platform-fees">${money(Number(offer.brandPlatformFee || Number(offer.budget) * 0.1) + Number(offer.platformFeeAmount || Number(offer.budget) * 0.1))}</p>
-                <p className="text-[11px] text-gray-500">Shown in wallet ledger</p>
+                <p className="text-xs text-gray-500">Platform fee (from influencer)</p>
+                <p className="font-bold text-purple-700" data-testid="text-platform-fees">${money(Number(offer.platformFeeAmount || Number(offer.budget) * 0.1))}</p>
+                <p className="text-[11px] text-gray-500">10% deducted from influencer earnings</p>
               </div>
             </div>
             <div>
@@ -275,7 +275,7 @@ export default function DirectHirePayment() {
                 <ShieldCheck className="w-5 h-5" /> Complete Payment to Admin Escrow
               </CardTitle>
               <CardDescription className="text-blue-700">
-                Send ${money(offer.brandTotalCharge || Number(offer.budget) * 1.1)} USDT to the admin escrow wallet. This includes the project budget plus the 10% brand platform fee.
+                Send ${money(offer.budget)} USDT to the admin escrow wallet. This is the exact project budget — brands are not charged any platform fee.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -337,7 +337,7 @@ export default function DirectHirePayment() {
                     </div>
                     <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-xs text-yellow-800">
                       <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                      Send exactly <strong className="mx-1">${money(offer.brandTotalCharge || Number(offer.budget) * 1.1)} USDT</strong> to this address only.
+                      Send exactly <strong className="mx-1">${money(offer.budget)} USDT</strong> to this address only.
                     </div>
                   </div>
                 );
