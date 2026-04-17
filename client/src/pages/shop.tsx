@@ -13,7 +13,8 @@ import {
   Search, Star, ShoppingCart, Eye, Package, Code, Layers, Cpu, FileCode,
   ThumbsUp, ThumbsDown, Shield, Zap, Download, TrendingUp,
   Filter, SlidersHorizontal, ChevronRight, ChevronLeft, Globe, Github,
-  Rocket, BadgeCheck, X
+  Rocket, BadgeCheck, X, Wallet, Coins, Send, Gift, Copy, CheckCircle2,
+  Lock, Repeat2, ArrowUpRight
 } from "lucide-react";
 import type { ShopProduct } from "@shared/schema";
 
@@ -339,6 +340,285 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
   );
 }
 
+function TdripExchangeSection() {
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [topupPoints, setTopupPoints] = useState("1000");
+  const [selectedMethodId, setSelectedMethodId] = useState("");
+  const [checkout, setCheckout] = useState<any>(null);
+  const [transactionHash, setTransactionHash] = useState("");
+  const [transferType, setTransferType] = useState<"transfer" | "tip">("transfer");
+  const [recipient, setRecipient] = useState("");
+  const [transferPoints, setTransferPoints] = useState("100");
+  const [transferNote, setTransferNote] = useState("");
+
+  const { data: pointsData } = useQuery<{ total: number; points: any[] }>({
+    queryKey: ["/api/points/me"],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+  const { data: paymentMethods = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods", "tdrip"],
+    queryFn: async () => {
+      const res = await fetch("/api/payment-methods?feature=tdrip");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const cryptoMethods = paymentMethods.filter((method: any) => method.type === "crypto" && method.address);
+  const selectedMethod = cryptoMethods.find((method: any) => method.id === selectedMethodId) || cryptoMethods[0];
+  const currentPoints = Number(pointsData?.total ?? (user as any)?.totalPoints ?? 0);
+  const currentValue = currentPoints / 100;
+  const buyPoints = Math.max(0, Number(topupPoints || 0));
+  const buyAmount = buyPoints / 100;
+
+  const startTopup = useMutation({
+    mutationFn: async () => {
+      if (!isAuthenticated) throw new Error("Please log in to buy $TDRIP points.");
+      const res = await apiRequest("POST", "/api/tdrip/topups", {
+        points: buyPoints,
+        paymentMethodId: selectedMethod?.id,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setCheckout(data);
+      toast({ title: "$TDRIP checkout created", description: "Send crypto to the wallet shown, then submit your transaction hash." });
+    },
+    onError: (error: Error) => toast({ title: "Checkout failed", description: error.message, variant: "destructive" }),
+  });
+
+  const submitProof = useMutation({
+    mutationFn: async () => {
+      if (!checkout?.transaction?.id) throw new Error("Start a checkout first.");
+      const formData = new FormData();
+      formData.append("transactionHash", transactionHash);
+      formData.append("network", checkout.checkout?.paymentMethod?.network || selectedMethod?.network || "");
+      const res = await fetch(`/api/tdrip/topups/${checkout.transaction.id}/submit-proof`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error((await res.json()).message || "Failed to submit proof");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: data.credited ? "$TDRIP credited" : "Proof submitted",
+        description: data.credited ? `${data.points} $TDRIP was added to your wallet.` : "Your top-up is waiting for admin confirmation.",
+      });
+      if (data.credited) {
+        setCheckout(null);
+        setTransactionHash("");
+      }
+    },
+    onError: (error: Error) => toast({ title: "Proof failed", description: error.message, variant: "destructive" }),
+  });
+
+  const transferMutation = useMutation({
+    mutationFn: async () => {
+      if (!isAuthenticated) throw new Error("Please log in to use your $TDRIP wallet.");
+      const res = await apiRequest("POST", "/api/tdrip/transfer", {
+        recipient,
+        points: Number(transferPoints),
+        note: transferNote,
+        type: transferType,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "$TDRIP sent", description: `${transferPoints} $TDRIP was sent successfully.` });
+      setRecipient("");
+      setTransferNote("");
+    },
+    onError: (error: Error) => toast({ title: "Transfer failed", description: error.message, variant: "destructive" }),
+  });
+
+  const copyAddress = () => {
+    const address = checkout?.checkout?.paymentMethod?.address || selectedMethod?.address;
+    if (!address) return;
+    navigator.clipboard.writeText(address);
+    toast({ title: "Wallet copied", description: "Crypto checkout address copied." });
+  };
+
+  return (
+    <section className="-mt-6 mb-10 relative z-10" data-testid="section-tdrip-exchange">
+      <div className="rounded-[2rem] overflow-hidden bg-slate-950 shadow-2xl shadow-indigo-200 border border-slate-800">
+        <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="p-6 md:p-8 text-white bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.45),transparent_35%),linear-gradient(135deg,#020617,#111827_45%,#312e81)]">
+            <div className="flex items-center gap-2 mb-4">
+              <Badge className="bg-cyan-400/15 text-cyan-200 border border-cyan-300/20">
+                <Coins className="h-3.5 w-3.5 mr-1" /> Taskdrip BlueChip Points Desk
+              </Badge>
+              <Badge className="bg-white/10 text-white border border-white/15">100 $TDRIP = $1</Badge>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black leading-tight mb-3">
+              Buy, hold, tip, transfer and top up your $TDRIP wallet.
+            </h2>
+            <p className="text-white/70 max-w-2xl mb-6">
+              Use crypto checkout to buy $TDRIP Points, hold them in your Taskdrip wallet, tip creators, transfer to other users, or use earned points to host micro tasks on the Task page.
+            </p>
+
+            <div className="grid sm:grid-cols-3 gap-3 mb-6">
+              {[
+                { label: "Wallet balance", value: `${currentPoints.toLocaleString()} $TDRIP`, icon: Wallet },
+                { label: "USDT value", value: `$${currentValue.toFixed(2)}`, icon: TrendingUp },
+                { label: "Swap readiness", value: "Launch-ready", icon: Repeat2 },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="rounded-2xl bg-white/10 border border-white/15 p-4 backdrop-blur">
+                  <Icon className="h-5 w-5 text-cyan-300 mb-2" />
+                  <p className="text-xs text-white/50">{label}</p>
+                  <p className="font-extrabold text-lg" data-testid={`text-tdrip-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl bg-black/25 border border-white/10 p-4">
+              <div className="grid md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                <label>
+                  <span className="text-xs font-semibold text-white/60">Amount to buy</span>
+                  <Input
+                    type="number"
+                    min="100"
+                    step="100"
+                    value={topupPoints}
+                    onChange={(e) => setTopupPoints(e.target.value)}
+                    className="mt-1 bg-white/95 text-slate-950 border-0 rounded-xl"
+                    data-testid="input-tdrip-buy-points"
+                  />
+                </label>
+                <label>
+                  <span className="text-xs font-semibold text-white/60">Crypto checkout network</span>
+                  <select
+                    value={selectedMethod?.id || ""}
+                    onChange={(e) => setSelectedMethodId(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-xl bg-white text-slate-950 px-3 text-sm font-medium"
+                    data-testid="select-tdrip-payment-method"
+                  >
+                    {cryptoMethods.length === 0 ? (
+                      <option value="">No crypto wallet configured</option>
+                    ) : (
+                      cryptoMethods.map((method: any) => (
+                        <option key={method.id} value={method.id}>{method.label} {method.network ? `(${method.network})` : ""}</option>
+                      ))
+                    )}
+                  </select>
+                </label>
+                <Button
+                  onClick={() => startTopup.mutate()}
+                  disabled={startTopup.isPending || buyPoints < 100 || cryptoMethods.length === 0}
+                  className="h-10 rounded-xl bg-cyan-400 text-slate-950 hover:bg-cyan-300 font-bold"
+                  data-testid="button-start-tdrip-checkout"
+                >
+                  {startTopup.isPending ? "Starting..." : `Buy $${buyAmount.toFixed(2)}`}
+                </Button>
+              </div>
+              <p className="text-xs text-white/50 mt-3" data-testid="text-tdrip-buy-summary">
+                You receive <strong className="text-white">{buyPoints.toLocaleString()} $TDRIP</strong> for <strong className="text-white">${buyAmount.toFixed(2)} USDT</strong>.
+              </p>
+            </div>
+
+            {checkout && (
+              <div className="mt-4 rounded-2xl bg-white text-slate-950 p-4 shadow-xl" data-testid="panel-tdrip-checkout">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-xs text-slate-500">Send exactly</p>
+                    <p className="text-2xl font-black">{checkout.checkout.amount} USDT</p>
+                  </div>
+                  <Badge className="bg-amber-100 text-amber-800">Awaiting payment proof</Badge>
+                </div>
+                <div className="rounded-xl bg-slate-100 p-3 mb-3">
+                  <p className="text-xs text-slate-500 mb-1">{checkout.checkout.paymentMethod.label}</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs break-all flex-1" data-testid="text-tdrip-checkout-address">{checkout.checkout.paymentMethod.address}</code>
+                    <Button size="sm" variant="outline" onClick={copyAddress} data-testid="button-copy-tdrip-address">
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-[1fr_auto] gap-2">
+                  <Input value={transactionHash} onChange={(e) => setTransactionHash(e.target.value)} placeholder="Paste transaction hash after payment" data-testid="input-tdrip-transaction-hash" />
+                  <Button onClick={() => submitProof.mutate()} disabled={submitProof.isPending || !transactionHash} className="bg-slate-950 hover:bg-slate-800" data-testid="button-submit-tdrip-proof">
+                    {submitProof.isPending ? "Checking..." : "Submit Proof"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <Wallet className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-950">Wallet actions</h3>
+                <p className="text-sm text-slate-500">Exchange-grade controls for your $TDRIP points.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {[
+                { label: "Buy", icon: ArrowUpRight, body: "Top up by crypto" },
+                { label: "Transfer", icon: Send, body: "Send user-to-user" },
+                { label: "Tip", icon: Gift, body: "Reward creators" },
+                { label: "Hold", icon: Lock, body: "Swap later for USDT" },
+              ].map(({ label, icon: Icon, body }) => (
+                <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <Icon className="h-5 w-5 text-indigo-600 mb-2" />
+                  <p className="font-bold text-slate-950">{label}</p>
+                  <p className="text-xs text-slate-500">{body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-indigo-100 p-4 mb-5">
+              <div className="flex rounded-xl bg-slate-100 p-1 mb-3">
+                <button onClick={() => setTransferType("transfer")} className={`flex-1 rounded-lg py-2 text-sm font-bold ${transferType === "transfer" ? "bg-white shadow text-indigo-700" : "text-slate-500"}`} data-testid="button-tdrip-mode-transfer">Transfer</button>
+                <button onClick={() => setTransferType("tip")} className={`flex-1 rounded-lg py-2 text-sm font-bold ${transferType === "tip" ? "bg-white shadow text-indigo-700" : "text-slate-500"}`} data-testid="button-tdrip-mode-tip">Tip</button>
+              </div>
+              <div className="space-y-3">
+                <Input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="Recipient email or user ID" data-testid="input-tdrip-recipient" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input type="number" min="1" value={transferPoints} onChange={(e) => setTransferPoints(e.target.value)} placeholder="Points" data-testid="input-tdrip-transfer-points" />
+                  <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                    <p className="text-xs text-slate-500">USDT value</p>
+                    <p className="font-bold text-slate-950">${(Number(transferPoints || 0) / 100).toFixed(2)}</p>
+                  </div>
+                </div>
+                <Input value={transferNote} onChange={(e) => setTransferNote(e.target.value)} placeholder="Optional note" data-testid="input-tdrip-transfer-note" />
+                <Button onClick={() => transferMutation.mutate()} disabled={transferMutation.isPending || !recipient || !transferPoints} className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl" data-testid="button-send-tdrip">
+                  {transferMutation.isPending ? "Sending..." : transferType === "tip" ? "Send Tip" : "Transfer $TDRIP"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-100 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-emerald-950">Use earned points to host micro tasks</h4>
+                  <p className="text-sm text-emerald-700 mt-1">Convert wallet balance into task rewards for follow, comment, repost, signup, and giveaway tasks.</p>
+                  <Link href="/tasks">
+                    <Button variant="outline" size="sm" className="mt-3 border-emerald-200 text-emerald-700 hover:bg-emerald-100" data-testid="button-use-tdrip-for-tasks">
+                      Go to Task Page <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Shop() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -449,6 +729,7 @@ export default function Shop() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10">
+        <TdripExchangeSection />
 
         {/* Category Pills */}
         <div className="flex gap-3 overflow-x-auto pb-3 mb-8 scrollbar-hide">

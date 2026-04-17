@@ -6732,6 +6732,132 @@ Instructions:
     }
   });
 
+  app.post('/api/tdrip/topups', isAuthenticated, async (req: any, res) => {
+    try {
+      const points = Math.floor(Number(req.body.points || 0));
+      const paymentMethodId = String(req.body.paymentMethodId || '');
+      if (!points || points < 100) return res.status(400).json({ message: 'Minimum top-up is 100 $TDRIP' });
+
+      const amount = points / TDRIP_POINTS_PER_USD;
+      const methods = await storage.getActivePaymentMethods('tdrip');
+      const paymentMethod = methods.find((method: any) => method.id === paymentMethodId) || methods.find((method: any) => method.type === 'crypto');
+      if (!paymentMethod) return res.status(400).json({ message: 'No active crypto checkout wallet is available' });
+
+      const transaction = await storage.createTransaction({
+        userId: req.user.id,
+        amount: amount.toFixed(2),
+        type: 'tdrip_topup',
+        status: 'pending',
+        network: paymentMethod.network || paymentMethod.label,
+        walletAddress: paymentMethod.address,
+        description: `Buy ${points} $TDRIP points (${amount.toFixed(2)} USDT)`,
+        referenceType: 'tdrip_topup',
+        referenceId: String(points),
+      } as any);
+
+      res.status(201).json({
+        transaction,
+        checkout: {
+          points,
+          amount: amount.toFixed(2),
+          rate: TDRIP_POINTS_PER_USD,
+          paymentMethod,
+        },
+      });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to start $TDRIP checkout' });
+    }
+  });
+
+  app.post('/api/tdrip/topups/:id/submit-proof', isAuthenticated, upload.single('paymentProof'), async (req: any, res) => {
+    try {
+      const [transaction] = await db.select().from(transactions).where(eq(transactions.id, req.params.id));
+      if (!transaction || transaction.userId !== req.user.id || transaction.type !== 'tdrip_topup') {
+        return res.status(404).json({ message: 'Top-up not found' });
+      }
+      if (transaction.status === 'completed') {
+        return res.json({ transaction, message: 'This top-up has already been credited.' });
+      }
+
+      const txHash = String(req.body.transactionHash || '').trim();
+      const network = String(req.body.network || transaction.network || '').trim();
+      if (!txHash) return res.status(400).json({ message: 'Transaction hash is required' });
+
+      const verification = await verifyBlockchainTransaction(network, txHash, Number(transaction.amount));
+      const isVerified = verification.status === 'verified' && verification.amountMatches !== false;
+      const updated = await storage.updateTransaction(transaction.id as any, {
+        status: isVerified ? 'completed' : 'pending',
+        transactionHash: txHash,
+        network,
+        description: `${transaction.description || 'TDRIP top-up'} | Verification: ${verification.message}`,
+        processedAt: isVerified ? new Date() : undefined,
+      } as any);
+
+      const points = Number(transaction.referenceId || 0);
+      if (isVerified && points > 0) {
+        await storage.awardPoints(req.user.id, 'tdrip_purchase', points, `Purchased ${points} $TDRIP via crypto checkout`, transaction.id);
+      } else {
+        const admins = await storage.getUsersByType('admin');
+        for (const admin of admins) {
+          await storage.createNotification({
+            userId: admin.id,
+            type: 'tdrip_topup_pending',
+            title: '$TDRIP top-up needs review',
+            content: `${req.user.firstName} submitted proof for ${points} $TDRIP (${transaction.amount} USDT).`,
+            actionUrl: '/admin/payments',
+          } as any);
+        }
+      }
+
+      res.json({ transaction: updated, verification, credited: isVerified, points: isVerified ? points : 0 });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to submit top-up proof' });
+    }
+  });
+
+  app.post('/api/tdrip/transfer', isAuthenticated, async (req: any, res) => {
+    try {
+      const recipientText = String(req.body.recipient || '').trim();
+      const points = Math.floor(Number(req.body.points || 0));
+      const note = String(req.body.note || '').trim();
+      const type = req.body.type === 'tip' ? 'tdrip_tip' : 'tdrip_transfer';
+      if (!recipientText || !points || points <= 0) return res.status(400).json({ message: 'Recipient and points are required' });
+
+      const currentTotal = await storage.getUserTotalPoints(req.user.id);
+      if (currentTotal < points) return res.status(400).json({ message: 'Insufficient $TDRIP balance' });
+
+      const recipient = recipientText.includes('@')
+        ? await storage.getUserByEmail(recipientText)
+        : await storage.getUser(recipientText);
+      if (!recipient) return res.status(404).json({ message: 'Recipient not found' });
+      if (recipient.id === req.user.id) return res.status(400).json({ message: 'You cannot send $TDRIP to yourself' });
+
+      await storage.awardPoints(req.user.id, type, -points, `${type === 'tdrip_tip' ? 'Tip' : 'Transfer'} sent to ${recipient.email}${note ? `: ${note}` : ''}`, recipient.id);
+      await storage.awardPoints(recipient.id, type, points, `${type === 'tdrip_tip' ? 'Tip' : 'Transfer'} received from ${req.user.email}${note ? `: ${note}` : ''}`, req.user.id);
+      await storage.createTransaction({
+        userId: req.user.id,
+        amount: (points / TDRIP_POINTS_PER_USD).toFixed(2),
+        type,
+        status: 'completed',
+        description: `${points} $TDRIP sent to ${recipient.email}`,
+        referenceType: 'tdrip_wallet',
+        referenceId: recipient.id,
+        processedAt: new Date(),
+      } as any);
+      await storage.createNotification({
+        userId: recipient.id,
+        type,
+        title: type === 'tdrip_tip' ? 'You received a $TDRIP tip' : 'You received $TDRIP',
+        content: `${req.user.firstName} sent you ${points} $TDRIP points.`,
+        actionUrl: '/wallet-settings',
+      } as any);
+
+      res.json({ success: true, points, recipient: { id: recipient.id, email: recipient.email, firstName: recipient.firstName } });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to send $TDRIP' });
+    }
+  });
+
   app.get('/api/leaderboard/points', async (_req, res) => {
     try {
       const leaders = await storage.getLeaderboardByPoints(100);
