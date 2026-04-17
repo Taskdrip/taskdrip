@@ -177,6 +177,26 @@ export default function CampaignDetail() {
     },
   });
 
+  const messageBrandMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('POST', '/api/messages/campaign-dm', {
+        receiverId: (campaign as any)?.brandId,
+        campaignId,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: 'Message Sent!', description: 'Your intro message was sent to the brand.' });
+      setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Cannot Message Brand',
+        description: error.message || 'You are not allowed to message this brand.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const submitWorkMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest('PATCH', `/api/participations/${myParticipation?.id}/submit-work`, {
@@ -895,10 +915,12 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
+                      onClick={() => messageBrandMutation.mutate()}
+                      disabled={messageBrandMutation.isPending}
+                      data-testid="button-message-brand-pending"
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Message Brand
+                      {messageBrandMutation.isPending ? 'Sending…' : 'Message Brand'}
                     </Button>
                     <Button variant="outline" className="w-full" onClick={() => setLocation('/dashboard')}>
                       View in Dashboard
@@ -941,10 +963,12 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
+                      onClick={() => messageBrandMutation.mutate()}
+                      disabled={messageBrandMutation.isPending}
+                      data-testid="button-message-brand-approved"
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Message Brand
+                      {messageBrandMutation.isPending ? 'Sending…' : 'Message Brand'}
                     </Button>
                   </div>
 
@@ -972,10 +996,12 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
+                      onClick={() => messageBrandMutation.mutate()}
+                      disabled={messageBrandMutation.isPending}
+                      data-testid="button-message-brand-submitted"
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Message Brand
+                      {messageBrandMutation.isPending ? 'Sending…' : 'Message Brand'}
                     </Button>
                     {/* Mediation button for submitted state */}
                     {!mediationSent ? (

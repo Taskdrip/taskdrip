@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   BookOpen, Users, Star, Clock, Play, Search, TrendingUp, Zap,
-  Instagram, Youtube, DollarSign, Award, ChevronRight, Lock, CheckCircle2,
+  Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, Lock, CheckCircle2,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -160,6 +160,96 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enrolledIds: Set<string> }) {
+  const [current, setCurrent] = useState(0);
+  const [fading, setFading] = useState(false);
+  const total = courses.length;
+
+  const goTo = useCallback((idx: number) => {
+    if (fading || total <= 1) return;
+    setFading(true);
+    setTimeout(() => { setCurrent(idx); setFading(false); }, 220);
+  }, [fading, total]);
+
+  const next = useCallback(() => goTo((current + 1) % total), [current, total, goTo]);
+
+  useEffect(() => {
+    if (total <= 1) return;
+    const t = setInterval(next, 5500);
+    return () => clearInterval(t);
+  }, [next, total]);
+
+  if (courses.length === 0) return null;
+  const course = courses[current];
+  const gradient = CATEGORY_GRADIENTS[course.category] || "from-violet-500 to-indigo-600";
+  const fallbackImg = CATEGORY_FALLBACK_IMAGES[course.category] || CATEGORY_FALLBACK_IMAGES.general;
+  const enrolled = enrolledIds.has(course.id);
+
+  return (
+    <div className="relative rounded-3xl overflow-hidden mb-10 group cursor-pointer" onClick={() => window.location.href = `/breedskool/${course.id}`}>
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
+      <img src={course.thumbnail || fallbackImg} alt={course.title}
+        className={`absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-all duration-500 group-hover:scale-105 ${fading ? "opacity-0" : ""}`}
+        onError={(e) => { (e.target as HTMLImageElement).src = fallbackImg; }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+
+      <div className={`relative p-8 md:p-12 min-h-[260px] flex flex-col justify-end transition-opacity duration-300 ${fading ? "opacity-0" : "opacity-100"}`}>
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <Badge className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1">⭐ Spotlight Course</Badge>
+          {course.isFree ? (
+            <Badge className="bg-green-500 text-white text-xs font-bold">FREE</Badge>
+          ) : (
+            <Badge className="bg-white/20 text-white border border-white/30 text-xs">${course.price}</Badge>
+          )}
+          {enrolled && <Badge className="bg-emerald-500 text-white text-xs font-bold">✓ Enrolled</Badge>}
+          <Badge className="bg-white/20 text-white border border-white/30 text-xs capitalize">{course.level}</Badge>
+        </div>
+        <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{course.title}</h2>
+        {course.shortDescription && (
+          <p className="text-white/80 text-sm max-w-xl line-clamp-2 mb-4">{course.shortDescription}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-4">
+          {course.duration && <span className="text-white/70 text-sm flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration}</span>}
+          {course.lessonsCount > 0 && <span className="text-white/70 text-sm flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessonsCount} lessons</span>}
+          {parseFloat(course.averageRating || "0") > 0 && (
+            <span className="text-white/70 text-sm flex items-center gap-1"><Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />{parseFloat(course.averageRating).toFixed(1)}</span>
+          )}
+          <Button
+            onClick={e => { e.stopPropagation(); window.location.href = `/breedskool/${course.id}`; }}
+            className={`ml-auto font-bold px-5 rounded-xl shadow-lg ${enrolled ? "bg-emerald-500 hover:bg-emerald-400 text-white" : "bg-white text-gray-900 hover:bg-yellow-50"}`}
+            data-testid={`btn-spotlight-course-${course.id}`}
+          >
+            {enrolled ? <><CheckCircle2 className="w-4 h-4 mr-1.5" />Continue</> : <>View Course <ChevronRight className="w-4 h-4 ml-1" /></>}
+          </Button>
+        </div>
+      </div>
+
+      {total > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+            data-testid="btn-breedskool-spotlight-prev">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+            data-testid="btn-breedskool-spotlight-next">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {courses.map((_, i) => (
+              <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`}
+                data-testid={`btn-breedskool-spotlight-dot-${i}`} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -324,19 +414,15 @@ export default function BreedSkool() {
           </div>
         </div>
 
-        {/* Featured Courses */}
+        {/* Spotlight Carousel */}
         {featured.length > 0 && activeCategory === "all" && !searchQuery && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <TrendingUp className="h-6 w-6 text-violet-600" /> Featured Courses
-              </h2>
+          <section className="mb-4">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="h-5 w-5 text-violet-500" />
+              <h2 className="text-xl font-bold text-gray-900">Spotlight Courses</h2>
+              {featured.length > 1 && <span className="text-xs text-gray-400 ml-1">{featured.length} featured</span>}
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featured.map((course: any) => (
-                <CourseCard key={course.id} course={course} enrolled={enrolledCourseIds.has(course.id)} />
-              ))}
-            </div>
+            <CourseSpotlightCarousel courses={featured} enrolledIds={enrolledCourseIds} />
           </section>
         )}
 

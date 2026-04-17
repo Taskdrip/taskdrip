@@ -42,9 +42,12 @@ Design preferences: Clean, professional web app design with white background and
 - Demo accounts: admin `demo@taskdrip.online / Admin@2024`, brand `demobrand@taskdrip.online / Brand@2024`, creator `democreator@taskdrip.online / Creator@2024`
 
 #### Campaign & Tasks Engine
-- **Public Tasks Page** (`/tasks`): Visually stunning page with hero, live stats, featured spotlight, category filters, and task cards with featured images
+- **Public Tasks Page** (`/tasks`): Visually stunning page with hero, live stats, auto-rotating spotlight carousel, category filters, and task cards
+- **Spotlight Carousel**: Auto-rotates every 5.5s across all pages (Tasks, BreedSkool, Shop, P2P Hub). Features prev/next arrows, dot navigation, fade transitions. Prioritizes `isFeatured=true` items, falls back to items with feature images.
+- `campaigns` schema now has `isFeatured: boolean` field. Admin can toggle spotlight per task with "Spotlight/Unspotlight" button in the Tasks admin tab.
+- **Apply button real-time state**: Spotlight carousel's Apply button shows "Applied Already" (green, with checkmark) when the current user has already applied to that campaign.
 - Campaign creation by brands (with escrow payment flow) and direct admin task creation
-- Full admin task management: create/edit/delete tasks with image upload, activate/deactivate
+- Full admin task management: create/edit/delete/activate/deactivate/spotlight tasks
 - Task-based completion system for creators
 - Participation tracking and approval workflow (admin approve/reject applicants)
 - **Brand is primary reviewer** of task submissions — approve/reject with notes triggers USDT payment
@@ -186,6 +189,7 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **$TDrip Profile Points**: Creator, brand, admin, and signed-in profile pages now display `totalPoints` as $TDrip points.
 ✓ **Profile Wallpaper Coverage**: Public creator, brand, admin, and own profile views use banner wallpapers or polished gradient fallbacks.
 ✓ **Mutual-Follow DM Rule**: Direct message buttons only show when both users follow each other; backend `/api/users/:id/can-message` enforces the mutual-follow requirement.
+✓ **Campaign-Linked Auto-DM** (`POST /api/messages/campaign-dm`): The "Message Brand" button in campaign-detail.tsx now auto-sends a DM with a clickable campaign title link as the first message. Respects `messagePrivacy` settings ('everyone', 'followers', 'nobody'). Followers or accepted campaign participants bypass the followers restriction. On success, navigates to the messages thread. Errors surface as a toast with the specific reason.
 ✓ **Profile Posts**: Brand, admin, creator, and signed-in profile views surface user posts on the profile page.
 ✓ **Direct Wallet Support Toggle**: Added `directSupportEnabled` to users, synced the database, and exposed On/Off controls in profile edit and wallet settings.
 

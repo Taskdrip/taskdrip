@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Zap, Users, DollarSign, Clock, Calendar, ChevronRight,
+  Search, Zap, Users, DollarSign, Clock, Calendar, ChevronRight, ChevronLeft,
   Flame, Star, TrendingUp, Shield, CheckCircle, ArrowRight, Filter,
   Target, Award, Sparkles, Globe, Instagram, Youtube, Twitter, Twitch,
   Bot, X, HelpCircle
@@ -191,12 +191,18 @@ function TaskCard({ campaign, hasApplied }: { campaign: any; hasApplied?: boolea
   );
 }
 
-function FeaturedTaskCard({ campaign }: { campaign: any }) {
+function FeaturedTaskCard({ campaign, hasApplied }: { campaign: any; hasApplied?: boolean }) {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
   const filled = campaign.filledSlots || 0;
   const total = campaign.totalSlots || 1;
   const pct = Math.min((filled / total) * 100, 100);
+  const isFull = filled >= total;
+
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLocation(isAuthenticated ? `/campaigns/${campaign.id}` : "/login");
+  };
 
   return (
     <div
@@ -247,9 +253,23 @@ function FeaturedTaskCard({ campaign }: { campaign: any }) {
             <Clock className="w-4 h-4" />
             <span>{campaign.estimatedTime || "Flexible"}</span>
           </div>
-          <Button className="ml-auto bg-white text-gray-900 hover:bg-yellow-50 font-bold px-6 rounded-xl shadow-lg group/btn">
-            Apply Now
-            <ChevronRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+          <Button
+            onClick={handleApply}
+            disabled={isFull && !hasApplied}
+            data-testid={`btn-spotlight-apply-${campaign.id}`}
+            className={`ml-auto font-bold px-6 rounded-xl shadow-lg transition-all ${
+              hasApplied
+                ? "bg-emerald-500 text-white hover:bg-emerald-400"
+                : isFull
+                ? "bg-white/20 text-white/60 cursor-not-allowed"
+                : "bg-white text-gray-900 hover:bg-yellow-50 group/btn"
+            }`}
+          >
+            {hasApplied ? (
+              <><CheckCircle className="w-4 h-4 mr-1.5" /> Applied Already</>
+            ) : isFull ? "Slots Full" : (
+              <>Apply Now <ChevronRight className="w-4 h-4 ml-1 group-hover/btn:translate-x-1 transition-transform" /></>
+            )}
           </Button>
         </div>
 
@@ -260,6 +280,76 @@ function FeaturedTaskCard({ campaign }: { campaign: any }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SpotlightCarousel({ campaigns, appliedIds }: { campaigns: any[]; appliedIds: Set<string> }) {
+  const [current, setCurrent] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const total = campaigns.length;
+
+  const goTo = useCallback((idx: number) => {
+    if (isAnimating || total <= 1) return;
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrent(idx);
+      setIsAnimating(false);
+    }, 220);
+  }, [isAnimating, total]);
+
+  const prev = () => goTo((current - 1 + total) % total);
+  const next = useCallback(() => goTo((current + 1) % total), [current, total, goTo]);
+
+  useEffect(() => {
+    if (total <= 1) return;
+    const timer = setInterval(next, 5500);
+    return () => clearInterval(timer);
+  }, [next, total]);
+
+  if (campaigns.length === 0) return null;
+  const campaign = campaigns[current];
+
+  return (
+    <div className="relative">
+      <div
+        className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}
+        key={campaign.id}
+      >
+        <FeaturedTaskCard campaign={campaign} hasApplied={appliedIds.has(campaign.id)} />
+      </div>
+
+      {total > 1 && (
+        <>
+          {/* Prev / Next arrows */}
+          <button
+            onClick={prev}
+            data-testid="btn-spotlight-prev"
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={next}
+            data-testid="btn-spotlight-next"
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          {/* Dots */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {campaigns.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                data-testid={`btn-spotlight-dot-${i}`}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -374,7 +464,11 @@ export default function TasksPage() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  const featured = campaigns.find((c: any) => c.featureImage) || campaigns[0];
+  const spotlightCampaigns = [
+    ...campaigns.filter((c: any) => c.isFeatured),
+    ...campaigns.filter((c: any) => !c.isFeatured && c.featureImage),
+    ...campaigns.filter((c: any) => !c.isFeatured && !c.featureImage),
+  ].slice(0, 5);
   const totalRewards = campaigns.reduce((s: number, c: any) => s + parseFloat(c.reward || 0), 0);
   const totalSlots = campaigns.reduce((s: number, c: any) => s + (c.totalSlots || 0), 0);
 
@@ -448,14 +542,17 @@ export default function TasksPage() {
       {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-        {/* Featured Task Spotlight */}
-        {featured && !isLoading && (
+        {/* Featured Task Spotlight Carousel */}
+        {spotlightCampaigns.length > 0 && !isLoading && (
           <section className="mb-10">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-yellow-500" />
-              <h2 className="text-xl font-bold text-gray-900">Spotlight Task</h2>
+              <h2 className="text-xl font-bold text-gray-900">Spotlight Tasks</h2>
+              {spotlightCampaigns.length > 1 && (
+                <span className="text-xs text-gray-400 ml-1">{spotlightCampaigns.length} featured</span>
+              )}
             </div>
-            <FeaturedTaskCard campaign={featured} />
+            <SpotlightCarousel campaigns={spotlightCampaigns} appliedIds={appliedCampaignIds} />
           </section>
         )}
 

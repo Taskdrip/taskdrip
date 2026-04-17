@@ -1473,6 +1473,20 @@ export default function AdminMaster() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const toggleCampaignSpotlight = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PATCH", `/api/admin/campaigns/${id}/spotlight`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      toast({ title: data.isFeatured ? "⭐ Added to Spotlight" : "Removed from Spotlight" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const approveTaskSubmission = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
       const res = await apiRequest("PATCH", `/api/task-submissions/${id}/approve`, { notes });
@@ -3461,6 +3475,16 @@ export default function AdminMaster() {
                               >
                                 {campaign.isActive ? <ToggleRight className="h-3.5 w-3.5 mr-1" /> : <ToggleLeft className="h-3.5 w-3.5 mr-1" />}
                                 {campaign.isActive ? "Deactivate" : "Activate"}
+                              </Button>
+                              <Button
+                                variant="outline" size="sm"
+                                onClick={() => toggleCampaignSpotlight.mutate(campaign.id)}
+                                disabled={toggleCampaignSpotlight.isPending}
+                                className={campaign.isFeatured ? "text-yellow-700 border-yellow-300 bg-yellow-50 hover:bg-yellow-100" : "text-gray-500 border-gray-200 hover:bg-yellow-50 hover:text-yellow-700"}
+                                data-testid={`btn-spotlight-toggle-${campaign.id}`}
+                              >
+                                <Star className={`h-3.5 w-3.5 mr-1 ${campaign.isFeatured ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                                {campaign.isFeatured ? "Unspotlight" : "Spotlight"}
                               </Button>
                             </div>
                           </div>

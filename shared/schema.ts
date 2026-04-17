@@ -140,6 +140,7 @@ export const campaigns = pgTable("campaigns", {
   paymentStatus: varchar("payment_status").default("pending"), // 'pending', 'deposited', 'approved'
   depositRequired: boolean("deposit_required").default(true),
   isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
   deadline: timestamp("deadline"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

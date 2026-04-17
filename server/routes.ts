@@ -5915,6 +5915,95 @@ Instructions:
     }
   });
 
+  // ── Admin: Toggle campaign spotlight (isFeatured) ──────────────────────────
+  app.patch('/api/admin/campaigns/:id/spotlight', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const updated = await storage.updateCampaign(req.params.id, { isFeatured: !(campaign as any).isFeatured });
+      res.json(updated);
+    } catch (error) {
+      console.error('Error toggling campaign spotlight:', error);
+      res.status(500).json({ message: 'Failed to update spotlight' });
+    }
+  });
+
+  // ── Send campaign-linked DM (influencer → brand) ───────────────────────────
+  // Checks messagePrivacy, sends auto message with campaign title link if first contact
+  app.post('/api/messages/campaign-dm', isAuthenticated, async (req: any, res) => {
+    try {
+      const senderId = req.user.id;
+      const { receiverId, campaignId } = req.body;
+      if (!receiverId) return res.status(400).json({ message: 'receiverId required' });
+
+      const target = await storage.getUser(receiverId);
+      if (!target) return res.status(404).json({ message: 'Recipient not found' });
+
+      const privacy = (target as any).messagePrivacy || 'everyone';
+
+      // Check privacy
+      if (privacy === 'nobody') {
+        return res.status(403).json({ message: 'This user is not accepting direct messages.' });
+      }
+
+      if (privacy === 'followers') {
+        const viewerFollows = await storage.isFollowing(senderId, receiverId);
+        if (!viewerFollows) {
+          // Check if has participation in brand's campaigns
+          const participations = await storage.getUserParticipations(senderId);
+          const brandCampaigns = await storage.getCampaignsByBrand(receiverId);
+          const brandCampaignIds = new Set(brandCampaigns.map((c: any) => c.id));
+          const hasRelation = participations.some(
+            (p: any) => brandCampaignIds.has(p.campaignId) && ['approved', 'completed', 'pending'].includes(p.status)
+          );
+          if (!hasRelation) {
+            return res.status(403).json({ message: 'Follow this brand to send them a direct message.' });
+          }
+        }
+      }
+
+      // Build auto-intro message content
+      let content = '';
+      let subject = 'Hello from a creator';
+      if (campaignId) {
+        const campaign = await storage.getCampaign(campaignId);
+        if (campaign) {
+          subject = `Re: ${(campaign as any).title}`;
+          content = `Hi! I'm interested in your campaign **[${(campaign as any).title}](/campaigns/${campaignId})**.\n\nLooking forward to collaborating with you!`;
+        }
+      }
+      if (!content) {
+        content = `Hi! I'd love to connect and explore collaboration opportunities.`;
+      }
+
+      const message = await storage.createMessage({
+        campaignId: campaignId || null,
+        participationId: null,
+        senderId,
+        receiverId,
+        subject,
+        content,
+        messageType: 'campaign_intro',
+        attachments: [],
+      });
+
+      await storage.createNotification({
+        userId: receiverId,
+        type: 'message',
+        title: subject,
+        content: `You have a new message from ${req.user.firstName}`,
+        actionUrl: '/messages',
+        relatedId: message.id,
+      });
+
+      res.status(201).json({ message, success: true });
+    } catch (error) {
+      console.error('Error sending campaign DM:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  });
+
   // ── Admin: Get ALL task submissions across all campaigns ────────────────────
   app.get('/api/admin/all-submissions', isAuthenticated, async (req: any, res) => {
     try {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
@@ -18,7 +18,7 @@ import {
   Filter, Globe, Info, Lock, MapPin, MessageSquare, Package,
   Plus, Search, Settings, Shield, ShieldCheck, Sparkles,
   Star, Store, Truck, Users, Wallet, X, Zap, BookOpen,
-  ChevronRight, AlertCircle, TrendingUp, Box, Trash2, PlusCircle,
+  ChevronRight, ChevronLeft, AlertCircle, TrendingUp, Box, Trash2, PlusCircle,
 } from "lucide-react";
 
 const COUNTRIES = [
@@ -876,6 +876,101 @@ function ListingCard({ listing, onAccept, currentUserId, isAuthenticated }: { li
   );
 }
 
+function P2PSpotlightCarousel({ listings, onAccept }: { listings: any[]; onAccept: (l: any) => void }) {
+  const [, setLocation] = useLocation();
+  const [current, setCurrent] = useState(0);
+  const [fading, setFading] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const total = listings.length;
+
+  const goTo = useCallback((idx: number) => {
+    if (fading || total <= 1) return;
+    setFading(true);
+    setTimeout(() => { setCurrent(idx); setFading(false); }, 220);
+  }, [fading, total]);
+
+  const next = useCallback(() => goTo((current + 1) % total), [current, total, goTo]);
+
+  useEffect(() => {
+    if (total <= 1) return;
+    const t = setInterval(next, 5500);
+    return () => clearInterval(t);
+  }, [next, total]);
+
+  if (listings.length === 0) return null;
+  const listing = listings[current];
+
+  return (
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="w-5 h-5 text-yellow-500" />
+        <h2 className="text-xl font-bold text-gray-900">Spotlight Listings</h2>
+        {total > 1 && <span className="text-xs text-gray-400 ml-1">{total} featured</span>}
+      </div>
+      <div className="relative rounded-3xl overflow-hidden cursor-pointer group" onClick={() => setLocation(`/p2p/${listing.id}`)}>
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-700 to-purple-900" />
+        {listing.imageUrl && (
+          <img src={listing.imageUrl} alt={listing.title}
+            className={`absolute inset-0 w-full h-full object-cover opacity-25 group-hover:opacity-35 transition-all duration-500 group-hover:scale-105 ${fading ? "opacity-0" : ""}`}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+
+        <div className={`relative p-8 md:p-10 min-h-[220px] flex flex-col justify-end transition-opacity duration-300 ${fading ? "opacity-0" : "opacity-100"}`}>
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <Badge className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1">⭐ Featured Listing</Badge>
+            <Badge className="bg-white/20 text-white border border-white/30 text-xs capitalize">{listing.type?.replace(/_/g, ' ')}</Badge>
+            {listing.country && <Badge className="bg-white/20 text-white border border-white/30 text-xs"><MapPin className="w-3 h-3 mr-1 inline" />{listing.country}</Badge>}
+          </div>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{listing.title}</h2>
+          {listing.description && (
+            <p className="text-white/80 text-sm max-w-xl line-clamp-2 mb-4">{listing.description}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/20">
+              <span className="text-2xl font-extrabold text-white">{listing.currency || "USD"} {Number(listing.price || 0).toLocaleString()}</span>
+            </div>
+            {listing.seller && (
+              <span className="text-white/70 text-sm flex items-center gap-1">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />{Number(listing.seller.rating || 4.8).toFixed(1)} seller
+              </span>
+            )}
+            <Button
+              onClick={e => { e.stopPropagation(); if (isAuthenticated) onAccept(listing); else setLocation('/login'); }}
+              className="ml-auto bg-white text-gray-900 hover:bg-yellow-50 font-bold px-6 rounded-xl shadow-lg"
+              data-testid={`btn-spotlight-p2p-${listing.id}`}
+            >
+              Buy Now <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+
+        {total > 1 && (
+          <>
+            <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+              data-testid="btn-p2p-spotlight-prev">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+              data-testid="btn-p2p-spotlight-next">
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {listings.map((_, i) => (
+                <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
+                  className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`}
+                  data-testid={`btn-p2p-spotlight-dot-${i}`} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function P2PHub() {
   const { user, isAuthenticated } = useAuth();
@@ -915,6 +1010,10 @@ export default function P2PHub() {
       if (!res.ok) throw new Error("Failed to load listings");
       return res.json();
     },
+  });
+
+  const { data: featuredListings = [] } = useQuery<any[]>({
+    queryKey: ["/api/p2p/listings/featured"],
   });
 
   const hasProfile = isAuthenticated && (user as any)?.country && (user as any)?.preferredCurrency;
@@ -1026,6 +1125,11 @@ export default function P2PHub() {
 
       {/* ── MAIN CONTENT ── */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Featured Listings Spotlight */}
+        {(featuredListings as any[]).length > 0 && (
+          <P2PSpotlightCarousel listings={featuredListings as any[]} onAccept={(l) => setAcceptingListing(l)} />
+        )}
 
         {/* Category tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5">
