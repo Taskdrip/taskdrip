@@ -65,10 +65,13 @@ export default function CampaignDetail() {
   // Define user type variables first
   const isBrand = (user as any)?.userType === 'brand';
   
-  // Check if user has joined this campaign
+  // Check if user has joined this campaign — always fetch fresh on mount
   const { data: participations = [] } = useQuery({
     queryKey: ['/api/participations'],
     enabled: !!user && !isBrand,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const myParticipation = (participations as any[]).find((p: any) => p.campaignId === campaignId);
@@ -853,7 +856,7 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
+                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message Influencers
@@ -892,7 +895,7 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
+                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message Brand
@@ -938,7 +941,7 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
+                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message Brand
@@ -969,7 +972,7 @@ export default function CampaignDetail() {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
+                      onClick={() => setLocation(`/messages?to=${(campaign as any)?.brandId || ''}`)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message Brand

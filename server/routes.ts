@@ -3383,11 +3383,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const target = await storage.getUser(req.params.id);
       if (!target) return res.status(404).json({ message: "User not found" });
       if (req.user.id === target.id) return res.json({ canMessage: false, reason: null });
-      if ((target.messagePrivacy || 'everyone') === 'nobody') return res.json({ canMessage: false, reason: 'This user is not accepting direct messages.' });
+      const privacy = (target as any).messagePrivacy || 'everyone';
+      // Nobody: block all
+      if (privacy === 'nobody') return res.json({ canMessage: false, reason: 'This user is not accepting direct messages.' });
+      // Everyone: always allow
+      if (privacy === 'everyone') return res.json({ canMessage: true, reason: null });
+      // Followers: viewer must follow the target
       const viewerFollowsTarget = await storage.isFollowing(req.user.id, target.id);
-      const targetFollowsViewer = await storage.isFollowing(target.id, req.user.id);
-      if (viewerFollowsTarget && targetFollowsViewer) return res.json({ canMessage: true, reason: null });
-      return res.json({ canMessage: false, reason: 'Direct messages unlock when you follow each other.' });
+      if (viewerFollowsTarget) return res.json({ canMessage: true, reason: null });
+      // Accepted: check if viewer has any accepted participation in target's campaigns
+      const viewerParticipations = await storage.getUserParticipations(req.user.id);
+      const hasAccepted = viewerParticipations.some((p: any) => p.status === 'approved' || p.status === 'completed');
+      if (hasAccepted) {
+        // Check if any accepted participation is for a campaign owned by target
+        const targetCampaigns = await storage.getCampaignsByBrand(target.id);
+        const targetCampaignIds = new Set(targetCampaigns.map((c: any) => c.id));
+        const acceptedInTargetCampaign = viewerParticipations.some(
+          (p: any) => targetCampaignIds.has(p.campaignId) && (p.status === 'approved' || p.status === 'completed' || p.status === 'pending')
+        );
+        if (acceptedInTargetCampaign) return res.json({ canMessage: true, reason: null });
+      }
+      return res.json({ canMessage: false, reason: 'Follow this brand to send them a direct message.' });
     } catch (error) {
       res.status(500).json({ message: "Failed to check message permission" });
     }

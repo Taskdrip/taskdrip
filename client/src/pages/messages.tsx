@@ -140,10 +140,34 @@ export default function MessagesPage() {
     enabled: !!user,
   });
 
-  // Auto-select from URL param
+  // When navigating with ?to=userId, fetch that user's info so we can show their name
+  const urlToId = new URLSearchParams(window.location.search).get("to") || "";
+  const { data: preselectedUser } = useQuery<any>({
+    queryKey: ["/api/users", urlToId, "profile"],
+    queryFn: () => fetch(`/api/users/${urlToId}/profile`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!urlToId && !!user,
+  });
+
+  // Auto-select from URL param (?campaign=id or ?to=userId)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const campaignId = params.get("campaign");
+    const toUserId = params.get("to");
+
+    if (toUserId) {
+      // Direct message to a specific user — find existing direct conv or open new
+      const existing = (conversations as Conversation[]).find(c =>
+        !c.campaignId && c.participants.some(p => p.id === toUserId)
+      );
+      if (existing) {
+        setSelectedConvId(existing.id);
+      } else {
+        setNewRecipientId(toUserId);
+        setIsNewConvOpen(true);
+      }
+      return;
+    }
+
     if (campaignId && conversations.length > 0) {
       const match = conversations.find(c => c.campaignId === campaignId);
       if (match) setSelectedConvId(match.id);
@@ -581,20 +605,38 @@ export default function MessagesPage() {
           <div className="space-y-3 py-1">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1.5 block">Recipient *</label>
-              <select
-                value={newRecipientId}
-                onChange={e => setNewRecipientId(e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                data-testid="select-recipient"
-              >
-                <option value="">Select a person…</option>
-                {(allUsers as any[]).map((u: any) => (
-                  <option key={u.id} value={u.id}>
-                    {u.userType === "brand" ? (u.companyName || `${u.firstName} ${u.lastName}`) : `${u.firstName} ${u.lastName}`}
-                    {u.userType === "admin" ? " (Admin)" : u.userType === "brand" ? " (Brand)" : " (Influencer)"}
-                  </option>
-                ))}
-              </select>
+              {preselectedUser && newRecipientId === urlToId ? (
+                <div className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 flex items-center gap-2" data-testid="display-preselected-recipient">
+                  <span className="font-medium">
+                    {preselectedUser.companyName || `${preselectedUser.firstName} ${preselectedUser.lastName}`}
+                  </span>
+                  <span className="text-slate-400 text-xs">
+                    {preselectedUser.userType === "brand" ? "(Brand)" : preselectedUser.userType === "admin" ? "(Admin)" : "(Influencer)"}
+                  </span>
+                  <button
+                    className="ml-auto text-slate-400 hover:text-slate-600 text-xs underline"
+                    onClick={() => { setNewRecipientId(""); }}
+                    type="button"
+                  >
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={newRecipientId}
+                  onChange={e => setNewRecipientId(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="select-recipient"
+                >
+                  <option value="">Select a person…</option>
+                  {(allUsers as any[]).map((u: any) => (
+                    <option key={u.id} value={u.id}>
+                      {u.userType === "brand" ? (u.companyName || `${u.firstName} ${u.lastName}`) : `${u.firstName} ${u.lastName}`}
+                      {u.userType === "admin" ? " (Admin)" : u.userType === "brand" ? " (Brand)" : " (Influencer)"}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
