@@ -99,7 +99,7 @@ function ProofUpload({ onUpload }: { onUpload: (url: string) => void }) {
 
 function MethodIcon({ method }: { method: any }) {
   const typeIcons: Record<string, string> = {
-    crypto: "🪙", bank: "🏦", paypal: "🅿️", paystack: "🟢", stripe: "💳",
+    crypto: "🪙", bank: "🏦", paypal: "🅿️", paystack: "🟢", stripe: "💳", manual: "✅",
   };
   const typeColors: Record<string, string> = {
     crypto: "from-orange-400 to-amber-500",
@@ -107,6 +107,7 @@ function MethodIcon({ method }: { method: any }) {
     paypal: "from-sky-400 to-blue-500",
     paystack: "from-green-400 to-emerald-500",
     stripe: "from-purple-500 to-violet-600",
+    manual: "from-slate-700 to-slate-950",
   };
   return (
     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${typeColors[method.type] || "from-gray-400 to-gray-500"} flex items-center justify-center text-xl flex-shrink-0 shadow-md`}>
@@ -124,11 +125,21 @@ function MethodDetails({ method, amount }: { method: any; amount: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (method.type === 'manual') {
+    return (
+      <div className="bg-slate-950 rounded-2xl p-5 mt-4">
+        <p className="text-white font-semibold mb-1">Manual payment review</p>
+        <p className="text-slate-300 text-xs">Submit your payment reference, receipt, or transfer note below. The admin will verify it before delivery.</p>
+        {method.instructions && <p className="text-amber-300 text-xs mt-3">{method.instructions}</p>}
+      </div>
+    );
+  }
+
   if (method.type === 'crypto') {
     return (
       <div className="bg-gray-900 rounded-2xl p-5 mt-4">
         <p className="text-gray-400 text-xs mb-1">
-          Send exactly <span className="text-white font-bold">${amount}</span>{method.currency ? ` ${method.currency}` : " USDT"} to:
+          Send exactly <span className="text-white font-bold">${amount}</span>{method.currency ? ` ${method.currency}` : ""} to:
         </p>
         {method.network && (
           <p className="text-gray-500 text-xs mb-2">Network: <span className="text-gray-300">{method.network}</span></p>
@@ -220,10 +231,7 @@ function MethodDetails({ method, amount }: { method: any; amount: string }) {
 
 // Fallback payment methods if admin hasn't configured any
 const FALLBACK_METHODS = [
-  { id: "f1", type: "crypto", label: "USDT – TON Network", network: "TON", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
-  { id: "f2", type: "crypto", label: "USDT – Tron (TRC-20)", network: "TRC-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
-  { id: "f3", type: "crypto", label: "USDT – BNB Smart Chain (BEP-20)", network: "BEP-20", currency: "USDT", address: "", instructions: "Contact admin for wallet address" },
-  { id: "f4", type: "crypto", label: "Pi Network", network: "Pi", currency: "PI", address: "", instructions: "Contact admin for Pi wallet address or username" },
+  { id: "f1", type: "manual", label: "Manual Payment Review", currency: "USD", instructions: "Use this option when the admin has not published a live payment gateway yet." },
 ];
 
 export default function ShopCheckout() {
@@ -250,7 +258,11 @@ export default function ShopCheckout() {
     queryFn: () => fetch("/api/payment-methods?feature=shop", { credentials: "include" }).then(r => r.json()),
   });
 
-  const paymentMethods = paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_METHODS;
+  const visiblePaymentMethods = paymentMethodsRaw.filter((method: any) => {
+    const text = `${method.label || ""} ${method.currency || ""} ${method.network || ""}`.toLowerCase();
+    return !text.includes("usdt") && !text.includes("ton");
+  });
+  const paymentMethods = visiblePaymentMethods.length > 0 ? visiblePaymentMethods : FALLBACK_METHODS;
   const selectedMethod = paymentMethods.find((m: any) => m.id === selectedMethodId) || paymentMethods[0];
 
   if (!selectedMethodId && paymentMethods.length > 0 && !selectedMethodId) {
@@ -262,8 +274,8 @@ export default function ShopCheckout() {
       const res = await apiRequest("POST", "/api/shop/purchase", {
         productId: product!.id,
         amount: product!.price,
-        currency: selectedMethod?.currency || "USDT",
-        network: selectedMethod?.network || selectedMethod?.type || "crypto",
+        currency: selectedMethod?.currency || "USD",
+        network: selectedMethod?.network || selectedMethod?.type || "manual",
         transactionHash: txHash,
         paymentProof: proofUrl || proofText,
         paymentMethod: selectedMethod?.label || "Crypto",
@@ -282,7 +294,7 @@ export default function ShopCheckout() {
       const res = await apiRequest("POST", "/api/shop/purchase", {
         productId: product!.id,
         amount: "0",
-        currency: "USDT",
+        currency: "USD",
         network: "free",
         paymentProof: "FREE_PRODUCT",
         transactionHash: "",
@@ -387,7 +399,7 @@ export default function ShopCheckout() {
                   )}
                   <div className="border-t pt-3 flex justify-between font-bold text-gray-900">
                     <span>Total</span>
-                    <span className="text-lg">{product.isFree ? "FREE" : `$${product.price} USDT`}</span>
+                    <span className="text-lg">{product.isFree ? "FREE" : `$${product.price}`}</span>
                   </div>
                 </div>
 
@@ -436,7 +448,7 @@ export default function ShopCheckout() {
           <div className="max-w-lg mx-auto space-y-5">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Choose Payment Method</h2>
-              <p className="text-gray-500 text-sm mt-1">Select how you'd like to pay <span className="font-semibold text-gray-800">${product.price} USDT</span></p>
+              <p className="text-gray-500 text-sm mt-1">Select how you'd like to pay <span className="font-semibold text-gray-800">${product.price}</span></p>
             </div>
 
             {paymentMethods.length === 0 ? (
@@ -461,7 +473,8 @@ export default function ShopCheckout() {
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">{m.label}</p>
                       <p className="text-xs text-gray-500 capitalize">
-                        {m.type === 'crypto' ? `${m.network || ''} · ${m.currency || 'Crypto'}` :
+                        {m.type === 'manual' ? 'Admin-reviewed receipt or payment reference' :
+                         m.type === 'crypto' ? `${m.network || ''} · ${m.currency || 'Crypto'}` :
                          m.type === 'bank' ? `${m.bankName || 'Bank Transfer'} · ${m.bankCurrency || m.bankCountry || ''}` :
                          m.type === 'paypal' ? `PayPal · ${m.paypalEmail || ''}` :
                          m.type === 'paystack' ? 'Paystack Payment Gateway' :
@@ -501,11 +514,11 @@ export default function ShopCheckout() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">{product.title}</p>
-                  <p className="text-2xl font-extrabold text-gray-900">${product.price} <span className="text-sm font-normal text-gray-500">USDT</span></p>
+                  <p className="text-2xl font-extrabold text-gray-900">${product.price}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">Payment via</p>
-                  <Badge className="bg-violet-100 text-violet-700">{selectedMethod?.label || "Crypto"}</Badge>
+                  <Badge className="bg-violet-100 text-violet-700">{selectedMethod?.label || "Manual review"}</Badge>
                 </div>
               </div>
             </div>
@@ -515,7 +528,8 @@ export default function ShopCheckout() {
                 <Label className="text-sm font-semibold text-gray-900 mb-2 block">
                   {selectedMethod?.type === 'bank' ? 'Reference / Transfer Code' :
                    selectedMethod?.type === 'paypal' ? 'PayPal Transaction ID' :
-                   'Transaction Hash / ID'} <span className="text-red-500">*</span>
+                    selectedMethod?.type === 'manual' ? 'Payment Reference / Note' :
+                    'Transaction ID'} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   value={txHash}
@@ -523,11 +537,12 @@ export default function ShopCheckout() {
                   placeholder={
                     selectedMethod?.type === 'bank' ? 'Enter transfer reference...' :
                     selectedMethod?.type === 'paypal' ? 'PayPal transaction ID...' :
-                    '0x... or TXid...'
+                    selectedMethod?.type === 'manual' ? 'Enter receipt reference or payment note...' :
+                    'Enter transaction ID...'
                   }
                   className="font-mono text-sm h-12 bg-gray-50 border-gray-200"
                 />
-                <p className="text-xs text-gray-400 mt-1.5">Find this in your {selectedMethod?.type === 'bank' ? 'bank statement' : selectedMethod?.type === 'paypal' ? 'PayPal activity' : "wallet's transaction history"}</p>
+                <p className="text-xs text-gray-400 mt-1.5">Find this in your {selectedMethod?.type === 'bank' ? 'bank statement' : selectedMethod?.type === 'paypal' ? 'PayPal activity' : selectedMethod?.type === 'manual' ? 'receipt or transfer confirmation' : "payment confirmation"}</p>
               </div>
 
               <div className="border-t pt-4">
@@ -588,11 +603,11 @@ export default function ShopCheckout() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Amount</span>
-                    <span className="font-bold text-gray-900">{product.isFree ? "FREE" : `$${product.price} USDT`}</span>
+                    <span className="font-bold text-gray-900">{product.isFree ? "FREE" : `$${product.price}`}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Payment via</span>
-                    <span className="font-medium text-gray-900">{selectedMethod?.label || "Crypto"}</span>
+                    <span className="font-medium text-gray-900">{selectedMethod?.label || "Manual review"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Status</span>

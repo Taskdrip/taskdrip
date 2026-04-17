@@ -309,10 +309,12 @@ export default function AdminProducts() {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="software">Software</SelectItem>
-                            <SelectItem value="template">Template</SelectItem>
-                            <SelectItem value="course">Course</SelectItem>
-                            <SelectItem value="ebook">E-book</SelectItem>
-                            <SelectItem value="tool">Tool</SelectItem>
+                            <SelectItem value="scripts">Scripts & Automation</SelectItem>
+                            <SelectItem value="templates">Templates & Designs</SelectItem>
+                            <SelectItem value="education">Guides & Courses</SelectItem>
+                            <SelectItem value="tools">Tech Tools</SelectItem>
+                            <SelectItem value="replit_projects">Replit Projects</SelectItem>
+                            <SelectItem value="github_repos">GitHub Repos</SelectItem>
                             <SelectItem value="service">Service</SelectItem>
                           </SelectContent>
                         </Select>

@@ -225,6 +225,7 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Post Analytics**: Added `viewCount` to feed posts and increment views when the feed is loaded.
 ✓ **Tip Checkout Flow**: Reworked tipping into a multi-step checkout-style flow: amount → payment method → payment details → confirmation, using admin-managed payment methods plus creator wallets.
 ✓ **Demo Content Seeding**: Demo feed posts and published blog posts are now seeded alongside courses and shop products when the demo database is empty.
+✓ **Shop Marketplace Upgrade**: `/shop` now uses a premium launch-market hero, fixed spotlight slides to display product images from `featuredImage`, links spotlight CTAs to `/shop/product/:id`, adds advanced filters by type/price/tag/sort, removes USDT/TON-specific shop copy in favor of admin-reviewed payment options, and adds Replit Projects + GitHub Repos categories with demo products.
 
 ## Blog Enhancements (April 2026)
 ✓ **SpotlightCarousel on Blog**: Added `BlogSpotlightCarousel` component to blog listing page — auto-cycling full-width slides for featured/image posts, with prev/next arrows and dot navigation (mirrors tasks.tsx pattern)

@@ -376,7 +376,7 @@ export default function ProductDetail() {
             {/* Security Badge */}
             <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 p-3 rounded-lg">
               <Shield className="w-5 h-5 text-green-500" />
-              <span>Secure payment processing with cryptocurrency</span>
+              <span>Secure admin-reviewed checkout before product delivery</span>
             </div>
           </div>
         </div>
@@ -535,7 +535,7 @@ export default function ProductDetail() {
                     <Separator />
                     <div>
                       <h4 className="font-medium mb-2">What payment methods are accepted?</h4>
-                      <p className="text-gray-600">We accept USDT on Tron, BSC networks, and TON cryptocurrency payments.</p>
+                      <p className="text-gray-600">Available payment options are controlled by the admin and verified before delivery.</p>
                     </div>
                     <Separator />
                     <div>
