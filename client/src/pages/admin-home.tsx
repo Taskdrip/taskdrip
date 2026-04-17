@@ -3,12 +3,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import AdminMaster from "./admin-master";
 
+function hasAdminDashboardAccess(user: any) {
+  return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
+}
+
 export default function AdminHome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (user && (user as any).userType === 'admin') {
+    if (user && hasAdminDashboardAccess(user)) {
       // Show admin dashboard directly
       return;
     } else if (user) {
@@ -17,7 +21,7 @@ export default function AdminHome() {
     }
   }, [user, setLocation]);
 
-  if (user && (user as any).userType === 'admin') {
+  if (user && hasAdminDashboardAccess(user)) {
     return <AdminMaster />;
   }
 

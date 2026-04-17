@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   AlertTriangle, CheckCircle, Database, DollarSign, Edit3,
   ExternalLink, RefreshCcw, ShieldCheck, Star, Store, XCircle, Clock, Zap,
+  Trash2,
 } from "lucide-react";
 
 function money(value: any) {
@@ -30,6 +31,7 @@ function StatusBadge({ status }: { status: string }) {
     refunded: "bg-gray-100 text-gray-700 border-gray-200",
     approved: "bg-green-100 text-green-800 border-green-200",
     rejected: "bg-red-100 text-red-800 border-red-200",
+    removed: "bg-gray-100 text-gray-700 border-gray-200",
     cancelled: "bg-gray-100 text-gray-600 border-gray-200",
     expired: "bg-orange-100 text-orange-700 border-orange-200",
   };
@@ -169,10 +171,22 @@ export default function AdminP2PTransactions() {
     onError: (e: Error) => toast({ title: "Listing update failed", description: e.message, variant: "destructive" }),
   });
 
+  const removeListing = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("DELETE", `/api/admin/p2p-listings/${id}`).then(r => r.json()),
+    onSuccess: () => {
+      toast({ title: "Listing removed", description: "The listing was permanently removed." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/listings/featured"] });
+    },
+    onError: (e: Error) => toast({ title: "Remove failed", description: e.message, variant: "destructive" }),
+  });
+
   const seedDemos = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/p2p-seed", {}).then(r => r.json()),
     onSuccess: (data: any) => {
-      toast({ title: data.message || "Demo listings seeded!", description: "9 demo listings added and approved." });
+      toast({ title: data.message || "Demo listings seeded!", description: data.listings ? `${data.listings.length} demo listing(s) added and approved.` : undefined });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/p2p-transactions"] });
     },
     onError: (e: Error) => toast({ title: "Seed failed", description: e.message, variant: "destructive" }),
@@ -348,6 +362,21 @@ export default function AdminP2PTransactions() {
                         data-testid={`button-reject-listing-${listing.id}`}
                       >
                         <XCircle className="w-3.5 h-3.5" /> Reject
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 border-red-300 text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          if (confirm(`Remove "${listing.title}" permanently? This cannot be undone.`)) {
+                            removeListing.mutate(listing.id);
+                          }
+                        }}
+                        disabled={removeListing.isPending}
+                        data-testid={`button-remove-listing-${listing.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove
                       </Button>
 
                       <div className="flex-1">

@@ -97,6 +97,26 @@ function isAdminUser(user: any) {
   return user?.userType === 'admin' || user?.role === 'admin';
 }
 
+function hasAdminRole(user: any, roles: string[]) {
+  return isAdminUser(user) || roles.includes(user?.role);
+}
+
+function canManageContent(user: any) {
+  return hasAdminRole(user, ['content_editor']);
+}
+
+function canModerate(user: any) {
+  return hasAdminRole(user, ['moderator']);
+}
+
+function canManageStore(user: any) {
+  return hasAdminRole(user, ['store_manager']);
+}
+
+function canManageP2P(user: any) {
+  return hasAdminRole(user, ['store_manager', 'moderator']);
+}
+
 async function logP2PAction(actorId: string, action: string, data: { transactionId?: string; listingId?: string; details?: string }) {
   await db.insert(p2pActionLogs).values({
     actorId,
@@ -474,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/feed-posts', isAuthenticated, async (req: any, res) => {
     try {
       const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!canManageContent(admin) && !canModerate(admin)) return res.status(403).json({ message: 'Forbidden' });
       const limit = parseInt(req.query.limit as string) || 50;
       const feed = await storage.getFeed(limit, 0);
       res.json(feed);
@@ -487,7 +507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/feed-posts', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
       const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!canManageContent(admin)) return res.status(403).json({ message: 'Forbidden' });
       const { content, imageUrl, videoUrl } = req.body;
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
@@ -506,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/admin/feed-posts/:id', isAuthenticated, async (req: any, res) => {
     try {
       const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!canManageContent(admin) && !canModerate(admin)) return res.status(403).json({ message: 'Forbidden' });
       await storage.deletePost(req.params.id, req.user.id, true);
       res.json({ success: true });
     } catch (error) {
@@ -2242,7 +2262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/blog', isAuthenticated, async (req: any, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
-      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Access denied' });
+      if (!canManageContent(adminUser)) return res.status(403).json({ message: 'Access denied' });
       const allPosts = await storage.getAllBlogPostsAdmin ? (storage as any).getAllBlogPostsAdmin() : storage.getAllBlogPosts();
       res.json(await allPosts);
     } catch (error) {
@@ -2254,8 +2274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const adminUser = await storage.getUser(userId);
-      if (adminUser?.userType !== 'admin') {
-        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      if (!canManageContent(adminUser)) {
+        return res.status(403).json({ message: 'Access denied. Content editor privileges required.' });
       }
       const { title, content, isPublished, status, category, featuredImage, slug, excerpt, tags, metaDescription, seoKeywords, readingTime } = req.body;
       if (!title || !content) return res.status(400).json({ message: 'Title and content are required' });
@@ -2287,7 +2307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/blog/:id', isAuthenticated, async (req: any, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
-      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Access denied' });
+      if (!canManageContent(adminUser)) return res.status(403).json({ message: 'Access denied' });
       const { title, content, isPublished, category, featuredImage, excerpt, tags } = req.body;
       const updated = await storage.updateBlogPost(req.params.id, {
         title, content, category, featuredImage, excerpt,
@@ -2615,6 +2635,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete blog post
   app.delete('/api/admin/blog/:id', isAuthenticated, async (req, res) => {
     try {
+      const adminUser = await storage.getUser((req.user as any).id);
+      if (!canManageContent(adminUser)) return res.status(403).json({ message: 'Access denied' });
       await storage.deleteBlogPost(req.params.id);
       res.status(200).json({ message: 'Blog post deleted successfully' });
     } catch (error) {
@@ -2815,8 +2837,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/shop/products', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin' && user.userType !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!canManageStore(user)) {
+        return res.status(403).json({ message: "Store manager access required" });
       }
 
       // Get all products including inactive ones for admin
@@ -2831,8 +2853,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/shop/products', isAuthenticated, upload.single('featuredImage'), async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin' && user.userType !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!canManageStore(user)) {
+        return res.status(403).json({ message: "Store manager access required" });
       }
 
       const productData = {
@@ -2858,8 +2880,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/shop/products/:id', isAuthenticated, upload.single('featuredImage'), async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin' && user.userType !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!canManageStore(user)) {
+        return res.status(403).json({ message: "Store manager access required" });
       }
 
       const updateData = {
@@ -2884,8 +2906,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/admin/shop/products/:id', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin' && user.userType !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!canManageStore(user)) {
+        return res.status(403).json({ message: "Store manager access required" });
       }
 
       await storage.deleteShopProduct(req.params.id);
@@ -5127,6 +5149,7 @@ Instructions:
     try {
       const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      if (listing.status !== 'approved') return res.status(404).json({ message: 'Listing not found' });
       res.json(await enrichP2PListing(listing));
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
@@ -5296,7 +5319,7 @@ Instructions:
 
   app.patch('/api/admin/p2p-transactions/:id/confirm-payment', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: 'Transaction not found' });
       if (tx.status !== 'pending') return res.status(400).json({ message: 'Only pending deals can be funded' });
@@ -5354,7 +5377,7 @@ Instructions:
 
   app.patch('/api/admin/p2p-transactions/:id/release', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: 'Transaction not found' });
       if (!['delivered', 'disputed'].includes(tx.status)) return res.status(400).json({ message: 'Deal must be delivered or disputed before release' });
@@ -5370,7 +5393,7 @@ Instructions:
 
   app.patch('/api/admin/p2p-transactions/:id/refund', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const [tx] = await db.select().from(p2pTransactions).where(eq(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: 'Transaction not found' });
       if (['completed', 'refunded', 'cancelled'].includes(tx.status)) return res.status(400).json({ message: 'Deal is already closed' });
@@ -5383,7 +5406,7 @@ Instructions:
 
   app.patch('/api/admin/p2p-listings/:id', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const updates: any = { updatedAt: new Date() };
       if (req.body.status !== undefined) {
         const status = String(req.body.status);
@@ -5404,7 +5427,7 @@ Instructions:
   // Admin: seed demo P2P listings
   app.post('/api/admin/p2p-seed', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageStore(req.user)) return res.status(403).json({ message: 'Store manager only' });
       const sellerId = req.user.id;
       const demoListings = [
         // Crypto trades
@@ -5421,9 +5444,11 @@ Instructions:
         { title: 'Crypto Content Writing — 10-Article Pack', listingType: 'service', description: 'Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.', price: '200.00', paymentMethod: 'USDT', featuredImage: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80' },
       ];
       const existing = await db.select().from(p2pListings).where(eq(p2pListings.sellerId, sellerId));
-      if (existing.length >= 9) return res.json({ message: 'Demo listings already seeded', count: existing.length });
+      const existingTitles = new Set(existing.map((listing: any) => listing.title));
+      const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
+      if (!missingDemos.length) return res.json({ message: 'Demo listings already seeded', count: existing.length });
       const inserted = [];
-      for (const demo of demoListings) {
+      for (const demo of missingDemos) {
         const [row] = await db.insert(p2pListings).values({ sellerId, ...demo, status: 'approved', approvedBy: sellerId, approvedAt: new Date() }).returning();
         inserted.push(row);
       }
@@ -5431,10 +5456,26 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.delete('/api/admin/p2p-listings/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
+      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, req.params.id));
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq(p2pTransactions.listingId, listing.id));
+      await logP2PAction(req.user.id, 'listing_removed', { listingId: listing.id, details: listing.title });
+      if (relatedTransactions.length) {
+        await db.update(p2pListings).set({ status: 'removed', isFeatured: false, updatedAt: new Date() }).where(eq(p2pListings.id, req.params.id));
+      } else {
+        await db.delete(p2pListings).where(eq(p2pListings.id, req.params.id));
+      }
+      res.json({ success: true, message: 'Listing removed permanently' });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   // Admin: full edit of a listing (title, description, price, paymentMethod, featuredImage, type, status)
   app.put('/api/admin/p2p-listings/:id', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const { title, description, price, paymentMethod, featuredImage, listingType, status, adminNote } = req.body;
       const validStatuses = ['pending', 'approved', 'rejected', 'expired'];
       const validTypes = ['crypto', 'product', 'service'];
@@ -5462,8 +5503,8 @@ Instructions:
   // Admin: get all P2P listings (all statuses)
   app.get('/api/admin/p2p-listings', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
-      const rows = await db.select().from(p2pListings).orderBy(desc(p2pListings.createdAt));
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
+      const rows = (await db.select().from(p2pListings).orderBy(desc(p2pListings.createdAt))).filter((listing: any) => listing.status !== 'removed');
       const enriched = await Promise.all(rows.map(enrichP2PListing));
       res.json(enriched);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -5471,9 +5512,9 @@ Instructions:
 
   app.get('/api/admin/p2p-transactions', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const rows = await db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt));
-      const allListings = await db.select().from(p2pListings).orderBy(desc(p2pListings.createdAt));
+      const allListings = (await db.select().from(p2pListings).orderBy(desc(p2pListings.createdAt))).filter((listing: any) => listing.status !== 'removed');
       const revenue = rows.filter((r: any) => r.status === 'completed').reduce((sum: number, r: any) => sum + Number(r.fee || 0), 0);
       res.json({
         stats: {
@@ -5490,7 +5531,7 @@ Instructions:
 
   app.get('/api/admin/p2p-fees', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const configs = await Promise.all(p2pTypes.map(getP2PFeeConfig));
       res.json(configs);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -5498,7 +5539,7 @@ Instructions:
 
   app.patch('/api/admin/p2p-fees/:type', isAuthenticated, async (req: any, res) => {
     try {
-      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      if (!canManageP2P(req.user)) return res.status(403).json({ message: 'P2P manager only' });
       const type = String(req.params.type);
       if (!p2pTypes.includes(type)) return res.status(400).json({ message: 'Invalid transaction type' });
       const current = await getP2PFeeConfig(type);

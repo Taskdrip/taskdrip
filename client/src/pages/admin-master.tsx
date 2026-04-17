@@ -117,6 +117,27 @@ const adminCredentialsSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const ROLE_LABELS: Record<string, string> = {
+  user: "Basic User",
+  content_editor: "Content Editor",
+  moderator: "Moderator / Mediator",
+  store_manager: "Store Manager",
+  admin: "Admin",
+};
+
+const FULL_ADMIN_TABS = [
+  "overview", "users", "campaigns", "tasks", "networks", "payments", "direct-hires", "p2p",
+  "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
+  "settings", "pwa", "hero-sliders", "payout-center", "content-editor",
+];
+
+const ROLE_TABS: Record<string, string[]> = {
+  admin: FULL_ADMIN_TABS,
+  content_editor: ["overview", "feed", "blog"],
+  moderator: ["overview", "campaigns", "tasks", "direct-hires", "p2p", "feed"],
+  store_manager: ["overview", "shop", "p2p"],
+};
+
 const COURSE_CATEGORIES = [
   { value: "instagram_growth", label: "Instagram Growth" },
   { value: "tiktok_mastery", label: "TikTok Mastery" },
@@ -1043,6 +1064,14 @@ export default function AdminMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { walletAddresses, updateWalletAddress, copyToClipboard } = useWallets();
+  const currentRole = ((user as any)?.role || ((user as any)?.userType === "admin" ? "admin" : "user")) as string;
+  const allowedTabs = ROLE_TABS[currentRole] || [];
+  const isFullAdmin = currentRole === "admin" || (user as any)?.userType === "admin";
+  const canManageContent = isFullAdmin || currentRole === "content_editor";
+  const canModerate = isFullAdmin || currentRole === "moderator";
+  const canManageStore = isFullAdmin || currentRole === "store_manager";
+  const canManageP2P = isFullAdmin || currentRole === "store_manager" || currentRole === "moderator";
+  const hasDashboardAccess = allowedTabs.length > 0;
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -1162,51 +1191,61 @@ export default function AdminMaster() {
   // Data fetching with proper admin endpoints
   const { data: users = [] } = useQuery({
     queryKey: ["/api/admin/users"],
+    enabled: isFullAdmin,
     retry: false,
   });
 
   const { data: campaigns = [] } = useQuery({
     queryKey: ["/api/admin/campaigns"],
+    enabled: isFullAdmin || canModerate,
     retry: false,
   });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["/api/admin/transactions"],
+    enabled: isFullAdmin,
     retry: false,
   });
 
   const { data: blogPosts = [] } = useQuery({
     queryKey: ["/api/admin/blog"],
+    enabled: canManageContent,
     retry: false,
   });
 
   const { data: escrowPayments = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/escrow-payments"],
+    enabled: isFullAdmin || canModerate,
     retry: false,
   });
 
   const { data: courses = [] } = useQuery<any[]>({
     queryKey: ["/api/courses/admin/all"],
+    enabled: isFullAdmin,
     retry: false,
   });
 
   const { data: courseEnrollments = [] } = useQuery<any[]>({
     queryKey: ["/api/courses/admin/enrollments"],
+    enabled: isFullAdmin,
     retry: false,
   });
 
   const { data: shopProducts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/shop/products"],
+    enabled: canManageStore,
     retry: false,
   });
 
   const { data: adminFeedPosts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/feed-posts"],
+    enabled: canManageContent || canModerate,
     retry: false,
   });
 
   const { data: adminDirectHires = [], refetch: refetchDirectHires } = useQuery<any[]>({
     queryKey: ["/api/admin/direct-hire"],
+    enabled: isFullAdmin || canModerate,
     retry: false,
   });
 
@@ -1294,6 +1333,7 @@ export default function AdminMaster() {
   // Payment methods queries & mutations
   const { data: paymentMethodsList = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/payment-methods"],
+    enabled: isFullAdmin,
   });
 
   const createPaymentMethodMutation = useMutation({
@@ -1369,6 +1409,7 @@ export default function AdminMaster() {
   // ── Tasks management queries ────────────────────────────────────────────────
   const { data: allSubmissions = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/all-submissions"],
+    enabled: isFullAdmin || canModerate,
     retry: false,
   });
 
@@ -1575,6 +1616,27 @@ export default function AdminMaster() {
     },
   });
 
+  const grantRole = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/role`, { role });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Role updated",
+        description: "The user's dashboard access has been changed.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Role update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetPassword = useMutation({
     mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
       const res = await apiRequest("PUT", `/api/admin/users/${userId}/reset-password`, { newPassword });
@@ -1767,7 +1829,13 @@ export default function AdminMaster() {
     setIsShopProductDialogOpen(true);
   };
 
-  if ((user as any)?.userType !== 'admin') {
+  useEffect(() => {
+    if (hasDashboardAccess && !allowedTabs.includes(activeTab)) {
+      setActiveTab(allowedTabs[0]);
+    }
+  }, [activeTab, allowedTabs, hasDashboardAccess]);
+
+  if (!hasDashboardAccess) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -1912,6 +1980,11 @@ export default function AdminMaster() {
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-black text-white mb-0.5">Master Admin Dashboard</h1>
                   <p className="text-gray-400 text-sm">Complete platform management — users, campaigns, payments, content</p>
+                  {!isFullAdmin && (
+                    <Badge className="mt-3 bg-purple-600/20 text-purple-200 border border-purple-500/30">
+                      {ROLE_LABELS[currentRole] || currentRole} dashboard
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -1990,7 +2063,7 @@ export default function AdminMaster() {
                 { value: "hero-sliders", icon: <Image className="h-3.5 w-3.5" />, label: "Hero Sliders" },
                 { value: "payout-center", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payouts" },
                 { value: "content-editor", icon: <Edit className="h-3.5 w-3.5" />, label: "Content Editor" },
-              ].map((tab) => (
+              ].filter((tab) => allowedTabs.includes(tab.value)).map((tab) => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
@@ -2262,9 +2335,14 @@ export default function AdminMaster() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.userType === 'admin' ? 'default' : user.userType === 'brand' ? 'secondary' : 'outline'}>
-                            {user.userType}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={user.userType === 'admin' ? 'default' : user.userType === 'brand' ? 'secondary' : 'outline'}>
+                              {user.userType}
+                            </Badge>
+                            <Badge variant="outline" className="w-fit text-xs border-purple-200 text-purple-700 bg-purple-50">
+                              {ROLE_LABELS[user.role || 'user'] || user.role || 'Basic User'}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
@@ -2402,6 +2480,22 @@ export default function AdminMaster() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            <Select
+                              value={user.role || "user"}
+                              onValueChange={(role) => grantRole.mutate({ userId: user.id, role })}
+                              disabled={grantRole.isPending}
+                            >
+                              <SelectTrigger className="h-8 w-[150px]" data-testid={`select-role-${user.id}`}>
+                                <SelectValue placeholder="Role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="user">Basic User</SelectItem>
+                                <SelectItem value="content_editor">Content Editor</SelectItem>
+                                <SelectItem value="moderator">Moderator</SelectItem>
+                                <SelectItem value="store_manager">Store Manager</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </TableCell>
                       </TableRow>

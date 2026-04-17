@@ -69,6 +69,10 @@ import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
 import AdminP2PFees from "@/pages/admin-p2p-fees";
 import AdminPlatformFees from "@/pages/admin-platform-fees";
 
+function hasAdminDashboardAccess(user: any) {
+  return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
+}
+
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -86,7 +90,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={isAuthenticated ? 
-        ((user as any)?.userType === 'admin' ? AdminHome : Home) : 
+        (hasAdminDashboardAccess(user) ? AdminHome : Home) : 
         FinalLanding} />
       <Route path="/signup" component={SimpleSignup} />
       <Route path="/login" component={Login} />
@@ -116,7 +120,7 @@ function Router() {
         <>
           <Route path="/dashboard" component={() => {
             const userType = (user as any)?.userType;
-            if (userType === 'admin') return <AdminDashboard />;
+            if (hasAdminDashboardAccess(user)) return <AdminDashboard />;
             if (userType === 'brand') return <BrandDashboard />;
             return <SimpleDashboard />;
           }} />
@@ -126,7 +130,7 @@ function Router() {
           <Route path="/campaigns/:id" component={CampaignDetail} />
           <Route path="/profile" component={() => {
             const userType = (user as any)?.userType;
-            if (userType === 'admin') {
+            if (hasAdminDashboardAccess(user)) {
               return <AdminDashboard />;
             } else if (userType === 'brand') {
               return <BrandDashboard />;

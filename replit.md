@@ -75,6 +75,7 @@ Design preferences: Clean, professional web app design with white background and
 - **Featured P2P Deals** (Homepage section): Homepage shows up to 6 featured listings from `GET /api/p2p/listings/featured`. Admins toggle featured status per listing from the admin panel.
 - **Admin Escrow Control** (`/admin/p2p-transactions`): Full admin management — listing thumbnails, edit dialog (title/description/price/method/image/type/status/adminNote via PUT /api/admin/p2p-listings/:id), approve/reject/note quick actions, Feature/Expire/Reactivate buttons, transaction confirm/release/refund with deal room links.
 - **Seed Demo Data**: Button in admin panel and `POST /api/admin/p2p-seed` endpoint seeds 9 approved demo listings (3 crypto, 3 product, 3 service) using the admin account as seller. Initial seed done directly via DB.
+- **P2P Listing Removal**: Admin P2P removal is a permanent DELETE action (`DELETE /api/admin/p2p-listings/:id`), public listing details only return approved listings, and demo seeding only restores missing demo titles instead of duplicating existing listings.
 - **P2P Fee Settings** (`/admin/p2p-fees`): Admin-configurable fee type, value, minimum, and maximum fee per transaction type (`crypto`, `product`, `service`).
 - **Platform Fee Settings** (`/admin/platform-fees`): Admin-editable campaign, withdrawal, and listing fee records backed by `platformFees`.
 - Backend schema: `p2pListings`, `p2pTransactions`, `p2pMessages`, `p2pFeeConfigs`, `platformFees`, and `p2pActionLogs`.
@@ -101,6 +102,7 @@ Design preferences: Clean, professional web app design with white background and
 - Rating and reputation tracking
 - Follower/following relationships
 - Earnings and transaction history
+- Admin-granted role privileges: Content Editor manages Blog/Feed content, Moderator/Mediator handles moderation and P2P mediation, Store Manager manages Shop/P2P marketplace, and Admin keeps full platform access.
 
 ## Data Flow
 
