@@ -129,8 +129,24 @@ export default function SimpleSignup() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('creator');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  const urlType = urlParams.get('type');
+  const initialTab = urlType === 'brand' ? 'brand' : 'creator';
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [successUser, setSuccessUser] = useState<{ firstName: string } | null>(null);
+  const [highlightTab, setHighlightTab] = useState(!!urlType);
+
+  useEffect(() => {
+    if (urlType) {
+      setActiveTab(urlType === 'brand' ? 'brand' : 'creator');
+      setHighlightTab(true);
+      const timer = setTimeout(() => setHighlightTab(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const creatorForm = useForm<CreatorSignupData>({
     resolver: zodResolver(creatorSignupSchema),
@@ -140,17 +156,13 @@ export default function SimpleSignup() {
     resolver: zodResolver(brandSignupSchema),
   });
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const refCode = urlParams.get('ref');
-  const refType = urlParams.get('type');
-
   const signupMutation = useMutation({
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
         userType: activeTab,
         skills: activeTab === 'creator' ? [data.skills] : [],
-        ...(refCode ? { referralCode: refCode, referralType: refType || activeTab } : {}),
+        ...(refCode ? { referralCode: refCode, referralType: urlType || activeTab } : {}),
       };
       const response = await apiRequest('POST', '/api/auth/register', payload);
       return await response.json();
@@ -205,7 +217,21 @@ export default function SimpleSignup() {
           </Badge>
         </div>
 
-        <Card>
+        {/* Animated arrival banner */}
+        {highlightTab && (
+          <div className={`mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border-2 font-semibold text-sm animate-pulse ${
+            activeTab === 'brand'
+              ? 'bg-blue-50 border-blue-400 text-blue-800'
+              : 'bg-purple-50 border-purple-400 text-purple-800'
+          }`}>
+            <ArrowRight className="w-4 h-4 shrink-0" />
+            {activeTab === 'brand'
+              ? "Great! You're signing up as a Brand — fill in your details below."
+              : "Great! You're signing up as an Influencer — fill in your details below."}
+          </div>
+        )}
+
+        <Card className={`transition-all duration-500 ${highlightTab ? 'ring-2 ring-offset-2 ' + (activeTab === 'brand' ? 'ring-blue-400' : 'ring-purple-400') : ''}`}>
           <CardHeader>
             <CardTitle>Create Account</CardTitle>
             <CardDescription>
@@ -213,17 +239,47 @@ export default function SimpleSignup() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="creator" className="flex items-center">
-                  <User className="h-4 w-4 mr-2" />
+            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setHighlightTab(false); }} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-1">
+                <TabsTrigger
+                  value="creator"
+                  className={`flex items-center gap-2 transition-all duration-300 ${
+                    activeTab === 'creator' && highlightTab
+                      ? 'ring-2 ring-purple-500 ring-offset-1 animate-pulse'
+                      : ''
+                  }`}
+                >
+                  <User className="h-4 w-4" />
                   Influencer
+                  {activeTab === 'creator' && highlightTab && (
+                    <span className="ml-1 w-2 h-2 rounded-full bg-purple-500 animate-ping inline-block" />
+                  )}
                 </TabsTrigger>
-                <TabsTrigger value="brand" className="flex items-center">
-                  <Building2 className="h-4 w-4 mr-2" />
+                <TabsTrigger
+                  value="brand"
+                  className={`flex items-center gap-2 transition-all duration-300 ${
+                    activeTab === 'brand' && highlightTab
+                      ? 'ring-2 ring-blue-500 ring-offset-1 animate-pulse'
+                      : ''
+                  }`}
+                >
+                  <Building2 className="h-4 w-4" />
                   Brand
+                  {activeTab === 'brand' && highlightTab && (
+                    <span className="ml-1 w-2 h-2 rounded-full bg-blue-500 animate-ping inline-block" />
+                  )}
                 </TabsTrigger>
               </TabsList>
+              {highlightTab && (
+                <div className="flex justify-center mb-3">
+                  <div className={`flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full ${
+                    activeTab === 'brand' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                  }`}>
+                    <ArrowRight className="w-3 h-3 rotate-90" />
+                    {activeTab === 'brand' ? 'Brand form below' : 'Influencer form below'}
+                  </div>
+                </div>
+              )}
 
               <TabsContent value="creator" className="space-y-4">
                 <form onSubmit={creatorForm.handleSubmit(onCreatorSubmit)} className="space-y-4">

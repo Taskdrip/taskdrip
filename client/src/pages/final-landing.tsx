@@ -651,12 +651,12 @@ export default function FinalLanding() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup?type=creator">
-              <Button size="lg" className="w-full sm:w-auto bg-black text-white hover:bg-gray-900 px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-xl font-bold" data-testid="button-final-cta-creator">
+              <Button size="lg" className="w-full sm:w-auto bg-black text-white hover:bg-gray-800 active:bg-gray-900 px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5" data-testid="button-final-cta-creator">
                 {cms.get("final_cta", "creator_btn", "I'm a Creator")} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/signup?type=brand">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto border-gray-300 text-gray-950 hover:bg-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-xl font-bold" data-testid="button-final-cta-brand">
+              <Button size="lg" className="w-full sm:w-auto bg-white text-gray-900 border-2 border-gray-900 hover:bg-gray-900 hover:text-white active:bg-black active:text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5" data-testid="button-final-cta-brand">
                 {cms.get("final_cta", "brand_btn", "I'm a Brand")} <Rocket className="ml-2 w-5 h-5" />
               </Button>
             </Link>
