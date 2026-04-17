@@ -451,6 +451,9 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
     paymentMethod: "USDT TRC20 (TRON)",
     country: user?.country || "",
     shippingInfo: "",
+    taskAddon: "",
+    tdripPointsPerParticipant: "",
+    tdripParticipantLimit: "",
     featuredImage: null as File | null,
   });
 
@@ -460,6 +463,10 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
       Object.entries(form).forEach(([k, v]) => {
         if (v !== null && v !== undefined && k !== "featuredImage") fd.append(k, String(v));
       });
+      const taskAddons = form.taskAddon
+        ? [{ task: form.taskAddon, platform: "Social", requiredProof: "Profile link or screenshot" }]
+        : [];
+      fd.set("taskAddons", JSON.stringify(taskAddons));
       if (form.featuredImage) fd.append("featuredImage", form.featuredImage);
       const res = await fetch("/api/p2p/listings", { method: "POST", body: fd, credentials: "include" });
       if (!res.ok) throw new Error((await res.json()).message || "Failed to create listing");
@@ -475,6 +482,9 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
 
   const isPhysical = form.listingType === "product" && form.productSubtype === "physical";
   const isCrypto = form.listingType === "crypto";
+  const tdripPoints = Number(form.tdripPointsPerParticipant || 0);
+  const tdripLimit = Number(form.tdripParticipantLimit || 0);
+  const tdripEscrowUsd = (tdripPoints * tdripLimit) / 100;
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
@@ -591,6 +601,36 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
               )}
             </div>
             <input id="listing-img-upload" type="file" accept="image/*" className="hidden" onChange={e => setForm(f => ({ ...f, featuredImage: e.target.files?.[0] || null }))} data-testid="input-listing-image" />
+          </div>
+
+          <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4 space-y-3">
+            <div>
+              <Label className="text-sm font-bold text-violet-950">Optional $TDRIP task add-on</Label>
+              <p className="text-xs text-violet-700 mt-1">
+                Reward users for a small action tied to this listing, like following your shop or commenting on a post. 100 $TDRIP = $1.
+              </p>
+            </div>
+            <Textarea
+              value={form.taskAddon}
+              onChange={e => setForm(f => ({ ...f, taskAddon: e.target.value }))}
+              rows={3}
+              placeholder="Example: Follow my X page and comment 'Taskdrip' on the pinned post before buying."
+              className="rounded-xl bg-white"
+              data-testid="input-listing-task-addon"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm font-bold mb-1.5 block">$TDRIP per participant</Label>
+                <Input type="number" min="0" value={form.tdripPointsPerParticipant} onChange={e => setForm(f => ({ ...f, tdripPointsPerParticipant: e.target.value }))} placeholder="100" className="rounded-xl bg-white" data-testid="input-listing-tdrip-points" />
+              </div>
+              <div>
+                <Label className="text-sm font-bold mb-1.5 block">Participant limit</Label>
+                <Input type="number" min="0" value={form.tdripParticipantLimit} onChange={e => setForm(f => ({ ...f, tdripParticipantLimit: e.target.value }))} placeholder="50" className="rounded-xl bg-white" data-testid="input-listing-tdrip-limit" />
+              </div>
+            </div>
+            <div className="rounded-xl bg-white border border-violet-100 p-3 text-xs text-violet-900" data-testid="text-listing-tdrip-summary">
+              Add-on escrow: <strong>{tdripPoints * tdripLimit} $TDRIP</strong> = <strong>${tdripEscrowUsd.toFixed(2)} USDT</strong>. Users can buy more $TDRIP, and points will be swappable when the native Taskdrip token launches.
+            </div>
           </div>
 
           {/* Review tip */}

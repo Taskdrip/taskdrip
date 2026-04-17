@@ -14,6 +14,30 @@ import express from "express";
 
 const upload = multer({ dest: 'uploads/' });
 
+const TDRIP_POINTS_PER_USD = 100;
+
+function parseTdripAddon(body: any) {
+  const points = Math.max(0, Number(body.tdripPointsPerParticipant || 0));
+  const participantLimit = Math.max(0, Number(body.tdripParticipantLimit || 0));
+  const escrowValue = points && participantLimit ? (points * participantLimit) / TDRIP_POINTS_PER_USD : 0;
+  return {
+    tdripPointsPerParticipant: Math.floor(points),
+    tdripParticipantLimit: Math.floor(participantLimit),
+    tdripEscrowValue: escrowValue.toFixed(2),
+  };
+}
+
+function parseJsonArrayField(value: any) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(String(value));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 async function verifyBlockchainTransaction(network: string, txHash: string, expectedAmount?: number) {
   const cleanHash = String(txHash || '').trim();
   const selectedNetwork = String(network || '').toLowerCase();
@@ -750,6 +774,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const tdripAddon = parseTdripAddon(req.body);
+      const preQualificationTasks = parseJsonArrayField(req.body.preQualificationTasks);
       
       const campaignData = {
         id: campaignId,
@@ -760,6 +786,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalSlots: parseInt(req.body.totalSlots),
         deadline: new Date(req.body.deadline),
         requirements: req.body.requirements ? [req.body.requirements] : [], // Convert string to array
+        preQualificationTasks,
+        qualificationRules: req.body.qualificationRules || null,
+        ...tdripAddon,
         estimatedTime: req.body.estimatedTime,
         brandId: user.id,
         brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
@@ -777,12 +806,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create escrow payment session with 30-minute window
       // Brands pay the exact total campaign budget — no platform fee added to brands
       const totalReward = parseFloat(req.body.reward) * parseInt(req.body.totalSlots);
-      const totalAmount = totalReward; // No brand fee; only influencers pay the 10% fee
+      const totalAmount = totalReward + Number(tdripAddon.tdripEscrowValue); // Campaign budget plus optional $TDRIP task add-on escrow
       const escrowPaymentData = {
         id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         campaignId: campaign.id,
         brandId: user.id,
-        amount: totalAmount, // Exact total campaign budget (reward × slots)
+        amount: totalAmount,
         status: 'payment_window',
         paymentWindowStart: new Date(),
         paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
@@ -1921,17 +1950,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateCampaign(campaign.id, { filledSlots: newFilled } as any);
       }
 
+      const tdripPoints = campaign && !wasAlreadyApproved ? Number((campaign as any).tdripPointsPerParticipant || 0) : 0;
+      const tdripLimit = campaign ? Number((campaign as any).tdripParticipantLimit || 0) : 0;
+      if (tdripPoints > 0 && (!tdripLimit || (campaign?.filledSlots || 0) < tdripLimit)) {
+        await storage.awardPoints(
+          participation.userId,
+          'campaign_task_addon',
+          tdripPoints,
+          `$TDRIP add-on reward for: ${campaign?.title || 'Campaign'}`,
+          participation.campaignId
+        );
+      }
+
       // Create notification for creator
       await storage.createNotification({
         userId: participation.userId,
         type: 'application_approved',
         title: 'Work Approved — Payment Released! 🎉',
-        content: `Your work has been approved${rewardAmount > 0 ? ` and $${rewardAmount.toFixed(2)} has been added to your wallet balance` : ''}. Great job!`,
+        content: `Your work has been approved${rewardAmount > 0 ? ` and $${rewardAmount.toFixed(2)} has been added to your wallet balance` : ''}${tdripPoints > 0 ? `, plus ${tdripPoints} $TDRIP points` : ''}. Great job!`,
         actionUrl: `/campaigns/${participation.campaignId}`,
         isRead: false,
       } as any);
 
-      res.json({ ...participation, rewardAmount });
+      res.json({ ...participation, rewardAmount, tdripPoints });
     } catch (error) {
       console.error("Error approving application:", error);
       res.status(500).json({ message: "Failed to approve application" });
@@ -5355,6 +5396,8 @@ Instructions:
       const shippingInfo = String(req.body.shippingInfo || '').trim();
       const minOrder = req.body.minOrder ? Number(req.body.minOrder) : null;
       const maxOrder = req.body.maxOrder ? Number(req.body.maxOrder) : null;
+      const tdripAddon = parseTdripAddon(req.body);
+      const taskAddons = parseJsonArrayField(req.body.taskAddons);
 
       const [listing] = await db.insert(p2pListings).values({
         sellerId: req.user.id,
@@ -5370,6 +5413,8 @@ Instructions:
         paymentMethod,
         country: country || (req.user as any).country || null,
         shippingInfo: shippingInfo || null,
+        taskAddons,
+        ...tdripAddon,
         featuredImage: req.file ? `/uploads/${req.file.filename}` : null,
         status: 'pending',
       }).returning();

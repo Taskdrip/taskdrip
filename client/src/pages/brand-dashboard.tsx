@@ -71,6 +71,10 @@ const campaignSchema = z.object({
   totalSlots: z.number().min(1, "Must have at least 1 slot"),
   deadline: z.string().min(1, "Deadline is required"),
   requirements: z.string().min(1, "Requirements are required"),
+  preQualificationTask: z.string().optional(),
+  qualificationRules: z.string().optional(),
+  tdripPointsPerParticipant: z.number().min(0).optional(),
+  tdripParticipantLimit: z.number().min(0).optional(),
   estimatedTime: z.string().min(1, "Estimated time is required"),
 });
 
@@ -128,7 +132,7 @@ export default function BrandDashboard() {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
           if (key !== 'file' && value !== undefined) {
-            formData.append(key, value.toString());
+            formData.append(key, typeof value === "object" ? JSON.stringify(value) : value.toString());
           }
         });
         formData.append('featureImage', data.file);
@@ -297,8 +301,17 @@ export default function BrandDashboard() {
       deadline: "",
       requirements: "",
       estimatedTime: "",
+      preQualificationTask: "",
+      qualificationRules: "First 100 qualified creators with 5,000+ followers can be accepted.",
+      tdripPointsPerParticipant: 0,
+      tdripParticipantLimit: 0,
     },
   });
+
+  const watchedTdripPoints = form.watch("tdripPointsPerParticipant") || 0;
+  const watchedTdripLimit = form.watch("tdripParticipantLimit") || 0;
+  const tdripEscrowUsd = (watchedTdripPoints * watchedTdripLimit) / 100;
+  const cashEscrowUsd = (form.watch("reward") || 0) * (form.watch("totalSlots") || 0);
 
   const onCreateCampaign = (data: z.infer<typeof campaignSchema>) => {
     console.log("Form submission triggered with data:", data);
@@ -320,7 +333,11 @@ export default function BrandDashboard() {
     const fileInput = document.getElementById('campaign-image') as HTMLInputElement;
     const file = fileInput?.files?.[0];
     
-    createCampaignMutation.mutate({ ...data, file });
+    const preQualificationTasks = data.preQualificationTask
+      ? [{ task: data.preQualificationTask, platform: "Social", requiredProof: "Profile link or screenshot" }]
+      : [];
+    
+    createCampaignMutation.mutate({ ...data, preQualificationTasks, file } as any);
   };
 
   const getStatusIcon = (status: string) => {
@@ -486,6 +503,101 @@ export default function BrandDashboard() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-4 space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-purple-950 flex items-center gap-2">
+                          <Award className="h-4 w-4 text-purple-600" />
+                          Pre-qualification tasks & $TDRIP add-on
+                        </h3>
+                        <p className="text-sm text-purple-700 mt-1">
+                          Ask creators to complete a simple task before approval, then optionally reward accepted participants with $TDRIP points. 100 $TDRIP = $1.
+                        </p>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="preQualificationTask"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pre-qualification task</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Example: Follow our X account, comment on the pinned post, and submit your profile link."
+                                className="min-h-[70px] bg-white"
+                                data-testid="input-campaign-prequalification-task"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="qualificationRules"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Qualification rules</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="First 100 creators with 5,000+ followers can be accepted"
+                                className="bg-white"
+                                data-testid="input-campaign-qualification-rules"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="tdripPointsPerParticipant"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>$TDRIP per accepted participant</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  placeholder="100"
+                                  className="bg-white"
+                                  data-testid="input-campaign-tdrip-points"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="tdripParticipantLimit"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>$TDRIP participant limit</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  placeholder="100"
+                                  className="bg-white"
+                                  data-testid="input-campaign-tdrip-limit"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="rounded-lg bg-white border border-purple-100 p-3 text-sm text-purple-900" data-testid="text-campaign-tdrip-summary">
+                        $TDRIP escrow: <strong>{watchedTdripPoints * watchedTdripLimit} $TDRIP</strong> (${tdripEscrowUsd.toFixed(2)} USDT). Total upfront estimate: <strong>${(cashEscrowUsd + tdripEscrowUsd).toFixed(2)} USDT</strong>.
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField

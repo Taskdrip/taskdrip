@@ -15,7 +15,7 @@ import {
   Megaphone, Users, BarChart3, Globe, TrendingUp, Star, CheckCircle2,
   ArrowRight, Zap, Target, DollarSign, Play, Instagram, Twitter,
   Youtube, MessageCircle, Mail, Phone, Building2, Layers, Award,
-  ChevronRight, Sparkles, Eye
+  ChevronRight, Sparkles, Eye, Gift, Trophy, Coins
 } from "lucide-react";
 import { SiTiktok, SiTelegram } from "react-icons/si";
 
@@ -26,12 +26,12 @@ const PACKAGES = [
     color: "from-blue-500 to-blue-700",
     badge: "Most Popular",
     badgeColor: "bg-blue-100 text-blue-700",
-    price: "From $299/mo",
-    description: "Display and native ads shown to our entire platform audience of 10,000+ verified influencers and brands.",
+    price: "From $49",
+    description: "Affordable sponsored and featured placements for new brands that want visibility before committing to a large budget.",
     features: [
-      "Homepage banner placement",
+      "Featured post placement",
       "In-feed sponsored posts",
-      "Sidebar display ads",
+      "Homepage or sidebar display ads",
       "Campaigns page promotion",
       "Shop & BreedSkool placements",
       "Real-time impression & click analytics",
@@ -44,7 +44,7 @@ const PACKAGES = [
     color: "from-purple-500 to-purple-700",
     badge: "High Engagement",
     badgeColor: "bg-purple-100 text-purple-700",
-    price: "From $499/mo",
+    price: "From $99",
     description: "Your brand promoted across Taskdrip's official social media channels with authentic, engaging content.",
     features: [
       "Instagram story & post promotions",
@@ -62,7 +62,7 @@ const PACKAGES = [
     color: "from-amber-500 to-orange-600",
     badge: "Maximum ROI",
     badgeColor: "bg-amber-100 text-amber-700",
-    price: "From $999/mo",
+    price: "From $250",
     description: "Connect with our network of verified Web3-native influencers to create authentic sponsored content.",
     features: [
       "Matched with 5–20 relevant influencers",
@@ -73,6 +73,24 @@ const PACKAGES = [
       "Sponsored content review & approval",
     ],
     reach: "Millions of End Users",
+  },
+  {
+    name: "Giveaway Campaigns",
+    icon: Gift,
+    color: "from-emerald-500 to-teal-700",
+    badge: "Fast Growth",
+    badgeColor: "bg-emerald-100 text-emerald-700",
+    price: "From $75 + rewards",
+    description: "Run follow, comment, join-community, or app-signup giveaways with $TDRIP points and clear task requirements.",
+    features: [
+      "Follow, comment, repost, join Telegram/Discord tasks",
+      "Follower-count or location pre-qualification",
+      "First X qualified participants accepted",
+      "$TDRIP point rewards per participant",
+      "Winner proof and participant export",
+      "Optional influencer amplification",
+    ],
+    reach: "Task-driven Growth",
   },
 ];
 
@@ -110,6 +128,9 @@ const EMPTY_FORM = {
   industry: "",
   adType: "",
   budget: "",
+  platforms: "",
+  giveawayType: "",
+  tdripBudget: "",
   goals: "",
   message: "",
 };
@@ -139,8 +160,15 @@ export default function AdvertiseWithUs() {
       <NavigationFixed />
 
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-gray-950 via-purple-950/40 to-gray-950 text-white py-28 overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
+      <section
+        className="relative bg-gradient-to-br from-gray-950 via-purple-950/40 to-gray-950 text-white py-28 overflow-hidden"
+        style={{
+          backgroundImage: "linear-gradient(rgba(5, 5, 15, 0.82), rgba(15, 5, 35, 0.9)), url('https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1800&q=80')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 opacity-30">
           <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-20 w-96 h-96 bg-blue-500 rounded-full blur-3xl" />
         </div>
@@ -153,7 +181,7 @@ export default function AdvertiseWithUs() {
             <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">Engaged Web3 Audience</span>
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Partner with Taskdrip to put your brand in front of 10,000+ verified Web3 influencers, entrepreneurs, and early adopters who are ready to buy, use, and share.
+            Launch sponsored posts, featured placements, social media pushes, influencer campaigns, and giveaway tasks with pricing built for new brands.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="#apply">
@@ -162,7 +190,7 @@ export default function AdvertiseWithUs() {
               </Button>
             </a>
             <a href="#packages">
-              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg h-auto gap-2">
+              <Button size="lg" variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white px-8 py-4 text-lg h-auto gap-2">
                 View Packages <ChevronRight className="h-5 w-5" />
               </Button>
             </a>
@@ -192,7 +220,7 @@ export default function AdvertiseWithUs() {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Brands Choose Taskdrip</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">Our audience isn't just scrolling — they're building, earning, and investing in the future of Web3.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { icon: Target, title: "Highly Targeted Audience", desc: "Reach verified crypto users, influencers, brand managers, and Web3 entrepreneurs. No wasted impressions.", color: "text-blue-600 bg-blue-50" },
               { icon: TrendingUp, title: "Proven Engagement", desc: "Our influencers are active — campaign completion rates over 85%, and a community that actually takes action.", color: "text-purple-600 bg-purple-50" },
@@ -276,7 +304,57 @@ export default function AdvertiseWithUs() {
               </Card>
             ))}
           </div>
-          <p className="text-center text-gray-400 text-sm mt-8">All prices are estimates. Final pricing depends on duration, targeting, and creative requirements. Custom packages available.</p>
+          <p className="text-center text-gray-500 text-sm mt-8">Fair starter pricing: begin small, prove results, then scale. Giveaway rewards and $TDRIP point budgets are paid upfront so participants can be rewarded reliably.</p>
+        </div>
+      </section>
+
+      {/* Giveaway + TDRIP */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-8 items-stretch">
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-white">
+                <Gift className="h-10 w-10 mb-4" />
+                <h2 className="text-3xl font-bold mb-3">Giveaways with real tasks</h2>
+                <p className="text-emerald-50">Brands can require users to follow, comment, repost, join a community, submit a wallet, or complete an app action before qualifying.</p>
+              </div>
+              <CardContent className="p-8 space-y-4">
+                {[
+                  "Pre-qualify creators by follower count, channel, country, or first-come limits.",
+                  "Example: First 100 users with 5,000+ followers who follow X and comment are accepted.",
+                  "Use screenshots, profile links, or post URLs as proof.",
+                  "Add $TDRIP points per accepted participant to drive faster completion.",
+                ].map(item => (
+                  <div key={item} className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-gray-700 text-sm">{item}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="border-0 shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-br from-violet-600 to-fuchsia-700 p-8 text-white">
+                <Coins className="h-10 w-10 mb-4" />
+                <h2 className="text-3xl font-bold mb-3">$TDRIP point add-ons</h2>
+                <p className="text-violet-50">100 $TDRIP = $1 USDT. Brands and sellers can fund points upfront for task participants.</p>
+              </div>
+              <CardContent className="p-8">
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="rounded-xl bg-violet-50 p-4">
+                    <p className="text-sm text-violet-700">Example add-on</p>
+                    <p className="text-2xl font-bold text-violet-950">100 $TDRIP</p>
+                    <p className="text-xs text-violet-600">per participant</p>
+                  </div>
+                  <div className="rounded-xl bg-fuchsia-50 p-4">
+                    <p className="text-sm text-fuchsia-700">100 users</p>
+                    <p className="text-2xl font-bold text-fuchsia-950">$100</p>
+                    <p className="text-xs text-fuchsia-600">paid upfront</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">Users can buy more $TDRIP in Taskdrip, and the points will be swappable when Taskdrip's native token launches.</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
@@ -388,9 +466,33 @@ export default function AdvertiseWithUs() {
                         <SelectItem value="social_media">Social Media Promotion</SelectItem>
                         <SelectItem value="influencer_network">Influencer / Influencer Network</SelectItem>
                         <SelectItem value="sponsored_content">Sponsored Blog / Content</SelectItem>
+                        <SelectItem value="featured_post">Featured / Sponsored Post</SelectItem>
+                        <SelectItem value="giveaway_campaign">Giveaway Campaign</SelectItem>
                         <SelectItem value="all">Full Package (all of the above)</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Preferred Channels</Label>
+                      <Input data-testid="input-platforms" value={form.platforms} onChange={e => set("platforms", e.target.value)} placeholder="X, Instagram, TikTok, Telegram..." />
+                    </div>
+                    <div>
+                      <Label>$TDRIP Budget</Label>
+                      <Input data-testid="input-tdrip-budget" value={form.tdripBudget} onChange={e => set("tdripBudget", e.target.value)} placeholder="Example: 10,000 $TDRIP for 100 users" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Giveaway or Task Requirements</Label>
+                    <Textarea
+                      data-testid="input-giveaway-type"
+                      value={form.giveawayType}
+                      onChange={e => set("giveawayType", e.target.value)}
+                      placeholder="Example: Follow our X, comment on pinned post, first 100 users with 5k+ followers qualify."
+                      rows={3}
+                    />
                   </div>
 
                   <div>

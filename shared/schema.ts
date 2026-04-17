@@ -136,6 +136,15 @@ export const campaigns = pgTable("campaigns", {
   filledSlots: integer("filled_slots").default(0),
   estimatedTime: varchar("estimated_time"), // "5 min", "30 min", etc.
   requirements: text("requirements").array(),
+  preQualificationTasks: jsonb("pre_qualification_tasks").$type<{
+    task: string;
+    platform?: string;
+    requiredProof?: string;
+  }[]>(),
+  qualificationRules: text("qualification_rules"),
+  tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
+  tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
+  tdripEscrowValue: decimal("tdrip_escrow_value", { precision: 10, scale: 2 }).default("0.00"),
   status: varchar("status").default("pending_payment"), // 'pending_payment', 'active', 'draft', 'completed', 'cancelled'
   paymentStatus: varchar("payment_status").default("pending"), // 'pending', 'deposited', 'approved'
   depositRequired: boolean("deposit_required").default(true),
@@ -468,6 +477,14 @@ export const p2pListings = pgTable("p2p_listings", {
   paymentMethod: varchar("payment_method").notNull(),
   country: varchar("country"), // seller's country / where deal happens
   shippingInfo: text("shipping_info"), // for physical products
+  taskAddons: jsonb("task_addons").$type<{
+    task: string;
+    platform?: string;
+    requiredProof?: string;
+  }[]>(),
+  tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
+  tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
+  tdripEscrowValue: decimal("tdrip_escrow_value", { precision: 10, scale: 2 }).default("0.00"),
   featuredImage: varchar("featured_image"),
   status: varchar("status").notNull().default("pending"),
   isFeatured: boolean("is_featured").default(false),
@@ -683,6 +700,11 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   description: z.string().min(1, "Description is required"),
   category: z.string().min(1, "Category is required"),
   requirements: z.string().min(1, "Requirements are required"),
+  preQualificationTasks: z.any().optional(),
+  qualificationRules: z.string().optional(),
+  tdripPointsPerParticipant: z.number().min(0).optional(),
+  tdripParticipantLimit: z.number().min(0).optional(),
+  tdripEscrowValue: z.string().optional(),
   deadline: z.string().min(1, "Deadline is required"),
   estimatedTime: z.string().min(1, "Estimated time is required"),
 });

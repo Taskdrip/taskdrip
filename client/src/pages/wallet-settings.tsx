@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { NavigationFixed } from '@/components/ui/navigation-fixed';
-import { Wallet, Copy, Check, AlertCircle } from 'lucide-react';
+import { Wallet, Copy, Check, AlertCircle, Coins } from 'lucide-react';
 
 const walletSchema = z.object({
   usdtTronWallet: z.string().optional(),
@@ -30,6 +30,12 @@ export default function WalletSettings() {
   const { toast } = useToast();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [directSupportEnabled, setDirectSupportEnabled] = useState(false);
+  const { data: pointsData } = useQuery<{ total: number; recent: any[] }>({
+    queryKey: ['/api/points/me'],
+    retry: false,
+  });
+  const tdripPoints = Number(pointsData?.total ?? (user as any)?.totalPoints ?? 0);
+  const tdripUsdValue = tdripPoints / 100;
 
   const {
     register,
@@ -166,6 +172,45 @@ export default function WalletSettings() {
                 </Button>
               </Link>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8 border-violet-200 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Coins className="h-5 w-5 mr-2" />
+              $TDRIP Points Balance
+            </CardTitle>
+            <CardDescription className="text-violet-100">
+              100 $TDRIP = $1 USDT inside Taskdrip
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <p className="text-violet-100 text-sm">Points</p>
+                <p className="text-3xl font-bold" data-testid="text-tdrip-points">{tdripPoints.toLocaleString()} $TDRIP</p>
+              </div>
+              <div>
+                <p className="text-violet-100 text-sm">USDT Value</p>
+                <p className="text-3xl font-bold" data-testid="text-tdrip-usdt-value">${tdripUsdValue.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-violet-100 text-sm">Launch note</p>
+                <p className="text-sm leading-relaxed" data-testid="text-tdrip-launch-note">
+                  $TDRIP points will be swappable when Taskdrip's native token launches.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-5 bg-white text-violet-700 hover:bg-violet-50"
+              data-testid="button-buy-tdrip"
+              onClick={() => toast({ title: "Buy $TDRIP coming soon", description: "Purchase flow will be available before token launch." })}
+            >
+              Buy more $TDRIP
+            </Button>
           </CardContent>
         </Card>
 
