@@ -27,7 +27,7 @@ const FEATURES = [
   { key: "campaigns", label: "Campaigns (Escrow)", icon: Target, color: "text-purple-500" },
   { key: "subscriptions", label: "Account Upgrades", icon: Crown, color: "text-amber-500" },
   { key: "courses", label: "BreedSkool Courses", icon: BookOpen, color: "text-green-500" },
-  { key: "tips", label: "Creator Tips", icon: Heart, color: "text-pink-500" },
+  { key: "tips", label: "Influencer Tips", icon: Heart, color: "text-pink-500" },
   { key: "payouts", label: "Payouts / Withdrawals", icon: ArrowDownToLine, color: "text-indigo-500" },
 ];
 

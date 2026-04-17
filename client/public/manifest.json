@@ -1,7 +1,7 @@
 {
   "name": "Taskdrip - Web3 Influencer Marketplace",
   "short_name": "Taskdrip",
-  "description": "The leading Web3 influencer marketplace connecting global brands with verified creators.",
+  "description": "The leading Web3 influencer marketplace connecting global brands with verified influencers.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f1a",

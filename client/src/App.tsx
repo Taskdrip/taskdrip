@@ -43,9 +43,9 @@ import ProfileEdit from "@/pages/profile-edit";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import EscrowPayment from "@/pages/escrow-payment";
-import Creators from "@/pages/creators";
+import Influencers from "@/pages/influencers";
 import FeedPage from "@/pages/feed";
-import CreatorProfile from "@/pages/creator-profile";
+import CreatorProfile from "@/pages/influencer-profile";
 import Leaderboard from "@/pages/leaderboard";
 import SubscriptionPage from "@/pages/subscription";
 import PayoutRequestsPage from "@/pages/payout-requests";
@@ -102,8 +102,8 @@ function Router() {
       <Route path="/tasks" component={TasksPage} />
       <Route path="/advertise" component={AdvertiseWithUs} />
       <Route path="/get-started" component={GetStarted} />
-      <Route path="/creators" component={Creators} />
-      <Route path="/creators/:id" component={CreatorProfile} />
+      <Route path="/influencers" component={Influencers} />
+      <Route path="/influencers/:id" component={CreatorProfile} />
       <Route path="/profile/:id" component={UnifiedProfile} />
       <Route path="/brand/:id" component={BrandProfile} />
       <Route path="/feed" component={FeedPage} />

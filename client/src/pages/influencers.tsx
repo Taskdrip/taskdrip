@@ -124,26 +124,26 @@ function TierHeroCard({
   );
 }
 
-/* ─── Creator Card (grid view) with compare select ─── */
+/* ─── Influencer Card (grid view) with compare select ─── */
 function CreatorCard({
-  creator, rank, selected, onToggleSelect, compareMode,
+  influencer, rank, selected, onToggleSelect, compareMode,
 }: {
-  creator: any; rank: number; selected: boolean; onToggleSelect: (id: string) => void; compareMode: boolean;
+  influencer: any; rank: number; selected: boolean; onToggleSelect: (id: string) => void; compareMode: boolean;
 }) {
-  const tier = getTierConfig(creator.creatorTier || "rising_sparks");
-  const totalFollowers = creator.totalFollowers || 0;
+  const tier = getTierConfig(influencer.creatorTier || "rising_sparks");
+  const totalFollowers = influencer.totalFollowers || 0;
 
   return (
     <div className={`bg-white rounded-3xl border-2 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col relative ${selected ? "border-violet-500 shadow-lg shadow-violet-100" : "border-gray-100"}`}>
       {compareMode && (
-        <button onClick={() => onToggleSelect(creator.id)}
+        <button onClick={() => onToggleSelect(influencer.id)}
           className={`absolute top-3 left-3 z-20 w-7 h-7 rounded-lg flex items-center justify-center transition-all shadow-lg ${selected ? "bg-violet-600 text-white" : "bg-white/90 text-gray-400 hover:text-violet-600"}`}>
           {selected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
         </button>
       )}
       <div className={`h-24 bg-gradient-to-br ${tier.gradient} relative flex-shrink-0`}>
-        {creator.bannerImageUrl && (
-          <img src={creator.bannerImageUrl} alt="" className="w-full h-full object-cover absolute inset-0" />
+        {influencer.bannerImageUrl && (
+          <img src={influencer.bannerImageUrl} alt="" className="w-full h-full object-cover absolute inset-0" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         <div className="absolute top-3 right-3">
@@ -160,30 +160,30 @@ function CreatorCard({
 
       <div className="p-4 -mt-8 relative flex flex-col flex-1">
         <Avatar className="w-16 h-16 border-4 border-white shadow-lg ring-2 ring-gray-100 mb-3">
-          <AvatarImage src={creator.profileImageUrl || ""} />
+          <AvatarImage src={influencer.profileImageUrl || ""} />
           <AvatarFallback className={`bg-gradient-to-br ${tier.gradient} text-white font-bold text-xl`}>
-            {(creator.firstName?.[0] || "C").toUpperCase()}
+            {(influencer.firstName?.[0] || "C").toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div className="mb-2">
           <h3 className="font-black text-gray-900 text-sm leading-tight flex items-center gap-1 flex-wrap">
-            {creator.firstName} {creator.lastName}
-            {creator.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500" />}
+            {influencer.firstName} {influencer.lastName}
+            {influencer.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500" />}
           </h3>
-          {creator.username && <p className="text-gray-400 text-xs">@{creator.username}</p>}
+          {influencer.username && <p className="text-gray-400 text-xs">@{influencer.username}</p>}
         </div>
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {creator.niche && (
-            <Badge className="text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 border-0">{creator.niche}</Badge>
+          {influencer.niche && (
+            <Badge className="text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 border-0">{influencer.niche}</Badge>
           )}
-          {creator.location && (
+          {influencer.location && (
             <span className="flex items-center text-gray-400 text-xs gap-0.5">
-              <MapPin className="w-2.5 h-2.5" />{creator.location}
+              <MapPin className="w-2.5 h-2.5" />{influencer.location}
             </span>
           )}
         </div>
-        {creator.bio && (
-          <p className="text-gray-500 text-xs line-clamp-2 mb-3 leading-relaxed">{creator.bio}</p>
+        {influencer.bio && (
+          <p className="text-gray-500 text-xs line-clamp-2 mb-3 leading-relaxed">{influencer.bio}</p>
         )}
         <div className="grid grid-cols-3 gap-2 mb-3 flex-1">
           <div className={`rounded-xl p-2.5 text-center ${tier.bg}`}>
@@ -191,13 +191,13 @@ function CreatorCard({
             <div className="text-gray-500 text-xs mt-0.5">Followers</div>
           </div>
           <div className="rounded-xl p-2.5 text-center bg-green-50">
-            <div className="text-sm font-black text-green-700">{formatEarnings(creator.totalEarned)}</div>
+            <div className="text-sm font-black text-green-700">{formatEarnings(influencer.totalEarned)}</div>
             <div className="text-gray-500 text-xs mt-0.5">Earned</div>
           </div>
           <div className="rounded-xl p-2.5 text-center bg-yellow-50">
             <div className="flex items-center justify-center gap-0.5">
               <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-              <span className="text-sm font-black text-yellow-700">{parseFloat(creator.rating || "0").toFixed(1)}</span>
+              <span className="text-sm font-black text-yellow-700">{parseFloat(influencer.rating || "0").toFixed(1)}</span>
             </div>
             <div className="text-gray-500 text-xs mt-0.5">Rating</div>
           </div>
@@ -209,7 +209,7 @@ function CreatorCard({
               Instagram: "instagramFollowers", Twitter: "twitterFollowers",
               Twitch: "twitchFollowers", Telegram: "telegramFollowers",
             };
-            const val = creator[fm[platform]];
+            const val = influencer[fm[platform]];
             if (!val || val === 0) return null;
             const style = PLATFORM_STYLES[platform];
             return (
@@ -219,19 +219,19 @@ function CreatorCard({
             );
           })}
         </div>
-        {creator.completedCampaigns > 0 && (
+        {influencer.completedCampaigns > 0 && (
           <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
             <Zap className="w-3 h-3" />
-            <span>{creator.completedCampaigns} campaigns completed</span>
+            <span>{influencer.completedCampaigns} campaigns completed</span>
           </div>
         )}
         <div className="flex gap-2 mt-auto">
-          <Link href={`/profile/${creator.id}`} className="flex-1">
+          <Link href={`/profile/${influencer.id}`} className="flex-1">
             <Button size="sm" variant="outline" className="w-full rounded-xl border-gray-200 text-xs h-8">
               <ExternalLink className="w-3 h-3 mr-1" /> Profile
             </Button>
           </Link>
-          <Link href={`/messages?to=${creator.id}`} className="flex-1">
+          <Link href={`/messages?to=${influencer.id}`} className="flex-1">
             <Button size="sm" className={`w-full rounded-xl text-xs h-8 bg-gradient-to-r ${tier.gradient} border-0 text-white`}>
               <MessageSquare className="w-3 h-3 mr-1" /> Message
             </Button>
@@ -242,17 +242,17 @@ function CreatorCard({
   );
 }
 
-/* ─── Creator Row (list view) ─── */
+/* ─── Influencer Row (list view) ─── */
 function CreatorRow({
-  creator, rank, selected, onToggleSelect, compareMode,
+  influencer, rank, selected, onToggleSelect, compareMode,
 }: {
-  creator: any; rank: number; selected: boolean; onToggleSelect: (id: string) => void; compareMode: boolean;
+  influencer: any; rank: number; selected: boolean; onToggleSelect: (id: string) => void; compareMode: boolean;
 }) {
-  const tier = getTierConfig(creator.creatorTier || "rising_sparks");
+  const tier = getTierConfig(influencer.creatorTier || "rising_sparks");
   return (
     <div className={`flex items-center gap-4 p-4 rounded-2xl transition-colors group ${selected ? "bg-violet-50 border border-violet-200" : "hover:bg-gray-50 border border-transparent"}`}>
       {compareMode && (
-        <button onClick={() => onToggleSelect(creator.id)}
+        <button onClick={() => onToggleSelect(influencer.id)}
           className={`w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center transition-all ${selected ? "bg-violet-600 text-white" : "border border-gray-300 text-gray-400 hover:text-violet-600"}`}>
           {selected ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
         </button>
@@ -261,38 +261,38 @@ function CreatorRow({
         {rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`}
       </div>
       <Avatar className="w-12 h-12 border-2 border-gray-100 flex-shrink-0">
-        <AvatarImage src={creator.profileImageUrl || ""} />
+        <AvatarImage src={influencer.profileImageUrl || ""} />
         <AvatarFallback className={`bg-gradient-to-br ${tier.gradient} text-white font-bold`}>
-          {(creator.firstName?.[0] || "C").toUpperCase()}
+          {(influencer.firstName?.[0] || "C").toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-gray-900 text-sm truncate">{creator.firstName} {creator.lastName}</span>
-          {creator.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
-          {creator.niche && <Badge variant="secondary" className="text-xs">{creator.niche}</Badge>}
+          <span className="font-bold text-gray-900 text-sm truncate">{influencer.firstName} {influencer.lastName}</span>
+          {influencer.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+          {influencer.niche && <Badge variant="secondary" className="text-xs">{influencer.niche}</Badge>}
         </div>
-        {creator.username && <p className="text-gray-400 text-xs">@{creator.username}</p>}
+        {influencer.username && <p className="text-gray-400 text-xs">@{influencer.username}</p>}
       </div>
       <div className="hidden sm:block text-right flex-shrink-0">
-        <div className={`font-black text-sm ${tier.text}`}>{formatFollowers(creator.totalFollowers || 0)}</div>
+        <div className={`font-black text-sm ${tier.text}`}>{formatFollowers(influencer.totalFollowers || 0)}</div>
         <div className="text-gray-400 text-xs">followers</div>
       </div>
       <div className="hidden md:block text-right flex-shrink-0">
-        <div className="font-bold text-sm text-green-600">{formatEarnings(creator.totalEarned)}</div>
+        <div className="font-bold text-sm text-green-600">{formatEarnings(influencer.totalEarned)}</div>
         <div className="text-gray-400 text-xs">earned</div>
       </div>
       <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
         <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-        <span className="text-sm font-semibold">{parseFloat(creator.rating || "0").toFixed(1)}</span>
+        <span className="text-sm font-semibold">{parseFloat(influencer.rating || "0").toFixed(1)}</span>
       </div>
       <div className="flex gap-2 flex-shrink-0">
-        <Link href={`/profile/${creator.id}`}>
+        <Link href={`/profile/${influencer.id}`}>
           <Button size="sm" variant="outline" className="rounded-xl h-8 text-xs px-3">
             <ExternalLink className="w-3 h-3 mr-1" /> Profile
           </Button>
         </Link>
-        <Link href={`/messages?to=${creator.id}`}>
+        <Link href={`/messages?to=${influencer.id}`}>
           <Button size="sm" className={`rounded-xl h-8 text-xs px-3 bg-gradient-to-r ${tier.gradient} text-white border-0`}>
             <MessageSquare className="w-3 h-3" />
           </Button>
@@ -635,7 +635,7 @@ function CompareModal({
 }
 
 /* ─── Main Page ─── */
-export default function Creators() {
+export default function Influencers() {
   const { isAuthenticated } = useAuth();
   const searchStr = useSearch();
   const params = new URLSearchParams(searchStr);
@@ -682,11 +682,11 @@ export default function Creators() {
   const tierStats = useMemo(() => {
     const stats: Record<string, { count: number; totalEarnings: number; avgFollowers: number; topCreators: any[] }> = {};
     for (const t of TIER_ORDER) {
-      const creators = tierData[t] || [];
-      const totalEarnings = creators.reduce((sum: number, c: any) => sum + parseFloat(c.totalEarned || "0"), 0);
-      const avgFollowers = creators.length > 0
-        ? creators.reduce((sum: number, c: any) => sum + (c.totalFollowers || 0), 0) / creators.length : 0;
-      stats[t] = { count: creators.length, totalEarnings, avgFollowers, topCreators: creators.slice(0, 5) };
+      const influencers = tierData[t] || [];
+      const totalEarnings = influencers.reduce((sum: number, c: any) => sum + parseFloat(c.totalEarned || "0"), 0);
+      const avgFollowers = influencers.length > 0
+        ? influencers.reduce((sum: number, c: any) => sum + (c.totalFollowers || 0), 0) / influencers.length : 0;
+      stats[t] = { count: influencers.length, totalEarnings, avgFollowers, topCreators: influencers.slice(0, 5) };
     }
     return stats;
   }, [tierData]);
@@ -858,7 +858,7 @@ export default function Creators() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
 
-        {/* ── Advanced Filter Panel (always visible when browsing creators) ── */}
+        {/* ── Advanced Filter Panel (always visible when browsing influencers) ── */}
         <div className="bg-white/5 border border-white/10 backdrop-blur rounded-3xl p-5 mb-6 -mt-6 relative z-10">
           {/* Top row */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -1074,7 +1074,7 @@ export default function Creators() {
               <div className="mt-10 bg-gradient-to-br from-purple-900/60 to-blue-900/60 backdrop-blur border border-white/10 text-white rounded-3xl p-8 sm:p-12 text-center">
                 <Award className="w-12 h-12 text-purple-400 mx-auto mb-4" />
                 <h3 className="text-3xl font-black mb-3">Connect with Elite Influencers</h3>
-                <p className="text-white/60 mb-8 max-w-md mx-auto">Create a brand account to message creators, launch campaigns, and track performance.</p>
+                <p className="text-white/60 mb-8 max-w-md mx-auto">Create a brand account to message influencers, launch campaigns, and track performance.</p>
                 <Link href="/signup?type=brand">
                   <Button className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white hover:opacity-90 px-10 py-6 rounded-2xl font-bold text-base shadow-2xl border-0">
                     Get Started Free →
@@ -1084,7 +1084,7 @@ export default function Creators() {
             )}
           </div>
         ) : (
-          /* ── Filtered Creators Grid/List ── */
+          /* ── Filtered Influencers Grid/List ── */
           <div>
             {/* Tier label when filtering inside tier */}
             {activeTier && activeTierConfig && (
@@ -1092,7 +1092,7 @@ export default function Creators() {
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r ${activeTierConfig.gradient} text-white`}>
                   {activeTierConfig.icon} {activeTierConfig.name}
                 </span>
-                <span className="text-white/40 text-sm">{filteredCreators.length} creators</span>
+                <span className="text-white/40 text-sm">{filteredCreators.length} influencers</span>
               </div>
             )}
 
@@ -1105,18 +1105,18 @@ export default function Creators() {
               </div>
             ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {filteredCreators.map((creator: any, i: number) => (
-                  <CreatorCard key={creator.id} creator={creator} rank={i + 1}
-                    selected={selectedIds.includes(creator.id)}
+                {filteredCreators.map((influencer: any, i: number) => (
+                  <CreatorCard key={influencer.id} influencer={influencer} rank={i + 1}
+                    selected={selectedIds.includes(influencer.id)}
                     onToggleSelect={toggleSelect}
                     compareMode={compareMode} />
                 ))}
               </div>
             ) : (
               <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
-                {filteredCreators.map((creator: any, i: number) => (
-                  <CreatorRow key={creator.id} creator={creator} rank={i + 1}
-                    selected={selectedIds.includes(creator.id)}
+                {filteredCreators.map((influencer: any, i: number) => (
+                  <CreatorRow key={influencer.id} influencer={influencer} rank={i + 1}
+                    selected={selectedIds.includes(influencer.id)}
                     onToggleSelect={toggleSelect}
                     compareMode={compareMode} />
                 ))}
@@ -1160,7 +1160,7 @@ export default function Creators() {
       {compareMode && selectedIds.length === 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-violet-900/90 backdrop-blur-xl border border-violet-500/30 rounded-2xl px-5 py-3 shadow-2xl">
           <CheckSquare className="w-4 h-4 text-violet-300" />
-          <p className="text-white/80 text-sm">Click the checkbox on creator cards to select them for comparison</p>
+          <p className="text-white/80 text-sm">Click the checkbox on influencer cards to select them for comparison</p>
           <button onClick={exitCompareMode} className="text-white/40 hover:text-white p-1 ml-1">
             <X className="w-4 h-4" />
           </button>

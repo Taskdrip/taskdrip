@@ -27,7 +27,7 @@ const creatorFormSchema = z.object({
   instagramHandle: z.string().optional(),
   youtubeHandle: z.string().optional(),
   linkedinHandle: z.string().optional(),
-  userType: z.literal('creator'),
+  userType: z.literal('influencer'),
 });
 
 const brandFormSchema = z.object({
@@ -58,7 +58,7 @@ const marketingGoalOptions = [
 ];
 
 export default function Signup() {
-  const [activeTab, setActiveTab] = useState('creator');
+  const [activeTab, setActiveTab] = useState('influencer');
   const { toast } = useToast();
 
   // Check URL parameters to set the initial tab
@@ -116,7 +116,7 @@ export default function Signup() {
     },
     onSuccess: () => {
       toast({
-        title: 'Creator Profile Created!',
+        title: 'Influencer Profile Created!',
         description: 'Your profile has been created successfully. You can now start joining campaigns.',
       });
       window.location.href = '/';
@@ -173,9 +173,9 @@ export default function Signup() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="creator" className="flex items-center gap-2">
+            <TabsTrigger value="influencer" className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              I'm a Creator
+              I'm a Influencer
             </TabsTrigger>
             <TabsTrigger value="brand" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
@@ -183,12 +183,12 @@ export default function Signup() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="creator">
+          <TabsContent value="influencer">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-500" />
-                  Creator Profile Setup
+                  Influencer Profile Setup
                 </CardTitle>
                 <CardDescription>
                   Tell us about yourself and start earning from brand campaigns
@@ -351,7 +351,7 @@ export default function Signup() {
                     className="w-full bg-accent hover:bg-blue-700"
                     disabled={creatorMutation.isPending}
                   >
-                    {creatorMutation.isPending ? 'Creating Profile...' : 'Create Creator Profile'}
+                    {creatorMutation.isPending ? 'Creating Profile...' : 'Create Influencer Profile'}
                   </Button>
                 </form>
               </CardContent>

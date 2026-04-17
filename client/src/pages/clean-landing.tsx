@@ -26,7 +26,7 @@ export default function CleanLanding() {
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
               Connect with brands, complete campaigns, and earn cryptocurrency. 
-              Professional platform for creators and businesses.
+              Professional platform for influencers and businesses.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
@@ -35,7 +35,7 @@ export default function CleanLanding() {
                 className="bg-black text-white hover:bg-gray-800 px-8 py-4 text-lg font-medium"
                 onClick={() => window.location.href = '/signup?type=creator'}
               >
-                Start as Creator
+                Start as Influencer
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button 
@@ -53,7 +53,7 @@ export default function CleanLanding() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 bg-gray-50 rounded-xl p-8 border border-gray-200">
               <div className="text-center">
                 <div className="text-3xl font-bold text-black">25,847</div>
-                <div className="text-gray-600 text-sm">Active Creators</div>
+                <div className="text-gray-600 text-sm">Active Influencers</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-black">$2.4M</div>
@@ -65,19 +65,19 @@ export default function CleanLanding() {
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-black">4.9★</div>
-                <div className="text-gray-600 text-sm">Creator Rating</div>
+                <div className="text-gray-600 text-sm">Influencer Rating</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* For Creators Section */}
+      {/* For Influencers Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="bg-black text-white mb-6 px-4 py-2">
-              For Creators
+              For Influencers
             </Badge>
             <h2 className="text-4xl font-bold text-black mb-6">
               Start Earning <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Cryptocurrency</span>
@@ -121,7 +121,7 @@ export default function CleanLanding() {
                 className="bg-black text-white hover:bg-gray-800 px-8 py-3"
                 onClick={() => window.location.href = '/signup?type=creator'}
               >
-                Join as Creator
+                Join as Influencer
               </Button>
             </div>
             
@@ -165,7 +165,7 @@ export default function CleanLanding() {
               Reach Your <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Target Audience</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Connect with authentic creators who align with your brand values and drive real engagement.
+              Connect with authentic influencers who align with your brand values and drive real engagement.
             </p>
           </div>
 
@@ -190,11 +190,11 @@ export default function CleanLanding() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Summer Collection</span>
-                      <Badge variant="outline" className="text-xs">15 creators</Badge>
+                      <Badge variant="outline" className="text-xs">15 influencers</Badge>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Brand Awareness</span>
-                      <Badge variant="outline" className="text-xs">8 creators</Badge>
+                      <Badge variant="outline" className="text-xs">8 influencers</Badge>
                     </div>
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function CleanLanding() {
                   <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
                     <Users className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-gray-700">Access verified creator network</span>
+                  <span className="text-gray-700">Access verified influencer network</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
@@ -247,7 +247,7 @@ export default function CleanLanding() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-black mb-6">Why Choose Taskdrip</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Professional tools and secure infrastructure for the modern creator economy
+              Professional tools and secure infrastructure for the modern influencer economy
             </p>
           </div>
 
@@ -278,7 +278,7 @@ export default function CleanLanding() {
               </div>
               <h3 className="text-xl font-semibold text-black mb-4">Global Network</h3>
               <p className="text-gray-600 leading-relaxed">
-                Join thousands of creators and brands building the future of digital marketing.
+                Join thousands of influencers and brands building the future of digital marketing.
               </p>
             </div>
           </div>
@@ -292,7 +292,7 @@ export default function CleanLanding() {
             Ready to Get Started?
           </h2>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-            Join the platform that's transforming how creators and brands collaborate in the digital economy.
+            Join the platform that's transforming how influencers and brands collaborate in the digital economy.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -301,7 +301,7 @@ export default function CleanLanding() {
               className="bg-black text-white hover:bg-gray-800 px-8 py-4 text-lg"
               onClick={() => window.location.href = '/signup?type=creator'}
             >
-              Start as Creator
+              Start as Influencer
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Button 
@@ -323,15 +323,15 @@ export default function CleanLanding() {
             <div>
               <h3 className="text-xl font-bold mb-4">Taskdrip</h3>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                Influencers Marketplace connecting creators with brands through crypto rewards.
+                Influencers Marketplace connecting influencers with brands through crypto rewards.
               </p>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">For Creators</h4>
+              <h4 className="font-semibold mb-4">For Influencers</h4>
               <ul className="space-y-2">
                 <li><a href="/campaigns" className="text-gray-400 hover:text-white transition-colors">Browse Campaigns</a></li>
-                <li><a href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors">Join as Creator</a></li>
+                <li><a href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors">Join as Influencer</a></li>
                 <li><a href="/dashboard" className="text-gray-400 hover:text-white transition-colors">Dashboard</a></li>
               </ul>
             </div>
@@ -341,7 +341,7 @@ export default function CleanLanding() {
               <ul className="space-y-2">
                 <li><a href="/signup?type=brand" className="text-gray-400 hover:text-white transition-colors">Launch Campaign</a></li>
                 <li><a href="/admin-dashboard" className="text-gray-400 hover:text-white transition-colors">Brand Dashboard</a></li>
-                <li><a href="/shop" className="text-gray-400 hover:text-white transition-colors">Creator Network</a></li>
+                <li><a href="/shop" className="text-gray-400 hover:text-white transition-colors">Influencer Network</a></li>
               </ul>
             </div>
 

@@ -32,7 +32,7 @@ export default function Landing() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Crypto Income</span>
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-4xl mx-auto leading-relaxed">
-              Join thousands of creators earning cryptocurrency by completing brand campaigns. 
+              Join thousands of influencers earning cryptocurrency by completing brand campaigns. 
               No followers required. No complex setup. Just create, submit, and get paid.
             </p>
             
@@ -60,7 +60,7 @@ export default function Landing() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">25,847</div>
-                <div className="text-blue-200">Active Creators</div>
+                <div className="text-blue-200">Active Influencers</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">$2.4M</div>
@@ -72,7 +72,7 @@ export default function Landing() {
               </div>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">4.9★</div>
-                <div className="text-blue-200">Creator Rating</div>
+                <div className="text-blue-200">Influencer Rating</div>
               </div>
             </div>
           </div>
@@ -145,15 +145,15 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Creator Section */}
+      {/* Influencer Section */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
-              <Badge className="bg-green-100 text-green-800 mb-4">For Creators</Badge>
+              <Badge className="bg-green-100 text-green-800 mb-4">For Influencers</Badge>
               <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Turn Your Creativity Into Cryptocurrency</h2>
               <p className="text-xl text-gray-600 mb-8">
-                Join thousands of creators earning real money by completing brand campaigns. No minimum followers required.
+                Join thousands of influencers earning real money by completing brand campaigns. No minimum followers required.
               </p>
               
               <div className="space-y-4 mb-8">
@@ -180,7 +180,7 @@ export default function Landing() {
                 className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
                 onClick={() => window.location.href = '/signup?type=creator'}
               >
-                Join as Creator
+                Join as Influencer
               </Button>
             </div>
             
@@ -237,11 +237,11 @@ export default function Landing() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Summer Collection</span>
-                      <Badge variant="outline">15 creators</Badge>
+                      <Badge variant="outline">15 influencers</Badge>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Back to School</span>
-                      <Badge variant="outline">8 creators</Badge>
+                      <Badge variant="outline">8 influencers</Badge>
                     </div>
                   </div>
                 </div>
@@ -250,15 +250,15 @@ export default function Landing() {
 
             <div className="order-1 md:order-2">
               <Badge className="bg-blue-100 text-blue-800 mb-4">For Brands</Badge>
-              <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Reach Your Audience Through Authentic Creators</h2>
+              <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Reach Your Audience Through Authentic Influencers</h2>
               <p className="text-xl text-gray-600 mb-8">
-                Connect with creators who genuinely love your brand. Launch campaigns that drive real engagement and sales.
+                Connect with influencers who genuinely love your brand. Launch campaigns that drive real engagement and sales.
               </p>
               
               <div className="space-y-4 mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span className="text-gray-700">Access vetted creator network</span>
+                  <span className="text-gray-700">Access vetted influencer network</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
@@ -292,7 +292,7 @@ export default function Landing() {
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Why Choose Taskdrip</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Professional tools and secure infrastructure designed for the modern creator economy
+              Professional tools and secure infrastructure designed for the modern influencer economy
             </p>
           </div>
 
@@ -323,7 +323,7 @@ export default function Landing() {
               </div>
               <h3 className="text-xl font-semibold text-black mb-4">Global Community</h3>
               <p className="text-gray-600 leading-relaxed">
-                Join a thriving ecosystem of creators, brands, and entrepreneurs building the future of digital marketing.
+                Join a thriving ecosystem of influencers, brands, and entrepreneurs building the future of digital marketing.
               </p>
             </div>
 
@@ -353,7 +353,7 @@ export default function Landing() {
               </div>
               <h3 className="text-xl font-semibold text-black mb-4">Premium Support</h3>
               <p className="text-gray-600 leading-relaxed">
-                24/7 creator support with dedicated account managers for top performers. Get help when you need it most.
+                24/7 influencer support with dedicated account managers for top performers. Get help when you need it most.
               </p>
             </div>
           </div>
@@ -364,9 +364,9 @@ export default function Landing() {
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Trusted by Top Creators</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Trusted by Top Influencers</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See what successful creators are saying about their experience with Taskdrip
+              See what successful influencers are saying about their experience with Taskdrip
             </p>
           </div>
 
@@ -386,7 +386,7 @@ export default function Landing() {
                 </div>
                 <div className="ml-4">
                   <div className="font-semibold text-black">Alex Smith</div>
-                  <div className="text-sm text-gray-600">Content Creator • $5,247 earned</div>
+                  <div className="text-sm text-gray-600">Content Influencer • $5,247 earned</div>
                 </div>
               </div>
             </div>
@@ -398,7 +398,7 @@ export default function Landing() {
                 ))}
               </div>
               <p className="text-gray-600 mb-6 italic leading-relaxed">
-                "The variety of campaigns is amazing. From tech reviews to lifestyle posts, there's something for every niche. Highly recommend to all creators!"
+                "The variety of campaigns is amazing. From tech reviews to lifestyle posts, there's something for every niche. Highly recommend to all influencers!"
               </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
@@ -418,7 +418,7 @@ export default function Landing() {
                 ))}
               </div>
               <p className="text-gray-600 mb-6 italic leading-relaxed">
-                "Finally, a platform that treats creators fairly. Clear guidelines, fast approvals, and transparent payments. This is the future of creator monetization."
+                "Finally, a platform that treats influencers fairly. Clear guidelines, fast approvals, and transparent payments. This is the future of influencer monetization."
               </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
@@ -441,7 +441,7 @@ export default function Landing() {
             Ready to Start Earning?
           </h2>
           <p className="text-xl text-blue-100 mb-12 leading-relaxed">
-            Join thousands of creators who are already earning cryptocurrency by doing what they love. 
+            Join thousands of influencers who are already earning cryptocurrency by doing what they love. 
             No contracts, no commitments - just opportunities to earn.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -468,7 +468,7 @@ export default function Landing() {
             <div className="lg:col-span-1">
               <h3 className="text-2xl font-bold mb-4">Taskdrip</h3>
               <p className="text-gray-300 mb-6 leading-relaxed">
-                Empowering creators worldwide with cryptocurrency earnings through authentic brand collaborations and task-based campaigns.
+                Empowering influencers worldwide with cryptocurrency earnings through authentic brand collaborations and task-based campaigns.
               </p>
               <div className="flex space-x-4">
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer">
@@ -487,7 +487,7 @@ export default function Landing() {
               <h4 className="font-semibold mb-4">Platform</h4>
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Browse Campaigns</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Creator Dashboard</a></li>
+                <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Influencer Dashboard</a></li>
                 <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">How It Works</a></li>
                 <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Pricing</a></li>
               </ul>
@@ -497,7 +497,7 @@ export default function Landing() {
               <h4 className="font-semibold mb-4">Resources</h4>
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Help Center</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Creator Guide</a></li>
+                <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Influencer Guide</a></li>
                 <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">API Documentation</a></li>
                 <li><a href="#" className="text-gray-300 hover:text-white transition-colors duration-200">Blog</a></li>
               </ul>
@@ -517,7 +517,7 @@ export default function Landing() {
           <div className="border-t border-gray-800 mt-12 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p className="text-gray-300 text-sm">&copy; 2024 Taskdrip. All rights reserved.</p>
-              <p className="text-gray-300 text-sm mt-2 md:mt-0">Built for the creator economy 🚀</p>
+              <p className="text-gray-300 text-sm mt-2 md:mt-0">Built for the influencer economy 🚀</p>
             </div>
           </div>
         </div>

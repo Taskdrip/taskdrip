@@ -97,7 +97,7 @@ function TipModal({ recipientId, recipientName, postId, open, onClose }: {
         {step === "amount" && (
           <div className="space-y-4">
             <div className="rounded-2xl bg-gradient-to-br from-gray-950 to-purple-950 p-5 text-white">
-              <p className="text-xs uppercase tracking-[0.25em] text-white/50 mb-2">Creator support</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-white/50 mb-2">Influencer support</p>
               <h3 className="text-2xl font-black">Send a tip in seconds</h3>
               <p className="text-white/70 text-sm mt-2">Choose an amount, pay through a Taskdrip-managed method, and submit confirmation for review.</p>
             </div>
@@ -338,7 +338,7 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
       {/* Post Header */}
       <div className="p-4 pb-3">
         <div className="flex items-start gap-3">
-          <Link href={`/creators/${post.user?.id}`}>
+          <Link href={`/influencers/${post.user?.id}`}>
             <Avatar className="h-11 w-11 cursor-pointer ring-2 ring-gray-100">
               <AvatarImage src={post.user?.profileImageUrl} alt={post.user?.firstName} />
               <AvatarFallback className="bg-black text-white font-semibold">
@@ -348,7 +348,7 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Link href={`/creators/${post.user?.id}`}>
+              <Link href={`/influencers/${post.user?.id}`}>
                 <span className="font-bold text-gray-900 hover:underline cursor-pointer text-sm">
                   {post.user?.firstName} {post.user?.lastName}
                 </span>
@@ -776,7 +776,7 @@ export default function FeedPage() {
                     SocialFi Community
                   </Badge>
                   <h1 className="text-3xl font-black text-gray-950">Influencer Feed</h1>
-                  <p className="text-sm text-gray-500 mt-2">Follow official updates, creator wins, campaign tips, comments, views, and supporter tips in one clean stream.</p>
+                  <p className="text-sm text-gray-500 mt-2">Follow official updates, influencer wins, campaign tips, comments, views, and supporter tips in one clean stream.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center min-w-[210px]">
                   <div className="rounded-2xl bg-gray-50 p-3">
@@ -853,7 +853,7 @@ export default function FeedPage() {
                   </div>
                   {recentPosts.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-                      <p className="text-gray-500 text-sm">Creator posts will appear here after the community starts sharing.</p>
+                      <p className="text-gray-500 text-sm">Influencer posts will appear here after the community starts sharing.</p>
                     </div>
                   ) : (
                     recentPosts.map((post: any) => (
@@ -910,7 +910,7 @@ export default function FeedPage() {
               <Gift className="w-6 h-6 mb-2 text-purple-200" />
               <h3 className="font-bold text-sm mb-1">Tip with checkout options</h3>
               <p className="text-white/80 text-xs mb-3">
-                Support influencers using the available admin-managed methods or direct creator wallets. Click the gift button on any post.
+                Support influencers using the available admin-managed methods or direct influencer wallets. Click the gift button on any post.
               </p>
               <div className="flex gap-2 text-xs">
                 <span className="bg-white/15 px-2 py-1 rounded-full">Card-ready</span>

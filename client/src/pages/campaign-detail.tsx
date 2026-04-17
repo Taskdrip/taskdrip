@@ -500,7 +500,7 @@ export default function CampaignDetail() {
                               <Textarea
                                 id="requirements"
                                 {...editForm.register('requirements')}
-                                placeholder="What creators need to do..."
+                                placeholder="What influencers need to do..."
                                 rows={3}
                               />
                             </div>
@@ -856,7 +856,7 @@ export default function CampaignDetail() {
                       onClick={() => setLocation(`/messages?campaign=${(campaign as any)?.id}`)}
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Message Creators
+                      Message Influencers
                     </Button>
                     {isOwnerOrAdmin && (
                       <Button 

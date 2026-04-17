@@ -64,7 +64,7 @@ interface Contact {
 
 const SEGMENTS = [
   { value: "all", label: "All Users" },
-  { value: "creators", label: "Creators Only" },
+  { value: "influencers", label: "Influencers Only" },
   { value: "brands", label: "Brands Only" },
   { value: "verified", label: "Verified Users" },
   { value: "unverified", label: "Unverified Users" },
@@ -606,7 +606,7 @@ git push origin main
 
           <StepCard step={4} title="Configure Payment Methods" icon={Database} color="bg-green-600">
             <div className="space-y-3 text-sm text-gray-700">
-              <p>Go to <strong>Admin → Master Settings → Payment Methods</strong> to configure how creators get paid:</p>
+              <p>Go to <strong>Admin → Master Settings → Payment Methods</strong> to configure how influencers get paid:</p>
               <ul className="list-disc list-inside space-y-1.5">
                 <li><strong>Crypto wallets</strong> — Add USDT wallet addresses for TRC-20, BEP-20, ERC-20, TON</li>
                 <li><strong>Bank Transfer</strong> — Add your bank account details</li>
@@ -635,8 +635,8 @@ git push origin main
             <div className="space-y-3 text-sm text-gray-700">
               <ol className="list-decimal list-inside space-y-2">
                 <li>Go to the <strong>Campaigns</strong> tab and click <strong>New Campaign</strong></li>
-                <li>Choose <strong>Load from AI Template</strong> — pick "welcome creator" or "newsletter"</li>
-                <li>Select your target segment (All Users, Creators Only, Brands Only, etc.)</li>
+                <li>Choose <strong>Load from AI Template</strong> — pick "welcome influencer" or "newsletter"</li>
+                <li>Select your target segment (All Users, Influencers Only, Brands Only, etc.)</li>
                 <li>Customize the subject and HTML body with your branding</li>
                 <li>Click <strong>Create</strong> then <strong>Send Now</strong> to blast immediately</li>
               </ol>
@@ -1081,7 +1081,7 @@ export default function AdminEmail() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {[
-                  { key: "welcome_creator", trigger: "signup", delay: 0, label: "Welcome Creator", userType: "creator" },
+                  { key: "welcome_creator", trigger: "signup", delay: 0, label: "Welcome Influencer", userType: "creator" },
                   { key: "welcome_brand", trigger: "signup", delay: 0, label: "Welcome Brand", userType: "brand" },
                   { key: "campaign_approved", trigger: "campaign_complete", delay: 0, label: "Campaign Approved", userType: "creator" },
                   { key: "payout_sent", trigger: "payout_sent", delay: 0, label: "Payout Sent", userType: "creator" },
@@ -1158,7 +1158,7 @@ export default function AdminEmail() {
                 <Badge key={s.value} className="bg-gray-100 text-gray-700 border-0 text-xs cursor-default">
                   {s.label}: {
                     s.value === "all" ? contacts.length :
-                    s.value === "creators" ? contacts.filter(c => c.userType === "creator").length :
+                    s.value === "influencers" ? contacts.filter(c => c.userType === "creator").length :
                     s.value === "brands" ? contacts.filter(c => c.userType === "brand").length :
                     s.value === "verified" ? contacts.filter(c => c.isVerified).length :
                     s.value.startsWith("tier_") ? contacts.filter(c => c.creatorTier === s.value.replace("tier_", "")).length : 0
@@ -1521,7 +1521,7 @@ export default function AdminEmail() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-medium">Template Name</Label>
-                <Input placeholder="Welcome Email — Creator" className="mt-1"
+                <Input placeholder="Welcome Email — Influencer" className="mt-1"
                   value={editTemplate?.name || ""} onChange={e => setEditTemplate(p => ({ ...p, name: e.target.value }))} />
               </div>
               <div>
@@ -1564,7 +1564,7 @@ export default function AdminEmail() {
           <div className="space-y-4">
             <div>
               <Label className="text-xs font-medium">Name</Label>
-              <Input placeholder="Welcome Email for Creators" className="mt-1"
+              <Input placeholder="Welcome Email for Influencers" className="mt-1"
                 value={editAr?.name || ""} onChange={e => setEditAr(p => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -1586,7 +1586,7 @@ export default function AdminEmail() {
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Users</SelectItem>
-                    <SelectItem value="creator">Creators</SelectItem>
+                    <SelectItem value="influencer">Influencers</SelectItem>
                     <SelectItem value="brand">Brands</SelectItem>
                   </SelectContent>
                 </Select>

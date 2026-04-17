@@ -94,7 +94,7 @@ export default function ChatPage() {
       const otherUser = msg.senderId === me ? msg.receiver : msg.sender;
       const name = getDisplayName(otherUser);
       if (!convMap.has(otherId)) {
-        convMap.set(otherId, { userId: otherId, userName: name, userType: otherUser?.userType || 'creator', lastMessage: msg.content, lastMessageTime: msg.createdAt, unreadCount: (!msg.isRead && msg.receiverId === me) ? 1 : 0, avatar: otherUser?.profileImageUrl });
+        convMap.set(otherId, { userId: otherId, userName: name, userType: otherUser?.userType || 'influencer', lastMessage: msg.content, lastMessageTime: msg.createdAt, unreadCount: (!msg.isRead && msg.receiverId === me) ? 1 : 0, avatar: otherUser?.profileImageUrl });
       } else {
         const c = convMap.get(otherId)!;
         if (new Date(msg.createdAt) > new Date(c.lastMessageTime)) { c.lastMessage = msg.content; c.lastMessageTime = msg.createdAt; }
@@ -149,7 +149,7 @@ export default function ChatPage() {
   );
 
   const activeConv = conversations.find(c => c.userId === selectedConversation);
-  const profileLink = activeConv?.userType === 'brand' ? `/brand/${selectedConversation}` : `/creators/${selectedConversation}`;
+  const profileLink = activeConv?.userType === 'brand' ? `/brand/${selectedConversation}` : `/influencers/${selectedConversation}`;
 
   // Group messages by date
   const groupedMessages: { date: string; messages: Message[] }[] = [];
@@ -200,7 +200,7 @@ export default function ChatPage() {
                 </div>
                 <p className="font-semibold text-gray-700 text-sm mb-1">No conversations yet</p>
                 <p className="text-xs text-gray-400">
-                  {isBrand ? "Invite creators to campaigns to start chatting" : "Join campaigns to message brands"}
+                  {isBrand ? "Invite influencers to campaigns to start chatting" : "Join campaigns to message brands"}
                 </p>
               </div>
             ) : (
@@ -395,12 +395,12 @@ export default function ChatPage() {
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Your Messages</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">
                   {isBrand
-                    ? "Start a conversation with a creator by visiting their profile"
+                    ? "Start a conversation with a influencer by visiting their profile"
                     : "Chat with brands after joining their campaigns"}
                 </p>
-                <Link href={isBrand ? "/creators" : "/campaigns"}>
+                <Link href={isBrand ? "/influencers" : "/campaigns"}>
                   <Button className="mt-5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl shadow-lg" data-testid="go-browse-btn">
-                    {isBrand ? "Browse Creators" : "Browse Campaigns"}
+                    {isBrand ? "Browse Influencers" : "Browse Campaigns"}
                   </Button>
                 </Link>
               </div>

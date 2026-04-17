@@ -196,7 +196,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/escrow-payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
-      toast({ title: "Campaign Approved! 🎉", description: "Campaign is now live and creators notified." });
+      toast({ title: "Campaign Approved! 🎉", description: "Campaign is now live and influencers notified." });
     },
     onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
   });
@@ -227,7 +227,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payout-requests"] });
       setApprovePayoutDialog({ open: false, id: "", txHash: "", notes: "" });
-      toast({ title: "Payout Approved! ✅", description: "Creator has been notified." });
+      toast({ title: "Payout Approved! ✅", description: "Influencer has been notified." });
     },
     onError: () => toast({ title: "Failed to approve payout", variant: "destructive" }),
   });
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payout-requests"] });
       setRejectPayoutDialog({ open: false, id: "", notes: "" });
-      toast({ title: "Payout Rejected", description: "Creator notified and funds refunded to their balance." });
+      toast({ title: "Payout Rejected", description: "Influencer notified and funds refunded to their balance." });
     },
     onError: () => toast({ title: "Failed to reject payout", variant: "destructive" }),
   });
@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                                   <span className="font-medium">{escrow.campaign?.totalSlots || "—"}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">Reward/creator</span>
+                                  <span className="text-gray-500">Reward/influencer</span>
                                   <span className="font-medium">${escrow.campaign?.reward || "—"}</span>
                                 </div>
                               </div>
@@ -528,7 +528,7 @@ export default function AdminDashboard() {
                           )}
                           <div className="min-w-0">
                             <p className="font-medium text-gray-900 truncate">{campaign.title}</p>
-                            <p className="text-xs text-gray-500">{campaign.brandName} · ${campaign.reward}/creator · {campaign.filledSlots || 0}/{campaign.totalSlots} slots</p>
+                            <p className="text-xs text-gray-500">{campaign.brandName} · ${campaign.reward}/influencer · {campaign.filledSlots || 0}/{campaign.totalSlots} slots</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0 ml-4">
@@ -629,7 +629,7 @@ export default function AdminDashboard() {
                               {/* User Profile */}
                               <div className="space-y-4">
                                 <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide flex items-center gap-2">
-                                  <Users className="w-4 h-4" /> Creator Profile
+                                  <Users className="w-4 h-4" /> Influencer Profile
                                 </h4>
                                 {r ? (
                                   <div className="space-y-3">
@@ -681,7 +681,7 @@ export default function AdminDashboard() {
                                   </div>
                                   {req.notes && (
                                     <div>
-                                      <p className="text-xs text-gray-500 mb-1">Notes from Creator</p>
+                                      <p className="text-xs text-gray-500 mb-1">Notes from Influencer</p>
                                       <p className="text-sm text-gray-700 italic">"{req.notes}"</p>
                                     </div>
                                   )}
@@ -745,7 +745,7 @@ export default function AdminDashboard() {
                 { label: "Total Campaigns", value: totalCampaigns, sub: `${activeCampaigns} active`, icon: Activity, color: "text-blue-600" },
                 { label: "Total Participations", value: allParticipations.length, sub: `${allParticipations.filter((p: any) => p.status === "completed").length} completed`, icon: Users, color: "text-purple-600" },
                 { label: "Pending Reviews", value: pendingParticipations, sub: "applications open", icon: Trophy, color: "text-amber-600" },
-                { label: "Total Users", value: adminUsers.length, sub: `${adminUsers.filter((u: any) => u.userType === "creator").length} creators`, icon: BarChart3, color: "text-green-600" },
+                { label: "Total Users", value: adminUsers.length, sub: `${adminUsers.filter((u: any) => u.userType === "creator").length} influencers`, icon: BarChart3, color: "text-green-600" },
               ].map((stat) => (
                 <Card key={stat.label}>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1192,7 +1192,7 @@ export default function AdminDashboard() {
         <DialogContent>
           <DialogHeader><DialogTitle>Approve Payout & Confirm Sent</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Send the payment to the creator's wallet, then enter the transaction hash below to confirm.</p>
+            <p className="text-sm text-gray-600">Send the payment to the influencer's wallet, then enter the transaction hash below to confirm.</p>
             <div>
               <Label>Transaction Hash (optional but recommended)</Label>
               <Input
@@ -1202,7 +1202,7 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <Label>Note to Creator (optional)</Label>
+              <Label>Note to Influencer (optional)</Label>
               <Textarea
                 placeholder="e.g. Payment sent via USDT TRC-20. Check your wallet in a few minutes."
                 value={approvePayoutDialog.notes}
@@ -1230,7 +1230,7 @@ export default function AdminDashboard() {
           <DialogHeader><DialogTitle>Reject Payout Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              The payout will be rejected and the amount will be automatically refunded to the creator's wallet balance. Provide a reason.
+              The payout will be rejected and the amount will be automatically refunded to the influencer's wallet balance. Provide a reason.
             </p>
             <Textarea
               placeholder="Reason for rejection (e.g. wallet address appears invalid, insufficient verification)"
@@ -1245,7 +1245,7 @@ export default function AdminDashboard() {
                 onClick={() => rejectPayoutMutation.mutate({ id: rejectPayoutDialog.id, notes: rejectPayoutDialog.notes })}
                 disabled={rejectPayoutMutation.isPending}
               >
-                {rejectPayoutMutation.isPending ? "Rejecting..." : "Reject & Refund Creator"}
+                {rejectPayoutMutation.isPending ? "Rejecting..." : "Reject & Refund Influencer"}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => setRejectPayoutDialog(p => ({ ...p, open: false }))}>Cancel</Button>
             </div>

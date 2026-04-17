@@ -58,7 +58,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s2",
     badge: "For Brands",
     headline: "Tired of Wasting Budget on Fake Influencers?",
-    subheadline: "Reach verified creators, protect campaign funds with escrow, and approve every submission before payouts are released.",
+    subheadline: "Reach verified influencers, protect campaign funds with escrow, and approve every submission before payouts are released.",
     ctaPrimaryLabel: "Launch a Campaign",
     ctaPrimaryLink: "/signup?type=brand",
     ctaSecondaryLabel: "View Live Campaigns",
@@ -70,12 +70,12 @@ const DEFAULT_SLIDES: Slide[] = [
   {
     id: "s3",
     badge: "Direct Hire — NEW",
-    headline: "Hire a Creator Directly. Pay After Delivery.",
+    headline: "Hire a Influencer Directly. Pay After Delivery.",
     subheadline: "Brands can now bypass public campaigns and hire any verified influencer privately. Agree on terms, fund via USDT escrow, and release payment only when satisfied.",
     ctaPrimaryLabel: "Start Hiring",
     ctaPrimaryLink: "/signup?type=brand",
-    ctaSecondaryLabel: "Find Creators",
-    ctaSecondaryLink: "/creators",
+    ctaSecondaryLabel: "Find Influencers",
+    ctaSecondaryLink: "/influencers",
     backgroundImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-black/75 to-black/40",
     accentColor: "from-emerald-400 via-teal-400 to-cyan-400",
@@ -97,7 +97,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s5",
     badge: "BreedSkool Academy",
     headline: "New to Influencing? Learn from the Best.",
-    subheadline: "BreedSkool gives creators practical courses, masterclasses, and mentorship for Instagram, TikTok, YouTube, and monetization.",
+    subheadline: "BreedSkool gives influencers practical courses, masterclasses, and mentorship for Instagram, TikTok, YouTube, and monetization.",
     ctaPrimaryLabel: "Explore Courses",
     ctaPrimaryLink: "/breedskool",
     ctaSecondaryLabel: "Become a Mentor",
@@ -108,9 +108,9 @@ const DEFAULT_SLIDES: Slide[] = [
   },
   {
     id: "s6",
-    badge: "Creator Shop",
-    headline: "Tools Built for Creators Who Mean Business.",
-    subheadline: "Find templates, plugins, scripts, and digital tools that help creators improve content, sell assets, and grow faster.",
+    badge: "Influencer Shop",
+    headline: "Tools Built for Influencers Who Mean Business.",
+    subheadline: "Find templates, plugins, scripts, and digital tools that help influencers improve content, sell assets, and grow faster.",
     ctaPrimaryLabel: "Browse the Shop",
     ctaPrimaryLink: "/shop",
     ctaSecondaryLabel: "Sell Your Products",
@@ -201,7 +201,7 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
 
           <div className="flex flex-wrap gap-3">
             {[
-              { label: "Creators", value: "10K+", icon: <Users className="w-3.5 h-3.5" /> },
+              { label: "Influencers", value: "10K+", icon: <Users className="w-3.5 h-3.5" /> },
               { label: "Campaigns", value: "2.5K+", icon: <Target className="w-3.5 h-3.5" /> },
               { label: "Paid Out", value: "$450K+", icon: <DollarSign className="w-3.5 h-3.5" /> },
             ].map((s) => (
@@ -359,8 +359,8 @@ export default function FinalLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-10">
             <Badge className="mb-3 bg-black text-white px-4 py-1.5 text-xs">Everything in One Place</Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Built for the Creator Economy</h2>
-            <p className="text-gray-500 mt-3 text-sm sm:text-base max-w-xl mx-auto">Campaigns, direct hire, P2P trading, courses, and a creator shop — all under one roof.</p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Built for the Influencer Economy</h2>
+            <p className="text-gray-500 mt-3 text-sm sm:text-base max-w-xl mx-auto">Campaigns, direct hire, P2P trading, courses, and a influencer shop — all under one roof.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
@@ -374,8 +374,8 @@ export default function FinalLanding() {
               {
                 icon: <Briefcase className="w-6 h-6 text-blue-500" />,
                 title: "Direct Hire",
-                desc: "Brands hire creators privately with escrow-protected payments.",
-                href: "/creators",
+                desc: "Brands hire influencers privately with escrow-protected payments.",
+                href: "/influencers",
                 color: "bg-blue-50 border-blue-100",
               },
               {
@@ -388,7 +388,7 @@ export default function FinalLanding() {
               {
                 icon: <BookOpen className="w-6 h-6 text-indigo-500" />,
                 title: "BreedSkool",
-                desc: "Learn from top creators — courses, masterclasses & mentorship.",
+                desc: "Learn from top influencers — courses, masterclasses & mentorship.",
                 href: "/breedskool",
                 color: "bg-indigo-50 border-indigo-100",
               },
@@ -415,7 +415,7 @@ export default function FinalLanding() {
             <div className="lg:sticky lg:top-24">
               <Badge className="mb-4 bg-black text-white px-4 py-1.5 text-xs">How It Works</Badge>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight max-w-xl">{cms.get("how_it_works", "title", "Simple. Fast. Fair.")}</h2>
-              <p className="text-gray-500 mt-4 text-sm sm:text-base max-w-lg leading-relaxed">{cms.get("how_it_works", "subtitle", "Creators earn crypto from verified campaigns. Brands launch performance-driven creator marketing with protected escrow.")}</p>
+              <p className="text-gray-500 mt-4 text-sm sm:text-base max-w-lg leading-relaxed">{cms.get("how_it_works", "subtitle", "Influencers earn crypto from verified campaigns. Brands launch performance-driven influencer marketing with protected escrow.")}</p>
               <div className="grid sm:grid-cols-3 lg:grid-cols-1 gap-3 mt-6 sm:mt-8">
                 {[
                   { icon: <Shield className="w-4 h-4" />, label: "Escrow protected" },
@@ -434,7 +434,7 @@ export default function FinalLanding() {
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
               {[
                 {
-                  title: "Creators",
+                  title: "Influencers",
                   icon: <Sparkles className="w-5 h-5 text-orange-500" />,
                   steps: [
                     cms.get("how_it_works", "creator_step1_title", "Build Your Profile"),
@@ -450,7 +450,7 @@ export default function FinalLanding() {
                   icon: <Target className="w-5 h-5 text-blue-500" />,
                   steps: [
                     cms.get("how_it_works", "brand_step1_title", "Post a Campaign or Hire Directly"),
-                    cms.get("how_it_works", "brand_step2_title", "Reach Thousands of Verified Creators"),
+                    cms.get("how_it_works", "brand_step2_title", "Reach Thousands of Verified Influencers"),
                     cms.get("how_it_works", "brand_step3_title", "Pay Only for Approved Results"),
                   ],
                   href: "/signup?type=brand",
@@ -490,7 +490,7 @@ export default function FinalLanding() {
             <div>
               <Badge className="mb-4 bg-white/10 text-white border-white/20 px-4 py-1.5 text-xs">Platform Revenue Model</Badge>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">Transparent fees. Clear payouts.</h2>
-              <p className="text-gray-400 mt-4 leading-relaxed text-sm sm:text-base">Brands fund campaigns with a 10% platform fee. Creators receive 90% of approved earnings. For Direct Hire, the same protected escrow model applies. Everyone sees the ledger clearly.</p>
+              <p className="text-gray-400 mt-4 leading-relaxed text-sm sm:text-base">Brands fund campaigns with a 10% platform fee. Influencers receive 90% of approved earnings. For Direct Hire, the same protected escrow model applies. Everyone sees the ledger clearly.</p>
               <Link href="/signup" className="mt-6 sm:mt-7 inline-block">
                 <Button className="bg-white text-black hover:bg-gray-100 rounded-xl font-bold px-7 text-sm sm:text-base" data-testid="button-fee-model-signup">
                   Join Taskdrip <ArrowRight className="ml-2 w-4 h-4" />
@@ -500,7 +500,7 @@ export default function FinalLanding() {
             <div className="grid grid-cols-3 gap-3 sm:gap-4">
               {[
                 { value: "10%", label: "Brand platform fee" },
-                { value: "90%", label: "Creator payout" },
+                { value: "90%", label: "Influencer payout" },
                 { value: "USDT", label: "Crypto settlement" },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-2xl sm:rounded-3xl bg-white/5 border border-white/10 p-4 sm:p-6">
@@ -568,7 +568,7 @@ export default function FinalLanding() {
               {[
                 { id: "p1", type: "crypto", title: "Buy 1,000 USDT (TRC-20)", description: "Safe P2P USDT transfer via Tron network. Fast settlement with admin escrow protection.", price: "1,000", featuredImage: "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=600&q=80" },
                 { id: "p2", type: "service", title: "Crypto Twitter Promotion — 25K Impressions", description: "Guaranteed 25,000 Twitter/X impressions from real crypto audience. Results within 72 hours.", price: "150", featuredImage: "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=600&q=80" },
-                { id: "p3", type: "product", title: "NFT Creator Pro Toolkit", description: "Complete NFT creation bundle: Photoshop templates, metadata generator, and launch checklist.", price: "49", featuredImage: "https://images.unsplash.com/photo-1644361566696-3d442b5b482a?w=600&q=80" },
+                { id: "p3", type: "product", title: "NFT Influencer Pro Toolkit", description: "Complete NFT creation bundle: Photoshop templates, metadata generator, and launch checklist.", price: "49", featuredImage: "https://images.unsplash.com/photo-1644361566696-3d442b5b482a?w=600&q=80" },
               ].map((listing) => (
                 <P2PListingCard key={listing.id} listing={listing} />
               ))}
@@ -605,14 +605,14 @@ export default function FinalLanding() {
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             <div>
               <Badge className="mb-4 bg-white/10 text-white border-white/20 text-xs px-4 py-1.5">✨ New — Direct Hire</Badge>
-              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Want a Specific Creator? Hire Them Directly.</h2>
+              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Want a Specific Influencer? Hire Them Directly.</h2>
               <p className="text-gray-400 mt-4 leading-relaxed text-sm sm:text-base">
-                Skip the public campaign. Browse verified creators, send a private offer with your budget, and release payment only when the work meets your standards. All backed by USDT escrow.
+                Skip the public campaign. Browse verified influencers, send a private offer with your budget, and release payment only when the work meets your standards. All backed by USDT escrow.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                <Link href="/creators">
+                <Link href="/influencers">
                   <Button className="bg-white text-black hover:bg-gray-100 rounded-xl font-bold px-6" data-testid="button-direct-hire-find">
-                    Find a Creator <ArrowRight className="ml-2 w-4 h-4" />
+                    Find a Influencer <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </Link>
                 <Link href="/signup?type=brand">
@@ -647,12 +647,12 @@ export default function FinalLanding() {
             {cms.get("final_cta", "title", "Ready to Turn Your Influence Into Income?")}
           </h2>
           <p className="text-gray-500 text-base sm:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            {cms.get("final_cta", "subtitle", "Join creators and brands using Taskdrip for verified campaigns, escrow protection, and crypto payouts.")}
+            {cms.get("final_cta", "subtitle", "Join influencers and brands using Taskdrip for verified campaigns, escrow protection, and crypto payouts.")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup?type=creator">
-              <Button size="lg" className="w-full sm:w-auto bg-black text-white hover:bg-gray-800 active:bg-gray-900 px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5" data-testid="button-final-cta-creator">
-                {cms.get("final_cta", "creator_btn", "I'm a Creator")} <ArrowRight className="ml-2 w-5 h-5" />
+              <Button size="lg" className="w-full sm:w-auto bg-black text-white hover:bg-gray-800 active:bg-gray-900 px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5" data-testid="button-final-cta-influencer">
+                {cms.get("final_cta", "creator_btn", "I'm a Influencer")} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/signup?type=brand">

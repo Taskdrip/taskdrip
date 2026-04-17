@@ -78,7 +78,7 @@ export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "creators" | "direct-hires">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires">("overview");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
@@ -186,7 +186,7 @@ export default function BrandDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/brand/submissions"] });
       toast({
         title: "Submission approved!",
-        description: "Payment has been processed and creator notified.",
+        description: "Payment has been processed and influencer notified.",
       });
     },
     onError: (error: Error) => {
@@ -207,7 +207,7 @@ export default function BrandDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/brand/submissions"] });
       toast({
         title: "Submission rejected",
-        description: "Creator has been notified with feedback.",
+        description: "Influencer has been notified with feedback.",
       });
     },
     onError: (error: Error) => {
@@ -230,7 +230,7 @@ export default function BrandDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/brand/stats"] });
       toast({
         title: "Application approved",
-        description: "Creator has been notified and can start working.",
+        description: "Influencer has been notified and can start working.",
       });
     },
     onError: (error: Error) => {
@@ -251,7 +251,7 @@ export default function BrandDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/brand/applications"] });
       toast({
         title: "Application rejected",
-        description: "Creator has been notified of the decision.",
+        description: "Influencer has been notified of the decision.",
       });
     },
     onError: (error: Error) => {
@@ -358,7 +358,7 @@ export default function BrandDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Brand Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {(user as any)?.firstName}! Manage your campaigns and creators.</p>
+              <p className="text-gray-600 mt-1">Welcome back, {(user as any)?.firstName}! Manage your campaigns and influencers.</p>
             </div>
             <Dialog open={isCreateCampaignOpen} onOpenChange={setIsCreateCampaignOpen}>
               <DialogTrigger asChild>
@@ -371,7 +371,7 @@ export default function BrandDashboard() {
                 <DialogHeader>
                   <DialogTitle>Create New Campaign</DialogTitle>
                   <DialogDescription>
-                    Set up a new campaign to connect with creators and grow your brand
+                    Set up a new campaign to connect with influencers and grow your brand
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -448,7 +448,7 @@ export default function BrandDashboard() {
                           <FormLabel>Description</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Describe your campaign, what creators need to do, and any specific requirements..."
+                              placeholder="Describe your campaign, what influencers need to do, and any specific requirements..."
                               className="min-h-[100px]"
                               {...field} 
                             />
@@ -607,7 +607,7 @@ export default function BrandDashboard() {
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Creators</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Influencers</p>
                     <p className="text-3xl font-bold text-purple-600 mt-1">{stats.totalCreators}</p>
                   </div>
                   <Users className="h-8 w-8 text-purple-500 opacity-80" />
@@ -652,7 +652,7 @@ export default function BrandDashboard() {
             { id: "campaigns", label: "My Campaigns", icon: Target },
             { id: "applications", label: "Applications", icon: Users },
             { id: "submissions", label: "Submissions", icon: CheckCircle },
-            { id: "creators", label: "Creators", icon: Users },
+            { id: "influencers", label: "Influencers", icon: Users },
             { id: "direct-hires", label: "Direct Hires", icon: Briefcase },
           ].map((tab) => (
             <button
@@ -702,13 +702,13 @@ export default function BrandDashboard() {
                     <CheckCircle className="h-5 w-5" />
                     <div className="text-left">
                       <div className="font-medium">Review Submissions</div>
-                      <div className="text-xs opacity-75">Approve creator work</div>
+                      <div className="text-xs opacity-75">Approve influencer work</div>
                     </div>
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedTab("creators")} className="flex items-center gap-2 h-auto p-4">
+                  <Button variant="outline" onClick={() => setSelectedTab("influencers")} className="flex items-center gap-2 h-auto p-4">
                     <Users className="h-5 w-5" />
                     <div className="text-left">
-                      <div className="font-medium">View Creators</div>
+                      <div className="font-medium">View Influencers</div>
                       <div className="text-xs opacity-75">Manage your network</div>
                     </div>
                   </Button>
@@ -720,7 +720,7 @@ export default function BrandDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Submissions</CardTitle>
-                <CardDescription>Latest work from creators</CardDescription>
+                <CardDescription>Latest work from influencers</CardDescription>
               </CardHeader>
               <CardContent>
                 {submissions.slice(0, 5).map((submission) => (
@@ -758,7 +758,7 @@ export default function BrandDashboard() {
               <div className="text-center py-12">
                 <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
-                <p className="text-gray-500 mb-4">Create your first campaign to start connecting with creators</p>
+                <p className="text-gray-500 mb-4">Create your first campaign to start connecting with influencers</p>
                 <Button onClick={() => setIsCreateCampaignOpen(true)}>Create Your First Campaign</Button>
               </div>
             ) : (
@@ -818,7 +818,7 @@ export default function BrandDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Campaign Applications</CardTitle>
-                <CardDescription>Manage creator applications for your campaigns</CardDescription>
+                <CardDescription>Manage influencer applications for your campaigns</CardDescription>
               </CardHeader>
               <CardContent>
                 {applicationsLoading ? (
@@ -832,7 +832,7 @@ export default function BrandDashboard() {
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
-                    <p className="text-gray-500">Applications will appear here when creators apply to your campaigns</p>
+                    <p className="text-gray-500">Applications will appear here when influencers apply to your campaigns</p>
                   </div>
                 ) : (
                   <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -915,7 +915,7 @@ export default function BrandDashboard() {
                                         <DialogTitle>{application.status === 'submitted' ? 'Reject Submission' : 'Reject Application'}</DialogTitle>
                                         <DialogDescription>
                                           {application.status === 'submitted'
-                                            ? 'Please provide a reason for rejecting this submission. The creator will be notified.'
+                                            ? 'Please provide a reason for rejecting this submission. The influencer will be notified.'
                                             : 'Please provide a reason for rejecting this application'}
                                         </DialogDescription>
                                       </DialogHeader>
@@ -980,7 +980,7 @@ export default function BrandDashboard() {
               <div>
                 <p className="font-semibold text-blue-800 text-sm">You are the primary reviewer</p>
                 <p className="text-blue-600 text-xs mt-0.5">
-                  Review each creator's submitted work and approve or reject it. Approved submissions trigger automatic USDT payment to the creator's wallet.
+                  Review each influencer's submitted work and approve or reject it. Approved submissions trigger automatic USDT payment to the influencer's wallet.
                   The Taskdrip admin team oversees all submissions and can mediate any disputes.
                 </p>
               </div>
@@ -991,7 +991,7 @@ export default function BrandDashboard() {
               <div className="text-center py-12">
                 <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions yet</h3>
-                <p className="text-gray-500">Submissions will appear here when creators complete your campaigns</p>
+                <p className="text-gray-500">Submissions will appear here when influencers complete your campaigns</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1029,7 +1029,7 @@ export default function BrandDashboard() {
                               <DialogHeader>
                                 <DialogTitle>Approve Submission</DialogTitle>
                                 <DialogDescription>
-                                  This will approve the submission and process payment to the creator.
+                                  This will approve the submission and process payment to the influencer.
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
@@ -1058,7 +1058,7 @@ export default function BrandDashboard() {
                               <DialogHeader>
                                 <DialogTitle>Reject Submission</DialogTitle>
                                 <DialogDescription>
-                                  Please provide feedback so the creator can improve their work.
+                                  Please provide feedback so the influencer can improve their work.
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
@@ -1101,18 +1101,18 @@ export default function BrandDashboard() {
           </div>
         )}
 
-        {selectedTab === "creators" && (
+        {selectedTab === "influencers" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Creator Network</CardTitle>
-                <CardDescription>Creators who have worked with your campaigns</CardDescription>
+                <CardTitle>Influencer Network</CardTitle>
+                <CardDescription>Influencers who have worked with your campaigns</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-12">
                   <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Creator Management Coming Soon</h3>
-                  <p className="text-gray-500">This feature will show all creators who have participated in your campaigns</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Influencer Management Coming Soon</h3>
+                  <p className="text-gray-500">This feature will show all influencers who have participated in your campaigns</p>
                 </div>
               </CardContent>
             </Card>
@@ -1126,7 +1126,7 @@ export default function BrandDashboard() {
                 <h2 className="text-xl font-bold">Direct Hire Offers</h2>
                 <p className="text-gray-500 text-sm mt-1">Offers you've sent directly to influencers</p>
               </div>
-              <Link href="/creators">
+              <Link href="/influencers">
                 <Button className="bg-green-600 hover:bg-green-700">
                   <Briefcase className="w-4 h-4 mr-2" /> Hire an Influencer
                 </Button>
@@ -1142,8 +1142,8 @@ export default function BrandDashboard() {
                 <CardContent className="py-16 text-center">
                   <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-700 mb-2">No Direct Hires Yet</h3>
-                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">Browse creators and send a direct hire offer to get started.</p>
-                  <Link href="/creators">
+                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">Browse influencers and send a direct hire offer to get started.</p>
+                  <Link href="/influencers">
                     <Button variant="outline">Browse Influencers</Button>
                   </Link>
                 </CardContent>

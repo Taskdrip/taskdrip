@@ -27,7 +27,7 @@ export function Footer() {
               <h3 className="text-2xl font-bold">Taskdrip</h3>
             </div>
             <p className="text-gray-400 mb-4 leading-relaxed text-sm">
-              The #1 Web3 influencer marketplace — where creators turn their reach into real crypto income. Join thousands of influencers earning USDT from top global brands, one task at a time.
+              The #1 Web3 influencer marketplace — where influencers turn their reach into real crypto income. Join thousands of influencers earning USDT from top global brands, one task at a time.
             </p>
 
             {/* Social Icons */}
@@ -139,7 +139,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/creators" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
                   <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   Find Influencers
                 </Link>

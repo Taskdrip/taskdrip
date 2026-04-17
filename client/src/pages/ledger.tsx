@@ -83,7 +83,7 @@ export default function LedgerPage() {
   });
 
   const user = data?.user || {};
-  const userType = user.userType || "creator";
+  const userType = user.userType || "influencer";
 
   const entries = useMemo<LedgerEntry[]>(() => {
     if (!data) return [];
@@ -153,7 +153,7 @@ export default function LedgerPage() {
         direction: userType === "brand" ? "out" as const : "hold" as const,
         status: payment.status || "pending",
         date: payment.verifiedAt || payment.submittedAt || payment.updatedAt || payment.createdAt,
-        description: payment.transactionHash ? `Payment proof submitted with transaction ${payment.transactionHash}` : "Campaign funding held for creator rewards and platform fees.",
+        description: payment.transactionHash ? `Payment proof submitted with transaction ${payment.transactionHash}` : "Campaign funding held for influencer rewards and platform fees.",
         href: payment.campaignId ? `/campaigns/${payment.campaignId}` : undefined,
         network: payment.network,
       };
@@ -211,7 +211,7 @@ export default function LedgerPage() {
           <div>
             <div className="mb-3 inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm" data-testid="text-ledger-role">
               <Landmark className="mr-2 h-4 w-4 text-purple-600" />
-              {userType === "admin" ? "Admin banking ledger" : userType === "brand" ? "Brand escrow ledger" : "Creator earnings ledger"}
+              {userType === "admin" ? "Admin banking ledger" : userType === "brand" ? "Brand escrow ledger" : "Influencer earnings ledger"}
             </div>
             <h1 className="text-4xl font-black tracking-tight text-gray-950" data-testid="text-ledger-title">Escrow & Banking Ledger</h1>
             <p className="mt-2 max-w-2xl text-gray-600" data-testid="text-ledger-description">
@@ -311,10 +311,10 @@ export default function LedgerPage() {
                     <p className="mt-1 text-2xl font-black text-gray-950">10%</p>
                     <p className="mt-1 text-xs text-gray-500">Added on top of campaign or direct-hire budget.</p>
                   </div>
-                  <div className="rounded-2xl bg-gray-50 p-4" data-testid="text-creator-fee-policy">
-                    <p className="text-sm font-semibold text-gray-900">Creator fee</p>
+                  <div className="rounded-2xl bg-gray-50 p-4" data-testid="text-influencer-fee-policy">
+                    <p className="text-sm font-semibold text-gray-900">Influencer fee</p>
                     <p className="mt-1 text-2xl font-black text-gray-950">10%</p>
-                    <p className="mt-1 text-xs text-gray-500">Deducted from creator earnings before release.</p>
+                    <p className="mt-1 text-xs text-gray-500">Deducted from influencer earnings before release.</p>
                   </div>
                   <div className="rounded-2xl bg-gray-50 p-4" data-testid="text-fees-paid">
                     <p className="text-sm font-semibold text-gray-900">Fees posted here</p>

@@ -162,7 +162,7 @@ export default function UnifiedProfile() {
     if (user.userType === 'brand') {
       navigate(`/brand/${id}`, { replace: true });
     } else if (user.userType === 'creator') {
-      navigate(`/creators/${id}`, { replace: true });
+      navigate(`/influencers/${id}`, { replace: true });
     }
     // admin stays here
   }, [user, id]);

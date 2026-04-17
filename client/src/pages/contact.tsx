@@ -30,7 +30,7 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 const faqItems = [
   {
-    q: "How do I get started as a creator?",
+    q: "How do I get started as a influencer?",
     a: "Sign up for a free account, complete your profile to earn 100 $TDRIP points, then join the Welcome Campaign for 130 more points. After that, browse active campaigns in /tasks and start applying.",
   },
   {
@@ -43,7 +43,7 @@ const faqItems = [
   },
   {
     q: "Can brands create custom campaigns?",
-    a: "Yes! Brands can create fully custom campaigns with specific requirements, budgets, content types, deadlines, and target creator tiers through the brand dashboard.",
+    a: "Yes! Brands can create fully custom campaigns with specific requirements, budgets, content types, deadlines, and target influencer tiers through the brand dashboard.",
   },
   {
     q: "What is $TDRIP and how do I earn it?",

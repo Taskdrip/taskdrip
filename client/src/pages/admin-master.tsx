@@ -1437,7 +1437,7 @@ export default function AdminMaster() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/all-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/transactions"] });
-      toast({ title: "✅ Submission Approved!", description: "Creator has been paid." });
+      toast({ title: "✅ Submission Approved!", description: "Influencer has been paid." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1452,7 +1452,7 @@ export default function AdminMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/all-submissions"] });
       setRejectingSubmissionId(null);
       setRejectNotes("");
-      toast({ title: "Submission Rejected", description: "Creator has been notified." });
+      toast({ title: "Submission Rejected", description: "Influencer has been notified." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1465,7 +1465,7 @@ export default function AdminMaster() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
-      toast({ title: "✅ Application Approved", description: "Creator can now work on this task." });
+      toast({ title: "✅ Application Approved", description: "Influencer can now work on this task." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1930,7 +1930,7 @@ export default function AdminMaster() {
             {/* Top 4 hero stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-7">
               {[
-                { label: "Total Users", value: users.length, sub: `${totalCreators} creators · ${totalBrands} brands`, icon: <Users className="w-5 h-5" />, color: "from-blue-500 to-cyan-500" },
+                { label: "Total Users", value: users.length, sub: `${totalCreators} influencers · ${totalBrands} brands`, icon: <Users className="w-5 h-5" />, color: "from-blue-500 to-cyan-500" },
                 { label: "Platform Revenue", value: `$${totalRevenue >= 1000 ? (totalRevenue/1000).toFixed(1)+'K' : totalRevenue.toFixed(0)}`, sub: `${(transactions as any[]).filter((t:any)=>t.status==='completed').length} completed txns`, icon: <DollarSign className="w-5 h-5" />, color: "from-green-500 to-emerald-500" },
                 { label: "Pending Actions", value: pendingPayments.length + unverifiedUsers.length, sub: `${pendingPayments.length} payments · ${unverifiedUsers.length} verifications`, icon: <Clock className="w-5 h-5" />, color: "from-orange-500 to-amber-500" },
                 { label: "Active Campaigns", value: activeCampaigns.length, sub: `${completedCampaigns} completed · ${pendingCampaigns} pending`, icon: <Target className="w-5 h-5" />, color: "from-purple-500 to-violet-600" },
@@ -2007,7 +2007,7 @@ export default function AdminMaster() {
             {/* ── ROW 1: 8 secondary KPI cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {[
-                { label: "Creators", value: totalCreators, icon: "🎨", color: "border-orange-500/30 bg-orange-500/5" },
+                { label: "Influencers", value: totalCreators, icon: "🎨", color: "border-orange-500/30 bg-orange-500/5" },
                 { label: "Brands", value: totalBrands, icon: "🏢", color: "border-blue-500/30 bg-blue-500/5" },
                 { label: "Verified", value: verifiedCreators, icon: "✅", color: "border-green-500/30 bg-green-500/5" },
                 { label: "KYC Done", value: kycApproved, icon: "🛡️", color: "border-teal-500/30 bg-teal-500/5" },
@@ -3156,7 +3156,7 @@ export default function AdminMaster() {
                   <CardTitle className="text-yellow-800 flex items-center gap-2 text-base">
                     <AlertTriangle className="h-5 w-5" /> Brand Payments Awaiting Verification ({(escrowPayments as any[]).filter((e: any) => e.status === 'submitted').length})
                   </CardTitle>
-                  <p className="text-sm text-yellow-700">Verify payment to activate the campaign and allow creators to apply.</p>
+                  <p className="text-sm text-yellow-700">Verify payment to activate the campaign and allow influencers to apply.</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {(escrowPayments as any[]).filter((e: any) => e.status === 'submitted').map((ep: any) => (
@@ -3190,7 +3190,7 @@ export default function AdminMaster() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
                   <p className="text-sm text-blue-700 font-medium">Admin Mediator Role</p>
                   <p className="text-xs text-blue-600 mt-0.5">
-                    Brands are the primary reviewers of creator submissions. As admin, you oversee all submissions and can approve or reject as a mediator if needed — for example, to resolve disputes or when a brand is unresponsive.
+                    Brands are the primary reviewers of influencer submissions. As admin, you oversee all submissions and can approve or reject as a mediator if needed — for example, to resolve disputes or when a brand is unresponsive.
                   </p>
                 </div>
               </CardHeader>
@@ -3199,7 +3199,7 @@ export default function AdminMaster() {
                   <div className="text-center py-10 text-gray-400">
                     <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">No submissions yet</p>
-                    <p className="text-sm">Submissions will appear here when creators complete tasks.</p>
+                    <p className="text-sm">Submissions will appear here when influencers complete tasks.</p>
                   </div>
                 ) : (
                   allSubmissions.map((sub: any) => (
@@ -3216,7 +3216,7 @@ export default function AdminMaster() {
                             <span className="font-semibold text-gray-900 text-sm truncate">{sub.title}</span>
                           </div>
                           <p className="text-xs text-gray-500 mb-1">
-                            👤 {sub.creator?.firstName} {sub.creator?.lastName} · 📌 {sub.campaign?.title}
+                            👤 {sub.influencer?.firstName} {sub.influencer?.lastName} · 📌 {sub.campaign?.title}
                           </p>
                           <p className="text-sm text-gray-600 line-clamp-2">{sub.description}</p>
                           {sub.proofUrls && Array.isArray(sub.proofUrls) && sub.proofUrls.length > 0 && (
@@ -3451,7 +3451,7 @@ export default function AdminMaster() {
                     <textarea
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
                       rows={4}
-                      placeholder="Describe what creators need to do, what the brand is about, and any specific tone/style…"
+                      placeholder="Describe what influencers need to do, what the brand is about, and any specific tone/style…"
                       value={adminTaskForm.description}
                       onChange={(e) => setAdminTaskForm(f => ({ ...f, description: e.target.value }))}
                     />
@@ -3892,7 +3892,7 @@ export default function AdminMaster() {
                       rows={7}
                       value={feedPostForm.content}
                       onChange={(e) => setFeedPostForm((p) => ({ ...p, content: e.target.value }))}
-                      placeholder="Share platform updates, creator highlights, campaigns, payout announcements..."
+                      placeholder="Share platform updates, influencer highlights, campaigns, payout announcements..."
                       data-testid="input-feed-post-content"
                     />
                   </div>
@@ -4558,21 +4558,21 @@ export default function AdminMaster() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Creator Balances</CardTitle>
+                  <CardTitle>Influencer Balances</CardTitle>
                   <CardDescription>Outstanding payouts and withdrawal requests</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Total Creator Balances</span>
+                      <span className="text-sm text-gray-600">Total Influencer Balances</span>
                       <span className="font-medium">${users.filter((u: any) => u.userType === 'creator').reduce((sum: number, user: any) => sum + parseFloat(user.availableBalance || '0'), 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Creators with $10+ Balance</span>
+                      <span className="text-sm text-gray-600">Influencers with $10+ Balance</span>
                       <span className="font-medium">{users.filter((u: any) => u.userType === 'creator' && parseFloat(u.availableBalance || '0') >= 10).length}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Average Creator Balance</span>
+                      <span className="text-sm text-gray-600">Average Influencer Balance</span>
                       <span className="font-medium">${users.filter((u: any) => u.userType === 'creator').length > 0 ? (users.filter((u: any) => u.userType === 'creator').reduce((sum: number, user: any) => sum + parseFloat(user.availableBalance || '0'), 0) / users.filter((u: any) => u.userType === 'creator').length).toFixed(2) : '0.00'}</span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t">
@@ -5058,7 +5058,7 @@ export default function AdminMaster() {
                                         txHash: offer.transactionHash,
                                         network: offer.paymentNetwork,
                                         amount: offer.amount,
-                                        label: `Direct Hire — ${offer.creator?.username || offer.creatorId}`,
+                                        label: `Direct Hire — ${offer.influencer?.username || offer.creatorId}`,
                                       })}
                                     >
                                       <Eye className="w-3 h-3 mr-1" /> View Proof
@@ -5390,7 +5390,7 @@ export default function AdminMaster() {
               <DialogHeader>
                 <DialogTitle>Create New Campaign</DialogTitle>
                 <DialogDescription>
-                  Set up a new campaign for creators to participate in
+                  Set up a new campaign for influencers to participate in
                 </DialogDescription>
               </DialogHeader>
               <Form {...campaignForm}>
@@ -5830,7 +5830,7 @@ export default function AdminMaster() {
                         <SelectValue placeholder="Select user type" />
                       </SelectTrigger>
                       <SelectContent className="z-[60]">
-                        <SelectItem value="creator">Creator</SelectItem>
+                        <SelectItem value="influencer">Influencer</SelectItem>
                         <SelectItem value="brand">Brand</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
@@ -6266,7 +6266,7 @@ function AdminSocialChannelsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Social Channels</h2>
-          <p className="text-gray-400 text-sm mt-1">Add & manage social platforms creators can link to their profiles</p>
+          <p className="text-gray-400 text-sm mt-1">Add & manage social platforms influencers can link to their profiles</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditItem(null); setForm(emptyForm); } }}>
           <DialogTrigger asChild>
@@ -6277,7 +6277,7 @@ function AdminSocialChannelsPanel() {
           <DialogContent className="max-w-xl">
             <DialogHeader>
               <DialogTitle>{editItem ? 'Edit Social Channel' : 'Add Social Channel'}</DialogTitle>
-              <DialogDescription>Configure a platform that creators can link from their settings page</DialogDescription>
+              <DialogDescription>Configure a platform that influencers can link from their settings page</DialogDescription>
             </DialogHeader>
             <div className="space-y-5">
               {/* Preview */}
@@ -6335,7 +6335,7 @@ function AdminSocialChannelsPanel() {
               <div>
                 <Label>URL Prefix</Label>
                 <Input value={form.urlPrefix} onChange={e => setForm(p => ({ ...p, urlPrefix: e.target.value }))} placeholder="https://facebook.com/pages/" className="mt-1" />
-                <p className="text-xs text-gray-400 mt-1">Shown as placeholder hint to creators (optional)</p>
+                <p className="text-xs text-gray-400 mt-1">Shown as placeholder hint to influencers (optional)</p>
               </div>
 
               <div>
@@ -6346,7 +6346,7 @@ function AdminSocialChannelsPanel() {
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <div>
                   <p className="text-sm font-semibold text-gray-700">Active</p>
-                  <p className="text-xs text-gray-400">Creators can link this platform when active</p>
+                  <p className="text-xs text-gray-400">Influencers can link this platform when active</p>
                 </div>
                 <button type="button" onClick={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
                   className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${form.isActive ? 'bg-green-500' : 'bg-gray-300'}`}>
@@ -6389,7 +6389,7 @@ function AdminSocialChannelsPanel() {
             <div className="py-16 text-center">
               <Link2 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
               <p className="text-gray-400 font-medium">No social channels yet</p>
-              <p className="text-sm text-gray-500 mt-1 mb-4">Add channels creators can link in their profiles</p>
+              <p className="text-sm text-gray-500 mt-1 mb-4">Add channels influencers can link in their profiles</p>
               <Button className="bg-purple-600 hover:bg-purple-700 gap-2" onClick={() => setDialogOpen(true)}>
                 <Plus className="w-4 h-4" /> Add First Channel
               </Button>
@@ -6459,8 +6459,8 @@ function AdminSocialChannelsPanel() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-400">
             {[
               { step: '1', text: 'Admin adds a platform (e.g. Facebook Pages) with name, emoji, color & URL prefix' },
-              { step: '2', text: 'Creators see it in Settings → Social Media Links and can add their link + follower count' },
-              { step: '3', text: 'Creators can toggle visibility on/off per platform so it shows or hides on their public profile' },
+              { step: '2', text: 'Influencers see it in Settings → Social Media Links and can add their link + follower count' },
+              { step: '3', text: 'Influencers can toggle visibility on/off per platform so it shows or hides on their public profile' },
             ].map(s => (
               <div key={s.step} className="flex gap-2">
                 <div className="w-5 h-5 rounded-full bg-purple-600/30 flex items-center justify-center text-purple-400 font-bold text-xs flex-shrink-0 mt-0.5">{s.step}</div>
@@ -6568,7 +6568,7 @@ function AdminPushNotificationsPanel() {
                   <select value={form.targetType} onChange={e => setForm(p => ({ ...p, targetType: e.target.value }))}
                     className="mt-1 w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" data-testid="push-target">
                     <option value="all">All Users</option>
-                    <option value="creators">Creators Only</option>
+                    <option value="influencers">Influencers Only</option>
                     <option value="brands">Brands Only</option>
                     {users.map((u: any) => (
                       <option key={u.id} value={`user:${u.id}`}>

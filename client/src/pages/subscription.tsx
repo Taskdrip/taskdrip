@@ -14,14 +14,14 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { CheckCircle2, Crown, Sparkles, Zap, Clock, Upload, AlertTriangle } from "lucide-react";
 
 const PLANS = {
-  creator: {
-    name: "Creator Premium",
+  influencer: {
+    name: "Influencer Premium",
     monthly: 7,
     yearly: 7 * 12 * 0.85,
     icon: <Sparkles className="w-8 h-8 text-purple-500" />,
     color: "from-purple-500 to-blue-500",
     features: [
-      "Verified creator badge",
+      "Verified influencer badge",
       "Priority campaign discovery",
       "Unlimited post uploads",
       "Advanced analytics dashboard",
@@ -39,10 +39,10 @@ const PLANS = {
     features: [
       "Verified brand badge",
       "Unlimited campaign creation",
-      "Priority creator discovery",
+      "Priority influencer discovery",
       "Advanced campaign analytics",
       "Featured campaign placement",
-      "Bulk creator outreach",
+      "Bulk influencer outreach",
       "Dedicated account support",
     ],
   },
@@ -54,9 +54,9 @@ export default function SubscriptionPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<"creator" | "brand">("creator");
+  const [selectedPlan, setSelectedPlan] = useState<"influencer" | "brand">("influencer");
 
-  const userType = (user as any)?.userType as "creator" | "brand" | "admin";
+  const userType = (user as any)?.userType as "influencer" | "brand" | "admin";
 
   const { data: subscription } = useQuery<any>({
     queryKey: ['/api/subscriptions/my'],
@@ -86,7 +86,7 @@ export default function SubscriptionPage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const activePlan = PLANS[userType as "creator" | "brand"] ?? PLANS.creator;
+  const activePlan = PLANS[userType as "influencer" | "brand"] ?? PLANS.influencer;
   const price = billing === "monthly" ? activePlan.monthly : activePlan.yearly / 12;
   const savings = Math.round(activePlan.monthly * 12 - activePlan.yearly);
 
@@ -189,7 +189,7 @@ export default function SubscriptionPage() {
                 <DialogTrigger asChild>
                   <Button
                     className="w-full bg-white text-purple-700 hover:bg-purple-50 font-bold py-6 text-lg"
-                    onClick={() => setSelectedPlan(userType === 'brand' ? 'brand' : 'creator')}
+                    onClick={() => setSelectedPlan(userType === 'brand' ? 'brand' : 'influencer')}
                     data-testid="subscribe-btn"
                   >
                     Get {activePlan.name} →

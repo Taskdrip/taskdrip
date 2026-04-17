@@ -32,7 +32,7 @@ export default function LandingNew() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Crypto Rewards</span>
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-4xl mx-auto leading-relaxed">
-              Join thousands of creators earning cryptocurrency by completing brand campaigns. 
+              Join thousands of influencers earning cryptocurrency by completing brand campaigns. 
               No followers required. No complex setup. Just create, submit, and get paid in crypto.
             </p>
             
@@ -60,7 +60,7 @@ export default function LandingNew() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">25,847</div>
-                <div className="text-blue-200">Active Creators</div>
+                <div className="text-blue-200">Active Influencers</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">$2.4M</div>
@@ -72,7 +72,7 @@ export default function LandingNew() {
               </div>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">4.9★</div>
-                <div className="text-blue-200">Creator Rating</div>
+                <div className="text-blue-200">Influencer Rating</div>
               </div>
             </div>
           </div>
@@ -166,9 +166,9 @@ export default function LandingNew() {
             <Badge className="bg-blue-600 text-white mb-6 px-6 py-3 text-lg font-bold">
               🏢 FOR BRANDS & BUSINESSES
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Reach Your Audience Through Authentic Creators</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-black mb-6">Reach Your Audience Through Authentic Influencers</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Connect with creators who genuinely love your brand. Launch campaigns that drive real engagement and sales.
+              Connect with influencers who genuinely love your brand. Launch campaigns that drive real engagement and sales.
             </p>
           </div>
 
@@ -193,11 +193,11 @@ export default function LandingNew() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span>Summer Collection Launch</span>
-                      <Badge variant="outline" className="bg-blue-100">15 creators</Badge>
+                      <Badge variant="outline" className="bg-blue-100">15 influencers</Badge>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Back to School Campaign</span>
-                      <Badge variant="outline" className="bg-blue-100">8 creators</Badge>
+                      <Badge variant="outline" className="bg-blue-100">8 influencers</Badge>
                     </div>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export default function LandingNew() {
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                     <Users className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-lg text-gray-700">Access vetted creator network</span>
+                  <span className="text-lg text-gray-700">Access vetted influencer network</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -251,7 +251,7 @@ export default function LandingNew() {
             <div className="col-span-2 md:col-span-1">
               <h3 className="text-2xl font-bold mb-4">Taskdrip</h3>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                The future of creator monetization. Connect with brands, complete campaigns, and earn cryptocurrency.
+                The future of influencer monetization. Connect with brands, complete campaigns, and earn cryptocurrency.
               </p>
               <div className="flex space-x-4">
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 cursor-pointer transition-colors">
@@ -267,11 +267,11 @@ export default function LandingNew() {
             </div>
 
             <div>
-              <h4 className="text-lg font-semibold mb-6">For Creators</h4>
+              <h4 className="text-lg font-semibold mb-6">For Influencers</h4>
               <ul className="space-y-3">
                 <li><a href="/campaigns" className="text-gray-400 hover:text-white transition-colors">Browse Campaigns</a></li>
-                <li><a href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors">Join as Creator</a></li>
-                <li><a href="/dashboard" className="text-gray-400 hover:text-white transition-colors">Creator Dashboard</a></li>
+                <li><a href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors">Join as Influencer</a></li>
+                <li><a href="/dashboard" className="text-gray-400 hover:text-white transition-colors">Influencer Dashboard</a></li>
                 <li><a href="/profile" className="text-gray-400 hover:text-white transition-colors">Profile Settings</a></li>
               </ul>
             </div>
@@ -281,7 +281,7 @@ export default function LandingNew() {
               <ul className="space-y-3">
                 <li><a href="/signup?type=brand" className="text-gray-400 hover:text-white transition-colors">Launch Campaign</a></li>
                 <li><a href="/admin-dashboard" className="text-gray-400 hover:text-white transition-colors">Brand Dashboard</a></li>
-                <li><a href="/shop" className="text-gray-400 hover:text-white transition-colors">Creator Network</a></li>
+                <li><a href="/shop" className="text-gray-400 hover:text-white transition-colors">Influencer Network</a></li>
                 <li><a href="/blog" className="text-gray-400 hover:text-white transition-colors">Success Stories</a></li>
               </ul>
             </div>

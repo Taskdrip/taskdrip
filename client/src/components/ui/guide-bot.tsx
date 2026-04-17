@@ -45,34 +45,34 @@ function analyzeBrandProfile(user: any): Recommendation[] {
   const totalVolume = parseFloat(user?.totalTransactionVolume || '0');
 
   if (!hasCompanyName) {
-    recs.push({ type: "warning", icon: Building2, title: "Add your company name", description: "Creators want to know who they're working with. Add your company name so your brand stands out in campaign listings.", action: { label: "Edit Profile", href: "/profile-edit" } });
+    recs.push({ type: "warning", icon: Building2, title: "Add your company name", description: "Influencers want to know who they're working with. Add your company name so your brand stands out in campaign listings.", action: { label: "Edit Profile", href: "/profile-edit" } });
   }
   if (!hasLogo) {
-    recs.push({ type: "warning", icon: AlertCircle, title: "Upload your brand logo", description: "Brands with logos get 3× more creator applications. Upload your logo to build trust with top influencers.", action: { label: "Update Profile", href: "/profile-edit" } });
+    recs.push({ type: "warning", icon: AlertCircle, title: "Upload your brand logo", description: "Brands with logos get 3× more influencer applications. Upload your logo to build trust with top influencers.", action: { label: "Update Profile", href: "/profile-edit" } });
   }
   if (!hasBio) {
-    recs.push({ type: "warning", icon: AlertCircle, title: "Write your brand description", description: "A clear brand bio helps creators understand your values, target audience, and campaign style — leading to better-fit applications.", action: { label: "Add Description", href: "/profile-edit" } });
+    recs.push({ type: "warning", icon: AlertCircle, title: "Write your brand description", description: "A clear brand bio helps influencers understand your values, target audience, and campaign style — leading to better-fit applications.", action: { label: "Add Description", href: "/profile-edit" } });
   }
   if (!hasWebsite) {
-    recs.push({ type: "info", icon: Star, title: "Add your website URL", description: "Adding your website increases creator confidence in your legitimacy and boosts your brand credibility score.", action: { label: "Add Website", href: "/profile-edit" } });
+    recs.push({ type: "info", icon: Star, title: "Add your website URL", description: "Adding your website increases influencer confidence in your legitimacy and boosts your brand credibility score.", action: { label: "Add Website", href: "/profile-edit" } });
   }
   if (!hasIndustry) {
     recs.push({ type: "info", icon: Target, title: "Set your industry", description: "Setting your industry helps us match your brand with influencers in the right niche — driving better campaign results.", action: { label: "Set Industry", href: "/profile-edit" } });
   }
   if (!isPremium) {
-    recs.push({ type: "action", icon: Zap, title: "Upgrade to Brand Premium", description: "Premium brands unlock verified badges, priority creator matching, unlimited campaigns, and advanced analytics. Stand out from free accounts.", action: { label: "View Plans", href: "/subscription" } });
+    recs.push({ type: "action", icon: Zap, title: "Upgrade to Brand Premium", description: "Premium brands unlock verified badges, priority influencer matching, unlimited campaigns, and advanced analytics. Stand out from free accounts.", action: { label: "View Plans", href: "/subscription" } });
   }
-  recs.push({ type: "action", icon: TrendingUp, title: "Launch your first campaign", description: "Connect with the right creators for your brand. Set your budget, define requirements, and start receiving applications within minutes.", action: { label: "Create Campaign", href: "/campaigns/create" } });
+  recs.push({ type: "action", icon: TrendingUp, title: "Launch your first campaign", description: "Connect with the right influencers for your brand. Set your budget, define requirements, and start receiving applications within minutes.", action: { label: "Create Campaign", href: "/campaigns/create" } });
   if (totalVolume > 0) {
-    recs.push({ type: "success", icon: CheckCircle, title: `$${totalVolume.toFixed(0)} in campaign spend`, description: `Your investment in influencer marketing is building brand awareness. Keep running campaigns to track ROI and discover your best-performing creators.`, action: { label: "View Campaigns", href: "/campaigns" } });
+    recs.push({ type: "success", icon: CheckCircle, title: `$${totalVolume.toFixed(0)} in campaign spend`, description: `Your investment in influencer marketing is building brand awareness. Keep running campaigns to track ROI and discover your best-performing influencers.`, action: { label: "View Campaigns", href: "/campaigns" } });
   }
   if (brandRank === 'gold') {
-    recs.push({ type: "success", icon: Award, title: "🥇 Gold Brand Status", description: "You've reached the highest brand tier. Your campaigns are featured first to top-tier creators. Keep spending to maintain your elite status.", action: { label: "Manage Campaigns", href: "/campaigns" } });
+    recs.push({ type: "success", icon: Award, title: "🥇 Gold Brand Status", description: "You've reached the highest brand tier. Your campaigns are featured first to top-tier influencers. Keep spending to maintain your elite status.", action: { label: "Manage Campaigns", href: "/campaigns" } });
   }
   return recs;
 }
 
-// ── Creator profile analysis ──────────────────────────────────────────────
+// ── Influencer profile analysis ──────────────────────────────────────────────
 function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] {
   const recs: Recommendation[] = [];
   // Built-in platform followers saved on the user record (or recalculate from fields if not yet saved)
@@ -105,10 +105,10 @@ function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] 
     recs.push({ type: "warning", icon: AlertCircle, title: "Add a profile photo", description: "Profiles with photos get 3× more campaign invitations. Upload a clear, professional photo to stand out to brands.", action: { label: "Update Profile", href: "/profile-edit" } });
   }
   if (!hasBio) {
-    recs.push({ type: "warning", icon: AlertCircle, title: "Write your creator bio", description: "A compelling bio tells brands what you create, who your audience is, and why they should work with you. Aim for 2–3 engaging sentences.", action: { label: "Edit Bio", href: "/profile-edit" } });
+    recs.push({ type: "warning", icon: AlertCircle, title: "Write your influencer bio", description: "A compelling bio tells brands what you create, who your audience is, and why they should work with you. Aim for 2–3 engaging sentences.", action: { label: "Edit Bio", href: "/profile-edit" } });
   }
   if (!hasNiche) {
-    recs.push({ type: "info", icon: Star, title: "Select your content niche", description: "Creators with a defined niche earn 40% more on average because brands target them for relevant campaigns. Set yours in Profile Settings.", action: { label: "Set Niche", href: "/profile-edit" } });
+    recs.push({ type: "info", icon: Star, title: "Select your content niche", description: "Influencers with a defined niche earn 40% more on average because brands target them for relevant campaigns. Set yours in Profile Settings.", action: { label: "Set Niche", href: "/profile-edit" } });
   }
   if (!hasSocialLinks) {
     recs.push({ type: "warning", icon: Users, title: "Connect your social channels", description: "Add your social media handles and follower counts so brands see your full reach. More platforms = higher-value campaigns.", action: { label: "Add Channels", href: "/profile-edit" } });
@@ -116,21 +116,21 @@ function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] 
   if (completedCampaigns === 0 && totalFollowers >= 10_000) {
     recs.push({ type: "action", icon: TrendingUp, title: "Join your first campaign", description: "You have enough followers to start earning! Browse active campaigns matching your niche and submit your first application today.", action: { label: "Browse Campaigns", href: "/campaigns" } });
   } else if (completedCampaigns > 0 && completedCampaigns < 5) {
-    recs.push({ type: "success", icon: CheckCircle, title: `${completedCampaigns} campaign${completedCampaigns > 1 ? 's' : ''} completed — keep going!`, description: "Complete 5+ campaigns to earn a Verified Creator badge and unlock premium brand partnerships.", action: { label: "Find More", href: "/campaigns" } });
+    recs.push({ type: "success", icon: CheckCircle, title: `${completedCampaigns} campaign${completedCampaigns > 1 ? 's' : ''} completed — keep going!`, description: "Complete 5+ campaigns to earn a Verified Influencer badge and unlock premium brand partnerships.", action: { label: "Find More", href: "/campaigns" } });
   } else if (completedCampaigns >= 5) {
-    recs.push({ type: "success", icon: CheckCircle, title: "Verified creator — great work!", description: `${completedCampaigns} campaigns completed. Brands love your track record. Keep your rates updated and explore exclusive high-budget deals.`, action: { label: "Manage Campaigns", href: "/campaigns" } });
+    recs.push({ type: "success", icon: CheckCircle, title: "Verified influencer — great work!", description: `${completedCampaigns} campaigns completed. Brands love your track record. Keep your rates updated and explore exclusive high-budget deals.`, action: { label: "Manage Campaigns", href: "/campaigns" } });
   }
   if (tier === "power_influencers" || tier === "global_titans") {
-    recs.push({ type: "action", icon: Mic, title: "Share your expertise — create a course", description: `As a ${tierConf.name} with ${formatFollowers(totalFollowers)} followers, newer creators look up to you! Create a BreedSkool course and earn passive income teaching ${niche} growth strategies.`, action: { label: "Create a Course", href: "/breedskool" } });
+    recs.push({ type: "action", icon: Mic, title: "Share your expertise — create a course", description: `As a ${tierConf.name} with ${formatFollowers(totalFollowers)} followers, newer influencers look up to you! Create a BreedSkool course and earn passive income teaching ${niche} growth strategies.`, action: { label: "Create a Course", href: "/breedskool" } });
   }
   if (tier === "rising_sparks" || tier === "growth_engines") {
-    recs.push({ type: "info", icon: Zap, title: `You're a ${tierConf.name} ${tierConf.icon}`, description: `${formatFollowers(totalFollowers)} followers puts you in an active tier. ${tier === "rising_sparks" ? "Reach 100K followers to become a Growth Engine and unlock premium campaigns." : "Reach 1M followers to join Power Influencers — the top 1% of creators."}` });
+    recs.push({ type: "info", icon: Zap, title: `You're a ${tierConf.name} ${tierConf.icon}`, description: `${formatFollowers(totalFollowers)} followers puts you in an active tier. ${tier === "rising_sparks" ? "Reach 100K followers to become a Growth Engine and unlock premium campaigns." : "Reach 1M followers to join Power Influencers — the top 1% of influencers."}` });
   }
   if (totalFollowers > 0 && (tier !== "newcomer" && tier !== "aspiring") && completedCampaigns < 5) {
-    recs.push({ type: "info", icon: ShoppingBag, title: "Explore creator tools in the Shop", description: "Boost your content with templates, editing presets, and marketing guides from the Taskdrip Shop.", action: { label: "Visit Shop", href: "/shop" } });
+    recs.push({ type: "info", icon: ShoppingBag, title: "Explore influencer tools in the Shop", description: "Boost your content with templates, editing presets, and marketing guides from the Taskdrip Shop.", action: { label: "Visit Shop", href: "/shop" } });
   }
   if (!hasLocation) {
-    recs.push({ type: "info", icon: Star, title: "Add your location", description: "Some brands specifically target creators in certain regions. Adding your location improves campaign matching.", action: { label: "Edit Profile", href: "/profile-edit" } });
+    recs.push({ type: "info", icon: Star, title: "Add your location", description: "Some brands specifically target influencers in certain regions. Adding your location improves campaign matching.", action: { label: "Edit Profile", href: "/profile-edit" } });
   }
   return recs;
 }
@@ -143,42 +143,42 @@ function getBrandBotResponse(message: string, user: any): string {
   const volume = parseFloat(user?.totalTransactionVolume || '0');
 
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return `Hey ${company}! 👋 I'm your Taskdrip Brand Advisor. I'm here to help you find the right creators, launch effective campaigns, and maximize your influencer marketing ROI. What can I help you with today?`;
+    return `Hey ${company}! 👋 I'm your Taskdrip Brand Advisor. I'm here to help you find the right influencers, launch effective campaigns, and maximize your influencer marketing ROI. What can I help you with today?`;
   }
   if (lower.includes("get started") || lower.includes("how to start") || lower.includes("started on taskdrip")) {
-    return `Welcome to Taskdrip! Here's how to get started as a brand:\n\n1️⃣ **Complete your brand profile** — Add your logo, company name, bio, and industry at /profile-edit\n2️⃣ **Fund your account** — Deposit USDT via Tron, BSC, or TON to your brand wallet\n3️⃣ **Create your first campaign** — Go to /campaigns/create and define your task, reward, and requirements\n4️⃣ **Review applications** — Creators apply; you review and approve the best fits\n5️⃣ **Pay approved creators** — After task completion and proof submission, release payment\n\nNeed help? Visit /get-started for a detailed guide.`;
+    return `Welcome to Taskdrip! Here's how to get started as a brand:\n\n1️⃣ **Complete your brand profile** — Add your logo, company name, bio, and industry at /profile-edit\n2️⃣ **Fund your account** — Deposit USDT via Tron, BSC, or TON to your brand wallet\n3️⃣ **Create your first campaign** — Go to /campaigns/create and define your task, reward, and requirements\n4️⃣ **Review applications** — Influencers apply; you review and approve the best fits\n5️⃣ **Pay approved influencers** — After task completion and proof submission, release payment\n\nNeed help? Visit /get-started for a detailed guide.`;
   }
   if (lower.includes("withdraw") || lower.includes("payout")) {
-    return `Withdrawals for brands are handled differently — your funds stay in escrow and are distributed to creators when you approve completed tasks.\n\nFor unused campaign funds:\n💰 Contact support via /contact to request a fund withdrawal\n📋 Submit your request with your transaction hash and wallet address\n⏱️ Processing typically takes 2–5 business days\n\nNeed assistance? Message us on WhatsApp: ${SOCIALS.whatsappNumber || "+1 (201) 680-0266"}`;
+    return `Withdrawals for brands are handled differently — your funds stay in escrow and are distributed to influencers when you approve completed tasks.\n\nFor unused campaign funds:\n💰 Contact support via /contact to request a fund withdrawal\n📋 Submit your request with your transaction hash and wallet address\n⏱️ Processing typically takes 2–5 business days\n\nNeed assistance? Message us on WhatsApp: ${SOCIALS.whatsappNumber || "+1 (201) 680-0266"}`;
   }
   if (lower.includes("support") || lower.includes("contact") || lower.includes("help")) {
     return `Need support? Here's how to reach us:\n\n💬 **WhatsApp**: ${SOCIALS.whatsappNumber || "+1 (201) 680-0266"} — fastest response\n📱 **Telegram**: t.me/taskdrip — community + support\n📧 **Contact form**: Visit /contact for formal inquiries\n⏰ **Support hours**: Mon–Fri, 9am–6pm WAT\n\nFor urgent issues, WhatsApp is your best bet for a quick response!`;
   }
-  if (lower.includes("influencer") || lower.includes("creator") || lower.includes("find")) {
-    return `Finding the right creator is key! Here's how:\n\n🔍 **Browse Creators** — Visit /influencers to filter by niche, follower count, and tier\n🎯 **Post a Campaign** — Active creators apply directly to your campaign\n⭐ **Creator Tiers** — Rising Sparks (10K–100K), Growth Engines (100K–1M), Power Influencers (1M–10M), Global Titans (10M+)\n\nFor best results, match your campaign budget to the creator's tier. Want me to explain the tier system in more detail?`;
+  if (lower.includes("influencer") || lower.includes("influencer") || lower.includes("find")) {
+    return `Finding the right influencer is key! Here's how:\n\n🔍 **Browse Influencers** — Visit /influencers to filter by niche, follower count, and tier\n🎯 **Post a Campaign** — Active influencers apply directly to your campaign\n⭐ **Influencer Tiers** — Rising Sparks (10K–100K), Growth Engines (100K–1M), Power Influencers (1M–10M), Global Titans (10M+)\n\nFor best results, match your campaign budget to the influencer's tier. Want me to explain the tier system in more detail?`;
   }
   if (lower.includes("campaign") || lower.includes("launch") || lower.includes("create")) {
-    return `Launching a campaign is straightforward:\n\n1️⃣ Go to /campaigns/create\n2️⃣ Set your title, description, and platform target\n3️⃣ Define creator requirements (minimum followers, niche, etc.)\n4️⃣ Set your reward per creator and total slots\n5️⃣ Fund the campaign (crypto payment) to go live\n\nCreators in your target niche will start applying! You review applications and approve the best fits.`;
+    return `Launching a campaign is straightforward:\n\n1️⃣ Go to /campaigns/create\n2️⃣ Set your title, description, and platform target\n3️⃣ Define influencer requirements (minimum followers, niche, etc.)\n4️⃣ Set your reward per influencer and total slots\n5️⃣ Fund the campaign (crypto payment) to go live\n\nCreators in your target niche will start applying! You review applications and approve the best fits.`;
   }
   if (lower.includes("roi") || lower.includes("return") || lower.includes("result") || lower.includes("analytics")) {
-    return `Tracking ROI from influencer campaigns:\n\n📊 **Track completions** — Monitor how many creators completed your campaign\n💰 **Compare spend vs. reach** — Review total follower reach vs. campaign spend\n🔗 **Use trackable links** — Add UTM parameters to your campaign links\n📈 **Repeat top performers** — Message high-performing creators for follow-up deals\n\nBrands that run 3+ campaigns typically see 2–4× better ROI as they refine their creator selection.`;
+    return `Tracking ROI from influencer campaigns:\n\n📊 **Track completions** — Monitor how many influencers completed your campaign\n💰 **Compare spend vs. reach** — Review total follower reach vs. campaign spend\n🔗 **Use trackable links** — Add UTM parameters to your campaign links\n📈 **Repeat top performers** — Message high-performing influencers for follow-up deals\n\nBrands that run 3+ campaigns typically see 2–4× better ROI as they refine their influencer selection.`;
   }
   if (lower.includes("budget") || lower.includes("cost") || lower.includes("price") || lower.includes("pay")) {
-    return `Campaign budgets by tier:\n\n🌱 **Rising Sparks** (10K–100K followers): $50–$200 per creator\n⚡ **Growth Engines** (100K–1M): $200–$1,000 per creator\n🔥 **Power Influencers** (1M–10M): $1,000–$5,000 per creator\n👑 **Global Titans** (10M+): $5,000+ negotiated\n\nFor new brands, we recommend starting with Rising Sparks creators — great engagement at accessible budgets. Want tips on negotiating with creators?`;
+    return `Campaign budgets by tier:\n\n🌱 **Rising Sparks** (10K–100K followers): $50–$200 per influencer\n⚡ **Growth Engines** (100K–1M): $200–$1,000 per influencer\n🔥 **Power Influencers** (1M–10M): $1,000–$5,000 per influencer\n👑 **Global Titans** (10M+): $5,000+ negotiated\n\nFor new brands, we recommend starting with Rising Sparks influencers — great engagement at accessible budgets. Want tips on negotiating with influencers?`;
   }
   if (lower.includes("premium") || lower.includes("upgrade") || lower.includes("plan")) {
-    return `Premium Brand benefits include:\n\n✅ **Verified Brand badge** — Creators trust you immediately\n🚀 **Priority listing** — Your campaigns appear first to top creators\n📊 **Advanced analytics** — Detailed creator performance data\n🎯 **Unlimited campaigns** — No slot restrictions\n💬 **Priority support** — Dedicated account manager\n\nYour current rank: **${rank.charAt(0).toUpperCase() + rank.slice(1)}**. Upgrade at /subscription to unlock these advantages.`;
+    return `Premium Brand benefits include:\n\n✅ **Verified Brand badge** — Influencers trust you immediately\n🚀 **Priority listing** — Your campaigns appear first to top influencers\n📊 **Advanced analytics** — Detailed influencer performance data\n🎯 **Unlimited campaigns** — No slot restrictions\n💬 **Priority support** — Dedicated account manager\n\nYour current rank: **${rank.charAt(0).toUpperCase() + rank.slice(1)}**. Upgrade at /subscription to unlock these advantages.`;
   }
   if (lower.includes("niche") || lower.includes("category") || lower.includes("industry")) {
-    return `Matching your brand with the right niche is critical for conversions:\n\n🎮 **Gaming** — Best for tech products, energy drinks, gaming peripherals\n💄 **Beauty/Fashion** — Skincare, cosmetics, clothing brands\n💪 **Fitness** — Supplements, sportswear, wellness products\n📱 **Tech** — Apps, gadgets, software tools\n✈️ **Travel** — Hotels, luggage, travel apps\n\nSet your industry in Profile Settings so creators know you're a great match for their audience.`;
+    return `Matching your brand with the right niche is critical for conversions:\n\n🎮 **Gaming** — Best for tech products, energy drinks, gaming peripherals\n💄 **Beauty/Fashion** — Skincare, cosmetics, clothing brands\n💪 **Fitness** — Supplements, sportswear, wellness products\n📱 **Tech** — Apps, gadgets, software tools\n✈️ **Travel** — Hotels, luggage, travel apps\n\nSet your industry in Profile Settings so influencers know you're a great match for their audience.`;
   }
   if (lower.includes("help") || lower.includes("what can")) {
-    return `As your Brand Advisor, I can help with:\n\n🏢 **Profile setup** — "How do I set up my brand profile?"\n🎯 **Finding creators** — "How do I find the right influencers?"\n📣 **Campaign creation** — "How do I launch a campaign?"\n💰 **Budget guidance** — "How much should I pay creators?"\n📊 **ROI tracking** — "How do I measure campaign success?"\n⬆️ **Upgrading** — "What does brand premium include?"\n\nJust ask!`;
+    return `As your Brand Advisor, I can help with:\n\n🏢 **Profile setup** — "How do I set up my brand profile?"\n🎯 **Finding influencers** — "How do I find the right influencers?"\n📣 **Campaign creation** — "How do I launch a campaign?"\n💰 **Budget guidance** — "How much should I pay influencers?"\n📊 **ROI tracking** — "How do I measure campaign success?"\n⬆️ **Upgrading** — "What does brand premium include?"\n\nJust ask!`;
   }
-  return `Great question! As a ${rank} brand with ${volume > 0 ? `$${volume.toFixed(0)} in campaign history` : 'no campaigns yet'}, my top suggestion is: ${volume === 0 ? 'launch your first campaign to start connecting with creators who are ready to promote your brand.' : 'review your best-performing creators and invite them to your next campaign for even better results.'} Is there anything specific I can help you with?`;
+  return `Great question! As a ${rank} brand with ${volume > 0 ? `$${volume.toFixed(0)} in campaign history` : 'no campaigns yet'}, my top suggestion is: ${volume === 0 ? 'launch your first campaign to start connecting with influencers who are ready to promote your brand.' : 'review your best-performing influencers and invite them to your next campaign for even better results.'} Is there anything specific I can help you with?`;
 }
 
-// ── Creator chat responses ────────────────────────────────────────────────
+// ── Influencer chat responses ────────────────────────────────────────────────
 function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): string {
   const lower = message.toLowerCase();
   const totalFollowers = user?.totalFollowers || 0;
@@ -190,7 +190,7 @@ function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): 
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
     const isPowerUser = tier === 'power_influencers' || tier === 'global_titans';
     return isPowerUser
-      ? `Welcome back, ${firstName}! 🌟 As a ${tierConf.name}, you're among the elite. I can help you find premium brand deals, mentor new creators, or even launch your own course. What's on your mind?`
+      ? `Welcome back, ${firstName}! 🌟 As a ${tierConf.name}, you're among the elite. I can help you find premium brand deals, mentor new influencers, or even launch your own course. What's on your mind?`
       : `Hey ${firstName}! 👋 I'm your Taskdrip Guide. I analyze your profile to give you personalized tips for growing your influence and earnings. Check the Recommendations tab, or ask me anything!`;
   }
   if (lower.includes("get started") || lower.includes("how to start") || lower.includes("started on taskdrip")) {
@@ -200,7 +200,7 @@ function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): 
     return `Here's how to withdraw your earnings on Taskdrip:\n\n💳 **Step 1**: Go to /wallet and add your crypto wallet address (USDT on Tron, BSC, or TON)\n📤 **Step 2**: Go to /payout-requests and submit a withdrawal request\n✅ **Step 3**: Admin reviews and approves within 24–72 hours\n🚀 **Step 4**: Funds are sent directly to your crypto wallet\n\n⚠️ **Minimum withdrawal**: $5 USDT\n💡 **Tip**: Make sure your wallet address is correct before requesting — crypto transfers are irreversible!\n\nQuestions? Chat us on WhatsApp: +1 (201) 680-0266`;
   }
   if (lower.includes("get campaigns") || lower.includes("how do i get campaigns") || lower.includes("find campaigns")) {
-    return `Here's how to get brand campaigns on Taskdrip:\n\n🔍 **Browse Tasks** — Go to /tasks to see all available campaigns by category and niche\n📝 **Apply** — Click "Apply" on any campaign that matches your audience\n✅ **Get Approved** — Brands review your profile and approve the best fit creators\n📸 **Complete & Submit Proof** — Do the task, submit screenshots/links as proof\n💰 **Get Paid** — Approved submissions receive crypto payment to your wallet\n\n💡 **Pro Tip**: A complete profile with follower counts gets 5× more approvals. Update yours at /profile-edit!`;
+    return `Here's how to get brand campaigns on Taskdrip:\n\n🔍 **Browse Tasks** — Go to /tasks to see all available campaigns by category and niche\n📝 **Apply** — Click "Apply" on any campaign that matches your audience\n✅ **Get Approved** — Brands review your profile and approve the best fit influencers\n📸 **Complete & Submit Proof** — Do the task, submit screenshots/links as proof\n💰 **Get Paid** — Approved submissions receive crypto payment to your wallet\n\n💡 **Pro Tip**: A complete profile with follower counts gets 5× more approvals. Update yours at /profile-edit!`;
   }
   if (lower.includes("support") || lower.includes("contact") || lower.includes("how do i contact")) {
     return `Need help? Here's how to reach our support team:\n\n💬 **WhatsApp**: +1 (201) 680-0266 — fastest response (under 1 hour)\n📱 **Telegram**: t.me/taskdrip — join the community for peer support\n📧 **Contact form**: Visit /contact for formal support tickets\n📨 **Messages**: Use /chat to send a direct message to the team\n⏰ **Hours**: Mon–Fri, 9am–6pm WAT\n\nFor account issues, payments, or disputes, WhatsApp is the fastest way to get help!`;
@@ -220,22 +220,22 @@ function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): 
       return `To earn through campaigns, you'll need at least 10,000 followers (Rising Sparks tier). Focus on growing your ${niche} audience first — BreedSkool has targeted courses for this. Once you hit 10K, you'll unlock campaign applications!`;
     }
     if (tier === 'power_influencers' || tier === 'global_titans') {
-      return `At your level, you can maximize earnings in multiple ways:\n\n🎯 **Premium campaigns** — Your tier unlocks $1,000–$5,000+ per campaign\n📚 **Create a course** — Teach ${niche} strategies on BreedSkool and earn passive income\n💰 **Update your rate card** — Make sure your content rates reflect your massive reach\n🤝 **Brand partnerships** — Negotiate long-term deals, not just one-off campaigns\n\nYou're a top creator — brands will pay a premium for authenticity.`;
+      return `At your level, you can maximize earnings in multiple ways:\n\n🎯 **Premium campaigns** — Your tier unlocks $1,000–$5,000+ per campaign\n📚 **Create a course** — Teach ${niche} strategies on BreedSkool and earn passive income\n💰 **Update your rate card** — Make sure your content rates reflect your massive reach\n🤝 **Brand partnerships** — Negotiate long-term deals, not just one-off campaigns\n\nYou're a top influencer — brands will pay a premium for authenticity.`;
     }
     return `Here's how to maximize your earnings as a ${tierConf.name}:\n\n1️⃣ **Complete campaigns** — Each builds your reputation and review score\n2️⃣ **Set competitive rates** — Update your content rate card in Profile Settings\n3️⃣ **Engage consistently** — Higher engagement = better campaign invitations\n4️⃣ **Diversify platforms** — More channels = higher total followers = better tier\n\nHead to /campaigns to see ${niche} opportunities right now!`;
   }
   if (lower.includes("breedskool") || lower.includes("course") || lower.includes("learn")) {
     if (tier === 'power_influencers' || tier === 'global_titans') {
-      return `BreedSkool is where emerging creators learn — and where you can teach! 🎓 With your ${formatFollowers(totalFollowers)} following, you have real-world experience that beginners are dying to learn from. Creating a course earns you passive income and builds your personal brand further. Visit /breedskool to set up your instructor profile.`;
+      return `BreedSkool is where emerging influencers learn — and where you can teach! 🎓 With your ${formatFollowers(totalFollowers)} following, you have real-world experience that beginners are dying to learn from. Creating a course earns you passive income and builds your personal brand further. Visit /breedskool to set up your instructor profile.`;
     }
     return `BreedSkool is Taskdrip's learning hub! ${totalFollowers < 10_000 ? `Since you're building your ${niche} audience, it's the perfect starting point. ` : ''}You'll find courses on content strategy, audience growth, brand deals, and more. ${totalFollowers < 10_000 ? 'Several courses are specifically for beginners — ' : ''}Visit /breedskool to explore!`;
   }
   if (lower.includes("follower") || lower.includes("grow") || lower.includes("audience")) {
-    return `Growing your ${niche} audience — proven tactics:\n\n📅 **Post consistently** — 4–5 times per week minimum\n💬 **Engage every comment** — Reply in the first hour for algorithm boost\n🔥 **Use trending formats** — Reels, TikTok, YouTube Shorts get 5× reach\n🤝 **Collaborate** — Cross-promotions with creators in adjacent niches\n⏰ **Post at peak times** — Analyze when your audience is most active\n\n${(tier === 'newcomer' || tier === 'aspiring') ? 'Check out BreedSkool for in-depth courses on each of these strategies!' : 'Your experience in these areas is valuable — consider sharing it as a BreedSkool course!'}`;
+    return `Growing your ${niche} audience — proven tactics:\n\n📅 **Post consistently** — 4–5 times per week minimum\n💬 **Engage every comment** — Reply in the first hour for algorithm boost\n🔥 **Use trending formats** — Reels, TikTok, YouTube Shorts get 5× reach\n🤝 **Collaborate** — Cross-promotions with influencers in adjacent niches\n⏰ **Post at peak times** — Analyze when your audience is most active\n\n${(tier === 'newcomer' || tier === 'aspiring') ? 'Check out BreedSkool for in-depth courses on each of these strategies!' : 'Your experience in these areas is valuable — consider sharing it as a BreedSkool course!'}`;
   }
   if (lower.includes("course") || lower.includes("teach") || lower.includes("instructor")) {
     if (tier === 'power_influencers' || tier === 'global_titans') {
-      return `Yes! As a ${tierConf.name}, you're in a prime position to create courses. Here's how:\n\n📚 Visit /breedskool → "Create Course"\n🎯 Choose your topic (${niche} growth, content strategy, monetization)\n🎬 Record your lessons (video, text, or both)\n💰 Set your price or make it free for exposure\n📣 Promote to your ${formatFollowers(totalFollowers)} followers — they already trust you!\n\nMany top creators earn $2,000–$20,000/month from their courses.`;
+      return `Yes! As a ${tierConf.name}, you're in a prime position to create courses. Here's how:\n\n📚 Visit /breedskool → "Create Course"\n🎯 Choose your topic (${niche} growth, content strategy, monetization)\n🎬 Record your lessons (video, text, or both)\n💰 Set your price or make it free for exposure\n📣 Promote to your ${formatFollowers(totalFollowers)} followers — they already trust you!\n\nMany top influencers earn $2,000–$20,000/month from their courses.`;
     }
     return `BreedSkool courses are currently available for Power Influencers (1M+ followers) and above to create. You're on your way! Once you reach that milestone, you'll be able to create courses and earn passive income sharing your ${niche} expertise.`;
   }
@@ -346,7 +346,7 @@ ${recommendations.slice(0, 5).map((r, i) => `${i + 1}.  ${r.title}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯  QUICK WINS FOR YOUR BRAND
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  • Complete your brand profile for maximum creator trust
+  • Complete your brand profile for maximum influencer trust
   • Launch your first (or next) campaign at /campaigns/create
   • Explore influencers by niche at /influencers
   ${!isPremium ? '• Upgrade to Brand Premium to unlock verified status and priority matching\n' : ''}
@@ -356,7 +356,7 @@ ${recommendations.slice(0, 5).map((r, i) => `${i + 1}.  ${r.title}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━`.trim();
   }
 
-  // Creator report
+  // Influencer report
   const totalFollowers = user?.totalFollowers || 0;
   const tier = getTierFromFollowers(totalFollowers);
   const tierConf = getTierConfig(tier);
@@ -381,7 +381,7 @@ Date: ${now}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊  CREATOR OVERVIEW
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Creator Tier     : ${tierConf.name} ${tierConf.icon}
+  Influencer Tier     : ${tierConf.name} ${tierConf.icon}
   Total Followers  : ${formatFollowers(totalFollowers)}
   Content Niche    : ${niche}
   Campaigns Done   : ${completedCampaigns}
@@ -441,7 +441,7 @@ export function GuideBot() {
   const sendToInboxMutation = useMutation({
     mutationFn: async (content: string) => {
       const res = await apiRequest("POST", "/api/guide/send-to-inbox", {
-        subject: isBrand ? "Your Taskdrip Brand Report" : "Your Taskdrip Creator Report",
+        subject: isBrand ? "Your Taskdrip Brand Report" : "Your Taskdrip Influencer Report",
         content,
       });
       return res.json();
@@ -472,7 +472,7 @@ export function GuideBot() {
         id: "welcome",
         role: "bot",
         content: isBrand
-          ? `Welcome, ${company}! 👋 I'm your Taskdrip Brand Advisor. I help brands find the right creators, launch campaigns, and get the most out of influencer marketing. Check the **Recommendations** tab for personalised tips, or ask me anything!`
+          ? `Welcome, ${company}! 👋 I'm your Taskdrip Brand Advisor. I help brands find the right influencers, launch campaigns, and get the most out of influencer marketing. Check the **Recommendations** tab for personalised tips, or ask me anything!`
           : `Hey ${firstName}! 👋 I'm your Taskdrip Guide — powered by real profile analysis. Check the **Recommendations** tab for personalised growth tips, or chat with me for advice on your ${(user as any)?.niche || 'content'} niche and earnings!`,
         timestamp: new Date(),
       };
@@ -500,7 +500,7 @@ export function GuideBot() {
       }));
       const userContext = {
         name: (user as any)?.firstName || (user as any)?.companyName,
-        userType: (user as any)?.userType || "creator",
+        userType: (user as any)?.userType || "influencer",
         niche: (user as any)?.niche,
         tier: getTierFromFollowers((user as any)?.totalFollowers || 0),
         totalFollowers: (user as any)?.totalFollowers || 0,
@@ -540,7 +540,7 @@ export function GuideBot() {
 
   const popupTip = recommendations.length > 0
     ? recommendations[0].description.substring(0, 85) + "..."
-    : isBrand ? "Set up your brand profile to attract top creators!" : "Check your profile score and get personalised growth tips!";
+    : isBrand ? "Set up your brand profile to attract top influencers!" : "Check your profile score and get personalised growth tips!";
 
   return (
     <>
@@ -574,7 +574,7 @@ export function GuideBot() {
               </div>
               <div>
                 <div className="text-white font-bold text-sm">{isBrand ? "Brand Advisor" : "Taskdrip Guide"}</div>
-                <div className="text-white/70 text-xs">{isBrand ? `${(user as any)?.companyName || 'Your brand'} · ${brandRank.charAt(0).toUpperCase() + brandRank.slice(1)} Rank` : "AI-powered creator advisor"}</div>
+                <div className="text-white/70 text-xs">{isBrand ? `${(user as any)?.companyName || 'Your brand'} · ${brandRank.charAt(0).toUpperCase() + brandRank.slice(1)} Rank` : "AI-powered influencer advisor"}</div>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10"><X className="w-5 h-5" /></button>
@@ -663,7 +663,7 @@ export function GuideBot() {
                     <div className="text-center py-6">
                       <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
                       <p className="text-sm font-semibold text-gray-700">All looking great!</p>
-                      <p className="text-xs text-gray-400 mt-1">{isBrand ? "Your brand profile is well set up." : "Your creator profile is complete and optimised!"}</p>
+                      <p className="text-xs text-gray-400 mt-1">{isBrand ? "Your brand profile is well set up." : "Your influencer profile is complete and optimised!"}</p>
                     </div>
                   )}
                 </div>
@@ -781,7 +781,7 @@ export function GuideBot() {
                       value={chatInput}
                       onChange={e => setChatInput(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSendChat()}
-                      placeholder={isBrand ? "Ask about campaigns, creators..." : "Ask me anything..."}
+                      placeholder={isBrand ? "Ask about campaigns, influencers..." : "Ask me anything..."}
                       className="rounded-xl text-xs border-gray-200 h-9"
                       data-testid="input-guide-chat"
                       disabled={isAiTyping}

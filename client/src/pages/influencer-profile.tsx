@@ -111,7 +111,7 @@ function FollowListModal({ userId, type, open, onClose }: { userId: string; type
         ) : (
           <div className="space-y-2 mt-2">
             {users.map((u: any) => (
-              <Link key={u.id} href={u.userType === 'brand' ? `/brand/${u.id}` : `/creators/${u.id}`}>
+              <Link key={u.id} href={u.userType === 'brand' ? `/brand/${u.id}` : `/influencers/${u.id}`}>
                 <div onClick={onClose} className="flex items-center gap-3 p-3 rounded-xl border hover:bg-purple-50 hover:border-purple-200 cursor-pointer transition-all group">
                   <Avatar className="h-11 w-11 ring-2 ring-gray-100 group-hover:ring-purple-200 flex-shrink-0">
                     <AvatarImage src={u.profileImageUrl} />
@@ -439,9 +439,9 @@ export default function CreatorProfile() {
       <div className="min-h-screen bg-gray-50">
         <NavigationFixed />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Creator not found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Influencer not found</h1>
           <p className="text-gray-500 mb-6">This profile doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate("/creators")}>Browse Creators</Button>
+          <Button onClick={() => navigate("/influencers")}>Browse Influencers</Button>
         </div>
       </div>
     );
@@ -951,7 +951,7 @@ export default function CreatorProfile() {
                     </div>
                     <p className="text-gray-400 font-medium mb-2">No rates listed yet</p>
                     <p className="text-gray-400 text-sm mb-4">
-                      {isOwnProfile ? 'Add your content rates from the profile edit page.' : 'This creator prefers to quote on request.'}
+                      {isOwnProfile ? 'Add your content rates from the profile edit page.' : 'This influencer prefers to quote on request.'}
                     </p>
                     {!isOwnProfile && isAuthenticated && (
                       <Button variant="outline" onClick={() => navigate(`/chat?to=${id}`)}>
@@ -989,7 +989,7 @@ export default function CreatorProfile() {
                         <div>
                           <label className="text-sm font-semibold text-gray-700 mb-2 block">Your Review</label>
                           <Textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
-                            placeholder="Share your experience working with this creator..." rows={4} data-testid="review-comment" />
+                            placeholder="Share your experience working with this influencer..." rows={4} data-testid="review-comment" />
                         </div>
                         <Button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending}
                           className="w-full bg-purple-600 hover:bg-purple-700" data-testid="submit-review-btn">

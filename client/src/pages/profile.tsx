@@ -95,11 +95,11 @@ export default function Profile() {
               <div className="flex items-center justify-center md:justify-start space-x-2 mb-2">
                 <h1 className="text-2xl font-bold">{displayName}</h1>
                 {user.isVerified && (
-                  <CheckCircle className="w-6 h-6 text-blue-200" title="Verified Creator" />
+                  <CheckCircle className="w-6 h-6 text-blue-200" title="Verified Influencer" />
                 )}
               </div>
               <p className="text-slate-600 mb-3">
-                {user.bio || "Digital Creator | Content Creator | Crypto Enthusiast"}
+                {user.bio || "Digital Influencer | Content Influencer | Crypto Enthusiast"}
               </p>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm text-slate-600">
                 {user.location && (
@@ -200,7 +200,7 @@ export default function Profile() {
                 {user.isVerified && (
                   <Badge className="bg-green-100 text-green-800 flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    Verified Creator
+                    Verified Influencer
                   </Badge>
                 )}
                 {(user.completedCampaigns || 0) >= 100 && (

@@ -304,7 +304,7 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm">Creators</span>
+                    <span className="text-sm">Influencers</span>
                     <span className="font-medium">{users.filter(u => u.userType === 'creator').length}</span>
                   </div>
                   <div className="flex justify-between items-center">

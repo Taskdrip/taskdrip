@@ -264,7 +264,7 @@ function GuideBot({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [open, setOpen] = useState(false);
   const [tip, setTip] = useState("Pick a task that matches your audience, check the reward and slots, then open it to apply.");
   const tips = [
-    { label: "How do I apply?", text: isAuthenticated ? "Click View & Apply on any task, review the brief, then submit your application from the campaign page." : "Create a free creator account first, then return here and click View & Apply on any campaign." },
+    { label: "How do I apply?", text: isAuthenticated ? "Click View & Apply on any task, review the brief, then submit your application from the campaign page." : "Create a free influencer account first, then return here and click View & Apply on any campaign." },
     { label: "How do payouts work?", text: "After your proof is approved, the reward is released to your crypto wallet through the supported USDT or TON payment options." },
     { label: "Find best tasks", text: "Use category filters, search by brand or topic, and sort by Highest Reward when you want the biggest payouts first." },
     { label: "What should I submit?", text: "Follow the campaign requirements exactly and submit clear proof links or screenshots so review can happen quickly." },
@@ -566,7 +566,7 @@ export default function TasksPage() {
                 Ready to Earn Crypto?
               </h2>
               <p className="text-white/70 text-lg max-w-xl mx-auto mb-8">
-                Join 10,000+ creators already earning USDT & TON by completing brand campaigns. Free to join, instant payouts.
+                Join 10,000+ influencers already earning USDT & TON by completing brand campaigns. Free to join, instant payouts.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
@@ -574,7 +574,7 @@ export default function TasksPage() {
                   data-testid="btn-join-now"
                   className="bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 font-bold px-8 py-3 rounded-xl text-base shadow-lg shadow-yellow-500/30 hover:from-yellow-500 hover:to-orange-500"
                 >
-                  Join as Creator — It's Free
+                  Join as Influencer — It's Free
                 </Button>
                 <Button
                   variant="outline"
@@ -587,7 +587,7 @@ export default function TasksPage() {
               </div>
 
               <div className="mt-8 flex flex-wrap justify-center gap-6 text-white/60 text-sm">
-                {["✅ Admin-Verified Payouts", "🔒 Escrow Protection", "⚡ Instant Notifications", "🌍 Global Creators"].map((feat, i) => (
+                {["✅ Admin-Verified Payouts", "🔒 Escrow Protection", "⚡ Instant Notifications", "🌍 Global Influencers"].map((feat, i) => (
                   <span key={i}>{feat}</span>
                 ))}
               </div>
@@ -599,7 +599,7 @@ export default function TasksPage() {
         <section className="mt-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-gray-900 mb-2">How Taskdrip Works</h2>
-            <p className="text-gray-500">A safe, admin-mediated flow for brands and creators</p>
+            <p className="text-gray-500">A safe, admin-mediated flow for brands and influencers</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -615,21 +615,21 @@ export default function TasksPage() {
                 step: "02",
                 icon: "✅",
                 title: "Admin Activates",
-                desc: "Admin verifies payment and activates the task so creators can discover and apply.",
+                desc: "Admin verifies payment and activates the task so influencers can discover and apply.",
                 color: "from-purple-500 to-violet-600",
               },
               {
                 step: "03",
                 icon: "🎯",
-                title: "Creator Completes",
-                desc: "Approved creators complete the task and submit proof (links, screenshots) for review.",
+                title: "Influencer Completes",
+                desc: "Approved influencers complete the task and submit proof (links, screenshots) for review.",
                 color: "from-pink-500 to-rose-600",
               },
               {
                 step: "04",
                 icon: "💰",
                 title: "Admin Releases Pay",
-                desc: "Admin reviews proof and releases USDT/TON reward directly to the creator's wallet.",
+                desc: "Admin reviews proof and releases USDT/TON reward directly to the influencer's wallet.",
                 color: "from-green-500 to-emerald-600",
               },
             ].map((step) => (

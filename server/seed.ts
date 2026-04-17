@@ -168,7 +168,7 @@ Complete smaller tasks perfectly to build ratings, then qualify for exclusive hi
 **5. Time Management**
 Plan tasks around your schedule. App testing can be done flexibly, while events have fixed timeframes.`,
         excerpt: "Learn proven strategies to maximize your earnings through strategic task selection and portfolio diversification.",
-        category: "Creator Tips",
+        category: "Influencer Tips",
         tags: ["earnings", "strategy", "tasks", "guide"],
         isPublished: true,
         publishedAt: new Date()
@@ -205,7 +205,7 @@ Instant cryptocurrency payments provide financial flexibility and access to the 
     // Seed shop products
     const sampleProducts = [
       {
-        title: "Professional Content Creator Kit",
+        title: "Professional Content Influencer Kit",
         description: "Complete kit for high-quality content creation including ring light, tripod, and microphone.",
         price: "150.00",
         originalPrice: "200.00",

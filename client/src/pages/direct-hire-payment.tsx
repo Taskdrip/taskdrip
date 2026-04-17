@@ -210,9 +210,9 @@ export default function DirectHirePayment() {
                 <p className="text-[11px] text-gray-500">Budget + 10% platform fee</p>
               </div>
               <div className="rounded-xl border bg-white p-3">
-                <p className="text-xs text-gray-500">Creator receives</p>
+                <p className="text-xs text-gray-500">Influencer receives</p>
                 <p className="font-bold text-green-700" data-testid="text-influencer-payout">${money(offer.influencerPayout || Number(offer.budget) * 0.9)}</p>
-                <p className="text-[11px] text-gray-500">After creator 10% fee</p>
+                <p className="text-[11px] text-gray-500">After influencer 10% fee</p>
               </div>
               <div className="rounded-xl border bg-white p-3">
                 <p className="text-xs text-gray-500">Platform fees</p>
@@ -429,7 +429,7 @@ export default function DirectHirePayment() {
               <h3 className="font-semibold text-red-700 mb-1">Offer Declined</h3>
               {offer.rejectionReason && <p className="text-sm text-gray-500">{offer.rejectionReason}</p>}
               {isBrand && (
-                <Button className="mt-4" onClick={() => setLocation("/creators")}>
+                <Button className="mt-4" onClick={() => setLocation("/influencers")}>
                   Browse Other Influencers
                 </Button>
               )}
@@ -691,7 +691,7 @@ function ProjectWorkspace({ offer, isBrand, isInfluencer, currentUserId, onDone 
   const approveWork = useMutation({
     mutationFn: () => apiRequest("POST", `/api/direct-hire/${offer.id}/approve-work`).then(r => r.json()),
     onSuccess: () => {
-      toast({ title: "Project completed", description: "Creator earnings have moved to available balance." });
+      toast({ title: "Project completed", description: "Influencer earnings have moved to available balance." });
       queryClient.invalidateQueries({ queryKey: [`/api/direct-hire/${offer.id}`] });
       onDone();
     },

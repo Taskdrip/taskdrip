@@ -40,7 +40,7 @@ const SECTION_LABELS: Record<string, string> = {
   contact: "Contact & Social Links",
   platform_bar: "Platform Bar",
   how_it_works: "How It Works",
-  tiers: "Creator Tiers",
+  tiers: "Influencer Tiers",
   ecosystem: "Ecosystem Section",
   campaigns_preview: "Campaigns Preview",
   why_taskdrip: "Why Taskdrip",

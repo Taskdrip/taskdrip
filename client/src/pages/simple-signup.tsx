@@ -133,7 +133,7 @@ export default function SimpleSignup() {
   const urlParams = new URLSearchParams(window.location.search);
   const refCode = urlParams.get('ref');
   const urlType = urlParams.get('type');
-  const initialTab = urlType === 'brand' ? 'brand' : 'creator';
+  const initialTab = urlType === 'brand' ? 'brand' : 'influencer';
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [successUser, setSuccessUser] = useState<{ firstName: string } | null>(null);
@@ -141,7 +141,7 @@ export default function SimpleSignup() {
 
   useEffect(() => {
     if (urlType) {
-      setActiveTab(urlType === 'brand' ? 'brand' : 'creator');
+      setActiveTab(urlType === 'brand' ? 'brand' : 'influencer');
       setHighlightTab(true);
       const timer = setTimeout(() => setHighlightTab(false), 3000);
       return () => clearTimeout(timer);
@@ -161,7 +161,7 @@ export default function SimpleSignup() {
       const payload = {
         ...data,
         userType: activeTab,
-        skills: activeTab === 'creator' ? [data.skills] : [],
+        skills: activeTab === 'influencer' ? [data.skills] : [],
         ...(refCode ? { referralCode: refCode, referralType: urlType || activeTab } : {}),
       };
       const response = await apiRequest('POST', '/api/auth/register', payload);
@@ -242,16 +242,16 @@ export default function SimpleSignup() {
             <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setHighlightTab(false); }} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-1">
                 <TabsTrigger
-                  value="creator"
+                  value="influencer"
                   className={`flex items-center gap-2 transition-all duration-300 ${
-                    activeTab === 'creator' && highlightTab
+                    activeTab === 'influencer' && highlightTab
                       ? 'ring-2 ring-purple-500 ring-offset-1 animate-pulse'
                       : ''
                   }`}
                 >
                   <User className="h-4 w-4" />
                   Influencer
-                  {activeTab === 'creator' && highlightTab && (
+                  {activeTab === 'influencer' && highlightTab && (
                     <span className="ml-1 w-2 h-2 rounded-full bg-purple-500 animate-ping inline-block" />
                   )}
                 </TabsTrigger>
@@ -281,13 +281,13 @@ export default function SimpleSignup() {
                 </div>
               )}
 
-              <TabsContent value="creator" className="space-y-4">
+              <TabsContent value="influencer" className="space-y-4">
                 <form onSubmit={creatorForm.handleSubmit(onCreatorSubmit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="creator-firstName">First Name</Label>
+                      <Label htmlFor="influencer-firstName">First Name</Label>
                       <Input
-                        id="creator-firstName"
+                        id="influencer-firstName"
                         {...creatorForm.register('firstName')}
                       />
                       {creatorForm.formState.errors.firstName && (
@@ -297,9 +297,9 @@ export default function SimpleSignup() {
                       )}
                     </div>
                     <div>
-                      <Label htmlFor="creator-lastName">Last Name</Label>
+                      <Label htmlFor="influencer-lastName">Last Name</Label>
                       <Input
-                        id="creator-lastName"
+                        id="influencer-lastName"
                         {...creatorForm.register('lastName')}
                       />
                       {creatorForm.formState.errors.lastName && (
@@ -311,9 +311,9 @@ export default function SimpleSignup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="creator-email">Email</Label>
+                    <Label htmlFor="influencer-email">Email</Label>
                     <Input
-                      id="creator-email"
+                      id="influencer-email"
                       type="email"
                       {...creatorForm.register('email')}
                     />
@@ -325,9 +325,9 @@ export default function SimpleSignup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="creator-password">Password</Label>
+                    <Label htmlFor="influencer-password">Password</Label>
                     <Input
-                      id="creator-password"
+                      id="influencer-password"
                       type="password"
                       {...creatorForm.register('password')}
                     />
@@ -339,9 +339,9 @@ export default function SimpleSignup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="creator-bio">Bio</Label>
+                    <Label htmlFor="influencer-bio">Bio</Label>
                     <Textarea
-                      id="creator-bio"
+                      id="influencer-bio"
                       placeholder="Tell us about yourself..."
                       {...creatorForm.register('bio')}
                     />
@@ -353,9 +353,9 @@ export default function SimpleSignup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="creator-location">Location</Label>
+                    <Label htmlFor="influencer-location">Location</Label>
                     <Input
-                      id="creator-location"
+                      id="influencer-location"
                       placeholder="City, Country"
                       {...creatorForm.register('location')}
                     />
@@ -367,9 +367,9 @@ export default function SimpleSignup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="creator-skills">Skills</Label>
+                    <Label htmlFor="influencer-skills">Skills</Label>
                     <Input
-                      id="creator-skills"
+                      id="influencer-skills"
                       placeholder="e.g., Content Creation, Social Media, Video Editing"
                       {...creatorForm.register('skills')}
                     />
@@ -381,9 +381,9 @@ export default function SimpleSignup() {
                   </div>
 
                   <div>
-                    <Label htmlFor="creator-twitter">Twitter Handle (Optional)</Label>
+                    <Label htmlFor="influencer-twitter">Twitter Handle (Optional)</Label>
                     <Input
-                      id="creator-twitter"
+                      id="influencer-twitter"
                       placeholder="@username"
                       {...creatorForm.register('twitterHandle')}
                     />
@@ -393,7 +393,7 @@ export default function SimpleSignup() {
                     type="submit"
                     className="w-full bg-black text-white hover:bg-gray-800"
                     disabled={signupMutation.isPending}
-                    data-testid="button-creator-signup"
+                    data-testid="button-influencer-signup"
                   >
                     {signupMutation.isPending ? 'Creating Account...' : 'Create Influencer Account'}
                   </Button>

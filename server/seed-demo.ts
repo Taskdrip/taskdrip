@@ -43,7 +43,7 @@ const DEMO_COURSES = [
   {
     title: "TikTok Virality Formula",
     shortDescription: "The exact system to go viral on TikTok — every time",
-    description: "Unlock the TikTok algorithm and learn how to create videos that rack up millions of views. From video hooks and trending sounds to niche positioning and creator monetization — this course has it all. Perfect for beginners and intermediate creators.",
+    description: "Unlock the TikTok algorithm and learn how to create videos that rack up millions of views. From video hooks and trending sounds to niche positioning and influencer monetization — this course has it all. Perfect for beginners and intermediate influencers.",
     category: "tiktok_mastery",
     thumbnail: "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=800&h=450&fit=crop",
     price: "0.00",
@@ -57,18 +57,18 @@ const DEMO_COURSES = [
       "Find trending audio before it peaks",
       "Build a niche that the algorithm loves",
       "Edit high-quality videos on your phone",
-      "Earn from the TikTok Creator Fund and brand deals",
+      "Earn from the TikTok Influencer Fund and brand deals",
     ],
     requirements: [
       "A smartphone with the TikTok app installed",
       "Willingness to appear on camera",
     ],
     lessons: [
-      { title: "TikTok Success Blueprint", content: "This free course reveals the exact framework used by top TikTok creators to hit millions of views consistently.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 1, isPreview: true },
+      { title: "TikTok Success Blueprint", content: "This free course reveals the exact framework used by top TikTok influencers to hit millions of views consistently.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 1, isPreview: true },
       { title: "The 3-Second Hook Formula", content: "If viewers don't stop scrolling in 3 seconds, your video is dead. Master the art of the perfect hook.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 2, isPreview: true },
       { title: "Trending Sounds & Duets", content: "Learn how to surf trending audio waves and use duets/stitches to piggyback on viral content ethically.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 3, isPreview: false },
       { title: "Editing Like a Pro on CapCut", content: "CapCut tutorial: transitions, text animations, green screen, and the secret settings for HD exports.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 4, isPreview: false },
-      { title: "TikTok Monetization Secrets", content: "Creator Fund, TikTok Shop, LIVE Gifts, and brand deals — your complete monetization roadmap.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 5, isPreview: false },
+      { title: "TikTok Monetization Secrets", content: "Influencer Fund, TikTok Shop, LIVE Gifts, and brand deals — your complete monetization roadmap.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 5, isPreview: false },
     ],
   },
   {
@@ -107,8 +107,8 @@ const DEMO_COURSES = [
   },
   {
     title: "Crypto Monetization for Influencers",
-    shortDescription: "Get paid in USDT and TON — the new creator economy",
-    description: "The creator economy is going Web3. Learn how to accept crypto payments, use USDT and TON wallets, launch NFTs, and earn from decentralized platforms. This course is designed for influencers who want to future-proof their income streams.",
+    shortDescription: "Get paid in USDT and TON — the new influencer economy",
+    description: "The influencer economy is going Web3. Learn how to accept crypto payments, use USDT and TON wallets, launch NFTs, and earn from decentralized platforms. This course is designed for influencers who want to future-proof their income streams.",
     category: "monetization",
     thumbnail: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=450&fit=crop",
     price: "59.00",
@@ -129,7 +129,7 @@ const DEMO_COURSES = [
       "A smartphone for wallet setup",
     ],
     lessons: [
-      { title: "The Web3 Creator Economy Explained", content: "Why crypto payments are the future of influencer monetization and how to position yourself ahead of the curve.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 1, isPreview: true },
+      { title: "The Web3 Influencer Economy Explained", content: "Why crypto payments are the future of influencer monetization and how to position yourself ahead of the curve.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 1, isPreview: true },
       { title: "Setting Up Your Crypto Wallets", content: "Step-by-step wallet setup for USDT on Tron (TRC20), BNB Smart Chain (BEP20), and TON. Includes security best practices.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 2, isPreview: true },
       { title: "Getting Paid in Crypto", content: "Add your wallet to brand briefs, invoices, and platforms. We cover everything from invoicing to gas fee management.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 3, isPreview: false },
       { title: "Taskdrip Platform Masterclass", content: "Use Taskdrip to find crypto-paying brand campaigns, submit proof of work, and receive USDT directly to your wallet.", videoLink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", order: 4, isPreview: false },
@@ -206,9 +206,9 @@ const DEMO_PRODUCTS = [
     tags: ["hashtags", "instagram", "tiktok", "free", "tool"],
   },
   {
-    title: "Content Creator Toolkit",
+    title: "Content Influencer Toolkit",
     shortDescription: "Everything you need to produce professional content",
-    description: "The ultimate all-in-one toolkit for content creators. Includes 50 Lightroom presets for photo editing, 30 LUTs for video color grading, a 12-month content calendar template, caption swipe file with 100+ viral captions, and a complete brand deal tracker spreadsheet.",
+    description: "The ultimate all-in-one toolkit for content influencers. Includes 50 Lightroom presets for photo editing, 30 LUTs for video color grading, a 12-month content calendar template, caption swipe file with 100+ viral captions, and a complete brand deal tracker spreadsheet.",
     price: "39.00",
     originalPrice: "75.00",
     category: "tools",
@@ -225,12 +225,12 @@ const DEMO_PRODUCTS = [
     isActive: true,
     isFeatured: true,
     isFree: false,
-    tags: ["lightroom", "luts", "presets", "content creator", "toolkit"],
+    tags: ["lightroom", "luts", "presets", "content influencer", "toolkit"],
   },
   {
     title: "Personal Brand Strategy Guide",
     shortDescription: "Build a brand that brands want to work with",
-    description: "A comprehensive 80-page PDF guide covering everything from defining your niche and visual identity to pitching to Fortune 500 companies. Includes real case studies from creators who went from 0 to six-figure brand deals using these exact strategies.",
+    description: "A comprehensive 80-page PDF guide covering everything from defining your niche and visual identity to pitching to Fortune 500 companies. Includes real case studies from influencers who went from 0 to six-figure brand deals using these exact strategies.",
     price: "24.00",
     originalPrice: "40.00",
     category: "education",
@@ -241,7 +241,7 @@ const DEMO_PRODUCTS = [
       "Niche selection framework",
       "Visual identity workbook",
       "Brand pitch templates & scripts",
-      "5 real creator case studies",
+      "5 real influencer case studies",
     ],
     requirements: ["PDF reader (free)"],
     isActive: true,
@@ -254,7 +254,7 @@ const DEMO_PRODUCTS = [
 const DEMO_FEED_POSTS = [
   {
     id: "demo_feed_taskdrip_launch",
-    content: "Welcome to the Taskdrip creator feed. Share campaign wins, useful creator tips, collaboration updates, and Web3 earning lessons with the community.",
+    content: "Welcome to the Taskdrip influencer feed. Share campaign wins, useful influencer tips, collaboration updates, and Web3 earning lessons with the community.",
     imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=700&fit=crop",
     likeCount: 28,
     commentCount: 4,
@@ -272,7 +272,7 @@ const DEMO_FEED_POSTS = [
   },
   {
     id: "demo_feed_creator_tip",
-    content: "Creator tip: keep your profile fresh. Updated follower counts, niche tags, platform links, and proof of past work help brands approve you faster.",
+    content: "Influencer tip: keep your profile fresh. Updated follower counts, niche tags, platform links, and proof of past work help brands approve you faster.",
     imageUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200&h=700&fit=crop",
     likeCount: 43,
     commentCount: 7,
@@ -283,54 +283,54 @@ const DEMO_FEED_POSTS = [
 
 const DEMO_BLOG_POSTS = [
   {
-    title: "How Web3 Campaign Payments Make Creator Work Faster",
-    slug: "web3-campaign-payments-creator-work",
-    content: "<p>Web3 payments help global creators work with brands without waiting on slow cross-border banking. On Taskdrip, brands fund campaigns, creators submit proof, and approved rewards can be tracked clearly from one dashboard.</p><p>The strongest campaigns still start with a simple brief: what to create, where to publish it, when it is due, and how success will be reviewed.</p>",
-    excerpt: "A practical look at why crypto-native campaign payments help brands and creators move faster.",
+    title: "How Web3 Campaign Payments Make Influencer Work Faster",
+    slug: "web3-campaign-payments-influencer-work",
+    content: "<p>Web3 payments help global influencers work with brands without waiting on slow cross-border banking. On Taskdrip, brands fund campaigns, influencers submit proof, and approved rewards can be tracked clearly from one dashboard.</p><p>The strongest campaigns still start with a simple brief: what to create, where to publish it, when it is due, and how success will be reviewed.</p>",
+    excerpt: "A practical look at why crypto-native campaign payments help brands and influencers move faster.",
     featuredImage: "https://images.unsplash.com/photo-1642104704074-907c0698cbd9?w=1200&h=700&fit=crop",
     category: "payments",
-    tags: ["web3", "creator economy", "payments"],
+    tags: ["web3", "influencer economy", "payments"],
     isPublished: true,
     publishedAt: new Date(),
     viewCount: 1260,
     likesCount: 84,
     commentsCount: 9,
-    metaDescription: "Learn how Web3 campaign payments improve speed and transparency for global creator campaigns.",
-    seoKeywords: "web3 creator payments, crypto influencer campaigns, socialfi payments",
+    metaDescription: "Learn how Web3 campaign payments improve speed and transparency for global influencer campaigns.",
+    seoKeywords: "web3 influencer payments, crypto influencer campaigns, socialfi payments",
     readingTime: 4,
   },
   {
-    title: "Creator Tiers Explained: From Rising Sparks to Global Titans",
-    slug: "creator-tiers-explained-taskdrip",
-    content: "<p>Taskdrip classifies creators by audience size so brands can discover the right partners for each campaign. Rising Sparks are perfect for authentic niche engagement, while Global Titans offer large-scale reach.</p><p>The best strategy is not always choosing the largest creator. Brands often see stronger conversion from creators whose audience closely matches the product niche.</p>",
-    excerpt: "Understand Taskdrip creator tiers and how brands can select the right influencer mix.",
+    title: "Influencer Tiers Explained: From Rising Sparks to Global Titans",
+    slug: "influencer-tiers-explained-taskdrip",
+    content: "<p>Taskdrip classifies influencers by audience size so brands can discover the right partners for each campaign. Rising Sparks are perfect for authentic niche engagement, while Global Titans offer large-scale reach.</p><p>The best strategy is not always choosing the largest influencer. Brands often see stronger conversion from influencers whose audience closely matches the product niche.</p>",
+    excerpt: "Understand Taskdrip influencer tiers and how brands can select the right influencer mix.",
     featuredImage: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&h=700&fit=crop",
-    category: "creators",
-    tags: ["creator tiers", "influencer marketing", "brands"],
+    category: "influencers",
+    tags: ["influencer tiers", "influencer marketing", "brands"],
     isPublished: true,
     publishedAt: new Date(),
     viewCount: 940,
     likesCount: 61,
     commentsCount: 6,
-    metaDescription: "A guide to Taskdrip creator tiers and how brands can choose creators for campaign performance.",
-    seoKeywords: "creator tiers, influencer tiers, Taskdrip creators",
+    metaDescription: "A guide to Taskdrip influencer tiers and how brands can choose influencers for campaign performance.",
+    seoKeywords: "influencer tiers, influencer tiers, Taskdrip influencers",
     readingTime: 5,
   },
   {
     title: "What Brands Should Include in a High-Converting Campaign Brief",
     slug: "high-converting-campaign-brief",
-    content: "<p>A strong campaign brief removes guesswork. Include the campaign goal, target platform, content format, required talking points, prohibited claims, deadline, proof requirements, and reward amount.</p><p>Clear briefs reduce revision cycles and help creators publish content that feels authentic while still protecting the brand.</p>",
-    excerpt: "Use this campaign brief checklist to get better creator submissions and faster approvals.",
+    content: "<p>A strong campaign brief removes guesswork. Include the campaign goal, target platform, content format, required talking points, prohibited claims, deadline, proof requirements, and reward amount.</p><p>Clear briefs reduce revision cycles and help influencers publish content that feels authentic while still protecting the brand.</p>",
+    excerpt: "Use this campaign brief checklist to get better influencer submissions and faster approvals.",
     featuredImage: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=700&fit=crop",
     category: "brands",
-    tags: ["campaign brief", "brand campaigns", "creator management"],
+    tags: ["campaign brief", "brand campaigns", "influencer management"],
     isPublished: true,
     publishedAt: new Date(),
     viewCount: 810,
     likesCount: 47,
     commentsCount: 5,
-    metaDescription: "A practical checklist for creating creator campaign briefs that convert.",
-    seoKeywords: "campaign brief, influencer brief, brand creator campaign",
+    metaDescription: "A practical checklist for creating influencer campaign briefs that convert.",
+    seoKeywords: "campaign brief, influencer brief, brand influencer campaign",
     readingTime: 3,
   },
 ];
@@ -338,7 +338,7 @@ const DEMO_BLOG_POSTS = [
 const DEMO_BRAND_EMAIL = "demobrand@taskdrip.online";
 const DEMO_BRAND_ID = "demo-brand-seed-001";
 const DEMO_CREATOR_EMAIL = "democreator@taskdrip.online";
-const DEMO_CREATOR_ID = "demo-creator-seed-001";
+const DEMO_CREATOR_ID = "demo-influencer-seed-001";
 
 const DEMO_CAMPAIGNS_DATA = [
   {
@@ -375,8 +375,8 @@ const DEMO_CAMPAIGNS_DATA = [
   },
   {
     id: "demo-campaign-003",
-    title: "YouTube Short — Web3 Creator Economy",
-    description: "Create a 60-second YouTube Short explaining how influencers can get paid in USDT using Taskdrip. Target audience: creators who don't know about crypto earning. Include the link in your description.",
+    title: "YouTube Short — Web3 Influencer Economy",
+    description: "Create a 60-second YouTube Short explaining how influencers can get paid in USDT using Taskdrip. Target audience: influencers who don't know about crypto earning. Include the link in your description.",
     category: "YouTube",
     reward: "40.00",
     totalSlots: 15,
@@ -423,8 +423,8 @@ const DEMO_CAMPAIGNS_DATA = [
   },
   {
     id: "demo-campaign-006",
-    title: "Blog Post — Getting Paid in Crypto as a Creator",
-    description: "Write a 600+ word blog post on Medium, Substack, or your personal blog about how creators can earn USDT/TON using platforms like Taskdrip. The article must include at least 2 links to Taskdrip and be indexed by Google (provide proof after 7 days).",
+    title: "Blog Post — Getting Paid in Crypto as a Influencer",
+    description: "Write a 600+ word blog post on Medium, Substack, or your personal blog about how influencers can earn USDT/TON using platforms like Taskdrip. The article must include at least 2 links to Taskdrip and be indexed by Google (provide proof after 7 days).",
     category: "Content Creation",
     reward: "60.00",
     totalSlots: 8,
@@ -574,7 +574,7 @@ export async function seedDemoData(adminUserId: string) {
         password: hashed,
         userType: "brand",
         companyName: "Taskdrip Official",
-        bio: "The official Taskdrip demo brand account. Campaigns here are examples of how brands use the platform to connect with creators.",
+        bio: "The official Taskdrip demo brand account. Campaigns here are examples of how brands use the platform to connect with influencers.",
         location: "Global",
         skills: [],
         referralCodeCreator: genCode("CR"),
@@ -585,22 +585,22 @@ export async function seedDemoData(adminUserId: string) {
       console.log("[seed] Demo brand created: demobrand@taskdrip.online / Brand@2024");
     }
 
-    // ── Demo Creator Account ────────────────────────────────────────────────
+    // ── Demo Influencer Account ────────────────────────────────────────────────
     const existingCreator = await storage.getUserByEmail(DEMO_CREATOR_EMAIL);
     if (!existingCreator) {
-      console.log("[seed] Creating demo creator account...");
-      const hashed = await bcrypt.hash("Creator@2024", 12);
+      console.log("[seed] Creating demo influencer account...");
+      const hashed = await bcrypt.hash("Influencer@2024", 12);
       const genCode = (prefix: string) =>
         `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
       await storage.createUser({
         id: DEMO_CREATOR_ID,
         firstName: "Alex",
-        lastName: "Creator",
+        lastName: "Influencer",
         email: DEMO_CREATOR_EMAIL,
         password: hashed,
-        userType: "creator",
+        userType: "influencer",
         username: "alex_creator",
-        bio: "Demo creator account for Taskdrip. I create content around crypto, tech, and social media growth. This is a showcase account.",
+        bio: "Demo influencer account for Taskdrip. I create content around crypto, tech, and social media growth. This is a showcase account.",
         location: "Lagos, Nigeria",
         niche: "Tech",
         skills: ["Content Creation", "Social Media", "Crypto"],
@@ -621,7 +621,7 @@ export async function seedDemoData(adminUserId: string) {
         referralCodeCreator: genCode("CR"),
         referralCodeBrand: genCode("BR"),
       } as any);
-      console.log("[seed] Demo creator created: democreator@taskdrip.online / Creator@2024");
+      console.log("[seed] Demo influencer created: democreator@taskdrip.online / Influencer@2024");
     }
 
     // ── Demo Campaigns ──────────────────────────────────────────────────────

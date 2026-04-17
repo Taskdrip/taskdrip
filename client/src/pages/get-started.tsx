@@ -15,9 +15,9 @@ const steps = [
     number: 1,
     icon: UserPlus,
     title: "Create Your Account",
-    description: "Sign up as a creator or brand in less than 2 minutes. Earn 50 $TDRIP points instantly on signup.",
+    description: "Sign up as a influencer or brand in less than 2 minutes. Earn 50 $TDRIP points instantly on signup.",
     details: [
-      "Choose Creator (earn) or Brand (hire)",
+      "Choose Influencer (earn) or Brand (hire)",
       "Fill in your basic info",
       "Instant access — no waiting",
       "+50 $TDRIP points on signup",
@@ -105,7 +105,7 @@ const levels = [
 ];
 
 const stats = [
-  { icon: Trophy, label: "Active Creators", value: "10K+" },
+  { icon: Trophy, label: "Active Influencers", value: "10K+" },
   { icon: TrendingUp, label: "Campaigns Run", value: "2.5K+" },
   { icon: DollarSign, label: "Paid Out (USDT)", value: "$450K+" },
   { icon: Shield, label: "Verified Brands", value: "500+" },
@@ -139,7 +139,7 @@ export default function GetStarted() {
             </span>
           </h1>
           <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Join 10,000+ creators earning crypto through brand campaigns. Follow 4 simple steps to start earning $TDRIP points and USDT rewards.
+            Join 10,000+ influencers earning crypto through brand campaigns. Follow 4 simple steps to start earning $TDRIP points and USDT rewards.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/signup">
@@ -301,7 +301,7 @@ export default function GetStarted() {
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-3">Join Our Community</h2>
             <p className="text-purple-200 text-lg max-w-xl mx-auto">
-              Connect with thousands of creators, get instant support, and never miss a new campaign drop.
+              Connect with thousands of influencers, get instant support, and never miss a new campaign drop.
             </p>
           </div>
 

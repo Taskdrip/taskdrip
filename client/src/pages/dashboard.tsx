@@ -49,7 +49,7 @@ export default function Dashboard() {
     enabled: !!user?.id,
   });
 
-  // Fetch messages for creator
+  // Fetch messages for influencer
   const { data: messages } = useQuery({
     queryKey: ['/api/messages'],
     enabled: !!user?.id,
@@ -225,7 +225,7 @@ export default function Dashboard() {
                     {user?.firstName} {user?.lastName}
                   </h1>
                   <Badge variant="secondary" className="text-sm">
-                    {user?.userType === 'creator' ? 'Creator' : 'Brand'}
+                    {user?.userType === 'creator' ? 'Influencer' : 'Brand'}
                   </Badge>
                 </div>
                 <p className="text-gray-600 mb-4">{user?.email}</p>

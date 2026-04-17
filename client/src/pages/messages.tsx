@@ -550,7 +550,7 @@ export default function MessagesPage() {
                 </h3>
                 <p className="text-slate-500 text-sm leading-relaxed mb-6">
                   {isAdmin
-                    ? "View all brand-creator conversations and support tickets."
+                    ? "View all brand-influencer conversations and support tickets."
                     : "Select a conversation, or start a new one. Use Support to reach the admin team."}
                 </p>
                 {!isAdmin && (
@@ -591,7 +591,7 @@ export default function MessagesPage() {
                 {(allUsers as any[]).map((u: any) => (
                   <option key={u.id} value={u.id}>
                     {u.userType === "brand" ? (u.companyName || `${u.firstName} ${u.lastName}`) : `${u.firstName} ${u.lastName}`}
-                    {u.userType === "admin" ? " (Admin)" : u.userType === "brand" ? " (Brand)" : " (Creator)"}
+                    {u.userType === "admin" ? " (Admin)" : u.userType === "brand" ? " (Brand)" : " (Influencer)"}
                   </option>
                 ))}
               </select>

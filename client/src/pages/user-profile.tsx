@@ -14,7 +14,7 @@ export default function UserProfile() {
       if (userType === "brand") {
         navigate(`/brand/${userId}`);
       } else {
-        navigate(`/creators/${userId}`);
+        navigate(`/influencers/${userId}`);
       }
     } else if (!isAuthenticated) {
       navigate("/login");

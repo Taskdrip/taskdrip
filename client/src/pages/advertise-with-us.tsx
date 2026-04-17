@@ -27,7 +27,7 @@ const PACKAGES = [
     badge: "Most Popular",
     badgeColor: "bg-blue-100 text-blue-700",
     price: "From $299/mo",
-    description: "Display and native ads shown to our entire platform audience of 10,000+ verified creators and brands.",
+    description: "Display and native ads shown to our entire platform audience of 10,000+ verified influencers and brands.",
     features: [
       "Homepage banner placement",
       "In-feed sponsored posts",
@@ -57,7 +57,7 @@ const PACKAGES = [
     reach: "500K+ Social Followers",
   },
   {
-    name: "Creator Network",
+    name: "Influencer Network",
     icon: Users,
     color: "from-amber-500 to-orange-600",
     badge: "Maximum ROI",
@@ -65,8 +65,8 @@ const PACKAGES = [
     price: "From $999/mo",
     description: "Connect with our network of verified Web3-native influencers to create authentic sponsored content.",
     features: [
-      "Matched with 5–20 relevant creators",
-      "Verified creator profiles only",
+      "Matched with 5–20 relevant influencers",
+      "Verified influencer profiles only",
       "Multi-platform content delivery",
       "Dedicated campaign manager",
       "Performance reporting & ROI tracking",
@@ -153,7 +153,7 @@ export default function AdvertiseWithUs() {
             <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent">Engaged Web3 Audience</span>
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Partner with Taskdrip to put your brand in front of 10,000+ verified Web3 creators, entrepreneurs, and early adopters who are ready to buy, use, and share.
+            Partner with Taskdrip to put your brand in front of 10,000+ verified Web3 influencers, entrepreneurs, and early adopters who are ready to buy, use, and share.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href="#apply">
@@ -195,11 +195,11 @@ export default function AdvertiseWithUs() {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: Target, title: "Highly Targeted Audience", desc: "Reach verified crypto users, influencers, brand managers, and Web3 entrepreneurs. No wasted impressions.", color: "text-blue-600 bg-blue-50" },
-              { icon: TrendingUp, title: "Proven Engagement", desc: "Our creators are active — campaign completion rates over 85%, and a community that actually takes action.", color: "text-purple-600 bg-purple-50" },
+              { icon: TrendingUp, title: "Proven Engagement", desc: "Our influencers are active — campaign completion rates over 85%, and a community that actually takes action.", color: "text-purple-600 bg-purple-50" },
               { icon: BarChart3, title: "Full Transparency", desc: "Real-time dashboards showing impressions, clicks, CTR, and conversions. You know exactly what you're getting.", color: "text-green-600 bg-green-50" },
-              { icon: Users, title: "Authentic Influencer Network", desc: "Access 10,000+ verified creators across TikTok, Instagram, Twitter, YouTube and more.", color: "text-amber-600 bg-amber-50" },
+              { icon: Users, title: "Authentic Influencer Network", desc: "Access 10,000+ verified influencers across TikTok, Instagram, Twitter, YouTube and more.", color: "text-amber-600 bg-amber-50" },
               { icon: Zap, title: "Crypto-Native Community", desc: "Your ad is seen by people who hold, trade, and use crypto daily. Perfect for Web3, DeFi, and NFT projects.", color: "text-orange-600 bg-orange-50" },
-              { icon: Award, title: "Brand Safety", desc: "All creators are verified and KYC-approved. Your brand always appears in a trusted, professional environment.", color: "text-indigo-600 bg-indigo-50" },
+              { icon: Award, title: "Brand Safety", desc: "All influencers are verified and KYC-approved. Your brand always appears in a trusted, professional environment.", color: "text-indigo-600 bg-indigo-50" },
             ].map(item => (
               <div key={item.title} className="flex gap-4">
                 <div className={`p-3 rounded-xl h-fit flex-shrink-0 ${item.color}`}><item.icon className="h-5 w-5" /></div>
@@ -291,7 +291,7 @@ export default function AdvertiseWithUs() {
             {[
               { step: "01", title: "Apply", desc: "Fill out the form below with your brand details and goals.", icon: Megaphone },
               { step: "02", title: "Strategy Call", desc: "Our team reviews your application and schedules a strategy call within 24h.", icon: Phone },
-              { step: "03", title: "Campaign Setup", desc: "We configure your ads, match creators, and set up tracking.", icon: Settings2 },
+              { step: "03", title: "Campaign Setup", desc: "We configure your ads, match influencers, and set up tracking.", icon: Settings2 },
               { step: "04", title: "Go Live", desc: "Your campaign launches. Monitor results in real-time.", icon: Play },
             ].map(s => (
               <div key={s.step} className="text-center">
@@ -386,7 +386,7 @@ export default function AdvertiseWithUs() {
                       <SelectContent>
                         <SelectItem value="platform_ads">Platform Ads (display / native)</SelectItem>
                         <SelectItem value="social_media">Social Media Promotion</SelectItem>
-                        <SelectItem value="influencer_network">Influencer / Creator Network</SelectItem>
+                        <SelectItem value="influencer_network">Influencer / Influencer Network</SelectItem>
                         <SelectItem value="sponsored_content">Sponsored Blog / Content</SelectItem>
                         <SelectItem value="all">Full Package (all of the above)</SelectItem>
                       </SelectContent>

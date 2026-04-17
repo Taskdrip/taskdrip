@@ -104,7 +104,7 @@ export async function blastCampaign(campaignId: string): Promise<{ sent: number;
   let allUsers = await db.select().from(users);
 
   const seg = campaign.targetSegment;
-  if (seg === "creators") allUsers = allUsers.filter(u => u.userType === "creator");
+  if (seg === "influencers") allUsers = allUsers.filter(u => u.userType === "creator");
   else if (seg === "brands") allUsers = allUsers.filter(u => u.userType === "brand");
   else if (seg === "verified") allUsers = allUsers.filter(u => u.isVerified);
   else if (seg === "unverified") allUsers = allUsers.filter(u => !u.isVerified);
@@ -191,10 +191,10 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
     subject: "Welcome to Taskdrip, {{first_name}}! 🚀",
     body: buildDefaultEmailHtml(`
       <h2>Welcome aboard, {{first_name}}! 🎉</h2>
-      <p>You've just joined the #1 Web3 Influencer Marketplace. We're thrilled to have you as a verified creator.</p>
+      <p>You've just joined the #1 Web3 Influencer Marketplace. We're thrilled to have you as a verified influencer.</p>
       <p><strong>What's next?</strong></p>
       <ul>
-        <li>Complete your creator profile</li>
+        <li>Complete your influencer profile</li>
         <li>Browse live brand campaigns</li>
         <li>Start earning crypto for your influence</li>
       </ul>
@@ -207,11 +207,11 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
     subject: "Welcome to Taskdrip, {{first_name}}! Let's launch your first campaign 🚀",
     body: buildDefaultEmailHtml(`
       <h2>Great to have you, {{first_name}}! 🎯</h2>
-      <p>Your brand account is ready. You now have access to 10,000+ verified Web3 creators across TikTok, YouTube, Instagram, and more.</p>
+      <p>Your brand account is ready. You now have access to 10,000+ verified Web3 influencers across TikTok, YouTube, Instagram, and more.</p>
       <p><strong>Launch your first campaign in 3 steps:</strong></p>
       <ol>
         <li>Set up your campaign brief</li>
-        <li>Choose your target creator tier</li>
+        <li>Choose your target influencer tier</li>
         <li>Fund the campaign and go live</li>
       </ol>
       <a href="{{site_url}}/campaigns/create" class="btn">Create a Campaign →</a>
@@ -236,7 +236,7 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
       <p>We've processed your payout request. Funds are being sent to your wallet.</p>
       <p>Transactions on the blockchain may take a few minutes to confirm depending on network congestion.</p>
       <a href="{{site_url}}/dashboard" class="btn">View Dashboard →</a>
-      <p>Thank you for being a valued Taskdrip creator!</p>
+      <p>Thank you for being a valued Taskdrip influencer!</p>
       <p>The Taskdrip Team</p>
     `),
   },
@@ -244,7 +244,7 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
     subject: "What's new on Taskdrip this week 📰",
     body: buildDefaultEmailHtml(`
       <h2>Hey {{first_name}}, here's your weekly Taskdrip update!</h2>
-      <p>Here's a round-up of the latest campaigns, creator opportunities, and platform news just for you.</p>
+      <p>Here's a round-up of the latest campaigns, influencer opportunities, and platform news just for you.</p>
       <h3>🔥 Trending Campaigns</h3>
       <p>New brand campaigns are live — don't miss your chance to earn crypto for your influence.</p>
       <h3>🎓 BreedSkool Academy</h3>
@@ -256,7 +256,7 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
   kyc_approved: {
     subject: "Your KYC has been verified! ✅",
     body: buildDefaultEmailHtml(`
-      <h2>You're now a verified creator, {{first_name}}! ✅</h2>
+      <h2>You're now a verified influencer, {{first_name}}! ✅</h2>
       <p>Your identity verification (KYC) has been successfully completed. You now have access to:</p>
       <ul>
         <li>Higher-value brand campaigns</li>

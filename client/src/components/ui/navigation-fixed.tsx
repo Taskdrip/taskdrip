@@ -36,7 +36,7 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
-          { href: "/creators", label: "Find Influencers" },
+          { href: "/influencers", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/ledger", label: "Ledger" },
@@ -48,7 +48,7 @@ export function NavigationFixed() {
         return [
           { href: "/", label: "Home" },
           { href: "/admin-dashboard", label: "Admin" },
-          { href: "/creators", label: "Influencers" },
+          { href: "/influencers", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/ledger", label: "Ledger" },
@@ -63,7 +63,7 @@ export function NavigationFixed() {
           { href: "/dashboard", label: "Dashboard" },
           { href: "/ledger", label: "Ledger" },
           { href: "/feed", label: "Feed" },
-          { href: "/creators", label: "Influencers" },
+          { href: "/influencers", label: "Influencers" },
           { href: "/leaderboard", label: "Leaderboard" },
           { href: "/shop", label: "Shop" },
         ];
@@ -73,7 +73,7 @@ export function NavigationFixed() {
         { href: "/", label: "Home" },
         { href: "/tasks", label: "Tasks" },
         { href: "/p2p-hub", label: "P2P Market" },
-        { href: "/creators", label: "Influencers" },
+        { href: "/influencers", label: "Influencers" },
         { href: "/breedskool", label: "BreedSkool" },
         { href: "/feed", label: "Feed" },
         { href: "/blog", label: "Blog" },

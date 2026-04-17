@@ -576,11 +576,11 @@ export default function SimpleDashboard() {
             </div>
 
             <div className="space-y-3">
-              {/* Creator link */}
+              {/* Influencer link */}
               <div className="bg-white/10 rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-purple-300">🎭 Invite Creators</span>
-                  <Badge className="bg-purple-500/30 text-purple-200 text-xs border-0">Creator Link</Badge>
+                  <span className="text-sm font-semibold text-purple-300">🎭 Invite Influencers</span>
+                  <Badge className="bg-purple-500/30 text-purple-200 text-xs border-0">Influencer Link</Badge>
                 </div>
                 {creatorLink ? (
                   <div className="flex items-center gap-2">
@@ -591,8 +591,8 @@ export default function SimpleDashboard() {
                       size="sm"
                       variant="ghost"
                       className="text-white hover:bg-white/20 h-8 px-2"
-                      onClick={() => copyLink(creatorLink, "Creator referral link")}
-                      data-testid="button-dash-copy-creator"
+                      onClick={() => copyLink(creatorLink, "Influencer referral link")}
+                      data-testid="button-dash-copy-influencer"
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>

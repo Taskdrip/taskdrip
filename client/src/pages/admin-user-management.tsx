@@ -71,14 +71,14 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
 
   const tierSummary = useMemo(() => {
     return TIER_ORDER.map(tierId => {
-      const creators: any[] = tierData[tierId] || [];
-      const totalEarnings = creators.reduce((s: number, c: any) => s + parseFloat(c.totalEarned || "0"), 0);
-      const avgFollowers = creators.length > 0
-        ? Math.round(creators.reduce((s: number, c: any) => s + (c.totalFollowers || 0), 0) / creators.length)
+      const influencers: any[] = tierData[tierId] || [];
+      const totalEarnings = influencers.reduce((s: number, c: any) => s + parseFloat(c.totalEarned || "0"), 0);
+      const avgFollowers = influencers.length > 0
+        ? Math.round(influencers.reduce((s: number, c: any) => s + (c.totalFollowers || 0), 0) / influencers.length)
         : 0;
-      const verified = creators.filter((c: any) => c.isVerified).length;
-      const topCreator = creators[0] || null;
-      return { tierId, creators, totalEarnings, avgFollowers, verified, topCreator };
+      const verified = influencers.filter((c: any) => c.isVerified).length;
+      const topCreator = influencers[0] || null;
+      return { tierId, influencers, totalEarnings, avgFollowers, verified, topCreator };
     });
   }, [tierData]);
 
@@ -185,15 +185,15 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
 
       {/* ── Per-Tier Summary Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {tierSummary.map(({ tierId, creators, totalEarnings, avgFollowers, verified, topCreator }) => {
+        {tierSummary.map(({ tierId, influencers, totalEarnings, avgFollowers, verified, topCreator }) => {
           const tier = TIER_CONFIG[tierId];
-          const verifiedPct = creators.length > 0 ? Math.round((verified / creators.length) * 100) : 0;
+          const verifiedPct = influencers.length > 0 ? Math.round((verified / influencers.length) * 100) : 0;
           return (
             <div key={tierId} className={`rounded-2xl border-2 ${tier.border} overflow-hidden`}>
               <div className={`bg-gradient-to-br ${tier.gradient} px-5 py-4`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-2xl">{tier.icon}</span>
-                  <span className="text-3xl font-black text-white">{creators.length}</span>
+                  <span className="text-3xl font-black text-white">{influencers.length}</span>
                 </div>
                 <div className="text-white font-black text-base">{tier.name}</div>
                 <div className="text-white/60 text-xs">{tier.range}</div>
@@ -351,10 +351,10 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCreators.map((creator: any, idx: number) => {
-                  const tier = TIER_CONFIG[creator._tier as CreatorTier] || TIER_CONFIG.rising_sparks;
+                {filteredCreators.map((influencer: any, idx: number) => {
+                  const tier = TIER_CONFIG[influencer._tier as CreatorTier] || TIER_CONFIG.rising_sparks;
                   return (
-                    <TableRow key={creator.id} className="hover:bg-gray-50/60 transition-colors group">
+                    <TableRow key={influencer.id} className="hover:bg-gray-50/60 transition-colors group">
                       {/* Rank */}
                       <TableCell className="text-center">
                         <span className={`text-sm font-black ${idx < 3 ? tier.text : "text-gray-300"}`}>
@@ -362,23 +362,23 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
                         </span>
                       </TableCell>
 
-                      {/* Creator */}
+                      {/* Influencer */}
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="w-10 h-10 flex-shrink-0">
-                            <AvatarImage src={creator.profileImageUrl || ""} />
+                            <AvatarImage src={influencer.profileImageUrl || ""} />
                             <AvatarFallback className={`bg-gradient-to-br ${tier.gradient} text-white text-sm font-bold`}>
-                              {(creator.firstName?.[0] || "C").toUpperCase()}
+                              {(influencer.firstName?.[0] || "C").toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
                             <div className="font-semibold text-sm text-gray-900 flex items-center gap-1.5 flex-wrap">
-                              <span className="truncate">{creator.firstName} {creator.lastName}</span>
-                              {creator.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                              <span className="truncate">{influencer.firstName} {influencer.lastName}</span>
+                              {influencer.isVerified && <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
                             </div>
-                            <div className="text-gray-400 text-xs truncate">{creator.email}</div>
-                            {creator.username && (
-                              <div className="text-gray-400 text-xs">@{creator.username}</div>
+                            <div className="text-gray-400 text-xs truncate">{influencer.email}</div>
+                            {influencer.username && (
+                              <div className="text-gray-400 text-xs">@{influencer.username}</div>
                             )}
                           </div>
                         </div>
@@ -393,8 +393,8 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
 
                       {/* Niche */}
                       <TableCell>
-                        {creator.niche
-                          ? <Badge variant="secondary" className="text-xs">{creator.niche}</Badge>
+                        {influencer.niche
+                          ? <Badge variant="secondary" className="text-xs">{influencer.niche}</Badge>
                           : <span className="text-gray-300 text-xs">—</span>
                         }
                       </TableCell>
@@ -402,20 +402,20 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
                       {/* Followers */}
                       <TableCell>
                         <span className={`font-black text-sm ${tier.text}`}>
-                          {formatFollowers(creator.totalFollowers || 0)}
+                          {formatFollowers(influencer.totalFollowers || 0)}
                         </span>
                       </TableCell>
 
                       {/* Platforms */}
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {creator.tiktokFollowers > 0 && <span className="text-xs bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full">TT {formatFollowers(creator.tiktokFollowers)}</span>}
-                          {creator.youtubeFollowers > 0 && <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">YT {formatFollowers(creator.youtubeFollowers)}</span>}
-                          {creator.instagramFollowers > 0 && <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">IG {formatFollowers(creator.instagramFollowers)}</span>}
-                          {creator.twitterFollowers > 0 && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">X {formatFollowers(creator.twitterFollowers)}</span>}
-                          {creator.twitchFollowers > 0 && <span className="text-xs bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded-full">Tw {formatFollowers(creator.twitchFollowers)}</span>}
-                          {creator.telegramFollowers > 0 && <span className="text-xs bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded-full">TG {formatFollowers(creator.telegramFollowers)}</span>}
-                          {!creator.tiktokFollowers && !creator.youtubeFollowers && !creator.instagramFollowers && !creator.twitterFollowers && !creator.twitchFollowers && !creator.telegramFollowers && (
+                          {influencer.tiktokFollowers > 0 && <span className="text-xs bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded-full">TT {formatFollowers(influencer.tiktokFollowers)}</span>}
+                          {influencer.youtubeFollowers > 0 && <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">YT {formatFollowers(influencer.youtubeFollowers)}</span>}
+                          {influencer.instagramFollowers > 0 && <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">IG {formatFollowers(influencer.instagramFollowers)}</span>}
+                          {influencer.twitterFollowers > 0 && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">X {formatFollowers(influencer.twitterFollowers)}</span>}
+                          {influencer.twitchFollowers > 0 && <span className="text-xs bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded-full">Tw {formatFollowers(influencer.twitchFollowers)}</span>}
+                          {influencer.telegramFollowers > 0 && <span className="text-xs bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded-full">TG {formatFollowers(influencer.telegramFollowers)}</span>}
+                          {!influencer.tiktokFollowers && !influencer.youtubeFollowers && !influencer.instagramFollowers && !influencer.twitterFollowers && !influencer.twitchFollowers && !influencer.telegramFollowers && (
                             <span className="text-gray-200 text-xs">—</span>
                           )}
                         </div>
@@ -424,7 +424,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
                       {/* Earnings */}
                       <TableCell>
                         <span className="font-bold text-green-600 text-sm">
-                          {formatEarnings(creator.totalEarned)}
+                          {formatEarnings(influencer.totalEarned)}
                         </span>
                       </TableCell>
 
@@ -432,7 +432,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Zap className="w-3.5 h-3.5 text-yellow-500" />
-                          <span className="text-sm font-semibold">{creator.completedCampaigns || 0}</span>
+                          <span className="text-sm font-semibold">{influencer.completedCampaigns || 0}</span>
                         </div>
                       </TableCell>
 
@@ -440,14 +440,14 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-semibold">{parseFloat(creator.rating || "0").toFixed(1)}</span>
+                          <span className="text-sm font-semibold">{parseFloat(influencer.rating || "0").toFixed(1)}</span>
                         </div>
                       </TableCell>
 
                       {/* Status */}
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          {creator.isVerified
+                          {influencer.isVerified
                             ? <span className="text-xs bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full w-fit">✓ KYC</span>
                             : <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full w-fit">Pending</span>
                           }
@@ -456,7 +456,7 @@ function AdminTiersDashboard({ tierData, isTierLoading }: { tierData: Record<str
 
                       {/* Actions */}
                       <TableCell className="text-right">
-                        <Link href={`/profile/${creator.id}`}>
+                        <Link href={`/profile/${influencer.id}`}>
                           <Button size="sm" variant="outline" className={`text-xs h-8 px-3 rounded-xl ${tier.text} border-current group-hover:shadow-sm`}>
                             <ExternalLink className="w-3.5 h-3.5 mr-1" /> Profile
                           </Button>
@@ -519,7 +519,7 @@ export default function AdminUserManagement() {
     },
   });
 
-  // Fetch creators grouped by tier
+  // Fetch influencers grouped by tier
   const { data: tierData = {}, isLoading: isTierLoading } = useQuery<Record<string, any[]>>({
     queryKey: ["/api/creators/by-tier"],
   });
@@ -794,7 +794,7 @@ export default function AdminUserManagement() {
             <div className="bg-white rounded-lg p-3 border border-blue-200">
               <p className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Influencer</p>
               <p className="text-sm font-mono text-gray-700">democreator@taskdrip.online</p>
-              <p className="text-sm font-mono text-gray-500">Creator@2024</p>
+              <p className="text-sm font-mono text-gray-500">Influencer@2024</p>
             </div>
           </div>
         </CardContent>
@@ -827,7 +827,7 @@ export default function AdminUserManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="creator">Influencers</SelectItem>
+                  <SelectItem value="influencer">Influencers</SelectItem>
                   <SelectItem value="brand">Brands</SelectItem>
                   <SelectItem value="admin">Admins</SelectItem>
                 </SelectContent>
@@ -917,7 +917,7 @@ export default function AdminUserManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="creator">Influencer</SelectItem>
+                              <SelectItem value="influencer">Influencer</SelectItem>
                               <SelectItem value="brand">Brand</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
@@ -1241,7 +1241,7 @@ export default function AdminUserManagement() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="creator">Influencer</SelectItem>
+                        <SelectItem value="influencer">Influencer</SelectItem>
                         <SelectItem value="brand">Brand</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>

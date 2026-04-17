@@ -20,7 +20,7 @@ const CREATOR_TIERS = [
     name: 'Rising Sparks',
     emoji: '🔥',
     range: '10K – 100K followers',
-    description: 'New creators just getting started. Access entry-level campaigns and build your first verified portfolio.',
+    description: 'New influencers just getting started. Access entry-level campaigns and build your first verified portfolio.',
     color: 'from-amber-400 to-orange-500',
     border: 'border-amber-200',
     bg: 'bg-amber-50',
@@ -29,7 +29,7 @@ const CREATOR_TIERS = [
     name: 'Growth Engines',
     emoji: '⚡',
     range: '100K – 1M followers',
-    description: 'Established creators with a fast-growing audience. Unlock mid-tier campaigns with higher payouts and brand deals.',
+    description: 'Established influencers with a fast-growing audience. Unlock mid-tier campaigns with higher payouts and brand deals.',
     color: 'from-cyan-400 to-blue-500',
     border: 'border-cyan-200',
     bg: 'bg-cyan-50',
@@ -38,7 +38,7 @@ const CREATOR_TIERS = [
     name: 'Power Influencers',
     emoji: '💎',
     range: '1M – 10M followers',
-    description: 'High-reach creators. Premium campaigns, priority placement, and dedicated brand relationships.',
+    description: 'High-reach influencers. Premium campaigns, priority placement, and dedicated brand relationships.',
     color: 'from-violet-500 to-purple-600',
     border: 'border-violet-200',
     bg: 'bg-violet-50',
@@ -68,13 +68,13 @@ const FEATURES = [
   {
     icon: Target,
     title: 'Campaign Engine',
-    description: 'Brands create detailed campaigns with budgets, requirements, and deadlines. Creators apply, get approved, and submit proof — all in one streamlined workflow.',
+    description: 'Brands create detailed campaigns with budgets, requirements, and deadlines. Influencers apply, get approved, and submit proof — all in one streamlined workflow.',
     color: 'text-purple-600',
     bg: 'bg-purple-50',
   },
   {
     icon: Award,
-    title: '4-Tier Creator System',
+    title: '4-Tier Influencer System',
     description: 'Auto-calculated tiers from Rising Sparks to Global Titans based on total social reach. Higher tiers unlock more lucrative campaigns and better exposure.',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
@@ -89,13 +89,13 @@ const FEATURES = [
   {
     icon: Shield,
     title: 'KYC & Verification',
-    description: 'Identity verification keeps the platform safe and builds trust between brands and creators. Verified creators get priority access to premium campaigns.',
+    description: 'Identity verification keeps the platform safe and builds trust between brands and influencers. Verified influencers get priority access to premium campaigns.',
     color: 'text-blue-600',
     bg: 'bg-blue-50',
   },
   {
     icon: Briefcase,
-    title: 'Creator Portfolio',
+    title: 'Influencer Portfolio',
     description: 'Showcase your best campaigns, collaborations, and content in a public portfolio linked from your profile — your own influencer CV.',
     color: 'text-indigo-600',
     bg: 'bg-indigo-50',
@@ -110,13 +110,13 @@ const FEATURES = [
   {
     icon: MessageCircle,
     title: 'Seamless DM Chat',
-    description: 'Built-in direct messaging between creators and brands. Real-time conversations, file sharing, and campaign coordination — all without leaving the platform.',
+    description: 'Built-in direct messaging between influencers and brands. Real-time conversations, file sharing, and campaign coordination — all without leaving the platform.',
     color: 'text-pink-600',
     bg: 'bg-pink-50',
   },
   {
     icon: ShoppingBag,
-    title: 'Creator Shop',
+    title: 'Influencer Shop',
     description: 'Sell digital products, presets, templates, and branded merchandise directly to your audience through the integrated Taskdrip Shop.',
     color: 'text-orange-600',
     bg: 'bg-orange-50',
@@ -173,13 +173,13 @@ export default function About() {
             <br />is On-Chain
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Taskdrip connects global brands with verified social media creators through transparent campaigns,
+            Taskdrip connects global brands with verified social media influencers through transparent campaigns,
             tier-based discovery, and direct crypto payments — no third-party agencies, no hidden gatekeepers.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/signup">
               <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-xl shadow-purple-500/30 px-8 font-semibold">
-                Join as Creator <ChevronRight className="w-4 h-4 ml-1" />
+                Join as Influencer <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>
             <Link href="/contact">
@@ -219,14 +219,14 @@ export default function About() {
                 <span className="text-purple-600"> Real Income</span>
               </h2>
               <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                We built Taskdrip because creators deserve better. Traditional influencer marketing
-                is opaque, slow, and dominated by agencies that take huge cuts. Taskdrip puts creators
+                We built Taskdrip because influencers deserve better. Traditional influencer marketing
+                is opaque, slow, and dominated by agencies that take huge cuts. Taskdrip puts influencers
                 and brands in direct contact, with verifiable reach metrics, transparent campaign terms,
                 and instant crypto payouts.
               </p>
               <div className="space-y-3">
                 {[
-                  'No agency fees — direct brand-to-creator deals',
+                  'No agency fees — direct brand-to-influencer deals',
                   'Verified social reach across 7+ platforms',
                   'Crypto payments: USDT TRC-20 (Tron), BEP-20 (BNB Chain), ERC-20 (Ethereum)',
                   'Auto-tiered discovery so the right brands find you',
@@ -247,14 +247,14 @@ export default function About() {
                 <h3 className="text-2xl font-bold mb-4">Why Taskdrip?</h3>
                 <p className="text-purple-100 text-sm leading-relaxed mb-6">
                   We're not just a marketplace — we're an ecosystem. From campaign management and crypto payments
-                  to education, community feed, and a creator shop, everything a modern influencer needs lives in one place.
+                  to education, community feed, and a influencer shop, everything a modern influencer needs lives in one place.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: 'Transparent', icon: '🔍' },
                     { label: 'Borderless', icon: '🌍' },
                     { label: 'Crypto-native', icon: '⛓️' },
-                    { label: 'Creator-first', icon: '❤️' },
+                    { label: 'Influencer-first', icon: '❤️' },
                   ].map(item => (
                     <div key={item.label} className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
                       <span>{item.icon}</span>
@@ -287,11 +287,11 @@ export default function About() {
         </div>
       </div>
 
-      {/* ── Creator Tiers ── */}
+      {/* ── Influencer Tiers ── */}
       <div className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <Badge className="mb-4 bg-amber-50 text-amber-700 border-0">Creator Tiers</Badge>
+            <Badge className="mb-4 bg-amber-50 text-amber-700 border-0">Influencer Tiers</Badge>
             <h2 className="text-4xl font-black text-gray-900 mb-3">Your Reach = Your Rank</h2>
             <p className="text-gray-500 max-w-xl mx-auto">
               Tiers are automatically calculated from your total followers across all linked platforms. As you grow, so do your opportunities.
@@ -317,7 +317,7 @@ export default function About() {
             <Badge className="mb-4 bg-purple-50 text-purple-700 border-0">Full Ecosystem</Badge>
             <h2 className="text-4xl font-black text-gray-900 mb-3">Everything Built In</h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              Taskdrip is not just a marketplace. It's a complete ecosystem designed to support creators at every stage of their journey.
+              Taskdrip is not just a marketplace. It's a complete ecosystem designed to support influencers at every stage of their journey.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -368,11 +368,11 @@ export default function About() {
             <h2 className="text-4xl font-black text-gray-900 mb-3">Simple. Transparent. Rewarding.</h2>
           </div>
           <div className="grid md:grid-cols-2 gap-12">
-            {/* Creators */}
+            {/* Influencers */}
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-black">C</div>
-                <h3 className="text-xl font-black text-gray-900">For Creators</h3>
+                <h3 className="text-xl font-black text-gray-900">For Influencers</h3>
               </div>
               <div className="space-y-4">
                 {[
@@ -402,9 +402,9 @@ export default function About() {
                 {[
                   { step: '1', title: 'Create a brand account', desc: 'Set up your company profile and verify your business.' },
                   { step: '2', title: 'Launch a campaign', desc: 'Define goals, budget, content requirements, and deadline. Fund escrow to go live.' },
-                  { step: '3', title: 'Review creator applications', desc: 'Browse applicants filtered by tier, niche, and reach. Admin approves accepted creators.' },
-                  { step: '4', title: 'Review creator submissions', desc: 'You are the primary reviewer — approve or reject each proof submission with notes.' },
-                  { step: '5', title: 'Release payment', desc: 'Approved submissions trigger automatic USDT crypto payouts to creator wallets. Admin mediates any disputes.' },
+                  { step: '3', title: 'Review influencer applications', desc: 'Browse applicants filtered by tier, niche, and reach. Admin approves accepted influencers.' },
+                  { step: '4', title: 'Review influencer submissions', desc: 'You are the primary reviewer — approve or reject each proof submission with notes.' },
+                  { step: '5', title: 'Release payment', desc: 'Approved submissions trigger automatic USDT crypto payouts to influencer wallets. Admin mediates any disputes.' },
                 ].map(s => (
                   <div key={s.step} className="flex gap-4 items-start">
                     <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">{s.step}</div>
@@ -425,11 +425,11 @@ export default function About() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-black text-gray-900 mb-2">Built on Trust & Security</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-sm">Every layer of Taskdrip is designed to protect creators and brands alike.</p>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm">Every layer of Taskdrip is designed to protect influencers and brands alike.</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
-              { icon: Shield, title: 'KYC Verification', desc: 'Optional identity verification for creators and brands unlocks higher campaign limits and builds mutual trust.', color: 'text-blue-600', bg: 'bg-blue-50' },
+              { icon: Shield, title: 'KYC Verification', desc: 'Optional identity verification for influencers and brands unlocks higher campaign limits and builds mutual trust.', color: 'text-blue-600', bg: 'bg-blue-50' },
               { icon: Lock, title: 'Direct Crypto Payouts', desc: 'We never hold your earnings. Once approved, USDT goes straight to your wallet via TRC-20 (Tron), BEP-20 (BNB Chain), or ERC-20 (Ethereum) — within 24–72 hours.', color: 'text-green-600', bg: 'bg-green-50' },
               { icon: Star, title: 'Review System', desc: 'Every completed campaign can be reviewed by both parties. Reputation scores are public and build over time.', color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map(item => (
@@ -455,7 +455,7 @@ export default function About() {
             Ready to Turn Your Influence<br />Into Crypto Income?
           </h2>
           <p className="text-gray-300 text-lg mb-10 leading-relaxed">
-            Join thousands of verified creators and hundreds of brands already building the future of influencer marketing on Taskdrip.
+            Join thousands of verified influencers and hundreds of brands already building the future of influencer marketing on Taskdrip.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/signup">

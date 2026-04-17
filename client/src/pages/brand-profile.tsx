@@ -71,7 +71,7 @@ function FollowListModal({ userId, type, open, onClose }: { userId: string; type
         ) : (
           <div className="space-y-2 mt-2">
             {users.map((u: any) => (
-              <Link key={u.id} href={u.userType === 'brand' ? `/brand/${u.id}` : `/creators/${u.id}`}>
+              <Link key={u.id} href={u.userType === 'brand' ? `/brand/${u.id}` : `/influencers/${u.id}`}>
                 <div onClick={onClose} className="flex items-center gap-3 p-3 rounded-xl border hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-all group">
                   <Avatar className="h-11 w-11 ring-2 ring-gray-100 group-hover:ring-emerald-200 flex-shrink-0">
                     <AvatarImage src={u.profileImageUrl} />
@@ -494,7 +494,7 @@ export default function BrandProfile() {
             <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
               <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Award className="w-5 h-5 text-amber-400" /> Creator Reviews
+                  <Award className="w-5 h-5 text-amber-400" /> Influencer Reviews
                 </h2>
                 {reviews.length > 0 && (
                   <div className="flex items-center gap-1 text-amber-400">

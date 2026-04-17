@@ -70,7 +70,7 @@ function ReferredUserCard({ ref: referral }: { ref: EnrichedReferral }) {
   return (
     <div className="flex items-start gap-3 py-4 border-b last:border-0" data-testid={`row-referral-${referral.id}`}>
       {/* Avatar + link to profile */}
-      <Link href={u ? `/creator/${u.id}` : '#'}>
+      <Link href={u ? `/influencer/${u.id}` : '#'}>
         <Avatar className="h-11 w-11 cursor-pointer ring-2 ring-offset-1 ring-purple-100 hover:ring-purple-400 transition-all">
           <AvatarImage src={u?.profileImageUrl || ''} />
           <AvatarFallback className="bg-gradient-to-br from-purple-100 to-indigo-100 text-purple-700 font-bold text-sm">{initials}</AvatarFallback>
@@ -79,7 +79,7 @@ function ReferredUserCard({ ref: referral }: { ref: EnrichedReferral }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <Link href={u ? `/creator/${u.id}` : '#'}>
+          <Link href={u ? `/influencer/${u.id}` : '#'}>
             <span className="font-semibold text-sm text-gray-900 hover:text-purple-700 cursor-pointer transition-colors">{displayName}</span>
           </Link>
           {tier && (
@@ -107,15 +107,15 @@ function ReferredUserCard({ ref: referral }: { ref: EnrichedReferral }) {
             <span className="flex items-center gap-1 text-green-600 font-medium"><DollarSign className="w-3 h-3" /> ${parseFloat(u!.totalEarned!).toFixed(0)} earned</span>
           )}
           <span className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full ${referral.referralType === 'creator' ? 'bg-purple-500' : 'bg-blue-500'}`} />
-            {referral.referralType === 'creator' ? 'Creator' : 'Brand'}
+            <span className={`w-2 h-2 rounded-full ${referral.referralType === 'influencer' ? 'bg-purple-500' : 'bg-blue-500'}`} />
+            {referral.referralType === 'influencer' ? 'Influencer' : 'Brand'}
           </span>
         </div>
       </div>
 
       {/* Action buttons */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <Link href={u ? `/creator/${u.id}` : '#'}>
+        <Link href={u ? `/influencer/${u.id}` : '#'}>
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-purple-600" title="View Profile">
             <ExternalLink className="w-3.5 h-3.5" />
           </Button>
@@ -201,7 +201,7 @@ export default function ReferralsPage() {
             <h1 className="text-3xl font-bold">Referral Program</h1>
           </div>
           <p className="text-gray-300 max-w-xl">
-            Invite creators and brands to Taskdrip. Earn <strong className="text-yellow-400">$5</strong> when they upgrade to Premium, and a bonus <strong className="text-yellow-400">$10</strong> when they earn or spend over $100.
+            Invite influencers and brands to Taskdrip. Earn <strong className="text-yellow-400">$5</strong> when they upgrade to Premium, and a bonus <strong className="text-yellow-400">$10</strong> when they earn or spend over $100.
           </p>
         </div>
       </div>
@@ -282,26 +282,26 @@ export default function ReferralsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5" /> Your Referral Links</CardTitle>
-                <CardDescription>Share these links — one for creators/influencers, one for brands</CardDescription>
+                <CardDescription>Share these links — one for influencers/influencers, one for brands</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
-                {/* Creator link */}
+                {/* Influencer link */}
                 <div className="rounded-xl border-2 border-gray-200 p-4 bg-gradient-to-r from-purple-50 to-white">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <span className="text-sm font-bold text-gray-800">🎭 Invite Creators / Influencers</span>
-                      <p className="text-xs text-gray-500 mt-0.5">Share with content creators, influencers, and social media personalities</p>
+                      <span className="text-sm font-bold text-gray-800">🎭 Invite Influencers / Influencers</span>
+                      <p className="text-xs text-gray-500 mt-0.5">Share with content influencers, influencers, and social media personalities</p>
                     </div>
-                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Creator</Badge>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Influencer</Badge>
                   </div>
                   {isLoading || ensureCodesMutation.isPending ? (
                     <Skeleton className="h-12 w-full" />
                   ) : creatorLink ? (
                     <>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 truncate font-mono" data-testid="text-creator-referral-link">{creatorLink}</div>
-                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(creatorLink, "Creator link")} data-testid="button-copy-creator-link"><Copy className="h-4 w-4" /></Button>
-                        <Button size="icon" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => shareLink(creatorLink, "Creator")} data-testid="button-share-creator-link"><Share2 className="h-4 w-4" /></Button>
+                        <div className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 truncate font-mono" data-testid="text-influencer-referral-link">{creatorLink}</div>
+                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(creatorLink, "Influencer link")} data-testid="button-copy-influencer-link"><Copy className="h-4 w-4" /></Button>
+                        <Button size="icon" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => shareLink(creatorLink, "Influencer")} data-testid="button-share-influencer-link"><Share2 className="h-4 w-4" /></Button>
                       </div>
                       <p className="text-xs text-gray-400 mt-2">Code: <span className="font-mono font-semibold text-gray-600">{referralData?.referralCodeCreator}</span></p>
                     </>
@@ -377,7 +377,7 @@ export default function ReferralsPage() {
               <CardHeader><CardTitle className="text-base">How Rewards Work</CardTitle></CardHeader>
               <CardContent className="space-y-4 text-sm">
                 {[
-                  { n: 1, text: "Copy your referral link (creator or brand).", icon: <LinkIcon className="w-3.5 h-3.5" /> },
+                  { n: 1, text: "Copy your referral link (influencer or brand).", icon: <LinkIcon className="w-3.5 h-3.5" /> },
                   { n: 2, text: "Share it on social media, WhatsApp, or directly.", icon: <Share2 className="w-3.5 h-3.5" /> },
                   { n: 3, text: "When they sign up using your link, they appear in your referrals list.", icon: <Users className="w-3.5 h-3.5" /> },
                   { n: 4, text: "Earn $5 when they upgrade to Premium.", icon: <DollarSign className="w-3.5 h-3.5 text-green-600" /> },

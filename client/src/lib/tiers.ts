@@ -19,7 +19,7 @@ export const TIER_CONFIG = {
     breedskoolRecommend: true,
   },
   aspiring: {
-    name: "Aspiring Creator",
+    name: "Aspiring Influencer",
     icon: "✨",
     range: "1 – 1K",
     rangeShort: "1–1K",
@@ -49,7 +49,7 @@ export const TIER_CONFIG = {
     border: "border-orange-200",
     text: "text-orange-700",
     badge: "bg-orange-100 text-orange-700",
-    description: "Emerging creators building loyal, engaged audiences",
+    description: "Emerging influencers building loyal, engaged audiences",
     breedskoolRecommend: false,
   },
   growth_engines: {
@@ -83,7 +83,7 @@ export const TIER_CONFIG = {
     border: "border-purple-200",
     text: "text-purple-700",
     badge: "bg-purple-100 text-purple-700",
-    description: "Premium creators with massive reach",
+    description: "Premium influencers with massive reach",
     breedskoolRecommend: false,
   },
   global_titans: {
@@ -100,7 +100,7 @@ export const TIER_CONFIG = {
     border: "border-yellow-200",
     text: "text-yellow-700",
     badge: "bg-yellow-100 text-yellow-700",
-    description: "World-class creators with global impact",
+    description: "World-class influencers with global impact",
     breedskoolRecommend: false,
   },
 };

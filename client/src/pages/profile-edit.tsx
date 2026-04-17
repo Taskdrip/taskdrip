@@ -373,7 +373,7 @@ export default function ProfileEdit() {
                   <div className="flex items-center gap-3">
                     <Award className={`w-8 h-8 ${previewTierConfig.text}`} />
                     <div>
-                      <div className="text-xs text-gray-500 font-medium">Your Creator Tier</div>
+                      <div className="text-xs text-gray-500 font-medium">Your Influencer Tier</div>
                       <div className={`font-bold ${previewTierConfig.text} text-lg`}>{previewTierConfig.icon} {previewTierConfig.name}</div>
                     </div>
                   </div>
@@ -450,7 +450,7 @@ export default function ProfileEdit() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Link2 className="w-5 h-5 text-purple-600" /> Social Media Links
               </CardTitle>
-              <CardDescription>Enter full profile URLs. Follower counts are used to calculate your creator tier.</CardDescription>
+              <CardDescription>Enter full profile URLs. Follower counts are used to calculate your influencer tier.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {BUILT_IN_PLATFORMS.map((platform) => {

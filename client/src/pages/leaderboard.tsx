@@ -33,7 +33,7 @@ function LeaderRow({
 }) {
   const isTop3 = rank <= 3;
   return (
-    <Link href={user.userType === "brand" ? `/brand/${user.id}` : `/creators/${user.id}`}>
+    <Link href={user.userType === "brand" ? `/brand/${user.id}` : `/influencers/${user.id}`}>
       <div
         className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-2 cursor-pointer transition-all hover:shadow-md border
           ${rank === 1 ? "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200" :
@@ -57,7 +57,7 @@ function LeaderRow({
             {isTop3 && <span className="ml-2 text-xs">{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}</span>}
           </div>
           <div className="text-xs text-gray-500 truncate flex items-center gap-2">
-            <span>{user.username ? `@${user.username}` : user.niche || user.companyName || "Creator"}</span>
+            <span>{user.username ? `@${user.username}` : user.niche || user.companyName || "Influencer"}</span>
             {badge && (
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getLevelColor(badge)}`}>{badge}</Badge>
             )}
@@ -127,7 +127,7 @@ export default function Leaderboard() {
           <Trophy className="w-14 h-14 mx-auto mb-4 text-yellow-400" />
           <h1 className="text-4xl md:text-5xl font-bold mb-3">Monthly Leaderboard</h1>
           <p className="text-gray-400 max-w-lg mx-auto text-lg">
-            Top creators ranked by $TDRIP points, referrals, and platform performance. Rankings reset every month.
+            Top influencers ranked by $TDRIP points, referrals, and platform performance. Rankings reset every month.
           </p>
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function Leaderboard() {
                             {(referralLeaders as any[])[0].firstName} {(referralLeaders as any[])[0].lastName}
                           </span>
                         </div>
-                        <p className="text-white/80 text-sm">{(referralLeaders as any[])[0].niche || "Top Creator"}</p>
+                        <p className="text-white/80 text-sm">{(referralLeaders as any[])[0].niche || "Top Influencer"}</p>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold">{(referralLeaders as any[])[0].totalReferrals ?? 0}</div>
