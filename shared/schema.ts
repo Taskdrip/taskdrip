@@ -1447,3 +1447,23 @@ export const pageContent = pgTable("page_content", {
 export const insertPageContentSchema = createInsertSchema(pageContent).omit({ id: true, updatedAt: true });
 export type PageContent = typeof pageContent.$inferSelect;
 export type InsertPageContent = z.infer<typeof insertPageContentSchema>;
+
+// Blog Tips - readers can tip blog posts using admin wallet
+export const blogTips = pgTable("blog_tips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => blogPosts.id),
+  userId: varchar("user_id").references(() => users.id),
+  displayName: varchar("display_name", { length: 100 }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 10 }).default("USDT"),
+  network: varchar("network", { length: 20 }).notNull(),
+  txHash: varchar("tx_hash", { length: 200 }),
+  walletAddress: varchar("wallet_address", { length: 200 }),
+  status: varchar("status").default("pending"), // 'pending', 'confirmed', 'rejected'
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertBlogTipSchema = createInsertSchema(blogTips).omit({ id: true, createdAt: true });
+export type BlogTip = typeof blogTips.$inferSelect;
+export type InsertBlogTip = z.infer<typeof insertBlogTipSchema>;

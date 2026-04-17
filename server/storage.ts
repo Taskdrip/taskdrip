@@ -114,6 +114,9 @@ import {
   emailCampaigns,
   emailAutoResponders,
   emailLogs,
+  blogTips,
+  type BlogTip,
+  type InsertBlogTip,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -276,6 +279,8 @@ export interface IStorage {
   followBlogCategory(userId: string, category: string): Promise<void>;
   unfollowBlogCategory(userId: string, category: string): Promise<void>;
   getBlogPostsByCategory(category: string): Promise<BlogPost[]>;
+  createBlogTip(tip: InsertBlogTip): Promise<BlogTip>;
+  getBlogTipsByPostId(postId: string): Promise<BlogTip[]>;
   getAllCreators(): Promise<User[]>;
 
   // BreedSkool course operations
@@ -1403,6 +1408,15 @@ export class DatabaseStorage implements IStorage {
 
   async getBlogPostsByCategory(category: string): Promise<BlogPost[]> {
     return await db.select().from(blogPosts).where(and(eq(blogPosts.category, category), eq(blogPosts.isPublished, true))).orderBy(desc(blogPosts.publishedAt));
+  }
+
+  async createBlogTip(tip: InsertBlogTip): Promise<BlogTip> {
+    const [newTip] = await db.insert(blogTips).values(tip as any).returning();
+    return newTip;
+  }
+
+  async getBlogTipsByPostId(postId: string): Promise<BlogTip[]> {
+    return await db.select().from(blogTips).where(eq(blogTips.postId, postId)).orderBy(desc(blogTips.createdAt));
   }
 
   async getAllCreators(): Promise<User[]> {

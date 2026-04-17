@@ -1341,6 +1341,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Blog tip wallet — returns active admin wallets for tip payments
+  app.get('/api/blog/tip-wallet', async (_req, res) => {
+    try {
+      const wallets = await storage.getActiveAdminWallets();
+      res.json(wallets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch tip wallets" });
+    }
+  });
+
+  // Submit a blog tip
+  app.post('/api/blog/:slug/tip', async (req: any, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const { amount, network, txHash, walletAddress, message, displayName } = req.body;
+      if (!amount || !network) return res.status(400).json({ message: "Amount and network are required" });
+      const tip = await storage.createBlogTip({
+        postId: post.id,
+        userId: req.user?.id || null,
+        displayName: displayName || (req.user ? `${req.user.firstName} ${req.user.lastName}`.trim() : "Anonymous"),
+        amount: String(amount),
+        currency: "USDT",
+        network,
+        txHash: txHash || null,
+        walletAddress: walletAddress || null,
+        status: "pending",
+        message: message || null,
+      });
+      res.status(201).json(tip);
+    } catch (error) {
+      console.error("Blog tip error:", error);
+      res.status(500).json({ message: "Failed to submit tip" });
+    }
+  });
+
+  // Get tips for a blog post
+  app.get('/api/blog/:slug/tips', async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      const tips = await storage.getBlogTipsByPostId(post.id);
+      res.json(tips);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch tips" });
+    }
+  });
+
   // Note: Shop routes moved to dedicated section below for better organization
 
   // Purchase routes

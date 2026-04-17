@@ -225,6 +225,13 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Post Analytics**: Added `viewCount` to feed posts and increment views when the feed is loaded.
 ✓ **Tip Checkout Flow**: Reworked tipping into a multi-step checkout-style flow: amount → payment method → payment details → confirmation, using admin-managed payment methods plus creator wallets.
 ✓ **Demo Content Seeding**: Demo feed posts and published blog posts are now seeded alongside courses and shop products when the demo database is empty.
+
+## Blog Enhancements (April 2026)
+✓ **SpotlightCarousel on Blog**: Added `BlogSpotlightCarousel` component to blog listing page — auto-cycling full-width slides for featured/image posts, with prev/next arrows and dot navigation (mirrors tasks.tsx pattern)
+✓ **Hero Background Image**: Blog hero section redesigned with multi-layer background (gradient + crosshatch SVG pattern + radial glow), gradient text, and stats row (article count, categories, community-driven)
+✓ **Advanced Filter System**: New `AdvancedFilters` panel with Sort By (newest/oldest/most viewed/most liked/most discussed), Reading Time (quick/medium/long), and Date Range (week/month/year) filters with active filter chips and count badge
+✓ **Blog Tip Feature**: Added `blogTips` table in schema; `GET /api/blog/tip-wallet` returns active admin wallets; `POST /api/blog/:slug/tip` records a tip submission; `GET /api/blog/:slug/tips` returns post tips
+✓ **TipModal on Blog Post**: 3-step modal (select network & amount → send crypto & paste tx hash → confirmation), preset tip amounts ($1–$50), copy-to-clipboard wallet address, optional message, supporters strip showing total tipped
 ✓ **Landing Page Refresh**: Redesigned the "How It Works" section with a premium white-background workflow, creator path, brand path, and gradient typography.
 
 ## Web3 SocialFi Improvements (April 2026 — Session 2)
