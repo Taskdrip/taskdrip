@@ -485,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Social Feed routes
   app.get('/api/feed', async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = parseInt(req.query.limit as string) || 100;
       const offset = parseInt(req.query.offset as string) || 0;
       const feed = await storage.getFeed(limit, offset);
       await storage.incrementPostViews(feed.map((post) => post.id));
@@ -493,6 +493,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching feed:", error);
       res.status(500).json({ message: "Failed to fetch feed" });
+    }
+  });
+
+  app.get('/api/feed/spotlight', async (_req, res) => {
+    try {
+      const posts = await storage.getSpotlightPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch spotlight posts" });
+    }
+  });
+
+  app.patch('/api/admin/posts/:id/spotlight', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getUser(req.user.id);
+      if (!canManageContent(admin)) return res.status(403).json({ message: 'Forbidden' });
+      const { isSpotlight, isSponsored } = req.body;
+      const post = await storage.setPostSpotlight(req.params.id, !!isSpotlight, !!isSponsored);
+      res.json(post);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update post spotlight" });
     }
   });
 

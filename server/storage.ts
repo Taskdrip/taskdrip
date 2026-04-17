@@ -226,6 +226,8 @@ export interface IStorage {
 
   // Social feed operations
   getFeed(limit?: number, offset?: number): Promise<(Post & { user: Partial<User> })[]>;
+  getSpotlightPosts(): Promise<(Post & { user: Partial<User> })[]>;
+  setPostSpotlight(id: string, isSpotlight: boolean, isSponsored: boolean): Promise<Post>;
   getUserPosts(userId: string): Promise<Post[]>;
   createPost(id: string, userId: string, content: string, imageUrl?: string, videoUrl?: string): Promise<Post>;
   updatePost(id: string, userId: string, updates: { content?: string; imageUrl?: string; videoUrl?: string }): Promise<Post>;
@@ -1250,6 +1252,31 @@ export class DatabaseStorage implements IStorage {
     const [post] = await db.update(posts).set({ ...updates, updatedAt: new Date() })
       .where(and(eq(posts.id, id), eq(posts.userId, userId))).returning();
     return post;
+  }
+
+  async setPostSpotlight(id: string, isSpotlight: boolean, isSponsored: boolean): Promise<Post> {
+    const [post] = await db.update(posts).set({ isSpotlight, isSponsored, updatedAt: new Date() } as any)
+      .where(eq(posts.id, id)).returning();
+    return post;
+  }
+
+  async getSpotlightPosts(): Promise<(Post & { user: Partial<User> })[]> {
+    const spotlightPosts = await db.select().from(posts)
+      .where(eq(posts.isSpotlight as any, true))
+      .orderBy(desc(posts.createdAt))
+      .limit(10);
+    const result: (Post & { user: Partial<User> })[] = [];
+    for (const post of spotlightPosts) {
+      const [u] = await db.select({
+        id: users.id, firstName: users.firstName, lastName: users.lastName,
+        username: users.username, profileImageUrl: users.profileImageUrl,
+        creatorTier: users.creatorTier, niche: users.niche,
+        isVerified: users.isVerified, totalFollowers: users.totalFollowers,
+        userType: users.userType, role: users.role,
+      }).from(users).where(eq(users.id, post.userId));
+      result.push({ ...post, user: u || {} });
+    }
+    return result;
   }
 
   async incrementPostViews(ids: string[]): Promise<void> {

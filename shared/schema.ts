@@ -823,6 +823,9 @@ export const posts = pgTable("posts", {
   commentCount: integer("comment_count").default(0),
   viewCount: integer("view_count").default(0),
   totalTipsReceived: decimal("total_tips_received", { precision: 10, scale: 2 }).default("0.00"),
+  isSpotlight: boolean("is_spotlight").default(false),
+  isSponsored: boolean("is_sponsored").default(false),
+  niche: varchar("niche"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

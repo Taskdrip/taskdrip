@@ -1721,6 +1721,18 @@ export default function AdminMaster() {
     },
   });
 
+  const spotlightPostMutation = useMutation({
+    mutationFn: async ({ id, isSpotlight, isSponsored }: { id: string; isSpotlight: boolean; isSponsored: boolean }) =>
+      (await apiRequest("PATCH", `/api/admin/posts/${id}/spotlight`, { isSpotlight, isSponsored })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/feed-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feed/spotlight"] });
+      toast({ title: "Post spotlight updated" });
+    },
+    onError: () => toast({ title: "Failed to update spotlight", variant: "destructive" }),
+  });
+
   const seedDemoCampaignsMutation = useMutation({
     mutationFn: async () => (await apiRequest("POST", "/api/admin/seed-demo-campaigns", {})).json(),
     onSuccess: (data) => {
@@ -4396,10 +4408,12 @@ export default function AdminMaster() {
                         <div key={post.id} className="border border-gray-100 rounded-xl p-4 bg-white hover:shadow-sm transition-shadow">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <Badge className={post.user?.userType === "admin" || post.user?.role === "admin" ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-700"}>
                                   {post.user?.userType === "admin" || post.user?.role === "admin" ? "Featured by Taskdrip" : "Community"}
                                 </Badge>
+                                {post.isSpotlight && <Badge className="bg-yellow-500 text-white text-xs">⭐ Spotlight</Badge>}
+                                {post.isSponsored && <Badge className="bg-orange-500 text-white text-xs">📣 Sponsored</Badge>}
                                 <span className="text-xs text-gray-400">{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Just now"}</span>
                               </div>
                               <p className="text-sm text-gray-800 whitespace-pre-wrap line-clamp-4" data-testid={`text-feed-post-${post.id}`}>{post.content}</p>
@@ -4411,18 +4425,42 @@ export default function AdminMaster() {
                                 <span>${post.totalTipsReceived || "0.00"} tips</span>
                               </div>
                             </div>
-                            {(post.user?.id === user?.id || post.userId === user?.id) && (
+                            <div className="flex flex-col gap-1.5 flex-shrink-0">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-500 border-red-200 hover:bg-red-50"
-                                disabled={deleteFeedPostMutation.isPending}
-                                onClick={() => { if (confirm("Delete this feed post?")) deleteFeedPostMutation.mutate(post.id); }}
-                                data-testid={`button-delete-feed-post-${post.id}`}
+                                className={post.isSpotlight ? "bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 text-xs" : "text-yellow-600 border-yellow-300 hover:bg-yellow-50 text-xs"}
+                                disabled={spotlightPostMutation.isPending}
+                                onClick={() => spotlightPostMutation.mutate({ id: post.id, isSpotlight: !post.isSpotlight, isSponsored: post.isSponsored || false })}
+                                data-testid={`button-spotlight-post-${post.id}`}
+                                title={post.isSpotlight ? "Remove from spotlight" : "Add to spotlight carousel"}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {post.isSpotlight ? "⭐ Spotlighted" : "☆ Spotlight"}
                               </Button>
-                            )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={post.isSponsored ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600 text-xs" : "text-orange-600 border-orange-300 hover:bg-orange-50 text-xs"}
+                                disabled={spotlightPostMutation.isPending}
+                                onClick={() => spotlightPostMutation.mutate({ id: post.id, isSpotlight: post.isSpotlight || false, isSponsored: !post.isSponsored })}
+                                data-testid={`button-sponsored-post-${post.id}`}
+                                title={post.isSponsored ? "Remove sponsored tag" : "Mark as sponsored/ad"}
+                              >
+                                {post.isSponsored ? "📣 Sponsored" : "📣 Sponsor"}
+                              </Button>
+                              {(post.user?.id === user?.id || post.userId === user?.id) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-500 border-red-200 hover:bg-red-50"
+                                  disabled={deleteFeedPostMutation.isPending}
+                                  onClick={() => { if (confirm("Delete this feed post?")) deleteFeedPostMutation.mutate(post.id); }}
+                                  data-testid={`button-delete-feed-post-${post.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
