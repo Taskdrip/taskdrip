@@ -106,6 +106,14 @@ export const users = pgTable("users", {
   preferredCurrency: varchar("preferred_currency").default("USD"),
   btcWallet: varchar("btc_wallet"),
   piWallet: varchar("pi_wallet"),
+  p2pWallets: jsonb("p2p_wallets").$type<Array<{
+    id: string;
+    crypto: string;
+    network: string;
+    address: string;
+    isActive: boolean;
+    isDefault: boolean;
+  }>>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

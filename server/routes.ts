@@ -4454,6 +4454,27 @@ Instructions:
       for (const key of allowed) {
         if (req.body[key] !== undefined) updates[key] = String(req.body[key] || '').trim() || null;
       }
+      // Handle p2pWallets array (new flexible wallet storage)
+      if (req.body.p2pWallets !== undefined) {
+        const wallets = req.body.p2pWallets;
+        if (Array.isArray(wallets)) {
+          updates.p2pWallets = wallets;
+          // Sync legacy fields from active wallets for backward compatibility
+          const active = wallets.filter((w: any) => w.isActive && w.address);
+          const findAddr = (crypto: string, nets: string[]) => {
+            const w = active.find((w: any) =>
+              w.crypto?.toUpperCase() === crypto &&
+              nets.some((n: string) => w.network?.toUpperCase().includes(n))
+            );
+            return w?.address || null;
+          };
+          updates.usdtTronWallet = findAddr('USDT', ['TRON','TRC20']) || updates.usdtTronWallet;
+          updates.usdtBscWallet  = findAddr('USDT', ['BSC','BEP20'])  || updates.usdtBscWallet;
+          updates.tonWallet      = findAddr('USDT', ['TON']) || active.find((w: any) => w.crypto?.toUpperCase() === 'TON')?.address || updates.tonWallet;
+          updates.piWallet       = findAddr('PI', ['PI']) || active.find((w: any) => w.crypto?.toUpperCase().includes('PI'))?.address || updates.piWallet;
+          updates.btcWallet      = findAddr('BTC', ['BTC','BITCOIN']) || updates.btcWallet;
+        }
+      }
       if (Object.keys(updates).length === 0) return res.status(400).json({ message: 'No valid fields to update' });
       const updatedUser = await storage.updateUserProfile(req.user.id, updates);
       const { password, ...safe } = updatedUser as any;

@@ -18,7 +18,7 @@ import {
   Filter, Globe, Info, Lock, MapPin, MessageSquare, Package,
   Plus, Search, Settings, Shield, ShieldCheck, Sparkles,
   Star, Store, Truck, Users, Wallet, X, Zap, BookOpen,
-  ChevronRight, AlertCircle, TrendingUp, Box,
+  ChevronRight, AlertCircle, TrendingUp, Box, Trash2, PlusCircle,
 } from "lucide-react";
 
 const COUNTRIES = [
@@ -166,21 +166,90 @@ function GuideBot({ onClose }: { onClose?: () => void }) {
   );
 }
 
+// ── Wallet types ───────────────────────────────────────────────────────────────
+interface P2PWallet {
+  id: string;
+  crypto: string;
+  network: string;
+  address: string;
+  isActive: boolean;
+  isDefault: boolean;
+  placeholder?: string;
+}
+
+const DEFAULT_P2P_WALLETS: P2PWallet[] = [
+  { id: "default-usdt-ton",  crypto: "USDT", network: "TON",        address: "", isActive: true, isDefault: true, placeholder: "UQxx... TON wallet address" },
+  { id: "default-usdt-tron", crypto: "USDT", network: "TRON (TRC20)", address: "", isActive: true, isDefault: true, placeholder: "TXxx... TRON wallet address" },
+  { id: "default-usdt-bsc",  crypto: "USDT", network: "BSC (BEP20)", address: "", isActive: true, isDefault: true, placeholder: "0x... BSC wallet address" },
+  { id: "default-pi",        crypto: "PI",   network: "Pi Network",  address: "", isActive: true, isDefault: true, placeholder: "Your Pi username or wallet address" },
+];
+
+function buildInitialWallets(user: any): P2PWallet[] {
+  if (user?.p2pWallets && Array.isArray(user.p2pWallets) && user.p2pWallets.length > 0) {
+    return user.p2pWallets.map((w: any) => ({
+      ...w,
+      placeholder: DEFAULT_P2P_WALLETS.find(d => d.id === w.id)?.placeholder || "",
+    }));
+  }
+  return DEFAULT_P2P_WALLETS.map(w => {
+    let address = "";
+    if (w.id === "default-usdt-ton")  address = user?.tonWallet || "";
+    if (w.id === "default-usdt-tron") address = user?.usdtTronWallet || "";
+    if (w.id === "default-usdt-bsc")  address = user?.usdtBscWallet || "";
+    if (w.id === "default-pi")        address = user?.piWallet || "";
+    return { ...w, address };
+  });
+}
+
+function WalletToggle({ active, onChange }: { active: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!active)}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${active ? "bg-violet-600" : "bg-gray-200"}`}
+      data-testid="wallet-toggle"
+    >
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${active ? "translate-x-4" : "translate-x-1"}`} />
+    </button>
+  );
+}
+
 // ── P2P Settings Modal ────────────────────────────────────────────────────────
 function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void }) {
   const { toast } = useToast();
-  const [form, setForm] = useState({
-    country: user?.country || "",
-    preferredCurrency: user?.preferredCurrency || "USD",
-    usdtTronWallet: user?.usdtTronWallet || "",
-    usdtBscWallet: user?.usdtBscWallet || "",
-    tonWallet: user?.tonWallet || "",
-    btcWallet: user?.btcWallet || "",
-    piWallet: user?.piWallet || "",
-  });
+  const [country, setCountry] = useState(user?.country || "");
+  const [preferredCurrency, setPreferredCurrency] = useState(user?.preferredCurrency || "USD");
+  const [wallets, setWallets] = useState<P2PWallet[]>(() => buildInitialWallets(user));
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newCrypto, setNewCrypto] = useState("");
+  const [newNetwork, setNewNetwork] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+
+  const updateWallet = (id: string, field: keyof P2PWallet, value: any) => {
+    setWallets(ws => ws.map(w => w.id === id ? { ...w, [field]: value } : w));
+  };
+
+  const addCustomWallet = () => {
+    if (!newCrypto.trim() || !newNetwork.trim()) {
+      toast({ title: "Required fields missing", description: "Please enter both cryptocurrency name and network.", variant: "destructive" });
+      return;
+    }
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setWallets(ws => [...ws, { id, crypto: newCrypto.trim().toUpperCase(), network: newNetwork.trim(), address: newAddress.trim(), isActive: true, isDefault: false }]);
+    setNewCrypto(""); setNewNetwork(""); setNewAddress("");
+    setShowAddForm(false);
+  };
+
+  const removeWallet = (id: string) => {
+    setWallets(ws => ws.filter(w => w.id !== id));
+  };
 
   const save = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/user/p2p-settings", form).then(r => r.json()),
+    mutationFn: () => apiRequest("PATCH", "/api/user/p2p-settings", {
+      country,
+      preferredCurrency,
+      p2pWallets: wallets.map(({ placeholder: _p, ...w }) => w),
+    }).then(r => r.json()),
     onSuccess: () => {
       toast({ title: "Trading profile saved!", description: "Your country, currency, and wallets are updated." });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -189,73 +258,168 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
     onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
   });
 
+  const defaultWallets = wallets.filter(w => w.isDefault);
+  const customWallets  = wallets.filter(w => !w.isDefault);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" data-testid="modal-p2p-settings">
       <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white flex items-center justify-between p-5 border-b border-gray-100">
+
+        {/* Header */}
+        <div className="sticky top-0 bg-white flex items-center justify-between p-5 border-b border-gray-100 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
               <Settings className="w-5 h-5 text-violet-600" />
             </div>
             <div>
               <h2 className="font-black text-gray-900 text-lg">Trading Profile</h2>
-              <p className="text-gray-500 text-xs">Set your country, currency, and wallets</p>
+              <p className="text-gray-500 text-xs">Wallets, country & currency for payments</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors" data-testid="close-settings-modal"><X className="w-5 h-5" /></button>
         </div>
-        <div className="p-5 space-y-5">
-          {/* Info banner */}
+
+        <div className="p-5 space-y-6">
+          {/* Info */}
           <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-            <p className="text-blue-700 text-xs leading-relaxed">Your wallets are used to <strong>receive payments</strong> from buyers and for <strong>refunds</strong> in case of disputes. Keep them up to date.</p>
+            <p className="text-blue-700 text-xs leading-relaxed">Your wallets are used to <strong>receive payments</strong> from buyers and for <strong>refunds</strong> in disputes. Toggle wallets on/off to control which are active for transactions.</p>
           </div>
 
           {/* Country & Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-sm font-semibold mb-1.5 block">Your Country</Label>
-              <select value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white" data-testid="select-country">
+              <select value={country} onChange={e => setCountry(e.target.value)} className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white" data-testid="select-country">
                 <option value="">Select country</option>
                 {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <Label className="text-sm font-semibold mb-1.5 block">Preferred Currency</Label>
-              <select value={form.preferredCurrency} onChange={e => setForm(f => ({ ...f, preferredCurrency: e.target.value }))} className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white" data-testid="select-preferred-currency">
+              <select value={preferredCurrency} onChange={e => setPreferredCurrency(e.target.value)} className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white" data-testid="select-preferred-currency">
                 {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
               </select>
             </div>
           </div>
 
-          {/* Crypto Wallets */}
+          {/* Default Wallets */}
           <div>
-            <p className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2"><Wallet className="w-4 h-4 text-violet-500" /> Crypto Wallets (for receiving payments & refunds)</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-violet-500" /> Default Wallets
+              </p>
+              <span className="text-[10px] text-gray-400 font-medium">Toggle to activate/deactivate</span>
+            </div>
             <div className="space-y-3">
-              {[
-                { key: "usdtTronWallet", label: "USDT TRC20 (TRON)", placeholder: "TXxx... address", badge: "Low Gas" },
-                { key: "usdtBscWallet",  label: "USDT BEP20 (BSC)",  placeholder: "0x... address",   badge: "Low Gas" },
-                { key: "tonWallet",      label: "TON (Telegram)",     placeholder: "UQxx... address", badge: "Low Gas" },
-                { key: "piWallet",       label: "Pi Network",         placeholder: "Your Pi username or wallet", badge: "Low Gas" },
-                { key: "btcWallet",      label: "Bitcoin / XRP / DOGE / LTC", placeholder: "Address for BTC, XRP, DOGE or LTC", badge: "" },
-              ].map(({ key, label, placeholder, badge }) => (
-                <div key={key}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Label className="text-xs text-gray-500">{label}</Label>
-                    {badge && <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full uppercase">{badge}</span>}
+              {defaultWallets.map(w => (
+                <div key={w.id} className={`rounded-xl border-2 p-3 transition-colors ${w.isActive ? "border-violet-200 bg-violet-50/30" : "border-gray-100 bg-gray-50/50 opacity-60"}`} data-testid={`wallet-card-${w.id}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${w.isActive ? "bg-violet-600 text-white" : "bg-gray-300 text-gray-600"}`}>
+                        {w.crypto.slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-800 text-xs">{w.crypto}</p>
+                        <p className="text-gray-400 text-[10px]">{w.network}</p>
+                      </div>
+                      <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full uppercase ml-1">Low Gas</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold ${w.isActive ? "text-violet-600" : "text-gray-400"}`}>{w.isActive ? "Active" : "Off"}</span>
+                      <WalletToggle active={w.isActive} onChange={v => updateWallet(w.id, "isActive", v)} />
+                    </div>
                   </div>
                   <Input
-                    value={(form as any)[key]}
-                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                    placeholder={placeholder}
-                    className="rounded-xl font-mono text-sm"
-                    data-testid={`input-wallet-${key}`}
+                    value={w.address}
+                    onChange={e => updateWallet(w.id, "address", e.target.value)}
+                    placeholder={w.placeholder || `Enter ${w.crypto} ${w.network} address`}
+                    className="rounded-lg font-mono text-xs h-8 bg-white"
+                    disabled={!w.isActive}
+                    data-testid={`input-wallet-address-${w.id}`}
                   />
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Custom / Additional Wallets */}
+          {customWallets.length > 0 && (
+            <div>
+              <p className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
+                <PlusCircle className="w-4 h-4 text-emerald-500" /> Additional Wallets
+              </p>
+              <div className="space-y-3">
+                {customWallets.map(w => (
+                  <div key={w.id} className={`rounded-xl border-2 p-3 transition-colors ${w.isActive ? "border-emerald-200 bg-emerald-50/30" : "border-gray-100 bg-gray-50/50 opacity-60"}`} data-testid={`wallet-card-${w.id}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${w.isActive ? "bg-emerald-600 text-white" : "bg-gray-300 text-gray-600"}`}>
+                          {w.crypto.slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-800 text-xs">{w.crypto}</p>
+                          <p className="text-gray-400 text-[10px]">{w.network}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold ${w.isActive ? "text-emerald-600" : "text-gray-400"}`}>{w.isActive ? "Active" : "Off"}</span>
+                        <WalletToggle active={w.isActive} onChange={v => updateWallet(w.id, "isActive", v)} />
+                        <button onClick={() => removeWallet(w.id)} className="text-red-400 hover:text-red-600 transition-colors ml-1" data-testid={`remove-wallet-${w.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      value={w.address}
+                      onChange={e => updateWallet(w.id, "address", e.target.value)}
+                      placeholder={`Enter ${w.crypto} ${w.network} wallet address`}
+                      className="rounded-lg font-mono text-xs h-8 bg-white"
+                      disabled={!w.isActive}
+                      data-testid={`input-wallet-address-${w.id}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add Cryptocurrency */}
+          {!showAddForm ? (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 p-3 text-sm font-semibold text-gray-500 hover:border-violet-300 hover:text-violet-600 transition-colors"
+              data-testid="button-add-crypto"
+            >
+              <Plus className="w-4 h-4" /> Add Cryptocurrency
+            </button>
+          ) : (
+            <div className="rounded-xl border-2 border-dashed border-violet-300 bg-violet-50/30 p-4 space-y-3" data-testid="add-crypto-form">
+              <p className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <PlusCircle className="w-4 h-4 text-violet-500" /> Add Custom Cryptocurrency
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Cryptocurrency Name *</Label>
+                  <Input value={newCrypto} onChange={e => setNewCrypto(e.target.value)} placeholder="e.g. BTC, ETH, SOL" className="rounded-lg text-xs h-8" data-testid="input-new-crypto" />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-500 mb-1 block">Network *</Label>
+                  <Input value={newNetwork} onChange={e => setNewNetwork(e.target.value)} placeholder="e.g. Bitcoin, ERC20, SOL" className="rounded-lg text-xs h-8" data-testid="input-new-network" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500 mb-1 block">Wallet Address</Label>
+                <Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Enter wallet address (optional, add later)" className="rounded-lg font-mono text-xs h-8" data-testid="input-new-address" />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="flex-1 bg-violet-600 hover:bg-violet-700 rounded-lg h-8 text-xs" onClick={addCustomWallet} data-testid="button-confirm-add-crypto">Add Wallet</Button>
+                <Button size="sm" variant="outline" className="flex-1 rounded-lg h-8 text-xs border-gray-200" onClick={() => { setShowAddForm(false); setNewCrypto(""); setNewNetwork(""); setNewAddress(""); }} data-testid="button-cancel-add-crypto">Cancel</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Save */}
           <Button
             className="w-full rounded-xl bg-violet-600 hover:bg-violet-700 font-bold py-3"
             onClick={() => save.mutate()}
