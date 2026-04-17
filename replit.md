@@ -118,6 +118,13 @@ Design preferences: Clean, professional web app design with white background and
 
 ## Recent Changes (July 29-30, 2025)
 
+## Replit Migration (April 2026)
+
+✓ Installed Node.js dependencies for the imported project.
+✓ Confirmed the app uses a single Express server on `0.0.0.0` and `PORT=5000` for Replit preview compatibility.
+✓ Updated Vite dev-server host handling so Replit's proxied preview can load the app safely.
+✓ Aligned the production run target with the existing build output at `dist/index.js`.
+
 ✓ **Authentication System Overhaul**: Completely replaced Replit Auth with custom email/password system
 ✓ **Password Security**: Implemented bcrypt hashing with secure salt generation
 ✓ **Session Management**: Configured PostgreSQL session store for reliable authentication state
