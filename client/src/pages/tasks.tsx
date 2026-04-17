@@ -47,7 +47,7 @@ function getCategoryEmoji(category: string): string {
   return emojis[category] || "📝";
 }
 
-function TaskCard({ campaign }: { campaign: any }) {
+function TaskCard({ campaign, hasApplied }: { campaign: any; hasApplied?: boolean }) {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
   const filled = campaign.filledSlots || 0;
@@ -170,15 +170,19 @@ function TaskCard({ campaign }: { campaign: any }) {
         {/* CTA */}
         <button
           onClick={handleClick}
-          disabled={isFull}
+          disabled={isFull && !hasApplied}
           data-testid={`btn-apply-${campaign.id}`}
           className={`mt-4 w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-            isFull
+            hasApplied
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+              : isFull
               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
               : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-purple-300/50"
           }`}
         >
-          {isFull ? "Slots Full" : (
+          {hasApplied ? (
+            <><CheckCircle className="w-4 h-4 text-emerald-600" /> Applied Already</>
+          ) : isFull ? "Slots Full" : (
             <>View & Apply <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
@@ -332,7 +336,7 @@ function GuideBot({ isAuthenticated }: { isAuthenticated: boolean }) {
 }
 
 export default function TasksPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -341,6 +345,16 @@ export default function TasksPage() {
   const { data: rawCampaigns = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
   });
+
+  // Fetch participations so we can show "Applied Already" on cards
+  const { data: participations = [] } = useQuery<any[]>({
+    queryKey: ["/api/participations"],
+    enabled: isAuthenticated && (user as any)?.userType !== "brand",
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+  const appliedCampaignIds = new Set((participations as any[]).map((p: any) => p.campaignId));
 
   const campaigns = (rawCampaigns as any[]).filter((c: any) => c.isActive && c.status === "active");
 
@@ -547,7 +561,7 @@ export default function TasksPage() {
         {!isLoading && filtered.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
             {filtered.map((campaign: any) => (
-              <TaskCard key={campaign.id} campaign={campaign} />
+              <TaskCard key={campaign.id} campaign={campaign} hasApplied={appliedCampaignIds.has(campaign.id)} />
             ))}
           </div>
         )}

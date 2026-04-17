@@ -332,14 +332,27 @@ export default function BrandProfile() {
                           data-testid="brand-follow-btn">
                           {isFollowing ? <><UserCheck className="w-4 h-4" />Following</> : <><UserPlus className="w-4 h-4" />Follow</>}
                         </Button>
-                        {canMessage && (
-                          <Button
-                            variant="outline"
-                            onClick={() => setLocation(`/chat?to=${brandId}`)}
-                            className="gap-2 border-slate-600 text-slate-300 bg-slate-700 hover:bg-slate-600"
-                            data-testid="brand-message-btn">
-                            <MessageCircle className="w-4 h-4" /> Message
-                          </Button>
+                        {canMessageData !== undefined && (
+                          canMessage ? (
+                            <Button
+                              variant="outline"
+                              onClick={() => setLocation(`/messages?to=${brandId}`)}
+                              className="gap-2 border-slate-600 text-slate-300 bg-slate-700 hover:bg-slate-600"
+                              data-testid="brand-message-btn">
+                              <MessageCircle className="w-4 h-4" /> Message
+                            </Button>
+                          ) : canMessageData?.reason ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <Button
+                                variant="outline"
+                                disabled
+                                className="gap-2 border-slate-700 text-slate-500 bg-slate-800 cursor-not-allowed opacity-70"
+                                data-testid="brand-message-btn-disabled">
+                                <MessageCircle className="w-4 h-4" /> Message
+                              </Button>
+                              <span className="text-xs text-slate-500 text-center max-w-[140px]">{canMessageData.reason}</span>
+                            </div>
+                          ) : null
                         )}
                         <Button variant="ghost" size="icon" onClick={shareProfile} className="text-slate-400 hover:text-white hover:bg-slate-700">
                           <Share2 className="w-4 h-4" />
