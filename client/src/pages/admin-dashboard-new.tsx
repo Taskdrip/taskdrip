@@ -69,7 +69,7 @@ interface BlogPost {
 }
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [newBlogPost, setNewBlogPost] = useState<{
@@ -155,6 +155,14 @@ export default function AdminDashboard() {
       });
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+      </div>
+    );
+  }
 
   if ((user as any)?.userType !== 'admin') {
     return (

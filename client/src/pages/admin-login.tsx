@@ -51,7 +51,8 @@ export default function AdminLogin() {
         });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.setQueryData(['/api/user'], data.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       toast({
         title: 'Welcome, Admin',
         description: `Signed in as ${data.user.firstName} ${data.user.lastName}`,

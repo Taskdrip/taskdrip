@@ -1061,7 +1061,7 @@ function AdminP2PListingsPanel() {
 }
 
 export default function AdminMaster() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const { walletAddresses, updateWalletAddress, copyToClipboard } = useWallets();
   const currentRole = ((user as any)?.role || ((user as any)?.userType === "admin" ? "admin" : "user")) as string;
@@ -1834,6 +1834,14 @@ export default function AdminMaster() {
       setActiveTab(allowedTabs[0]);
     }
   }, [activeTab, allowedTabs, hasDashboardAccess]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+      </div>
+    );
+  }
 
   if (!hasDashboardAccess) {
     return (
