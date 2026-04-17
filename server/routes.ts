@@ -162,6 +162,9 @@ async function enrichP2PListing(listing: any) {
       profileImageUrl: seller.profileImageUrl,
       rating: seller.rating,
       userType: seller.userType,
+      country: (seller as any).country,
+      preferredCurrency: (seller as any).preferredCurrency,
+      completedCampaigns: seller.completedCampaigns,
     } : null,
   };
 }
@@ -4415,6 +4418,21 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // P2P trading profile settings (country, currency, crypto wallets)
+  app.patch('/api/user/p2p-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const allowed = ['country', 'preferredCurrency', 'usdtTronWallet', 'usdtBscWallet', 'usdtEthWallet', 'tonWallet', 'btcWallet'];
+      const updates: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) updates[key] = String(req.body[key] || '').trim() || null;
+      }
+      if (Object.keys(updates).length === 0) return res.status(400).json({ message: 'No valid fields to update' });
+      const updatedUser = await storage.updateUserProfile(req.user.id, updates);
+      const { password, ...safe } = updatedUser as any;
+      res.json(safe);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   // ═══════════════════════════════════════════════════
   // PORTFOLIO ITEMS
   // ═══════════════════════════════════════════════════
@@ -5156,9 +5174,31 @@ Instructions:
   app.get('/api/p2p/listings', async (req: any, res) => {
     try {
       const type = String(req.query.type || 'all');
-      const rows = await db.select().from(p2pListings)
-        .where(type !== 'all' && p2pTypes.includes(type) ? and(eq(p2pListings.status, 'approved'), eq(p2pListings.listingType, type)) : eq(p2pListings.status, 'approved'))
+      const subtype = String(req.query.subtype || '');
+      const country = String(req.query.country || '');
+      const currency = String(req.query.currency || '');
+      const search = String(req.query.search || '');
+      const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
+      const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+
+      let conditions: any[] = [eq(p2pListings.status, 'approved')];
+      if (type !== 'all' && p2pTypes.includes(type)) conditions.push(eq(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq(p2pListings.productSubtype as any, subtype));
+      if (country) conditions.push(eq(p2pListings.country as any, country));
+      if (currency) conditions.push(eq(p2pListings.currency as any, currency));
+
+      let rows = await db.select().from(p2pListings)
+        .where(and(...conditions))
         .orderBy(desc(p2pListings.createdAt));
+
+      // In-memory filters for search and price range
+      if (search) {
+        const q = search.toLowerCase();
+        rows = rows.filter(r => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
+      }
+      if (minPrice !== null) rows = rows.filter(r => Number(r.price) >= minPrice!);
+      if (maxPrice !== null) rows = rows.filter(r => Number(r.price) <= maxPrice!);
+
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
@@ -5174,13 +5214,28 @@ Instructions:
       if (!title || !description || !paymentMethod || !Number.isFinite(price) || price <= 0) {
         return res.status(400).json({ message: 'Title, description, price, and payment method are required' });
       }
+      const currency = String(req.body.currency || 'USD').trim().toUpperCase();
+      const country = String(req.body.country || '').trim();
+      const productSubtype = String(req.body.productSubtype || '').trim();
+      const cryptoAsset = String(req.body.cryptoAsset || '').trim();
+      const shippingInfo = String(req.body.shippingInfo || '').trim();
+      const minOrder = req.body.minOrder ? Number(req.body.minOrder) : null;
+      const maxOrder = req.body.maxOrder ? Number(req.body.maxOrder) : null;
+
       const [listing] = await db.insert(p2pListings).values({
         sellerId: req.user.id,
         title,
         listingType,
+        productSubtype: productSubtype || null,
         description,
         price: price.toFixed(2),
+        currency,
+        minOrder: minOrder ? minOrder.toFixed(2) : null,
+        maxOrder: maxOrder ? maxOrder.toFixed(2) : null,
+        cryptoAsset: cryptoAsset || null,
         paymentMethod,
+        country: country || (req.user as any).country || null,
+        shippingInfo: shippingInfo || null,
         featuredImage: req.file ? `/uploads/${req.file.filename}` : null,
         status: 'pending',
       }).returning();
@@ -5208,10 +5263,26 @@ Instructions:
       const active = await db.select().from(p2pTransactions).where(sql`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
       if (active.length) return res.status(400).json({ message: 'You already have an active deal for this listing' });
       const admins = await storage.getUsersByType('admin');
+      const seller = await storage.getUser(listing.sellerId);
       const config = await getP2PFeeConfig(listing.listingType);
       const amount = Number(listing.price);
       const fee = calculateP2PFee(amount, config);
       const totalAmount = amount + fee;
+
+      // Determine seller's receiving wallet based on payment method
+      const payMethod = (listing.paymentMethod || '').toLowerCase();
+      let sellerWallet = '';
+      if (payMethod.includes('tron') || payMethod.includes('trc')) sellerWallet = (seller as any)?.usdtTronWallet || '';
+      else if (payMethod.includes('bsc') || payMethod.includes('bep')) sellerWallet = (seller as any)?.usdtBscWallet || '';
+      else if (payMethod.includes('eth') || payMethod.includes('erc')) sellerWallet = (seller as any)?.usdtEthWallet || '';
+      else if (payMethod.includes('ton')) sellerWallet = (seller as any)?.tonWallet || '';
+      else if (payMethod.includes('btc') || payMethod.includes('bitcoin')) sellerWallet = (seller as any)?.btcWallet || '';
+
+      // Buyer's crypto wallet for refund (from body or profile)
+      const buyerCryptoWallet = String(req.body.buyerCryptoWallet || (req.user as any).usdtTronWallet || '');
+      // Shipping address for physical products
+      const shippingAddress = listing.productSubtype === 'physical' ? String(req.body.shippingAddress || '') : null;
+
       const [tx] = await db.insert(p2pTransactions).values({
         listingId: listing.id,
         buyerId: req.user.id,
@@ -5221,8 +5292,12 @@ Instructions:
         fee: fee.toFixed(2),
         netAmount: amount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
+        currency: listing.currency || 'USD',
         transactionType: listing.listingType,
         status: 'pending',
+        sellerCryptoWallet: sellerWallet || null,
+        buyerCryptoWallet: buyerCryptoWallet || null,
+        shippingAddress,
       }).returning();
       await db.insert(p2pMessages).values({
         transactionId: tx.id,

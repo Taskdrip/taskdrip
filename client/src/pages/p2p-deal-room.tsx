@@ -14,7 +14,7 @@ import {
   AlertTriangle, ArrowLeft, CheckCircle, Lock, MessageCircle,
   Send, ShieldCheck, Truck, Upload, Wallet, Clock, Package,
   KeyRound, Eye, EyeOff, Copy, Check, Info, Zap, Star,
-  AlertCircle, CreditCard, ArrowRight, Bitcoin, Coins,
+  AlertCircle, CreditCard, ArrowRight, Bitcoin, Coins, MapPin, Globe,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -92,7 +92,8 @@ interface AIGuide { tone: AITone; heading: string; body: string; }
 
 function getAIGuidance(tx: any, isBuyer: boolean, isSeller: boolean): AIGuide | null {
   const type = tx.transactionType as string;
-  const typeLabel = type === "crypto" ? "crypto" : type === "product" ? "product" : "service";
+  const isPhysical = tx.listing?.productSubtype === "physical";
+  const typeLabel = type === "crypto" ? "crypto" : type === "product" ? (isPhysical ? "physical product" : "digital product") : "service";
 
   if (tx.status === "pending" && !tx.paymentMarkedAt) {
     if (isBuyer) return {
@@ -286,8 +287,8 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
   const [paymentNote, setPaymentNote] = useState("");
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const { data: networks = [] } = useQuery<any[]>({ queryKey: ["/api/payment-networks"] });
-  const { copied: copiedAddr, copy: copyAddr } = useCopy("");
   const amountStr = money(tx.totalAmount);
+  const currencyCode = tx.currency || "USD";
 
   const payMethod = (tx.listing?.paymentMethod || "").toLowerCase();
   const matchedNet = (networks as any[]).find((n: any) =>
@@ -295,7 +296,8 @@ function CheckoutPanel({ tx, onSubmit, isPending }: { tx: any; onSubmit: (note: 
     payMethod.includes(n.network?.toLowerCase()) ||
     payMethod.includes(n.currency?.toLowerCase())
   );
-  const walletAddress = matchedNet?.walletAddress || "";
+  // Prefer the seller's wallet captured at deal creation time
+  const walletAddress = tx.sellerCryptoWallet || matchedNet?.walletAddress || "";
 
   const { copied: copiedWallet, copy: copyWallet } = useCopy(walletAddress);
   const { copied: copiedAmt, copy: copyAmt } = useCopy(amountStr);
@@ -833,14 +835,36 @@ export default function P2PDealRoom() {
                         <p className="text-blue-400 text-sm">Funds are secured — deliver now</p>
                       </div>
                     </div>
+
+                    {/* Shipping address for physical products */}
+                    {tx.listing?.productSubtype === "physical" && tx.shippingAddress && (
+                      <div className="rounded-xl bg-emerald-950/30 border border-emerald-800/40 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MapPin className="w-4 h-4 text-emerald-400" />
+                          <p className="text-emerald-300 text-sm font-bold">Buyer's Shipping Address</p>
+                        </div>
+                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{tx.shippingAddress}</p>
+                      </div>
+                    )}
+
+                    {/* Buyer's wallet for crypto delivery */}
+                    {tx.transactionType === "crypto" && tx.buyerCryptoWallet && (
+                      <div className="rounded-xl bg-gray-800 border border-gray-700 p-3">
+                        <p className="text-xs text-gray-500 mb-1.5">Buyer's wallet (send crypto here)</p>
+                        <p className="font-mono text-xs text-green-300 break-all">{tx.buyerCryptoWallet}</p>
+                      </div>
+                    )}
+
                     <Textarea
                       value={deliveryNote}
                       onChange={e => setDeliveryNote(e.target.value)}
                       placeholder={
                         tx.transactionType === "crypto"
                           ? "Enter the transaction hash and wallet address you sent to..."
+                          : tx.listing?.productSubtype === "physical"
+                          ? "Enter tracking number, courier name, and expected delivery date..."
                           : tx.transactionType === "product"
-                          ? "Enter tracking number, courier, and expected delivery date..."
+                          ? "Enter download link, license key, or access details..."
                           : "Describe the completed work, access details, or file links..."
                       }
                       rows={4}
@@ -923,6 +947,12 @@ export default function P2PDealRoom() {
                 <p className="text-gray-300 font-bold text-lg mb-1">Transaction Refunded</p>
                 <p className="text-gray-500 text-sm">Admin issued a refund for this transaction.</p>
                 {tx.adminNote && <p className="text-gray-400 text-sm mt-2 italic">"{tx.adminNote}"</p>}
+                {isBuyer && tx.buyerCryptoWallet && (
+                  <div className="mt-4 rounded-xl bg-gray-800 border border-gray-700 p-3 text-left">
+                    <p className="text-xs text-gray-500 mb-1">Refund sent to your wallet</p>
+                    <p className="font-mono text-xs text-green-300 break-all">{tx.buyerCryptoWallet}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1018,8 +1048,48 @@ export default function P2PDealRoom() {
                     <span className={`font-bold ${color}`}>{val}</span>
                   </div>
                 ))}
+                {tx.currency && tx.currency !== "USD" && (
+                  <div className="flex justify-between items-center text-sm border-t border-gray-800 pt-3">
+                    <span className="text-gray-500">Currency</span>
+                    <span className="font-bold text-yellow-400 flex items-center gap-1"><Globe className="w-3.5 h-3.5" />{tx.currency}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* Wallet info card */}
+            {(tx.sellerCryptoWallet || tx.buyerCryptoWallet || tx.shippingAddress) && (
+              <Card className="border-gray-800 bg-gray-900 shadow-none">
+                <CardHeader className="border-b border-gray-800 pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2 text-white">
+                    <Coins className="w-4 h-4 text-yellow-400" /> Trade Wallets & Info
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                  {tx.sellerCryptoWallet && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Seller's Receiving Wallet</p>
+                      <p className="font-mono text-xs text-green-300 break-all">{tx.sellerCryptoWallet}</p>
+                    </div>
+                  )}
+                  {isSeller && tx.buyerCryptoWallet && (
+                    <div className="border-t border-gray-800 pt-3">
+                      <p className="text-xs text-gray-500 mb-1">Buyer's Refund Wallet</p>
+                      <p className="font-mono text-xs text-blue-300 break-all">{tx.buyerCryptoWallet}</p>
+                    </div>
+                  )}
+                  {tx.shippingAddress && (
+                    <div className="border-t border-gray-800 pt-3">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                        <p className="text-xs text-gray-500">Shipping Address</p>
+                      </div>
+                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">{tx.shippingAddress}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Dispute section */}
             {!["completed", "refunded", "cancelled", "disputed"].includes(tx.status) && (isBuyer || isSeller) && (

@@ -101,6 +101,10 @@ export const users = pgTable("users", {
   // Brand ranking (for brands): 'bronze', 'silver', 'gold'
   brandRank: varchar("brand_rank").default("bronze"),
   totalTransactionVolume: decimal("total_transaction_volume", { precision: 12, scale: 2 }).default("0.00"),
+  // P2P trading profile
+  country: varchar("country"),
+  preferredCurrency: varchar("preferred_currency").default("USD"),
+  btcWallet: varchar("btc_wallet"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -443,10 +447,17 @@ export const p2pListings = pgTable("p2p_listings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sellerId: varchar("seller_id").notNull().references(() => users.id),
   title: varchar("title").notNull(),
-  listingType: varchar("listing_type").notNull(),
+  listingType: varchar("listing_type").notNull(), // crypto | product | service
+  productSubtype: varchar("product_subtype"), // physical | digital (for product listings)
   description: text("description").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").default("USD"),
+  minOrder: decimal("min_order", { precision: 10, scale: 2 }),
+  maxOrder: decimal("max_order", { precision: 10, scale: 2 }),
+  cryptoAsset: varchar("crypto_asset"), // BTC, ETH, USDT, etc (for crypto listings)
   paymentMethod: varchar("payment_method").notNull(),
+  country: varchar("country"), // seller's country / where deal happens
+  shippingInfo: text("shipping_info"), // for physical products
   featuredImage: varchar("featured_image"),
   status: varchar("status").notNull().default("pending"),
   isFeatured: boolean("is_featured").default(false),
@@ -490,8 +501,14 @@ export const p2pTransactions = pgTable("p2p_transactions", {
   fee: decimal("fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
   netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").default("USD"),
   transactionType: varchar("transaction_type").notNull(),
   status: varchar("status").notNull().default("pending"),
+  // Crypto wallet info
+  buyerCryptoWallet: varchar("buyer_crypto_wallet"), // buyer's wallet for refund
+  sellerCryptoWallet: varchar("seller_crypto_wallet"), // seller's wallet for receiving
+  // Physical product info
+  shippingAddress: text("shipping_address"),
   paymentMarkedAt: timestamp("payment_marked_at"),
   paymentProof: varchar("payment_proof"),
   paymentNote: text("payment_note"),
