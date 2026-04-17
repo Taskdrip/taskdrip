@@ -6668,10 +6668,93 @@ Instructions:
 
   app.get('/api/leaderboard/points', async (_req, res) => {
     try {
-      const leaders = await storage.getLeaderboardByPoints(10);
+      const leaders = await storage.getLeaderboardByPoints(100);
       res.json(leaders);
     } catch (e) {
       res.status(500).json({ message: 'Failed to fetch points leaderboard' });
+    }
+  });
+
+  // Leaderboard rewards (public)
+  app.get('/api/leaderboard/rewards', async (req, res) => {
+    try {
+      const type = (req.query.type as string) || 'all';
+      const rewards = await storage.getActiveLeaderboardRewards(type);
+      res.json(rewards);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch rewards' });
+    }
+  });
+
+  // Leaderboard giveaways (public)
+  app.get('/api/leaderboard/giveaways', async (_req, res) => {
+    try {
+      const giveaways = await storage.getActiveLeaderboardGiveaways();
+      res.json(giveaways);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch giveaways' });
+    }
+  });
+
+  // Admin: create/update/delete leaderboard rewards
+  app.post('/api/admin/leaderboard/rewards', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const reward = await storage.createLeaderboardReward(req.body);
+      res.status(201).json(reward);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to create reward' });
+    }
+  });
+
+  app.patch('/api/admin/leaderboard/rewards/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const reward = await storage.updateLeaderboardReward(req.params.id, req.body);
+      res.json(reward);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update reward' });
+    }
+  });
+
+  app.delete('/api/admin/leaderboard/rewards/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteLeaderboardReward(req.params.id);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to delete reward' });
+    }
+  });
+
+  // Admin: create/update/delete leaderboard giveaways
+  app.post('/api/admin/leaderboard/giveaways', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const giveaway = await storage.createLeaderboardGiveaway(req.body);
+      res.status(201).json(giveaway);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to create giveaway' });
+    }
+  });
+
+  app.patch('/api/admin/leaderboard/giveaways/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const giveaway = await storage.updateLeaderboardGiveaway(req.params.id, req.body);
+      res.json(giveaway);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update giveaway' });
+    }
+  });
+
+  app.delete('/api/admin/leaderboard/giveaways/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteLeaderboardGiveaway(req.params.id);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to delete giveaway' });
     }
   });
 

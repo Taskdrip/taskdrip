@@ -35,7 +35,7 @@ import {
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog, Coins,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
-  Briefcase, Store
+  Briefcase, Store, Trophy, Gift, Award
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -128,7 +128,7 @@ const ROLE_LABELS: Record<string, string> = {
 const FULL_ADMIN_TABS = [
   "overview", "users", "campaigns", "tasks", "networks", "payments", "direct-hires", "p2p",
   "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
-  "settings", "pwa", "hero-sliders", "payout-center", "content-editor",
+  "settings", "pwa", "hero-sliders", "payout-center", "content-editor", "leaderboard",
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -1057,6 +1057,328 @@ function AdminP2PListingsPanel() {
         </DialogContent>
       </Dialog>
     </Card>
+  );
+}
+
+function LeaderboardManagementPanel() {
+  const { toast } = useToast();
+  const [rewardForm, setRewardForm] = useState({
+    title: "", leaderboardType: "all", positionFrom: 1, positionTo: 1,
+    prizeValue: "", currency: "USDT", prizeDescription: "", sponsorName: "", sponsorUrl: "",
+    sponsorLogoUrl: "", season: "",
+  });
+  const [giveawayForm, setGiveawayForm] = useState({
+    title: "", prize: "", totalPrizePool: "", description: "", requirements: "",
+    sponsorName: "", sponsorUrl: "", sponsorLogoUrl: "", status: "upcoming",
+    eligibleLeaderboards: [] as string[], winnerCount: 1, startDate: "", endDate: "",
+  });
+  const [editingReward, setEditingReward] = useState<any>(null);
+  const [editingGiveaway, setEditingGiveaway] = useState<any>(null);
+  const [rewardOpen, setRewardOpen] = useState(false);
+  const [giveawayOpen, setGiveawayOpen] = useState(false);
+
+  const { data: rewards = [], refetch: refetchRewards } = useQuery<any[]>({ queryKey: ["/api/leaderboard/rewards"] });
+  const { data: giveaways = [], refetch: refetchGiveaways } = useQuery<any[]>({ queryKey: ["/api/leaderboard/giveaways"] });
+
+  const createReward = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/leaderboard/rewards", data),
+    onSuccess: () => { refetchRewards(); setRewardOpen(false); toast({ title: "Reward created" }); },
+    onError: () => toast({ title: "Failed to create reward", variant: "destructive" }),
+  });
+  const updateReward = useMutation({
+    mutationFn: ({ id, data }: any) => apiRequest("PATCH", `/api/admin/leaderboard/rewards/${id}`, data),
+    onSuccess: () => { refetchRewards(); setRewardOpen(false); setEditingReward(null); toast({ title: "Reward updated" }); },
+    onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+  });
+  const deleteReward = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/leaderboard/rewards/${id}`),
+    onSuccess: () => { refetchRewards(); toast({ title: "Reward deleted" }); },
+    onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+  });
+
+  const createGiveaway = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/leaderboard/giveaways", data),
+    onSuccess: () => { refetchGiveaways(); setGiveawayOpen(false); toast({ title: "Giveaway created" }); },
+    onError: () => toast({ title: "Failed to create giveaway", variant: "destructive" }),
+  });
+  const updateGiveaway = useMutation({
+    mutationFn: ({ id, data }: any) => apiRequest("PATCH", `/api/admin/leaderboard/giveaways/${id}`, data),
+    onSuccess: () => { refetchGiveaways(); setGiveawayOpen(false); setEditingGiveaway(null); toast({ title: "Giveaway updated" }); },
+    onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+  });
+  const deleteGiveaway = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/leaderboard/giveaways/${id}`),
+    onSuccess: () => { refetchGiveaways(); toast({ title: "Giveaway deleted" }); },
+    onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+  });
+
+  const openEditReward = (r: any) => {
+    setRewardForm({
+      title: r.title || "", leaderboardType: r.leaderboardType || "all",
+      positionFrom: r.positionFrom || 1, positionTo: r.positionTo || 1,
+      prizeValue: r.prizeValue || "", currency: r.currency || "USDT",
+      prizeDescription: r.prizeDescription || "", sponsorName: r.sponsorName || "",
+      sponsorUrl: r.sponsorUrl || "", sponsorLogoUrl: r.sponsorLogoUrl || "", season: r.season || "",
+    });
+    setEditingReward(r);
+    setRewardOpen(true);
+  };
+
+  const openEditGiveaway = (g: any) => {
+    setGiveawayForm({
+      title: g.title || "", prize: g.prize || "", totalPrizePool: g.totalPrizePool || "",
+      description: g.description || "", requirements: g.requirements || "",
+      sponsorName: g.sponsorName || "", sponsorUrl: g.sponsorUrl || "",
+      sponsorLogoUrl: g.sponsorLogoUrl || "", status: g.status || "upcoming",
+      eligibleLeaderboards: g.eligibleLeaderboards || [], winnerCount: g.winnerCount || 1,
+      startDate: g.startDate ? g.startDate.split('T')[0] : "", endDate: g.endDate ? g.endDate.split('T')[0] : "",
+    });
+    setEditingGiveaway(g);
+    setGiveawayOpen(true);
+  };
+
+  const handleSaveReward = () => {
+    const data = { ...rewardForm, positionFrom: Number(rewardForm.positionFrom), positionTo: Number(rewardForm.positionTo), isActive: true };
+    if (editingReward) updateReward.mutate({ id: editingReward.id, data });
+    else createReward.mutate(data);
+  };
+
+  const handleSaveGiveaway = () => {
+    const data = {
+      ...giveawayForm,
+      winnerCount: Number(giveawayForm.winnerCount),
+      startDate: giveawayForm.startDate || null,
+      endDate: giveawayForm.endDate || null,
+    };
+    if (editingGiveaway) updateGiveaway.mutate({ id: editingGiveaway.id, data });
+    else createGiveaway.mutate(data);
+  };
+
+  const lbTypeLabel: Record<string, string> = { all: "All Boards", points: "$TDRIP Points", referrals: "Top Referrers", earnings: "Top Earners" };
+
+  return (
+    <div className="space-y-8">
+      {/* ── REWARD TIERS SECTION ── */}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" /> Leaderboard Reward Tiers
+            </CardTitle>
+            <CardDescription className="text-gray-400">Manage prize tiers by position range for each leaderboard</CardDescription>
+          </div>
+          <Dialog open={rewardOpen} onOpenChange={(v) => { setRewardOpen(v); if (!v) { setEditingReward(null); setRewardForm({ title: "", leaderboardType: "all", positionFrom: 1, positionTo: 1, prizeValue: "", currency: "USDT", prizeDescription: "", sponsorName: "", sponsorUrl: "", sponsorLogoUrl: "", season: "" }); } }}>
+            <DialogTrigger asChild>
+              <Button className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl gap-2" data-testid="btn-add-reward">
+                <Plus className="h-4 w-4" /> Add Reward Tier
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingReward ? "Edit" : "Create"} Reward Tier</DialogTitle>
+                <DialogDescription>Define a prize for a specific position range.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <Label>Title / Prize Name</Label>
+                  <Input value={rewardForm.title} onChange={e => setRewardForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Gold Winner Prize" className="mt-1" data-testid="input-reward-title" />
+                </div>
+                <div>
+                  <Label>Applies To</Label>
+                  <Select value={rewardForm.leaderboardType} onValueChange={v => setRewardForm(f => ({ ...f, leaderboardType: v }))}>
+                    <SelectTrigger className="mt-1" data-testid="select-reward-leaderboard-type"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Leaderboards</SelectItem>
+                      <SelectItem value="points">$TDRIP Points</SelectItem>
+                      <SelectItem value="referrals">Top Referrers</SelectItem>
+                      <SelectItem value="earnings">Top Earners</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Position From</Label>
+                    <Input type="number" min={1} value={rewardForm.positionFrom} onChange={e => setRewardForm(f => ({ ...f, positionFrom: Number(e.target.value) }))} className="mt-1" data-testid="input-reward-position-from" />
+                  </div>
+                  <div>
+                    <Label>Position To</Label>
+                    <Input type="number" min={1} value={rewardForm.positionTo} onChange={e => setRewardForm(f => ({ ...f, positionTo: Number(e.target.value) }))} className="mt-1" data-testid="input-reward-position-to" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Prize Value (USD)</Label>
+                    <Input type="number" value={rewardForm.prizeValue} onChange={e => setRewardForm(f => ({ ...f, prizeValue: e.target.value }))} placeholder="500" className="mt-1" data-testid="input-reward-prize-value" />
+                  </div>
+                  <div>
+                    <Label>Currency / Token</Label>
+                    <Input value={rewardForm.currency} onChange={e => setRewardForm(f => ({ ...f, currency: e.target.value }))} placeholder="USDT" className="mt-1" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Prize Description (optional extras)</Label>
+                  <Textarea value={rewardForm.prizeDescription} onChange={e => setRewardForm(f => ({ ...f, prizeDescription: e.target.value }))} placeholder="e.g. MacBook Pro, Featured placement, Verified badge" className="mt-1 resize-none" rows={2} />
+                </div>
+                <div className="border-t border-gray-200 pt-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Sponsor (optional)</p>
+                  <div className="space-y-3">
+                    <div><Label>Sponsor Name</Label><Input value={rewardForm.sponsorName} onChange={e => setRewardForm(f => ({ ...f, sponsorName: e.target.value }))} placeholder="Acme Corp" className="mt-1" /></div>
+                    <div><Label>Sponsor Website URL</Label><Input value={rewardForm.sponsorUrl} onChange={e => setRewardForm(f => ({ ...f, sponsorUrl: e.target.value }))} placeholder="https://acme.com" className="mt-1" /></div>
+                    <div><Label>Sponsor Logo URL</Label><Input value={rewardForm.sponsorLogoUrl} onChange={e => setRewardForm(f => ({ ...f, sponsorLogoUrl: e.target.value }))} placeholder="https://..." className="mt-1" /></div>
+                  </div>
+                </div>
+                <div>
+                  <Label>Season Label (optional)</Label>
+                  <Input value={rewardForm.season} onChange={e => setRewardForm(f => ({ ...f, season: e.target.value }))} placeholder="e.g. Season 1 — April 2026" className="mt-1" />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setRewardOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSaveReward} disabled={createReward.isPending || updateReward.isPending} className="bg-yellow-500 hover:bg-yellow-600 text-white" data-testid="btn-save-reward">
+                    {(createReward.isPending || updateReward.isPending) ? "Saving..." : "Save Reward"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {(rewards as any[]).length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              <Trophy className="h-10 w-10 text-gray-700 mx-auto mb-3" />
+              <p>No reward tiers created yet. Add one above!</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-800">
+                  <TableHead className="text-gray-400">Positions</TableHead>
+                  <TableHead className="text-gray-400">Title</TableHead>
+                  <TableHead className="text-gray-400">Board</TableHead>
+                  <TableHead className="text-gray-400">Prize</TableHead>
+                  <TableHead className="text-gray-400">Sponsor</TableHead>
+                  <TableHead className="text-gray-400">Season</TableHead>
+                  <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(rewards as any[]).map((r: any) => (
+                  <TableRow key={r.id} className="border-gray-800">
+                    <TableCell className="text-white font-mono">
+                      #{r.positionFrom}{r.positionFrom !== r.positionTo ? `–#${r.positionTo}` : ''}
+                    </TableCell>
+                    <TableCell className="text-white font-medium">{r.title}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs border-gray-700 text-gray-300">{lbTypeLabel[r.leaderboardType] || r.leaderboardType}</Badge></TableCell>
+                    <TableCell className="text-green-400 font-bold">${parseFloat(r.prizeValue || 0).toLocaleString()} <span className="text-gray-500 text-xs">{r.currency}</span></TableCell>
+                    <TableCell className="text-gray-300 text-sm">{r.sponsorName || <span className="text-gray-600">—</span>}</TableCell>
+                    <TableCell className="text-gray-400 text-sm">{r.season || <span className="text-gray-600">—</span>}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEditReward(r)} className="text-gray-400 hover:text-blue-400" data-testid={`edit-reward-${r.id}`}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteReward.mutate(r.id)} className="text-gray-400 hover:text-red-400" data-testid={`delete-reward-${r.id}`}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── GIVEAWAYS SECTION ── */}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Gift className="h-5 w-5 text-purple-400" /> Giveaways & Events
+            </CardTitle>
+            <CardDescription className="text-gray-400">Manage sponsored giveaways for leaderboard participants</CardDescription>
+          </div>
+          <Dialog open={giveawayOpen} onOpenChange={(v) => { setGiveawayOpen(v); if (!v) { setEditingGiveaway(null); setGiveawayForm({ title: "", prize: "", totalPrizePool: "", description: "", requirements: "", sponsorName: "", sponsorUrl: "", sponsorLogoUrl: "", status: "upcoming", eligibleLeaderboards: [], winnerCount: 1, startDate: "", endDate: "" }); } }}>
+            <DialogTrigger asChild>
+              <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl gap-2" data-testid="btn-add-giveaway">
+                <Plus className="h-4 w-4" /> Add Giveaway
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingGiveaway ? "Edit" : "Create"} Giveaway</DialogTitle>
+                <DialogDescription>Set up a sponsored giveaway for leaderboard performers.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label>Giveaway Title</Label><Input value={giveawayForm.title} onChange={e => setGiveawayForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. April Creator Giveaway" className="mt-1" data-testid="input-giveaway-title" /></div>
+                <div><Label>Prize Description</Label><Input value={giveawayForm.prize} onChange={e => setGiveawayForm(f => ({ ...f, prize: e.target.value }))} placeholder="e.g. iPhone 16 Pro + $500 USDT" className="mt-1" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Total Prize Pool ($)</Label><Input type="number" value={giveawayForm.totalPrizePool} onChange={e => setGiveawayForm(f => ({ ...f, totalPrizePool: e.target.value }))} placeholder="1000" className="mt-1" /></div>
+                  <div><Label>Number of Winners</Label><Input type="number" min={1} value={giveawayForm.winnerCount} onChange={e => setGiveawayForm(f => ({ ...f, winnerCount: Number(e.target.value) }))} className="mt-1" /></div>
+                </div>
+                <div><Label>Description</Label><Textarea value={giveawayForm.description} onChange={e => setGiveawayForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the giveaway..." className="mt-1 resize-none" rows={3} /></div>
+                <div><Label>Requirements</Label><Textarea value={giveawayForm.requirements} onChange={e => setGiveawayForm(f => ({ ...f, requirements: e.target.value }))} placeholder="e.g. Must be in top 50 referrers this month" className="mt-1 resize-none" rows={2} /></div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={giveawayForm.status} onValueChange={v => setGiveawayForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="ended">Ended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Start Date</Label><Input type="date" value={giveawayForm.startDate} onChange={e => setGiveawayForm(f => ({ ...f, startDate: e.target.value }))} className="mt-1" /></div>
+                  <div><Label>End Date</Label><Input type="date" value={giveawayForm.endDate} onChange={e => setGiveawayForm(f => ({ ...f, endDate: e.target.value }))} className="mt-1" /></div>
+                </div>
+                <div className="border-t border-gray-200 pt-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Sponsor Info</p>
+                  <div className="space-y-3">
+                    <div><Label>Sponsor Name</Label><Input value={giveawayForm.sponsorName} onChange={e => setGiveawayForm(f => ({ ...f, sponsorName: e.target.value }))} placeholder="Brand / Sponsor name" className="mt-1" /></div>
+                    <div><Label>Sponsor Website URL</Label><Input value={giveawayForm.sponsorUrl} onChange={e => setGiveawayForm(f => ({ ...f, sponsorUrl: e.target.value }))} placeholder="https://..." className="mt-1" /></div>
+                    <div><Label>Sponsor Logo URL</Label><Input value={giveawayForm.sponsorLogoUrl} onChange={e => setGiveawayForm(f => ({ ...f, sponsorLogoUrl: e.target.value }))} placeholder="https://..." className="mt-1" /></div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setGiveawayOpen(false)}>Cancel</Button>
+                  <Button onClick={handleSaveGiveaway} disabled={createGiveaway.isPending || updateGiveaway.isPending} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="btn-save-giveaway">
+                    {(createGiveaway.isPending || updateGiveaway.isPending) ? "Saving..." : "Save Giveaway"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {(giveaways as any[]).length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              <Gift className="h-10 w-10 text-gray-700 mx-auto mb-3" />
+              <p>No giveaways created yet. Add one above!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(giveaways as any[]).map((g: any) => (
+                <div key={g.id} className="flex items-center gap-4 p-4 bg-gray-800 rounded-2xl border border-gray-700" data-testid={`admin-giveaway-${g.id}`}>
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <Gift className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-white text-sm">{g.title}</div>
+                    <div className="text-gray-400 text-xs truncate">{g.prize} • {g.winnerCount} winner(s)</div>
+                    {g.sponsorName && <div className="text-gray-500 text-xs">by {g.sponsorName}</div>}
+                  </div>
+                  <Badge className={g.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : g.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-gray-700 text-gray-500 border-gray-600'} variant="outline">
+                    {g.status}
+                  </Badge>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => openEditGiveaway(g)} className="text-gray-400 hover:text-blue-400" data-testid={`edit-giveaway-${g.id}`}><Edit className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteGiveaway.mutate(g.id)} className="text-gray-400 hover:text-red-400" data-testid={`delete-giveaway-${g.id}`}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -2088,6 +2410,7 @@ export default function AdminMaster() {
                 { value: "hero-sliders", icon: <Image className="h-3.5 w-3.5" />, label: "Hero Sliders" },
                 { value: "payout-center", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payouts" },
                 { value: "content-editor", icon: <Edit className="h-3.5 w-3.5" />, label: "Content Editor" },
+                { value: "leaderboard", icon: <Trophy className="h-3.5 w-3.5" />, label: "Leaderboard" },
               ].filter((tab) => allowedTabs.includes(tab.value)).map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -5377,6 +5700,11 @@ export default function AdminMaster() {
           {/* ── CONTENT EDITOR TAB ── */}
           <TabsContent value="content-editor" className="space-y-6 pb-8">
             <ContentEditorPanel />
+          </TabsContent>
+
+          {/* ── LEADERBOARD MANAGEMENT TAB ── */}
+          <TabsContent value="leaderboard" className="space-y-6 pb-8">
+            <LeaderboardManagementPanel />
           </TabsContent>
 
         </Tabs>

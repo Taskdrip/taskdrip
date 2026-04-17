@@ -1467,3 +1467,57 @@ export const blogTips = pgTable("blog_tips", {
 export const insertBlogTipSchema = createInsertSchema(blogTips).omit({ id: true, createdAt: true });
 export type BlogTip = typeof blogTips.$inferSelect;
 export type InsertBlogTip = z.infer<typeof insertBlogTipSchema>;
+
+// Leaderboard Reward Tiers — admin-managed prizes per position range
+export const leaderboardRewards = pgTable("leaderboard_rewards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  positionFrom: integer("position_from").notNull(), // e.g. 1
+  positionTo: integer("position_to").notNull(),     // e.g. 3
+  prizeValue: decimal("prize_value", { precision: 12, scale: 2 }).default("0.00"), // $ value
+  currency: varchar("currency", { length: 20 }).default("USDT"),
+  prizeDescription: varchar("prize_description", { length: 500 }), // e.g. "Gold Rolex Watch"
+  prizeImageUrl: varchar("prize_image_url", { length: 500 }),
+  leaderboardType: varchar("leaderboard_type", { length: 30 }).default("all"), // 'points'|'referrals'|'earnings'|'all'
+  sponsorName: varchar("sponsor_name", { length: 200 }),
+  sponsorBrandId: varchar("sponsor_brand_id").references(() => users.id),
+  sponsorUrl: varchar("sponsor_url", { length: 500 }),
+  sponsorLogoUrl: varchar("sponsor_logo_url", { length: 500 }),
+  season: varchar("season", { length: 50 }), // e.g. "May 2026"
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLeaderboardRewardSchema = createInsertSchema(leaderboardRewards).omit({ id: true, createdAt: true, updatedAt: true });
+export type LeaderboardReward = typeof leaderboardRewards.$inferSelect;
+export type InsertLeaderboardReward = z.infer<typeof insertLeaderboardRewardSchema>;
+
+// Leaderboard Giveaways — separate sponsored giveaway events
+export const leaderboardGiveaways = pgTable("leaderboard_giveaways", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  prize: varchar("prize", { length: 500 }).notNull(), // e.g. "iPhone 15 Pro"
+  prizeValue: decimal("prize_value", { precision: 12, scale: 2 }).default("0.00"),
+  totalPrizePool: decimal("total_prize_pool", { precision: 12, scale: 2 }).default("0.00"),
+  prizeImageUrl: varchar("prize_image_url", { length: 500 }),
+  sponsorName: varchar("sponsor_name", { length: 200 }),
+  sponsorBrandId: varchar("sponsor_brand_id").references(() => users.id),
+  sponsorUrl: varchar("sponsor_url", { length: 500 }),
+  sponsorLogoUrl: varchar("sponsor_logo_url", { length: 500 }),
+  requirements: text("requirements"), // e.g. "Be in Top 10 on any leaderboard"
+  eligibleLeaderboards: text("eligible_leaderboards").array().default(sql`ARRAY[]::text[]`), // ['points','referrals','earnings']
+  winnerCount: integer("winner_count").default(1),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  status: varchar("status").default("active"), // 'active'|'ended'|'upcoming'
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLeaderboardGiveawaySchema = createInsertSchema(leaderboardGiveaways).omit({ id: true, createdAt: true, updatedAt: true });
+export type LeaderboardGiveaway = typeof leaderboardGiveaways.$inferSelect;
+export type InsertLeaderboardGiveaway = z.infer<typeof insertLeaderboardGiveawaySchema>;

@@ -117,6 +117,12 @@ import {
   blogTips,
   type BlogTip,
   type InsertBlogTip,
+  leaderboardRewards,
+  leaderboardGiveaways,
+  type LeaderboardReward,
+  type InsertLeaderboardReward,
+  type LeaderboardGiveaway,
+  type InsertLeaderboardGiveaway,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -281,6 +287,17 @@ export interface IStorage {
   getBlogPostsByCategory(category: string): Promise<BlogPost[]>;
   createBlogTip(tip: InsertBlogTip): Promise<BlogTip>;
   getBlogTipsByPostId(postId: string): Promise<BlogTip[]>;
+
+  // Leaderboard rewards & giveaways
+  getActiveLeaderboardRewards(leaderboardType?: string): Promise<LeaderboardReward[]>;
+  createLeaderboardReward(data: InsertLeaderboardReward): Promise<LeaderboardReward>;
+  updateLeaderboardReward(id: string, data: Partial<InsertLeaderboardReward>): Promise<LeaderboardReward>;
+  deleteLeaderboardReward(id: string): Promise<void>;
+  getActiveLeaderboardGiveaways(): Promise<LeaderboardGiveaway[]>;
+  createLeaderboardGiveaway(data: InsertLeaderboardGiveaway): Promise<LeaderboardGiveaway>;
+  updateLeaderboardGiveaway(id: string, data: Partial<InsertLeaderboardGiveaway>): Promise<LeaderboardGiveaway>;
+  deleteLeaderboardGiveaway(id: string): Promise<void>;
+
   getAllCreators(): Promise<User[]>;
 
   // BreedSkool course operations
@@ -1417,6 +1434,52 @@ export class DatabaseStorage implements IStorage {
 
   async getBlogTipsByPostId(postId: string): Promise<BlogTip[]> {
     return await db.select().from(blogTips).where(eq(blogTips.postId, postId)).orderBy(desc(blogTips.createdAt));
+  }
+
+  async getActiveLeaderboardRewards(leaderboardType?: string): Promise<LeaderboardReward[]> {
+    const conditions = [eq(leaderboardRewards.isActive, true)];
+    if (leaderboardType && leaderboardType !== 'all') {
+      conditions.push(
+        sql`(${leaderboardRewards.leaderboardType} = 'all' OR ${leaderboardRewards.leaderboardType} = ${leaderboardType})`
+      );
+    }
+    return await db.select().from(leaderboardRewards)
+      .where(and(...conditions))
+      .orderBy(leaderboardRewards.positionFrom);
+  }
+
+  async createLeaderboardReward(data: InsertLeaderboardReward): Promise<LeaderboardReward> {
+    const [row] = await db.insert(leaderboardRewards).values(data as any).returning();
+    return row;
+  }
+
+  async updateLeaderboardReward(id: string, data: Partial<InsertLeaderboardReward>): Promise<LeaderboardReward> {
+    const [row] = await db.update(leaderboardRewards).set({ ...data, updatedAt: new Date() } as any).where(eq(leaderboardRewards.id, id)).returning();
+    return row;
+  }
+
+  async deleteLeaderboardReward(id: string): Promise<void> {
+    await db.delete(leaderboardRewards).where(eq(leaderboardRewards.id, id));
+  }
+
+  async getActiveLeaderboardGiveaways(): Promise<LeaderboardGiveaway[]> {
+    return await db.select().from(leaderboardGiveaways)
+      .where(ne(leaderboardGiveaways.status, 'deleted'))
+      .orderBy(desc(leaderboardGiveaways.createdAt));
+  }
+
+  async createLeaderboardGiveaway(data: InsertLeaderboardGiveaway): Promise<LeaderboardGiveaway> {
+    const [row] = await db.insert(leaderboardGiveaways).values(data as any).returning();
+    return row;
+  }
+
+  async updateLeaderboardGiveaway(id: string, data: Partial<InsertLeaderboardGiveaway>): Promise<LeaderboardGiveaway> {
+    const [row] = await db.update(leaderboardGiveaways).set({ ...data, updatedAt: new Date() } as any).where(eq(leaderboardGiveaways.id, id)).returning();
+    return row;
+  }
+
+  async deleteLeaderboardGiveaway(id: string): Promise<void> {
+    await db.update(leaderboardGiveaways).set({ status: 'deleted' } as any).where(eq(leaderboardGiveaways.id, id));
   }
 
   async getAllCreators(): Promise<User[]> {
