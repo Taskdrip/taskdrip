@@ -20,7 +20,7 @@ import {
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
   Target, TrendingUp, Award, MessageSquare, Clipboard, FileText, Trash2,
   MessageCircle, Upload, Send, Hourglass, PartyPopper, XCircle, Link2,
-  AlertTriangle, ShieldCheck
+  AlertTriangle, ShieldCheck, Coins
 } from 'lucide-react';
 
 const editCampaignSchema = z.object({
@@ -54,6 +54,7 @@ export default function CampaignDetail() {
   const [mediationOpen, setMediationOpen] = useState(false);
   const [mediationReason, setMediationReason] = useState('');
   const [mediationSent, setMediationSent] = useState(false);
+  const [microTaskProofs, setMicroTaskProofs] = useState<Record<string, { proofText?: string; proofUrl?: string; proofFile?: File | null }>>({});
 
   const campaignId = params.id;
 
@@ -77,6 +78,16 @@ export default function CampaignDetail() {
   const myParticipation = (participations as any[]).find((p: any) => p.campaignId === campaignId);
   const hasJoined = !!myParticipation;
   const participationStatus = myParticipation?.status || null;
+
+  const { data: microTasks = [] } = useQuery<any[]>({
+    queryKey: ['/api/campaigns', campaignId, 'micro-tasks'],
+    queryFn: async () => {
+      const res = await fetch(`/api/campaigns/${campaignId}/micro-tasks`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!campaignId,
+  });
 
   // Handle image upload for edit form
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,6 +231,35 @@ export default function CampaignDetail() {
         description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
+    },
+  });
+
+  const submitMicroTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const draft = microTaskProofs[taskId] || {};
+      const formData = new FormData();
+      formData.append('proofText', draft.proofText || '');
+      formData.append('proofUrl', draft.proofUrl || '');
+      if (draft.proofFile) formData.append('proofFile', draft.proofFile);
+      const response = await fetch(`/api/micro-tasks/${taskId}/submit`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error((await response.json()).message || 'Failed to submit micro task');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId, 'micro-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/points/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: data.autoApproved ? '$TDRIP earned' : 'Micro task submitted',
+        description: data.autoApproved ? 'Points were added to your $TDRIP wallet.' : 'The brand will review your proof.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Micro task failed', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -785,6 +825,88 @@ export default function CampaignDetail() {
                   </div>
                 </CardContent>
               </Card>
+
+              {microTasks.length > 0 && (
+                <Card className="border-violet-200 bg-white shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg text-violet-900 flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-violet-600" />
+                      $TDRIP Micro Add-on Tasks
+                    </CardTitle>
+                    <CardDescription>
+                      Complete optional add-on tasks tied to this campaign and earn $TDRIP Points. 100 $TDRIP = $1.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {microTasks.map((task: any) => {
+                      const draft = microTaskProofs[task.id] || {};
+                      const submitted = task.mySubmission;
+                      const canSubmitMicroTask = !!user && hasJoined && ['approved', 'submitted', 'completed'].includes(String(participationStatus));
+                      return (
+                        <div key={task.id} className="rounded-2xl border border-violet-100 bg-violet-50/50 p-4" data-testid={`card-campaign-micro-task-${task.id}`}>
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-bold text-gray-950">{task.title}</h3>
+                                <Badge className="bg-violet-600 text-white">{task.tdripReward} $TDRIP</Badge>
+                                <Badge variant="outline">{task.autoApprove ? 'Auto approve' : 'Manual review'}</Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-2">{task.description}</p>
+                              {submitted && (
+                                <div className={`mt-3 rounded-xl p-3 text-sm ${
+                                  submitted.status === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                  submitted.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                  'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                                }`} data-testid={`status-micro-task-submission-${task.id}`}>
+                                  {submitted.status === 'approved' ? 'Approved — points added to your $TDRIP wallet.' :
+                                   submitted.status === 'rejected' ? 'Rejected — you can resubmit with better proof.' :
+                                   'Submitted — waiting for brand review.'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {!submitted && canSubmitMicroTask && (
+                            <div className="mt-4 grid gap-3">
+                              <Textarea
+                                value={draft.proofText || ''}
+                                onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofText: e.target.value } }))}
+                                placeholder="Describe the proof for this add-on task..."
+                                rows={3}
+                                data-testid={`input-micro-task-proof-text-${task.id}`}
+                              />
+                              <div className="grid md:grid-cols-2 gap-3">
+                                <Input
+                                  value={draft.proofUrl || ''}
+                                  onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofUrl: e.target.value } }))}
+                                  placeholder="Proof link"
+                                  data-testid={`input-micro-task-proof-url-${task.id}`}
+                                />
+                                <Input
+                                  type="file"
+                                  onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofFile: e.target.files?.[0] || null } }))}
+                                  data-testid={`input-micro-task-proof-file-${task.id}`}
+                                />
+                              </div>
+                              <Button
+                                className="bg-violet-600 hover:bg-violet-700"
+                                onClick={() => submitMicroTaskMutation.mutate(task.id)}
+                                disabled={submitMicroTaskMutation.isPending}
+                                data-testid={`button-submit-micro-task-${task.id}`}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                {submitMicroTaskMutation.isPending ? 'Submitting...' : `Submit Proof for ${task.tdripReward} $TDRIP`}
+                              </Button>
+                            </div>
+                          )}
+                          {!canSubmitMicroTask && !submitted && (
+                            <p className="mt-3 text-xs text-gray-500">Apply and get approved for the main campaign before submitting add-on tasks.</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Payment Information */}
               <Card className="border-purple-200 bg-purple-50">

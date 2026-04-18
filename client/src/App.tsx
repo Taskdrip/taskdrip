@@ -172,7 +172,9 @@ function Router() {
           <Route path="/dashboard" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/admin-dashboard" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/campaigns" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/campaigns/:id" component={CampaignDetail} />
           <Route path="/profile" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/wallet" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/admin" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/p2p-deals" component={() => { window.location.href = '/login'; return null; }} />
           <Route path="/p2p-deals/:id" component={() => { window.location.href = '/login'; return null; }} />

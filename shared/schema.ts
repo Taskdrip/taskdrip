@@ -145,6 +145,7 @@ export const campaigns = pgTable("campaigns", {
   tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
   tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
   tdripEscrowValue: decimal("tdrip_escrow_value", { precision: 10, scale: 2 }).default("0.00"),
+  autoApproveMicroTasks: boolean("auto_approve_micro_tasks").default(false),
   status: varchar("status").default("pending_payment"), // 'pending_payment', 'active', 'draft', 'completed', 'cancelled'
   paymentStatus: varchar("payment_status").default("pending"), // 'pending', 'deposited', 'approved'
   depositRequired: boolean("deposit_required").default(true),
@@ -167,6 +168,40 @@ export const campaignParticipations = pgTable("campaign_participations", {
   submittedAt: timestamp("submitted_at"),
   reviewedAt: timestamp("reviewed_at"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const campaignMicroTasks = pgTable("campaign_micro_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: varchar("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+  brandId: varchar("brand_id").notNull().references(() => users.id),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  tdripReward: integer("tdrip_reward").notNull(),
+  participantLimit: integer("participant_limit").default(0),
+  escrowedPoints: integer("escrowed_points").notNull(),
+  proofRequired: boolean("proof_required").default(true),
+  autoApprove: boolean("auto_approve").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const microTaskSubmissions = pgTable("micro_task_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  microTaskId: varchar("micro_task_id").notNull().references(() => campaignMicroTasks.id, { onDelete: "cascade" }),
+  campaignId: varchar("campaign_id").notNull().references(() => campaigns.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  proofText: text("proof_text"),
+  proofUrl: varchar("proof_url", { length: 500 }),
+  proofFile: varchar("proof_file", { length: 500 }),
+  status: varchar("status").default("pending"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Enhanced Transactions table for tracking crypto payments with approval workflow
@@ -705,8 +740,22 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   tdripPointsPerParticipant: z.number().min(0).optional(),
   tdripParticipantLimit: z.number().min(0).optional(),
   tdripEscrowValue: z.string().optional(),
+  autoApproveMicroTasks: z.boolean().optional(),
   deadline: z.string().min(1, "Deadline is required"),
   estimatedTime: z.string().min(1, "Estimated time is required"),
+});
+
+export const insertCampaignMicroTaskSchema = createInsertSchema(campaignMicroTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMicroTaskSubmissionSchema = createInsertSchema(microTaskSubmissions).omit({
+  id: true,
+  submittedAt: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertCampaignParticipationSchema = createInsertSchema(campaignParticipations).omit({
@@ -764,6 +813,10 @@ export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type CampaignParticipation = typeof campaignParticipations.$inferSelect;
 export type InsertCampaignParticipation = z.infer<typeof insertCampaignParticipationSchema>;
+export type CampaignMicroTask = typeof campaignMicroTasks.$inferSelect;
+export type InsertCampaignMicroTask = z.infer<typeof insertCampaignMicroTaskSchema>;
+export type MicroTaskSubmission = typeof microTaskSubmissions.$inferSelect;
+export type InsertMicroTaskSubmission = z.infer<typeof insertMicroTaskSubmissionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;

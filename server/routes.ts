@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -36,6 +36,14 @@ function parseJsonArrayField(value: any) {
   } catch {
     return [];
   }
+}
+
+async function canManageCampaign(userId: string, campaignId: string) {
+  const campaign = await storage.getCampaignById(campaignId);
+  if (!campaign) return { ok: false, campaign: null as any, message: "Campaign not found" };
+  const user = await storage.getUser(userId);
+  const ok = campaign.brandId === userId || user?.role === "admin" || user?.userType === "admin";
+  return { ok, campaign, message: ok ? "" : "You can only manage add-on tasks for your own campaigns" };
 }
 
 async function verifyBlockchainTransaction(network: string, txHash: string, expectedAmount?: number) {
@@ -1869,6 +1877,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching brand applications:", error);
       res.status(500).json({ message: "Failed to fetch brand applications" });
+    }
+  });
+
+  app.get('/api/campaigns/:id/micro-tasks', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const tasks = await db.select().from(campaignMicroTasks)
+        .where(and(eq(campaignMicroTasks.campaignId, req.params.id), eq(campaignMicroTasks.isActive, true)))
+        .orderBy(desc(campaignMicroTasks.createdAt));
+      let submissions: any[] = [];
+      if (userId) {
+        submissions = await db.select().from(microTaskSubmissions)
+          .where(and(eq(microTaskSubmissions.campaignId, req.params.id), eq(microTaskSubmissions.userId, userId)));
+      }
+      res.json(tasks.map((task) => ({
+        ...task,
+        mySubmission: submissions.find((submission) => submission.microTaskId === task.id) || null,
+      })));
+    } catch (error) {
+      console.error("Error fetching micro tasks:", error);
+      res.status(500).json({ message: "Failed to fetch micro tasks" });
+    }
+  });
+
+  app.get('/api/brand/micro-tasks', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const rows = await db.select({
+        task: campaignMicroTasks,
+        campaign: campaigns,
+      }).from(campaignMicroTasks)
+        .leftJoin(campaigns, eq(campaignMicroTasks.campaignId, campaigns.id))
+        .where(eq(campaignMicroTasks.brandId, userId))
+        .orderBy(desc(campaignMicroTasks.createdAt));
+      res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
+    } catch (error) {
+      console.error("Error fetching brand micro tasks:", error);
+      res.status(500).json({ message: "Failed to fetch brand micro tasks" });
+    }
+  });
+
+  app.post('/api/campaigns/:id/micro-tasks', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const access = await canManageCampaign(userId, req.params.id);
+      if (!access.campaign) return res.status(404).json({ message: access.message });
+      if (!access.ok) return res.status(403).json({ message: access.message });
+
+      const title = String(req.body.title || "").trim();
+      const description = String(req.body.description || "").trim();
+      const tdripReward = Math.floor(Number(req.body.tdripReward || 0));
+      const participantLimit = Math.max(1, Math.floor(Number(req.body.participantLimit || access.campaign.totalSlots || 1)));
+      const proofRequired = req.body.proofRequired !== false && req.body.proofRequired !== "false";
+      const autoApprove = req.body.autoApprove === true || req.body.autoApprove === "true" || !!access.campaign.autoApproveMicroTasks;
+      if (!title || !description || tdripReward <= 0) {
+        return res.status(400).json({ message: "Title, description, and reward points are required" });
+      }
+      const escrowedPoints = tdripReward * participantLimit;
+      const currentPoints = await storage.getUserTotalPoints(access.campaign.brandId);
+      if (currentPoints < escrowedPoints) {
+        return res.status(400).json({
+          message: `Not enough $TDRIP points. This add-on needs ${escrowedPoints.toLocaleString()} $TDRIP. Please buy more points first.`,
+          requiredPoints: escrowedPoints,
+          currentPoints,
+        });
+      }
+      await storage.awardPoints(access.campaign.brandId, "micro_task_escrow", -escrowedPoints, `$TDRIP escrow for micro task: ${title}`, req.params.id);
+      const [task] = await db.insert(campaignMicroTasks).values({
+        campaignId: req.params.id,
+        brandId: access.campaign.brandId,
+        title,
+        description,
+        tdripReward,
+        participantLimit,
+        escrowedPoints,
+        proofRequired,
+        autoApprove,
+        createdBy: userId,
+      }).returning();
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Error creating micro task:", error);
+      res.status(500).json({ message: "Failed to create micro task" });
+    }
+  });
+
+  app.patch('/api/micro-tasks/:id', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const [task] = await db.select().from(campaignMicroTasks).where(eq(campaignMicroTasks.id, req.params.id));
+      if (!task) return res.status(404).json({ message: "Micro task not found" });
+      const access = await canManageCampaign(userId, task.campaignId);
+      if (!access.ok) return res.status(403).json({ message: access.message });
+      const updates: any = { updatedAt: new Date() };
+      if (typeof req.body.autoApprove !== "undefined") updates.autoApprove = !!req.body.autoApprove;
+      if (typeof req.body.isActive !== "undefined") updates.isActive = !!req.body.isActive;
+      if (typeof req.body.proofRequired !== "undefined") updates.proofRequired = !!req.body.proofRequired;
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq(campaignMicroTasks.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating micro task:", error);
+      res.status(500).json({ message: "Failed to update micro task" });
+    }
+  });
+
+  app.post('/api/micro-tasks/:id/submit', upload.single('proofFile'), async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const [task] = await db.select().from(campaignMicroTasks).where(eq(campaignMicroTasks.id, req.params.id));
+      if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
+      const proofText = String(req.body.proofText || "").trim();
+      const proofUrl = String(req.body.proofUrl || "").trim();
+      const proofFile = req.file ? `/uploads/${req.file.filename}` : "";
+      if (task.proofRequired && !proofText && !proofUrl && !proofFile) {
+        return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
+      }
+      const existing = await db.select().from(microTaskSubmissions)
+        .where(and(eq(microTaskSubmissions.microTaskId, task.id), eq(microTaskSubmissions.userId, userId)));
+      if (existing.some((submission) => submission.status !== "rejected")) {
+        return res.status(400).json({ message: "You already submitted this micro task" });
+      }
+      const approvedRows = await db.select({ count: sql<number>`count(*)` }).from(microTaskSubmissions)
+        .where(and(eq(microTaskSubmissions.microTaskId, task.id), eq(microTaskSubmissions.status, "approved")));
+      const approvedCount = Number(approvedRows[0]?.count || 0);
+      if (task.participantLimit && approvedCount >= task.participantLimit) {
+        return res.status(400).json({ message: "This micro task has reached its participant limit" });
+      }
+      const status = task.autoApprove ? "approved" : "pending";
+      const [submission] = await db.insert(microTaskSubmissions).values({
+        microTaskId: task.id,
+        campaignId: task.campaignId,
+        userId,
+        proofText,
+        proofUrl,
+        proofFile,
+        status,
+        reviewedBy: status === "approved" ? task.brandId : null,
+        reviewedAt: status === "approved" ? new Date() : null,
+        reviewNotes: status === "approved" ? "Auto-approved" : null,
+      }).returning();
+      if (status === "approved") {
+        await storage.awardPoints(userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
+      }
+      res.status(201).json({ ...submission, autoApproved: status === "approved" });
+    } catch (error) {
+      console.error("Error submitting micro task:", error);
+      res.status(500).json({ message: "Failed to submit micro task" });
+    }
+  });
+
+  app.get('/api/brand/micro-task-submissions', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const rows = await db.select({
+        submission: microTaskSubmissions,
+        task: campaignMicroTasks,
+        campaign: campaigns,
+        user: users,
+      }).from(microTaskSubmissions)
+        .leftJoin(campaignMicroTasks, eq(microTaskSubmissions.microTaskId, campaignMicroTasks.id))
+        .leftJoin(campaigns, eq(microTaskSubmissions.campaignId, campaigns.id))
+        .leftJoin(users, eq(microTaskSubmissions.userId, users.id))
+        .where(eq(campaignMicroTasks.brandId, userId))
+        .orderBy(desc(microTaskSubmissions.submittedAt));
+      res.json(rows.map(({ submission, task, campaign, user }) => ({
+        ...submission,
+        task,
+        campaign,
+        user: user ? { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, profileImage: user.profileImageUrl } : null,
+      })));
+    } catch (error) {
+      console.error("Error fetching micro task submissions:", error);
+      res.status(500).json({ message: "Failed to fetch micro task submissions" });
+    }
+  });
+
+  app.patch('/api/micro-task-submissions/:id/review', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq(microTaskSubmissions.id, req.params.id));
+      if (!submission) return res.status(404).json({ message: "Submission not found" });
+      const [task] = await db.select().from(campaignMicroTasks).where(eq(campaignMicroTasks.id, submission.microTaskId));
+      if (!task) return res.status(404).json({ message: "Micro task not found" });
+      const access = await canManageCampaign(userId, task.campaignId);
+      if (!access.ok) return res.status(403).json({ message: access.message });
+      const action = String(req.body.action || "").toLowerCase();
+      if (!["approved", "rejected"].includes(action)) {
+        return res.status(400).json({ message: "Review action must be approved or rejected" });
+      }
+      if (submission.status === "approved") return res.json(submission);
+      const [updated] = await db.update(microTaskSubmissions).set({
+        status: action,
+        reviewedBy: userId,
+        reviewedAt: new Date(),
+        reviewNotes: req.body.notes || null,
+        updatedAt: new Date(),
+      }).where(eq(microTaskSubmissions.id, req.params.id)).returning();
+      if (action === "approved") {
+        await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error reviewing micro task submission:", error);
+      res.status(500).json({ message: "Failed to review micro task submission" });
     }
   });
 

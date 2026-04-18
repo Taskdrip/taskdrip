@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { NavigationFixed } from '@/components/ui/navigation-fixed';
-import { Wallet, Copy, Check, AlertCircle, Coins } from 'lucide-react';
+import { Wallet, Copy, Check, AlertCircle, Coins, ArrowUpRight, ShieldCheck, ShoppingBag, Rocket, Gift, Send } from 'lucide-react';
 
 const walletSchema = z.object({
   usdtTronWallet: z.string().optional(),
@@ -135,113 +135,140 @@ export default function WalletSettings() {
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Wallet className="h-8 w-8 mr-3" />
-            Crypto Wallet Settings
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Add your crypto wallet addresses to receive payments for completed tasks
-          </p>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="rounded-[2rem] bg-slate-950 text-white overflow-hidden mb-8 shadow-2xl shadow-violet-100">
+          <div className="p-6 md:p-8 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.55),transparent_35%),linear-gradient(135deg,#020617,#111827_50%,#312e81)]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-cyan-100 mb-4">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Two-wallet Taskdrip account
+                </div>
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight">Wallet Center</h1>
+                <p className="text-white/65 mt-3 max-w-2xl">
+                  Keep cash earnings separate from $TDRIP activity points. Funds are for real payments and withdrawals; $TDRIP powers airdrop eligibility and micro add-on task rewards.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/10 border border-white/15 p-4 min-w-[220px]">
+                <p className="text-xs text-white/50">Combined value snapshot</p>
+                <p className="text-3xl font-black" data-testid="text-wallet-combined-value">
+                  ${(parseFloat(user?.availableBalance || '0') + tdripUsdValue).toFixed(2)}
+                </p>
+                <p className="text-xs text-white/50 mt-1">Funds + $TDRIP point value</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Current Balance Card */}
-        <Card className="mb-8 bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Wallet className="h-5 w-5 mr-2" />
-              Available Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              ${parseFloat(user?.availableBalance || '0').toFixed(2)}
-            </div>
-            <p className="text-green-100 mt-1">
-              Ready for withdrawal • Minimum: $10.00
-            </p>
-            {parseFloat(user?.availableBalance || '0') >= 10 && (
-              <Link href="/payout-requests">
-                <Button 
-                  variant="secondary" 
-                  className="mt-4 bg-white text-green-600 hover:bg-green-50"
-                  data-testid="button-wallet-request-payout"
-                >
-                  Request Payout
-                </Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          <Card className="overflow-hidden border-0 shadow-xl">
+            <CardContent className="p-0">
+              <div className="p-6 bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-emerald-50">Funds Wallet</p>
+                    <p className="text-4xl font-black mt-2" data-testid="text-funds-wallet-balance">${parseFloat(user?.availableBalance || '0').toFixed(2)}</p>
+                  </div>
+                  <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center">
+                    <Wallet className="h-7 w-7" />
+                  </div>
+                </div>
+                <p className="text-emerald-50 text-sm mt-4">Stores campaign earnings, brand payments, giveaway wins, and spendable marketplace balance.</p>
+              </div>
+              <div className="p-5 grid grid-cols-2 gap-3">
+                <Link href="/campaigns">
+                  <Button variant="outline" className="w-full justify-start" data-testid="button-wallet-launch-campaign">
+                    <Rocket className="h-4 w-4 mr-2" /> Launch campaigns
+                  </Button>
+                </Link>
+                <Link href="/shop">
+                  <Button variant="outline" className="w-full justify-start" data-testid="button-wallet-buy-products">
+                    <ShoppingBag className="h-4 w-4 mr-2" /> Buy products
+                  </Button>
+                </Link>
+                <Link href="/payout-requests">
+                  <Button className="w-full justify-start bg-emerald-600 hover:bg-emerald-700" data-testid="button-wallet-request-payout">
+                    <ArrowUpRight className="h-4 w-4 mr-2" /> Request withdrawal
+                  </Button>
+                </Link>
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-xs text-emerald-800">
+                  Minimum withdrawal: $10
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="mb-8 border-violet-200 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Coins className="h-5 w-5 mr-2" />
-              $TDRIP Points Balance
-            </CardTitle>
-            <CardDescription className="text-violet-100">
-              100 $TDRIP = $1 USDT inside Taskdrip
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <p className="text-violet-100 text-sm">Points</p>
-                <p className="text-3xl font-bold" data-testid="text-tdrip-points">{tdripPoints.toLocaleString()} $TDRIP</p>
+          <Card className="overflow-hidden border-0 shadow-xl">
+            <CardContent className="p-0">
+              <div className="p-6 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-700 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-violet-100">$TDRIP Points Wallet</p>
+                    <p className="text-4xl font-black mt-2" data-testid="text-tdrip-points">{tdripPoints.toLocaleString()} $TDRIP</p>
+                  </div>
+                  <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center">
+                    <Coins className="h-7 w-7" />
+                  </div>
+                </div>
+                <p className="text-violet-100 text-sm mt-4">Earned from platform activity, used for future airdrop eligibility and micro add-on campaign rewards.</p>
               </div>
-              <div>
-                <p className="text-violet-100 text-sm">USDT Value</p>
-                <p className="text-3xl font-bold" data-testid="text-tdrip-usdt-value">${tdripUsdValue.toFixed(2)}</p>
+              <div className="p-5 grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-violet-50 border border-violet-100 p-3">
+                  <p className="text-xs text-violet-500">Point value</p>
+                  <p className="text-2xl font-black text-violet-900" data-testid="text-tdrip-usdt-value">${tdripUsdValue.toFixed(2)}</p>
+                  <p className="text-xs text-violet-500">100 $TDRIP = $1</p>
+                </div>
+                <div className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-3">
+                  <p className="text-xs text-fuchsia-500">Airdrop status</p>
+                  <p className="text-lg font-black text-fuchsia-900" data-testid="text-tdrip-launch-note">Active user pool</p>
+                  <p className="text-xs text-fuchsia-500">Token launch ready</p>
+                </div>
+                <Link href="/shop">
+                  <Button className="w-full justify-start bg-violet-600 hover:bg-violet-700" data-testid="button-buy-tdrip">
+                    <Coins className="h-4 w-4 mr-2" /> Buy $TDRIP
+                  </Button>
+                </Link>
+                <Link href="/tasks">
+                  <Button variant="outline" className="w-full justify-start" data-testid="button-wallet-use-micro-tasks">
+                    <Send className="h-4 w-4 mr-2" /> Run micro tasks
+                  </Button>
+                </Link>
               </div>
-              <div>
-                <p className="text-violet-100 text-sm">Launch note</p>
-                <p className="text-sm leading-relaxed" data-testid="text-tdrip-launch-note">
-                  $TDRIP points will be swappable when Taskdrip's native token launches.
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="mt-5 bg-white text-violet-700 hover:bg-violet-50"
-              data-testid="button-buy-tdrip"
-              onClick={() => toast({ title: "Buy $TDRIP coming soon", description: "Purchase flow will be available before token launch." })}
-            >
-              Buy more $TDRIP
-            </Button>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Security Notice */}
-        <Card className="mb-8 border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-yellow-800">Security Notice</h3>
-                <p className="text-yellow-700 text-sm mt-1">
-                  Only add wallet addresses you control. Payments are processed manually by admins. 
-                  Double-check your addresses before saving - incorrect addresses may result in lost funds.
-                </p>
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-yellow-800">Security Notice</h3>
+                  <p className="text-yellow-700 text-sm mt-1">
+                    Only add wallet addresses you control. Double-check every address before saving.
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="mb-8 border-emerald-200 bg-emerald-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="font-semibold text-emerald-900">Direct Wallet Support</h3>
-                <p className="text-emerald-700 text-sm mt-1">Allow users to support you directly through your saved crypto wallets.</p>
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Gift className="h-5 w-5 text-emerald-600 mt-1" />
+                  <div>
+                    <h3 className="font-semibold text-emerald-900">Direct Wallet Support</h3>
+                    <p className="text-emerald-700 text-sm mt-1">Allow users to support you directly through your saved crypto wallets.</p>
+                  </div>
+                </div>
+                <Switch checked={directSupportEnabled} onCheckedChange={setDirectSupportEnabled} data-testid="switch-wallet-direct-support" />
               </div>
-              <Switch checked={directSupportEnabled} onCheckedChange={setDirectSupportEnabled} data-testid="switch-wallet-direct-support" />
-            </div>
-            <p className="text-xs text-emerald-700 mt-3">Current status: {directSupportEnabled ? 'On' : 'Off'}</p>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-emerald-700 mt-3">Current status: {directSupportEnabled ? 'On' : 'Off'}</p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Wallet Forms */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

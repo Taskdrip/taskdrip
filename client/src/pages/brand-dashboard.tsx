@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
-  Briefcase, ChevronRight, Package
+  Briefcase, ChevronRight, Package, Coins, Upload
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
@@ -85,10 +85,21 @@ export default function BrandDashboard() {
   const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires">("overview");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [microTaskDrafts, setMicroTaskDrafts] = useState<Record<string, any>>({});
 
   // Fetch brand campaigns
   const { data: campaigns = [], isLoading: campaignLoading } = useQuery<Campaign[]>({
     queryKey: ["/api/campaigns/brand", (user as any)?.id],
+    retry: false,
+  });
+
+  const { data: microTasks = [] } = useQuery<any[]>({
+    queryKey: ["/api/brand/micro-tasks"],
+    retry: false,
+  });
+
+  const { data: microTaskSubmissions = [], isLoading: microTaskSubmissionsLoading } = useQuery<any[]>({
+    queryKey: ["/api/brand/micro-task-submissions"],
     retry: false,
   });
 
@@ -178,6 +189,54 @@ export default function BrandDashboard() {
         variant: "destructive",
       });
     },
+  });
+
+  const createMicroTaskMutation = useMutation({
+    mutationFn: async ({ campaignId, data }: { campaignId: string; data: any }) => {
+      const res = await apiRequest("POST", `/api/campaigns/${campaignId}/micro-tasks`, {
+        title: data.title,
+        description: data.description,
+        tdripReward: Number(data.tdripReward || 0),
+        participantLimit: Number(data.participantLimit || 0),
+        proofRequired: data.proofRequired !== false,
+        autoApprove: !!data.autoApprove,
+      });
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/micro-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setMicroTaskDrafts((prev) => ({ ...prev, [variables.campaignId]: {} }));
+      toast({ title: "Micro task added", description: "$TDRIP points were escrowed from your Points Wallet." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not add micro task", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateMicroTaskMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const res = await apiRequest("PATCH", `/api/micro-tasks/${id}`, updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/micro-tasks"] });
+      toast({ title: "Micro task updated" });
+    },
+    onError: (error: Error) => toast({ title: "Update failed", description: error.message, variant: "destructive" }),
+  });
+
+  const reviewMicroTaskSubmissionMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: "approved" | "rejected" }) => {
+      const res = await apiRequest("PATCH", `/api/micro-task-submissions/${id}/review`, { action });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/micro-task-submissions"] });
+      toast({ title: "Micro task reviewed", description: "The creator has been updated." });
+    },
+    onError: (error: Error) => toast({ title: "Review failed", description: error.message, variant: "destructive" }),
   });
 
   // Approve/reject submission mutations
@@ -925,6 +984,147 @@ export default function BrandDashboard() {
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Messages
                         </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" data-testid={`button-manage-micro-tasks-${campaign.id}`}>
+                              <Coins className="h-4 w-4 mr-2" />
+                              $TDRIP Add-ons
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Micro add-on tasks for {campaign.title}</DialogTitle>
+                              <DialogDescription>
+                                Escrow points from your $TDRIP Points Wallet and reward creators when they complete extra proof-based actions.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid md:grid-cols-[1fr_0.9fr] gap-5 pt-2">
+                              <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-bold text-violet-950">Create add-on task</p>
+                                    <p className="text-xs text-violet-700">100 $TDRIP = $1. Deducted when created.</p>
+                                  </div>
+                                  <Badge className="bg-white text-violet-700 border border-violet-200" data-testid={`text-brand-tdrip-balance-${campaign.id}`}>
+                                    {Number((user as any)?.totalPoints || 0).toLocaleString()} $TDRIP
+                                  </Badge>
+                                </div>
+                                <Input
+                                  value={microTaskDrafts[campaign.id]?.title || ""}
+                                  onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], title: e.target.value } }))}
+                                  placeholder="Task title, e.g. Repost launch tweet"
+                                  data-testid={`input-micro-task-title-${campaign.id}`}
+                                />
+                                <Textarea
+                                  value={microTaskDrafts[campaign.id]?.description || ""}
+                                  onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], description: e.target.value } }))}
+                                  placeholder="Briefly explain what the creator must do and what proof is required."
+                                  rows={4}
+                                  data-testid={`input-micro-task-description-${campaign.id}`}
+                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label>Reward per creator</Label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={microTaskDrafts[campaign.id]?.tdripReward || ""}
+                                      onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], tdripReward: e.target.value } }))}
+                                      placeholder="$TDRIP"
+                                      data-testid={`input-micro-task-reward-${campaign.id}`}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label>Participant limit</Label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={microTaskDrafts[campaign.id]?.participantLimit || campaign.totalSlots || 1}
+                                      onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], participantLimit: e.target.value } }))}
+                                      data-testid={`input-micro-task-limit-${campaign.id}`}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <label className="flex items-center gap-2 rounded-xl bg-white border border-violet-100 p-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={microTaskDrafts[campaign.id]?.proofRequired !== false}
+                                      onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], proofRequired: e.target.checked } }))}
+                                      data-testid={`checkbox-micro-task-proof-${campaign.id}`}
+                                    />
+                                    Require proof upload
+                                  </label>
+                                  <label className="flex items-center gap-2 rounded-xl bg-white border border-violet-100 p-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={!!microTaskDrafts[campaign.id]?.autoApprove}
+                                      onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], autoApprove: e.target.checked } }))}
+                                      data-testid={`checkbox-micro-task-auto-${campaign.id}`}
+                                    />
+                                    Auto approve
+                                  </label>
+                                </div>
+                                <div className="rounded-xl bg-white border border-violet-100 p-3 text-xs text-gray-600">
+                                  Escrow needed: <span className="font-bold text-violet-700" data-testid={`text-micro-task-escrow-${campaign.id}`}>
+                                    {(Number(microTaskDrafts[campaign.id]?.tdripReward || 0) * Number(microTaskDrafts[campaign.id]?.participantLimit || campaign.totalSlots || 1)).toLocaleString()} $TDRIP
+                                  </span>
+                                </div>
+                                <Button
+                                  className="w-full bg-violet-600 hover:bg-violet-700"
+                                  onClick={() => createMicroTaskMutation.mutate({ campaignId: campaign.id, data: microTaskDrafts[campaign.id] || {} })}
+                                  disabled={createMicroTaskMutation.isPending}
+                                  data-testid={`button-create-micro-task-${campaign.id}`}
+                                >
+                                  {createMicroTaskMutation.isPending ? "Adding..." : "Add Micro Task & Escrow $TDRIP"}
+                                </Button>
+                              </div>
+                              <div className="space-y-3">
+                                <p className="text-sm font-bold text-gray-900">Existing add-ons</p>
+                                {microTasks.filter((task: any) => task.campaignId === campaign.id).length === 0 ? (
+                                  <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-gray-500">
+                                    No micro tasks yet.
+                                  </div>
+                                ) : (
+                                  microTasks.filter((task: any) => task.campaignId === campaign.id).map((task: any) => (
+                                    <div key={task.id} className="rounded-2xl border bg-white p-4 space-y-3" data-testid={`card-micro-task-${task.id}`}>
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                          <p className="font-bold text-gray-900">{task.title}</p>
+                                          <p className="text-xs text-gray-500 mt-1">{task.description}</p>
+                                        </div>
+                                        <Badge className="bg-violet-100 text-violet-700">{task.tdripReward} $TDRIP</Badge>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                                        <span>Escrow: {Number(task.escrowedPoints || 0).toLocaleString()}</span>
+                                        <span>Limit: {task.participantLimit || "Open"}</span>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant={task.autoApprove ? "default" : "outline"}
+                                          className={task.autoApprove ? "bg-green-600 hover:bg-green-700" : ""}
+                                          onClick={() => updateMicroTaskMutation.mutate({ id: task.id, updates: { autoApprove: !task.autoApprove } })}
+                                          data-testid={`button-toggle-micro-task-auto-${task.id}`}
+                                        >
+                                          {task.autoApprove ? "Auto approve on" : "Manual review"}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant={task.isActive ? "outline" : "secondary"}
+                                          onClick={() => updateMicroTaskMutation.mutate({ id: task.id, updates: { isActive: !task.isActive } })}
+                                          data-testid={`button-toggle-micro-task-active-${task.id}`}
+                                        >
+                                          {task.isActive ? "Active" : "Paused"}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </CardContent>
                   </Card>
@@ -1106,6 +1306,74 @@ export default function BrandDashboard() {
                 </p>
               </div>
             </div>
+            <Card className="border-violet-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Coins className="h-5 w-5 text-violet-600" />
+                  $TDRIP Micro Task Submissions
+                </CardTitle>
+                <CardDescription>Approve add-on proofs manually, or turn auto-approve on from each campaign's add-on manager.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {microTaskSubmissionsLoading ? (
+                  <div className="text-center py-6 text-gray-500">Loading micro task submissions...</div>
+                ) : microTaskSubmissions.length === 0 ? (
+                  <div className="rounded-2xl bg-gray-50 border border-dashed p-8 text-center">
+                    <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                    <p className="font-semibold text-gray-900">No $TDRIP add-on submissions yet</p>
+                    <p className="text-sm text-gray-500 mt-1">Creator proof uploads will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {microTaskSubmissions.map((submission: any) => (
+                      <div key={submission.id} className="rounded-2xl border bg-white p-4" data-testid={`card-micro-task-submission-${submission.id}`}>
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-bold text-gray-900">{submission.task?.title || "Micro task"}</p>
+                              <Badge className={submission.status === "approved" ? "bg-green-100 text-green-700" : submission.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}>
+                                {submission.status?.toUpperCase()}
+                              </Badge>
+                              <Badge className="bg-violet-100 text-violet-700">{submission.task?.tdripReward || 0} $TDRIP</Badge>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">Campaign: {submission.campaign?.title}</p>
+                            <p className="text-sm text-gray-500">Creator: {submission.user?.firstName} {submission.user?.lastName} • {submission.user?.email}</p>
+                            {submission.proofText && <p className="mt-3 text-sm text-gray-700 bg-gray-50 rounded-xl p-3">{submission.proofText}</p>}
+                            <div className="flex gap-3 mt-2 text-sm">
+                              {submission.proofUrl && <a href={submission.proofUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View proof link</a>}
+                              {submission.proofFile && <a href={submission.proofFile} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View uploaded proof</a>}
+                            </div>
+                          </div>
+                          {submission.status === "pending" && (
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => reviewMicroTaskSubmissionMutation.mutate({ id: submission.id, action: "approved" })}
+                                disabled={reviewMicroTaskSubmissionMutation.isPending}
+                                data-testid={`button-approve-micro-task-submission-${submission.id}`}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 border-red-200"
+                                onClick={() => reviewMicroTaskSubmissionMutation.mutate({ id: submission.id, action: "rejected" })}
+                                disabled={reviewMicroTaskSubmissionMutation.isPending}
+                                data-testid={`button-reject-micro-task-submission-${submission.id}`}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             {submissionsLoading ? (
               <div className="text-center py-8">Loading submissions...</div>
             ) : submissions.length === 0 ? (

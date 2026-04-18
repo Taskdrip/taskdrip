@@ -52,6 +52,7 @@ Design preferences: Clean, professional web app design with white background and
 - Participation tracking and approval workflow (admin approve/reject applicants)
 - **Brand is primary reviewer** of task submissions — approve/reject with notes triggers USDT payment
 - **Admin as mediator** — can oversee all submissions and intervene in disputes
+- **$TDRIP micro add-on tasks**: Brands/admins can attach proof-based add-on tasks to campaigns, escrow points from the brand's $TDRIP Points Wallet, toggle manual vs auto approval, and approve creator proofs to release $TDRIP rewards.
 - Category-based campaign organization (Social Media, Gaming, Technology, Crypto & Web3, etc.)
 - Interaction chain: Brand posts → escrow → admin verifies → active → creator applies → admin approves → creator submits → brand reviews → brand releases payment (admin can mediate)
 - Demo brand account: `demobrand@taskdrip.online` / `Brand@2024` with 6 active demo campaigns
@@ -102,6 +103,7 @@ Design preferences: Clean, professional web app design with white background and
 - Manual payment verification by administrators
 - Virtual wallet tracking for earnings history
 - Payout request system with $10 minimum threshold
+- Two-wallet account model: Funds Wallet holds spendable/withdrawable USDT-value balances for campaign earnings, brand payments, giveaway wins, products/services, and withdrawals; $TDRIP Points Wallet stores activity points at 100 $TDRIP = $1 for airdrops and micro add-on campaign rewards.
 
 #### User Management
 - Comprehensive user profiles with social media handles
