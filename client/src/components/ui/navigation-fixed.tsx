@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -58,7 +58,7 @@ export function NavigationFixed() {
           { href: "/influencers", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
-          { href: "/ledger", label: "Ledger" },
+          { href: "/wallet", label: "Wallet" },
           { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
         ];
@@ -70,7 +70,7 @@ export function NavigationFixed() {
           { href: "/influencers", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P Market" },
-          { href: "/ledger", label: "Ledger" },
+          { href: "/wallet", label: "Wallet" },
           { href: "/breedskool", label: "BreedSkool" },
         ];
       } else {
@@ -81,7 +81,7 @@ export function NavigationFixed() {
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/dashboard", label: "Dashboard" },
-          { href: "/ledger", label: "Ledger" },
+          { href: "/wallet", label: "Wallet" },
           { href: "/feed", label: "Feed" },
           { href: "/influencers", label: "Influencers" },
           { href: "/leaderboard", label: "Leaderboard" },
@@ -254,6 +254,11 @@ export function NavigationFixed() {
                         </Link>
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem>
+                      <Link href="/wallet" className="flex items-center w-full">
+                        <Wallet className="mr-2 h-4 w-4" /><span>Wallet Bank</span>
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Link href="/ledger" className="flex items-center w-full">
                         <Landmark className="mr-2 h-4 w-4" /><span>Ledger</span>

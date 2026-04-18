@@ -7067,7 +7067,7 @@ Instructions:
         type,
         title: type === 'tdrip_tip' ? 'You received a $TDRIP tip' : 'You received $TDRIP',
         content: `${req.user.firstName} sent you ${points} $TDRIP points.`,
-        actionUrl: '/wallet-settings',
+        actionUrl: '/wallet',
       } as any);
 
       res.json({ success: true, points, recipient: { id: recipient.id, email: recipient.email, firstName: recipient.firstName } });

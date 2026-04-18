@@ -229,6 +229,7 @@ Design preferences: Clean, professional web app design with white background and
 ✓ **Tip Checkout Flow**: Reworked tipping into a multi-step checkout-style flow: amount → payment method → payment details → confirmation, using admin-managed payment methods plus creator wallets.
 ✓ **Demo Content Seeding**: Demo feed posts and published blog posts are now seeded alongside courses and shop products when the demo database is empty.
 ✓ **Shop Marketplace Upgrade**: `/shop` now uses a premium launch-market hero, fixed spotlight slides to display product images from `featuredImage`, links spotlight CTAs to `/shop/product/:id`, adds advanced filters by type/price/tag/sort, removes USDT/TON-specific shop copy in favor of admin-reviewed payment options, and adds Replit Projects + GitHub Repos categories with demo products.
+✓ **Taskdrip Wallet Bank**: `/wallet` is now a dedicated bank-grade wallet center with saved crypto wallet types, direct support controls, funds and $TDRIP balances, $TDRIP top-up checkout, point transfers/tips, withdrawal requests, checkout rails, and unified transaction history; the shop page no longer displays the $TDRIP exchange block.
 
 ## Blog Enhancements (April 2026)
 ✓ **SpotlightCarousel on Blog**: Added `BlogSpotlightCarousel` component to blog listing page — auto-cycling full-width slides for featured/image posts, with prev/next arrows and dot navigation (mirrors tasks.tsx pattern)

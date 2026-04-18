@@ -729,8 +729,6 @@ export default function Shop() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10">
-        <TdripExchangeSection />
-
         {/* Category Pills */}
         <div className="flex gap-3 overflow-x-auto pb-3 mb-8 scrollbar-hide">
           {CATEGORIES.map(({ value, label, icon: Icon }) => {
