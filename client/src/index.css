@@ -63,6 +63,62 @@
   }
 }
 
+/* ── Premium upgrade animations ─────────────────────────────────────────── */
+@keyframes glow-pulse-purple {
+  0%, 100% {
+    box-shadow: 0 0 8px 3px rgba(139, 92, 246, 0.45),
+                0 0 24px 6px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 18px 7px rgba(139, 92, 246, 0.8),
+                0 0 48px 16px rgba(99, 102, 241, 0.4);
+  }
+}
+
+@keyframes glow-pulse-amber {
+  0%, 100% {
+    box-shadow: 0 0 8px 3px rgba(245, 158, 11, 0.45),
+                0 0 24px 6px rgba(249, 115, 22, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 18px 7px rgba(245, 158, 11, 0.8),
+                0 0 48px 16px rgba(249, 115, 22, 0.4);
+  }
+}
+
+@keyframes breathe-scale {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.045); }
+}
+
+@keyframes shimmer-slide {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.btn-glow-purple {
+  animation: glow-pulse-purple 2.4s ease-in-out infinite,
+             breathe-scale 2.4s ease-in-out infinite;
+  border-radius: 9999px;
+}
+
+.btn-glow-amber {
+  animation: glow-pulse-amber 2.4s ease-in-out infinite,
+             breathe-scale 2.4s ease-in-out infinite;
+  border-radius: 9999px;
+}
+
+.upgrade-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.35) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer-slide 2s linear infinite;
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(20, 14.3%, 4.1%);

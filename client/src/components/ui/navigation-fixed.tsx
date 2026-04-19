@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -319,6 +319,28 @@ export function NavigationFixed() {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
             {isAuthenticated ? (
               <>
+                {/* Animated upgrade button — only for free non-admin users */}
+                {(user as any)?.subscriptionStatus !== "active" && (user as any)?.userType !== "admin" && (
+                  <Link href="/subscription" className="hidden sm:block">
+                    <button
+                      data-testid="button-go-premium"
+                      className={`
+                        relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-bold
+                        ${(user as any)?.userType === "brand"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 btn-glow-amber"
+                          : "bg-gradient-to-r from-purple-600 to-indigo-600 btn-glow-purple"}
+                        overflow-hidden
+                      `}
+                    >
+                      <span className="upgrade-shimmer absolute inset-0 pointer-events-none" />
+                      {(user as any)?.userType === "brand"
+                        ? <Crown className="w-3.5 h-3.5 relative z-10" />
+                        : <Sparkles className="w-3.5 h-3.5 relative z-10" />}
+                      <span className="relative z-10">Go Premium</span>
+                    </button>
+                  </Link>
+                )}
+
                 <div className="relative" ref={notifRef}>
                   <Button
                     variant="ghost"
