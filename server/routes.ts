@@ -6959,7 +6959,7 @@ Instructions:
             type: 'ads_application',
             title: `New Ads Application: ${req.body.companyName || 'Unknown'}`,
             content: `${req.body.contactName || 'Someone'} applied for a ${(req.body.adType || 'advertising').replace(/_/g, ' ')} campaign. Click to review and respond.`,
-            actionUrl: '/admin-ads',
+            actionUrl: '/admin/ads?tab=applications',
             isRead: false,
             priority: 'high',
           });

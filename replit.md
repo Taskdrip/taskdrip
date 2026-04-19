@@ -3,6 +3,7 @@
 Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
 
 ## Recent Changes (April 2026)
+- **Admin Ads Deep Links + Network Code Manager**: Admin ad application notifications and Guide Bot links now route to `/admin/ads?tab=applications`, with `/admin-ads` kept as a backward-compatible alias. `NavigationFixed` now shows the same live notifications panel as the main navigation. Admin Ads includes CRUD management for third-party ad network snippets (Google AdSense, AdMob, Media.net, PropellerAds, Taboola, MGID, custom), including active toggles, target pages, placement type, popup settings, and notes via existing `/api/admin/ad-networks` routes.
 - **Advertising Smart Checkout Flow**: `/advertise` now takes an exact USD ads budget, optional $TDRIP points add-on, full payment breakdown, smart crypto checkout, and a thank-you/order view. Advertising applications store `platforms`, `giveawayType`, and `tdripBudget`; payment deposits link back via `ads_application:<id>` notes. `/my-orders` now includes ad orders and CSV/print exports, while Admin Ads shows linked checkout/payment details.
 - **Ad Analytics**: Added `ad_analytics` DB table; impressions and clicks now record device type, browser, OS, IP, and page URL server-side. Per-ad analytics panel in admin-ads with bar chart breakdowns.
 - **Ad Image Upload**: Admin ads create/edit now use `multipart/form-data` file uploads instead of URL text fields. Accepts ad image (1200×628 recommended) and advertiser logo (200×200 recommended).

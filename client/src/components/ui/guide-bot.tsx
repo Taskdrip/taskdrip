@@ -156,7 +156,7 @@ function analyzeAdminPlatform(users: any[], transactions: any[], campaigns: any[
       type: "warning", icon: Briefcase,
       title: `🔔 ${pendingAdApps.length} new ad application${pendingAdApps.length !== 1 ? 's' : ''} pending`,
       description: `${latest.companyName ? `"${latest.companyName}"` : 'A brand'} applied for a ${(latest.adType || 'advertising').replace(/_/g, ' ')} campaign. Review and reply to convert this lead.`,
-      action: { label: "Review Applications →", href: "/admin-ads" },
+      action: { label: "Review Applications →", href: "/admin/ads?tab=applications" },
     });
   }
 
@@ -245,7 +245,7 @@ function getAdminBotResponse(message: string, data: { users: any[], transactions
   }
   if (lower.includes("ad application") || lower.includes("ads application") || lower.includes("advertise") || lower.includes("advertising application")) {
     const allApps = data.adApplications || [];
-    return `Advertising Applications:\n\n🔔 **Pending**: ${pendingAdApps.length} need your response\n✅ **Contacted**: ${allApps.filter((a: any) => a.status === 'contacted').length}\n👍 **Approved**: ${allApps.filter((a: any) => a.status === 'approved').length}\n❌ **Rejected**: ${allApps.filter((a: any) => a.status === 'rejected').length}\n\n${pendingAdApps.length > 0 ? `Latest: "${pendingAdApps[0]?.companyName}" applied for ${(pendingAdApps[0]?.adType || '').replace(/_/g, ' ')}.` : 'No pending applications.'}\n\nGo to **[Admin Ads → Applications tab](/admin-ads)** to view and reply.`;
+    return `Advertising Applications:\n\n🔔 **Pending**: ${pendingAdApps.length} need your response\n✅ **Contacted**: ${allApps.filter((a: any) => a.status === 'contacted').length}\n👍 **Approved**: ${allApps.filter((a: any) => a.status === 'approved').length}\n❌ **Rejected**: ${allApps.filter((a: any) => a.status === 'rejected').length}\n\n${pendingAdApps.length > 0 ? `Latest: "${pendingAdApps[0]?.companyName}" applied for ${(pendingAdApps[0]?.adType || '').replace(/_/g, ' ')}.` : 'No pending applications.'}\n\nGo to **[Admin Ads → Applications tab](/admin/ads?tab=applications)** to view and reply.`;
   }
   if (lower.includes("payout") || lower.includes("withdrawal") || lower.includes("payment")) {
     return `Payout overview:\n\n⏳ **Pending**: ${pendingPayouts.length} requests awaiting processing\n✅ **Completed**: ${completedTx.length} transactions\n💰 **Total volume**: $${totalRevenue.toFixed(2)}\n\nTo process payouts, go to Admin Dashboard → Transactions tab. Always verify wallet addresses before approving — crypto transfers are irreversible!`;
@@ -638,7 +638,7 @@ export function GuideBot() {
         id: "welcome",
         role: "bot",
         content: isAdmin
-          ? `Hello, ${firstName}! 🛡️ I'm your Admin Assistant — monitoring the platform in real time.\n\n${pendingAppsCount > 0 ? `🔔 **${pendingAppsCount}** new ad application${pendingAppsCount !== 1 ? 's' : ''} pending review${latestApp ? ` — "${latestApp.companyName}" just applied!` : ''}. [Review now →](/admin-ads)\n` : ''}${pendingCount > 0 ? `⚠️ **${pendingCount}** pending payout${pendingCount !== 1 ? 's' : ''} need attention.\n` : ''}${unverifiedCount > 0 ? `👤 **${unverifiedCount}** user${unverifiedCount !== 1 ? 's' : ''} awaiting verification.\n` : ''}${pendingAppsCount === 0 && pendingCount === 0 && unverifiedCount === 0 ? '✅ All caught up — no urgent actions required.\n' : ''}\nCheck the **Alerts** tab for a full platform overview, or ask me anything.`
+          ? `Hello, ${firstName}! 🛡️ I'm your Admin Assistant — monitoring the platform in real time.\n\n${pendingAppsCount > 0 ? `🔔 **${pendingAppsCount}** new ad application${pendingAppsCount !== 1 ? 's' : ''} pending review${latestApp ? ` — "${latestApp.companyName}" just applied!` : ''}. [Review now →](/admin/ads?tab=applications)\n` : ''}${pendingCount > 0 ? `⚠️ **${pendingCount}** pending payout${pendingCount !== 1 ? 's' : ''} need attention.\n` : ''}${unverifiedCount > 0 ? `👤 **${unverifiedCount}** user${unverifiedCount !== 1 ? 's' : ''} awaiting verification.\n` : ''}${pendingAppsCount === 0 && pendingCount === 0 && unverifiedCount === 0 ? '✅ All caught up — no urgent actions required.\n' : ''}\nCheck the **Alerts** tab for a full platform overview, or ask me anything.`
           : isBrand
           ? `Welcome, ${company}! 👋 I'm your Taskdrip Brand Advisor. I help brands find the right influencers, launch campaigns, and get the most out of influencer marketing. Check the **Recommendations** tab for personalised tips, or ask me anything!`
           : `Hey ${firstName}! 👋 I'm your Taskdrip Guide — powered by real profile analysis. Check the **Recommendations** tab for personalised growth tips, or chat with me for advice on your ${(user as any)?.niche || 'content'} niche and earnings!`,

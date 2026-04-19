@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   DropdownMenu, 
@@ -10,7 +13,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -44,10 +47,128 @@ const secondaryMainItems = [
   { href: "/contact", label: "Contact" },
 ];
 
+const NOTIF_ICONS: Record<string, any> = {
+  ads_application: Megaphone,
+  new_application: Briefcase,
+  task_approved: CheckCheck,
+  payout: DollarSign,
+  verification: UserCheck,
+  campaign: Target,
+  message: MessageCircle,
+  default: Star,
+};
+
+function NotificationPanel({ notifications, onClose, onMarkRead, onMarkAllRead }: {
+  notifications: any[];
+  onClose: () => void;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+}) {
+  const [, navigate] = useLocation();
+  const unread = notifications.filter((n: any) => !n.isRead);
+
+  const handleClick = (n: any) => {
+    if (!n.isRead) onMarkRead(n.id);
+    if (n.actionUrl) {
+      onClose();
+      navigate(n.actionUrl);
+    }
+  };
+
+  return (
+    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden" style={{ maxHeight: "480px", display: "flex", flexDirection: "column" }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-gray-600" />
+          <span className="font-bold text-sm text-gray-900">Notifications</span>
+          {unread.length > 0 && <Badge className="bg-red-500 text-white text-xs px-1.5 py-0">{unread.length}</Badge>}
+        </div>
+        <div className="flex items-center gap-2">
+          {unread.length > 0 && (
+            <button data-testid="button-mark-all-notifications-read" onClick={onMarkAllRead} className="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1">
+              <CheckCheck className="h-3.5 w-3.5" /> All read
+            </button>
+          )}
+          <button data-testid="button-close-notifications" onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <div className="overflow-y-auto flex-1">
+        {notifications.length === 0 ? (
+          <div className="py-12 text-center">
+            <Bell className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-500">No notifications yet</p>
+            <p className="text-xs text-gray-400 mt-1">Important updates will appear here.</p>
+          </div>
+        ) : (
+          notifications.map((n: any) => {
+            const Icon = NOTIF_ICONS[n.type] || NOTIF_ICONS.default;
+            return (
+              <button
+                key={n.id}
+                onClick={() => handleClick(n)}
+                data-testid={`notification-item-${n.id}`}
+                className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50 transition-colors ${!n.isRead ? "bg-purple-50/60" : ""}`}
+              >
+                <div className={`mt-0.5 p-1.5 rounded-lg flex-shrink-0 ${n.priority === "high" ? "bg-red-100" : "bg-purple-100"}`}>
+                  <Icon className={`h-3.5 w-3.5 ${n.priority === "high" ? "text-red-600" : "text-purple-600"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`text-xs font-semibold leading-snug ${!n.isRead ? "text-gray-900" : "text-gray-700"}`}>{n.title}</p>
+                    {!n.isRead && <span className="flex-shrink-0 w-2 h-2 bg-purple-500 rounded-full mt-1" />}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{n.content}</p>
+                  {n.createdAt && <p className="text-[10px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function NavigationFixed() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifPanel(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const { data: notifications = [] } = useQuery<any[]>({
+    queryKey: ["/api/notifications"],
+    enabled: !!isAuthenticated && !!user,
+    refetchInterval: 30000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("PATCH", `/api/notifications/${id}/read`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const unread = notifications.filter((n: any) => !n.isRead);
+      await Promise.all(unread.map((n: any) => apiRequest("PATCH", `/api/notifications/${n.id}/read`, {})));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  const unreadNotificationsCount = Array.isArray(notifications) ? notifications.filter((n: any) => !n.isRead).length : 0;
 
   const getNavItems = () => {
     if (isAuthenticated) {
@@ -198,9 +319,30 @@ export function NavigationFixed() {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
             {isAuthenticated ? (
               <>
-                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black h-8 w-8 sm:h-9 sm:w-9">
-                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
+                <div className="relative" ref={notifRef}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    data-testid="button-notifications"
+                    className="text-gray-600 hover:text-black h-8 w-8 sm:h-9 sm:w-9 relative"
+                    onClick={() => setShowNotifPanel(v => !v)}
+                  >
+                    <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                    {unreadNotificationsCount > 0 && (
+                      <span data-testid="status-unread-notifications" className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-bold">
+                        {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+                      </span>
+                    )}
+                  </Button>
+                  {showNotifPanel && (
+                    <NotificationPanel
+                      notifications={notifications}
+                      onClose={() => setShowNotifPanel(false)}
+                      onMarkRead={(id) => markReadMutation.mutate(id)}
+                      onMarkAllRead={() => markAllReadMutation.mutate()}
+                    />
+                  )}
+                </div>
                 <Link href="/chat">
                   <Button variant="ghost" size="icon" className="text-gray-600 hover:text-black h-8 w-8 sm:h-9 sm:w-9">
                     <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />

@@ -53,6 +53,43 @@ const EMPTY_AD = {
   sortOrder: 0,
 };
 
+const EMPTY_NETWORK_PLACEMENT = {
+  name: "",
+  network: "adsense",
+  adCode: "",
+  placementType: "inline",
+  targetPages: "all",
+  popupDelay: 5,
+  popupFrequency: "session",
+  isActive: true,
+  notes: "",
+};
+
+const AD_NETWORKS = [
+  { value: "adsense", label: "Google AdSense" },
+  { value: "admob", label: "Google AdMob" },
+  { value: "medianet", label: "Media.net" },
+  { value: "propeller", label: "PropellerAds" },
+  { value: "taboola", label: "Taboola" },
+  { value: "mgid", label: "MGID" },
+  { value: "custom", label: "Custom / Other" },
+];
+
+const NETWORK_PLACEMENTS = [
+  { value: "inline", label: "Inline content" },
+  { value: "sidebar", label: "Sidebar" },
+  { value: "popup", label: "Popup" },
+  { value: "banner_top", label: "Top banner" },
+  { value: "banner_bottom", label: "Bottom banner" },
+];
+
+const POPUP_FREQUENCIES = [
+  { value: "once", label: "Once per user" },
+  { value: "session", label: "Once per session" },
+  { value: "daily", label: "Once per day" },
+  { value: "always", label: "Every visit" },
+];
+
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-700 border-green-200",
   inactive: "bg-gray-100 text-gray-600 border-gray-200",
@@ -235,6 +272,116 @@ function AdForm({ form, setForm, imageFile, setImageFile, logoFile, setLogoFile 
       <div className="flex items-center gap-3">
         <Switch checked={form.isActive} onCheckedChange={v => set("isActive", v)} data-testid="switch-ad-active" />
         <Label>Active (show this ad now)</Label>
+      </div>
+    </div>
+  );
+}
+
+function AdNetworkForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
+  const set = (key: string, val: any) => setForm((p: any) => ({ ...p, [key]: val }));
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <Label>Placement Name *</Label>
+          <Input
+            data-testid="input-ad-network-name"
+            value={form.name}
+            onChange={e => set("name", e.target.value)}
+            placeholder="e.g. Google AdSense Auto Ads"
+          />
+        </div>
+        <div>
+          <Label>Ad Network *</Label>
+          <Select value={form.network} onValueChange={v => set("network", v)}>
+            <SelectTrigger data-testid="select-ad-network">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AD_NETWORKS.map(network => (
+                <SelectItem key={network.value} value={network.value}>{network.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Placement Type</Label>
+          <Select value={form.placementType} onValueChange={v => set("placementType", v)}>
+            <SelectTrigger data-testid="select-network-placement-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {NETWORK_PLACEMENTS.map(placement => (
+                <SelectItem key={placement.value} value={placement.value}>{placement.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Target Pages</Label>
+          <Input
+            data-testid="input-network-target-pages"
+            value={form.targetPages}
+            onChange={e => set("targetPages", e.target.value)}
+            placeholder="all or landing,blog,shop"
+          />
+          <p className="text-xs text-gray-400 mt-1">Use "all" for site-wide approval code, or comma-separated page keys.</p>
+        </div>
+        {form.placementType === "popup" && (
+          <>
+            <div>
+              <Label>Popup Delay (seconds)</Label>
+              <Input
+                data-testid="input-popup-delay"
+                type="number"
+                value={form.popupDelay}
+                onChange={e => set("popupDelay", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Popup Frequency</Label>
+              <Select value={form.popupFrequency} onValueChange={v => set("popupFrequency", v)}>
+                <SelectTrigger data-testid="select-popup-frequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {POPUP_FREQUENCIES.map(frequency => (
+                    <SelectItem key={frequency.value} value={frequency.value}>{frequency.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div>
+        <Label>Website / Ad Code *</Label>
+        <Textarea
+          data-testid="textarea-ad-network-code"
+          value={form.adCode}
+          onChange={e => set("adCode", e.target.value)}
+          placeholder={`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXX" crossorigin="anonymous"></script>`}
+          rows={8}
+          className="font-mono text-xs"
+        />
+        <p className="text-xs text-gray-400 mt-1">Paste the exact approval or ad placement snippet from Google AdSense or another ad network.</p>
+      </div>
+
+      <div>
+        <Label>Internal Notes</Label>
+        <Textarea
+          data-testid="textarea-ad-network-notes"
+          value={form.notes}
+          onChange={e => set("notes", e.target.value)}
+          placeholder="Approval status, where this code should appear, or account notes..."
+          rows={3}
+        />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Switch checked={form.isActive} onCheckedChange={v => set("isActive", v)} data-testid="switch-ad-network-active" />
+        <Label>Active (include this code on matching pages)</Label>
       </div>
     </div>
   );
@@ -696,13 +843,18 @@ export default function AdminAds() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [adSenseCode, setAdSenseCode] = useState("");
-  const [adSenseEnabled, setAdSenseEnabled] = useState(false);
+  const [networkDialogOpen, setNetworkDialogOpen] = useState(false);
+  const [editingNetwork, setEditingNetwork] = useState<any>(null);
+  const [networkForm, setNetworkForm] = useState<any>(EMPTY_NETWORK_PLACEMENT);
+  const [deleteNetworkConfirm, setDeleteNetworkConfirm] = useState<string | null>(null);
   const [filterPlacement, setFilterPlacement] = useState("all");
   const [selectedApp, setSelectedApp] = useState<any>(null);
+  const initialTab = new URLSearchParams(window.location.search).get("tab") || "sponsored";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const { data: ads = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/ads"] });
   const { data: applications = [] } = useQuery<any[]>({ queryKey: ["/api/admin/advertise-applications"] });
+  const { data: networkPlacements = [], isLoading: networksLoading } = useQuery<any[]>({ queryKey: ["/api/admin/ad-networks"] });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -746,6 +898,36 @@ export default function AdminAds() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/advertise-applications"] }); toast({ title: "Application updated" }); },
   });
 
+  const createNetworkMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/ad-networks", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] });
+      setNetworkDialogOpen(false);
+      toast({ title: "Ad network code added" });
+    },
+    onError: () => toast({ title: "Failed to save ad network code", variant: "destructive" }),
+  });
+
+  const updateNetworkMutation = useMutation({
+    mutationFn: ({ id, data }: any) => apiRequest("PUT", `/api/admin/ad-networks/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] });
+      setNetworkDialogOpen(false);
+      toast({ title: "Ad network code updated" });
+    },
+    onError: () => toast({ title: "Failed to update ad network code", variant: "destructive" }),
+  });
+
+  const deleteNetworkMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/ad-networks/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] });
+      setDeleteNetworkConfirm(null);
+      toast({ title: "Ad network code removed" });
+    },
+    onError: () => toast({ title: "Failed to remove ad network code", variant: "destructive" }),
+  });
+
   const openAdd = () => { setEditingAd(null); setForm(EMPTY_AD); setImageFile(null); setLogoFile(null); setDialogOpen(true); };
   const openEdit = (ad: any) => {
     setEditingAd(ad);
@@ -753,6 +935,24 @@ export default function AdminAds() {
     setImageFile(null);
     setLogoFile(null);
     setDialogOpen(true);
+  };
+
+  const openAddNetwork = () => {
+    setEditingNetwork(null);
+    setNetworkForm({
+      ...EMPTY_NETWORK_PLACEMENT,
+      name: "Google AdSense Auto Ads",
+      network: "adsense",
+      placementType: "inline",
+      targetPages: "all",
+    });
+    setNetworkDialogOpen(true);
+  };
+
+  const openEditNetwork = (placement: any) => {
+    setEditingNetwork(placement);
+    setNetworkForm({ ...EMPTY_NETWORK_PLACEMENT, ...placement });
+    setNetworkDialogOpen(true);
   };
 
   const handleSave = () => {
@@ -766,10 +966,24 @@ export default function AdminAds() {
     else createMutation.mutate(form);
   };
 
+  const handleSaveNetwork = () => {
+    if (!networkForm.name || !networkForm.adCode) {
+      return toast({ title: "Name and ad code are required", variant: "destructive" });
+    }
+    const data = {
+      ...networkForm,
+      popupDelay: Number(networkForm.popupDelay || 0),
+      targetPages: networkForm.targetPages || "all",
+    };
+    if (editingNetwork) updateNetworkMutation.mutate({ id: editingNetwork.id, data });
+    else createNetworkMutation.mutate(data);
+  };
+
   const filteredAds = filterPlacement === "all" ? ads : ads.filter((a: any) => a.placement === filterPlacement);
   const totalImpressions = ads.reduce((s: number, a: any) => s + (a.impressions || 0), 0);
   const totalClicks = ads.reduce((s: number, a: any) => s + (a.clicks || 0), 0);
   const liveAds = ads.filter((a: any) => a.isActive).length;
+  const activeNetworkCodes = networkPlacements.filter((n: any) => n.isActive).length;
   const pendingApps = applications.filter((a: any) => a.status === "pending").length;
   const globalCtr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : "0.00";
 
@@ -822,10 +1036,13 @@ export default function AdminAds() {
           ))}
         </div>
 
-        <Tabs defaultValue="sponsored">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6 bg-white border shadow-sm">
             <TabsTrigger value="sponsored" className="gap-2"><Image className="h-4 w-4" /> Sponsored Ads</TabsTrigger>
-            <TabsTrigger value="adsense" className="gap-2"><Code2 className="h-4 w-4" /> Google AdSense</TabsTrigger>
+            <TabsTrigger value="adsense" className="gap-2">
+              <Code2 className="h-4 w-4" /> Ad Network Code
+              {activeNetworkCodes > 0 && <span className="ml-1 bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5">{activeNetworkCodes}</span>}
+            </TabsTrigger>
             <TabsTrigger value="applications" className="gap-2">
               <Megaphone className="h-4 w-4" /> Applications
               {pendingApps > 0 && <span className="ml-1 bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5">{pendingApps}</span>}
@@ -876,65 +1093,115 @@ export default function AdminAds() {
             )}
           </TabsContent>
 
-          {/* ── Google AdSense Tab ── */}
+          {/* ── Ad Network Code Tab ── */}
           <TabsContent value="adsense">
-            <div className="max-w-2xl space-y-6">
+            <div className="space-y-6">
               <Card className="border shadow-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <div className="w-8 h-8 bg-white border rounded-lg flex items-center justify-center shadow-sm">
-                      <span className="text-xs font-bold text-blue-600">G</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <div className="w-8 h-8 bg-white border rounded-lg flex items-center justify-center shadow-sm">
+                          <Code2 className="h-4 w-4 text-blue-600" />
+                        </div>
+                        Website Ad Network Code
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        Add and update Google AdSense approval snippets, Auto Ads scripts, or other ad network code from the dashboard.
+                      </CardDescription>
                     </div>
-                    Google AdSense Integration
-                  </CardTitle>
-                  <CardDescription>Paste your AdSense publisher code to enable Google ads across the platform.</CardDescription>
+                    <Button onClick={openAddNetwork} data-testid="button-add-ad-network" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                      <Plus className="h-4 w-4" /> Add Code
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
-                    <div>
-                      <p className="font-medium text-gray-800">AdSense Status</p>
-                      <p className="text-sm text-gray-500">Enable to show Google ads site-wide</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={adSenseEnabled} onCheckedChange={setAdSenseEnabled} data-testid="switch-adsense-enabled" />
-                      <span className={`text-sm font-medium ${adSenseEnabled ? "text-green-600" : "text-gray-400"}`}>
-                        {adSenseEnabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="mb-2 block">Publisher Code (auto ad script)</Label>
-                    <div className="relative">
-                      <Textarea
-                        data-testid="input-adsense-code"
-                        value={adSenseCode}
-                        onChange={e => setAdSenseCode(e.target.value)}
-                        placeholder={`<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXX" crossorigin="anonymous"></script>`}
-                        rows={5}
-                        className="font-mono text-xs resize-none"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">Paste your AdSense script tag from your Google AdSense dashboard.</p>
-                  </div>
-
                   <div className="p-4 border border-blue-100 bg-blue-50 rounded-xl">
                     <p className="text-sm font-medium text-blue-800 mb-2 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" /> How to get your AdSense code
+                      <AlertCircle className="h-4 w-4" /> Google approval tip
                     </p>
-                    <ol className="text-xs text-blue-700 space-y-1 list-decimal pl-4">
-                      <li>Go to <a href="https://adsense.google.com" target="_blank" rel="noopener noreferrer" className="underline">adsense.google.com</a></li>
-                      <li>Navigate to Ads → By site → Get code</li>
-                      <li>Copy the auto ads script tag</li>
-                      <li>Paste it above and save</li>
-                    </ol>
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      For Google AdSense approval, add the Auto Ads script as an active, site-wide placement with target pages set to "all".
+                      You can pause any snippet without deleting it while waiting for Google review.
+                    </p>
                   </div>
-
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => toast({ title: "AdSense settings saved" })} data-testid="button-save-adsense">
-                    Save AdSense Settings
-                  </Button>
                 </CardContent>
               </Card>
+
+              {networksLoading ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {[...Array(2)].map((_, i) => <Card key={i} className="animate-pulse h-48 bg-gray-100 border-0" />)}
+                </div>
+              ) : networkPlacements.length === 0 ? (
+                <Card className="border-dashed border-2 border-gray-200 bg-white">
+                  <CardContent className="py-12 text-center">
+                    <Code2 className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No ad network code saved yet.</p>
+                    <p className="text-sm text-gray-400 mt-1 mb-5">Add Google AdSense or another network code to support website approval and monetization.</p>
+                    <Button onClick={openAddNetwork} variant="outline" className="gap-2">
+                      <Plus className="h-4 w-4" /> Add First Code
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {networkPlacements.map((placement: any) => {
+                    const networkLabel = AD_NETWORKS.find(n => n.value === placement.network)?.label || placement.network;
+                    const placementLabel = NETWORK_PLACEMENTS.find(p => p.value === placement.placementType)?.label || placement.placementType;
+                    return (
+                      <Card key={placement.id} data-testid={`card-ad-network-${placement.id}`} className="border shadow-sm">
+                        <CardContent className="p-5 space-y-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-900 truncate">{placement.name}</p>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{networkLabel}</Badge>
+                                <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">{placementLabel}</Badge>
+                                <Badge variant="outline" className={placement.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-500 border-gray-200"}>
+                                  {placement.isActive ? "Active" : "Paused"}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Switch
+                                checked={!!placement.isActive}
+                                onCheckedChange={isActive => updateNetworkMutation.mutate({ id: placement.id, data: { isActive } })}
+                                data-testid={`switch-ad-network-${placement.id}`}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl bg-gray-950 text-gray-100 p-3 max-h-32 overflow-auto">
+                            <pre className="text-xs whitespace-pre-wrap break-words font-mono">{placement.adCode}</pre>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs text-gray-400">Target pages</p>
+                              <p className="font-medium text-gray-700">{placement.targetPages || "all"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-400">Updated</p>
+                              <p className="font-medium text-gray-700">{placement.updatedAt ? new Date(placement.updatedAt).toLocaleDateString() : "—"}</p>
+                            </div>
+                          </div>
+
+                          {placement.notes && <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-2">{placement.notes}</p>}
+
+                          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                            <Button size="sm" variant="outline" onClick={() => openEditNetwork(placement)} data-testid={`button-edit-ad-network-${placement.id}`}>
+                              <Edit className="h-3.5 w-3.5 mr-1" /> Edit
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteNetworkConfirm(placement.id)} data-testid={`button-delete-ad-network-${placement.id}`}>
+                              <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -1084,6 +1351,48 @@ export default function AdminAds() {
               data-testid="button-save-ad"
             >
               {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : editingAd ? "Save Changes" : "Create Ad"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create / Edit Ad Network Dialog */}
+      <Dialog open={networkDialogOpen} onOpenChange={setNetworkDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Code2 className="h-5 w-5 text-blue-600" />
+              {editingNetwork ? "Edit Ad Network Code" : "Add Ad Network Code"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <AdNetworkForm form={networkForm} setForm={setNetworkForm} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNetworkDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSaveNetwork}
+              disabled={createNetworkMutation.isPending || updateNetworkMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="button-save-ad-network"
+            >
+              {(createNetworkMutation.isPending || updateNetworkMutation.isPending) ? "Saving..." : editingNetwork ? "Save Code" : "Add Code"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Ad Network Confirm */}
+      <Dialog open={!!deleteNetworkConfirm} onOpenChange={() => setDeleteNetworkConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600"><Trash2 className="h-5 w-5" /> Remove Ad Code</DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-600 text-sm">This will permanently delete this ad network code snippet. You can pause it instead if Google or another network is still reviewing your site.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteNetworkConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteNetworkConfirm && deleteNetworkMutation.mutate(deleteNetworkConfirm)} disabled={deleteNetworkMutation.isPending}>
+              {deleteNetworkMutation.isPending ? "Removing..." : "Remove Code"}
             </Button>
           </DialogFooter>
         </DialogContent>
