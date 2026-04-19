@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
+import { SecurityWarning } from '@/components/ui/security-warning';
 import { 
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
@@ -1270,6 +1271,7 @@ export default function CampaignDetail() {
                       onChange={(e) => setSubmitUrl(e.target.value)}
                       data-testid="input-submission-url"
                     />
+                    <SecurityWarning value={submitUrl} />
                     <p className="text-xs text-gray-500">Link to your post, video, reel, or any deliverable URL.</p>
                   </div>
                   <div className="space-y-2">
@@ -1282,6 +1284,7 @@ export default function CampaignDetail() {
                       rows={4}
                       data-testid="input-submission-text"
                     />
+                    <SecurityWarning value={submitText} />
                   </div>
                   <div className="flex gap-3">
                     <Button

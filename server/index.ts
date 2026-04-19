@@ -1,5 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes, runSubscriptionExpiryCheck } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
@@ -9,9 +11,107 @@ import { storage } from "./storage";
 import bcrypt from "bcrypt";
 
 const app = express();
+
+app.set("trust proxy", 1);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+        connectSrc: ["'self'", "wss:", "ws:", "https:"],
+        mediaSrc: ["'self'", "blob:", "data:"],
+        objectSrc: ["'none'"],
+        frameSrc: ["'self'"],
+        workerSrc: ["'self'", "blob:"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    noSniff: true,
+    xssFilter: true,
+    frameguard: { action: "sameorigin" },
+    dnsPrefetchControl: { allow: false },
+    permittedCrossDomainPolicies: { permittedPolicies: "none" },
+    hidePoweredBy: true,
+  })
+);
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." },
+  skip: (req) => req.path.startsWith("/assets") || req.path.startsWith("/uploads"),
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts, please try again later." },
+});
+
+const apiWriteLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Request limit reached, please slow down." },
+});
+
+app.use(globalLimiter);
+app.use("/api/login", authLimiter);
+app.use("/api/register", authLimiter);
+app.use("/api/auth", authLimiter);
+app.use("/api/forgot-password", authLimiter);
+app.use("/api/reset-password", authLimiter);
+
+app.use((req, res, next) => {
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && req.path.startsWith("/api")) {
+    return apiWriteLimiter(req, res, next);
+  }
+  next();
+});
+
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: false, limit: '15mb' }));
-app.use('/uploads', express.static(path.resolve('uploads')));
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  next();
+});
+
+app.use('/uploads', (req, res, next) => {
+  const ext = path.extname(req.path).toLowerCase();
+  const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.mp4', '.mov', '.pdf'];
+  if (!allowed.includes(ext)) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  next();
+}, express.static(path.resolve('uploads'), {
+  setHeaders: (res) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -75,23 +175,19 @@ async function ensureAdminExists() {
 (async () => {
   await ensureAdminExists();
 
-  // Seed demo content (runs only if DB is empty)
   const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
   if (adminUser) {
     await seedDemoData(adminUser.id);
   }
 
-  // Seed CMS defaults (sliders + page content blocks)
   await seedCmsContent();
 
-  // Seed database in development
   if (app.get("env") === "development") {
     // await seedDatabase(); // Temporarily disabled during schema updates
   }
 
   const server = await registerRoutes(app);
 
-  // Run subscription expiry checker every 30 minutes
   const runExpiryCheck = async () => {
     const result = await runSubscriptionExpiryCheck();
     if (result.expired > 0 || result.reminded > 0) {
@@ -104,24 +200,16 @@ async function ensureAdminExists() {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,

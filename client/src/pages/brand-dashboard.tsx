@@ -20,7 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
-  Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle
+  Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle,
+  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
@@ -83,7 +84,9 @@ export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires" | "task-addons">("overview");
+  const [reviewingAddon, setReviewingAddon] = useState<any>(null);
+  const [addonReviewNote, setAddonReviewNote] = useState("");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
   const [showCampaignUpgrade, setShowCampaignUpgrade] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
@@ -126,6 +129,23 @@ export default function BrandDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<BrandStats>({
     queryKey: ["/api/brand/stats"],
     retry: false,
+  });
+
+  const { data: taskAddonSubmissions = [], isLoading: addonSubsLoading } = useQuery<any[]>({
+    queryKey: ["/api/seller/task-addon-submissions"],
+    retry: false,
+  });
+
+  const reviewAddonMutation = useMutation({
+    mutationFn: ({ id, action, reviewNote }: { id: string; action: string; reviewNote: string }) =>
+      apiRequest("PATCH", `/api/task-addon-submissions/${id}/review`, { action, reviewNote }).then(r => r.json()),
+    onSuccess: (_, vars) => {
+      toast({ title: vars.action === "approve" ? "Task approved!" : "Task rejected", description: vars.action === "approve" ? "Points will be awarded to the user." : "User will be notified." });
+      queryClient.invalidateQueries({ queryKey: ["/api/seller/task-addon-submissions"] });
+      setReviewingAddon(null);
+      setAddonReviewNote("");
+    },
+    onError: (e: Error) => toast({ title: "Review failed", description: e.message, variant: "destructive" }),
   });
 
   // Fetch notifications
@@ -902,6 +922,7 @@ export default function BrandDashboard() {
               { id: "campaigns",    label: "My Campaigns",  icon: Target,      badge: 0 },
               { id: "applications", label: "Applications",  icon: Users,       badge: pendingApplicationsCount },
               { id: "submissions",  label: "Submissions",   icon: CheckCircle, badge: pendingSubmissionsCount },
+              { id: "task-addons",  label: "Task Addons",   icon: ShieldCheck, badge: (taskAddonSubmissions as any[]).filter((s: any) => s.status === "pending").length },
               { id: "influencers",  label: "Influencers",   icon: Users,       badge: 0 },
               { id: "direct-hires", label: "Direct Hires",  icon: Briefcase,   badge: 0 },
             ].map((t) => (
@@ -1668,12 +1689,120 @@ export default function BrandDashboard() {
             )}
           </div>
         )}
+
+        {selectedTab === "task-addons" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-blue-600" /> Task Addon Submissions</h2>
+                <p className="text-gray-500 text-sm mt-1">Review proof submitted by users for task addons on your P2P listings</p>
+              </div>
+            </div>
+
+            {addonSubsLoading ? (
+              <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-gray-100 animate-pulse" />)}</div>
+            ) : (taskAddonSubmissions as any[]).length === 0 ? (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="py-16 text-center">
+                  <ShieldCheck className="h-14 w-14 text-gray-200 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">No task addon submissions yet</h3>
+                  <p className="text-gray-500 text-sm">When users complete tasks on your P2P listings, their proof will appear here for review.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {(taskAddonSubmissions as any[]).map((sub: any) => (
+                  <Card key={sub.id} className={`border shadow-sm ${sub.status === "pending" ? "border-blue-200 bg-blue-50/30" : sub.status === "approved" ? "border-green-200 bg-green-50/20" : "border-red-200 bg-red-50/20"}`} data-testid={`card-addon-sub-${sub.id}`}>
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <Badge className={sub.status === "pending" ? "bg-yellow-100 text-yellow-800" : sub.status === "approved" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                              {sub.status}
+                            </Badge>
+                            {sub.listingTitle && <span className="text-xs text-gray-500 font-medium">Listing: {sub.listingTitle}</span>}
+                            <span className="text-xs text-gray-400">Task #{(sub.taskIndex || 0) + 1}</span>
+                          </div>
+                          {sub.taskDescription && <p className="text-sm text-gray-700 mb-2 font-medium">{sub.taskDescription}</p>}
+                          <div className="flex items-center gap-3 flex-wrap text-xs text-gray-500">
+                            {sub.proofUrl && (
+                              <a href={sub.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline font-semibold">
+                                <Link2 className="w-3.5 h-3.5" /> View Proof Link
+                              </a>
+                            )}
+                            {sub.proofScreenshot && (
+                              <a href={sub.proofScreenshot} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-violet-600 hover:underline font-semibold">
+                                <ImageIcon className="w-3.5 h-3.5" /> View Screenshot
+                              </a>
+                            )}
+                          </div>
+                          {sub.proofNote && <p className="text-xs text-gray-600 mt-1.5 bg-white rounded-lg px-2 py-1 border border-gray-100">{sub.proofNote}</p>}
+                          {sub.reviewNote && <p className="text-xs text-gray-500 mt-1 italic">Review note: {sub.reviewNote}</p>}
+                        </div>
+                        {sub.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs h-8" onClick={() => setReviewingAddon(sub)} data-testid={`button-review-addon-${sub.id}`}>
+                              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Review
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
           </div>
         </div>
       </div>
       </div>
       
       <Footer />
+
+      {reviewingAddon && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" data-testid="modal-review-addon">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Review Task Submission</h3>
+              <button onClick={() => setReviewingAddon(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3 mb-4">
+              <p className="text-sm text-gray-700 font-medium">{reviewingAddon.taskDescription}</p>
+              {reviewingAddon.proofUrl && (
+                <a href={reviewingAddon.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <ExternalLink className="w-4 h-4" /> Open Proof Link
+                </a>
+              )}
+              {reviewingAddon.proofScreenshot && (
+                <img src={reviewingAddon.proofScreenshot} alt="Proof screenshot" className="w-full rounded-xl border border-gray-200 max-h-48 object-cover" />
+              )}
+              {reviewingAddon.proofNote && <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 border">{reviewingAddon.proofNote}</p>}
+            </div>
+            <div className="mb-4">
+              <Label className="text-sm font-semibold mb-1.5 block">Review Note (optional)</Label>
+              <textarea
+                value={addonReviewNote}
+                onChange={e => setAddonReviewNote(e.target.value)}
+                rows={2}
+                placeholder="Add a note for the user..."
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                data-testid="input-addon-review-note"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button className="flex-1 bg-green-600 hover:bg-green-700 font-bold" onClick={() => reviewAddonMutation.mutate({ id: reviewingAddon.id, action: "approve", reviewNote: addonReviewNote })} disabled={reviewAddonMutation.isPending} data-testid="button-approve-addon">
+                <CheckCircle className="w-4 h-4 mr-1.5" /> {reviewAddonMutation.isPending ? "..." : "Approve & Award Points"}
+              </Button>
+              <Button variant="outline" className="flex-1 border-red-300 text-red-600 hover:bg-red-50 font-bold" onClick={() => reviewAddonMutation.mutate({ id: reviewingAddon.id, action: "reject", reviewNote: addonReviewNote })} disabled={reviewAddonMutation.isPending} data-testid="button-reject-addon">
+                <X className="w-4 h-4 mr-1.5" /> {reviewAddonMutation.isPending ? "..." : "Reject"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Campaign Upgrade Gate Dialog */}
       <Dialog open={showCampaignUpgrade} onOpenChange={setShowCampaignUpgrade}>

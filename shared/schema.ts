@@ -516,6 +516,7 @@ export const p2pListings = pgTable("p2p_listings", {
     task: string;
     platform?: string;
     requiredProof?: string;
+    actionLink?: string;
   }[]>(),
   tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
   tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
@@ -530,6 +531,30 @@ export const p2pListings = pgTable("p2p_listings", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const p2pTaskAddonSubmissions = pgTable("p2p_task_addon_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => p2pListings.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  taskIndex: integer("task_index").notNull().default(0),
+  taskDescription: text("task_description"),
+  proofType: varchar("proof_type").notNull().default("link"),
+  proofUrl: varchar("proof_url", { length: 1000 }),
+  proofScreenshot: varchar("proof_screenshot", { length: 500 }),
+  proofNote: text("proof_note"),
+  status: varchar("status").notNull().default("pending"),
+  reviewNote: text("review_note"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertP2pTaskAddonSubmissionSchema = createInsertSchema(p2pTaskAddonSubmissions).omit({
+  id: true,
+  createdAt: true,
+  reviewedAt: true,
+});
+export type P2pTaskAddonSubmission = typeof p2pTaskAddonSubmissions.$inferSelect;
 
 export const p2pFeeConfigs = pgTable("p2p_fee_config", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

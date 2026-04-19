@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
@@ -5,12 +6,15 @@ import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { SecurityWarning } from "@/components/ui/security-warning";
 import {
-  ArrowLeft, Briefcase, Coins, Lock, Package, ShieldCheck,
-  Star, Store, User, Zap, MessageSquare, CheckCircle,
+  ArrowLeft, Briefcase, CheckCircle, Coins, ExternalLink,
+  Image as ImageIcon, Link2, Lock, Package, ShieldCheck,
+  Star, Store, Upload, User, Zap, MessageSquare, X,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -36,14 +40,165 @@ function money(v: any) {
   return Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function TaskAddonSubmitModal({
+  listingId,
+  taskIndex,
+  taskDescription,
+  onClose,
+}: {
+  listingId: string;
+  taskIndex: number;
+  taskDescription: string;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [proofType, setProofType] = useState<"link" | "screenshot" | "both">("link");
+  const [proofUrl, setProofUrl] = useState("");
+  const [proofNote, setProofNote] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+
+  const submitProof = useMutation({
+    mutationFn: async () => {
+      const fd = new FormData();
+      fd.append("taskIndex", String(taskIndex));
+      fd.append("proofType", proofType);
+      fd.append("taskDescription", taskDescription);
+      if (proofUrl.trim()) fd.append("proofUrl", proofUrl.trim());
+      if (proofNote.trim()) fd.append("proofNote", proofNote.trim());
+      if (proofFile) fd.append("proofScreenshot", proofFile);
+      const res = await fetch(`/api/p2p/listings/${listingId}/task-addon-submissions`, {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.securityViolation) throw new Error("Security violation: " + err.message);
+        throw new Error(err.message || "Failed to submit proof");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Proof submitted!", description: "The seller will review your submission." });
+      queryClient.invalidateQueries({ queryKey: ["/api/my/task-addon-submissions"] });
+      onClose();
+    },
+    onError: (e: Error) => toast({ title: "Submission failed", description: e.message, variant: "destructive" }),
+  });
+
+  const canSubmit = proofUrl.trim() || proofFile;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" data-testid="modal-task-proof">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Submit Task Proof</h3>
+            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{taskDescription}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" data-testid="close-proof-modal"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <Label className="text-sm font-semibold mb-2 block">Proof type</Label>
+            <div className="flex gap-2">
+              {(["link", "screenshot", "both"] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setProofType(t)}
+                  className={`flex-1 rounded-xl border py-2 text-xs font-semibold capitalize transition-colors ${proofType === t ? "border-violet-500 bg-violet-50 text-violet-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                  data-testid={`btn-proof-type-${t}`}
+                >
+                  {t === "link" ? "🔗 Link" : t === "screenshot" ? "🖼 Screenshot" : "Both"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {(proofType === "link" || proofType === "both") && (
+            <div>
+              <Label className="text-sm font-semibold mb-1.5 block">Proof URL</Label>
+              <input
+                value={proofUrl}
+                onChange={e => setProofUrl(e.target.value)}
+                placeholder="https://instagram.com/p/... or post link"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                data-testid="input-proof-url"
+              />
+              <SecurityWarning value={proofUrl} />
+            </div>
+          )}
+
+          {(proofType === "screenshot" || proofType === "both") && (
+            <div>
+              <Label className="text-sm font-semibold mb-1.5 block">Screenshot</Label>
+              <div
+                className="rounded-xl border-2 border-dashed border-gray-200 p-4 text-center cursor-pointer hover:border-violet-400 transition-colors"
+                onClick={() => document.getElementById("proof-file-upload")?.click()}
+                data-testid="upload-proof-screenshot"
+              >
+                {proofFile ? (
+                  <div className="flex items-center justify-center gap-2 text-green-600">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-semibold">{proofFile.name}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <Upload className="w-6 h-6" />
+                    <span className="text-sm">Click to upload screenshot</span>
+                    <span className="text-xs">JPG, PNG, GIF accepted</span>
+                  </div>
+                )}
+              </div>
+              <input id="proof-file-upload" type="file" accept="image/*" className="hidden" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+            </div>
+          )}
+
+          <div>
+            <Label className="text-sm font-semibold mb-1.5 block">Additional note (optional)</Label>
+            <textarea
+              value={proofNote}
+              onChange={e => setProofNote(e.target.value)}
+              rows={2}
+              placeholder="Any details about how you completed the task..."
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+              data-testid="input-proof-note"
+            />
+            <SecurityWarning value={proofNote} />
+          </div>
+
+          <Button
+            className="w-full rounded-xl font-bold bg-violet-600 hover:bg-violet-700"
+            onClick={() => submitProof.mutate()}
+            disabled={submitProof.isPending || !canSubmit}
+            data-testid="button-submit-proof"
+          >
+            {submitProof.isPending ? (
+              <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin mr-2" />Submitting...</>
+            ) : (
+              <><CheckCircle className="w-4 h-4 mr-2" />Submit Proof</>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function P2PListing() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [submittingTaskIndex, setSubmittingTaskIndex] = useState<number | null>(null);
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: [`/api/p2p/listings/${id}`],
+  });
+
+  const { data: mySubmissions = [] } = useQuery<any[]>({
+    queryKey: ["/api/my/task-addon-submissions"],
+    enabled: isAuthenticated,
   });
 
   const acceptOffer = useMutation({
@@ -91,12 +246,16 @@ export default function P2PListing() {
   const isOwner = (user as any)?.id === listing.sellerId;
   const isExpired = listing.status === "expired";
   const isAvailable = listing.status === "approved";
+  const taskAddons: any[] = Array.isArray(listing.taskAddons) ? listing.taskAddons : [];
+  const hasTaskAddons = taskAddons.length > 0 && listing.tdripPointsPerParticipant > 0;
+
+  const getTaskSubmission = (index: number) =>
+    (mySubmissions as any[]).find((s: any) => s.listingId === id && s.taskIndex === index);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
 
-      {/* Hero Banner */}
       <section className="relative h-72 overflow-hidden">
         {listing.featuredImage ? (
           <img src={listing.featuredImage} alt={listing.title} className="w-full h-full object-cover" />
@@ -116,22 +275,16 @@ export default function P2PListing() {
             <Badge className={`text-xs font-bold uppercase tracking-wide ${TYPE_BADGE[listing.listingType] || "bg-gray-100 text-gray-800"}`}>
               {listing.listingType}
             </Badge>
-            {listing.isFeatured && (
-              <Badge className="bg-yellow-400/90 text-yellow-900 text-xs font-bold">⭐ Featured</Badge>
-            )}
-            {isExpired && (
-              <Badge className="bg-red-100 text-red-700 text-xs font-bold">Expired</Badge>
-            )}
+            {listing.isFeatured && <Badge className="bg-yellow-400/90 text-yellow-900 text-xs font-bold">⭐ Featured</Badge>}
+            {isExpired && <Badge className="bg-red-100 text-red-700 text-xs font-bold">Expired</Badge>}
           </div>
           <h1 className="text-3xl font-black text-white mt-2 leading-tight" data-testid="text-listing-title">{listing.title}</h1>
         </div>
       </section>
 
-      {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Left: Description + Seller */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6">
@@ -140,7 +293,84 @@ export default function P2PListing() {
               </CardContent>
             </Card>
 
-            {/* Trust info */}
+            {hasTaskAddons && (
+              <Card className="border-2 border-violet-100 shadow-sm bg-gradient-to-br from-violet-50 to-purple-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-violet-600" /> $TDRIP Task Addons
+                    </h3>
+                    <Badge className="bg-violet-600 text-white font-bold">
+                      +{listing.tdripPointsPerParticipant} $TDRIP each
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-violet-700 mb-4">Complete these tasks to earn $TDRIP points. Submit proof after completing each task.</p>
+                  <div className="space-y-3">
+                    {taskAddons.map((addon: any, i: number) => {
+                      const sub = getTaskSubmission(i);
+                      const isDone = sub?.status === "approved";
+                      const isPending = sub?.status === "pending";
+                      return (
+                        <div
+                          key={i}
+                          className={`rounded-xl border-2 p-4 transition-all ${isDone ? "border-green-200 bg-green-50/60" : isPending ? "border-yellow-200 bg-yellow-50/60" : "border-violet-200 bg-white"}`}
+                          data-testid={`card-task-addon-${i}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-black text-sm ${isDone ? "bg-green-600 text-white" : isPending ? "bg-yellow-500 text-white" : "bg-violet-600 text-white"}`}>
+                              {isDone ? <CheckCircle className="w-4 h-4" /> : i + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              {addon.platform && (
+                                <span className="text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full mr-2">{addon.platform}</span>
+                              )}
+                              <p className="text-sm font-semibold text-gray-800 mt-1">{addon.task}</p>
+                              {isPending && <p className="text-xs text-yellow-700 font-medium mt-1">⏳ Proof submitted — awaiting review</p>}
+                              {isDone && <p className="text-xs text-green-700 font-medium mt-1">✅ Approved — points awarded!</p>}
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                {addon.actionLink && (
+                                  <a
+                                    href={addon.actionLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold bg-violet-600 text-white px-3 py-1.5 rounded-lg hover:bg-violet-700 transition-colors"
+                                    data-testid={`button-task-action-link-${i}`}
+                                  >
+                                    <ExternalLink className="w-3 h-3" /> Do This Task
+                                  </a>
+                                )}
+                                {isAuthenticated && !isOwner && !isDone && !isPending && isAvailable && (
+                                  <button
+                                    onClick={() => setSubmittingTaskIndex(i)}
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold border-2 border-violet-400 text-violet-700 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition-colors"
+                                    data-testid={`button-submit-task-proof-${i}`}
+                                  >
+                                    <Upload className="w-3 h-3" /> Submit Proof
+                                  </button>
+                                )}
+                                {!isAuthenticated && (
+                                  <Link href="/login">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-violet-600 hover:underline cursor-pointer">
+                                      <Lock className="w-3 h-3" /> Login to earn $TDRIP
+                                    </span>
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {listing.tdripParticipantLimit > 0 && (
+                    <p className="text-xs text-violet-600 mt-3 text-center">
+                      Limited to {listing.tdripParticipantLimit} participants · 100 $TDRIP = $1 USDT
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-indigo-50">
               <CardContent className="p-6">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -162,7 +392,6 @@ export default function P2PListing() {
               </CardContent>
             </Card>
 
-            {/* Seller */}
             <Card className="border-0 shadow-sm">
               <CardContent className="p-6">
                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><User className="w-4 h-4" /> Seller</h3>
@@ -187,7 +416,6 @@ export default function P2PListing() {
             </Card>
           </div>
 
-          {/* Right: Price & Action */}
           <div className="space-y-5">
             <Card className="border-0 shadow-md sticky top-24">
               <CardContent className="p-6 space-y-4">
@@ -246,6 +474,13 @@ export default function P2PListing() {
                   ))}
                 </div>
 
+                {hasTaskAddons && (
+                  <div className="rounded-xl bg-violet-50 border border-violet-100 p-3">
+                    <p className="text-xs font-bold text-violet-800 mb-1">🎯 Task Add-ons Available</p>
+                    <p className="text-xs text-violet-600">Complete {taskAddons.length} task{taskAddons.length > 1 ? "s" : ""} and earn <strong>{listing.tdripPointsPerParticipant} $TDRIP</strong> per task.</p>
+                  </div>
+                )}
+
                 <Link href="/p2p-hub">
                   <Button variant="outline" className="w-full rounded-xl" data-testid="button-browse-more">
                     Browse More Listings
@@ -258,6 +493,15 @@ export default function P2PListing() {
       </main>
 
       <Footer />
+
+      {submittingTaskIndex !== null && (
+        <TaskAddonSubmitModal
+          listingId={id!}
+          taskIndex={submittingTaskIndex}
+          taskDescription={taskAddons[submittingTaskIndex]?.task || ""}
+          onClose={() => setSubmittingTaskIndex(null)}
+        />
+      )}
     </div>
   );
 }

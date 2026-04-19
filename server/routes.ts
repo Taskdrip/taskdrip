@@ -3,9 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts } from "@shared/schema";
+import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions } from "@shared/schema";
 import { db } from "./db";
-import { desc, sql, eq, and, count, gte } from "drizzle-orm";
+import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -306,6 +307,30 @@ export async function runSubscriptionExpiryCheck() {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  const SCAN_SKIP_PATHS = ['/api/health', '/api/login', '/api/register', '/api/uploads'];
+  const SCAN_SKIP_FIELDS = ['password', 'confirmPassword', 'transactionHash', 'paymentProof'];
+
+  app.use((req: any, res: any, next: any) => {
+    if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return next();
+    if (SCAN_SKIP_PATHS.some(p => req.path.startsWith(p))) return next();
+    if (!req.body || typeof req.body !== 'object') return next();
+
+    const bodyToScan: Record<string, any> = {};
+    for (const [key, val] of Object.entries(req.body)) {
+      if (!SCAN_SKIP_FIELDS.includes(key)) bodyToScan[key] = val;
+    }
+
+    const result = scanRequestBody(bodyToScan);
+    if (!result.isSafe) {
+      return res.status(400).json({
+        message: `Security violation: ${result.threats.join('; ')}. Adding malicious content may result in your account being permanently banned.`,
+        threats: result.threats,
+        securityViolation: true,
+      });
+    }
+    next();
+  });
 
   let webPushState: { client: any; publicKey: string } | null = null;
 
@@ -5999,6 +6024,148 @@ Instructions:
         });
       }
       res.json(listing);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/p2p/listings/:id/task-addon-submissions', isAuthenticated, upload.single('proofScreenshot'), async (req: any, res) => {
+    try {
+      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, req.params.id));
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      if (listing.status !== 'approved') return res.status(400).json({ message: 'Listing is not active' });
+      if (listing.sellerId === req.user.id) return res.status(400).json({ message: 'You cannot submit tasks on your own listing' });
+
+      const taskIndex = parseInt(String(req.body.taskIndex || '0'), 10);
+      const proofType = String(req.body.proofType || 'link');
+      const proofUrl = String(req.body.proofUrl || '').trim();
+      const proofNote = String(req.body.proofNote || '').trim();
+      const taskDescription = String(req.body.taskDescription || '').trim();
+
+      if (proofUrl) {
+        const urlScan = scanUrl(proofUrl);
+        if (!urlScan.isSafe) {
+          return res.status(400).json({ message: `Unsafe URL detected: ${urlScan.threats.join(', ')}. Submitting malicious links may result in account ban.`, securityViolation: true });
+        }
+      }
+
+      const existing = await db.select().from(p2pTaskAddonSubmissions).where(
+        and(eq(p2pTaskAddonSubmissions.listingId, req.params.id), eq(p2pTaskAddonSubmissions.userId, req.user.id), eq(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+      );
+      if (existing.length > 0 && existing[0].status === 'approved') {
+        return res.status(400).json({ message: 'You have already completed this task' });
+      }
+
+      const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
+      const [submission] = await db.insert(p2pTaskAddonSubmissions).values({
+        listingId: req.params.id,
+        userId: req.user.id,
+        taskIndex,
+        taskDescription,
+        proofType,
+        proofUrl: proofUrl || null,
+        proofScreenshot: screenshotPath,
+        proofNote: proofNote || null,
+        status: 'pending',
+      }).returning();
+
+      const seller = await storage.getUser(listing.sellerId);
+      if (seller) {
+        await storage.createNotification({
+          userId: seller.id,
+          type: 'task_addon_submitted',
+          title: 'Task addon submitted',
+          content: `${req.user.firstName} submitted proof for a task in your listing "${listing.title}".`,
+          actionUrl: `/p2p-hub`,
+        });
+      }
+      res.json(submission);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/p2p/listings/:id/task-addon-submissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, req.params.id));
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
+        return res.status(403).json({ message: 'Only the listing owner can view submissions' });
+      }
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc(p2pTaskAddonSubmissions.createdAt));
+      res.json(submissions);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/my/task-addon-submissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc(p2pTaskAddonSubmissions.createdAt));
+      res.json(submissions);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/task-addon-submissions/:id/review', isAuthenticated, async (req: any, res) => {
+    try {
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq(p2pTaskAddonSubmissions.id, req.params.id));
+      if (!sub) return res.status(404).json({ message: 'Submission not found' });
+      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, sub.listingId));
+      if (!listing) return res.status(404).json({ message: 'Listing not found' });
+      if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
+        return res.status(403).json({ message: 'Only the listing owner can review submissions' });
+      }
+      const action = String(req.body.action || '');
+      const reviewNote = String(req.body.reviewNote || '').trim();
+      if (!['approve', 'reject'].includes(action)) return res.status(400).json({ message: 'Action must be approve or reject' });
+
+      const [updated] = await db.update(p2pTaskAddonSubmissions).set({
+        status: action === 'approve' ? 'approved' : 'rejected',
+        reviewNote: reviewNote || null,
+        reviewedBy: req.user.id,
+        reviewedAt: new Date(),
+      }).where(eq(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+
+      if (action === 'approve' && listing.tdripPointsPerParticipant) {
+        try {
+          await storage.awardPoints(sub.userId, 'task_addon_reward', listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
+        } catch {}
+      }
+
+      await storage.createNotification({
+        userId: sub.userId,
+        type: action === 'approve' ? 'task_addon_approved' : 'task_addon_rejected',
+        title: action === 'approve' ? 'Task addon approved!' : 'Task addon rejected',
+        content: action === 'approve'
+          ? `Your task submission for "${listing.title}" was approved!${listing.tdripPointsPerParticipant ? ` You earned ${listing.tdripPointsPerParticipant} $TDRIP.` : ''}`
+          : `Your task submission for "${listing.title}" was rejected.${reviewNote ? ` Reason: ${reviewNote}` : ''}`,
+        actionUrl: `/p2p-hub`,
+      });
+
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/seller/task-addon-submissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq(p2pListings.sellerId, req.user.id));
+      if (sellerListings.length === 0) return res.json([]);
+      const listingIds = sellerListings.map(l => l.id);
+      const listingTitleMap = Object.fromEntries(sellerListings.map(l => [l.id, l.title]));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
+        inArray(p2pTaskAddonSubmissions.listingId, listingIds)
+      ).orderBy(desc(p2pTaskAddonSubmissions.createdAt));
+      const submissionsWithTitle = submissions.map(s => ({ ...s, listingTitle: listingTitleMap[s.listingId] || '' }));
+      res.json(submissionsWithTitle);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/content/scan', isAuthenticated, async (req: any, res) => {
+    try {
+      const { text, url } = req.body;
+      if (url) {
+        const result = scanUrl(String(url));
+        return res.json(result);
+      }
+      if (text) {
+        const result = scanTextContent(String(text));
+        return res.json(result);
+      }
+      res.json({ isSafe: true, threats: [] });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

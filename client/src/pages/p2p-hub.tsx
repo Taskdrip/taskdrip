@@ -435,7 +435,7 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
 }
 
 // ── Create Listing Dialog ──────────────────────────────────────────────────────
-type TaskAddonEntry = { task: string; platform: string };
+type TaskAddonEntry = { task: string; platform: string; actionLink: string };
 
 function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; open: boolean; onClose: () => void; defaultType?: string }) {
   const { toast } = useToast();
@@ -458,9 +458,9 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
     featuredImage: null as File | null,
   });
 
-  const [taskAddons, setTaskAddons] = useState<TaskAddonEntry[]>([{ task: "", platform: "Instagram" }]);
+  const [taskAddons, setTaskAddons] = useState<TaskAddonEntry[]>([{ task: "", platform: "Instagram", actionLink: "" }]);
 
-  const addTaskAddon = () => setTaskAddons(prev => [...prev, { task: "", platform: "Instagram" }]);
+  const addTaskAddon = () => setTaskAddons(prev => [...prev, { task: "", platform: "Instagram", actionLink: "" }]);
   const removeTaskAddon = (i: number) => setTaskAddons(prev => prev.filter((_, idx) => idx !== i));
   const updateTaskAddon = (i: number, field: keyof TaskAddonEntry, value: string) =>
     setTaskAddons(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t));
@@ -474,6 +474,7 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
       const validAddons = taskAddons.filter(t => t.task.trim()).map(t => ({
         task: t.task.trim(),
         platform: t.platform,
+        actionLink: t.actionLink.trim() || undefined,
         requiredProof: "Profile link or screenshot",
       }));
       fd.set("taskAddons", JSON.stringify(validAddons));
@@ -629,30 +630,42 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
                 )}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {taskAddons.map((addon, i) => (
-                <div key={i} className="flex gap-2">
-                  <select
-                    value={addon.platform}
-                    onChange={e => updateTaskAddon(i, "platform", e.target.value)}
-                    className="rounded-xl border border-violet-200 bg-white text-xs px-2 py-1.5 flex-shrink-0"
-                  >
-                    {["Instagram", "TikTok", "YouTube", "X (Twitter)", "Facebook", "Telegram", "Discord", "Other"].map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                  <input
-                    value={addon.task}
-                    onChange={e => updateTaskAddon(i, "task", e.target.value)}
-                    placeholder={`Task ${i + 1}: e.g., Follow our page & comment...`}
-                    className="rounded-xl border border-violet-200 bg-white text-sm px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-violet-400"
-                    data-testid={`input-listing-task-addon-${i}`}
-                  />
-                  {taskAddons.length > 1 && (
-                    <button onClick={() => removeTaskAddon(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0" title="Remove">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                <div key={i} className="rounded-xl border border-violet-200 bg-white p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <select
+                      value={addon.platform}
+                      onChange={e => updateTaskAddon(i, "platform", e.target.value)}
+                      className="rounded-xl border border-violet-200 bg-white text-xs px-2 py-1.5 flex-shrink-0 focus:outline-none focus:border-violet-400"
+                    >
+                      {["Instagram", "TikTok", "YouTube", "X (Twitter)", "Facebook", "Telegram", "Discord", "Other"].map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                    <input
+                      value={addon.task}
+                      onChange={e => updateTaskAddon(i, "task", e.target.value)}
+                      placeholder={`Task ${i + 1}: e.g., Follow our page & comment...`}
+                      className="rounded-xl border border-violet-200 bg-white text-sm px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-violet-400"
+                      data-testid={`input-listing-task-addon-${i}`}
+                    />
+                    {taskAddons.length > 1 && (
+                      <button onClick={() => removeTaskAddon(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0" title="Remove">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-violet-600 font-semibold flex-shrink-0">🔗 Action Link:</span>
+                    <input
+                      value={addon.actionLink}
+                      onChange={e => updateTaskAddon(i, "actionLink", e.target.value)}
+                      placeholder="https://instagram.com/yourpage — link users click to do the task"
+                      className="rounded-xl border border-violet-100 bg-violet-50 text-xs px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-violet-400"
+                      data-testid={`input-listing-task-action-link-${i}`}
+                    />
+                  </div>
                 </div>
               ))}
               <button onClick={addTaskAddon} className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-semibold transition-colors" type="button" data-testid="button-add-task-addon">
