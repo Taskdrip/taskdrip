@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { CryptoCheckoutModal } from "@/components/ui/crypto-checkout";
@@ -15,14 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useLocation } from "wouter";
 import {
   Megaphone, Users, BarChart3, Globe, TrendingUp, Star, CheckCircle2,
   ArrowRight, Zap, Target, DollarSign, Play, Instagram, Twitter,
   Youtube, MessageCircle, Mail, Phone, Building2, Layers, Award,
-  ChevronRight, Sparkles, Eye, Gift, Trophy, Coins, CreditCard, X,
-  ShieldCheck
+  ChevronRight, Sparkles, Eye, EyeOff, Gift, Trophy, Coins, CreditCard, X,
+  ShieldCheck, LogIn, UserPlus, Lock, ArrowLeft,
 } from "lucide-react";
 import { SiTiktok, SiTelegram } from "react-icons/si";
+
+const FORM_STORAGE_KEY = "taskdrip_ads_form_draft";
 
 const PACKAGES = [
   {
@@ -154,8 +157,14 @@ const TDRIP_PER_USD = 100;
 
 export default function AdvertiseWithUs() {
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
-  const [form, setForm] = useState(EMPTY_FORM);
+  const { isAuthenticated, user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(FORM_STORAGE_KEY);
+      return saved ? { ...EMPTY_FORM, ...JSON.parse(saved) } : EMPTY_FORM;
+    } catch { return EMPTY_FORM; }
+  });
   const [submitted, setSubmitted] = useState(false);
   const [lastOrder, setLastOrder] = useState<any>(null);
   const [tdripParticipants, setTdripParticipants] = useState(0);
@@ -165,7 +174,38 @@ export default function AdvertiseWithUs() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutApplication, setCheckoutApplication] = useState<any>(null);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
-  const set = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingCheckoutAfterAuth, setPendingCheckoutAfterAuth] = useState(false);
+
+  const set = (key: string, val: string) => setForm(p => {
+    const next = { ...p, [key]: val };
+    try { sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(next)); } catch {}
+    return next;
+  });
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const u = user as any;
+      setForm(prev => {
+        const updated = {
+          ...prev,
+          contactName: prev.contactName || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+          email: prev.email || u.email || "",
+          phone: prev.phone || u.phone || "",
+        };
+        try { sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+    }
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (isAuthenticated && pendingCheckoutAfterAuth) {
+      setPendingCheckoutAfterAuth(false);
+      setShowAuthModal(false);
+      setCheckoutSummary(true);
+    }
+  }, [isAuthenticated, pendingCheckoutAfterAuth]);
 
   const isGiveaway = form.adType === "giveaway_campaign";
   const basePrice = BASE_PRICES[form.adType]?.min || 0;
@@ -191,6 +231,7 @@ export default function AdvertiseWithUs() {
       setIncludeTdrip(false);
       setTdripParticipants(0);
       setTdripPointsEach(0);
+      try { sessionStorage.removeItem(FORM_STORAGE_KEY); } catch {}
     },
     onError: () => toast({ title: "Failed to submit. Please try again.", variant: "destructive" }),
   });
@@ -203,10 +244,12 @@ export default function AdvertiseWithUs() {
     return true;
   };
 
-  const validateCheckout = () => {
+  const validateCheckout = (skipAuthCheck = false) => {
     if (!validate()) return false;
-    if (!isAuthenticated) {
-      toast({ title: "Please log in before checkout", description: "Your payment order must be saved to your account.", variant: "destructive" });
+    if (!isAuthenticated && !skipAuthCheck) {
+      try { sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(form)); } catch {}
+      setPendingCheckoutAfterAuth(true);
+      setShowAuthModal(true);
       return false;
     }
     if (!adsBudget || adsBudget <= 0) {
@@ -248,14 +291,14 @@ export default function AdvertiseWithUs() {
     submitMutation.mutate(buildPayload("agent"));
   };
 
-  const handleCheckout = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckout = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!validateCheckout()) return;
     setCheckoutSummary(true);
   };
 
   const confirmCheckout = async () => {
-    if (!validateCheckout()) return;
+    if (!validateCheckout(true)) return;
     setCheckoutSubmitting(true);
     try {
       const res = await apiRequest("POST", "/api/advertise-applications", buildPayload("checkout"));
@@ -281,6 +324,7 @@ export default function AdvertiseWithUs() {
     setIncludeTdrip(false);
     setTdripParticipants(0);
     setTdripPointsEach(0);
+    try { sessionStorage.removeItem(FORM_STORAGE_KEY); } catch {}
   };
 
   return (
@@ -924,6 +968,28 @@ export default function AdvertiseWithUs() {
         notes={checkoutNotes}
         onSuccess={handleCheckoutSuccess}
       />
+
+      <AdsCheckoutAuthModal
+        open={showAuthModal}
+        onClose={() => { setShowAuthModal(false); setPendingCheckoutAfterAuth(false); }}
+        onAuthSuccess={() => {
+          setShowAuthModal(false);
+          setPendingCheckoutAfterAuth(false);
+          setCheckoutSummary(true);
+        }}
+        orderPreview={{
+          adType: BASE_PRICES[form.adType]?.label || form.adType?.replace(/_/g, " ") || "Advertising",
+          companyName: form.companyName,
+          adsBudget,
+          tdripCostUsd: includeTdrip ? tdripCostUsd : 0,
+          totalCost,
+        }}
+        onGoToSignup={() => {
+          try { sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(form)); } catch {}
+          setShowAuthModal(false);
+          setLocation("/signup?redirect=" + encodeURIComponent("/advertise#apply"));
+        }}
+      />
     </div>
   );
 }
@@ -934,5 +1000,181 @@ function Settings2(props: any) {
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
+  );
+}
+
+interface AdsCheckoutAuthModalProps {
+  open: boolean;
+  onClose: () => void;
+  onAuthSuccess: () => void;
+  onGoToSignup: () => void;
+  orderPreview: {
+    adType: string;
+    companyName: string;
+    adsBudget: number;
+    tdripCostUsd: number;
+    totalCost: number;
+  };
+}
+
+function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orderPreview }: AdsCheckoutAuthModalProps) {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
+  const loginMutation = useMutation({
+    mutationFn: async (data: { email: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/auth/login", data);
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      if (data.requiresTwoFactor) {
+        toast({ title: "Two-factor required", description: "Please log in from the full login page.", variant: "destructive" });
+        return;
+      }
+      queryClient.setQueryData(["/api/user"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: "Logged in!", description: `Welcome back, ${data.user.firstName}! Continuing checkout…` });
+      onAuthSuccess();
+    },
+    onError: (err: any) => {
+      toast({ title: "Login failed", description: err.message || "Invalid email or password.", variant: "destructive" });
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({ title: "Enter your email and password", variant: "destructive" });
+      return;
+    }
+    loginMutation.mutate({ email, password });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        <div className="bg-gradient-to-br from-purple-700 to-purple-900 p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-white/20 rounded-lg"><Lock className="h-4 w-4 text-white" /></div>
+              <span className="font-bold text-sm">Secure Checkout</span>
+            </div>
+            <button onClick={onClose} className="text-white/60 hover:text-white transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <h2 className="text-xl font-extrabold mb-1">Sign in to continue</h2>
+          <p className="text-purple-200 text-sm">Your campaign order will be saved to your account after payment.</p>
+
+          <div className="mt-4 rounded-xl bg-white/10 border border-white/20 p-4 space-y-2">
+            {orderPreview.companyName && (
+              <div className="flex justify-between text-sm">
+                <span className="text-purple-200">Company</span>
+                <span className="font-semibold text-white">{orderPreview.companyName}</span>
+              </div>
+            )}
+            {orderPreview.adType && (
+              <div className="flex justify-between text-sm">
+                <span className="text-purple-200">Ad Type</span>
+                <span className="font-semibold text-white">{orderPreview.adType}</span>
+              </div>
+            )}
+            {orderPreview.adsBudget > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-purple-200">Ads Budget</span>
+                <span className="font-semibold text-white">${orderPreview.adsBudget.toFixed(2)}</span>
+              </div>
+            )}
+            {orderPreview.tdripCostUsd > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-purple-200">$TDRIP Add-on</span>
+                <span className="font-semibold text-white">+${orderPreview.tdripCostUsd.toFixed(2)}</span>
+              </div>
+            )}
+            {orderPreview.totalCost > 0 && (
+              <>
+                <div className="border-t border-white/20 pt-2 flex justify-between">
+                  <span className="font-bold text-purple-100">Total Due</span>
+                  <span className="text-xl font-extrabold text-white">${orderPreview.totalCost.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label className="text-sm font-semibold text-gray-700">Email Address</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                className="mt-1"
+                data-testid="auth-modal-input-email"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-semibold text-gray-700">Password</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className="pr-10"
+                  data-testid="auth-modal-input-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(p => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 font-bold gap-2"
+              disabled={loginMutation.isPending}
+              data-testid="auth-modal-button-login"
+            >
+              {loginMutation.isPending ? (
+                <span className="animate-pulse">Signing in…</span>
+              ) : (
+                <><LogIn className="h-4 w-4" /> Sign In & Continue Checkout</>
+              )}
+            </Button>
+          </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+            <div className="relative text-center text-xs text-gray-400 bg-white px-3 w-fit mx-auto">or</div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-12 font-semibold gap-2 border-gray-300 hover:border-purple-400 hover:bg-purple-50"
+            onClick={onGoToSignup}
+            data-testid="auth-modal-button-signup"
+          >
+            <UserPlus className="h-4 w-4 text-purple-600" />
+            Create a Free Account
+          </Button>
+
+          <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+            Your form data is saved automatically. After signing up, return to this page and your campaign details will be restored.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
