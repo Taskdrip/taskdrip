@@ -105,10 +105,10 @@ const levels = [
 ];
 
 const stats = [
-  { icon: Trophy, label: "Active Influencers", value: "10K+" },
-  { icon: TrendingUp, label: "Campaigns Run", value: "2.5K+" },
-  { icon: DollarSign, label: "Paid Out (USDT)", value: "$450K+" },
-  { icon: Shield, label: "Verified Brands", value: "500+" },
+  { icon: Trophy, label: "Active Influencers", value: "15K+" },
+  { icon: TrendingUp, label: "Campaigns Run", value: "3.5K+" },
+  { icon: DollarSign, label: "Paid Out (USDT)", value: "$650K+" },
+  { icon: Shield, label: "Verified Brands", value: "800+" },
 ];
 
 export default function GetStarted() {
@@ -139,7 +139,7 @@ export default function GetStarted() {
             </span>
           </h1>
           <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Join 10,000+ influencers earning crypto through brand campaigns. Follow 4 simple steps to start earning $TDRIP points and USDT rewards.
+            Join 15,000+ influencers earning crypto through brand campaigns, direct hire, P2P trading, and the BreedSkool Academy. Follow 4 simple steps to start earning $TDRIP points and USDT rewards.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/signup">

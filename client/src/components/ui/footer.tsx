@@ -67,7 +67,7 @@ export function Footer() {
               <h3 className="text-2xl font-bold">Taskdrip</h3>
             </div>
             <p className="text-gray-400 mb-4 leading-relaxed text-sm">
-              The #1 Web3 influencer marketplace — where influencers turn their reach into real crypto income. Join thousands of influencers earning USDT from top global brands, one task at a time.
+              The #1 Web3 influencer marketplace — where influencers turn their reach into real crypto income. Join 15,000+ influencers earning USDT from top global brands through campaigns, direct hire, P2P trading, and more.
             </p>
 
             {/* Social Icons — DB-driven if available, else static fallback */}
@@ -204,6 +204,24 @@ export function Footer() {
                   Wallet & Payouts
                 </Link>
               </li>
+              <li>
+                <Link href="/tdrip" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                  $TDRIP Points
+                </Link>
+              </li>
+              <li>
+                <Link href="/referrals" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                  <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+                  Referral Program
+                </Link>
+              </li>
+              <li>
+                <Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                  <Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />
+                  Social Feed
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -222,8 +240,14 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-influencers">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <Users className="h-4 w-4 mr-2 flex-shrink-0" />
                   Find Influencers
+                </Link>
+              </li>
+              <li>
+                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
+                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                  Direct Hire
                 </Link>
               </li>
               <li>
@@ -235,7 +259,7 @@ export function Footer() {
               <li>
                 <Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-feed">
                   <Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Feed
+                  Social Feed
                 </Link>
               </li>
               <li>

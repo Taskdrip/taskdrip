@@ -113,6 +113,8 @@ function NotificationPanel({ notifications, onClose, onMarkRead, onMarkAllRead }
 }
 
 const communityLinks = [
+  { href: "/feed", label: "Social Feed", icon: Users, color: "text-pink-500", internal: true },
+  { href: "/leaderboard", label: "Leaderboard", icon: Star, color: "text-yellow-500", internal: true },
   { href: SOCIALS.telegram, label: "Telegram Community", icon: SiTelegram, color: "text-[#229ED9]" },
   { href: SOCIALS.x, label: "Follow on X", icon: SiX, color: "text-gray-800" },
   { href: SOCIALS.instagram, label: "Instagram", icon: SiInstagram, color: "text-[#E1306C]" },
@@ -170,12 +172,12 @@ export function Navigation() {
 
   const navItems = [
     { href: "/", label: "Home" },
-    { href: "/campaigns", label: "Earn Rewards" },
+    { href: "/tasks", label: "Earn Rewards" },
+    { href: "/influencers", label: "Influencers" },
     { href: "/p2p-hub", label: "P2P Market" },
-    { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/shop", label: "Shop" },
     { href: "/breedskool", label: "BreedSkool" },
     { href: "/blog", label: "Blog" },
-    { href: "/shop", label: "Shop" },
   ];
 
   const isActive = (href: string) => {
@@ -237,10 +239,17 @@ export function Navigation() {
                   const Icon = link.icon;
                   return (
                     <DropdownMenuItem key={link.href} asChild>
-                      <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
-                        <Icon className={`h-4 w-4 ${link.color}`} />
-                        {link.label}
-                      </a>
+                      {(link as any).internal ? (
+                        <Link href={link.href} className="flex items-center gap-2 cursor-pointer">
+                          <Icon className={`h-4 w-4 ${link.color}`} />
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer">
+                          <Icon className={`h-4 w-4 ${link.color}`} />
+                          {link.label}
+                        </a>
+                      )}
                     </DropdownMenuItem>
                   );
                 })}
@@ -375,7 +384,17 @@ export function Navigation() {
               <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Community</p>
               {communityLinks.map((link) => {
                 const Icon = link.icon;
-                return (
+                return (link as any).internal ? (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-accent"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon className={`h-4 w-4 ${link.color}`} />
+                    {link.label}
+                  </Link>
+                ) : (
                   <a
                     key={link.href}
                     href={link.href}

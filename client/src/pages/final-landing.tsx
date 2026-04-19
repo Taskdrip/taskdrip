@@ -48,11 +48,11 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s1",
     badge: "For Influencers",
     headline: "Stop Getting Ghosted by Brands.",
-    subheadline: "You create the content. Brands earn the revenue. Taskdrip lets you browse live paid campaigns, apply in one click, and get paid in USDT when your work is approved.",
+    subheadline: "You create the content. Brands earn the revenue. Taskdrip lets you browse live paid campaigns, apply in one click, and get paid in USDT when your work is approved. 15,000+ influencers are already earning.",
     ctaPrimaryLabel: "Start Earning Now",
     ctaPrimaryLink: "/signup?type=creator",
-    ctaSecondaryLabel: "Browse Campaigns",
-    ctaSecondaryLink: "/campaigns",
+    ctaSecondaryLabel: "Browse Tasks",
+    ctaSecondaryLink: "/tasks",
     backgroundImage: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-black/75 to-black/50",
     accentColor: "from-orange-400 via-pink-400 to-purple-400",
@@ -61,33 +61,33 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s2",
     badge: "For Brands",
     headline: "Tired of Wasting Budget on Fake Influencers?",
-    subheadline: "Reach verified influencers, protect campaign funds with escrow, and approve every submission before payouts are released.",
+    subheadline: "Reach 15,000+ verified influencers across TikTok, Instagram, YouTube, X, and Telegram. Protect campaign funds with escrow — approve every submission before a single dollar is released.",
     ctaPrimaryLabel: "Launch a Campaign",
     ctaPrimaryLink: "/signup?type=brand",
-    ctaSecondaryLabel: "View Live Campaigns",
-    ctaSecondaryLink: "/campaigns",
+    ctaSecondaryLabel: "Browse Influencers",
+    ctaSecondaryLink: "/influencers",
     backgroundImage: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-black/75 to-black/50",
     accentColor: "from-blue-400 via-cyan-400 to-emerald-400",
   },
   {
     id: "s3",
-    badge: "Direct Hire — NEW",
-    headline: "Hire a Influencer Directly. Pay After Delivery.",
-    subheadline: "Brands can now bypass public campaigns and hire any verified influencer privately. Agree on terms, fund via USDT escrow, and release payment only when satisfied.",
-    ctaPrimaryLabel: "Start Hiring",
-    ctaPrimaryLink: "/signup?type=brand",
-    ctaSecondaryLabel: "Find Influencers",
-    ctaSecondaryLink: "/influencers",
+    badge: "Direct Hire",
+    headline: "Hire an Influencer Directly. Pay After Delivery.",
+    subheadline: "Bypass public campaigns and hire any verified influencer privately. Agree on terms in a private deal room, fund via USDT escrow, and release payment only when the work meets your standards.",
+    ctaPrimaryLabel: "Find an Influencer",
+    ctaPrimaryLink: "/influencers",
+    ctaSecondaryLabel: "Create Brand Account",
+    ctaSecondaryLink: "/signup?type=brand",
     backgroundImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-black/75 to-black/40",
     accentColor: "from-emerald-400 via-teal-400 to-cyan-400",
   },
   {
     id: "s4",
-    badge: "🔗 P2P Marketplace — Now Live",
-    headline: "Trade Crypto, Sell Services & Products.",
-    subheadline: "The Taskdrip P2P Hub lets you post crypto trades, digital services, and products — all protected by admin-controlled escrow, a private deal-room chat, and a dispute resolution system.",
+    badge: "🔗 P2P Marketplace",
+    headline: "Trade Crypto, Sell Services & Digital Products.",
+    subheadline: "The Taskdrip P2P Hub lets you post crypto trades, digital services, and physical/digital products — all protected by admin-controlled escrow, a private deal-room chat, and a built-in dispute resolution system.",
     ctaPrimaryLabel: "Open P2P Hub",
     ctaPrimaryLink: "/p2p-hub",
     ctaSecondaryLabel: "List Something to Sell",
@@ -100,10 +100,10 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s5",
     badge: "BreedSkool Academy",
     headline: "New to Influencing? Learn from the Best.",
-    subheadline: "BreedSkool gives influencers practical courses, masterclasses, and mentorship for Instagram, TikTok, YouTube, and monetization.",
+    subheadline: "BreedSkool gives influencers practical courses, masterclasses, and mentorship for Instagram, TikTok, YouTube, and content monetization. Taught by top earners on the platform.",
     ctaPrimaryLabel: "Explore Courses",
     ctaPrimaryLink: "/breedskool",
-    ctaSecondaryLabel: "Become a Mentor",
+    ctaSecondaryLabel: "Become an Instructor",
     ctaSecondaryLink: "/signup?type=creator",
     backgroundImage: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-indigo-900/60 to-black/50",
@@ -113,7 +113,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s6",
     badge: "Influencer Shop",
     headline: "Tools Built for Influencers Who Mean Business.",
-    subheadline: "Find templates, plugins, scripts, and digital tools that help influencers improve content, sell assets, and grow faster.",
+    subheadline: "Browse templates, Replit projects, scripts, GitHub repos, and digital toolkits that help you grow faster, improve your content, and sell your own digital assets to thousands of creators.",
     ctaPrimaryLabel: "Browse the Shop",
     ctaPrimaryLink: "/shop",
     ctaSecondaryLabel: "Sell Your Products",
@@ -121,6 +121,19 @@ const DEFAULT_SLIDES: Slide[] = [
     backgroundImage: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-black/70 to-black/50",
     accentColor: "from-emerald-400 via-teal-400 to-cyan-400",
+  },
+  {
+    id: "s7",
+    badge: "💰 $TDRIP Points & Referrals",
+    headline: "Earn Points for Every Action. Share & Multiply.",
+    subheadline: "Every login, campaign, referral, and social task earns $TDRIP points — off-chain rewards convertible to $TDRIP token at launch. Invite friends and earn 100 points per referral.",
+    ctaPrimaryLabel: "See How Points Work",
+    ctaPrimaryLink: "/tdrip",
+    ctaSecondaryLabel: "Refer & Earn",
+    ctaSecondaryLink: "/referrals",
+    backgroundImage: "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-yellow-950/60 to-black/50",
+    accentColor: "from-yellow-400 via-amber-400 to-orange-400",
   },
 ];
 
@@ -204,9 +217,9 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
 
           <div className="flex flex-wrap gap-3">
             {[
-              { label: "Influencers", value: "10K+", icon: <Users className="w-3.5 h-3.5" /> },
-              { label: "Campaigns", value: "2.5K+", icon: <Target className="w-3.5 h-3.5" /> },
-              { label: "Paid Out", value: "$450K+", icon: <DollarSign className="w-3.5 h-3.5" /> },
+              { label: "Influencers", value: "15K+", icon: <Users className="w-3.5 h-3.5" /> },
+              { label: "Campaigns", value: "3.5K+", icon: <Target className="w-3.5 h-3.5" /> },
+              { label: "Paid Out", value: "$650K+", icon: <DollarSign className="w-3.5 h-3.5" /> },
             ].map((s) => (
               <div key={s.label} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
                 <span className="text-gray-300">{s.icon}</span>
@@ -359,7 +372,7 @@ export default function FinalLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-gray-400 text-xs font-semibold mb-4 sm:mb-5 uppercase tracking-widest">{cms.get("platform_bar", "label", "Earn across all major platforms")}</p>
           <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-7 opacity-50 grayscale">
-            {["TikTok", "YouTube", "Instagram", "Twitch", "Telegram", "X (Twitter)", "Facebook"].map((platform) => (
+            {["TikTok", "YouTube", "Instagram", "Twitch", "Telegram", "X (Twitter)", "Facebook", "WhatsApp", "LinkedIn", "Snapchat"].map((platform) => (
               <span key={platform} className="text-xs sm:text-sm font-black text-gray-600 tracking-tight">{platform}</span>
             ))}
           </div>
@@ -372,15 +385,15 @@ export default function FinalLanding() {
           <div className="text-center mb-8 sm:mb-10">
             <Badge className="mb-3 bg-black text-white px-4 py-1.5 text-xs">Everything in One Place</Badge>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Built for the Influencer Economy</h2>
-            <p className="text-gray-500 mt-3 text-sm sm:text-base max-w-xl mx-auto">Campaigns, direct hire, P2P trading, courses, and a influencer shop — all under one roof.</p>
+            <p className="text-gray-500 mt-3 text-sm sm:text-base max-w-xl mx-auto">Campaigns, direct hire, P2P trading, BreedSkool Academy, a digital shop, and a social feed — all under one roof.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               {
                 icon: <Target className="w-6 h-6 text-orange-500" />,
                 title: "Campaigns",
                 desc: "Apply to live brand campaigns and earn USDT on approval.",
-                href: "/campaigns",
+                href: "/tasks",
                 color: "bg-orange-50 border-orange-100",
               },
               {
@@ -403,6 +416,20 @@ export default function FinalLanding() {
                 desc: "Learn from top influencers — courses, masterclasses & mentorship.",
                 href: "/breedskool",
                 color: "bg-indigo-50 border-indigo-100",
+              },
+              {
+                icon: <ShoppingBag className="w-6 h-6 text-emerald-500" />,
+                title: "Shop",
+                desc: "Buy and sell scripts, templates, Replit projects & digital tools.",
+                href: "/shop",
+                color: "bg-emerald-50 border-emerald-100",
+              },
+              {
+                icon: <ArrowUpRight className="w-6 h-6 text-pink-500" />,
+                title: "Social Feed",
+                desc: "Post content, tip creators with $TDRIP, and grow your audience.",
+                href: "/feed",
+                color: "bg-pink-50 border-pink-100",
               },
             ].map((feat) => (
               <Link href={feat.href} key={feat.title}>
