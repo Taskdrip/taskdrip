@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
+import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
@@ -468,9 +469,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const admin = await storage.getUser(req.user.id);
       if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      const method = await storage.updatePaymentMethod(req.params.id, req.body);
+      // Strip auto-managed fields that must not be passed to Drizzle's .set()
+      const { id: _id, createdAt: _c, updatedAt: _u, ...safeData } = req.body;
+      const method = await storage.updatePaymentMethod(req.params.id, safeData);
       res.json(method);
     } catch (e) {
+      console.error("Error updating payment method:", e);
       res.status(500).json({ message: "Failed to update payment method" });
     }
   });
@@ -3298,6 +3302,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         transactionHash: transactionHash || "",
         status: product.isFree ? "approved" : "pending",
       });
+
+      // Send order confirmation email + in-app notification (non-blocking)
+      const buyer = await storage.getUser(user.id).catch(() => null);
+      if (buyer) {
+        sendOrderConfirmationEmail({
+          email: buyer.email,
+          firstName: buyer.firstName || '',
+          productName: product.name,
+          amount: `${amount || "0"} ${currency || ""}`.trim(),
+          isFree: !!product.isFree,
+        }).catch(() => {});
+        storage.createNotification({
+          userId: buyer.id,
+          type: 'order',
+          title: product.isFree ? `${product.name} is ready! 🎉` : `Order received for ${product.name}`,
+          content: product.isFree
+            ? 'Your free product is approved and ready to access.'
+            : "Your payment is under review. We'll notify you once approved (usually within 24 hours).",
+          actionUrl: '/shop',
+          isRead: false,
+          priority: 'high',
+        }).catch(() => {});
+      }
 
       res.status(201).json(purchase);
     } catch (error) {
@@ -6923,7 +6950,7 @@ Instructions:
   app.post('/api/advertise-applications', async (req, res) => {
     try {
       const app2 = await storage.createAdvertiseApplication(req.body);
-      // Notify all admin users about the new application
+      // Notify admin about new application
       try {
         const adminUser = await storage.getAdminUser();
         if (adminUser) {
@@ -6938,8 +6965,21 @@ Instructions:
           });
         }
       } catch (_notifErr) { /* non-blocking */ }
+      // Send confirmation email to the applicant (non-blocking)
+      if (req.body.contactEmail) {
+        const contactName = req.body.contactName || '';
+        const firstName = contactName.split(' ')[0] || contactName;
+        sendAdsApplicationEmail({
+          email: req.body.contactEmail,
+          firstName: firstName || 'there',
+          companyName: req.body.companyName || '',
+          adType: req.body.adType || 'advertising',
+          contactName: contactName || req.body.contactEmail,
+        }).catch(() => {});
+      }
       res.json(app2);
     } catch (e) {
+      console.error("Error submitting ads application:", e);
       res.status(500).json({ message: 'Failed to submit application' });
     }
   });

@@ -81,6 +81,78 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
   }
 }
 
+export async function sendWelcomeEmail(user: { email: string; firstName: string; lastName?: string; userType: string }): Promise<void> {
+  try {
+    const templateKey = user.userType === 'brand' ? 'welcome_brand' : 'welcome_creator';
+    const template = AI_TEMPLATES[templateKey];
+    if (!template) return;
+    const siteUrl = "https://taskdrip.online";
+    const vars: Record<string, string> = {
+      first_name: user.firstName || "",
+      last_name: user.lastName || "",
+      full_name: `${user.firstName} ${user.lastName || ""}`.trim(),
+      email: user.email,
+      site_url: siteUrl,
+    };
+    const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    await sendEmail({ to: user.email, toName: `${user.firstName} ${user.lastName || ""}`.trim(), subject, html });
+  } catch (_) { /* non-blocking */ }
+}
+
+export async function sendOrderConfirmationEmail(opts: {
+  email: string;
+  firstName: string;
+  productName: string;
+  amount: string;
+  isFree: boolean;
+}): Promise<void> {
+  try {
+    const template = AI_TEMPLATES['order_confirmation'];
+    if (!template) return;
+    const siteUrl = "https://taskdrip.online";
+    const status = opts.isFree ? "Approved" : "Pending Review";
+    const statusMessage = opts.isFree
+      ? "Your download is ready — visit the shop to access your product."
+      : "Our team will verify your payment and approve your order within 24 hours.";
+    const vars: Record<string, string> = {
+      first_name: opts.firstName,
+      product_name: opts.productName,
+      amount: opts.isFree ? "Free" : opts.amount,
+      status,
+      status_message: statusMessage,
+      site_url: siteUrl,
+    };
+    const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
+  } catch (_) { /* non-blocking */ }
+}
+
+export async function sendAdsApplicationEmail(opts: {
+  email: string;
+  firstName: string;
+  companyName: string;
+  adType: string;
+  contactName: string;
+}): Promise<void> {
+  try {
+    const template = AI_TEMPLATES['ads_application_received'];
+    if (!template) return;
+    const siteUrl = "https://taskdrip.online";
+    const vars: Record<string, string> = {
+      first_name: opts.firstName,
+      company_name: opts.companyName,
+      ad_type: (opts.adType || "advertising").replace(/_/g, " "),
+      contact_name: opts.contactName,
+      site_url: siteUrl,
+    };
+    const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
+  } catch (_) { /* non-blocking */ }
+}
+
 export async function testSmtpConnection(settings: any): Promise<{ success: boolean; error?: string }> {
   try {
     const transporter = buildTransporter(settings);
@@ -265,6 +337,36 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
       </ul>
       <a href="{{site_url}}/campaigns" class="btn">Access Premium Campaigns →</a>
       <p>The Taskdrip Team</p>
+    `),
+  },
+  order_confirmation: {
+    subject: "Order Confirmed – {{product_name}} 🛍️",
+    body: buildDefaultEmailHtml(`
+      <h2>Thanks for your order, {{first_name}}! 🎉</h2>
+      <p>Your purchase has been received and is now being processed.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:8px 0;color:#6b7280;">Product</td><td style="padding:8px 0;font-weight:600;">{{product_name}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Amount</td><td style="padding:8px 0;font-weight:600;">{{amount}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Status</td><td style="padding:8px 0;font-weight:600;color:#7c3aed;">{{status}}</td></tr>
+      </table>
+      <p>{{status_message}}</p>
+      <a href="{{site_url}}/shop" class="btn">View My Orders →</a>
+      <p>Questions? Reply to this email and we'll help you out.</p>
+      <p>The Taskdrip Team</p>
+    `),
+  },
+  ads_application_received: {
+    subject: "We received your advertising application, {{first_name}}! 📣",
+    body: buildDefaultEmailHtml(`
+      <h2>Application received, {{first_name}}! 📣</h2>
+      <p>Thanks for reaching out to Taskdrip Ads. Your advertising application for <strong>{{company_name}}</strong> has been successfully submitted.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:8px 0;color:#6b7280;">Campaign Type</td><td style="padding:8px 0;font-weight:600;">{{ad_type}}</td></tr>
+        <tr><td style="padding:8px 0;color:#6b7280;">Contact</td><td style="padding:8px 0;font-weight:600;">{{contact_name}}</td></tr>
+      </table>
+      <p>Our team will review your application and get back to you within <strong>1–2 business days</strong>.</p>
+      <a href="{{site_url}}/advertise" class="btn">View Advertising Options →</a>
+      <p>The Taskdrip Advertising Team</p>
     `),
   },
 };

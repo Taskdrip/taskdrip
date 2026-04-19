@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import { sendWelcomeEmail } from "./email-service";
 
 declare global {
   namespace Express {
@@ -174,6 +175,23 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
+
+        // Send welcome email + in-app notification (non-blocking)
+        sendWelcomeEmail({ email: user.email, firstName: user.firstName || '', lastName: user.lastName || '', userType: user.userType || 'creator' }).catch(() => {});
+        const welcomeTitle = user.userType === 'brand' ? 'Welcome to Taskdrip, ' + user.firstName + '! 🎯' : 'Welcome to Taskdrip, ' + user.firstName + '! 🚀';
+        const welcomeContent = user.userType === 'brand'
+          ? 'Your brand account is ready. Start by launching your first influencer campaign.'
+          : 'Your influencer account is ready. Browse live campaigns and start earning crypto.';
+        storage.createNotification({
+          userId: user.id,
+          type: 'welcome',
+          title: welcomeTitle,
+          content: welcomeContent,
+          actionUrl: user.userType === 'brand' ? '/campaigns' : '/campaigns',
+          isRead: false,
+          priority: 'high',
+        }).catch(() => {});
+
         res.status(201).json({ 
           message: "Account created successfully",
           user: {
