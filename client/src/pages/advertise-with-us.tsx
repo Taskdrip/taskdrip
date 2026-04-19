@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useLocation } from "wouter";
 import {
@@ -980,6 +981,7 @@ export default function AdvertiseWithUs() {
         orderPreview={{
           adType: BASE_PRICES[form.adType]?.label || form.adType?.replace(/_/g, " ") || "Advertising",
           companyName: form.companyName,
+          companyEmail: form.email,
           adsBudget,
           tdripCostUsd: includeTdrip ? tdripCostUsd : 0,
           totalCost,
@@ -1011,6 +1013,7 @@ interface AdsCheckoutAuthModalProps {
   orderPreview: {
     adType: string;
     companyName: string;
+    companyEmail?: string;
     adsBudget: number;
     tdripCostUsd: number;
     totalCost: number;
@@ -1019,9 +1022,20 @@ interface AdsCheckoutAuthModalProps {
 
 function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orderPreview }: AdsCheckoutAuthModalProps) {
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
+  const [authTab, setAuthTab] = useState("login");
+
+  // Login state
+  const [loginEmail, setLoginEmail] = useState(orderPreview.companyEmail || "");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
+
+  // Register state
+  const [regFirstName, setRegFirstName] = useState("");
+  const [regLastName, setRegLastName] = useState("");
+  const [regEmail, setRegEmail] = useState(orderPreview.companyEmail || "");
+  const [regPassword, setRegPassword] = useState("");
+  const [regCompany, setRegCompany] = useState(orderPreview.companyName || "");
+  const [showRegPw, setShowRegPw] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
@@ -1035,7 +1049,7 @@ function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orde
       }
       queryClient.setQueryData(["/api/user"], data.user);
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({ title: "Logged in!", description: `Welcome back, ${data.user.firstName}! Continuing checkout…` });
+      toast({ title: "Welcome back!", description: `Logged in as ${data.user.firstName}. Continuing your checkout…` });
       onAuthSuccess();
     },
     onError: (err: any) => {
@@ -1043,20 +1057,95 @@ function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orde
     },
   });
 
+  const registerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/auth/register", data);
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.setQueryData(["/api/user"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: `Welcome, ${data.user.firstName}! 🎉`, description: "Account created! Your order details are saved — continuing to checkout…" });
+      onAuthSuccess();
+    },
+    onError: (err: any) => {
+      toast({ title: "Registration failed", description: err.message || "Could not create account.", variant: "destructive" });
+    },
+  });
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!loginEmail || !loginPassword) {
       toast({ title: "Enter your email and password", variant: "destructive" });
       return;
     }
-    loginMutation.mutate({ email, password });
+    loginMutation.mutate({ email: loginEmail, password: loginPassword });
   };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regFirstName || !regLastName || !regEmail || !regPassword) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+    if (regPassword.length < 6) {
+      toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    registerMutation.mutate({
+      firstName: regFirstName,
+      lastName: regLastName,
+      email: regEmail,
+      password: regPassword,
+      userType: "brand",
+      companyName: regCompany || regFirstName,
+      bio: `Brand account for ${regCompany || regFirstName}`,
+      industry: "Advertising",
+      skills: [],
+    });
+  };
+
+  const OrderSummary = () => (
+    <div className="rounded-xl bg-white/10 border border-white/20 p-4 space-y-2">
+      {orderPreview.companyName && (
+        <div className="flex justify-between text-sm">
+          <span className="text-purple-200">Company</span>
+          <span className="font-semibold text-white">{orderPreview.companyName}</span>
+        </div>
+      )}
+      {orderPreview.adType && (
+        <div className="flex justify-between text-sm">
+          <span className="text-purple-200">Ad Type</span>
+          <span className="font-semibold text-white">{orderPreview.adType}</span>
+        </div>
+      )}
+      {orderPreview.adsBudget > 0 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-purple-200">Ads Budget</span>
+          <span className="font-semibold text-white">${orderPreview.adsBudget.toFixed(2)}</span>
+        </div>
+      )}
+      {orderPreview.tdripCostUsd > 0 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-purple-200">$TDRIP Add-on</span>
+          <span className="font-semibold text-white">+${orderPreview.tdripCostUsd.toFixed(2)}</span>
+        </div>
+      )}
+      {orderPreview.totalCost > 0 && (
+        <div className="border-t border-white/20 pt-2 flex justify-between">
+          <span className="font-bold text-purple-100">Total Due</span>
+          <span className="text-xl font-extrabold text-white">${orderPreview.totalCost.toFixed(2)}</span>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
+      <DialogContent className="max-w-md p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="bg-gradient-to-br from-purple-700 to-purple-900 p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-white/20 rounded-lg"><Lock className="h-4 w-4 text-white" /></div>
               <span className="font-bold text-sm">Secure Checkout</span>
@@ -1065,113 +1154,130 @@ function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orde
               <X className="h-4 w-4" />
             </button>
           </div>
-          <h2 className="text-xl font-extrabold mb-1">Sign in to continue</h2>
-          <p className="text-purple-200 text-sm">Your campaign order will be saved to your account after payment.</p>
-
-          <div className="mt-4 rounded-xl bg-white/10 border border-white/20 p-4 space-y-2">
-            {orderPreview.companyName && (
-              <div className="flex justify-between text-sm">
-                <span className="text-purple-200">Company</span>
-                <span className="font-semibold text-white">{orderPreview.companyName}</span>
-              </div>
-            )}
-            {orderPreview.adType && (
-              <div className="flex justify-between text-sm">
-                <span className="text-purple-200">Ad Type</span>
-                <span className="font-semibold text-white">{orderPreview.adType}</span>
-              </div>
-            )}
-            {orderPreview.adsBudget > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-purple-200">Ads Budget</span>
-                <span className="font-semibold text-white">${orderPreview.adsBudget.toFixed(2)}</span>
-              </div>
-            )}
-            {orderPreview.tdripCostUsd > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-purple-200">$TDRIP Add-on</span>
-                <span className="font-semibold text-white">+${orderPreview.tdripCostUsd.toFixed(2)}</span>
-              </div>
-            )}
-            {orderPreview.totalCost > 0 && (
-              <>
-                <div className="border-t border-white/20 pt-2 flex justify-between">
-                  <span className="font-bold text-purple-100">Total Due</span>
-                  <span className="text-xl font-extrabold text-white">${orderPreview.totalCost.toFixed(2)}</span>
-                </div>
-              </>
-            )}
-          </div>
+          <h2 className="text-xl font-extrabold mb-1">
+            {authTab === "login" ? "Sign in to continue" : "Create your account"}
+          </h2>
+          <p className="text-purple-200 text-sm mb-4">
+            {authTab === "login"
+              ? "Your campaign details are saved and will be ready after you sign in."
+              : "Quick signup — your campaign order is saved and will continue right after."}
+          </p>
+          <OrderSummary />
         </div>
 
-        <div className="p-6 space-y-4">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label className="text-sm font-semibold text-gray-700">Email Address</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                autoComplete="email"
-                className="mt-1"
-                data-testid="auth-modal-input-email"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-semibold text-gray-700">Password</Label>
-              <div className="relative mt-1">
-                <Input
-                  type={showPw ? "text" : "password"}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  className="pr-10"
-                  data-testid="auth-modal-input-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  tabIndex={-1}
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 font-bold gap-2"
-              disabled={loginMutation.isPending}
-              data-testid="auth-modal-button-login"
-            >
-              {loginMutation.isPending ? (
-                <span className="animate-pulse">Signing in…</span>
-              ) : (
-                <><LogIn className="h-4 w-4" /> Sign In & Continue Checkout</>
-              )}
-            </Button>
-          </form>
+        {/* Auth Tabs */}
+        <div className="p-5">
+          <Tabs value={authTab} onValueChange={setAuthTab}>
+            <TabsList className="grid grid-cols-2 w-full mb-5">
+              <TabsTrigger value="login" className="gap-2" data-testid="auth-tab-login">
+                <LogIn className="h-3.5 w-3.5" /> Sign In
+              </TabsTrigger>
+              <TabsTrigger value="register" className="gap-2" data-testid="auth-tab-register">
+                <UserPlus className="h-3.5 w-3.5" /> Create Account
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-            <div className="relative text-center text-xs text-gray-400 bg-white px-3 w-fit mx-auto">or</div>
-          </div>
+            {/* Login Tab */}
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Email Address</Label>
+                  <Input
+                    type="email"
+                    value={loginEmail}
+                    onChange={e => setLoginEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                    className="mt-1"
+                    data-testid="auth-modal-input-email"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Password</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      type={showLoginPw ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={e => setLoginPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      className="pr-10"
+                      data-testid="auth-modal-input-password"
+                    />
+                    <button type="button" onClick={() => setShowLoginPw(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                      {showLoginPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 font-bold gap-2"
+                  disabled={loginMutation.isPending} data-testid="auth-modal-button-login">
+                  {loginMutation.isPending ? <span className="animate-pulse">Signing in…</span>
+                    : <><LogIn className="h-4 w-4" /> Sign In & Continue Checkout</>}
+                </Button>
+                <p className="text-xs text-gray-400 text-center">
+                  No account yet?{" "}
+                  <button type="button" onClick={() => setAuthTab("register")}
+                    className="text-purple-600 hover:underline font-medium">Create one free</button>
+                </p>
+              </form>
+            </TabsContent>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 font-semibold gap-2 border-gray-300 hover:border-purple-400 hover:bg-purple-50"
-            onClick={onGoToSignup}
-            data-testid="auth-modal-button-signup"
-          >
-            <UserPlus className="h-4 w-4 text-purple-600" />
-            Create a Free Account
-          </Button>
+            {/* Register Tab */}
+            <TabsContent value="register">
+              <form onSubmit={handleRegister} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-700">First Name</Label>
+                    <Input value={regFirstName} onChange={e => setRegFirstName(e.target.value)}
+                      placeholder="John" className="mt-1" data-testid="auth-reg-firstname" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-700">Last Name</Label>
+                    <Input value={regLastName} onChange={e => setRegLastName(e.target.value)}
+                      placeholder="Doe" className="mt-1" data-testid="auth-reg-lastname" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Email Address</Label>
+                  <Input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)}
+                    placeholder="you@company.com" autoComplete="email" className="mt-1"
+                    data-testid="auth-reg-email" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Company / Brand Name</Label>
+                  <Input value={regCompany} onChange={e => setRegCompany(e.target.value)}
+                    placeholder="Acme Inc." className="mt-1" data-testid="auth-reg-company" />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700">Password</Label>
+                  <div className="relative mt-1">
+                    <Input type={showRegPw ? "text" : "password"} value={regPassword}
+                      onChange={e => setRegPassword(e.target.value)}
+                      placeholder="Min. 6 characters" autoComplete="new-password" className="pr-10"
+                      data-testid="auth-reg-password" />
+                    <button type="button" onClick={() => setShowRegPw(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                      {showRegPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white h-12 font-bold gap-2"
+                  disabled={registerMutation.isPending} data-testid="auth-modal-button-register">
+                  {registerMutation.isPending ? <span className="animate-pulse">Creating account…</span>
+                    : <><UserPlus className="h-4 w-4" /> Create Account & Checkout</>}
+                </Button>
+                <p className="text-xs text-gray-400 text-center">
+                  Already have an account?{" "}
+                  <button type="button" onClick={() => setAuthTab("login")}
+                    className="text-purple-600 hover:underline font-medium">Sign in</button>
+                </p>
+              </form>
+            </TabsContent>
+          </Tabs>
 
-          <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-            Your form data is saved automatically. After signing up, return to this page and your campaign details will be restored.
+          <p className="text-[11px] text-gray-400 text-center leading-relaxed mt-4">
+            Your campaign details are saved and will be fully restored after authentication.
           </p>
         </div>
       </DialogContent>

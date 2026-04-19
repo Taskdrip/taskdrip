@@ -46,8 +46,10 @@ const brandSignupSchema = z.object({
 type CreatorSignupData = z.infer<typeof creatorSignupSchema>;
 type BrandSignupData = z.infer<typeof brandSignupSchema>;
 
-function SignupSuccessScreen({ firstName }: { firstName: string }) {
+function SignupSuccessScreen({ firstName, userType, redirectTo }: { firstName: string; userType: string; redirectTo?: string }) {
   const [, setLocation] = useLocation();
+
+  const isBrand = userType === 'brand';
 
   const socialItems = [
     { href: SOCIALS.telegram, label: "Join Telegram Community", icon: SiTelegram, color: "bg-[#229ED9]", pts: "+20 pts" },
@@ -57,21 +59,59 @@ function SignupSuccessScreen({ firstName }: { firstName: string }) {
     { href: SOCIALS.youtube, label: "Subscribe YouTube", icon: SiYoutube, color: "bg-[#FF0000]", pts: "+20 pts" },
   ];
 
+  const profileTip = isBrand
+    ? "💼 Add your company logo, describe your brand story, and set your campaign goals to attract the best influencers."
+    : "🌟 Add your social handles, niche, and portfolio to get matched with top campaigns and start earning!";
+
+  const handleContinue = () => {
+    if (redirectTo) {
+      setLocation(redirectTo);
+    } else {
+      setLocation('/dashboard');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-purple-900 flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full space-y-5">
         {/* Success Header */}
         <div className="text-center">
-          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30 animate-bounce" style={{ animationDuration: '2s' }}>
             <CheckCircle className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-white mb-2">
-            Welcome, {firstName}! 🎉
+            Welcome aboard, {firstName}! 🎉
           </h1>
-          <p className="text-gray-300">Your account is ready. You've earned your first points!</p>
+          <p className="text-gray-300 text-sm max-w-xs mx-auto">
+            {isBrand
+              ? `Thank you for joining Taskdrip as a Brand! Your account is live and ready to launch campaigns.`
+              : `Thank you for joining Taskdrip as an Influencer! Your account is live — let's get you earning.`
+            }
+          </p>
           <Badge className="mt-3 bg-yellow-500/20 text-yellow-300 border-yellow-500/30 text-sm px-3 py-1">
             <Zap className="h-3.5 w-3.5 mr-1" /> +50 $TDRIP Points Credited
           </Badge>
+        </div>
+
+        {/* Redirect CTA — shown when coming from a specific page */}
+        {redirectTo && (
+          <div className="bg-green-500/20 border border-green-400/40 rounded-2xl p-4 text-center">
+            <p className="text-green-200 text-sm font-medium mb-3">
+              🛍️ Your order details are saved — click below to continue your checkout!
+            </p>
+            <Button
+              onClick={handleContinue}
+              className="w-full bg-green-500 hover:bg-green-400 text-white font-bold h-12 text-base shadow-lg shadow-green-500/30"
+              data-testid="button-continue-to-order"
+            >
+              Continue to Checkout <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        )}
+
+        {/* Profile tip */}
+        <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+          <p className="text-gray-200 text-sm leading-relaxed">{profileTip}</p>
         </div>
 
         {/* Social CTA Card */}
@@ -113,14 +153,27 @@ function SignupSuccessScreen({ firstName }: { firstName: string }) {
           </p>
         </div>
 
-        {/* Go to Dashboard */}
-        <Button
-          onClick={() => setLocation('/dashboard')}
-          className="w-full bg-white text-black hover:bg-gray-100 font-bold h-12 text-base"
-          data-testid="button-go-to-dashboard"
-        >
-          Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
+        {/* Bottom buttons */}
+        <div className="flex gap-3">
+          {redirectTo ? (
+            <Button
+              variant="outline"
+              onClick={() => setLocation('/dashboard')}
+              className="flex-1 border-white/20 text-white hover:bg-white/10 font-semibold h-12"
+              data-testid="button-go-to-dashboard"
+            >
+              Go to Dashboard
+            </Button>
+          ) : (
+            <Button
+              onClick={handleContinue}
+              className="w-full bg-white text-black hover:bg-gray-100 font-bold h-12 text-base"
+              data-testid="button-go-to-dashboard"
+            >
+              Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -135,15 +188,15 @@ export default function SimpleSignup() {
   const refCode = urlParams.get('ref');
   const urlType = urlParams.get('type');
   const redirectTo = urlParams.get('redirect') || '';
-  const initialTab = urlType === 'brand' ? 'brand' : 'influencer';
+  const initialTab = urlType === 'brand' ? 'brand' : 'creator';
 
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [successUser, setSuccessUser] = useState<{ firstName: string } | null>(null);
+  const [successUser, setSuccessUser] = useState<{ firstName: string; userType: string } | null>(null);
   const [highlightTab, setHighlightTab] = useState(!!urlType);
 
   useEffect(() => {
     if (urlType) {
-      setActiveTab(urlType === 'brand' ? 'brand' : 'influencer');
+      setActiveTab(urlType === 'brand' ? 'brand' : 'creator');
       setHighlightTab(true);
       const timer = setTimeout(() => setHighlightTab(false), 3000);
       return () => clearTimeout(timer);
@@ -162,8 +215,8 @@ export default function SimpleSignup() {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
-        userType: activeTab,
-        skills: activeTab === 'influencer' ? [data.skills] : [],
+        userType: activeTab === 'creator' ? 'creator' : 'brand',
+        skills: activeTab === 'creator' ? [data.skills] : [],
         ...(refCode ? { referralCode: refCode, referralType: urlType || activeTab } : {}),
       };
       const response = await apiRequest('POST', '/api/auth/register', payload);
@@ -172,7 +225,7 @@ export default function SimpleSignup() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       triggerSocialTasksModal();
-      setSuccessUser({ firstName: data.user.firstName });
+      setSuccessUser({ firstName: data.user.firstName, userType: activeTab === 'creator' ? 'creator' : 'brand' });
     },
     onError: (error: any) => {
       toast({
@@ -198,7 +251,7 @@ export default function SimpleSignup() {
   };
 
   if (successUser) {
-    return <SignupSuccessScreen firstName={successUser.firstName} />;
+    return <SignupSuccessScreen firstName={successUser.firstName} userType={successUser.userType} redirectTo={redirectTo || undefined} />;
   }
 
   return (

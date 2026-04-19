@@ -3,15 +3,18 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Shield, Copy, CheckCircle, AlertCircle, Package,
   ArrowLeft, Lock, Zap, ChevronRight, Upload, Star,
   PartyPopper, Download, Building2, Wallet,
+  Eye, EyeOff, LogIn, UserPlus, ShoppingBag,
 } from "lucide-react";
 import type { ShopProduct } from "@shared/schema";
 
@@ -229,6 +232,230 @@ function MethodDetails({ method, amount }: { method: any; amount: string }) {
   return null;
 }
 
+function ShopCheckoutAuth({ product, onAuthSuccess }: { product: ShopProduct | undefined; onAuthSuccess: () => void }) {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [authTab, setAuthTab] = useState("login");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
+  const [regFirstName, setRegFirstName] = useState("");
+  const [regLastName, setRegLastName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regType, setRegType] = useState<"brand" | "creator">("creator");
+  const [showRegPw, setShowRegPw] = useState(false);
+
+  const loginMutation = useMutation({
+    mutationFn: async (data: { email: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/auth/login", data);
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.setQueryData(["/api/user"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: "Welcome back!", description: `Logged in as ${data.user.firstName}. Continuing to checkout…` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Login failed", description: err.message || "Invalid credentials.", variant: "destructive" });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/auth/register", data);
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.setQueryData(["/api/user"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: `Welcome aboard, ${data.user.firstName}! 🎉`, description: "Account created! Continuing your purchase…" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Registration failed", description: err.message || "Could not create account.", variant: "destructive" });
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail || !loginPassword) return toast({ title: "Please enter your email and password", variant: "destructive" });
+    loginMutation.mutate({ email: loginEmail, password: loginPassword });
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regFirstName || !regLastName || !regEmail || !regPassword) return toast({ title: "Please fill in all fields", variant: "destructive" });
+    if (regPassword.length < 6) return toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+    registerMutation.mutate({
+      firstName: regFirstName,
+      lastName: regLastName,
+      email: regEmail,
+      password: regPassword,
+      userType: regType,
+      companyName: regType === "brand" ? regFirstName : undefined,
+      bio: regType === "brand" ? `Brand account` : `Influencer account`,
+      industry: regType === "brand" ? "E-commerce" : undefined,
+      skills: regType === "creator" ? ["Content Creation"] : [],
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-violet-50/30 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg space-y-4">
+        {/* Back */}
+        <button onClick={() => setLocation("/shop")} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Back to Shop
+        </button>
+
+        {/* Product preview */}
+        {product && (
+          <Card className="border-violet-200 bg-violet-50/60">
+            <CardContent className="flex items-center gap-4 p-4">
+              {product.featuredImage
+                ? <img src={product.featuredImage} alt={product.title} className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />
+                : <div className="w-16 h-16 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0"><ShoppingBag className="h-7 w-7 text-violet-500" /></div>
+              }
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 truncate">{product.title}</p>
+                <p className="text-sm text-gray-500 truncate">{product.category}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xl font-extrabold text-violet-700">${Number(product.price).toFixed(2)}</p>
+                <p className="text-xs text-gray-400">{product.currency || "USD"}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Auth Card */}
+        <Card className="shadow-lg border-0">
+          <CardHeader className="pb-3 bg-gradient-to-r from-violet-700 to-violet-900 text-white rounded-t-xl">
+            <div className="flex items-center gap-2 mb-1">
+              <Lock className="h-4 w-4" />
+              <span className="text-xs font-semibold opacity-80">Secure Checkout</span>
+            </div>
+            <CardTitle className="text-xl text-white">
+              {authTab === "login" ? "Sign in to complete purchase" : "Create account to purchase"}
+            </CardTitle>
+            <p className="text-violet-200 text-sm">
+              {authTab === "login"
+                ? "Sign in to your Taskdrip account and complete your purchase."
+                : "Quick signup — takes less than 30 seconds. Your cart is saved."}
+            </p>
+          </CardHeader>
+
+          <CardContent className="pt-5">
+            <Tabs value={authTab} onValueChange={setAuthTab}>
+              <TabsList className="grid grid-cols-2 w-full mb-5">
+                <TabsTrigger value="login" className="gap-1.5">
+                  <LogIn className="h-3.5 w-3.5" /> Sign In
+                </TabsTrigger>
+                <TabsTrigger value="register" className="gap-1.5">
+                  <UserPlus className="h-3.5 w-3.5" /> Create Account
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-semibold">Email</Label>
+                    <Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                      placeholder="you@example.com" autoComplete="email" className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">Password</Label>
+                    <div className="relative mt-1">
+                      <Input type={showLoginPw ? "text" : "password"} value={loginPassword}
+                        onChange={e => setLoginPassword(e.target.value)} placeholder="Your password"
+                        autoComplete="current-password" className="pr-10" />
+                      <button type="button" onClick={() => setShowLoginPw(p => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                        {showLoginPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={loginMutation.isPending}
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold h-12 gap-2">
+                    {loginMutation.isPending ? <span className="animate-pulse">Signing in…</span>
+                      : <><LogIn className="h-4 w-4" /> Sign In & Continue</>}
+                  </Button>
+                  <p className="text-xs text-center text-gray-400">
+                    No account?{" "}
+                    <button type="button" onClick={() => setAuthTab("register")}
+                      className="text-violet-600 hover:underline font-medium">Create one free</button>
+                  </p>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="register">
+                <form onSubmit={handleRegister} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm font-semibold">First Name</Label>
+                      <Input value={regFirstName} onChange={e => setRegFirstName(e.target.value)}
+                        placeholder="Jane" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold">Last Name</Label>
+                      <Input value={regLastName} onChange={e => setRegLastName(e.target.value)}
+                        placeholder="Doe" className="mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">Email</Label>
+                    <Input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)}
+                      placeholder="you@example.com" autoComplete="email" className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">Account Type</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button type="button" onClick={() => setRegType("creator")}
+                        className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${regType === "creator" ? "border-violet-500 bg-violet-50 text-violet-800" : "border-gray-200 text-gray-600 hover:border-violet-200"}`}>
+                        <UserPlus className="h-4 w-4 flex-shrink-0" /> Influencer
+                      </button>
+                      <button type="button" onClick={() => setRegType("brand")}
+                        className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${regType === "brand" ? "border-violet-500 bg-violet-50 text-violet-800" : "border-gray-200 text-gray-600 hover:border-violet-200"}`}>
+                        <Building2 className="h-4 w-4 flex-shrink-0" /> Brand
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">Password</Label>
+                    <div className="relative mt-1">
+                      <Input type={showRegPw ? "text" : "password"} value={regPassword}
+                        onChange={e => setRegPassword(e.target.value)} placeholder="Min. 6 characters"
+                        autoComplete="new-password" className="pr-10" />
+                      <button type="button" onClick={() => setShowRegPw(p => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                        {showRegPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={registerMutation.isPending}
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold h-12 gap-2">
+                    {registerMutation.isPending ? <span className="animate-pulse">Creating account…</span>
+                      : <><UserPlus className="h-4 w-4" /> Create Account & Purchase</>}
+                  </Button>
+                  <p className="text-xs text-center text-gray-400">
+                    Already have an account?{" "}
+                    <button type="button" onClick={() => setAuthTab("login")}
+                      className="text-violet-600 hover:underline font-medium">Sign in</button>
+                  </p>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <p className="text-xs text-center text-gray-400">
+          <Shield className="h-3.5 w-3.5 inline mr-1 text-green-500" />
+          Your data is secure. We never share your information.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // Fallback payment methods if admin hasn't configured any
 const FALLBACK_METHODS = [
   { id: "f1", type: "manual", label: "Manual Payment Review", currency: "USD", instructions: "Use this option when the admin has not published a live payment gateway yet." },
@@ -309,16 +536,7 @@ export default function ShopCheckout() {
   });
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-sm">
-          <Lock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Sign in to purchase</h2>
-          <p className="text-gray-500 text-sm mb-6">You need to be signed in to complete a purchase.</p>
-          <Link href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}><Button className="w-full bg-violet-600 hover:bg-violet-700 text-white">Sign In</Button></Link>
-        </div>
-      </div>
-    );
+    return <ShopCheckoutAuth product={product} onAuthSuccess={() => {}} />;
   }
 
   if (isLoading || !product) {
