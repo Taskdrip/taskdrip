@@ -487,11 +487,7 @@ export default function ShopCheckout() {
     queryFn: () => fetch("/api/payment-methods?feature=shop", { credentials: "include" }).then(r => r.json()),
   });
 
-  const visiblePaymentMethods = paymentMethodsRaw.filter((method: any) => {
-    const text = `${method.label || ""} ${method.currency || ""} ${method.network || ""}`.toLowerCase();
-    return !text.includes("usdt") && !text.includes("ton");
-  });
-  const paymentMethods = visiblePaymentMethods.length > 0 ? visiblePaymentMethods : FALLBACK_METHODS;
+  const paymentMethods = paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_METHODS;
   const selectedMethod = paymentMethods.find((m: any) => m.id === selectedMethodId) || paymentMethods[0];
 
   if (!selectedMethodId && paymentMethods.length > 0 && !selectedMethodId) {

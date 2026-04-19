@@ -946,7 +946,7 @@ export const userReviews = pgTable("user_reviews", {
 export const subscriptions = pgTable("subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  plan: varchar("plan").notNull(), // 'creator_monthly', 'creator_yearly', 'brand_monthly', 'brand_yearly'
+  plan: varchar("plan").notNull(), // 'creator_monthly', 'creator_yearly', 'brand_monthly', 'brand_yearly', 'creator_3day', 'creator_5day', 'brand_3day', 'brand_5day'
   status: varchar("status").notNull().default("pending"), // 'pending', 'active', 'expired', 'cancelled'
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   network: varchar("network", { length: 20 }), // 'tron', 'bsc', 'ton'
@@ -954,8 +954,11 @@ export const subscriptions = pgTable("subscriptions", {
   paymentProof: varchar("payment_proof"),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  periodDays: integer("period_days"), // custom period in days (3, 5, 30, 365)
   autoRenew: boolean("auto_renew").default(true),
   renewalReminderSent: boolean("renewal_reminder_sent").default(false),
+  expiryReminderSent: boolean("expiry_reminder_sent").default(false), // 1-day before expiry notification
+  paymentMethodLabel: varchar("payment_method_label"), // label of selected payment method
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

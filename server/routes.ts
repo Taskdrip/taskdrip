@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -242,6 +242,53 @@ async function enrichP2PTransaction(tx: any) {
     seller: seller ? { id: seller.id, firstName: seller.firstName, lastName: seller.lastName, username: seller.username, profileImageUrl: seller.profileImageUrl } : null,
     admin: admin ? { id: admin.id, firstName: admin.firstName, lastName: admin.lastName, username: admin.username } : null,
   };
+}
+
+// ── Subscription Expiry Auto-Checker ──────────────────────────────────────
+export async function runSubscriptionExpiryCheck() {
+  let expired = 0;
+  let reminded = 0;
+  try {
+    // 1. Mark expired subscriptions
+    const expiredSubs = await storage.getExpiredSubscriptions();
+    for (const sub of expiredSubs) {
+      await storage.updateSubscriptionStatus(sub.id, 'expired');
+      await storage.updateUserProfile(sub.userId, {
+        subscriptionStatus: 'expired',
+        isVerified: false,
+      });
+      const planLabel = (sub.plan || '').includes('brand') ? 'Brand Pro' : 'Premium';
+      const userType = (sub.plan || '').includes('brand') ? 'brand' : 'creator';
+      await storage.createNotification({
+        userId: sub.userId,
+        type: 'subscription_expired',
+        title: `Your ${planLabel} subscription has expired`,
+        content: `Your ${planLabel} subscription ended on ${new Date(sub.endDate!).toLocaleDateString()}. Renew now to restore access to all premium features.`,
+        priority: 'urgent',
+        actionUrl: '/subscription',
+      });
+      expired++;
+    }
+
+    // 2. Send 1-day expiry reminders
+    const expiringSubs = await storage.getExpiringSubscriptions(1);
+    for (const sub of expiringSubs) {
+      const planLabel = (sub.plan || '').includes('brand') ? 'Brand Pro' : 'Premium';
+      await storage.createNotification({
+        userId: sub.userId,
+        type: 'subscription_expiry_reminder',
+        title: `⚠️ Your ${planLabel} subscription expires tomorrow`,
+        content: `Your ${planLabel} subscription expires on ${new Date(sub.endDate!).toLocaleDateString()} at ${new Date(sub.endDate!).toLocaleTimeString()}. Renew now to keep all your premium features uninterrupted.`,
+        priority: 'high',
+        actionUrl: '/subscription',
+      });
+      await storage.markExpiryReminderSent(sub.id);
+      reminded++;
+    }
+  } catch (err) {
+    console.error('[Expiry Checker] Error:', err);
+  }
+  return { expired, reminded };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -3539,11 +3586,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Subscriptions ─────────────────────────────────────────────────
-  const PLANS = {
+  const PLANS: Record<string, number> = {
     creator_monthly: 7,
     creator_yearly: Math.round(7 * 12 * 0.85 * 100) / 100, // 15% discount
     brand_monthly: 24,
     brand_yearly: Math.round(24 * 12 * 0.85 * 100) / 100,
+    creator_3day: 2,
+    creator_5day: 3,
+    brand_3day: 6,
+    brand_5day: 9,
+  };
+
+  const PLAN_DAYS: Record<string, number> = {
+    creator_monthly: 30,
+    creator_yearly: 365,
+    brand_monthly: 30,
+    brand_yearly: 365,
+    creator_3day: 3,
+    creator_5day: 5,
+    brand_3day: 3,
+    brand_5day: 5,
   };
 
   app.get('/api/subscriptions/my', isAuthenticated, async (req: any, res) => {
@@ -3557,26 +3619,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/subscriptions', isAuthenticated, upload.single('paymentProof'), async (req: any, res) => {
     try {
-      const { plan, network, transactionHash } = req.body;
+      const { plan, network, transactionHash, paymentMethodLabel } = req.body;
       const amount = PLANS[plan as keyof typeof PLANS];
-      if (!amount) return res.status(400).json({ message: "Invalid plan" });
+      if (amount === undefined) return res.status(400).json({ message: "Invalid plan" });
+      const periodDays = PLAN_DAYS[plan] || 30;
 
       const sub = await storage.createSubscription({
         userId: req.user.id,
         plan,
         amount,
-        network,
+        network: network || 'manual',
         transactionHash,
         paymentProof: req.file ? `/uploads/${req.file.filename}` : undefined,
+        periodDays,
+        paymentMethodLabel: paymentMethodLabel || undefined,
       });
 
-      // Create a notification
+      const periodLabel = periodDays === 3 ? '3-day' : periodDays === 5 ? '5-day' : periodDays === 365 ? 'yearly' : 'monthly';
       await storage.createNotification({
         userId: req.user.id,
         type: 'subscription',
         title: 'Subscription Submitted',
-        content: `Your ${plan.replace(/_/g, ' ')} subscription payment is being verified. You'll be notified when it's approved.`,
+        content: `Your ${periodLabel} ${plan.includes('brand') ? 'Brand Pro' : 'Premium'} subscription payment is being verified. You'll be notified when it's approved.`,
         priority: 'normal',
+        actionUrl: '/subscription',
       });
 
       res.status(201).json(sub);
@@ -3586,17 +3652,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Auto-expiry checker — called periodically or on demand
+  app.post('/api/admin/subscriptions/check-expiry', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: "Admin only" });
+      const stats = await runSubscriptionExpiryCheck();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to run expiry check" });
+    }
+  });
+
   app.patch('/api/admin/subscriptions/:id/approve', isAuthenticated, async (req: any, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== 'admin') return res.status(403).json({ message: "Admin only" });
 
+      // Load the actual subscription to get periodDays
+      const existingSub = await storage.getUserSubscription(req.user.id);
+      const subRecord = await db.select().from(subscriptions as any).where(eq(subscriptions.id as any, req.params.id)).limit(1);
+      const subData = subRecord[0] as any;
+
       const { plan } = req.body;
       const now = new Date();
-      const isYearly = plan?.includes('yearly');
-      const endDate = new Date(now);
-      if (isYearly) endDate.setFullYear(endDate.getFullYear() + 1);
-      else endDate.setMonth(endDate.getMonth() + 1);
+      const periodDays = subData?.periodDays || PLAN_DAYS[plan] || (plan?.includes('yearly') ? 365 : 30);
+      const endDate = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
 
       const sub = await storage.updateSubscriptionStatus(req.params.id, 'active', now, endDate);
 
@@ -3608,12 +3689,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isVerified: true,
       });
 
+      const planLabel = (sub.plan || '').includes('brand') ? 'Brand Pro' : 'Premium';
+      const periodLabel = periodDays === 3 ? '3-day' : periodDays === 5 ? '5-day' : periodDays === 365 ? 'yearly' : 'monthly';
       await storage.createNotification({
         userId: sub.userId,
         type: 'subscription_approved',
-        title: 'Subscription Activated! ✅',
-        content: `Your subscription has been approved and is now active until ${endDate.toLocaleDateString()}.`,
+        title: `${planLabel} Subscription Activated! ✅`,
+        content: `Your ${periodLabel} ${planLabel} subscription is now active. Access expires on ${endDate.toLocaleString()}. Enjoy all premium features!`,
         priority: 'high',
+        actionUrl: '/subscription',
       });
 
       // ── Referral premium bonus ($5) ──────────────────────────────────

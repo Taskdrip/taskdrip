@@ -138,7 +138,7 @@ import {
   type InsertSiteSocialLink,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, ne, inArray, lte, gte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations for custom authentication
@@ -259,9 +259,12 @@ export interface IStorage {
 
   // Subscriptions
   getUserSubscription(userId: string): Promise<Subscription | undefined>;
-  createSubscription(sub: { userId: string; plan: string; amount: number; network: string; transactionHash?: string; paymentProof?: string }): Promise<Subscription>;
+  createSubscription(sub: { userId: string; plan: string; amount: number; network?: string; transactionHash?: string; paymentProof?: string; periodDays?: number; paymentMethodLabel?: string }): Promise<Subscription>;
   updateSubscriptionStatus(id: string, status: string, startDate?: Date, endDate?: Date): Promise<Subscription>;
   getExpiredSubscriptions(): Promise<Subscription[]>;
+  getExpiringSubscriptions(withinDays: number): Promise<Subscription[]>;
+  getAllActiveSubscriptions(): Promise<Subscription[]>;
+  markExpiryReminderSent(id: string): Promise<void>;
 
   // Payout requests
   getUserPayoutRequests(userId: string): Promise<PayoutRequest[]>;
@@ -1582,7 +1585,7 @@ export class DatabaseStorage implements IStorage {
     return sub;
   }
 
-  async createSubscription(sub: { userId: string; plan: string; amount: number; network: string; transactionHash?: string; paymentProof?: string }): Promise<Subscription> {
+  async createSubscription(sub: { userId: string; plan: string; amount: number; network?: string; transactionHash?: string; paymentProof?: string; periodDays?: number; paymentMethodLabel?: string }): Promise<Subscription> {
     const [newSub] = await db.insert(subscriptions).values({ ...sub, amount: sub.amount.toString() } as any).returning();
     return newSub;
   }
@@ -1596,7 +1599,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpiredSubscriptions(): Promise<Subscription[]> {
+    const now = new Date();
+    return await db.select().from(subscriptions).where(
+      and(eq(subscriptions.status, 'active'), lte(subscriptions.endDate, now))
+    );
+  }
+
+  async getExpiringSubscriptions(withinDays: number): Promise<Subscription[]> {
+    const now = new Date();
+    const future = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+    return await db.select().from(subscriptions).where(
+      and(
+        eq(subscriptions.status, 'active'),
+        gte(subscriptions.endDate, now),
+        lte(subscriptions.endDate, future),
+        eq(subscriptions.expiryReminderSent, false)
+      )
+    );
+  }
+
+  async getAllActiveSubscriptions(): Promise<Subscription[]> {
     return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+
+  async markExpiryReminderSent(id: string): Promise<void> {
+    await db.update(subscriptions).set({ expiryReminderSent: true, updatedAt: new Date() }).where(eq(subscriptions.id, id));
   }
 
   // Payout Requests

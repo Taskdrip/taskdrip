@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
@@ -14,7 +14,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   CheckCircle2, Crown, Sparkles, Zap, Clock, Upload, AlertTriangle,
   Lock, ArrowRight, Star, Shield, BarChart3, Users, Megaphone,
-  MessageSquare, Target, TrendingUp, Gift, X, Check
+  MessageSquare, Target, TrendingUp, Gift, X, Check,
+  Copy, Calendar, RefreshCw, Wallet
 } from "lucide-react";
 
 const INFLUENCER_PLANS = {
@@ -113,7 +114,95 @@ const TESTIMONIALS = [
   { name: "Jordan T.", role: "Content Creator", quote: "The 2× referral multiplier is insane. I made back my subscription cost in the first week.", avatar: "JT" },
 ];
 
-const WALLET_ADDRESS = "TExampleWalletAddressHere123456";
+const PERIOD_OPTIONS = [
+  { key: "3day", label: "3-Day Trial", days: 3, badge: "Short Trial", icon: <RefreshCw className="w-3.5 h-3.5" />, description: "Try premium for 3 days, renewable" },
+  { key: "5day", label: "5-Day Trial", days: 5, badge: "Popular Trial", icon: <RefreshCw className="w-3.5 h-3.5" />, description: "5-day renewable access" },
+  { key: "monthly", label: "Monthly", days: 30, badge: null, icon: <Calendar className="w-3.5 h-3.5" />, description: "30-day full access" },
+  { key: "yearly", label: "Yearly", days: 365, badge: "Best Value", icon: <Crown className="w-3.5 h-3.5" />, description: "365-day access — save 15%" },
+];
+
+const CREATOR_PRICES: Record<string, number> = { "3day": 2, "5day": 3, "monthly": 7, "yearly": 71.4 };
+const BRAND_PRICES: Record<string, number> = { "3day": 6, "5day": 9, "monthly": 24, "yearly": 244.8 };
+
+function MethodIcon({ type }: { type: string }) {
+  const icons: Record<string, string> = { crypto: "🪙", bank: "🏦", paypal: "🅿️", paystack: "🟢", stripe: "💳", manual: "✅" };
+  const colors: Record<string, string> = {
+    crypto: "from-orange-400 to-amber-500", bank: "from-blue-500 to-indigo-600",
+    paypal: "from-sky-400 to-blue-500", paystack: "from-green-400 to-emerald-500",
+    stripe: "from-purple-500 to-violet-600", manual: "from-slate-700 to-slate-950",
+  };
+  return (
+    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[type] || "from-gray-400 to-gray-500"} flex items-center justify-center text-lg flex-shrink-0 shadow-sm`}>
+      {icons[type] || "💳"}
+    </div>
+  );
+}
+
+function PaymentMethodDetails({ method, amount }: { method: any; amount: number }) {
+  const [copied, setCopied] = useState(false);
+  const copy = (text: string) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+
+  if (method.type === "crypto") return (
+    <div className="bg-gray-900 rounded-xl p-4 mt-3">
+      <p className="text-gray-400 text-xs mb-1">Send exactly <span className="text-white font-bold">${amount.toFixed(2)}</span>{method.currency ? ` ${method.currency}` : ""} to:</p>
+      {method.network && <p className="text-gray-500 text-xs mb-2">Network: <span className="text-gray-300">{method.network}</span></p>}
+      {method.address && (
+        <div className="flex items-center gap-2 mt-1">
+          <code className="text-green-400 font-mono text-xs flex-1 break-all">{method.address}</code>
+          <button onClick={() => copy(method.address)} className={`p-1.5 rounded-lg ${copied ? "bg-green-600" : "bg-gray-700 hover:bg-gray-600"} text-white`}>
+            {copied ? <CheckCircle2 className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          </button>
+        </div>
+      )}
+      {!method.address && <p className="text-yellow-400 text-xs">⚠️ Wallet address not configured. Contact support.</p>}
+      {method.instructions && <p className="text-amber-300 text-xs mt-2">{method.instructions}</p>}
+    </div>
+  );
+  if (method.type === "bank") return (
+    <div className="bg-blue-950 rounded-xl p-4 mt-3 space-y-1.5">
+      <p className="text-blue-200 text-xs font-semibold">Bank Transfer — Send ${amount.toFixed(2)}</p>
+      {method.bankName && <div className="flex justify-between text-xs"><span className="text-gray-400">Bank</span><span className="text-white">{method.bankName}</span></div>}
+      {method.accountName && <div className="flex justify-between text-xs"><span className="text-gray-400">Account Name</span><span className="text-white">{method.accountName}</span></div>}
+      {method.accountNumber && (
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-400">Account No.</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-white font-mono">{method.accountNumber}</span>
+            <button onClick={() => copy(method.accountNumber)} className="p-1 rounded bg-blue-900 text-blue-300"><Copy className="h-2.5 w-2.5" /></button>
+          </div>
+        </div>
+      )}
+      {method.instructions && <p className="text-amber-300 text-xs mt-1">{method.instructions}</p>}
+    </div>
+  );
+  if (method.type === "paypal") return (
+    <div className="bg-sky-900 rounded-xl p-4 mt-3">
+      <p className="text-sky-200 text-xs mb-1">Send ${amount.toFixed(2)} via PayPal to:</p>
+      {method.paypalEmail && (
+        <div className="flex items-center gap-2">
+          <span className="text-white font-semibold text-sm">{method.paypalEmail}</span>
+          <button onClick={() => copy(method.paypalEmail)} className="p-1 rounded bg-sky-800 text-sky-300"><Copy className="h-3 w-3" /></button>
+        </div>
+      )}
+      <p className="text-sky-300 text-xs mt-1">Use "Friends & Family" to avoid fees.</p>
+      {method.instructions && <p className="text-amber-300 text-xs mt-1">{method.instructions}</p>}
+    </div>
+  );
+  if (method.type === "manual") return (
+    <div className="bg-slate-900 rounded-xl p-4 mt-3">
+      <p className="text-white text-xs font-semibold mb-1">Manual Payment Review</p>
+      <p className="text-slate-300 text-xs">Submit your payment reference after sending. Admin will verify it.</p>
+      {method.instructions && <p className="text-amber-300 text-xs mt-2">{method.instructions}</p>}
+    </div>
+  );
+  return (
+    <div className="bg-purple-900 rounded-xl p-4 mt-3 text-center">
+      <p className="text-white font-semibold text-sm mb-1">Pay ${amount.toFixed(2)} via {method.type === "paystack" ? "Paystack" : "Stripe"}</p>
+      <p className="text-purple-200 text-xs">You'll be redirected to complete payment securely.</p>
+      {method.instructions && <p className="text-amber-300 text-xs mt-1">{method.instructions}</p>}
+    </div>
+  );
+}
 
 function PlanFeatureRow({ label, included }: { label: string; included: boolean }) {
   return (
@@ -135,10 +224,11 @@ function PlanFeatureRow({ label, included }: { label: string; included: boolean 
 export default function SubscriptionPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [period, setPeriod] = useState<"3day" | "5day" | "monthly" | "yearly">("monthly");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [txRef, setTxRef] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<"influencer" | "brand">("influencer");
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
 
   const userType = (user as any)?.userType as "influencer" | "brand" | "admin";
   const isBrand = userType === "brand";
@@ -148,17 +238,32 @@ export default function SubscriptionPage() {
     enabled: !!user,
   });
 
+  const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods", "subscriptions"],
+    queryFn: () => fetch("/api/payment-methods?feature=subscriptions", { credentials: "include" }).then(r => r.json()),
+    enabled: dialogOpen,
+  });
+
+  const paymentMethods = paymentMethodsRaw.length > 0 ? paymentMethodsRaw : [
+    { id: "fallback", type: "manual", label: "Manual Payment Review", instructions: "Contact admin for payment details." },
+  ];
+  const selectedMethod = paymentMethods.find((m: any) => m.id === selectedMethodId) || paymentMethods[0];
+
+  const prices = isBrand ? BRAND_PRICES : CREATOR_PRICES;
+  const currentPrice = prices[period] || 0;
+
   const subscribeMutation = useMutation({
     mutationFn: async () => {
+      const planKey = isBrand
+        ? (period === "3day" ? "brand_3day" : period === "5day" ? "brand_5day" : period === "yearly" ? "brand_yearly" : "brand_monthly")
+        : (period === "3day" ? "creator_3day" : period === "5day" ? "creator_5day" : period === "yearly" ? "creator_yearly" : "creator_monthly");
       const form = new FormData();
-      form.append("plan", selectedPlan);
-      form.append("billingCycle", billing);
+      form.append("plan", planKey);
+      form.append("network", selectedMethod?.network || selectedMethod?.type || "manual");
+      form.append("transactionHash", txRef);
+      form.append("paymentMethodLabel", selectedMethod?.label || "");
       if (proofFile) form.append("paymentProof", proofFile);
-      const res = await fetch("/api/subscriptions", {
-        method: "POST",
-        body: form,
-        credentials: "include",
-      });
+      const res = await fetch("/api/subscriptions", { method: "POST", body: form, credentials: "include" });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
@@ -167,16 +272,17 @@ export default function SubscriptionPage() {
       toast({ title: "Subscription submitted!", description: "Our team will verify your payment within 24 hours." });
       setDialogOpen(false);
       setProofFile(null);
+      setTxRef("");
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const isActive = subscription?.status === "active";
   const isPending = subscription?.status === "pending";
+  const isExpired = subscription?.status === "expired";
 
   const plans = isBrand ? BRAND_PLANS : INFLUENCER_PLANS;
   const paidPlan = isBrand ? plans.pro : plans.premium;
-  const paidPlanKey = isBrand ? "pro" : "premium";
   const gradientFrom = isBrand ? "from-amber-500" : "from-purple-600";
   const gradientTo = isBrand ? "to-orange-500" : "to-indigo-600";
   const accentText = isBrand ? "text-amber-600" : "text-purple-600";
@@ -184,7 +290,6 @@ export default function SubscriptionPage() {
 
   const monthlyPrice = (paidPlan as any).monthly;
   const yearlyPrice = (paidPlan as any).yearly;
-  const yearlyPerMonth = (yearlyPrice / 12).toFixed(2);
   const savings = Math.round(monthlyPrice * 12 - yearlyPrice);
 
   return (
@@ -229,12 +334,15 @@ export default function SubscriptionPage() {
           <Card className="mb-8 border-green-300 bg-green-50 shadow-sm">
             <CardContent className="p-5 flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-xl"><CheckCircle2 className="w-6 h-6 text-green-600" /></div>
-              <div>
+              <div className="flex-1">
                 <div className="font-bold text-green-900 text-lg">You're a Premium member!</div>
                 <div className="text-sm text-green-700">
-                  Plan: <strong>{subscription?.plan}</strong> · Expires {subscription?.endDate ? new Date(subscription.endDate).toLocaleDateString() : "—"}
+                  Plan: <strong>{(subscription?.plan || "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</strong>
+                  {subscription?.periodDays && <> · <strong>{subscription.periodDays}-day</strong> access</>}
+                  {" "}· Expires <strong>{subscription?.endDate ? new Date(subscription.endDate).toLocaleString() : "—"}</strong>
                 </div>
               </div>
+              <Badge className="bg-green-200 text-green-900 text-xs">Active ✓</Badge>
             </CardContent>
           </Card>
         )}
@@ -251,24 +359,47 @@ export default function SubscriptionPage() {
           </Card>
         )}
 
-        {/* Billing toggle */}
+        {/* Expired banner */}
+        {isExpired && (
+          <Card className="mb-8 border-red-300 bg-red-50 shadow-sm">
+            <CardContent className="p-5 flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-xl"><AlertTriangle className="w-6 h-6 text-red-600" /></div>
+              <div>
+                <div className="font-bold text-red-900 text-lg">Your subscription has expired</div>
+                <div className="text-sm text-red-700">Your premium access ended. Renew below to restore all features.</div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Period selector */}
         {!isActive && !isPending && (
-          <div className="flex items-center justify-center gap-1 p-1 bg-white border border-gray-200 rounded-full shadow-sm w-fit mx-auto mb-10">
-            <button
-              onClick={() => setBilling("monthly")}
-              className={`px-6 py-2 rounded-full font-semibold text-sm transition-all ${billing === "monthly" ? `${accentBg} text-white shadow-md` : "text-gray-500 hover:text-gray-700"}`}
-              data-testid="toggle-monthly"
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBilling("yearly")}
-              className={`px-6 py-2 rounded-full font-semibold text-sm transition-all flex items-center gap-2 ${billing === "yearly" ? `${accentBg} text-white shadow-md` : "text-gray-500 hover:text-gray-700"}`}
-              data-testid="toggle-yearly"
-            >
-              Yearly
-              <Badge className="bg-green-100 text-green-800 text-xs font-bold border-green-200">Save ${savings}</Badge>
-            </button>
+          <div className="mb-10">
+            <p className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Select Your Access Period</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
+              {PERIOD_OPTIONS.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setPeriod(opt.key as any)}
+                  data-testid={`period-${opt.key}`}
+                  className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl border-2 transition-all text-center ${
+                    period === opt.key
+                      ? `border-current bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg`
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm"
+                  }`}
+                >
+                  {opt.badge && (
+                    <span className={`absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                      period === opt.key ? "bg-white/30 text-white" : "bg-green-100 text-green-700"
+                    }`}>{opt.badge}</span>
+                  )}
+                  <div className="mt-1">{opt.icon}</div>
+                  <span className="font-bold text-sm">{opt.label}</span>
+                  <span className={`text-xs ${period === opt.key ? "text-white/80" : "text-gray-500"}`}>{opt.description}</span>
+                  <span className={`font-black text-lg mt-1`}>${isBrand ? BRAND_PRICES[opt.key] : CREATOR_PRICES[opt.key]}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -315,13 +446,13 @@ export default function SubscriptionPage() {
                   </div>
                   <div className="flex items-end gap-2">
                     <div className="text-4xl font-black text-gray-900">
-                      ${billing === "monthly" ? monthlyPrice : yearlyPerMonth}
+                      ${currentPrice.toFixed(2)}
                     </div>
-                    <div className="text-gray-500 mb-1">/month</div>
+                    <div className="text-gray-500 mb-1">/ {PERIOD_OPTIONS.find(p => p.key === period)?.days} days</div>
                   </div>
-                  {billing === "yearly" && (
+                  {period === "yearly" && (
                     <div className="text-sm text-gray-500 mt-1">
-                      ${yearlyPrice.toFixed(2)} billed annually · <span className="text-green-600 font-semibold">Save ${savings}/year</span>
+                      <span className="text-green-600 font-semibold">Save ${savings} vs monthly</span>
                     </div>
                   )}
                 </div>
@@ -333,13 +464,12 @@ export default function SubscriptionPage() {
                   <DialogTrigger asChild>
                     <Button
                       className={`w-full mt-7 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white font-bold py-6 text-base hover:opacity-90 gap-2`}
-                      onClick={() => setSelectedPlan(isBrand ? "brand" : "influencer")}
                       data-testid="subscribe-btn"
                     >
                       {(paidPlan as any).icon} Get {(paidPlan as any).name} <ArrowRight className="w-4 h-4 ml-auto" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md">
+                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         {isBrand ? <Crown className="w-5 h-5 text-amber-500" /> : <Sparkles className="w-5 h-5 text-purple-500" />}
@@ -347,40 +477,81 @@ export default function SubscriptionPage() {
                       </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-5">
-                      {/* Price summary */}
+                      {/* Price + Period summary */}
                       <div className={`p-4 rounded-xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white`}>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-bold text-lg">{(paidPlan as any).name}</p>
-                            <p className="text-white/80 text-sm capitalize">{billing} billing</p>
+                            <p className="text-white/80 text-sm capitalize">
+                              {PERIOD_OPTIONS.find(p => p.key === period)?.label} access
+                            </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-2xl font-black">${billing === "monthly" ? monthlyPrice : yearlyPrice.toFixed(2)}</p>
-                            <p className="text-white/80 text-xs">{billing === "yearly" ? "per year" : "per month"}</p>
+                            <p className="text-3xl font-black">${currentPrice.toFixed(2)}</p>
+                            <p className="text-white/80 text-xs">
+                              {PERIOD_OPTIONS.find(p => p.key === period)?.days} days
+                            </p>
                           </div>
                         </div>
                       </div>
 
-                      <Card className="bg-blue-50 border-blue-200">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                            <div className="text-sm text-blue-800">
-                              <p className="font-semibold mb-1">Manual Payment via USDT</p>
-                              <p>Send <strong>${billing === "monthly" ? monthlyPrice : yearlyPrice.toFixed(2)} USDT (TRC-20)</strong> to:</p>
-                              <code className="block bg-white border border-blue-200 rounded-lg px-3 py-2 mt-2 text-xs break-all select-all font-mono">
-                                {WALLET_ADDRESS}
-                              </code>
-                              <p className="mt-2 text-blue-700">Then upload your payment screenshot below.</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
+                      {/* Payment method selection */}
                       <div>
-                        <Label className="font-semibold">Payment Screenshot *</Label>
+                        <Label className="font-semibold mb-3 block flex items-center gap-2">
+                          <Wallet className="w-4 h-4" /> Select Payment Method
+                        </Label>
+                        <div className="space-y-2">
+                          {paymentMethods.map((m: any) => (
+                            <button
+                              key={m.id}
+                              onClick={() => setSelectedMethodId(m.id)}
+                              className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                (selectedMethodId === m.id || (!selectedMethodId && paymentMethods[0]?.id === m.id))
+                                  ? `border-current ${accentText} bg-gray-50 shadow-sm`
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
+                              data-testid={`payment-method-${m.id}`}
+                            >
+                              <MethodIcon type={m.type} />
+                              <div className="flex-1">
+                                <p className="font-semibold text-sm text-gray-900">{m.label}</p>
+                                <p className="text-xs text-gray-500 capitalize">
+                                  {m.type === "crypto" ? `${m.network || ""} · ${m.currency || "Crypto"}` :
+                                   m.type === "bank" ? `${m.bankName || "Bank Transfer"}` :
+                                   m.type === "paypal" ? "PayPal Transfer" :
+                                   m.type === "manual" ? "Admin-reviewed payment" :
+                                   m.type === "paystack" ? "Paystack Gateway" : "Stripe Gateway"}
+                                </p>
+                              </div>
+                              <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                                (selectedMethodId === m.id || (!selectedMethodId && paymentMethods[0]?.id === m.id))
+                                  ? "border-current bg-current" : "border-gray-300"
+                              }`} />
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Payment details */}
+                        {selectedMethod && <PaymentMethodDetails method={selectedMethod} amount={currentPrice} />}
+                      </div>
+
+                      {/* Transaction reference */}
+                      <div>
+                        <Label className="font-semibold text-sm">Transaction Reference / ID</Label>
+                        <Input
+                          value={txRef}
+                          onChange={e => setTxRef(e.target.value)}
+                          placeholder="Enter transaction ID, hash, or reference..."
+                          className="mt-1.5 font-mono text-sm"
+                          data-testid="input-tx-ref"
+                        />
+                      </div>
+
+                      {/* Proof upload */}
+                      <div>
+                        <Label className="font-semibold text-sm">Payment Screenshot *</Label>
                         <div
-                          className="mt-2 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-colors"
+                          className="mt-1.5 border-2 border-dashed border-gray-300 rounded-xl p-5 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/20 transition-colors"
                           onClick={() => document.getElementById("proof-input")?.click()}
                           data-testid="upload-proof-area"
                         >
@@ -391,18 +562,13 @@ export default function SubscriptionPage() {
                             </div>
                           ) : (
                             <>
-                              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Click to upload proof of payment</p>
-                              <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                              <Upload className="w-7 h-7 text-gray-400 mx-auto mb-1.5" />
+                              <p className="text-sm text-gray-500">Click to upload payment proof</p>
+                              <p className="text-xs text-gray-400 mt-0.5">PNG, JPG up to 5MB</p>
                             </>
                           )}
-                          <input
-                            id="proof-input"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={e => setProofFile(e.target.files?.[0] || null)}
-                          />
+                          <input id="proof-input" type="file" accept="image/*" className="hidden"
+                            onChange={e => setProofFile(e.target.files?.[0] || null)} />
                         </div>
                       </div>
 
@@ -412,7 +578,7 @@ export default function SubscriptionPage() {
                         className={`w-full bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white font-bold py-5`}
                         data-testid="confirm-subscribe-btn"
                       >
-                        {subscribeMutation.isPending ? "Submitting..." : "Submit for Review"}
+                        {subscribeMutation.isPending ? "Submitting..." : `Submit — $${currentPrice.toFixed(2)}`}
                       </Button>
                       <p className="text-center text-xs text-gray-400">Reviewed and activated within 24 hours</p>
                     </div>
@@ -458,7 +624,7 @@ export default function SubscriptionPage() {
             {[
               { q: "How long does activation take?", a: "Our team verifies payments within 24 hours. You'll receive a notification once your account is activated." },
               { q: "Can I cancel anytime?", a: "Yes, you can cancel at any time. Your premium benefits remain active until the end of your billing period." },
-              { q: "What payment methods do you accept?", a: "We currently accept USDT (TRC-20) cryptocurrency payments. More options coming soon." },
+              { q: "What payment methods do you accept?", a: "We accept all payment methods configured by our admin team — including crypto (USDT, Pi Network, etc.), bank transfer, PayPal, and more. All options will appear at checkout." },
               { q: "Is there a free trial?", a: "New users get access to core features for free. Upgrade to unlock all premium benefits and remove limitations." },
               { q: "Can I switch from monthly to yearly?", a: "Yes, contact support and we'll help you switch billing cycles and apply any credits." },
             ].map(({ q, a }) => (

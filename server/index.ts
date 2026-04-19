@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
-import { registerRoutes } from "./routes";
+import { registerRoutes, runSubscriptionExpiryCheck } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 import { seedDemoData } from "./seed-demo";
@@ -90,6 +90,16 @@ async function ensureAdminExists() {
   }
 
   const server = await registerRoutes(app);
+
+  // Run subscription expiry checker every 30 minutes
+  const runExpiryCheck = async () => {
+    const result = await runSubscriptionExpiryCheck();
+    if (result.expired > 0 || result.reminded > 0) {
+      log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
+    }
+  };
+  runExpiryCheck();
+  setInterval(runExpiryCheck, 30 * 60 * 1000);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
