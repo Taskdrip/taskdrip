@@ -17,13 +17,14 @@ app.set("trust proxy", 1);
 app.use(
   helmet({
     contentSecurityPolicy: {
+      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
-        connectSrc: ["'self'", "wss:", "ws:", "https:"],
+        connectSrc: ["'self'", "wss:", "ws:", "https:", "http:"],
         mediaSrc: ["'self'", "blob:", "data:"],
         objectSrc: ["'none'"],
         frameSrc: ["'self'", "https:"],
