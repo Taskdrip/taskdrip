@@ -148,7 +148,7 @@ Design preferences: Clean, professional web app design with white background and
 ✓ Installed Node.js dependencies for the imported project.
 ✓ Confirmed the app uses a single Express server on `0.0.0.0` and `PORT=5000` for Replit preview compatibility.
 ✓ Updated Vite dev-server host handling so Replit's proxied preview can load the app safely.
-✓ Confirmed the production package start target uses the existing build output at `dist/index.js`.
+✓ Configured Replit production publishing to build with `npm run build` and run with `npm run start`, which serves the existing Express/Vite build output at `dist/index.js`.
 ✓ Added a sitewide route-change scroll reset so button/link navigation opens new pages from the top instead of preserving footer scroll position.
 ✓ Verified the imported project launches successfully in Replit preview with no runtime or browser console errors.
 
