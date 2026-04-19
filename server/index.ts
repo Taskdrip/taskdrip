@@ -26,21 +26,21 @@ app.use(
         connectSrc: ["'self'", "wss:", "ws:", "https:"],
         mediaSrc: ["'self'", "blob:", "data:"],
         objectSrc: ["'none'"],
-        frameSrc: ["'self'"],
+        frameSrc: ["'self'", "https:"],
         workerSrc: ["'self'", "blob:"],
-        upgradeInsecureRequests: [],
+        frameAncestors: ["'self'", "https://*.replit.dev", "https://*.replit.co", "https://*.repl.co", "https://*.worf.replit.dev"],
       },
     },
     crossOriginEmbedderPolicy: false,
-    hsts: {
+    hsts: process.env.NODE_ENV === "production" ? {
       maxAge: 31536000,
       includeSubDomains: true,
       preload: true,
-    },
+    } : false,
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     noSniff: true,
     xssFilter: true,
-    frameguard: { action: "sameorigin" },
+    frameguard: false,
     dnsPrefetchControl: { allow: false },
     permittedCrossDomainPolicies: { permittedPolicies: "none" },
     hidePoweredBy: true,
@@ -91,11 +91,12 @@ app.use(express.urlencoded({ extended: false, limit: '15mb' }));
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
+  if (req.path.startsWith("/api")) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+  }
   next();
 });
 

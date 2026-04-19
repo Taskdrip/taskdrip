@@ -21,7 +21,7 @@ const MALICIOUS_SCRIPT_PATTERNS = [
   /atob\s*\(/gi,
   /fromCharCode/gi,
   /unescape\s*\(/gi,
-  /<!--.*?-->/gs,
+  /<!--[\s\S]*?-->/gi,
   /<iframe[\s\S]*?>/gi,
   /<object[\s\S]*?>/gi,
   /<embed[\s\S]*?>/gi,
@@ -40,7 +40,7 @@ const SQL_INJECTION_PATTERNS = [
   /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|UNION|EXEC|EXECUTE)\b/gi,
   /(['"])\s*OR\s*['"]?\d+['"]?\s*=\s*['"]?\d+/gi,
   /--\s*$/gm,
-  /\/\*.*?\*\//gs,
+  /\/\*[\s\S]*?\*\//gi,
   /xp_\w+/gi,
   /WAITFOR\s+DELAY/gi,
   /BENCHMARK\s*\(/gi,
@@ -103,7 +103,7 @@ export function scanText(text: string): ScanResult {
 
   return {
     isSafe: threats.length === 0,
-    threats: [...new Set(threats)],
+    threats: Array.from(new Set(threats)),
     warning: threats.length > 0
       ? "This content contains potentially harmful elements. Adding malicious scripts or unsafe links may result in your account being permanently banned."
       : undefined,
@@ -143,7 +143,7 @@ export function scanUrl(url: string): ScanResult {
 
   return {
     isSafe: threats.length === 0,
-    threats: [...new Set(threats)],
+    threats: Array.from(new Set(threats)),
     warning: threats.length > 0
       ? "This URL may be unsafe or malicious. Adding harmful links can result in your account being permanently banned."
       : undefined,
