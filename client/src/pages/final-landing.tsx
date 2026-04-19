@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
@@ -140,6 +140,7 @@ const DEFAULT_SLIDES: Slide[] = [
 function HeroSlider({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const preloadedRef = useRef(false);
 
   const goTo = useCallback((idx: number) => {
     if (isTransitioning || slides.length === 0) return;
@@ -159,17 +160,39 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
     return () => clearInterval(timer);
   }, [next, slides.length]);
 
+  // Preload first hero image as high-priority resource
+  useEffect(() => {
+    if (preloadedRef.current || slides.length === 0) return;
+    const firstImage = slides[0]?.backgroundImage;
+    if (!firstImage) return;
+    preloadedRef.current = true;
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = firstImage;
+    (link as any).fetchpriority = "high";
+    document.head.appendChild(link);
+  }, [slides]);
+
   const slide = slides[current] || DEFAULT_SLIDES[0];
   const headlineParts = slide.headline.split(".");
   const accentHeadline = headlineParts[0];
   const restHeadline = headlineParts.slice(1).join(".").trim();
 
   return (
-    <section className="relative min-h-[85vh] sm:min-h-screen flex items-center overflow-hidden" data-testid="section-hero-slider">
+    <section className="relative min-h-[85vh] sm:min-h-screen flex items-center overflow-hidden bg-gray-950" data-testid="section-hero-slider">
       <div className="absolute inset-0">
         {slides.map((s, i) => (
           <div key={s.id} className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}>
-            {s.backgroundImage && <img src={s.backgroundImage} alt="" className="w-full h-full object-cover object-center" />}
+            {s.backgroundImage && (
+              <img
+                src={s.backgroundImage}
+                alt=""
+                className="w-full h-full object-cover object-center"
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding={i === 0 ? "sync" : "async"}
+              />
+            )}
             <div className={`absolute inset-0 bg-gradient-to-r ${s.overlayColor || "from-black/90 via-black/70 to-black/40"}`} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
           </div>
@@ -347,8 +370,8 @@ export default function FinalLanding() {
     queryKey: ["/api/hero-sliders", "landing"],
     queryFn: () => fetch("/api/hero-sliders?page=landing").then(r => r.json()),
   });
-  const { data: apiCampaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
-  const { data: p2pListings = [] } = useQuery<any[]>({ queryKey: ["/api/p2p/listings"] });
+  const { data: apiCampaigns = [], isLoading: campaignsLoading } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
+  const { data: p2pListings = [], isLoading: p2pLoading } = useQuery<any[]>({ queryKey: ["/api/p2p/listings"] });
   const { data: spotlightItems = [] } = useQuery<any[]>({
     queryKey: ["/api/spotlight", "landing"],
     queryFn: () => fetch("/api/spotlight?page=landing").then(r => r.json()),
@@ -604,7 +627,18 @@ export default function FinalLanding() {
             </Link>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {displayCampaigns.slice(0, 3).map((campaign: any) => <CampaignCard key={campaign.id} campaign={campaign} />)}
+            {campaignsLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden animate-pulse">
+                    <div className="h-40 bg-gray-200" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-3 bg-gray-200 rounded w-1/3" />
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))
+              : displayCampaigns.slice(0, 3).map((campaign: any) => <CampaignCard key={campaign.id} campaign={campaign} />)}
           </div>
           <div className="text-center mt-6 sm:mt-8">
             <Link href="/campaigns">
@@ -632,7 +666,20 @@ export default function FinalLanding() {
             </Link>
           </div>
 
-          {approvedListings.length > 0 ? (
+          {p2pLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden animate-pulse">
+                  <div className="h-40 bg-white/10" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-3 bg-white/10 rounded w-1/3" />
+                    <div className="h-4 bg-white/10 rounded w-3/4" />
+                    <div className="h-3 bg-white/10 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : approvedListings.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {approvedListings.map((listing: any) => (
                 <P2PListingCard key={listing.id} listing={listing} />
