@@ -588,7 +588,7 @@ export default function FinalLanding() {
             <div>
               <Badge className="mb-4 bg-white/10 text-white border-white/20 px-4 py-1.5 text-xs">Platform Revenue Model</Badge>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">Transparent fees. Clear payouts.</h2>
-              <p className="text-gray-400 mt-4 leading-relaxed text-sm sm:text-base">Brands fund campaigns with a 10% platform fee. Influencers receive 90% of approved earnings. For Direct Hire, the same protected escrow model applies. Everyone sees the ledger clearly.</p>
+              <p className="text-gray-400 mt-4 leading-relaxed text-sm sm:text-base">Brands fund campaigns with a small platform fee. Influencers receive the majority of approved earnings. For Direct Hire, the same protected escrow model applies. Everyone sees the ledger clearly.</p>
               <Link href="/signup" className="mt-6 sm:mt-7 inline-block">
                 <Button className="bg-white text-black hover:bg-gray-100 rounded-xl font-bold px-7 text-sm sm:text-base" data-testid="button-fee-model-signup">
                   Join Taskdrip <ArrowRight className="ml-2 w-4 h-4" />
@@ -597,8 +597,8 @@ export default function FinalLanding() {
             </div>
             <div className="grid grid-cols-3 gap-3 sm:gap-4">
               {[
-                { value: "10%", label: "Brand platform fee" },
-                { value: "90%", label: "Influencer payout" },
+                { value: "Low", label: "Brand platform fee" },
+                { value: "High", label: "Influencer payout" },
                 { value: "USDT", label: "Crypto settlement" },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-2xl sm:rounded-3xl bg-white/5 border border-white/10 p-4 sm:p-6">
