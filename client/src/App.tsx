@@ -70,6 +70,7 @@ import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
 import AdminP2PFees from "@/pages/admin-p2p-fees";
 import AdminPlatformFees from "@/pages/admin-platform-fees";
 import MyOrdersPage from "@/pages/my-orders";
+import TDripInfoPage from "@/pages/tdrip-info";
 
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/brand/:id" component={BrandProfile} />
       <Route path="/feed" component={FeedPage} />
       <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/tdrip" component={TDripInfoPage} />
       <Route path="/p2p-hub" component={P2PHub} />
       <Route path="/p2p/:id" component={P2PListing} />
       {isAuthenticated ? (
@@ -200,12 +202,28 @@ function ScrollToTop() {
   return null;
 }
 
+function DailyLoginBonus() {
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `tdrip_daily_login_${today}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    fetch("/api/points/daily-login", { method: "POST", credentials: "include" }).catch(() => {});
+  }, [isAuthenticated]);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <ScrollToTop />
+        <DailyLoginBonus />
         <Router />
         <PWAInstallPrompt />
         <GuideBot />

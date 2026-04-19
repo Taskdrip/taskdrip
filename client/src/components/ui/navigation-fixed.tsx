@@ -38,6 +38,7 @@ const secondaryMainItems = [
   { href: "/feed", label: "Feed" },
   { href: "/blog", label: "Blog" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/tdrip", label: "$TDrip" },
   { href: "/advertise", label: "Advertise" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

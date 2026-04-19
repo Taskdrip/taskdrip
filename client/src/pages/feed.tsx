@@ -548,6 +548,7 @@ function CreatePost({ userId }: { userId: string }) {
     onSuccess: () => {
       setContent(""); setImageFile(null); setImagePreview(null); setVideoUrl(""); setShowVideoInput(false);
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
       toast({ title: "Posted!", description: "Your update is now live" });
     },
     onError: () => toast({ title: "Error", description: "Failed to create post", variant: "destructive" }),

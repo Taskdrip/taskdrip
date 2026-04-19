@@ -151,6 +151,7 @@ export default function BrandProfile() {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/follow`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/can-message`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/profile`] });
+      if (data.following) queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
       toast({ title: data.following ? 'Following!' : 'Unfollowed', description: data.following ? `You're now following ${brand?.companyName || brand?.firstName}` : 'Unfollowed successfully.' });
     },
   });

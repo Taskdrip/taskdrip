@@ -312,6 +312,7 @@ export default function ProfileEdit() {
       queryClient.invalidateQueries({ queryKey: ['/api/creators'] });
       queryClient.invalidateQueries({ queryKey: ['/api/leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/points/me'] });
       toast({ title: "Profile saved! 🎉", description: "Your profile has been updated successfully." });
     } catch (error: any) {
       let description = "Failed to save profile. Please try again.";

@@ -568,6 +568,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = `post_${nanoid()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
+
+      // Award points for first post
+      try {
+        const existingPoints = await storage.getUserPoints(req.user.id);
+        const alreadyAwarded = existingPoints.some((p: any) => p.actionType === 'first_post');
+        if (!alreadyAwarded) {
+          await storage.awardPoints(req.user.id, 'first_post', 25, 'Posted your first update in the Feed!', id);
+          await storage.createNotification({
+            userId: req.user.id,
+            type: 'points_earned',
+            title: '🎉 +25 $TDRIP Earned!',
+            content: 'You earned 25 $TDRIP points for posting your first Feed update! Keep sharing to grow your reputation.',
+            actionUrl: '/wallet',
+            isRead: false,
+          } as any);
+        } else {
+          // Still award 5 pts per post (smaller reward)
+          await storage.awardPoints(req.user.id, 'feed_post', 5, 'Shared an update in the Feed', id);
+        }
+      } catch (pointsErr) {
+        console.error('Failed to award post points:', pointsErr);
+      }
+
       res.status(201).json(post);
     } catch (error) {
       console.error("Error creating post:", error);
@@ -712,6 +735,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ following: false });
       } else {
         await storage.followUser(req.user.id, req.params.id);
+        // Award 5 pts for following a user (once per unique follow)
+        try {
+          await storage.awardPoints(req.user.id, 'follow_user', 5, 'Followed a creator on Taskdrip', req.params.id);
+        } catch (pointsErr) {
+          console.error('Failed to award follow points:', pointsErr);
+        }
         res.json({ following: true });
       }
     } catch (error) {
@@ -1029,6 +1058,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } as any);
       }
 
+      // Award points for applying to a campaign
+      try {
+        await storage.awardPoints(userId, 'campaign_apply', 10, `Applied to campaign: ${campaign?.title || campaignId}`, campaignId);
+        await storage.createNotification({
+          userId,
+          type: 'points_earned',
+          title: '🎉 +10 $TDRIP Earned!',
+          content: `You earned 10 $TDRIP points for applying to "${campaign?.title || 'a campaign'}"! Keep engaging to level up.`,
+          actionUrl: '/wallet',
+          isRead: false,
+        } as any);
+      } catch (pointsErr) {
+        console.error('Failed to award campaign apply points:', pointsErr);
+      }
+
       res.json(participation);
     } catch (error) {
       console.error("Error joining campaign:", error);
@@ -1231,6 +1275,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else updates.creatorTier = 'newcomer';
 
       const updatedUser = await storage.updateUserProfile(userId, updates);
+
+      // Check if profile is now "complete" — award 100 pts if not already awarded
+      try {
+        const u = updatedUser as any;
+        const isComplete = !!(u.firstName && u.bio && u.profileImageUrl && u.country);
+        if (isComplete) {
+          const existingPoints = await storage.getUserPoints(userId);
+          const alreadyAwarded = existingPoints.some((p: any) => p.actionType === 'profile_completion');
+          if (!alreadyAwarded) {
+            await storage.awardPoints(userId, 'profile_completion', 100, 'Completed your Taskdrip profile — looking great!', userId);
+            await storage.createNotification({
+              userId,
+              type: 'points_earned',
+              title: '🎉 +100 $TDRIP Earned!',
+              content: 'Your profile is complete! You\'ve earned 100 $TDRIP points. A complete profile attracts more brands and opportunities.',
+              actionUrl: '/wallet',
+              isRead: false,
+            } as any);
+          }
+        }
+      } catch (pointsErr) {
+        console.error('Failed to check/award profile completion points:', pointsErr);
+      }
+
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -4399,6 +4467,23 @@ Instructions:
         transactionHash: req.body.transactionHash,
         amount: course.isFree ? "0.00" : (course.price || "0.00"),
       });
+
+      // Award points for enrolling in a course
+      try {
+        const pts = course.isFree ? 20 : 50;
+        await storage.awardPoints(req.user.id, 'course_enroll', pts, `Enrolled in: ${course.title || 'a BreedSkool course'}`, req.params.id);
+        await storage.createNotification({
+          userId: req.user.id,
+          type: 'points_earned',
+          title: `🎉 +${pts} $TDRIP Earned!`,
+          content: `You earned ${pts} $TDRIP points for enrolling in "${course.title || 'a course'}"! Learning pays in Taskdrip.`,
+          actionUrl: '/wallet',
+          isRead: false,
+        } as any);
+      } catch (pointsErr) {
+        console.error('Failed to award course enroll points:', pointsErr);
+      }
+
       res.status(201).json(enrollment);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to enroll" });
@@ -6947,6 +7032,31 @@ Instructions:
       res.json({ points, total, level: user?.level ?? 'Starter' });
     } catch (e) {
       res.status(500).json({ message: 'Failed to fetch points' });
+    }
+  });
+
+  // Daily login points — call once per session from frontend
+  app.post('/api/points/daily-login', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const existingPoints = await storage.getUserPoints(userId);
+      const alreadyToday = existingPoints.some((p: any) => p.actionType === 'daily_login' && p.createdAt && new Date(p.createdAt).toISOString().slice(0, 10) === today);
+      if (alreadyToday) {
+        return res.json({ awarded: false, message: 'Daily login points already claimed today' });
+      }
+      await storage.awardPoints(userId, 'daily_login', 5, 'Daily login bonus — keep the streak going!', today);
+      await storage.createNotification({
+        userId,
+        type: 'points_earned',
+        title: '🌅 +5 $TDRIP Daily Bonus!',
+        content: 'Welcome back! You earned 5 $TDRIP for logging in today. Come back tomorrow for more!',
+        actionUrl: '/wallet',
+        isRead: false,
+      } as any);
+      res.json({ awarded: true, points: 5 });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to award daily login points' });
     }
   });
 

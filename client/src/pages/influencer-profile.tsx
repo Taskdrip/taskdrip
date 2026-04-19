@@ -303,6 +303,7 @@ export default function CreatorProfile() {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${id}/follow`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${id}/can-message`] });
       queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
+      if (data.following) queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
       toast({ title: data.following ? "Following! 🔥" : "Unfollowed", description: data.following ? `You're now following ${profile?.firstName}` : `You unfollowed ${profile?.firstName}` });
     },
   });

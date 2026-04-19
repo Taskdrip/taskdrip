@@ -104,6 +104,10 @@ Design preferences: Clean, professional web app design with white background and
 - Virtual wallet tracking for earnings history
 - Payout request system with $10 minimum threshold
 - Two-wallet account model: Funds Wallet holds spendable/withdrawable USDT-value balances for campaign earnings, brand payments, giveaway wins, products/services, and withdrawals; $TDRIP Points Wallet stores activity points at 100 $TDRIP = $1 for airdrops and micro add-on campaign rewards.
+- **$TDrip Info Page** (`/tdrip`): Engaging, full-featured information page with animated token coin hero, level system display, tabbed sections (How to Earn / Current Utility / Roadmap), mini whitepaper, "Why Stack Now" section, and FAQ.
+- **Auto $TDRIP Points Triggers**: Points are now automatically awarded with congratulatory notifications for: Profile Completion (100 pts, once), Daily Login (5 pts, once/day via `POST /api/points/daily-login`), First Feed Post (25 pts), Subsequent Posts (5 pts), Following a User (5 pts), Campaign Application (10 pts), Course Enrollment (20 pts free / 50 pts paid).
+- **Real-time Points Updates**: All key mutations (profile save, post create, follow, campaign join) now invalidate `/api/points/me` so the wallet UI refreshes instantly.
+- Navigation now includes $TDrip link in "More" dropdown (secondaryMainItems).
 
 #### User Management
 - Comprehensive user profiles with social media handles
