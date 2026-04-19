@@ -11,42 +11,56 @@ import { storage } from "./storage";
 import bcrypt from "bcrypt";
 
 const app = express();
+const isProd = process.env.NODE_ENV === "production";
 
 app.set("trust proxy", 1);
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: false,
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
-        connectSrc: ["'self'", "wss:", "ws:", "https:", "http:"],
-        mediaSrc: ["'self'", "blob:", "data:"],
-        objectSrc: ["'none'"],
-        frameSrc: ["'self'", "https:"],
-        workerSrc: ["'self'", "blob:"],
-        frameAncestors: ["'self'", "https://*.replit.dev", "https://*.replit.co", "https://*.repl.co", "https://*.worf.replit.dev", "https://*.picard.replit.dev"],
+if (isProd) {
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+          imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+          connectSrc: ["'self'", "wss:", "ws:", "https:"],
+          mediaSrc: ["'self'", "blob:", "data:"],
+          objectSrc: ["'none'"],
+          frameSrc: ["'self'", "https:"],
+          workerSrc: ["'self'", "blob:"],
+          frameAncestors: ["'self'", "https://*.replit.app", "https://*.replit.dev"],
+          upgradeInsecureRequests: [],
+        },
       },
-    },
-    crossOriginEmbedderPolicy: false,
-    hsts: process.env.NODE_ENV === "production" ? {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    } : false,
-    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-    noSniff: true,
-    xssFilter: true,
-    frameguard: false,
-    dnsPrefetchControl: { allow: false },
-    permittedCrossDomainPolicies: { permittedPolicies: "none" },
-    hidePoweredBy: true,
-  })
-);
+      crossOriginEmbedderPolicy: false,
+      hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+      noSniff: true,
+      xssFilter: true,
+      frameguard: false,
+      dnsPrefetchControl: { allow: false },
+      permittedCrossDomainPolicies: { permittedPolicies: "none" },
+      hidePoweredBy: true,
+    })
+  );
+} else {
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      hsts: false,
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+      noSniff: true,
+      xssFilter: true,
+      frameguard: false,
+      dnsPrefetchControl: { allow: false },
+      hidePoweredBy: true,
+    })
+  );
+}
 
 const isDev = process.env.NODE_ENV !== "production";
 
