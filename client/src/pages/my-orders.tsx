@@ -14,10 +14,11 @@ import {
   Download, Eye, FileText, Package, Clock, CheckCircle2,
   XCircle, AlertCircle, Truck, ReceiptText, FileSpreadsheet,
   CalendarRange, Filter, TrendingUp, DollarSign,
+  Megaphone,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type OrderType = "shop" | "course" | "p2p" | "campaign" | "direct_hire";
+type OrderType = "shop" | "course" | "p2p" | "campaign" | "direct_hire" | "ad";
 
 interface UnifiedOrder {
   id: string;
@@ -60,6 +61,7 @@ function typeIcon(type: OrderType) {
     p2p: <ArrowLeftRight className="h-4 w-4" />,
     campaign: <Shield className="h-4 w-4" />,
     direct_hire: <Briefcase className="h-4 w-4" />,
+    ad: <Megaphone className="h-4 w-4" />,
   };
   return icons[type];
 }
@@ -71,6 +73,7 @@ function typeLabel(type: OrderType) {
     p2p: "P2P Trade",
     campaign: "Campaign Escrow",
     direct_hire: "Direct Hire",
+    ad: "Ads Campaign",
   };
   return labels[type];
 }
@@ -82,6 +85,7 @@ function typeColor(type: OrderType) {
     p2p: "bg-blue-100 text-blue-800",
     campaign: "bg-green-100 text-green-800",
     direct_hire: "bg-rose-100 text-rose-800",
+    ad: "bg-violet-100 text-violet-800",
   };
   return colors[type];
 }
@@ -89,7 +93,7 @@ function typeColor(type: OrderType) {
 function statusColor(status: string) {
   if (["completed", "approved", "delivered", "active", "paid"].includes(status))
     return "bg-emerald-100 text-emerald-800";
-  if (["pending", "processing", "verifying", "payment_window"].includes(status))
+  if (["pending", "processing", "verifying", "payment_window", "submitted", "pending_payment"].includes(status))
     return "bg-amber-100 text-amber-800";
   if (["cancelled", "failed", "refunded", "expired", "rejected"].includes(status))
     return "bg-red-100 text-red-800";
@@ -213,7 +217,7 @@ function normaliseOrders(data: any): UnifiedOrder[] {
       title: o.title || "Direct Hire",
       description: o.requirements ? o.requirements.slice(0, 80) + (o.requirements.length > 80 ? "…" : "") : "Direct hire offer",
       amount: base,
-      fee: brandFee,
+      fee: 0,
       totalCharged: total,
       status: o.status,
       date: o.createdAt,
@@ -221,6 +225,28 @@ function normaliseOrders(data: any): UnifiedOrder[] {
       transactionHash: o.transactionHash,
       paymentProof: o.paymentProof,
       raw: o,
+    });
+  });
+
+  (data.adApplications || []).forEach((o: any) => {
+    const payment = (data.adPaymentDeposits || []).find((p: any) => String(p.adminNotes || "").includes(`ads_application:${o.id}`)) || o.payment;
+    const base = Number(o.budget || payment?.amount || 0);
+    const total = Number(payment?.amount || base);
+    orders.push({
+      id: o.id,
+      type: "ad",
+      title: o.companyName ? `Ads: ${o.companyName}` : "Advertising campaign",
+      description: o.message || `${o.adType || "Advertising"} campaign`,
+      amount: base,
+      fee: Math.max(0, total - base),
+      totalCharged: total,
+      status: payment?.status || o.status || "pending",
+      date: payment?.createdAt || o.createdAt,
+      paymentMethod: payment ? "crypto" : undefined,
+      transactionHash: payment?.transactionHash,
+      network: payment?.network,
+      paymentProof: payment?.paymentProof,
+      raw: { ...o, payment },
     });
   });
 
@@ -499,6 +525,42 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             </div>
           )}
 
+          {order.type === "ad" && raw && (
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-gray-500" /> Advertising Details
+              </h3>
+              <div className="rounded-xl border border-gray-100 bg-white divide-y divide-gray-50">
+                <div className="flex justify-between items-center px-4 py-3">
+                  <span className="text-sm text-gray-500">Company</span>
+                  <span className="text-sm font-semibold">{raw.companyName}</span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-3">
+                  <span className="text-sm text-gray-500">Ad type</span>
+                  <span className="text-sm font-medium">{String(raw.adType || "advertising").replace(/_/g, " ")}</span>
+                </div>
+                {raw.platforms && (
+                  <div className="flex justify-between items-start px-4 py-3 gap-3">
+                    <span className="text-sm text-gray-500 shrink-0">Channels</span>
+                    <span className="text-sm text-right">{raw.platforms}</span>
+                  </div>
+                )}
+                {raw.tdripBudget && (
+                  <div className="flex justify-between items-start px-4 py-3 gap-3">
+                    <span className="text-sm text-gray-500 shrink-0">$TDRIP add-on</span>
+                    <span className="text-sm font-medium text-violet-700 text-right">{raw.tdripBudget}</span>
+                  </div>
+                )}
+                {raw.payment && (
+                  <div className="flex justify-between items-center px-4 py-3">
+                    <span className="text-sm text-gray-500">Payment review</span>
+                    <Badge className={statusColor(raw.payment.status || "submitted")}>{String(raw.payment.status || "submitted").replace(/_/g, " ")}</Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Admin notes */}
           {raw.adminNotes && (
             <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
@@ -536,7 +598,7 @@ export default function MyOrdersPage() {
     total: filteredOrders.length,
     totalSpent: filteredOrders.reduce((s, o) => s + o.totalCharged, 0),
     totalFees: filteredOrders.reduce((s, o) => s + o.fee, 0),
-    pending: filteredOrders.filter((o) => ["pending", "pending_payment", "verifying", "payment_submitted", "payment_window"].includes(o.status)).length,
+    pending: filteredOrders.filter((o) => ["pending", "pending_payment", "verifying", "payment_submitted", "payment_window", "submitted"].includes(o.status)).length,
     completed: filteredOrders.filter((o) => ["completed", "approved", "delivered", "active", "paid"].includes(o.status)).length,
   }), [filteredOrders]);
 
@@ -547,42 +609,50 @@ export default function MyOrdersPage() {
 
   // ── PDF Export ──────────────────────────────────────────────────────────────
   async function downloadPDF() {
-    const { default: jsPDF } = await import("jspdf");
-    const autoTable = (await import("jspdf-autotable")).default;
-    const doc = new jsPDF({ orientation: "landscape" });
-
-    doc.setFontSize(16);
-    doc.text("My Orders & Transactions", 14, 16);
-    doc.setFontSize(10);
-    doc.text(`Generated: ${format(new Date(), "MMM d, yyyy h:mm a")}`, 14, 23);
-    doc.text(`Total orders: ${summary.total} · Total charged: ${money(summary.totalSpent)}`, 14, 30);
-
-    autoTable(doc, {
-      startY: 36,
-      head: [["#", "Type", "Title", "Amount", "Fee", "Total", "Status", "Payment", "Date"]],
-      body: filteredOrders.map((o, i) => [
-        i + 1,
-        typeLabel(o.type),
-        o.title,
-        money(o.amount),
-        money(o.fee),
-        money(o.totalCharged),
-        o.status.replace(/_/g, " "),
-        o.paymentMethod || "—",
-        format(new Date(o.date), "MMM d, yyyy"),
-      ]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [17, 24, 39], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-    });
-
-    doc.save(`taskdrip-orders-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    const rows = filteredOrders.map((o, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${typeLabel(o.type)}</td>
+        <td>${o.title}</td>
+        <td>${money(o.amount)}</td>
+        <td>${money(o.fee)}</td>
+        <td>${money(o.totalCharged)}</td>
+        <td>${o.status.replace(/_/g, " ")}</td>
+        <td>${format(new Date(o.date), "MMM d, yyyy")}</td>
+      </tr>
+    `).join("");
+    const printable = window.open("", "_blank");
+    if (!printable) return;
+    printable.document.write(`
+      <html>
+        <head>
+          <title>Taskdrip Orders</title>
+          <style>
+            body{font-family:Arial,sans-serif;padding:24px;color:#111827}
+            h1{margin:0 0 6px;font-size:22px}
+            p{color:#6b7280;margin:0 0 18px}
+            table{width:100%;border-collapse:collapse;font-size:12px}
+            th,td{border:1px solid #e5e7eb;padding:8px;text-align:left}
+            th{background:#111827;color:white}
+            tr:nth-child(even){background:#f9fafb}
+          </style>
+        </head>
+        <body>
+          <h1>My Orders & Transactions</h1>
+          <p>Generated ${format(new Date(), "MMM d, yyyy h:mm a")} · Total charged ${money(summary.totalSpent)}</p>
+          <table>
+            <thead><tr><th>#</th><th>Type</th><th>Title</th><th>Amount</th><th>Fee</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printable.document.close();
+    printable.print();
   }
 
-  // ── Excel Export ────────────────────────────────────────────────────────────
   async function downloadExcel() {
-    const XLSX = await import("xlsx");
-    const wsData = [
+    const rows = [
       ["#", "Type", "Title", "Description", "Base Amount", "Platform Fee", "Total Charged", "Status", "Payment Method", "Network", "Transaction Hash", "Date"],
       ...filteredOrders.map((o, i) => [
         i + 1,
@@ -599,29 +669,16 @@ export default function MyOrdersPage() {
         format(new Date(o.date), "yyyy-MM-dd HH:mm"),
       ]),
     ];
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws["!cols"] = [
-      { wch: 4 }, { wch: 14 }, { wch: 30 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
-      { wch: 18 }, { wch: 14 }, { wch: 10 }, { wch: 28 }, { wch: 18 },
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Orders");
-
-    // Summary sheet
-    const summaryData = [
-      ["Summary", ""],
-      ["Total Orders", summary.total],
-      ["Total Amount", summary.totalSpent],
-      ["Total Fees", summary.totalFees],
-      ["Pending", summary.pending],
-      ["Completed", summary.completed],
-      ["Generated", format(new Date(), "yyyy-MM-dd HH:mm")],
-    ];
-    const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, ws2, "Summary");
-
-    XLSX.writeFile(wb, `taskdrip-orders-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `taskdrip-orders-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -713,6 +770,7 @@ export default function MyOrdersPage() {
                   <SelectItem value="p2p">P2P Trades</SelectItem>
                   <SelectItem value="campaign">Campaign Escrow</SelectItem>
                   <SelectItem value="direct_hire">Direct Hire</SelectItem>
+                  <SelectItem value="ad">Ads Campaigns</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -749,7 +807,7 @@ export default function MyOrdersPage() {
                   data-testid="button-download-excel"
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Excel
+                  CSV
                 </Button>
               </div>
             </div>

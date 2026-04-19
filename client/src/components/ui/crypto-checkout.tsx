@@ -14,6 +14,7 @@ interface CryptoCheckoutProps {
   amount: number;
   purpose: string;
   description?: string;
+  notes?: string;
   campaignId?: string;
   productId?: string;
   feature?: string;
@@ -52,6 +53,7 @@ export function CryptoCheckoutModal({
   amount,
   purpose,
   description,
+  notes,
   campaignId,
   productId,
   feature = "campaigns",
@@ -129,6 +131,7 @@ export function CryptoCheckoutModal({
       transactionHash: txHash || undefined,
       paymentProof: proofUrl || undefined,
       campaignId: campaignId || undefined,
+      notes: notes || undefined,
       status: "submitted",
     });
   };

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -2454,8 +2454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         network: req.body.network,
         walletAddress: req.body.walletAddress,
         transactionHash: req.body.transactionHash,
-        paymentProof: req.file?.path,
-        notes: req.body.notes,
+        paymentProof: req.file?.path || req.body.paymentProof,
+        adminNotes: req.body.notes || req.body.adminNotes,
         timerExpiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
         status: 'submitted'
       };
@@ -6991,7 +6991,15 @@ Instructions:
     try {
       if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
       const apps = await storage.getAllAdvertiseApplications();
-      res.json(apps);
+      const payments = await db
+        .select()
+        .from(paymentDeposits)
+        .where(sql`${paymentDeposits.adminNotes} LIKE ${'%ads_application:%'}`)
+        .orderBy(desc(paymentDeposits.createdAt));
+      res.json(apps.map((app2: any) => ({
+        ...app2,
+        payment: payments.find((payment: any) => String(payment.adminNotes || '').includes(`ads_application:${app2.id}`)) || null,
+      })));
     } catch (e) {
       res.status(500).json({ message: 'Failed to fetch applications' });
     }
@@ -7764,12 +7772,30 @@ Instructions:
         directHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
       }
 
+      const adApplications = user.email
+        ? await db
+            .select()
+            .from(advertiseApplications)
+            .where(sql`lower(${advertiseApplications.email}) = lower(${user.email})`)
+            .orderBy(desc(advertiseApplications.createdAt))
+        : [];
+      const adPaymentDeposits = await db
+        .select()
+        .from(paymentDeposits)
+        .where(and(
+          eq(paymentDeposits.brandId, userId),
+          sql`${paymentDeposits.adminNotes} LIKE ${'%ads_application:%'}`
+        ))
+        .orderBy(desc(paymentDeposits.createdAt));
+
       res.json({
         shopOrders,
         courseOrders,
         p2pTransactions: enrichedP2P,
         escrowOrders,
         directHireOrders,
+        adApplications,
+        adPaymentDeposits,
         userType: user.userType,
         generatedAt: new Date().toISOString(),
       });

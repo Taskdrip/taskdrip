@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
+import { CryptoCheckoutModal } from "@/components/ui/crypto-checkout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -152,22 +154,44 @@ const TDRIP_PER_USD = 100;
 
 export default function AdvertiseWithUs() {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [lastOrder, setLastOrder] = useState<any>(null);
   const [tdripParticipants, setTdripParticipants] = useState(0);
   const [tdripPointsEach, setTdripPointsEach] = useState(0);
+  const [includeTdrip, setIncludeTdrip] = useState(false);
   const [checkoutSummary, setCheckoutSummary] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutApplication, setCheckoutApplication] = useState<any>(null);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
   const set = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
 
   const isGiveaway = form.adType === "giveaway_campaign";
   const basePrice = BASE_PRICES[form.adType]?.min || 0;
-  const tdripTotal = tdripParticipants * tdripPointsEach;
+  const adsBudget = Math.max(0, Number(form.budget || 0));
+  const tdripTotal = includeTdrip ? tdripParticipants * tdripPointsEach : 0;
   const tdripCostUsd = tdripTotal / TDRIP_PER_USD;
-  const totalCost = basePrice + tdripCostUsd;
+  const totalCost = adsBudget + tdripCostUsd;
+  const selectedAdLabel = BASE_PRICES[form.adType]?.label || form.adType?.replace(/_/g, " ");
+  const checkoutNotes = checkoutApplication
+    ? `ads_application:${checkoutApplication.id}; company:${checkoutApplication.companyName}; ads_budget:$${Number(checkoutApplication.budget || adsBudget).toFixed(2)}; tdrip:$${tdripCostUsd.toFixed(2)}; total:$${totalCost.toFixed(2)}`
+    : "";
 
   const submitMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/advertise-applications", data),
-    onSuccess: () => { setSubmitted(true); setForm(EMPTY_FORM); setCheckoutSummary(false); },
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/advertise-applications", data);
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setLastOrder(data);
+      setSubmitted(true);
+      setForm(EMPTY_FORM);
+      setCheckoutSummary(false);
+      setIncludeTdrip(false);
+      setTdripParticipants(0);
+      setTdripPointsEach(0);
+    },
     onError: () => toast({ title: "Failed to submit. Please try again.", variant: "destructive" }),
   });
 
@@ -179,26 +203,84 @@ export default function AdvertiseWithUs() {
     return true;
   };
 
+  const validateCheckout = () => {
+    if (!validate()) return false;
+    if (!isAuthenticated) {
+      toast({ title: "Please log in before checkout", description: "Your payment order must be saved to your account.", variant: "destructive" });
+      return false;
+    }
+    if (!adsBudget || adsBudget <= 0) {
+      toast({ title: "Enter your ads budget", description: "Checkout uses the exact ads budget amount you want to fund.", variant: "destructive" });
+      return false;
+    }
+    if (basePrice > 0 && adsBudget < basePrice) {
+      toast({ title: `Minimum budget is $${basePrice}`, description: `${selectedAdLabel} starts at $${basePrice}.`, variant: "destructive" });
+      return false;
+    }
+    if (includeTdrip && (!tdripParticipants || !tdripPointsEach)) {
+      toast({ title: "Complete the $TDRIP add-on", description: "Enter participants and points per person, or turn the add-on off.", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
+  const buildPayload = (mode: "agent" | "checkout") => {
+    const tdripSummary = includeTdrip && tdripTotal > 0
+      ? `${tdripTotal.toLocaleString()} $TDRIP for ${tdripParticipants} participants (${tdripPointsEach} pts each) = $${tdripCostUsd.toFixed(2)}`
+      : "No $TDRIP points selected";
+    const breakdown = [
+      `Ads budget: $${adsBudget.toFixed(2)}`,
+      `Optional $TDRIP points: ${tdripSummary}`,
+      `Total due: $${totalCost.toFixed(2)}`,
+    ].join(" | ");
+    return {
+      ...form,
+      status: mode === "checkout" ? "pending_payment" : "pending",
+      budget: adsBudget > 0 ? adsBudget.toFixed(2) : form.budget,
+      tdripBudget: tdripSummary,
+      message: `${mode === "checkout" ? "[CHECKOUT ORDER CREATED]" : "[AGENT REQUEST]"} ${breakdown}. ${form.message || ""}`.trim(),
+    };
+  };
+
   const handleSpeakToAgent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    const tdripSummary = isGiveaway && tdripTotal > 0
-      ? `${tdripTotal.toLocaleString()} $TDRIP for ${tdripParticipants} participants (${tdripPointsEach} pts each) = $${tdripCostUsd.toFixed(2)}`
-      : "";
-    submitMutation.mutate({ ...form, tdripBudget: tdripSummary || form.tdripBudget, message: form.message || "Applicant chose: Speak to an agent" });
+    submitMutation.mutate(buildPayload("agent"));
   };
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validateCheckout()) return;
     setCheckoutSummary(true);
   };
 
-  const confirmCheckout = () => {
-    const tdripSummary = isGiveaway && tdripTotal > 0
-      ? `${tdripTotal.toLocaleString()} $TDRIP for ${tdripParticipants} participants (${tdripPointsEach} pts each) = $${tdripCostUsd.toFixed(2)}`
-      : "";
-    submitMutation.mutate({ ...form, tdripBudget: tdripSummary || form.tdripBudget, message: `[CHECKOUT INITIATED] Total: $${totalCost.toFixed(2)}. ${form.message || ""}` });
+  const confirmCheckout = async () => {
+    if (!validateCheckout()) return;
+    setCheckoutSubmitting(true);
+    try {
+      const res = await apiRequest("POST", "/api/advertise-applications", buildPayload("checkout"));
+      const app2 = await res.json();
+      setLastOrder(app2);
+      setCheckoutApplication(app2);
+      setSubmitted(false);
+      setCheckoutSummary(false);
+      setCheckoutOpen(true);
+    } catch (_) {
+      toast({ title: "Failed to create checkout order", variant: "destructive" });
+    } finally {
+      setCheckoutSubmitting(false);
+    }
+  };
+
+  const handleCheckoutSuccess = () => {
+    setLastOrder({ ...checkoutApplication, payment: { amount: totalCost.toFixed(2), status: "submitted" } });
+    setSubmitted(true);
+    setCheckoutOpen(false);
+    setCheckoutApplication(null);
+    setForm(EMPTY_FORM);
+    setIncludeTdrip(false);
+    setTdripParticipants(0);
+    setTdripPointsEach(0);
   };
 
   return (
@@ -447,10 +529,39 @@ export default function AdvertiseWithUs() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Application Received!</h3>
-                <p className="text-gray-500 mb-6 max-w-md mx-auto">Thank you for your interest. Our advertising team will review your application and reach out within 24 hours.</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">{lastOrder?.payment ? "Payment Submitted!" : "Application Received!"}</h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                  {lastOrder?.payment
+                    ? "Thank you. Your advertising order and payment proof are now saved in your orders. Our team will verify it and prepare your campaign."
+                    : "Thank you for your interest. Your advertising request is saved and our team will review it within 24 hours."}
+                </p>
+                {lastOrder && (
+                  <div className="max-w-md mx-auto mb-6 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-left">
+                    <div className="flex justify-between text-sm py-1">
+                      <span className="text-gray-500">Company</span>
+                      <span className="font-semibold text-gray-900">{lastOrder.companyName}</span>
+                    </div>
+                    <div className="flex justify-between text-sm py-1">
+                      <span className="text-gray-500">Ad type</span>
+                      <span className="font-semibold text-gray-900">{BASE_PRICES[lastOrder.adType]?.label || lastOrder.adType}</span>
+                    </div>
+                    {lastOrder.budget && (
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-gray-500">Ads budget</span>
+                        <span className="font-semibold text-gray-900">${Number(lastOrder.budget).toFixed(2)}</span>
+                      </div>
+                    )}
+                    {lastOrder.tdripBudget && (
+                      <div className="text-sm py-1">
+                        <span className="text-gray-500 block">Optional $TDRIP</span>
+                        <span className="font-semibold text-violet-700">{lastOrder.tdripBudget}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button variant="outline" onClick={() => setSubmitted(false)}>Submit Another</Button>
+                  <Button variant="outline" onClick={() => window.location.href = "/my-orders"} data-testid="button-view-ad-order">View My Orders</Button>
                   <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => window.location.href = "/"}>Back to Home</Button>
                 </div>
               </CardContent>
@@ -525,8 +636,15 @@ export default function AdvertiseWithUs() {
                       <Input data-testid="input-platforms" value={form.platforms} onChange={e => set("platforms", e.target.value)} placeholder="X, Instagram, TikTok, Telegram..." />
                     </div>
                     <div>
-                      <Label>$TDRIP Budget</Label>
-                      <Input data-testid="input-tdrip-budget" value={form.tdripBudget} onChange={e => set("tdripBudget", e.target.value)} placeholder="Example: 10,000 $TDRIP for 100 users" />
+                      <Label>Ads Budget to Fund Now *</Label>
+                      <Input
+                        data-testid="input-ads-budget"
+                        type="number"
+                        min={basePrice || 1}
+                        value={form.budget}
+                        onChange={e => set("budget", e.target.value)}
+                        placeholder={basePrice ? `Minimum $${basePrice}` : "Enter amount in USD"}
+                      />
                     </div>
                   </div>
 
@@ -541,31 +659,32 @@ export default function AdvertiseWithUs() {
                     />
                   </div>
 
-                  <div>
-                    <Label>Monthly Advertising Budget</Label>
-                    <Select value={form.budget} onValueChange={v => set("budget", v)}>
-                      <SelectTrigger data-testid="select-budget">
-                        <SelectValue placeholder="Select budget range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="under_500">Under $500/mo</SelectItem>
-                        <SelectItem value="500_2000">$500 – $2,000/mo</SelectItem>
-                        <SelectItem value="2000_10000">$2,000 – $10,000/mo</SelectItem>
-                        <SelectItem value="over_10000">$10,000+/mo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <p className="text-sm font-bold text-blue-950 flex items-center gap-2"><CreditCard className="h-4 w-4 text-blue-600" /> Pay only what you fund</p>
+                    <p className="text-sm text-blue-700 mt-1">Your checkout total starts with your ads budget. $TDRIP points are an optional add-on for giveaways or participant rewards.</p>
+                    {basePrice > 0 && <p className="text-xs text-blue-500 mt-2">{selectedAdLabel} starts at ${basePrice}. You can enter a higher amount if you want a larger campaign budget.</p>}
                   </div>
 
-                  {/* $TDRIP Topup Calculator */}
                   <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-200 p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="p-1.5 bg-violet-600 rounded-lg">
-                        <Coins className="h-4 w-4 text-white" />
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-violet-600 rounded-lg">
+                          <Coins className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-violet-900 text-sm">Optional $TDRIP Points Add-on</p>
+                          <p className="text-xs text-violet-600">100 $TDRIP = $1 USDT — use only if you want to reward participants</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-violet-900 text-sm">$TDRIP Points Topup</p>
-                        <p className="text-xs text-violet-600">100 $TDRIP = $1 USDT — reward participants directly</p>
-                      </div>
+                      <label className="flex items-center gap-2 rounded-full bg-white border border-violet-200 px-3 py-1.5 text-xs font-semibold text-violet-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeTdrip}
+                          onChange={e => setIncludeTdrip(e.target.checked)}
+                          data-testid="checkbox-include-tdrip"
+                        />
+                        Add $TDRIP
+                      </label>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div>
@@ -577,6 +696,7 @@ export default function AdvertiseWithUs() {
                           onChange={e => setTdripParticipants(Math.max(0, parseInt(e.target.value) || 0))}
                           placeholder="e.g. 100"
                           className="bg-white border-violet-200"
+                          disabled={!includeTdrip}
                           data-testid="input-tdrip-participants"
                         />
                       </div>
@@ -589,6 +709,7 @@ export default function AdvertiseWithUs() {
                           onChange={e => setTdripPointsEach(Math.max(0, parseInt(e.target.value) || 0))}
                           placeholder="e.g. 100"
                           className="bg-white border-violet-200"
+                          disabled={!includeTdrip}
                           data-testid="input-tdrip-points-each"
                         />
                       </div>
@@ -610,7 +731,7 @@ export default function AdvertiseWithUs() {
                       </div>
                     )}
                     {tdripTotal === 0 && (
-                      <p className="text-xs text-violet-400 text-center py-2">Enter participants and points per person to calculate your $TDRIP budget</p>
+                      <p className="text-xs text-violet-400 text-center py-2">{includeTdrip ? "Enter participants and points per person to calculate your $TDRIP budget" : "$TDRIP is off. Your checkout will only charge the ads budget."}</p>
                     )}
                   </div>
 
@@ -643,8 +764,14 @@ export default function AdvertiseWithUs() {
                       <div className="space-y-2">
                         {basePrice > 0 && (
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">{BASE_PRICES[form.adType]?.label} (base)</span>
-                            <span className="font-semibold text-gray-900">From ${basePrice}</span>
+                            <span className="text-gray-600">Minimum for {selectedAdLabel}</span>
+                            <span className="font-semibold text-gray-900">${basePrice}</span>
+                          </div>
+                        )}
+                        {adsBudget > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Ads budget funded now</span>
+                            <span className="font-semibold text-gray-900">${adsBudget.toFixed(2)}</span>
                           </div>
                         )}
                         {tdripTotal > 0 && (
@@ -683,7 +810,7 @@ export default function AdvertiseWithUs() {
                       data-testid="button-checkout"
                     >
                       <span className="font-bold">Checkout Now →</span>
-                      <span className="text-xs text-purple-200">Pay & start your campaign faster</span>
+                <span className="text-xs text-purple-200">Review breakdown, then pay securely</span>
                     </Button>
                   </div>
 
@@ -737,10 +864,14 @@ export default function AdvertiseWithUs() {
               </div>
               {basePrice > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Base Campaign Cost</span>
-                  <span className="font-semibold text-gray-900">From ${basePrice}</span>
+                  <span className="text-gray-600">Minimum package amount</span>
+                  <span className="font-semibold text-gray-900">${basePrice}</span>
                 </div>
               )}
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Ads budget funded now</span>
+                <span className="font-semibold text-gray-900">${adsBudget.toFixed(2)}</span>
+              </div>
               {tdripTotal > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">{tdripTotal.toLocaleString()} $TDRIP ({tdripParticipants} × {tdripPointsEach})</span>
@@ -756,15 +887,16 @@ export default function AdvertiseWithUs() {
 
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-3">
               <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-green-600" /> How to pay
+                <ShieldCheck className="h-4 w-4 text-green-600" /> Checkout guide
               </p>
               <div className="space-y-2 text-sm text-gray-600">
-                <p>1. Submit your application below</p>
-                <p>2. Our team sends you a payment link within 2 hours</p>
-                <p>3. After payment, your campaign goes live within 24h</p>
+                <p>1. Confirm this order breakdown.</p>
+                <p>2. Choose a crypto network in Taskdrip Smart Checkout.</p>
+                <p>3. Send the exact total, then upload a transaction hash or screenshot.</p>
+                <p>4. Your order appears in My Orders and in the admin ads dashboard.</p>
               </div>
               <div className="text-xs text-gray-400 flex items-center gap-1.5 pt-1 border-t border-gray-200">
-                <Mail className="h-3.5 w-3.5" /> Payment link sent to: <span className="font-medium">{form.email}</span>
+                <Mail className="h-3.5 w-3.5" /> Receipt/order contact: <span className="font-medium">{form.email}</span>
               </div>
             </div>
           </div>
@@ -773,14 +905,25 @@ export default function AdvertiseWithUs() {
             <Button
               className="bg-purple-600 hover:bg-purple-700 text-white gap-2 flex-1"
               onClick={confirmCheckout}
-              disabled={submitMutation.isPending}
+              disabled={checkoutSubmitting}
               data-testid="button-confirm-checkout"
             >
-              {submitMutation.isPending ? "Submitting..." : <><CheckCircle2 className="h-4 w-4" /> Confirm & Submit</>}
+              {checkoutSubmitting ? "Preparing checkout..." : <><CheckCircle2 className="h-4 w-4" /> Confirm & Pay</>}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CryptoCheckoutModal
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        amount={totalCost}
+        purpose="Advertising Campaign Checkout"
+        description={`Ads budget $${adsBudget.toFixed(2)}${tdripTotal > 0 ? ` + $TDRIP add-on $${tdripCostUsd.toFixed(2)}` : ""}. Your order is saved for admin review.`}
+        feature="campaigns"
+        notes={checkoutNotes}
+        onSuccess={handleCheckoutSuccess}
+      />
     </div>
   );
 }

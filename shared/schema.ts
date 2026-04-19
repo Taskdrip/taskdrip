@@ -1352,6 +1352,9 @@ export const advertiseApplications = pgTable("advertise_applications", {
   industry: varchar("industry"),
   adType: varchar("ad_type").notNull(), // 'platform_ads', 'social_media', 'influencer_network', 'sponsored_content', 'all'
   budget: varchar("budget"), // 'under_500', '500_2000', '2000_10000', 'over_10000'
+  platforms: varchar("platforms"),
+  giveawayType: text("giveaway_type"),
+  tdripBudget: text("tdrip_budget"),
   goals: text("goals"),
   message: text("message"),
   status: varchar("status").notNull().default("pending"), // 'pending', 'contacted', 'approved', 'rejected'

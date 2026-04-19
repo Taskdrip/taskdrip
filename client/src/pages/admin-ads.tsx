@@ -257,6 +257,14 @@ const BUDGET_LABELS: Record<string, string> = {
   over_10000: "$10,000+/mo",
 };
 
+function formatAdBudget(value: any) {
+  const numeric = Number(value);
+  if (value !== "" && value !== null && value !== undefined && !Number.isNaN(numeric)) {
+    return `$${numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return BUDGET_LABELS[value] || value || "Not specified";
+}
+
 function ApplicationDetailDialog({ app, onClose, onStatusChange }: {
   app: any;
   onClose: () => void;
@@ -288,6 +296,7 @@ function ApplicationDetailDialog({ app, onClose, onStatusChange }: {
     approved: "bg-green-50 text-green-700 border-green-200",
     rejected: "bg-red-50 text-red-700 border-red-200",
     contacted: "bg-blue-50 text-blue-700 border-blue-200",
+    pending_payment: "bg-violet-50 text-violet-700 border-violet-200",
     pending: "bg-amber-50 text-amber-700 border-amber-200",
   }[app.status] || "bg-gray-50 text-gray-600 border-gray-200";
 
@@ -311,7 +320,12 @@ function ApplicationDetailDialog({ app, onClose, onStatusChange }: {
                 </Badge>
                 {app.budget && (
                   <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-                    {BUDGET_LABELS[app.budget] || app.budget}
+                    {formatAdBudget(app.budget)}
+                  </Badge>
+                )}
+                {app.payment && (
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                    Payment {String(app.payment.status || "submitted").replace(/_/g, " ")}
                   </Badge>
                 )}
               </div>
@@ -380,8 +394,8 @@ function ApplicationDetailDialog({ app, onClose, onStatusChange }: {
                     <p className="text-sm font-bold text-blue-900">{AD_TYPE_LABELS[app.adType] || app.adType}</p>
                   </div>
                   <div className="rounded-xl bg-green-50 border border-green-100 p-3">
-                    <p className="text-xs text-green-500 mb-0.5">Budget Range</p>
-                    <p className="text-sm font-bold text-green-900">{BUDGET_LABELS[app.budget] || app.budget || "Not specified"}</p>
+                    <p className="text-xs text-green-500 mb-0.5">Ads Budget</p>
+                    <p className="text-sm font-bold text-green-900">{formatAdBudget(app.budget)}</p>
                   </div>
                   {app.platforms && (
                     <div className="col-span-2 rounded-xl bg-gray-50 border border-gray-100 p-3">
@@ -393,6 +407,17 @@ function ApplicationDetailDialog({ app, onClose, onStatusChange }: {
                     <div className="col-span-2 rounded-xl bg-violet-50 border border-violet-100 p-3">
                       <p className="text-xs text-violet-500 mb-0.5">$TDRIP Points Budget</p>
                       <p className="text-sm font-medium text-violet-900">{app.tdripBudget}</p>
+                    </div>
+                  )}
+                  {app.payment && (
+                    <div className="col-span-2 rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                      <p className="text-xs text-emerald-500 mb-0.5">Smart Checkout Payment</p>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <p className="font-medium text-emerald-900">Amount: ${Number(app.payment.amount || 0).toFixed(2)}</p>
+                        <p className="font-medium text-emerald-900">Status: {String(app.payment.status || "submitted").replace(/_/g, " ")}</p>
+                        {app.payment.network && <p className="font-medium text-emerald-900">Network: {app.payment.network}</p>}
+                        {app.payment.transactionHash && <p className="font-mono text-xs text-emerald-900 break-all">Tx: {app.payment.transactionHash}</p>}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -930,6 +955,7 @@ export default function AdminAds() {
                     approved: "bg-green-50 text-green-700 border-green-200",
                     rejected: "bg-red-50 text-red-700 border-red-200",
                     contacted: "bg-blue-50 text-blue-700 border-blue-200",
+                    pending_payment: "bg-violet-50 text-violet-700 border-violet-200",
                     pending: "bg-amber-50 text-amber-700 border-amber-200",
                   }[app.status] || "bg-gray-50 text-gray-500 border-gray-200";
 
@@ -951,6 +977,11 @@ export default function AdminAds() {
                               <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                                 {AD_TYPE_LABELS[app.adType] || app.adType?.replace(/_/g, " ")}
                               </Badge>
+                              {app.payment && (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                  Paid ${Number(app.payment.amount || 0).toFixed(2)}
+                                </Badge>
+                              )}
                               {app.status === "pending" && (
                                 <Badge className="bg-red-500 text-white text-xs animate-pulse">Action Required</Badge>
                               )}
@@ -958,7 +989,7 @@ export default function AdminAds() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
                               <div><span className="text-xs text-gray-400">Contact</span><p className="font-medium">{app.contactName}</p></div>
                               <div><span className="text-xs text-gray-400">Email</span><p className="font-medium truncate">{app.email}</p></div>
-                              <div><span className="text-xs text-gray-400">Budget</span><p className="font-medium">{BUDGET_LABELS[app.budget] || app.budget || "Not specified"}</p></div>
+                              <div><span className="text-xs text-gray-400">Ads Budget</span><p className="font-medium">{formatAdBudget(app.budget)}</p></div>
                               <div><span className="text-xs text-gray-400">Applied</span><p className="font-medium">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "—"}</p></div>
                             </div>
                             {app.message && <p className="text-sm text-gray-500 mt-2 italic line-clamp-1">"{app.message}"</p>}
