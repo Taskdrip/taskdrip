@@ -44,8 +44,14 @@ import {
   welcomeTaskCompletions,
   heroSliders,
   pageContent,
+  spotlightItems,
+  adNetworkPlacements,
   type HeroSlider,
   type InsertHeroSlider,
+  type SpotlightItem,
+  type InsertSpotlightItem,
+  type AdNetworkPlacement,
+  type InsertAdNetworkPlacement,
   type PageContent,
   type InsertPageContent,
   type PwaSettings,
@@ -393,6 +399,20 @@ export interface IStorage {
   deleteSponsoredAd(id: string): Promise<void>;
   incrementAdImpressions(id: string): Promise<void>;
   incrementAdClicks(id: string): Promise<void>;
+
+  // Spotlight items
+  getSpotlightItems(page?: string): Promise<SpotlightItem[]>;
+  getAllSpotlightItems(): Promise<SpotlightItem[]>;
+  createSpotlightItem(data: InsertSpotlightItem): Promise<SpotlightItem>;
+  updateSpotlightItem(id: string, data: Partial<InsertSpotlightItem>): Promise<SpotlightItem | null>;
+  deleteSpotlightItem(id: string): Promise<void>;
+
+  // Ad network placements
+  getAdNetworkPlacements(page?: string, placementType?: string): Promise<AdNetworkPlacement[]>;
+  getAllAdNetworkPlacements(): Promise<AdNetworkPlacement[]>;
+  createAdNetworkPlacement(data: InsertAdNetworkPlacement): Promise<AdNetworkPlacement>;
+  updateAdNetworkPlacement(id: string, data: Partial<InsertAdNetworkPlacement>): Promise<AdNetworkPlacement | null>;
+  deleteAdNetworkPlacement(id: string): Promise<void>;
 
   // Advertise applications
   getAllAdvertiseApplications(): Promise<any[]>;
@@ -2576,6 +2596,76 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSiteSocialLink(id: string): Promise<void> {
     await db.delete(siteSocialLinks).where(eq(siteSocialLinks.id, id));
+  }
+
+  // ── Spotlight Items ───────────────────────────────────────────────────────
+  async getSpotlightItems(page?: string): Promise<SpotlightItem[]> {
+    const all = await db.select().from(spotlightItems)
+      .where(eq(spotlightItems.isActive, true))
+      .orderBy(spotlightItems.sortOrder);
+    if (!page) return all;
+    return all.filter(item => {
+      const pages = (item.targetPages || "").split(",").map((p: string) => p.trim());
+      return pages.includes("all") || pages.includes(page);
+    });
+  }
+
+  async getAllSpotlightItems(): Promise<SpotlightItem[]> {
+    return await db.select().from(spotlightItems).orderBy(spotlightItems.sortOrder);
+  }
+
+  async createSpotlightItem(data: InsertSpotlightItem): Promise<SpotlightItem> {
+    const [item] = await db.insert(spotlightItems).values(data).returning();
+    return item;
+  }
+
+  async updateSpotlightItem(id: string, data: Partial<InsertSpotlightItem>): Promise<SpotlightItem | null> {
+    const [item] = await db.update(spotlightItems)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(spotlightItems.id, id))
+      .returning();
+    return item || null;
+  }
+
+  async deleteSpotlightItem(id: string): Promise<void> {
+    await db.delete(spotlightItems).where(eq(spotlightItems.id, id));
+  }
+
+  // ── Ad Network Placements ─────────────────────────────────────────────────
+  async getAdNetworkPlacements(page?: string, placementType?: string): Promise<AdNetworkPlacement[]> {
+    let all = await db.select().from(adNetworkPlacements)
+      .where(eq(adNetworkPlacements.isActive, true));
+    if (page) {
+      all = all.filter(ad => {
+        const pages = (ad.targetPages || "all").split(",").map((p: string) => p.trim());
+        return pages.includes("all") || pages.includes(page);
+      });
+    }
+    if (placementType) {
+      all = all.filter(ad => ad.placementType === placementType);
+    }
+    return all;
+  }
+
+  async getAllAdNetworkPlacements(): Promise<AdNetworkPlacement[]> {
+    return await db.select().from(adNetworkPlacements).orderBy(desc(adNetworkPlacements.createdAt));
+  }
+
+  async createAdNetworkPlacement(data: InsertAdNetworkPlacement): Promise<AdNetworkPlacement> {
+    const [placement] = await db.insert(adNetworkPlacements).values(data).returning();
+    return placement;
+  }
+
+  async updateAdNetworkPlacement(id: string, data: Partial<InsertAdNetworkPlacement>): Promise<AdNetworkPlacement | null> {
+    const [placement] = await db.update(adNetworkPlacements)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(adNetworkPlacements.id, id))
+      .returning();
+    return placement || null;
+  }
+
+  async deleteAdNetworkPlacement(id: string): Promise<void> {
+    await db.delete(adNetworkPlacements).where(eq(adNetworkPlacements.id, id));
   }
 
   // ── Admin all transactions paginated ──────────────────────────────────────

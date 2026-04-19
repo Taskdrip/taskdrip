@@ -3,9 +3,12 @@ import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { usePageContent } from "@/hooks/usePageContent";
+import { AdSlot } from "@/components/ui/ad-slot";
+import { AdPopupZone } from "@/components/ui/ad-popup";
 import {
   ArrowRight,
   ChevronLeft,
@@ -327,9 +330,16 @@ function P2PListingCard({ listing }: { listing: any }) {
 }
 
 export default function FinalLanding() {
-  const { data: dbSliders = [] } = useQuery<Slide[]>({ queryKey: ["/api/hero-sliders"] });
+  const { data: dbSliders = [] } = useQuery<Slide[]>({
+    queryKey: ["/api/hero-sliders", "landing"],
+    queryFn: () => fetch("/api/hero-sliders?page=landing").then(r => r.json()),
+  });
   const { data: apiCampaigns = [] } = useQuery<any[]>({ queryKey: ["/api/campaigns"] });
   const { data: p2pListings = [] } = useQuery<any[]>({ queryKey: ["/api/p2p/listings"] });
+  const { data: spotlightItems = [] } = useQuery<any[]>({
+    queryKey: ["/api/spotlight", "landing"],
+    queryFn: () => fetch("/api/spotlight?page=landing").then(r => r.json()),
+  });
   const cms = usePageContent("landing");
 
   const slides = dbSliders.length > 0 ? dbSliders : DEFAULT_SLIDES;
@@ -339,7 +349,9 @@ export default function FinalLanding() {
 
   return (
     <div className="min-h-screen bg-white">
+      <AdPopupZone page="landing" />
       <NavigationFixed />
+      <AdSlot page="landing" placementType="banner_top" className="w-full" />
       <HeroSlider slides={slides} />
 
       {/* Platform bar */}
@@ -407,6 +419,42 @@ export default function FinalLanding() {
           </div>
         </div>
       </section>
+
+      {/* Inline Ad Slot */}
+      <AdSlot page="landing" placementType="inline" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2" />
+
+      {/* Admin-curated Spotlight section */}
+      {spotlightItems.length > 0 && (
+        <section className="py-10 sm:py-14 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8">
+              <Badge className="mb-3 bg-purple-600 text-white px-4 py-1.5 text-xs">Featured</Badge>
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Spotlight</h2>
+              <p className="text-gray-500 mt-2 text-sm max-w-md mx-auto">Hand-picked by our team. Don't miss these.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {spotlightItems.map((item: any) => (
+                <a key={item.id} href={item.customLink || "#"} target={item.customLink?.startsWith("http") ? "_blank" : "_self"} rel="noreferrer" data-testid={`spotlight-card-${item.id}`}>
+                  <Card className="group h-full hover:shadow-lg hover:-translate-y-1 transition-all duration-200 border-gray-100 overflow-hidden cursor-pointer">
+                    {item.customImage && (
+                      <div className="h-44 overflow-hidden bg-gray-100">
+                        <img src={item.customImage} alt={item.customTitle || item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={e => (e.currentTarget.style.display = "none")} />
+                      </div>
+                    )}
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-2 mb-1">
+                        <p className="font-bold text-gray-900 text-sm flex-1">{item.customTitle || item.name}</p>
+                        {item.badgeLabel && <Badge className="bg-yellow-400 text-yellow-900 text-[10px] shrink-0">{item.badgeLabel}</Badge>}
+                      </div>
+                      {item.customDescription && <p className="text-gray-500 text-xs line-clamp-2">{item.customDescription}</p>}
+                    </CardContent>
+                  </Card>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* How It Works */}
       <section className="py-12 sm:py-16 bg-gray-50 border-y border-gray-100">
@@ -665,6 +713,7 @@ export default function FinalLanding() {
         </div>
       </section>
 
+      <AdSlot page="landing" placementType="banner_bottom" className="w-full" />
       <Footer />
     </div>
   );

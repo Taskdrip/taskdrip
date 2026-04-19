@@ -4,6 +4,8 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
+import { AdSlot } from "@/components/ui/ad-slot";
+import { AdPopupZone } from "@/components/ui/ad-popup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -291,7 +293,9 @@ export default function BreedSkool() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdPopupZone page="breedskool" />
       <NavigationFixed />
+      <AdSlot page="breedskool" placementType="banner_top" className="w-full" />
 
       {/* Hero Section */}
       <div className="relative overflow-hidden min-h-[520px] flex items-center">
@@ -481,6 +485,7 @@ export default function BreedSkool() {
         )}
       </div>
 
+      <AdSlot page="breedskool" placementType="banner_bottom" className="w-full" />
       <Footer />
     </div>
   );

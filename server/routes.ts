@@ -7437,9 +7437,16 @@ Instructions:
   });
 
   // ── Hero Sliders ──────────────────────────────────────────────
-  app.get('/api/hero-sliders', async (_req, res) => {
+  app.get('/api/hero-sliders', async (req: any, res) => {
     try {
-      const sliders = await storage.getActiveHeroSliders();
+      const page = req.query.page as string | undefined;
+      let sliders = await storage.getActiveHeroSliders();
+      if (page) {
+        sliders = sliders.filter(s => {
+          const pages = ((s as any).targetPages || "landing").split(",").map((p: string) => p.trim());
+          return pages.includes("all") || pages.includes(page);
+        });
+      }
       res.json(sliders);
     } catch (e) {
       res.status(500).json({ message: 'Failed to fetch sliders' });
@@ -7484,6 +7491,111 @@ Instructions:
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: 'Failed to delete slider' });
+    }
+  });
+
+  // ── Spotlight Items (public read + admin CRUD) ──────────────────────────────
+  app.get('/api/spotlight', async (req: any, res) => {
+    try {
+      const page = req.query.page as string | undefined;
+      const items = await storage.getSpotlightItems(page);
+      res.json(items);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch spotlight items' });
+    }
+  });
+
+  app.get('/api/admin/spotlight', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const items = await storage.getAllSpotlightItems();
+      res.json(items);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch spotlight items' });
+    }
+  });
+
+  app.post('/api/admin/spotlight', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const item = await storage.createSpotlightItem(req.body);
+      res.json(item);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to create spotlight item' });
+    }
+  });
+
+  app.put('/api/admin/spotlight/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const item = await storage.updateSpotlightItem(req.params.id, req.body);
+      if (!item) return res.status(404).json({ message: 'Not found' });
+      res.json(item);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update spotlight item' });
+    }
+  });
+
+  app.delete('/api/admin/spotlight/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteSpotlightItem(req.params.id);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to delete spotlight item' });
+    }
+  });
+
+  // ── Ad Network Placements (public read + admin CRUD) ───────────────────────
+  app.get('/api/ad-networks', async (req: any, res) => {
+    try {
+      const page = req.query.page as string | undefined;
+      const type = req.query.type as string | undefined;
+      const ads = await storage.getAdNetworkPlacements(page, type);
+      res.json(ads);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch ad placements' });
+    }
+  });
+
+  app.get('/api/admin/ad-networks', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ads = await storage.getAllAdNetworkPlacements();
+      res.json(ads);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to fetch ad network placements' });
+    }
+  });
+
+  app.post('/api/admin/ad-networks', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ad = await storage.createAdNetworkPlacement(req.body);
+      res.json(ad);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to create ad network placement' });
+    }
+  });
+
+  app.put('/api/admin/ad-networks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const ad = await storage.updateAdNetworkPlacement(req.params.id, req.body);
+      if (!ad) return res.status(404).json({ message: 'Not found' });
+      res.json(ad);
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to update ad network placement' });
+    }
+  });
+
+  app.delete('/api/admin/ad-networks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      await storage.deleteAdNetworkPlacement(req.params.id);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ message: 'Failed to delete ad network placement' });
     }
   });
 

@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
+import { AdSlot } from "@/components/ui/ad-slot";
+import { AdPopupZone } from "@/components/ui/ad-popup";
 
 export default function Campaigns() {
   const { toast } = useToast();
@@ -77,7 +79,9 @@ export default function Campaigns() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdPopupZone page="campaigns" />
       <NavigationFixed />
+      <AdSlot page="campaigns" placementType="banner_top" className="w-full" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Browse Campaigns</h1>
@@ -168,6 +172,7 @@ export default function Campaigns() {
         )}
       </div>
       
+      <AdSlot page="campaigns" placementType="banner_bottom" className="w-full" />
       <Footer />
     </div>
   );

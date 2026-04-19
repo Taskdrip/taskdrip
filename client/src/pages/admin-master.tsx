@@ -129,7 +129,7 @@ const FULL_ADMIN_TABS = [
   "overview", "users", "campaigns", "tasks", "networks", "payments", "direct-hires", "p2p",
   "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
   "settings", "pwa", "hero-sliders", "payout-center", "content-editor", "leaderboard",
-  "social-tasks", "transactions",
+  "social-tasks", "transactions", "spotlight-content", "ad-networks",
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -382,6 +382,18 @@ function EnrollmentPaymentDialog({ enrollment, onApprove, approving }: { enrollm
 }
 
 // ─── Hero Sliders Panel ──────────────────────────────────────────────────────
+const PAGE_TARGETS = [
+  { value: "landing", label: "Landing Page" },
+  { value: "campaigns", label: "Campaigns" },
+  { value: "shop", label: "Shop" },
+  { value: "breedskool", label: "BreedSkool (Courses)" },
+  { value: "p2p", label: "P2P Market" },
+  { value: "influencers", label: "Influencers" },
+  { value: "tasks", label: "Tasks" },
+  { value: "dashboard", label: "Dashboard" },
+  { value: "feed", label: "Feed / Blog" },
+];
+
 const sliderFormSchema = z.object({
   badge: z.string().optional(),
   headline: z.string().min(3, "Headline is required"),
@@ -395,6 +407,7 @@ const sliderFormSchema = z.object({
   accentColor: z.string().optional(),
   order: z.number().default(0),
   isActive: z.boolean().default(true),
+  targetPages: z.string().default("landing"),
 });
 type SliderFormData = z.infer<typeof sliderFormSchema>;
 
@@ -412,7 +425,7 @@ function HeroSlidersPanel() {
       ctaPrimaryLabel: "", ctaPrimaryLink: "", ctaSecondaryLabel: "", ctaSecondaryLink: "",
       backgroundImage: "", overlayColor: "from-black/90 via-black/70 to-black/40",
       accentColor: "from-purple-400 via-pink-400 to-orange-400",
-      order: 0, isActive: true,
+      order: 0, isActive: true, targetPages: "landing",
     },
   });
 
@@ -467,7 +480,7 @@ function HeroSlidersPanel() {
       ctaPrimaryLabel: "", ctaPrimaryLink: "", ctaSecondaryLabel: "", ctaSecondaryLink: "",
       backgroundImage: "", overlayColor: "from-black/90 via-black/70 to-black/40",
       accentColor: "from-purple-400 via-pink-400 to-orange-400",
-      order: sliders.length, isActive: true,
+      order: sliders.length, isActive: true, targetPages: "landing",
     });
     setDialogOpen(true);
   }
@@ -487,6 +500,7 @@ function HeroSlidersPanel() {
       accentColor: slider.accentColor || "from-purple-400 via-pink-400 to-orange-400",
       order: slider.order ?? 0,
       isActive: slider.isActive ?? true,
+      targetPages: slider.targetPages || "landing",
     });
     setDialogOpen(true);
   }
@@ -560,7 +574,12 @@ function HeroSlidersPanel() {
                     </div>
                     <p className="text-white font-bold text-sm line-clamp-1">{slider.headline}</p>
                     {slider.subheadline && <p className="text-gray-400 text-xs line-clamp-1 mt-0.5">{slider.subheadline}</p>}
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      {(slider.targetPages || "landing").split(",").map((p: string) => p.trim()).filter(Boolean).map((p: string) => (
+                        <span key={p} className="text-[9px] bg-blue-900/40 text-blue-300 border border-blue-700/40 rounded px-1.5 py-0.5">{p}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                       {slider.ctaPrimaryLabel && <span>🔗 {slider.ctaPrimaryLabel} → {slider.ctaPrimaryLink}</span>}
                     </div>
                   </div>
@@ -692,11 +711,49 @@ function HeroSlidersPanel() {
                 </FormItem>
               )} />
 
+              <FormField control={form.control} name="targetPages" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-300 text-xs">Target Pages (comma-separated)</FormLabel>
+                  <FormControl>
+                    <div className="space-y-2">
+                      <Input
+                        {...field}
+                        placeholder="landing,campaigns,shop"
+                        className="bg-gray-800 border-gray-700 text-white text-xs"
+                        data-testid="input-slider-target-pages"
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {PAGE_TARGETS.map(pt => {
+                          const pages = (field.value || "").split(",").map((p: string) => p.trim()).filter(Boolean);
+                          const active = pages.includes(pt.value);
+                          return (
+                            <button
+                              key={pt.value}
+                              type="button"
+                              onClick={() => {
+                                const next = active
+                                  ? pages.filter((p: string) => p !== pt.value)
+                                  : [...pages, pt.value];
+                                field.onChange(next.join(","));
+                              }}
+                              className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${active ? "bg-purple-600 border-purple-500 text-white" : "bg-gray-800 border-gray-600 text-gray-400 hover:border-purple-500"}`}
+                            >
+                              {pt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </FormControl>
+                  <p className="text-xs text-gray-500">Click page buttons to toggle where this slider appears.</p>
+                </FormItem>
+              )} />
+
               <FormField control={form.control} name="isActive" render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border border-gray-700 p-3">
                   <div>
                     <FormLabel className="text-gray-300 text-sm">Active</FormLabel>
-                    <p className="text-xs text-gray-500">Show this slide on the landing page</p>
+                    <p className="text-xs text-gray-500">Show this slide on the selected pages</p>
                   </div>
                   <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="toggle-slider-active" /></FormControl>
                 </FormItem>
@@ -712,6 +769,465 @@ function HeroSlidersPanel() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Spotlight Content Panel ─────────────────────────────────────────────────
+const ITEM_TYPES = [
+  { value: "campaign", label: "Campaign" },
+  { value: "product", label: "Product" },
+  { value: "course", label: "Course" },
+  { value: "p2p", label: "P2P Listing" },
+  { value: "service", label: "Service" },
+  { value: "custom", label: "Custom (manual content)" },
+];
+
+const BADGE_OPTIONS = ["Hot", "New", "Trending", "Featured", "Sale", "Limited", "Popular", ""];
+
+const emptySpotlight = {
+  name: "",
+  itemType: "custom",
+  itemId: "",
+  customTitle: "",
+  customDescription: "",
+  customImage: "",
+  customLink: "",
+  badgeLabel: "",
+  targetPages: "landing",
+  sortOrder: 0,
+  isActive: true,
+};
+
+function SpotlightContentPanel() {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState<any>(emptySpotlight);
+  const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+
+  const { data: items = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/spotlight"] });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/spotlight", data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/spotlight"] }); queryClient.invalidateQueries({ queryKey: ["/api/spotlight"] }); toast({ title: "Spotlight item created" }); setDialogOpen(false); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/admin/spotlight/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/spotlight"] }); queryClient.invalidateQueries({ queryKey: ["/api/spotlight"] }); toast({ title: "Spotlight item updated" }); setDialogOpen(false); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/spotlight/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/spotlight"] }); queryClient.invalidateQueries({ queryKey: ["/api/spotlight"] }); toast({ title: "Deleted" }); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  function openCreate() { setEditing(null); setForm(emptySpotlight); setDialogOpen(true); }
+  function openEdit(item: any) { setEditing(item); setForm({ ...emptySpotlight, ...item }); setDialogOpen(true); }
+  function onSubmit(e: any) {
+    e.preventDefault();
+    if (editing) updateMutation.mutate({ id: editing.id, data: form });
+    else createMutation.mutate(form);
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2"><Star className="w-5 h-5 text-yellow-400" />Spotlight Content</CardTitle>
+            <CardDescription className="text-gray-400">Feature campaigns, products, courses, or custom content on specific pages. Changes appear live immediately.</CardDescription>
+          </div>
+          <Button onClick={openCreate} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-create-spotlight"><Plus className="h-4 w-4 mr-2" />Add Spotlight</Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full" /></div>
+          ) : items.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <Star className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p className="font-medium">No spotlight items yet</p>
+              <p className="text-sm mt-1">Add content to feature on specific pages</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {items.map((item: any) => {
+                const pages = (item.targetPages || "").split(",").map((p: string) => p.trim()).filter(Boolean);
+                return (
+                  <Card key={item.id} data-testid={`card-spotlight-${item.id}`} className="bg-gray-800 border-gray-700 overflow-hidden">
+                    {item.customImage && (
+                      <div className="h-32 bg-gray-700 overflow-hidden">
+                        <img src={item.customImage} alt={item.customTitle || item.name} className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = "none")} />
+                      </div>
+                    )}
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium text-sm truncate">{item.customTitle || item.name}</p>
+                          {item.customDescription && <p className="text-gray-400 text-xs line-clamp-2 mt-0.5">{item.customDescription}</p>}
+                        </div>
+                        {item.badgeLabel && <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] shrink-0">{item.badgeLabel}</Badge>}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-[9px] border-purple-500/40 text-purple-300">{ITEM_TYPES.find(t => t.value === item.itemType)?.label || item.itemType}</Badge>
+                        {pages.map((p: string) => (
+                          <Badge key={p} variant="outline" className="text-[9px] border-gray-600 text-gray-400">{p}</Badge>
+                        ))}
+                        <Badge variant={item.isActive ? "default" : "secondary"} className={`text-[9px] ${item.isActive ? "bg-green-500/20 text-green-400 border-green-500/30" : ""}`}>{item.isActive ? "Active" : "Inactive"}</Badge>
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs border-gray-600 text-gray-300 hover:text-white hover:border-purple-500" onClick={() => openEdit(item)} data-testid={`button-edit-spotlight-${item.id}`}><Edit className="h-3 w-3 mr-1" />Edit</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs border-gray-700 text-red-400 hover:text-red-300 hover:border-red-500" onClick={() => { if (confirm("Delete this spotlight item?")) deleteMutation.mutate(item.id); }} data-testid={`button-delete-spotlight-${item.id}`}><Trash2 className="h-3 w-3" /></Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-white">{editing ? "Edit Spotlight Item" : "Add Spotlight Item"}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-4 mt-2">
+            <div><Label className="text-gray-300 text-xs">Internal Name *</Label><Input data-testid="input-spotlight-name" value={form.name} onChange={e => set("name", e.target.value)} required placeholder="e.g. Summer Campaign Feature" className="bg-gray-800 border-gray-700 text-white mt-1" /></div>
+            <div>
+              <Label className="text-gray-300 text-xs">Content Type *</Label>
+              <Select value={form.itemType} onValueChange={v => set("itemType", v)}>
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {ITEM_TYPES.map(t => <SelectItem key={t.value} value={t.value} className="text-white">{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.itemType !== "custom" && (
+              <div><Label className="text-gray-300 text-xs">Item ID (from database)</Label><Input value={form.itemId} onChange={e => set("itemId", e.target.value)} placeholder="Paste the campaign/product/course ID" className="bg-gray-800 border-gray-700 text-white mt-1" /></div>
+            )}
+            <div><Label className="text-gray-300 text-xs">Title (display)</Label><Input data-testid="input-spotlight-title" value={form.customTitle} onChange={e => set("customTitle", e.target.value)} placeholder="Shown on the spotlight card" className="bg-gray-800 border-gray-700 text-white mt-1" /></div>
+            <div><Label className="text-gray-300 text-xs">Description</Label><Textarea value={form.customDescription} onChange={e => set("customDescription", e.target.value)} placeholder="Short description..." rows={2} className="bg-gray-800 border-gray-700 text-white mt-1 resize-none" /></div>
+            <div>
+              <Label className="text-gray-300 text-xs">Image URL</Label>
+              <Input value={form.customImage} onChange={e => set("customImage", e.target.value)} placeholder="https://..." className="bg-gray-800 border-gray-700 text-white mt-1" />
+              {form.customImage && <img src={form.customImage} alt="preview" className="mt-2 h-24 w-full object-cover rounded-lg border border-gray-700" onError={e => (e.currentTarget.style.display = "none")} />}
+            </div>
+            <div><Label className="text-gray-300 text-xs">Link URL</Label><Input value={form.customLink} onChange={e => set("customLink", e.target.value)} placeholder="/campaigns or https://..." className="bg-gray-800 border-gray-700 text-white mt-1" /></div>
+            <div>
+              <Label className="text-gray-300 text-xs">Badge Label</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {BADGE_OPTIONS.map(b => (
+                  <button key={b || "none"} type="button" onClick={() => set("badgeLabel", b)}
+                    className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${form.badgeLabel === b ? "bg-yellow-500/20 border-yellow-500 text-yellow-300" : "bg-gray-800 border-gray-600 text-gray-400 hover:border-yellow-500"}`}>
+                    {b || "None"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-gray-300 text-xs">Target Pages</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {PAGE_TARGETS.map(pt => {
+                  const pages = (form.targetPages || "").split(",").map((p: string) => p.trim()).filter(Boolean);
+                  const active = pages.includes(pt.value);
+                  return (
+                    <button key={pt.value} type="button"
+                      onClick={() => { const next = active ? pages.filter((p: string) => p !== pt.value) : [...pages, pt.value]; set("targetPages", next.join(",")); }}
+                      className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${active ? "bg-purple-600 border-purple-500 text-white" : "bg-gray-800 border-gray-600 text-gray-400 hover:border-purple-500"}`}>
+                      {pt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={form.isActive} onCheckedChange={v => set("isActive", v)} data-testid="switch-spotlight-active" />
+              <Label className="text-gray-300 text-sm">Active (visible on site)</Label>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" className="border-gray-700 text-gray-400" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="bg-purple-600 hover:bg-purple-700 text-white" data-testid="button-save-spotlight">
+                {createMutation.isPending || updateMutation.isPending ? "Saving…" : editing ? "Save Changes" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Ad Networks Panel ───────────────────────────────────────────────────────
+const AD_NETWORKS = [
+  { value: "adsense", label: "Google AdSense", color: "text-blue-400" },
+  { value: "admanager", label: "Google Ad Manager", color: "text-blue-400" },
+  { value: "medianet", label: "Media.net", color: "text-orange-400" },
+  { value: "propeller", label: "PropellerAds", color: "text-red-400" },
+  { value: "taboola", label: "Taboola", color: "text-cyan-400" },
+  { value: "mgid", label: "MGID", color: "text-green-400" },
+  { value: "infolinks", label: "Infolinks", color: "text-yellow-400" },
+  { value: "custom", label: "Custom / Other", color: "text-gray-400" },
+];
+
+const AD_PLACEMENT_TYPES = [
+  { value: "banner_top", label: "Top Banner", desc: "Fixed banner at the very top of each page" },
+  { value: "banner_bottom", label: "Bottom Banner", desc: "Fixed banner at the bottom of the page" },
+  { value: "inline", label: "Inline (In-content)", desc: "Injected between page sections/content" },
+  { value: "sidebar", label: "Sidebar", desc: "Shown in the right sidebar on content pages" },
+  { value: "popup", label: "Popup / Overlay", desc: "Appears as a dismissable popup after a delay" },
+];
+
+const AD_FREQ_OPTIONS = [
+  { value: "always", label: "Always (every page load)" },
+  { value: "session", label: "Once per browser session" },
+  { value: "daily", label: "Once per day" },
+  { value: "once", label: "Once ever (per device)" },
+];
+
+const emptyAdNetwork = {
+  name: "",
+  network: "adsense",
+  adCode: "",
+  placementType: "inline",
+  targetPages: "all",
+  popupDelay: 5,
+  popupFrequency: "session",
+  isActive: true,
+  notes: "",
+};
+
+function AdNetworksPanel() {
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState<any>(emptyAdNetwork);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+
+  const { data: ads = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/ad-networks"] });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/ad-networks", data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] }); queryClient.invalidateQueries({ queryKey: ["/api/ad-networks"] }); toast({ title: "Ad placement created" }); setDialogOpen(false); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/admin/ad-networks/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] }); queryClient.invalidateQueries({ queryKey: ["/api/ad-networks"] }); toast({ title: "Ad placement updated" }); setDialogOpen(false); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/ad-networks/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] }); queryClient.invalidateQueries({ queryKey: ["/api/ad-networks"] }); toast({ title: "Deleted" }); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const toggleActive = (ad: any) => updateMutation.mutate({ id: ad.id, data: { isActive: !ad.isActive } });
+
+  function openCreate() { setEditing(null); setForm(emptyAdNetwork); setDialogOpen(true); }
+  function openEdit(ad: any) { setEditing(ad); setForm({ ...emptyAdNetwork, ...ad }); setDialogOpen(true); }
+  function onSubmit(e: any) {
+    e.preventDefault();
+    if (editing) updateMutation.mutate({ id: editing.id, data: form });
+    else createMutation.mutate(form);
+  }
+
+  const pagesLabel = (pages: string) => pages === "all" ? "All Pages" : pages.split(",").map((p: string) => p.trim()).join(", ");
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-blue-400" />
+              Ad Network Integrations
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Paste Google AdSense, PropellerAds, or any ad network code. It renders inline, in the sidebar, or as a non-intrusive popup. You earn every time users see or click ads.
+            </CardDescription>
+          </div>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-create-ad-network">
+            <Plus className="h-4 w-4 mr-2" />Add Ad Placement
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Info bar */}
+          <div className="bg-blue-950/40 border border-blue-800/40 rounded-xl p-4 mb-6 flex gap-3">
+            <div className="text-blue-400 mt-0.5"><Shield className="h-5 w-5" /></div>
+            <div className="space-y-1">
+              <p className="text-blue-300 text-sm font-medium">How it works</p>
+              <p className="text-blue-400/80 text-xs leading-relaxed">
+                Paste the full ad unit code from your ad network dashboard (e.g. AdSense <code className="bg-blue-900/40 px-1 rounded">&lt;ins&gt;</code> tags, PropellerAds script, etc.). Select a placement type and which pages to show it on. For popups, set a delay so they're not immediately annoying. The code runs securely in an isolated container.
+              </p>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>
+          ) : ads.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <Code className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p className="font-medium">No ad placements yet</p>
+              <p className="text-sm mt-1">Add your first ad network code to start earning</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ads.map((ad: any) => {
+                const network = AD_NETWORKS.find(n => n.value === ad.network);
+                const placement = AD_PLACEMENT_TYPES.find(p => p.value === ad.placementType);
+                return (
+                  <div key={ad.id} data-testid={`card-ad-network-${ad.id}`} className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center gap-4">
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white font-medium text-sm">{ad.name}</p>
+                        <Badge variant="outline" className={`text-[10px] border-current ${network?.color || "text-gray-400"}`}>{network?.label || ad.network}</Badge>
+                        <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">{placement?.label || ad.placementType}</Badge>
+                        {ad.placementType === "popup" && <Badge variant="outline" className="text-[10px] border-amber-600 text-amber-400">Delay: {ad.popupDelay}s</Badge>}
+                        <Badge variant={ad.isActive ? "default" : "secondary"} className={`text-[10px] ${ad.isActive ? "bg-green-500/20 text-green-400 border-green-500/30" : ""}`}>{ad.isActive ? "Active" : "Paused"}</Badge>
+                      </div>
+                      <p className="text-gray-400 text-xs">{pagesLabel(ad.targetPages)}</p>
+                      {ad.notes && <p className="text-gray-500 text-xs italic">{ad.notes}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch checked={ad.isActive} onCheckedChange={() => toggleActive(ad)} data-testid={`switch-ad-active-${ad.id}`} />
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-gray-600 text-gray-300 hover:text-white" onClick={() => openEdit(ad)} data-testid={`button-edit-ad-${ad.id}`}><Edit className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-gray-700 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this ad placement?")) deleteMutation.mutate(ad.id); }} data-testid={`button-delete-ad-${ad.id}`}><Trash2 className="h-3 w-3" /></Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-white">{editing ? "Edit Ad Placement" : "Add Ad Network Placement"}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label className="text-gray-300 text-xs">Placement Name *</Label>
+                <Input data-testid="input-ad-name" value={form.name} onChange={e => set("name", e.target.value)} required placeholder="e.g. Google AdSense – Sidebar Right" className="bg-gray-800 border-gray-700 text-white mt-1" />
+              </div>
+              <div>
+                <Label className="text-gray-300 text-xs">Ad Network</Label>
+                <Select value={form.network} onValueChange={v => set("network", v)}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    {AD_NETWORKS.map(n => <SelectItem key={n.value} value={n.value} className="text-white">{n.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-gray-300 text-xs">Placement Type</Label>
+                <Select value={form.placementType} onValueChange={v => set("placementType", v)}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    {AD_PLACEMENT_TYPES.map(p => (
+                      <SelectItem key={p.value} value={p.value} className="text-white">
+                        <div><div>{p.label}</div><div className="text-[10px] text-gray-400">{p.desc}</div></div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-gray-300 text-xs">Ad Code / Script *</Label>
+              <Textarea
+                data-testid="input-ad-code"
+                value={form.adCode}
+                onChange={e => set("adCode", e.target.value)}
+                required
+                rows={8}
+                className="bg-gray-800 border-gray-700 text-green-300 font-mono text-xs mt-1 resize-none"
+                placeholder={`<!-- Paste your ad network code here. Example (Google AdSense): -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+     data-ad-slot="XXXXXXXXXX"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>`}
+              />
+              <p className="text-gray-500 text-xs mt-1">Paste the full HTML/JavaScript code from your ad network. Include any &lt;script&gt; tags.</p>
+            </div>
+
+            <div>
+              <Label className="text-gray-300 text-xs">Target Pages</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                <button type="button" onClick={() => set("targetPages", "all")}
+                  className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${form.targetPages === "all" ? "bg-blue-600 border-blue-500 text-white" : "bg-gray-800 border-gray-600 text-gray-400 hover:border-blue-500"}`}>
+                  All Pages
+                </button>
+                {PAGE_TARGETS.map(pt => {
+                  const pages = form.targetPages === "all" ? [] : (form.targetPages || "").split(",").map((p: string) => p.trim()).filter(Boolean);
+                  const active = form.targetPages !== "all" && pages.includes(pt.value);
+                  return (
+                    <button key={pt.value} type="button"
+                      onClick={() => {
+                        const currentPages = form.targetPages === "all" ? [] : (form.targetPages || "").split(",").map((p: string) => p.trim()).filter(Boolean);
+                        const next = active ? currentPages.filter((p: string) => p !== pt.value) : [...currentPages, pt.value];
+                        set("targetPages", next.length ? next.join(",") : "all");
+                      }}
+                      className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${active ? "bg-blue-600 border-blue-500 text-white" : "bg-gray-800 border-gray-600 text-gray-400 hover:border-blue-500"}`}>
+                      {pt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {form.placementType === "popup" && (
+              <div className="grid grid-cols-2 gap-4 border border-amber-900/30 bg-amber-950/20 rounded-xl p-4">
+                <div className="col-span-2">
+                  <p className="text-amber-300 text-xs font-medium mb-2">Popup Settings</p>
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-xs">Delay (seconds)</Label>
+                  <Input type="number" min={0} max={60} value={form.popupDelay} onChange={e => set("popupDelay", parseInt(e.target.value))} className="bg-gray-800 border-gray-700 text-white mt-1" />
+                  <p className="text-gray-500 text-xs mt-0.5">Seconds to wait before showing popup (0 = immediate)</p>
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-xs">Show Frequency</Label>
+                  <Select value={form.popupFrequency} onValueChange={v => set("popupFrequency", v)}>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700">
+                      {AD_FREQ_OPTIONS.map(f => <SelectItem key={f.value} value={f.value} className="text-white">{f.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-gray-300 text-xs">Notes (internal)</Label>
+              <Input value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes for your reference" className="bg-gray-800 border-gray-700 text-white mt-1" />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={form.isActive} onCheckedChange={v => set("isActive", v)} data-testid="switch-ad-network-active" />
+              <Label className="text-gray-300 text-sm">Active (immediately serve ads)</Label>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" className="border-gray-700 text-gray-400" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="button-save-ad-network">
+                {createMutation.isPending || updateMutation.isPending ? "Saving…" : editing ? "Save Changes" : "Add Placement"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
@@ -2421,6 +2937,8 @@ export default function AdminMaster() {
                 { value: "settings", icon: <Settings className="h-3.5 w-3.5" />, label: "Settings" },
                 { value: "pwa", icon: <Smartphone className="h-3.5 w-3.5" />, label: "PWA" },
                 { value: "hero-sliders", icon: <Image className="h-3.5 w-3.5" />, label: "Hero Sliders" },
+                { value: "spotlight-content", icon: <Star className="h-3.5 w-3.5" />, label: "Spotlight" },
+                { value: "ad-networks", icon: <Megaphone className="h-3.5 w-3.5" />, label: "Ad Networks" },
                 { value: "payout-center", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payouts" },
                 { value: "content-editor", icon: <Edit className="h-3.5 w-3.5" />, label: "Content Editor" },
                 { value: "leaderboard", icon: <Trophy className="h-3.5 w-3.5" />, label: "Leaderboard" },
@@ -5731,6 +6249,16 @@ export default function AdminMaster() {
           {/* ── HERO SLIDERS TAB ── */}
           <TabsContent value="hero-sliders" className="space-y-6">
             <HeroSlidersPanel />
+          </TabsContent>
+
+          {/* ── SPOTLIGHT CONTENT TAB ── */}
+          <TabsContent value="spotlight-content" className="space-y-6 pb-8">
+            <SpotlightContentPanel />
+          </TabsContent>
+
+          {/* ── AD NETWORKS TAB ── */}
+          <TabsContent value="ad-networks" className="space-y-6 pb-8">
+            <AdNetworksPanel />
           </TabsContent>
 
           {/* ── PAYOUT CENTER TAB ── */}

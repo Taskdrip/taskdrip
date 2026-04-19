@@ -1494,6 +1494,7 @@ export const heroSliders = pgTable("hero_sliders", {
   overlayColor: varchar("overlay_color").default("from-black/90 via-black/70 to-black/40"),
   accentColor: varchar("accent_color").default("from-purple-400 via-pink-400 to-orange-400"),
   isActive: boolean("is_active").default(true),
+  targetPages: text("target_pages").default("landing"), // comma-separated: "landing,campaigns,shop"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1644,3 +1645,49 @@ export const siteSocialLinks = pgTable("site_social_links", {
 export const insertSiteSocialLinkSchema = createInsertSchema(siteSocialLinks).omit({ id: true, createdAt: true, updatedAt: true });
 export type SiteSocialLink = typeof siteSocialLinks.$inferSelect;
 export type InsertSiteSocialLink = z.infer<typeof insertSiteSocialLinkSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Spotlight Items — admin-curated featured content per page
+// ──────────────────────────────────────────────────────────────
+export const spotlightItems = pgTable("spotlight_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  itemType: varchar("item_type").notNull(), // 'campaign', 'product', 'course', 'p2p', 'service', 'custom'
+  itemId: varchar("item_id"),               // optional ref to real entity id
+  customTitle: varchar("custom_title"),
+  customDescription: text("custom_description"),
+  customImage: text("custom_image"),
+  customLink: varchar("custom_link"),
+  badgeLabel: varchar("badge_label"),       // e.g. "Hot", "New", "Trending"
+  targetPages: text("target_pages").notNull().default("landing"), // comma-separated: "landing,campaigns"
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSpotlightItemSchema = createInsertSchema(spotlightItems).omit({ id: true, createdAt: true, updatedAt: true });
+export type SpotlightItem = typeof spotlightItems.$inferSelect;
+export type InsertSpotlightItem = z.infer<typeof insertSpotlightItemSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Ad Network Placements — third-party ad network code injection
+// ──────────────────────────────────────────────────────────────
+export const adNetworkPlacements = pgTable("ad_network_placements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),                              // "Google AdSense – Sidebar"
+  network: varchar("network").notNull(),                        // 'adsense','admob','medianet','propeller','taboola','mgid','custom'
+  adCode: text("ad_code").notNull(),                            // raw HTML/JS snippet
+  placementType: varchar("placement_type").notNull().default("inline"), // 'inline','sidebar','popup','banner_top','banner_bottom'
+  targetPages: text("target_pages").notNull().default("all"),   // comma-separated or "all"
+  popupDelay: integer("popup_delay").default(5),                // seconds before popup shows
+  popupFrequency: varchar("popup_frequency").default("session"), // 'once','session','daily','always'
+  isActive: boolean("is_active").default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAdNetworkPlacementSchema = createInsertSchema(adNetworkPlacements).omit({ id: true, createdAt: true, updatedAt: true });
+export type AdNetworkPlacement = typeof adNetworkPlacements.$inferSelect;
+export type InsertAdNetworkPlacement = z.infer<typeof insertAdNetworkPlacementSchema>;
