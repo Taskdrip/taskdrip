@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
+import { NavigationFixed } from '@/components/ui/navigation-fixed';
+import { Footer } from '@/components/ui/footer';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -408,6 +410,7 @@ export default function CampaignDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <NavigationFixed />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -1410,6 +1413,7 @@ export default function CampaignDetail() {
           </div>
         </DialogContent>
       </Dialog>
+      <Footer />
     </div>
   );
 }

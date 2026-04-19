@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { Navigation } from "@/components/ui/navigation";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -445,7 +446,7 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <NavigationFixed />
 
       {/* Hero Section with background image texture */}
       <div className="relative bg-gray-900 text-white overflow-hidden">
@@ -746,6 +747,7 @@ export default function Blog() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

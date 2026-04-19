@@ -315,7 +315,7 @@ export default function ShopCheckout() {
           <Lock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Sign in to purchase</h2>
           <p className="text-gray-500 text-sm mb-6">You need to be signed in to complete a purchase.</p>
-          <Link href="/login"><Button className="w-full bg-violet-600 hover:bg-violet-700 text-white">Sign In</Button></Link>
+          <Link href={`/login?redirect=${encodeURIComponent(window.location.pathname)}`}><Button className="w-full bg-violet-600 hover:bg-violet-700 text-white">Sign In</Button></Link>
         </div>
       </div>
     );

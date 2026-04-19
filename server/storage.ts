@@ -1255,6 +1255,8 @@ export class DatabaseStorage implements IStorage {
         totalFollowers: users.totalFollowers,
         userType: users.userType,
         role: users.role,
+        totalPoints: users.totalPoints,
+        level: users.level,
       }).from(users).where(eq(users.id, post.userId));
       result.push({ ...post, user: u || {} });
     }
@@ -1297,6 +1299,7 @@ export class DatabaseStorage implements IStorage {
         creatorTier: users.creatorTier, niche: users.niche,
         isVerified: users.isVerified, totalFollowers: users.totalFollowers,
         userType: users.userType, role: users.role,
+        totalPoints: users.totalPoints, level: users.level,
       }).from(users).where(eq(users.id, post.userId));
       result.push({ ...post, user: u || {} });
     }

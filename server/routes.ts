@@ -3014,6 +3014,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Instant wallet-to-wallet tip (deducts sender funds balance, credits recipient)
+  app.post('/api/users/:id/tip/wallet', isAuthenticated, async (req: any, res) => {
+    try {
+      const senderId = req.user.id;
+      const recipientId = req.params.id;
+      if (senderId === recipientId) return res.status(400).json({ message: "Cannot tip yourself" });
+
+      const recipient = await storage.getUser(recipientId);
+      if (!recipient) return res.status(404).json({ message: "User not found" });
+
+      const { amount, postId } = req.body;
+      const tipAmount = parseFloat(amount);
+      if (!tipAmount || tipAmount <= 0) return res.status(400).json({ message: "Invalid tip amount" });
+
+      const sender = await storage.getUser(senderId);
+      if (!sender) return res.status(404).json({ message: "Sender not found" });
+      const senderBalance = parseFloat((sender as any).availableBalance || "0");
+      if (senderBalance < tipAmount) {
+        return res.status(400).json({ message: "Insufficient funds balance", balance: senderBalance });
+      }
+
+      await storage.updateUserBalance(senderId, tipAmount, 'subtract');
+      await storage.updateUserBalance(recipientId, tipAmount, 'add');
+
+      await storage.createTransaction({
+        userId: senderId,
+        type: 'platform_tip',
+        amount: tipAmount.toString(),
+        description: `Tip sent to ${recipient.firstName || ''} ${recipient.lastName || ''}`.trim(),
+        status: 'completed',
+        processedAt: new Date(),
+        referenceType: 'funds_tip',
+        referenceId: recipientId,
+      } as any);
+
+      await storage.createTransaction({
+        userId: recipientId,
+        type: 'platform_tip',
+        amount: tipAmount.toString(),
+        description: `Tip received from ${sender.firstName || ''} ${sender.lastName || ''}`.trim(),
+        status: 'completed',
+        processedAt: new Date(),
+        referenceType: 'funds_tip',
+        referenceId: senderId,
+      } as any);
+
+      await storage.addPostTip(postId || "", tipAmount).catch(() => undefined);
+
+      await storage.createNotification({
+        userId: recipientId,
+        type: 'platform_tip',
+        title: 'You received a tip!',
+        content: `${sender.firstName || 'Someone'} sent you a $${tipAmount.toFixed(2)} tip.`,
+        actionUrl: '/wallet',
+      } as any);
+
+      const updatedSender = await storage.getUser(senderId);
+      res.json({
+        success: true,
+        message: `$${tipAmount.toFixed(2)} tip sent instantly`,
+        newSenderBalance: (updatedSender as any)?.availableBalance || "0",
+      });
+    } catch (error) {
+      console.error("Error processing wallet tip:", error);
+      res.status(500).json({ message: "Failed to process tip" });
+    }
+  });
+
   // Get user's wallet address for tipping
   app.get('/api/users/:id/wallet', async (req, res) => {
     try {

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -179,6 +181,7 @@ export default function TDripInfoPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a1a] text-white overflow-x-hidden">
+      <NavigationFixed />
 
       {/* Animated background blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -678,6 +681,7 @@ export default function TDripInfoPage() {
         </section>
 
       </div>
+      <Footer />
     </div>
   );
 }

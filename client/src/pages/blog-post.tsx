@@ -3,7 +3,8 @@ import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Navigation } from "@/components/ui/navigation";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -399,7 +400,7 @@ export default function BlogPost() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        <NavigationFixed />
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="animate-pulse space-y-6">
             <div className="h-10 bg-gray-200 rounded w-3/4" />
@@ -416,7 +417,7 @@ export default function BlogPost() {
   if (!post || post.message) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        <NavigationFixed />
         <div className="max-w-4xl mx-auto px-4 py-24 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Post not found</h2>
           <Button onClick={() => setLocation("/blog")}>
@@ -433,7 +434,7 @@ export default function BlogPost() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
+      <NavigationFixed />
 
       {post.metaDescription && (
         <meta name="description" content={post.metaDescription} />
@@ -759,6 +760,7 @@ export default function BlogPost() {
       {showTipModal && (
         <TipModal post={post} user={user} onClose={() => setShowTipModal(false)} />
       )}
+      <Footer />
     </div>
   );
 }

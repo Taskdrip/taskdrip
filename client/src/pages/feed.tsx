@@ -23,148 +23,192 @@ import { getTierConfig, getTierFromFollowers, formatFollowers } from "@/lib/tier
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
+const TDRIP_POINTS_PER_USD = 100;
+
 // ── Tip Modal ──────────────────────────────────────────────────────────────────
 function TipModal({ recipientId, recipientName, postId, open, onClose }: {
   recipientId: string; recipientName: string; postId?: string; open: boolean; onClose: () => void;
 }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<"amount" | "method" | "details" | "confirm">("amount");
-  const [selectedMethodId, setSelectedMethodId] = useState("");
-  const [txHash, setTxHash] = useState("");
+  const [channel, setChannel] = useState<"" | "funds" | "tdrip">("");
   const [amount, setAmount] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [tdripPoints, setTdripPoints] = useState("");
 
-  const { data: paymentMethods = [] } = useQuery<any[]>({ queryKey: ["/api/payment-methods"], enabled: open });
+  const { data: meData } = useQuery<any>({ queryKey: ["/api/user"], enabled: open });
+  const { data: pointsData } = useQuery<any>({ queryKey: ["/api/points/me"], enabled: open });
 
-  const tipMutation = useMutation({
+  const fundsBalance = parseFloat(meData?.availableBalance || "0");
+  const tdripBalance = pointsData?.total ?? meData?.totalPoints ?? 0;
+  const tdripUsdValue = (tdripBalance / TDRIP_POINTS_PER_USD).toFixed(2);
+
+  const tipAmt = parseFloat(amount || "0");
+  const tipPoints = parseInt(tdripPoints || "0");
+  const insufficientFunds = channel === "funds" && tipAmt > 0 && fundsBalance < tipAmt;
+  const insufficientTdrip = channel === "tdrip" && tipPoints > 0 && tdripBalance < tipPoints;
+
+  const walletTipMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/users/${recipientId}/tip`, {
-        amount, network: selectedMethod?.network || selectedMethod?.label,
-        txHash, postId, paymentMethodId: selectedMethod?.id, paymentMethodType: selectedMethod?.type,
+      const res = await apiRequest("POST", `/api/users/${recipientId}/tip/wallet`, { amount, postId });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to send tip");
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: `$${tipAmt.toFixed(2)} tip sent!`, description: `${recipientName} has been credited instantly.` });
+      handleClose();
+    },
+    onError: (err: any) => toast({ title: "Tip failed", description: err.message, variant: "destructive" }),
+  });
+
+  const tdripTipMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/tdrip/transfer", {
+        recipient: recipientId, points: tipPoints, type: "tip", note: `Tip for post`,
       });
-      return await res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to send $TDRIP tip");
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
-      toast({ title: "Tip submitted", description: "Your tip has been recorded and will be verified by the team." });
-      onClose();
-      setStep("amount"); setTxHash(""); setAmount(""); setSelectedMethodId("");
+      queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: `${tipPoints} $TDRIP sent!`, description: `${recipientName} has been tipped instantly.` });
+      handleClose();
     },
-    onError: () => toast({ title: "Error", description: "Failed to submit tip", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Tip failed", description: err.message, variant: "destructive" }),
   });
 
-  const checkoutMethods = (paymentMethods as any[]).map(m => ({ ...m, source: "Taskdrip secure checkout" }));
-  const selectedMethod = checkoutMethods.find(m => m.id === selectedMethodId);
-  const readyToConfirm = selectedMethod?.type === "stripe" || selectedMethod?.type === "paystack" || txHash.trim().length > 0;
-  const copyAddress = (addr: string) => {
-    navigator.clipboard.writeText(addr);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleClose = () => {
+    setChannel(""); setAmount(""); setTdripPoints("");
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-purple-500" /> Tip {recipientName}
           </DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-4 gap-2 text-[10px] font-semibold text-center">
-          {["Amount", "Method", "Details", "Confirm"].map((label, idx) => {
-            const steps = ["amount", "method", "details", "confirm"];
-            const active = steps.indexOf(step) >= idx;
-            return <div key={label} className={`rounded-full py-1.5 ${active ? "bg-black text-white" : "bg-gray-100 text-gray-400"}`}>{label}</div>;
-          })}
-        </div>
-        {step === "amount" && (
+
+        {/* Channel selector */}
+        {!channel && (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-gradient-to-br from-gray-950 to-purple-950 p-5 text-white">
-              <p className="text-xs uppercase tracking-widest text-white/50 mb-2">Creator support</p>
-              <h3 className="text-2xl font-black">Send a tip in seconds</h3>
-              <p className="text-white/70 text-sm mt-2">Choose an amount and pay through a Taskdrip-managed method.</p>
+            <p className="text-sm text-gray-500 text-center">Choose how you'd like to tip</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setChannel("funds")}
+                className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all group"
+                data-testid="button-tip-channel-funds"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+                  <Wallet className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-gray-900 text-sm">Funds Wallet</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Balance: <span className="font-semibold text-blue-600">${fundsBalance.toFixed(2)}</span></p>
+                </div>
+              </button>
+              <button
+                onClick={() => setChannel("tdrip")}
+                className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-gray-100 hover:border-purple-300 hover:bg-purple-50 transition-all group"
+                data-testid="button-tip-channel-tdrip"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-gray-900 text-sm">$TDRIP Points</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Balance: <span className="font-semibold text-purple-600">{tdripBalance.toLocaleString()} pts</span></p>
+                  <p className="text-xs text-gray-400">≈ ${tdripUsdValue}</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Funds wallet tip */}
+        {channel === "funds" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setChannel("")} className="text-gray-400 hover:text-gray-600 text-xs">← Back</button>
+              <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5"><Wallet className="w-4 h-4 text-blue-500" /> Tip from Funds Wallet</span>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center justify-between">
+              <span className="text-sm text-blue-700">Available Balance</span>
+              <span className="font-bold text-blue-800">${fundsBalance.toFixed(2)}</span>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Tip Amount</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Tip Amount (USD)</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
-                <Input type="number" placeholder="10.00" value={amount} onChange={e => setAmount(e.target.value)} min="0.01" step="0.01" className="pl-8 h-12 rounded-xl text-lg font-semibold" data-testid="input-tip-amount" />
+                <Input type="number" placeholder="5.00" value={amount} onChange={e => setAmount(e.target.value)} min="0.01" step="0.01" className="pl-8 h-12 rounded-xl text-lg font-semibold" data-testid="input-tip-funds-amount" />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {["5", "10", "25"].map(p => (
-                <button key={p} onClick={() => setAmount(p)} className="rounded-xl border border-gray-200 py-2 text-sm font-semibold hover:border-black" data-testid={`button-tip-preset-${p}`}>${p}</button>
+            <div className="grid grid-cols-4 gap-2">
+              {["1", "5", "10", "25"].map(p => (
+                <button key={p} onClick={() => setAmount(p)} className={`rounded-xl border py-2 text-sm font-semibold transition-all ${amount === p ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 hover:border-blue-300"}`} data-testid={`button-tip-funds-preset-${p}`}>${p}</button>
               ))}
             </div>
-            <Button className="w-full bg-black text-white hover:bg-gray-900 rounded-xl h-11" disabled={!amount || parseFloat(amount) <= 0} onClick={() => setStep("method")} data-testid="button-tip-continue-method">Continue to payment</Button>
-          </div>
-        )}
-        {step === "method" && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500">Choose a payment method for your ${parseFloat(amount || "0").toFixed(2)} tip.</p>
-            {checkoutMethods.length === 0 ? (
-              <div className="text-center py-8"><Wallet className="w-10 h-10 text-gray-300 mx-auto mb-3" /><p className="text-gray-500 text-sm">No payment methods available yet.</p></div>
-            ) : (
-              <div className="space-y-3">
-                {checkoutMethods.map(m => (
-                  <button key={m.id} onClick={() => { setSelectedMethodId(m.id); setStep("details"); }} className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50 transition-all text-left" data-testid={`button-tip-method-${m.id}`}>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-950 to-purple-700 flex items-center justify-center text-white">
-                      {m.type === "bank" ? <Landmark className="w-4 h-4" /> : m.type === "stripe" || m.type === "paystack" ? <CreditCard className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
-                    </div>
-                    <div className="flex-1"><div className="font-semibold text-gray-900 text-sm">{m.label}</div><div className="text-xs text-gray-500">{m.source} · {m.type}{m.currency ? ` · ${m.currency}` : ""}</div></div>
-                    <span className="text-gray-300">→</span>
-                  </button>
-                ))}
+            {insufficientFunds && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                Insufficient funds. <Link href="/payment-deposit" className="font-bold underline text-red-800 hover:text-red-900" data-testid="link-tip-topup-funds">Top up your wallet →</Link>
               </div>
             )}
-            <button onClick={() => setStep("amount")} className="w-full text-xs text-gray-400 hover:text-gray-600" data-testid="button-tip-back-amount">← Back</button>
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-bold"
+              disabled={!amount || tipAmt <= 0 || insufficientFunds || walletTipMutation.isPending}
+              onClick={() => walletTipMutation.mutate()}
+              data-testid="button-confirm-funds-tip"
+            >
+              {walletTipMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Wallet className="w-4 h-4 mr-2" />}
+              Send ${tipAmt > 0 ? tipAmt.toFixed(2) : "0.00"} Tip Instantly
+            </Button>
           </div>
         )}
-        {step === "details" && selectedMethod && (
+
+        {/* $TDRIP tip */}
+        {channel === "tdrip" && (
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500 font-medium">{selectedMethod.label}</p>
-                <Badge variant="secondary" className="capitalize">{selectedMethod.type}</Badge>
-              </div>
-              {selectedMethod.address && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Wallet address</p>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs text-gray-800 break-all flex-1 font-mono">{selectedMethod.address}</code>
-                    <button onClick={() => copyAddress(selectedMethod.address)} className="flex-shrink-0 p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-100" data-testid="button-copy-tip-address">
-                      {copied ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-500" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-              {selectedMethod.bankName && <p className="text-xs text-gray-700"><span className="font-semibold">Bank:</span> {selectedMethod.bankName}</p>}
-              {selectedMethod.accountName && <p className="text-xs text-gray-700"><span className="font-semibold">Account:</span> {selectedMethod.accountName}</p>}
-              {selectedMethod.accountNumber && <p className="text-xs text-gray-700"><span className="font-semibold">Acc No:</span> {selectedMethod.accountNumber}</p>}
-              {selectedMethod.instructions && <p className="text-xs text-gray-500">{selectedMethod.instructions}</p>}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setChannel("")} className="text-gray-400 hover:text-gray-600 text-xs">← Back</button>
+              <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5"><Zap className="w-4 h-4 text-purple-500" /> Tip with $TDRIP Points</span>
             </div>
-            <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-xl p-3">Send ${parseFloat(amount || "0").toFixed(2)} to Taskdrip using the method above. The team will verify and credit the tip.</p>
-            <Button className="w-full bg-black text-white hover:bg-gray-900 rounded-xl" onClick={() => setStep("confirm")} data-testid="button-tip-details-continue">Continue to confirmation →</Button>
-            <button onClick={() => setStep("method")} className="w-full text-xs text-gray-400 hover:text-gray-600" data-testid="button-tip-back-method">← Back</button>
-          </div>
-        )}
-        {step === "confirm" && (
-          <div className="space-y-4">
-            <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
-              <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-green-800">Almost done!</p>
-              <p className="text-xs text-green-600">Enter the transaction hash from your wallet</p>
+            <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3 flex items-center justify-between">
+              <span className="text-sm text-purple-700">Your $TDRIP Balance</span>
+              <div className="text-right">
+                <p className="font-bold text-purple-800">{tdripBalance.toLocaleString()} pts</p>
+                <p className="text-xs text-purple-500">≈ ${(tdripBalance / TDRIP_POINTS_PER_USD).toFixed(2)}</p>
+              </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Transaction ID / Receipt Reference</label>
-              <Input placeholder="0x..., TxID, receipt number, or card reference" value={txHash} onChange={e => setTxHash(e.target.value)} data-testid="input-tip-reference" />
+              <label className="text-xs font-medium text-gray-700 mb-1 block">$TDRIP Points to Send</label>
+              <Input type="number" placeholder="100" value={tdripPoints} onChange={e => setTdripPoints(e.target.value)} min="1" step="1" className="h-12 rounded-xl text-lg font-semibold" data-testid="input-tip-tdrip-amount" />
+              {tipPoints > 0 && <p className="text-xs text-purple-500 mt-1">≈ ${(tipPoints / TDRIP_POINTS_PER_USD).toFixed(2)} USD value</p>}
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("details")} data-testid="button-tip-back-details">← Back</Button>
-              <Button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white" onClick={() => tipMutation.mutate()} disabled={tipMutation.isPending || !readyToConfirm} data-testid="button-confirm-tip">
-                {tipMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Submit Tip
-              </Button>
+            <div className="grid grid-cols-4 gap-2">
+              {["50", "100", "250", "500"].map(p => (
+                <button key={p} onClick={() => setTdripPoints(p)} className={`rounded-xl border py-2 text-sm font-semibold transition-all ${tdripPoints === p ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 hover:border-purple-300"}`} data-testid={`button-tip-tdrip-preset-${p}`}>{p}</button>
+              ))}
             </div>
+            {insufficientTdrip && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                Insufficient $TDRIP. <Link href="/tasks" className="font-bold underline text-red-800 hover:text-red-900" data-testid="link-tip-earn-tdrip">Earn more $TDRIP →</Link>
+              </div>
+            )}
+            <Button
+              className="w-full bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-700 hover:to-violet-800 text-white rounded-xl h-11 font-bold"
+              disabled={!tdripPoints || tipPoints <= 0 || insufficientTdrip || tdripTipMutation.isPending}
+              onClick={() => tdripTipMutation.mutate()}
+              data-testid="button-confirm-tdrip-tip"
+            >
+              {tdripTipMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+              Send {tipPoints > 0 ? tipPoints.toLocaleString() : "0"} $TDRIP Instantly
+            </Button>
           </div>
         )}
       </DialogContent>
@@ -291,6 +335,8 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
   const [showTip, setShowTip] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editContent, setEditContent] = useState(post.content || "");
+  const [editImageUrl, setEditImageUrl] = useState(post.imageUrl || "");
+  const [editVideoUrl, setEditVideoUrl] = useState(post.videoUrl || "");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data: comments = [], refetch: refetchComments } = useQuery<any[]>({
@@ -311,7 +357,14 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
   });
 
   const editMutation = useMutation({
-    mutationFn: async () => { const res = await apiRequest("PATCH", `/api/posts/${post.id}`, { content: editContent }); return await res.json(); },
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", `/api/posts/${post.id}`, {
+        content: editContent,
+        imageUrl: editImageUrl.trim() || null,
+        videoUrl: editVideoUrl.trim() || null,
+      });
+      return await res.json();
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/feed"] }); toast({ title: "Post updated!" }); setShowEditDialog(false); },
     onError: () => toast({ title: "Error", description: "Failed to update post", variant: "destructive" }),
   });
@@ -383,11 +436,21 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
               {post.user?.niche && <Badge variant="secondary" className="text-xs py-0 px-2 bg-purple-50 text-purple-600 border-purple-100">{post.user.niche}</Badge>}
               <span className="text-xs text-gray-400">{post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : ""}</span>
             </div>
-            {post.user?.totalFollowers > 0 && (
-              <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                <Users className="w-3 h-3" /> {formatFollowers(post.user.totalFollowers)} followers
-              </div>
-            )}
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              {post.user?.totalFollowers > 0 && (
+                <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <Users className="w-3 h-3" /> {formatFollowers(post.user.totalFollowers)} followers
+                </span>
+              )}
+              {(post.user?.totalPoints ?? 0) > 0 && (
+                <span className="text-xs flex items-center gap-1 bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full font-semibold" title="$TDRIP Points balance">
+                  <Zap className="w-3 h-3 text-purple-500" />
+                  {(post.user?.totalPoints ?? 0).toLocaleString()} pts
+                  <span className="text-purple-400 font-normal">≈ ${((post.user?.totalPoints ?? 0) / TDRIP_POINTS_PER_USD).toFixed(2)}</span>
+                  {post.user?.level && <span className="ml-0.5 text-purple-500">{post.user.level}</span>}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <p className="mt-3 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
@@ -439,7 +502,7 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
         {(isSelf || isAdmin) && (
           <div className="flex items-center gap-1">
             {isSelf && (
-              <button onClick={() => { setEditContent(post.content); setShowEditDialog(true); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors" data-testid={`edit-post-${post.id}`} title="Edit post">✏️</button>
+              <button onClick={() => { setEditContent(post.content || ""); setEditImageUrl(post.imageUrl || ""); setEditVideoUrl(post.videoUrl || ""); setShowEditDialog(true); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors" data-testid={`edit-post-${post.id}`} title="Edit post">✏️</button>
             )}
             <button onClick={() => setShowDeleteConfirm(true)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" data-testid={`delete-post-${post.id}`} title="Delete post">
               <Trash2 className="w-4 h-4" />
@@ -485,10 +548,27 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Edit Post</DialogTitle></DialogHeader>
             <div className="space-y-4">
-              <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={5} className="resize-none" data-testid="edit-post-content" />
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Post Content</label>
+                <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={4} className="resize-none" data-testid="edit-post-content" placeholder="What's on your mind?" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5" /> Image URL <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <Input value={editImageUrl} onChange={e => setEditImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" className="text-sm" data-testid="edit-post-image-url" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block flex items-center gap-1.5">
+                  <Play className="w-3.5 h-3.5" /> YouTube URL <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <Input value={editVideoUrl} onChange={e => setEditVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="text-sm" data-testid="edit-post-video-url" />
+                {editVideoUrl && extractYouTubeId(editVideoUrl) && <p className="text-xs text-green-600 mt-1">✓ Valid YouTube URL</p>}
+              </div>
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
                 <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending || !editContent.trim()} className="bg-black hover:bg-gray-900 text-white" data-testid="save-post-edit">
+                  {editMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
                   {editMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>

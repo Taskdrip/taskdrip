@@ -134,6 +134,7 @@ export default function SimpleSignup() {
   const urlParams = new URLSearchParams(window.location.search);
   const refCode = urlParams.get('ref');
   const urlType = urlParams.get('type');
+  const redirectTo = urlParams.get('redirect') || '';
   const initialTab = urlType === 'brand' ? 'brand' : 'influencer';
 
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -184,9 +185,9 @@ export default function SimpleSignup() {
 
   useEffect(() => {
     if (user && !successUser) {
-      setLocation('/dashboard');
+      setLocation(redirectTo || '/dashboard');
     }
-  }, [user, successUser, setLocation]);
+  }, [user, successUser, setLocation, redirectTo]);
 
   const onCreatorSubmit = (data: CreatorSignupData) => {
     signupMutation.mutate(data);

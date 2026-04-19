@@ -29,6 +29,8 @@ export default function Login() {
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [pendingCredentials, setPendingCredentials] = useState<LoginFormData | null>(null);
 
+  const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '';
+
   const {
     register,
     handleSubmit,
@@ -54,6 +56,10 @@ export default function Login() {
         title: "Login successful",
         description: `Welcome back, ${data.user.firstName}!`,
       });
+      if (redirectTo) {
+        setLocation(redirectTo);
+        return;
+      }
       const userType = data.user?.userType;
       if (userType === 'admin') {
         setLocation('/admin-dashboard');
@@ -74,6 +80,10 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
+      if (redirectTo) {
+        setLocation(redirectTo);
+        return;
+      }
       const userType = (user as any)?.userType;
       if (userType === 'admin') {
         setLocation('/admin-dashboard');
@@ -83,7 +93,7 @@ export default function Login() {
         setLocation('/dashboard');
       }
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, redirectTo]);
 
   const onSubmit = (data: LoginFormData) => {
     setPendingCredentials(data);

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { Footer } from "@/components/ui/footer";
 import { 
   ShoppingCart, Star, Download, ExternalLink, ChevronLeft, 
   Package, Shield, CheckCircle, MessageCircle, Share2, 
@@ -151,6 +153,7 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <NavigationFixed />
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
@@ -596,6 +599,7 @@ export default function ProductDetail() {
           </section>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

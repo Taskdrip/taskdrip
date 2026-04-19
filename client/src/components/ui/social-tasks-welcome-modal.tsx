@@ -1,143 +1,153 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, ExternalLink, Zap, X } from "lucide-react";
+import { Link } from "wouter";
+import {
+  Rocket, Target, DollarSign, Users, Zap, X, ArrowRight,
+  BookOpen, ShoppingBag, TrendingUp, Star
+} from "lucide-react";
 
 const STORAGE_KEY = "taskdrip_show_social_tasks_modal";
 
+const brandHighlights = [
+  {
+    icon: <Target className="h-5 w-5 text-violet-500" />,
+    title: "Launch a Campaign",
+    desc: "Reach thousands of authentic creators ready to amplify your brand.",
+    href: "/campaigns",
+  },
+  {
+    icon: <Users className="h-5 w-5 text-blue-500" />,
+    title: "Find Your Perfect Creators",
+    desc: "Browse our marketplace of verified influencers across every niche.",
+    href: "/influencers",
+  },
+  {
+    icon: <TrendingUp className="h-5 w-5 text-green-500" />,
+    title: "Track Real Results",
+    desc: "Monitor your campaign performance and ROI in real time.",
+    href: "/dashboard",
+  },
+];
+
+const creatorHighlights = [
+  {
+    icon: <DollarSign className="h-5 w-5 text-green-500" />,
+    title: "Earn from Your Influence",
+    desc: "Get paid in USDT for completing brand campaigns — no middlemen.",
+    href: "/campaigns",
+  },
+  {
+    icon: <Zap className="h-5 w-5 text-yellow-500" />,
+    title: "Stack $TDRIP Points",
+    desc: "Every action earns points that unlock exclusive perks and rewards.",
+    href: "/tdrip",
+  },
+  {
+    icon: <BookOpen className="h-5 w-5 text-violet-500" />,
+    title: "Level Up with BreedSkool",
+    desc: "Take courses to grow your brand and expand your skills.",
+    href: "/breedskool",
+  },
+  {
+    icon: <ShoppingBag className="h-5 w-5 text-blue-500" />,
+    title: "Shop the Marketplace",
+    desc: "Discover exclusive products and deals curated for creators.",
+    href: "/shop",
+  },
+];
+
 export function SocialTasksWelcomeModal() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const flag = localStorage.getItem(STORAGE_KEY);
     if (flag === "1") {
-      setOpen(true);
       localStorage.removeItem(STORAGE_KEY);
+      const alreadyShown = sessionStorage.getItem("taskdrip_welcome_shown");
+      if (!alreadyShown) {
+        sessionStorage.setItem("taskdrip_welcome_shown", "1");
+        setOpen(true);
+      }
     }
   }, [user]);
 
-  const { data: tasks = [] } = useQuery<any[]>({
-    queryKey: ["/api/social-quick-tasks"],
-    enabled: open,
-  });
+  if (!user) return null;
 
-  const completeMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await apiRequest("POST", `/api/social-quick-tasks/${taskId}/complete`, {});
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social-quick-tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
-      toast({ title: `+${data?.pointsAwarded || 0} $TDRIP earned!`, description: "Keep completing tasks to earn more." });
-    },
-    onError: (err: any) => {
-      toast({ title: "Already completed or error", variant: "destructive" });
-    },
-  });
-
-  const activeTasks = (tasks as any[]).filter((t: any) => t.isActive);
-  const completedCount = activeTasks.filter((t: any) => t.completed).length;
-  const totalPts = activeTasks.filter((t: any) => !t.completed).reduce((a: number, t: any) => a + (t.pointsReward || 0), 0);
-
-  if (!user || (user as any).userType === "brand") return null;
+  const isBrand = (user as any)?.userType === "brand";
+  const firstName = (user as any)?.firstName || "there";
+  const highlights = isBrand ? brandHighlights : creatorHighlights;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg bg-gray-950 border border-violet-900/60 text-white shadow-2xl shadow-violet-900/30">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-black">
-            <Zap className="h-5 w-5 text-violet-400" />
-            Welcome to Taskdrip! Earn $TDRIP Now
-          </DialogTitle>
-        </DialogHeader>
-
-        {/* Header banner */}
-        <div className="bg-gradient-to-r from-violet-900/50 to-purple-900/50 rounded-xl p-4 border border-violet-800/50 mb-4">
-          <p className="text-gray-300 text-sm leading-relaxed">
-            Complete these quick social tasks to earn <span className="text-violet-300 font-bold">$TDRIP points</span> — held for the upcoming native token airdrop.
+      <DialogContent className="max-w-md p-0 overflow-hidden border-0 shadow-2xl">
+        {/* Header */}
+        <div className={`relative p-6 text-white ${isBrand ? "bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700" : "bg-gradient-to-br from-violet-700 via-purple-600 to-indigo-700"}`}>
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-4 right-4 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            data-testid="close-welcome-modal"
+          >
+            <X className="h-4 w-4 text-white" />
+          </button>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl">
+              {isBrand ? "🚀" : "⚡"}
+            </div>
+            <div>
+              <p className="text-white/80 text-sm">Welcome to Taskdrip</p>
+              <h2 className="text-xl font-black">Hey {firstName}! 👋</h2>
+            </div>
+          </div>
+          <p className="text-white/90 text-sm leading-relaxed">
+            {isBrand
+              ? "Your brand deserves real reach. Taskdrip connects you with authentic creators who turn influence into results you can measure."
+              : "Your influence is your superpower. Taskdrip helps you turn it into real income, skills, and a thriving community."}
           </p>
-          {totalPts > 0 && (
-            <p className="text-violet-400 font-bold mt-1 text-sm">+{totalPts} pts available to earn right now</p>
+          {!isBrand && (
+            <div className="mt-3 inline-flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 text-xs font-semibold">
+              <Star className="h-3.5 w-3.5 text-yellow-300" />
+              50 welcome $TDRIP points credited to your account!
+            </div>
           )}
         </div>
 
-        {/* Task list */}
-        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-          {activeTasks.length === 0 && (
-            <p className="text-gray-500 text-center py-6 text-sm">No tasks available right now. Check back soon!</p>
-          )}
-          {activeTasks.map((task: any) => (
-            <div
-              key={task.id}
-              className={`flex items-center gap-3 rounded-xl p-3 border transition-all ${
-                task.completed
-                  ? "bg-emerald-950/40 border-emerald-800/50 opacity-75"
-                  : "bg-gray-900 border-gray-800 hover:border-violet-700/50"
-              }`}
-              data-testid={`welcome-task-${task.id}`}
-            >
-              <span className="text-2xl flex-shrink-0">{task.iconEmoji || "🔗"}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-white font-semibold text-sm">{task.label}</span>
-                  <Badge className="bg-violet-900/60 text-violet-300 text-xs">+{task.pointsReward} pts</Badge>
+        {/* Highlights */}
+        <div className="p-4 space-y-2 bg-white">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            {isBrand ? "What you can do" : "Start your journey"}
+          </p>
+          {highlights.map((item, i) => (
+            <Link key={i} href={item.href} onClick={() => setOpen(false)}>
+              <div
+                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all cursor-pointer group"
+                data-testid={`welcome-highlight-${i}`}
+              >
+                <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  {item.icon}
                 </div>
-                {task.description && (
-                  <p className="text-gray-500 text-xs mt-0.5 truncate">{task.description}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
+                  <p className="text-xs text-gray-500 truncate">{item.desc}</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {task.completed ? (
-                  <CheckCircle className="h-5 w-5 text-emerald-400" />
-                ) : (
-                  <>
-                    <a
-                      href={task.actionUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-white transition-colors"
-                      title="Open link"
-                      data-testid={`open-task-link-${task.id}`}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                    <Button
-                      size="sm"
-                      className="bg-violet-600 hover:bg-violet-500 text-white text-xs h-7 px-3"
-                      onClick={() => completeMutation.mutate(task.id)}
-                      disabled={completeMutation.isPending}
-                      data-testid={`complete-task-btn-${task.id}`}
-                    >
-                      Done
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
+            </Link>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-800 mt-2">
-          <p className="text-gray-500 text-xs">
-            {completedCount}/{activeTasks.length} completed
-          </p>
+        <div className="px-4 pb-4 bg-white">
           <Button
-            variant="outline"
-            className="border-gray-700 text-gray-300 hover:text-white text-sm"
+            className="w-full bg-black text-white hover:bg-gray-800 rounded-xl h-10 font-semibold"
             onClick={() => setOpen(false)}
-            data-testid="close-welcome-modal"
+            data-testid="button-welcome-explore"
           >
-            {completedCount === activeTasks.length && activeTasks.length > 0 ? "🎉 Done!" : "Skip for now"}
+            <Rocket className="h-4 w-4 mr-2" />
+            Let's Explore Taskdrip
           </Button>
         </div>
       </DialogContent>

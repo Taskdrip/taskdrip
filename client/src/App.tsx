@@ -172,15 +172,15 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/dashboard" component={() => { window.location.href = '/login'; return null; }} />
-          <Route path="/admin-dashboard" component={() => { window.location.href = '/login'; return null; }} />
-          <Route path="/campaigns" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/dashboard')}`; return null; }} />
+          <Route path="/admin-dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-dashboard')}`; return null; }} />
+          <Route path="/campaigns" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/campaigns')}`; return null; }} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
-          <Route path="/profile" component={() => { window.location.href = '/login'; return null; }} />
-          <Route path="/wallet" component={() => { window.location.href = '/login'; return null; }} />
-          <Route path="/admin" component={() => { window.location.href = '/login'; return null; }} />
-          <Route path="/p2p-deals" component={() => { window.location.href = '/login'; return null; }} />
-          <Route path="/p2p-deals/:id" component={() => { window.location.href = '/login'; return null; }} />
+          <Route path="/profile" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/profile')}`; return null; }} />
+          <Route path="/wallet" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/wallet')}`; return null; }} />
+          <Route path="/admin" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin')}`; return null; }} />
+          <Route path="/p2p-deals" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/p2p-deals')}`; return null; }} />
+          <Route path="/p2p-deals/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
         </>
       )}
       <Route component={NotFound} />

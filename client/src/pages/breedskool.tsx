@@ -375,7 +375,7 @@ export default function BreedSkool() {
                 <p className="text-sm text-gray-500">Join thousands of influencers learning on BreedSkool</p>
               </div>
             </div>
-            <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setLocation("/login")}>
+            <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setLocation(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}>
               Sign In
             </Button>
           </div>
