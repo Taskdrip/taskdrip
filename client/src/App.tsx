@@ -9,8 +9,6 @@ import { GuideBot } from "@/components/ui/guide-bot";
 import { SocialTasksWelcomeModal } from "@/components/ui/social-tasks-welcome-modal";
 import { useAuth } from "@/hooks/useAuth";
 import FinalLanding from "@/pages/final-landing";
-import Home from "@/pages/home";
-import AdminHome from "@/pages/admin-home";
 import Dashboard from "@/pages/dashboard";
 import SimpleDashboard from "@/pages/simple-dashboard";
 import AdminUserManagement from "@/pages/admin-user-management";
@@ -92,9 +90,12 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={isAuthenticated ? 
-        (hasAdminDashboardAccess(user) ? AdminHome : Home) : 
-        FinalLanding} />
+      <Route path="/" component={isAuthenticated ? (() => {
+        const userType = (user as any)?.userType;
+        if (hasAdminDashboardAccess(user)) return <AdminDashboard />;
+        if (userType === 'brand') return <BrandDashboard />;
+        return <SimpleDashboard />;
+      }) : FinalLanding} />
       <Route path="/signup" component={SimpleSignup} />
       <Route path="/login" component={Login} />
       <Route path="/admin-login" component={AdminLogin} />
