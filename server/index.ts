@@ -28,7 +28,7 @@ app.use(
         objectSrc: ["'none'"],
         frameSrc: ["'self'", "https:"],
         workerSrc: ["'self'", "blob:"],
-        frameAncestors: ["'self'", "https://*.replit.dev", "https://*.replit.co", "https://*.repl.co", "https://*.worf.replit.dev"],
+        frameAncestors: ["'self'", "https://*.replit.dev", "https://*.replit.co", "https://*.repl.co", "https://*.worf.replit.dev", "https://*.picard.replit.dev"],
       },
     },
     crossOriginEmbedderPolicy: false,
