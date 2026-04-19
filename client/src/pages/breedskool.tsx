@@ -64,9 +64,10 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
   const gradient = CATEGORY_GRADIENTS[course.category] || "from-violet-500 to-indigo-600";
   const fallbackImg = CATEGORY_FALLBACK_IMAGES[course.category] || CATEGORY_FALLBACK_IMAGES.general;
   const rating = parseFloat(course.averageRating || "0");
+  const [, navigate] = useLocation();
 
   return (
-    <Link href={`/breedskool/${course.id}`}>
+    <div onClick={() => navigate(`/breedskool/${course.id}`)} role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate(`/breedskool/${course.id}`)}>
       <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer h-full flex flex-col">
         <div className="relative overflow-hidden">
           <img
@@ -152,16 +153,19 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
                 )}
               </div>
               <span className="text-[11px] text-gray-500">
-                <Link href={`/profile/${course.instructor.id}`} className="hover:underline cursor-pointer">
+                <span
+                  className="hover:underline cursor-pointer text-violet-600"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/profile/${course.instructor.id}`); }}
+                >
                   {course.instructor.firstName} {course.instructor.lastName}
-                </Link>
+                </span>
                 {course.instructor.isVerified && <span className="ml-1 text-blue-500">✓</span>}
               </span>
             </div>
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

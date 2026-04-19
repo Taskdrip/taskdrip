@@ -47,29 +47,33 @@ app.use(
   })
 );
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: isDev ? 50000 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests, please try again later." },
-  skip: (req) => req.path.startsWith("/assets") || req.path.startsWith("/uploads"),
+  skip: (req) => isDev || req.path.startsWith("/assets") || req.path.startsWith("/uploads"),
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: isDev ? 10000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many authentication attempts, please try again later." },
+  skip: () => isDev,
 });
 
 const apiWriteLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 60,
+  max: isDev ? 10000 : 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Request limit reached, please slow down." },
+  skip: () => isDev,
 });
 
 app.use(globalLimiter);
