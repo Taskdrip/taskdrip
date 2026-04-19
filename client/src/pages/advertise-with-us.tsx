@@ -200,13 +200,6 @@ export default function AdvertiseWithUs() {
     }
   }, [isAuthenticated, user]);
 
-  useEffect(() => {
-    if (isAuthenticated && pendingCheckoutAfterAuth) {
-      setPendingCheckoutAfterAuth(false);
-      setShowAuthModal(false);
-      setCheckoutSummary(true);
-    }
-  }, [isAuthenticated, pendingCheckoutAfterAuth]);
 
   const isGiveaway = form.adType === "giveaway_campaign";
   const basePrice = BASE_PRICES[form.adType]?.min || 0;

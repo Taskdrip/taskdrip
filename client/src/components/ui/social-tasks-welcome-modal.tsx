@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -58,9 +59,12 @@ const creatorHighlights = [
   },
 ];
 
+const CHECKOUT_PATHS = ["/shop/checkout", "/advertise"];
+
 export function SocialTasksWelcomeModal() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [location] = useLocation();
 
   useEffect(() => {
     if (!user) return;
@@ -70,10 +74,12 @@ export function SocialTasksWelcomeModal() {
       const alreadyShown = sessionStorage.getItem("taskdrip_welcome_shown");
       if (!alreadyShown) {
         sessionStorage.setItem("taskdrip_welcome_shown", "1");
-        setOpen(true);
+        const onCheckoutPage = CHECKOUT_PATHS.some(p => location.startsWith(p));
+        const delay = onCheckoutPage ? 2500 : 600;
+        setTimeout(() => setOpen(true), delay);
       }
     }
-  }, [user]);
+  }, [user, location]);
 
   if (!user) return null;
 
