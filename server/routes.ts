@@ -6923,9 +6923,67 @@ Instructions:
   app.post('/api/advertise-applications', async (req, res) => {
     try {
       const app2 = await storage.createAdvertiseApplication(req.body);
+      // Notify all admin users about the new application
+      try {
+        const adminUser = await storage.getAdminUser();
+        if (adminUser) {
+          await storage.createNotification({
+            userId: adminUser.id,
+            type: 'ads_application',
+            title: `New Ads Application: ${req.body.companyName || 'Unknown'}`,
+            content: `${req.body.contactName || 'Someone'} applied for a ${(req.body.adType || 'advertising').replace(/_/g, ' ')} campaign. Click to review and respond.`,
+            actionUrl: '/admin-ads',
+            isRead: false,
+            priority: 'high',
+          });
+        }
+      } catch (_notifErr) { /* non-blocking */ }
       res.json(app2);
     } catch (e) {
       res.status(500).json({ message: 'Failed to submit application' });
+    }
+  });
+
+  app.post('/api/admin/advertise-applications/:id/email', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { subject, body, applicantEmail, applicantName } = req.body;
+      if (!subject || !body || !applicantEmail) return res.status(400).json({ message: 'subject, body, and applicantEmail required' });
+
+      let emailSent = false;
+      try {
+        const sgMail = (await import('@sendgrid/mail')).default;
+        const apiKey = process.env.SENDGRID_API_KEY;
+        if (apiKey) {
+          sgMail.setApiKey(apiKey);
+          await sgMail.send({
+            to: { email: applicantEmail, name: applicantName || applicantEmail },
+            from: { email: 'ads@taskdrip.online', name: 'Taskdrip Advertising Team' },
+            subject,
+            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+              <img src="https://taskdrip.online/logo.png" alt="Taskdrip" style="height:36px;margin-bottom:24px" />
+              <div style="background:#f9fafb;border-radius:12px;padding:24px;border:1px solid #e5e7eb">
+                ${body.replace(/\n/g, '<br/>')}
+              </div>
+              <p style="color:#6b7280;font-size:12px;margin-top:24px">Taskdrip Advertising Team · ads@taskdrip.online</p>
+            </div>`,
+            text: body,
+          });
+          emailSent = true;
+        }
+      } catch (mailErr: any) {
+        console.error('[ads-email]', mailErr?.message);
+      }
+
+      // Store note on application regardless
+      await storage.updateAdvertiseApplication(req.params.id, {
+        adminNotes: `[Email sent ${new Date().toLocaleDateString()}] Subject: ${subject}\n\n${body}`,
+        status: 'contacted',
+      });
+
+      res.json({ success: true, emailSent });
+    } catch (e: any) {
+      res.status(500).json({ message: 'Failed to send email', error: e?.message });
     }
   });
 

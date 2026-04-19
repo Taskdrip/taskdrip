@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,10 +13,104 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, ChevronDown, Users } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, ChevronDown, Users, CheckCheck, Megaphone, DollarSign, UserCheck, Target, Star, AlertCircle } from "lucide-react";
 import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
+
+const NOTIF_ICONS: Record<string, any> = {
+  ads_application: Megaphone,
+  task_approved: CheckCheck,
+  payout: DollarSign,
+  verification: UserCheck,
+  campaign: Target,
+  message: MessageCircle,
+  default: Star,
+};
+
+function NotificationPanel({ notifications, onClose, onMarkRead, onMarkAllRead }: {
+  notifications: any[];
+  onClose: () => void;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+}) {
+  const [, navigate] = useLocation();
+  const unread = notifications.filter((n: any) => !n.isRead);
+
+  const handleClick = (n: any) => {
+    if (!n.isRead) onMarkRead(n.id);
+    if (n.actionUrl) {
+      onClose();
+      navigate(n.actionUrl);
+    }
+  };
+
+  return (
+    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden" style={{ maxHeight: "480px", display: "flex", flexDirection: "column" }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-gray-600" />
+          <span className="font-bold text-sm text-gray-900">Notifications</span>
+          {unread.length > 0 && (
+            <Badge className="bg-red-500 text-white text-xs px-1.5 py-0">{unread.length}</Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {unread.length > 0 && (
+            <button onClick={onMarkAllRead} className="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1">
+              <CheckCheck className="h-3.5 w-3.5" /> All read
+            </button>
+          )}
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <div className="overflow-y-auto flex-1">
+        {notifications.length === 0 ? (
+          <div className="py-12 text-center">
+            <Bell className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-500">No notifications yet</p>
+            <p className="text-xs text-gray-400 mt-1">We'll notify you of important updates here</p>
+          </div>
+        ) : (
+          notifications.map((n: any) => {
+            const Icon = NOTIF_ICONS[n.type] || NOTIF_ICONS.default;
+            return (
+              <button
+                key={n.id}
+                onClick={() => handleClick(n)}
+                data-testid={`notification-item-${n.id}`}
+                className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-50 transition-colors ${!n.isRead ? "bg-purple-50/60" : ""}`}
+              >
+                <div className={`mt-0.5 p-1.5 rounded-lg flex-shrink-0 ${n.priority === 'high' ? "bg-red-100" : "bg-purple-100"}`}>
+                  <Icon className={`h-3.5 w-3.5 ${n.priority === 'high' ? "text-red-600" : "text-purple-600"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`text-xs font-semibold leading-snug ${!n.isRead ? "text-gray-900" : "text-gray-700"}`}>{n.title}</p>
+                    {!n.isRead && <span className="flex-shrink-0 w-2 h-2 bg-purple-500 rounded-full mt-1" />}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{n.content}</p>
+                  {n.createdAt && (
+                    <p className="text-[10px] text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  )}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+      {notifications.length > 0 && (
+        <div className="px-4 py-2.5 border-t border-gray-100 flex-shrink-0">
+          <Link href="/dashboard" onClick={onClose}>
+            <button className="w-full text-xs text-center text-purple-600 hover:text-purple-800 font-semibold">View all in Dashboard →</button>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const communityLinks = [
   { href: SOCIALS.telegram, label: "Telegram Community", icon: SiTelegram, color: "text-[#229ED9]" },
@@ -30,6 +126,19 @@ export function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifPanel(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const { data: messages = [] } = useQuery({
     queryKey: ['/api/messages'],
@@ -41,6 +150,19 @@ export function Navigation() {
     queryKey: ['/api/notifications'],
     enabled: !!isAuthenticated && !!user,
     refetchInterval: 30000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("PATCH", `/api/notifications/${id}/read`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/notifications'] }),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const unread = (notifications as any[]).filter((n: any) => !n.isRead);
+      await Promise.all(unread.map((n: any) => apiRequest("PATCH", `/api/notifications/${n.id}/read`, {})));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/notifications'] }),
   });
 
   const unreadMessagesCount = Array.isArray(messages) ? messages.filter((m: any) => !m.isRead).length : 0;
@@ -129,16 +251,30 @@ export function Navigation() {
           {/* User Menu */}
           {isAuthenticated ? (
             <div className="flex items-center space-x-2">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent relative">
+              <div className="relative" ref={notifRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  data-testid="button-notifications"
+                  className="text-gray-600 hover:text-accent relative"
+                  onClick={() => setShowNotifPanel(v => !v)}
+                >
                   <Bell className="h-5 w-5" />
                   {unreadNotificationsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                       {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                     </span>
                   )}
                 </Button>
-              </Link>
+                {showNotifPanel && (
+                  <NotificationPanel
+                    notifications={notifications as any[]}
+                    onClose={() => setShowNotifPanel(false)}
+                    onMarkRead={(id) => markReadMutation.mutate(id)}
+                    onMarkAllRead={() => markAllReadMutation.mutate()}
+                  />
+                )}
+              </div>
               <Link href="/chat">
                 <Button variant="ghost" size="icon" className="text-gray-600 hover:text-accent relative">
                   <MessageCircle className="h-5 w-5" />

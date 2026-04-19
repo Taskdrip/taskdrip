@@ -137,7 +137,7 @@ function analyzeCreatorProfile(user: any, socialLinks: any[]): Recommendation[] 
 }
 
 // ── Admin platform analysis ──────────────────────────────────────────────
-function analyzeAdminPlatform(users: any[], transactions: any[], campaigns: any[]): Recommendation[] {
+function analyzeAdminPlatform(users: any[], transactions: any[], campaigns: any[], adApplications: any[] = []): Recommendation[] {
   const recs: Recommendation[] = [];
   const pendingPayouts = transactions.filter((t: any) => t.status === 'pending');
   const unverifiedUsers = users.filter((u: any) => !u.isVerified && u.userType !== 'admin');
@@ -147,6 +147,18 @@ function analyzeAdminPlatform(users: any[], transactions: any[], campaigns: any[
   const completedTx = transactions.filter((t: any) => t.status === 'completed');
   const totalRevenue = completedTx.reduce((sum: number, t: any) => sum + parseFloat(t.amount || '0'), 0);
   const verifiedCreators = creators.filter((u: any) => u.isVerified).length;
+  const pendingAdApps = adApplications.filter((a: any) => a.status === 'pending');
+
+  // Highest priority: pending ad applications (revenue opportunity)
+  if (pendingAdApps.length > 0) {
+    const latest = pendingAdApps[0];
+    recs.push({
+      type: "warning", icon: Briefcase,
+      title: `🔔 ${pendingAdApps.length} new ad application${pendingAdApps.length !== 1 ? 's' : ''} pending`,
+      description: `${latest.companyName ? `"${latest.companyName}"` : 'A brand'} applied for a ${(latest.adType || 'advertising').replace(/_/g, ' ')} campaign. Review and reply to convert this lead.`,
+      action: { label: "Review Applications →", href: "/admin-ads" },
+    });
+  }
 
   if (pendingPayouts.length > 0) {
     recs.push({
@@ -215,7 +227,7 @@ function analyzeAdminPlatform(users: any[], transactions: any[], campaigns: any[
 }
 
 // ── Admin chat responses ──────────────────────────────────────────────────
-function getAdminBotResponse(message: string, data: { users: any[], transactions: any[], campaigns: any[] }): string {
+function getAdminBotResponse(message: string, data: { users: any[], transactions: any[], campaigns: any[], adApplications?: any[] }): string {
   const lower = message.toLowerCase();
   const { users, transactions, campaigns } = data;
   const pendingPayouts = transactions.filter((t: any) => t.status === 'pending');
@@ -226,8 +238,14 @@ function getAdminBotResponse(message: string, data: { users: any[], transactions
   const creators = users.filter((u: any) => u.userType === 'creator');
   const brands = users.filter((u: any) => u.userType === 'brand');
 
+  const pendingAdApps = data.adApplications ? data.adApplications.filter((a: any) => a.status === 'pending') : [];
+
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return `Hello, Admin! 👋 Here's your platform snapshot:\n\n⏳ **${pendingPayouts.length}** pending payouts\n👤 **${unverifiedUsers.length}** users awaiting verification\n🎯 **${activeCampaigns.length}** active campaigns\n💰 **$${totalRevenue.toFixed(2)}** total volume\n\nWhat would you like to review?`;
+    return `Hello, Admin! 👋 Here's your platform snapshot:\n\n${pendingAdApps.length > 0 ? `🔔 **${pendingAdApps.length}** ad application${pendingAdApps.length !== 1 ? 's' : ''} awaiting review\n` : ''}⏳ **${pendingPayouts.length}** pending payouts\n👤 **${unverifiedUsers.length}** users awaiting verification\n🎯 **${activeCampaigns.length}** active campaigns\n💰 **$${totalRevenue.toFixed(2)}** total volume\n\nWhat would you like to review?`;
+  }
+  if (lower.includes("ad application") || lower.includes("ads application") || lower.includes("advertise") || lower.includes("advertising application")) {
+    const allApps = data.adApplications || [];
+    return `Advertising Applications:\n\n🔔 **Pending**: ${pendingAdApps.length} need your response\n✅ **Contacted**: ${allApps.filter((a: any) => a.status === 'contacted').length}\n👍 **Approved**: ${allApps.filter((a: any) => a.status === 'approved').length}\n❌ **Rejected**: ${allApps.filter((a: any) => a.status === 'rejected').length}\n\n${pendingAdApps.length > 0 ? `Latest: "${pendingAdApps[0]?.companyName}" applied for ${(pendingAdApps[0]?.adType || '').replace(/_/g, ' ')}.` : 'No pending applications.'}\n\nGo to **[Admin Ads → Applications tab](/admin-ads)** to view and reply.`;
   }
   if (lower.includes("payout") || lower.includes("withdrawal") || lower.includes("payment")) {
     return `Payout overview:\n\n⏳ **Pending**: ${pendingPayouts.length} requests awaiting processing\n✅ **Completed**: ${completedTx.length} transactions\n💰 **Total volume**: $${totalRevenue.toFixed(2)}\n\nTo process payouts, go to Admin Dashboard → Transactions tab. Always verify wallet addresses before approving — crypto transfers are irreversible!`;
@@ -576,6 +594,12 @@ export function GuideBot() {
     enabled: isAuthenticated && isAdmin,
   });
 
+  const { data: adminAdApplications = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/advertise-applications"],
+    enabled: isAuthenticated && isAdmin,
+    refetchInterval: 60000,
+  });
+
   const sendToInboxMutation = useMutation({
     mutationFn: async (content: string) => {
       const res = await apiRequest("POST", "/api/guide/send-to-inbox", {
@@ -608,11 +632,13 @@ export function GuideBot() {
       const company = (user as any)?.companyName || firstName;
       const pendingCount = (adminTransactions as any[]).filter((t: any) => t.status === 'pending').length;
       const unverifiedCount = (adminUsers as any[]).filter((u: any) => !u.isVerified && u.userType !== 'admin').length;
+      const pendingAppsCount = (adminAdApplications as any[]).filter((a: any) => a.status === 'pending').length;
+      const latestApp = (adminAdApplications as any[]).find((a: any) => a.status === 'pending');
       const welcome: ChatMessage = {
         id: "welcome",
         role: "bot",
         content: isAdmin
-          ? `Hello, ${firstName}! 🛡️ I'm your Admin Assistant — monitoring the platform in real time.\n\n${pendingCount > 0 ? `⚠️ **${pendingCount}** pending payout${pendingCount !== 1 ? 's' : ''} need attention.\n` : ''}${unverifiedCount > 0 ? `👤 **${unverifiedCount}** user${unverifiedCount !== 1 ? 's' : ''} awaiting verification.\n` : ''}${pendingCount === 0 && unverifiedCount === 0 ? '✅ All caught up — no urgent actions required.\n' : ''}\nCheck the **Alerts** tab for a full platform overview, or ask me anything.`
+          ? `Hello, ${firstName}! 🛡️ I'm your Admin Assistant — monitoring the platform in real time.\n\n${pendingAppsCount > 0 ? `🔔 **${pendingAppsCount}** new ad application${pendingAppsCount !== 1 ? 's' : ''} pending review${latestApp ? ` — "${latestApp.companyName}" just applied!` : ''}. [Review now →](/admin-ads)\n` : ''}${pendingCount > 0 ? `⚠️ **${pendingCount}** pending payout${pendingCount !== 1 ? 's' : ''} need attention.\n` : ''}${unverifiedCount > 0 ? `👤 **${unverifiedCount}** user${unverifiedCount !== 1 ? 's' : ''} awaiting verification.\n` : ''}${pendingAppsCount === 0 && pendingCount === 0 && unverifiedCount === 0 ? '✅ All caught up — no urgent actions required.\n' : ''}\nCheck the **Alerts** tab for a full platform overview, or ask me anything.`
           : isBrand
           ? `Welcome, ${company}! 👋 I'm your Taskdrip Brand Advisor. I help brands find the right influencers, launch campaigns, and get the most out of influencer marketing. Check the **Recommendations** tab for personalised tips, or ask me anything!`
           : `Hey ${firstName}! 👋 I'm your Taskdrip Guide — powered by real profile analysis. Check the **Recommendations** tab for personalised growth tips, or chat with me for advice on your ${(user as any)?.niche || 'content'} niche and earnings!`,
@@ -660,7 +686,7 @@ export function GuideBot() {
       setChatMessages(prev => [...prev, botResponse]);
     } catch (err: any) {
       const fallback = isAdmin
-        ? getAdminBotResponse(input, { users: adminUsers as any[], transactions: adminTransactions as any[], campaigns: adminCampaigns as any[] })
+        ? getAdminBotResponse(input, { users: adminUsers as any[], transactions: adminTransactions as any[], campaigns: adminCampaigns as any[], adApplications: adminAdApplications as any[] })
         : isBrand
         ? getBrandBotResponse(input, user)
         : getCreatorBotResponse(input, user, socialLinks as any[]);
@@ -672,7 +698,7 @@ export function GuideBot() {
   };
 
   const recommendations = isAdmin
-    ? analyzeAdminPlatform(adminUsers as any[], adminTransactions as any[], adminCampaigns as any[])
+    ? analyzeAdminPlatform(adminUsers as any[], adminTransactions as any[], adminCampaigns as any[], adminAdApplications as any[])
     : isBrand
     ? analyzeBrandProfile(user)
     : analyzeCreatorProfile(user, socialLinks as any[]);
@@ -885,7 +911,7 @@ export function GuideBot() {
                             setIsAiTyping(true);
                             setTimeout(() => {
                               const response = isAdmin
-                                ? getAdminBotResponse(flow.msg, { users: adminUsers as any[], transactions: adminTransactions as any[], campaigns: adminCampaigns as any[] })
+                                ? getAdminBotResponse(flow.msg, { users: adminUsers as any[], transactions: adminTransactions as any[], campaigns: adminCampaigns as any[], adApplications: adminAdApplications as any[] })
                                 : isBrand
                                 ? getBrandBotResponse(flow.msg, user)
                                 : getCreatorBotResponse(flow.msg, user, socialLinks as any[]);

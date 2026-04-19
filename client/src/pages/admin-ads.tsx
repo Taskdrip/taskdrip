@@ -13,13 +13,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Navigation } from "@/components/ui/navigation";
 import {
   Megaphone, Plus, Edit, Trash2, Eye, MousePointerClick, BarChart3, ExternalLink,
   Image, Monitor, Smartphone, Globe, ArrowLeft, AlertCircle, CheckCircle2,
   XCircle, Clock, ShoppingBag, BookOpen, Rss, Newspaper, Target, Settings,
   TrendingUp, DollarSign, ToggleLeft, Code2, Shield, Upload, X, LayoutDashboard,
-  Laptop, Tablet
+  Laptop, Tablet, Mail, MessageSquare, Send, Building2, Phone, Tag, Gift, Coins,
+  ChevronRight, User, Calendar
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -238,6 +240,280 @@ function AdForm({ form, setForm, imageFile, setImageFile, logoFile, setLogoFile 
   );
 }
 
+const AD_TYPE_LABELS: Record<string, string> = {
+  platform_ads: "Platform Ads",
+  social_media: "Social Media Promotion",
+  influencer_network: "Influencer Network",
+  sponsored_content: "Sponsored Blog / Content",
+  featured_post: "Featured / Sponsored Post",
+  giveaway_campaign: "Giveaway Campaign",
+  all: "Full Package",
+};
+
+const BUDGET_LABELS: Record<string, string> = {
+  under_500: "Under $500/mo",
+  "500_2000": "$500 – $2,000/mo",
+  "2000_10000": "$2,000 – $10,000/mo",
+  over_10000: "$10,000+/mo",
+};
+
+function ApplicationDetailDialog({ app, onClose, onStatusChange }: {
+  app: any;
+  onClose: () => void;
+  onStatusChange: (status: string) => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [emailSubject, setEmailSubject] = useState(`Re: Your Advertising Application – ${app.companyName}`);
+  const [emailBody, setEmailBody] = useState(`Hi ${app.contactName || app.companyName},\n\nThank you for your interest in advertising with Taskdrip! We've reviewed your application and would love to discuss your campaign in more detail.\n\nBest regards,\nTaskdrip Advertising Team`);
+  const [activeTab, setActiveTab] = useState<"details" | "email">("details");
+  const [adminNote, setAdminNote] = useState(app.adminNotes || "");
+
+  const emailMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", `/api/admin/advertise-applications/${app.id}/email`, data),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/advertise-applications"] });
+      toast({ title: data?.emailSent ? "Email sent successfully!" : "Reply saved (email unavailable — SENDGRID_API_KEY not set)", description: data?.emailSent ? `Sent to ${app.email}` : "Application marked as contacted." });
+      onStatusChange("contacted");
+    },
+    onError: () => toast({ title: "Failed to send email", variant: "destructive" }),
+  });
+
+  const noteMutation = useMutation({
+    mutationFn: (notes: string) => apiRequest("PATCH", `/api/admin/advertise-applications/${app.id}`, { adminNotes: notes }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/advertise-applications"] }); toast({ title: "Notes saved" }); },
+  });
+
+  const statusColor = {
+    approved: "bg-green-50 text-green-700 border-green-200",
+    rejected: "bg-red-50 text-red-700 border-red-200",
+    contacted: "bg-blue-50 text-blue-700 border-blue-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+  }[app.status] || "bg-gray-50 text-gray-600 border-gray-200";
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto p-0">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-start justify-between">
+            <div>
+              <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-blue-600" />
+                {app.companyName}
+              </DialogTitle>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <Badge variant="outline" className={statusColor}>
+                  {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                </Badge>
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  {AD_TYPE_LABELS[app.adType] || app.adType}
+                </Badge>
+                {app.budget && (
+                  <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                    {BUDGET_LABELS[app.budget] || app.budget}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <Select value={app.status} onValueChange={onStatusChange}>
+              <SelectTrigger className="w-36 h-8 text-xs" data-testid={`select-detail-status-${app.id}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="contacted">Contacted</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-100">
+          <button onClick={() => setActiveTab("details")} className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${activeTab === "details" ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" : "text-gray-500 hover:text-gray-700"}`}>
+            <User className="h-4 w-4" /> Applicant Details
+          </button>
+          <button onClick={() => setActiveTab("email")} className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${activeTab === "email" ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" : "text-gray-500 hover:text-gray-700"}`}>
+            <Mail className="h-4 w-4" /> Reply by Email
+          </button>
+        </div>
+
+        <div className="px-6 py-5">
+          {activeTab === "details" && (
+            <div className="space-y-5">
+              {/* Contact info */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: User, label: "Contact Name", value: app.contactName },
+                  { icon: Mail, label: "Email", value: app.email, href: `mailto:${app.email}` },
+                  { icon: Phone, label: "Phone", value: app.phone || "—" },
+                  { icon: Globe, label: "Website", value: app.website || "—", href: app.website },
+                  { icon: Tag, label: "Industry", value: app.industry?.replace(/_/g, " ") || "—" },
+                  { icon: Calendar, label: "Applied", value: app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "—" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-start gap-2.5">
+                    <div className="p-1.5 bg-gray-100 rounded-lg mt-0.5 flex-shrink-0">
+                      <item.icon className="h-3.5 w-3.5 text-gray-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-400">{item.label}</p>
+                      {item.href ? (
+                        <a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">{item.value}</a>
+                      ) : (
+                        <p className="text-sm font-medium text-gray-900 truncate">{item.value}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Separator />
+
+              {/* Campaign info */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Campaign Details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                    <p className="text-xs text-blue-500 mb-0.5">Ad Type</p>
+                    <p className="text-sm font-bold text-blue-900">{AD_TYPE_LABELS[app.adType] || app.adType}</p>
+                  </div>
+                  <div className="rounded-xl bg-green-50 border border-green-100 p-3">
+                    <p className="text-xs text-green-500 mb-0.5">Budget Range</p>
+                    <p className="text-sm font-bold text-green-900">{BUDGET_LABELS[app.budget] || app.budget || "Not specified"}</p>
+                  </div>
+                  {app.platforms && (
+                    <div className="col-span-2 rounded-xl bg-gray-50 border border-gray-100 p-3">
+                      <p className="text-xs text-gray-500 mb-0.5">Preferred Channels</p>
+                      <p className="text-sm font-medium text-gray-900">{app.platforms}</p>
+                    </div>
+                  )}
+                  {app.tdripBudget && (
+                    <div className="col-span-2 rounded-xl bg-violet-50 border border-violet-100 p-3">
+                      <p className="text-xs text-violet-500 mb-0.5">$TDRIP Points Budget</p>
+                      <p className="text-sm font-medium text-violet-900">{app.tdripBudget}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(app.goals || app.giveawayType || app.message) && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    {app.goals && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Campaign Goals</p>
+                        <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 leading-relaxed">{app.goals}</p>
+                      </div>
+                    )}
+                    {app.giveawayType && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1"><Gift className="h-3.5 w-3.5" /> Giveaway / Task Requirements</p>
+                        <p className="text-sm text-gray-700 bg-emerald-50 rounded-xl p-3 border border-emerald-100 leading-relaxed">{app.giveawayType}</p>
+                      </div>
+                    )}
+                    {app.message && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Additional Message</p>
+                        <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 leading-relaxed italic">"{app.message}"</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              <Separator />
+
+              {/* Admin notes */}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Internal Notes</p>
+                <Textarea
+                  value={adminNote}
+                  onChange={e => setAdminNote(e.target.value)}
+                  placeholder="Add internal notes about this applicant..."
+                  rows={3}
+                  className="text-sm resize-none"
+                  data-testid={`textarea-admin-notes-${app.id}`}
+                />
+                <Button size="sm" variant="outline" className="mt-2" onClick={() => noteMutation.mutate(adminNote)} disabled={noteMutation.isPending}>
+                  {noteMutation.isPending ? "Saving..." : "Save Notes"}
+                </Button>
+              </div>
+
+              {/* Quick actions */}
+              <div className="flex gap-2 pt-1">
+                <a href={`mailto:${app.email}`} className="flex-1">
+                  <Button size="sm" variant="outline" className="w-full gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50">
+                    <Mail className="h-3.5 w-3.5" /> Open Email Client
+                  </Button>
+                </a>
+                <Button size="sm" className="flex-1 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setActiveTab("email")}>
+                  <Send className="h-3.5 w-3.5" /> Compose Reply
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "email" && (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 flex items-center gap-2.5">
+                <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-blue-500">Sending to</p>
+                  <p className="text-sm font-semibold text-blue-900">{app.contactName} — {app.email}</p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="mb-1.5 block">Subject</Label>
+                <Input
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  data-testid="input-email-subject"
+                  className="text-sm"
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5 block">Message</Label>
+                <Textarea
+                  value={emailBody}
+                  onChange={e => setEmailBody(e.target.value)}
+                  rows={10}
+                  className="text-sm resize-none"
+                  data-testid="input-email-body"
+                  placeholder="Write your reply here..."
+                />
+              </div>
+
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 flex gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">Email is sent via Taskdrip's system. The applicant status will be updated to "Contacted" and your reply will be saved to the application record.</p>
+              </div>
+
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                onClick={() => emailMutation.mutate({ subject: emailSubject, body: emailBody, applicantEmail: app.email, applicantName: app.contactName })}
+                disabled={emailMutation.isPending || !emailSubject || !emailBody}
+                data-testid="button-send-email"
+              >
+                {emailMutation.isPending ? "Sending..." : <><Send className="h-4 w-4" /> Send Email Reply</>}
+              </Button>
+
+              <div className="text-center">
+                <a href={`mailto:${app.email}?subject=${encodeURIComponent(emailSubject)}`} className="text-xs text-gray-400 hover:text-gray-600 underline">
+                  Or open in your local email client instead →
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AnalyticsBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
@@ -398,6 +674,7 @@ export default function AdminAds() {
   const [adSenseCode, setAdSenseCode] = useState("");
   const [adSenseEnabled, setAdSenseEnabled] = useState(false);
   const [filterPlacement, setFilterPlacement] = useState("all");
+  const [selectedApp, setSelectedApp] = useState<any>(null);
 
   const { data: ads = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/ads"] });
   const { data: applications = [] } = useQuery<any[]>({ queryKey: ["/api/admin/advertise-applications"] });
@@ -647,56 +924,73 @@ export default function AdminAds() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {applications.map((app: any) => (
-                  <Card key={app.id} data-testid={`card-app-${app.id}`} className="border shadow-sm">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <p className="font-semibold text-gray-900">{app.companyName}</p>
-                            <Badge variant="outline" className={
-                              app.status === "approved" ? "bg-green-50 text-green-700 border-green-200" :
-                              app.status === "rejected" ? "bg-red-50 text-red-700 border-red-200" :
-                              app.status === "contacted" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                              "bg-amber-50 text-amber-700 border-amber-200"
-                            }>
-                              {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                            </Badge>
+              <div className="space-y-3">
+                {applications.map((app: any) => {
+                  const statusColor = {
+                    approved: "bg-green-50 text-green-700 border-green-200",
+                    rejected: "bg-red-50 text-red-700 border-red-200",
+                    contacted: "bg-blue-50 text-blue-700 border-blue-200",
+                    pending: "bg-amber-50 text-amber-700 border-amber-200",
+                  }[app.status] || "bg-gray-50 text-gray-500 border-gray-200";
+
+                  return (
+                    <Card
+                      key={app.id}
+                      data-testid={`card-app-${app.id}`}
+                      className="border shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-blue-200"
+                      onClick={() => setSelectedApp(app)}
+                    >
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2 flex-wrap">
+                              <p className="font-bold text-gray-900">{app.companyName}</p>
+                              <Badge variant="outline" className={statusColor}>
+                                {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                              </Badge>
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                {AD_TYPE_LABELS[app.adType] || app.adType?.replace(/_/g, " ")}
+                              </Badge>
+                              {app.status === "pending" && (
+                                <Badge className="bg-red-500 text-white text-xs animate-pulse">Action Required</Badge>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
+                              <div><span className="text-xs text-gray-400">Contact</span><p className="font-medium">{app.contactName}</p></div>
+                              <div><span className="text-xs text-gray-400">Email</span><p className="font-medium truncate">{app.email}</p></div>
+                              <div><span className="text-xs text-gray-400">Budget</span><p className="font-medium">{BUDGET_LABELS[app.budget] || app.budget || "Not specified"}</p></div>
+                              <div><span className="text-xs text-gray-400">Applied</span><p className="font-medium">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "—"}</p></div>
+                            </div>
+                            {app.message && <p className="text-sm text-gray-500 mt-2 italic line-clamp-1">"{app.message}"</p>}
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 mb-3">
-                            <div><span className="text-xs text-gray-400">Contact</span><p className="font-medium">{app.contactName}</p></div>
-                            <div><span className="text-xs text-gray-400">Email</span><p className="font-medium">{app.email}</p></div>
-                            <div><span className="text-xs text-gray-400">Ad Type</span><p className="font-medium capitalize">{app.adType?.replace(/_/g, " ")}</p></div>
-                            <div><span className="text-xs text-gray-400">Budget</span><p className="font-medium">{app.budget?.replace(/_/g, " – ") || "Not specified"}</p></div>
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                              onClick={e => { e.stopPropagation(); setSelectedApp(app); }}
+                              data-testid={`button-view-app-${app.id}`}
+                            >
+                              <Eye className="h-3.5 w-3.5" /> View & Reply
+                            </Button>
+                            <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
+                              <Select value={app.status} onValueChange={status => appUpdateMutation.mutate({ id: app.id, data: { status } })}>
+                                <SelectTrigger className="w-32 h-7 text-xs" data-testid={`select-app-status-${app.id}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="contacted">Contacted</SelectItem>
+                                  <SelectItem value="approved">Approved</SelectItem>
+                                  <SelectItem value="rejected">Rejected</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          {app.message && <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3 mb-3">"{app.message}"</p>}
                         </div>
-                      </div>
-                      <div className="flex gap-2 pt-3 border-t border-gray-100">
-                        <Select value={app.status} onValueChange={status => appUpdateMutation.mutate({ id: app.id, data: { status } })}>
-                          <SelectTrigger className="w-40 h-8 text-sm" data-testid={`select-app-status-${app.id}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="contacted">Contacted</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <a href={`mailto:${app.email}`}>
-                          <Button size="sm" variant="outline" className="gap-2"><ExternalLink className="h-3.5 w-3.5" />Email</Button>
-                        </a>
-                        {app.website && (
-                          <a href={app.website} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" variant="outline" className="gap-2"><Globe className="h-3.5 w-3.5" />Website</Button>
-                          </a>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -779,6 +1073,18 @@ export default function AdminAds() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Application Detail Dialog */}
+      {selectedApp && (
+        <ApplicationDetailDialog
+          app={selectedApp}
+          onClose={() => setSelectedApp(null)}
+          onStatusChange={status => {
+            appUpdateMutation.mutate({ id: selectedApp.id, data: { status } });
+            setSelectedApp((prev: any) => prev ? { ...prev, status } : null);
+          }}
+        />
+      )}
     </div>
   );
 }
