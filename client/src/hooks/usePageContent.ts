@@ -12,17 +12,22 @@ interface ContentBlock {
 }
 
 export function usePageContent(page: string) {
-  const { data = [] } = useQuery<ContentBlock[]>({
+  const { data } = useQuery<ContentBlock[]>({
     queryKey: ["/api/page-content", page],
-    queryFn: () => fetch(`/api/page-content/${page}`).then((r) => r.json()),
+    queryFn: () =>
+      fetch(`/api/page-content/${page}`)
+        .then((r) => r.json())
+        .then((d) => (Array.isArray(d) ? d : [])),
     staleTime: 60_000,
   });
 
+  const blocks: ContentBlock[] = Array.isArray(data) ? data : [];
+
   function get(section: string, key: string, fallback = ""): string {
-    const block = data.find((b) => b.section === section && b.key === key);
+    const block = blocks.find((b) => b.section === section && b.key === key);
     if (!block) return fallback;
     return block.value || block.defaultValue || fallback;
   }
 
-  return { get, blocks: data };
+  return { get, blocks };
 }
