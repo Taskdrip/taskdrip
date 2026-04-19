@@ -139,7 +139,7 @@ function Router() {
             } else if (userType === 'brand') {
               return <BrandDashboard />;
             } else {
-              return <Profile />;
+              return <SimpleDashboard />;
             }
           }} />
           <Route path="/user-profile" component={UserProfile} />

@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
@@ -425,24 +426,44 @@ export default function BrandDashboard() {
     }
   };
 
+  const pendingApplicationsCount = (applications as any[]).filter((a: any) => a.status === "pending" || a.status === "submitted").length;
+  const pendingSubmissionsCount = (submissions as any[]).filter((s: any) => s.status === "pending").length;
+  const urgentCount = pendingApplicationsCount + pendingSubmissionsCount;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Brand Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {(user as any)?.firstName}! Manage your campaigns and influencers.</p>
-            </div>
-            <Dialog open={isCreateCampaignOpen} onOpenChange={setIsCreateCampaignOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4" />
-                  Create Campaign
-                </Button>
-              </DialogTrigger>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* ── Brand Profile Banner ─────────────────────────────────────────── */}
+        <div className="rounded-2xl overflow-hidden mb-6 shadow-sm border border-gray-100">
+          <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-700" />
+          <div className="bg-white px-6 pb-5">
+            <div className="flex items-end gap-4 -mt-10 flex-wrap">
+              <div className="h-20 w-20 rounded-2xl border-4 border-white shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0">
+                <Building2 className="h-9 w-9 text-white" />
+              </div>
+              <div className="flex-1 min-w-0 mt-10">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-bold text-gray-900 truncate">
+                    {(user as any)?.companyName || `${(user as any)?.firstName || ""} ${(user as any)?.lastName || ""}`.trim() || "Brand"}
+                  </h1>
+                  {(user as any)?.isVerified && <span className="text-blue-500 text-sm">✓</span>}
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 border text-xs">🏢 Brand</Badge>
+                  {(user as any)?.industry && <Badge variant="outline" className="text-xs">{(user as any).industry}</Badge>}
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {(user as any)?.website ? (user as any).website : (user as any)?.email}
+                </p>
+              </div>
+              <div className="flex gap-2 mt-2 sm:mt-0 flex-wrap">
+                <Dialog open={isCreateCampaignOpen} onOpenChange={setIsCreateCampaignOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-sm" data-testid="button-create-campaign">
+                      <Plus className="h-4 w-4 mr-1.5" />Create Campaign
+                    </Button>
+                  </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Campaign</DialogTitle>
@@ -742,11 +763,46 @@ export default function BrandDashboard() {
                 </Form>
               </DialogContent>
             </Dialog>
+                <Link href="/profile-edit">
+                  <Button variant="outline" size="sm" className="text-sm" data-testid="button-brand-edit-profile">Edit Profile</Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Mini stats row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+              {[
+                { label: "Total Campaigns",  value: stats?.totalCampaigns   ?? "—", color: "text-blue-600" },
+                { label: "Active Now",        value: stats?.activeCampaigns  ?? "—", color: "text-green-600" },
+                { label: "Influencers Hired", value: stats?.totalCreators    ?? "—", color: "text-purple-600" },
+                { label: "Total Paid Out",    value: `$${parseFloat(String(stats?.totalSpent || "0")).toFixed(2)}`, color: "text-orange-600" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-gray-50 rounded-xl px-3 py-2 text-center">
+                  <p className={`font-bold text-sm ${color}`}>{value}</p>
+                  <p className="text-[10px] text-gray-500">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-6 py-8">
+        {/* Alerts */}
+        {urgentCount > 0 && (
+          <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
+            <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
+            <p className="text-sm text-orange-800 flex-1 font-medium">
+              You have <strong>{urgentCount}</strong> item{urgentCount > 1 ? "s" : ""} needing your attention
+              {pendingApplicationsCount > 0 && ` (${pendingApplicationsCount} application${pendingApplicationsCount > 1 ? "s" : ""})`}
+              {pendingSubmissionsCount > 0 && ` (${pendingSubmissionsCount} submission${pendingSubmissionsCount > 1 ? "s" : ""})`}.
+            </p>
+            <div className="flex gap-2">
+              {pendingApplicationsCount > 0 && <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-xs" onClick={() => setSelectedTab("applications")}>Review</Button>}
+              {pendingSubmissionsCount > 0 && <Button size="sm" variant="outline" className="text-xs border-orange-300 text-orange-700" onClick={() => setSelectedTab("submissions")}>Submissions</Button>}
+            </div>
+          </div>
+        )}
+
+        <div className="pb-8">
         {/* Stats Cards */}
         {!statsLoading && stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
@@ -817,39 +873,35 @@ export default function BrandDashboard() {
         )}
 
         {/* Navigation Tabs */}
-        <div className="flex border-b mb-8 overflow-x-auto">
-          {[
-            { id: "overview", label: "Overview", icon: BarChart3 },
-            { id: "campaigns", label: "My Campaigns", icon: Target },
-            { id: "applications", label: "Applications", icon: Users },
-            { id: "submissions", label: "Submissions", icon: CheckCircle },
-            { id: "influencers", label: "Influencers", icon: Users },
-            { id: "direct-hires", label: "Direct Hires", icon: Briefcase },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setSelectedTab(tab.id as any)}
-              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors whitespace-nowrap ${
-                selectedTab === tab.id
-                  ? "border-b-2 border-blue-500 text-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-              {tab.id === "applications" && applications.filter(app => app.status === 'pending' || app.status === 'submitted').length > 0 && (
-                <Badge variant="destructive" className="ml-1">
-                  {applications.filter(app => app.status === 'pending' || app.status === 'submitted').length}
-                </Badge>
-              )}
-              {tab.id === "submissions" && submissions.filter(s => s.status === 'pending').length > 0 && (
-                <Badge variant="destructive" className="ml-1">
-                  {submissions.filter(s => s.status === 'pending').length}
-                </Badge>
-              )}
-            </button>
-          ))}
-        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="flex overflow-x-auto border-b border-gray-100 px-2">
+            {[
+              { id: "overview",     label: "Overview",      icon: BarChart3,   badge: 0 },
+              { id: "campaigns",    label: "My Campaigns",  icon: Target,      badge: 0 },
+              { id: "applications", label: "Applications",  icon: Users,       badge: pendingApplicationsCount },
+              { id: "submissions",  label: "Submissions",   icon: CheckCircle, badge: pendingSubmissionsCount },
+              { id: "influencers",  label: "Influencers",   icon: Users,       badge: 0 },
+              { id: "direct-hires", label: "Direct Hires",  icon: Briefcase,   badge: 0 },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setSelectedTab(t.id as any)}
+                className={`flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  selectedTab === t.id
+                    ? "border-blue-600 text-blue-700"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+                data-testid={`brand-tab-${t.id}`}
+              >
+                <t.icon className="h-4 w-4" />
+                {t.label}
+                {t.badge > 0 && (
+                  <Badge className="ml-1 bg-red-500 text-white text-[10px] border-0 px-1.5 h-4">{t.badge}</Badge>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="p-5">
 
         {/* Tab Content */}
         {selectedTab === "overview" && (
@@ -1594,6 +1646,9 @@ export default function BrandDashboard() {
             )}
           </div>
         )}
+          </div>
+        </div>
+      </div>
       </div>
       
       <Footer />
