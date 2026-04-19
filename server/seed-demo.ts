@@ -537,14 +537,16 @@ const PAYMENT_NETWORKS_DATA = [
 ];
 
 // Default payment methods seeded into payment_methods table
+// ⚠️ DEMO ADDRESSES: These are placeholder addresses for testing only.
+// Admin MUST update these with real wallet addresses before going live.
 const DEFAULT_PAYMENT_METHODS_DATA = [
   {
     type: "crypto",
     label: "USDT – TON Network",
     network: "TON",
     currency: "USDT",
-    address: "",
-    instructions: "Send USDT on the TON network to this address. Minimum 1 USDT. Low gas fees.",
+    address: "UQBDEMOtonaddressXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    instructions: "⚠️ DEMO ADDRESS — Update this with your real TON wallet before accepting live payments. Send USDT on the TON network. Minimum 1 USDT. Low gas fees.",
     isActive: true,
     sortOrder: 1,
   },
@@ -553,8 +555,8 @@ const DEFAULT_PAYMENT_METHODS_DATA = [
     label: "USDT – Tron (TRC-20)",
     network: "TRC-20",
     currency: "USDT",
-    address: "",
-    instructions: "Send USDT on the Tron TRC-20 network. Fast and cheap transactions.",
+    address: "TDEMOtrc20addressXXXXXXXXXXXXXXXXXX",
+    instructions: "⚠️ DEMO ADDRESS — Update this with your real TRC-20 wallet before accepting live payments. Send USDT on the Tron TRC-20 network. Fast and cheap transactions.",
     isActive: true,
     sortOrder: 2,
   },
@@ -563,8 +565,8 @@ const DEFAULT_PAYMENT_METHODS_DATA = [
     label: "USDT – BNB Smart Chain (BEP-20)",
     network: "BEP-20",
     currency: "USDT",
-    address: "",
-    instructions: "Send USDT on BNB Smart Chain (BEP-20). Low fees via Binance ecosystem.",
+    address: "0xDEMObep20addressXXXXXXXXXXXXXXXXXXXXXXXX",
+    instructions: "⚠️ DEMO ADDRESS — Update this with your real BEP-20 wallet before accepting live payments. Send USDT on BNB Smart Chain (BEP-20). Low fees via Binance ecosystem.",
     isActive: true,
     sortOrder: 3,
   },
@@ -573,8 +575,8 @@ const DEFAULT_PAYMENT_METHODS_DATA = [
     label: "Pi Network",
     network: "Pi",
     currency: "PI",
-    address: "",
-    instructions: "Send Pi to the wallet address or username shown. Enter your Pi username or wallet in the reference field.",
+    address: "demo_pi_username",
+    instructions: "⚠️ DEMO ADDRESS — Update this with your real Pi username before accepting live payments. Enter your Pi username or wallet in the reference field.",
     isActive: true,
     sortOrder: 4,
   },

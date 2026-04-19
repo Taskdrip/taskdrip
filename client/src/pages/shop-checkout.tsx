@@ -253,8 +253,9 @@ function ShopCheckoutAuth({ product, onAuthSuccess }: { product: ShopProduct | u
     },
     onSuccess: (data: any) => {
       queryClient.setQueryData(["/api/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({ title: "Welcome back!", description: `Logged in as ${data.user.firstName}. Continuing to checkout…` });
+      // Delay invalidation to avoid race condition that briefly clears user and shows auth screen again
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["/api/user"] }), 1000);
     },
     onError: (err: any) => {
       toast({ title: "Login failed", description: err.message || "Invalid credentials.", variant: "destructive" });
@@ -268,8 +269,9 @@ function ShopCheckoutAuth({ product, onAuthSuccess }: { product: ShopProduct | u
     },
     onSuccess: (data: any) => {
       queryClient.setQueryData(["/api/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({ title: `Welcome aboard, ${data.user.firstName}! 🎉`, description: "Account created! Continuing your purchase…" });
+      // Delay invalidation to avoid race condition that briefly clears user and shows auth screen again
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["/api/user"] }), 1000);
     },
     onError: (err: any) => {
       toast({ title: "Registration failed", description: err.message || "Could not create account.", variant: "destructive" });

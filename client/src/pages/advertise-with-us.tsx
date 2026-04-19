@@ -308,7 +308,8 @@ export default function AdvertiseWithUs() {
       setCheckoutApplication(app2);
       setSubmitted(false);
       setCheckoutSummary(false);
-      setCheckoutOpen(true);
+      // Delay opening the next dialog to let Radix UI fully unmount the previous one
+      setTimeout(() => setCheckoutOpen(true), 250);
     } catch (_) {
       toast({ title: "Failed to create checkout order", variant: "destructive" });
     } finally {
@@ -976,7 +977,8 @@ export default function AdvertiseWithUs() {
         onAuthSuccess={() => {
           setShowAuthModal(false);
           setPendingCheckoutAfterAuth(false);
-          setCheckoutSummary(true);
+          // Delay opening next dialog to allow Radix UI to fully close the auth dialog first
+          setTimeout(() => setCheckoutSummary(true), 250);
         }}
         orderPreview={{
           adType: BASE_PRICES[form.adType]?.label || form.adType?.replace(/_/g, " ") || "Advertising",
@@ -1048,8 +1050,8 @@ function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orde
         return;
       }
       queryClient.setQueryData(["/api/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({ title: "Welcome back!", description: `Logged in as ${data.user.firstName}. Continuing your checkout…` });
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["/api/user"] }), 1000);
       onAuthSuccess();
     },
     onError: (err: any) => {
@@ -1064,8 +1066,8 @@ function AdsCheckoutAuthModal({ open, onClose, onAuthSuccess, onGoToSignup, orde
     },
     onSuccess: (data: any) => {
       queryClient.setQueryData(["/api/user"], data.user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({ title: `Welcome, ${data.user.firstName}! 🎉`, description: "Account created! Your order details are saved — continuing to checkout…" });
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["/api/user"] }), 1000);
       onAuthSuccess();
     },
     onError: (err: any) => {

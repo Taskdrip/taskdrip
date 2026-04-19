@@ -4774,6 +4774,18 @@ export default function AdminMaster() {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* ⚠️ Demo wallet reminder banner */}
+                {paymentMethodsList.some((m: any) => m.type === "crypto" && (!m.address || m.address.includes("DEMO") || m.address.includes("XXX") || m.address === "demo_pi_username")) && (
+                  <div className="mb-5 flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl p-4">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold text-amber-800 text-sm">Action Required: Update Your Wallet Addresses</p>
+                      <p className="text-amber-700 text-xs mt-1">
+                        One or more crypto wallets still have <strong>demo/placeholder addresses</strong>. Users sending payments to these addresses will <strong>lose their funds</strong>. Click the edit (pencil) icon on each wallet below and replace the address with your real receiving wallet before going live.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {paymentMethodsList.length === 0 ? (
                   <div className="text-center py-10 text-gray-400">
                     <Wallet className="h-10 w-10 mx-auto mb-3" />
@@ -4816,7 +4828,22 @@ export default function AdminMaster() {
                           <div className="space-y-1 text-xs text-gray-600">
                             {method.network && <p><span className="font-medium">Network:</span> {method.network}</p>}
                             {method.currency && <p><span className="font-medium">Currency:</span> {method.currency}</p>}
-                            {method.address && <p className="font-mono bg-gray-100 px-2 py-1 rounded break-all">{method.address}</p>}
+                            {method.address ? (
+                              <>
+                                <p className="font-mono bg-gray-100 px-2 py-1 rounded break-all">{method.address}</p>
+                                {(method.address.includes("DEMO") || method.address.includes("XXX") || method.address === "demo_pi_username") && (
+                                  <div className="flex items-center gap-1.5 mt-1 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                                    <span className="text-amber-700 font-semibold">Demo address — edit to set your real wallet</span>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded px-2 py-1">
+                                <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                                <span className="text-red-700 font-semibold">No wallet address configured</span>
+                              </div>
+                            )}
                           </div>
                         )}
                         {method.type === 'bank' && (
