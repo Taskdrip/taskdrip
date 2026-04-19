@@ -298,16 +298,16 @@ export default function SimpleSignup() {
             <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setHighlightTab(false); }} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-1">
                 <TabsTrigger
-                  value="influencer"
+                  value="creator"
                   className={`flex items-center gap-2 transition-all duration-300 ${
-                    activeTab === 'influencer' && highlightTab
+                    activeTab === 'creator' && highlightTab
                       ? 'ring-2 ring-purple-500 ring-offset-1 animate-pulse'
                       : ''
                   }`}
                 >
                   <User className="h-4 w-4" />
                   Influencer
-                  {activeTab === 'influencer' && highlightTab && (
+                  {activeTab === 'creator' && highlightTab && (
                     <span className="ml-1 w-2 h-2 rounded-full bg-purple-500 animate-ping inline-block" />
                   )}
                 </TabsTrigger>
@@ -337,7 +337,7 @@ export default function SimpleSignup() {
                 </div>
               )}
 
-              <TabsContent value="influencer" className="space-y-4">
+              <TabsContent value="creator" className="space-y-4">
                 <form onSubmit={creatorForm.handleSubmit(onCreatorSubmit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
