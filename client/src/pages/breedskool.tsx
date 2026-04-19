@@ -289,7 +289,7 @@ export default function BreedSkool() {
 
   const isPremium = (user as any)?.subscriptionStatus === "active";
   const isAdmin = (user as any)?.userType === "admin" || (user as any)?.role === "admin";
-  const canTeach = isAdmin || (isPremium && (user as any)?.isVerified);
+  const canTeach = isAdmin || isPremium;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -475,9 +475,13 @@ export default function BreedSkool() {
           <section className="mt-16 bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-3xl p-10 text-center">
             <div className="text-4xl mb-4">🚀</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Want to Teach on BreedSkool?</h2>
-            <p className="text-gray-500 max-w-md mx-auto mb-6">
-              Upgrade to a Premium plan and become a verified influencer to start creating and selling your own courses.
+            <p className="text-gray-500 max-w-md mx-auto mb-4">
+              Upgrade to any Premium plan (Monthly or Yearly) to start creating and selling your own courses, earn from students, and build your influencer brand.
             </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-6 text-sm">
+              <div className="bg-white rounded-xl px-4 py-2 border border-violet-200 text-violet-700 font-semibold">Monthly · From $7</div>
+              <div className="bg-violet-600 text-white rounded-xl px-4 py-2 font-semibold">Yearly · From $71 (Best Value)</div>
+            </div>
             <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => setLocation("/subscription")}>
               Upgrade to Premium <ChevronRight className="h-4 w-4" />
             </Button>

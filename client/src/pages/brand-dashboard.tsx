@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
-  Briefcase, ChevronRight, Package, Coins, Upload
+  Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
@@ -85,8 +85,14 @@ export default function BrandDashboard() {
   const [location, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires">("overview");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
+  const [showCampaignUpgrade, setShowCampaignUpgrade] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [microTaskDrafts, setMicroTaskDrafts] = useState<Record<string, any>>({});
+  const [campaignTasks, setCampaignTasks] = useState<{ task: string; platform: string }[]>([{ task: "", platform: "Instagram" }]);
+  const addCampaignTask = () => setCampaignTasks(prev => [...prev, { task: "", platform: "Instagram" }]);
+  const removeCampaignTask = (i: number) => setCampaignTasks(prev => prev.filter((_, idx) => idx !== i));
+  const updateCampaignTask = (i: number, field: "task" | "platform", value: string) =>
+    setCampaignTasks(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t));
 
   // Fetch brand campaigns
   const { data: campaigns = [], isLoading: campaignLoading } = useQuery<Campaign[]>({
@@ -140,7 +146,6 @@ export default function BrandDashboard() {
       console.log("Creating campaign with data:", data);
       
       if (data.file) {
-        // Use FormData for file upload
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
           if (key !== 'file' && value !== undefined) {
@@ -148,23 +153,17 @@ export default function BrandDashboard() {
           }
         });
         formData.append('featureImage', data.file);
-        
-        const res = await fetch('/api/campaigns', {
-          method: 'POST',
-          body: formData,
-        });
-        
+        const res = await fetch('/api/campaigns', { method: 'POST', body: formData });
         if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(errorText);
+          const errData = await res.json().catch(() => ({ message: "Failed" }));
+          throw Object.assign(new Error(errData.message || "Failed to create campaign"), { status: res.status, upgradeRequired: errData.upgradeRequired });
         }
         return res.json();
       } else {
-        // Regular JSON request
         const res = await apiRequest("POST", "/api/campaigns", data);
         if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(errorText);
+          const errData = await res.json().catch(() => ({ message: "Failed" }));
+          throw Object.assign(new Error(errData.message || "Failed to create campaign"), { status: (res as any).status, upgradeRequired: errData.upgradeRequired });
         }
         return res.json();
       }
@@ -182,13 +181,14 @@ export default function BrandDashboard() {
       // Redirect to escrow payment page
       setLocation(`/escrow-payment?campaignId=${response.campaignId}`);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error("Campaign creation error:", error);
-      toast({
-        title: "Failed to create campaign",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.upgradeRequired) {
+        setIsCreateCampaignOpen(false);
+        setShowCampaignUpgrade(true);
+      } else {
+        toast({ title: "Failed to create campaign", description: error.message, variant: "destructive" });
+      }
     },
   });
 
@@ -393,9 +393,9 @@ export default function BrandDashboard() {
     const fileInput = document.getElementById('campaign-image') as HTMLInputElement;
     const file = fileInput?.files?.[0];
     
-    const preQualificationTasks = data.preQualificationTask
-      ? [{ task: data.preQualificationTask, platform: "Social", requiredProof: "Profile link or screenshot" }]
-      : [];
+    const preQualificationTasks = campaignTasks
+      .filter(t => t.task.trim())
+      .map(t => ({ task: t.task.trim(), platform: t.platform, requiredProof: "Profile link or screenshot" }));
     
     createCampaignMutation.mutate({ ...data, preQualificationTasks, file } as any);
   };
@@ -594,24 +594,39 @@ export default function BrandDashboard() {
                           Ask creators to complete a simple task before approval, then optionally reward accepted participants with $TDRIP points. 100 $TDRIP = $1.
                         </p>
                       </div>
-                      <FormField
-                        control={form.control}
-                        name="preQualificationTask"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Pre-qualification task</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Example: Follow our X account, comment on the pinned post, and submit your profile link."
-                                className="min-h-[70px] bg-white"
-                                data-testid="input-campaign-prequalification-task"
-                                {...field}
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-semibold">Pre-qualification tasks</Label>
+                        <div className="space-y-2">
+                          {campaignTasks.map((task, i) => (
+                            <div key={i} className="flex gap-2">
+                              <select
+                                value={task.platform}
+                                onChange={e => updateCampaignTask(i, "platform", e.target.value)}
+                                className="rounded-lg border border-purple-200 bg-white text-xs px-2 py-1.5 flex-shrink-0"
+                              >
+                                {["Instagram", "TikTok", "YouTube", "X (Twitter)", "Facebook", "Telegram", "Discord", "Other"].map(p => (
+                                  <option key={p} value={p}>{p}</option>
+                                ))}
+                              </select>
+                              <input
+                                value={task.task}
+                                onChange={e => updateCampaignTask(i, "task", e.target.value)}
+                                placeholder={`Task ${i + 1}: e.g., Follow our page and comment...`}
+                                className="rounded-lg border border-purple-200 bg-white text-sm px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-purple-400"
+                                data-testid={`input-campaign-task-${i}`}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              {campaignTasks.length > 1 && (
+                                <button type="button" onClick={() => removeCampaignTask(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0" title="Remove">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <button type="button" onClick={addCampaignTask} className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors" data-testid="button-add-campaign-task">
+                            <PlusCircle className="w-4 h-4" /> Add another task
+                          </button>
+                        </div>
+                      </div>
                       <FormField
                         control={form.control}
                         name="qualificationRules"
@@ -674,8 +689,15 @@ export default function BrandDashboard() {
                           )}
                         />
                       </div>
-                      <div className="rounded-lg bg-white border border-purple-100 p-3 text-sm text-purple-900" data-testid="text-campaign-tdrip-summary">
-                        $TDRIP escrow: <strong>{watchedTdripPoints * watchedTdripLimit} $TDRIP</strong> (${tdripEscrowUsd.toFixed(2)} USDT). Total upfront estimate: <strong>${(cashEscrowUsd + tdripEscrowUsd).toFixed(2)} USDT</strong>.
+                      <div className="rounded-lg bg-white border border-purple-100 p-3 text-sm text-purple-900 flex items-center justify-between gap-4" data-testid="text-campaign-tdrip-summary">
+                        <span>$TDRIP escrow: <strong>{watchedTdripPoints * watchedTdripLimit} $TDRIP</strong> (${tdripEscrowUsd.toFixed(2)} USDT). Total: <strong>${(cashEscrowUsd + tdripEscrowUsd).toFixed(2)} USDT</strong>.</span>
+                        <div className="flex-shrink-0 text-right">
+                          <p className="text-xs text-purple-500">Your balance</p>
+                          <p className="font-black text-purple-900">{((user as any)?.totalPoints || 0).toLocaleString()} $TDRIP</p>
+                          {((user as any)?.totalPoints || 0) < (watchedTdripPoints * watchedTdripLimit) && (
+                            <Link href="/wallet" className="text-xs text-purple-600 hover:underline font-semibold">+ Top Up Wallet</Link>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1652,6 +1674,32 @@ export default function BrandDashboard() {
       </div>
       
       <Footer />
+
+      {/* Campaign Upgrade Gate Dialog */}
+      <Dialog open={showCampaignUpgrade} onOpenChange={setShowCampaignUpgrade}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+              🚀 Campaign Limit Reached
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Free brand accounts can post up to <strong>3 campaigns</strong>. Upgrade to Premium to post unlimited campaigns and unlock direct influencer hiring.
+            </p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between bg-gray-50 rounded-xl px-4 py-2"><span className="text-gray-500">Free Brand</span><span className="font-bold text-gray-700">3 campaigns, no direct hire</span></div>
+              <div className="flex justify-between bg-purple-50 rounded-xl px-4 py-2 border border-purple-200"><span className="text-purple-700 font-semibold">Monthly Brand Premium</span><span className="font-bold text-purple-800">Unlimited + Direct Hire</span></div>
+              <div className="flex justify-between bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl px-4 py-2 border border-yellow-200"><span className="text-yellow-700 font-semibold">Yearly Brand Premium</span><span className="font-bold text-yellow-800">Best value · All features</span></div>
+            </div>
+            <Link href="/subscription">
+              <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl py-3" data-testid="button-brand-upgrade">
+                Upgrade Brand Account
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

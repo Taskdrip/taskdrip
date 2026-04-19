@@ -129,7 +129,7 @@ const FULL_ADMIN_TABS = [
   "overview", "users", "campaigns", "tasks", "networks", "payments", "direct-hires", "p2p",
   "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
   "settings", "pwa", "hero-sliders", "payout-center", "content-editor", "leaderboard",
-  "social-tasks", "transactions", "spotlight-content", "ad-networks",
+  "social-tasks", "transactions", "spotlight-content", "ad-networks", "feature-limits",
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -2944,6 +2944,7 @@ export default function AdminMaster() {
                 { value: "leaderboard", icon: <Trophy className="h-3.5 w-3.5" />, label: "Leaderboard" },
                 { value: "social-tasks", icon: <Zap className="h-3.5 w-3.5" />, label: "Social Tasks" },
                 { value: "transactions", icon: <Coins className="h-3.5 w-3.5" />, label: "Transactions" },
+                { value: "feature-limits", icon: <Shield className="h-3.5 w-3.5" />, label: "Feature Limits" },
               ].filter((tab) => allowedTabs.includes(tab.value)).map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -6311,6 +6312,104 @@ export default function AdminMaster() {
           {/* ── ALL TRANSACTIONS TAB ── */}
           <TabsContent value="transactions" className="space-y-6 pb-8">
             <AllTransactionsAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="feature-limits" className="space-y-6 pb-8">
+            <div className="rounded-2xl bg-gray-900 border border-gray-800 p-6">
+              <h2 className="text-xl font-black text-white flex items-center gap-2 mb-1">
+                <Shield className="w-5 h-5 text-purple-400" /> Feature Access & Subscription Limits
+              </h2>
+              <p className="text-gray-400 text-sm mb-6">Defines what free vs premium users can do on the platform. These limits are enforced server-side.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  {
+                    title: "📝 Feed Posts / Month",
+                    rows: [
+                      { tier: "Free", value: "3 posts", badge: "bg-gray-700 text-gray-300" },
+                      { tier: "Monthly Premium", value: "12 posts", badge: "bg-purple-700 text-purple-200" },
+                      { tier: "Yearly Premium", value: "Unlimited ∞", badge: "bg-yellow-700 text-yellow-200" },
+                    ],
+                  },
+                  {
+                    title: "🏪 P2P Marketplace Listings",
+                    rows: [
+                      { tier: "Free", value: "Blocked ✗", badge: "bg-red-900 text-red-300" },
+                      { tier: "Monthly Premium", value: "Unlimited ✓", badge: "bg-purple-700 text-purple-200" },
+                      { tier: "Yearly Premium", value: "Unlimited ✓", badge: "bg-yellow-700 text-yellow-200" },
+                    ],
+                  },
+                  {
+                    title: "🎯 Brand Campaigns",
+                    rows: [
+                      { tier: "Free Brand", value: "3 campaigns max", badge: "bg-gray-700 text-gray-300" },
+                      { tier: "Monthly Brand", value: "Unlimited ✓", badge: "bg-purple-700 text-purple-200" },
+                      { tier: "Yearly Brand", value: "Unlimited ✓", badge: "bg-yellow-700 text-yellow-200" },
+                    ],
+                  },
+                  {
+                    title: "💼 Direct Influencer Hiring",
+                    rows: [
+                      { tier: "Free Brand", value: "Blocked ✗", badge: "bg-red-900 text-red-300" },
+                      { tier: "Monthly Brand", value: "Unlimited ✓", badge: "bg-purple-700 text-purple-200" },
+                      { tier: "Yearly Brand", value: "Unlimited ✓", badge: "bg-yellow-700 text-yellow-200" },
+                    ],
+                  },
+                  {
+                    title: "🎓 BreedSkool Course Creation",
+                    rows: [
+                      { tier: "Free Users", value: "Blocked ✗", badge: "bg-red-900 text-red-300" },
+                      { tier: "Monthly Premium", value: "Create & Sell ✓", badge: "bg-purple-700 text-purple-200" },
+                      { tier: "Yearly Premium", value: "Create & Sell ✓", badge: "bg-yellow-700 text-yellow-200" },
+                    ],
+                  },
+                  {
+                    title: "🔔 Subscription Auto-Expiry",
+                    rows: [
+                      { tier: "1 day before", value: "Reminder sent ✓", badge: "bg-blue-900 text-blue-300" },
+                      { tier: "On expiry", value: "Access locked ✓", badge: "bg-orange-900 text-orange-300" },
+                      { tier: "Renewal", value: "User notified ✓", badge: "bg-green-900 text-green-300" },
+                    ],
+                  },
+                ].map((card) => (
+                  <div key={card.title} className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+                    <h3 className="font-bold text-white text-sm mb-3">{card.title}</h3>
+                    <div className="space-y-2">
+                      {card.rows.map((row) => (
+                        <div key={row.tier} className="flex items-center justify-between gap-2">
+                          <span className="text-gray-400 text-xs">{row.tier}</span>
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${row.badge}`}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 rounded-2xl bg-blue-900/30 border border-blue-700/40 p-5">
+                <h3 className="font-bold text-blue-300 mb-2">ℹ️ How Limits Are Enforced</h3>
+                <ul className="space-y-1.5 text-blue-200 text-sm">
+                  <li>• All limits are enforced server-side — users cannot bypass them from the frontend.</li>
+                  <li>• The background expiry checker runs every <strong>30 minutes</strong> to auto-expire subscriptions and lock premium features.</li>
+                  <li>• Users receive reminders <strong>1 day before</strong> their subscription expires, and a final notification on expiry.</li>
+                  <li>• Admin accounts bypass all feature limits and can perform all actions.</li>
+                  <li>• To change limits, update <code className="bg-gray-900 px-1 rounded text-xs">POST_LIMITS</code> and <code className="bg-gray-900 px-1 rounded text-xs">CAMPAIGN_LIMITS</code> in <code className="bg-gray-900 px-1 rounded text-xs">server/routes.ts</code>.</li>
+                </ul>
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-amber-900/20 border border-amber-700/30 p-5">
+                <h3 className="font-bold text-amber-300 mb-3">👥 User Subscription Management</h3>
+                <p className="text-amber-200 text-sm mb-3">Use the <strong>Users</strong> tab to find specific users and manually activate, extend, or revoke their subscriptions. The <strong>Payments</strong> tab shows all pending subscription payment approvals.</p>
+                <div className="flex gap-3 flex-wrap">
+                  <button onClick={() => setActiveTab("users")} className="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                    Go to Users Tab →
+                  </button>
+                  <button onClick={() => setActiveTab("payments")} className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                    Go to Payments Tab →
+                  </button>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
         </Tabs>

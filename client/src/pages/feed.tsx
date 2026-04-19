@@ -604,6 +604,12 @@ function CreatePost({ userId }: { userId: string }) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [showVideoInput, setShowVideoInput] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+
+  const { data: postUsage } = useQuery<{ count: number; limit: number | null; tier: string }>({
+    queryKey: ["/api/posts/my-usage"],
+    enabled: !!userId,
+  });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -622,68 +628,140 @@ function CreatePost({ userId }: { userId: string }) {
       if (imageFile) formData.append("image", imageFile);
       if (videoUrl.trim()) formData.append("videoUrl", videoUrl.trim());
       const res = await fetch("/api/posts", { method: "POST", body: formData, credentials: "include" });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ message: "Failed to create post" }));
+        if (res.status === 429 && data.upgradeRequired) {
+          throw Object.assign(new Error(data.message), { upgradeRequired: true });
+        }
+        throw new Error(data.message || "Failed to create post");
+      }
       return res.json();
     },
     onSuccess: () => {
       setContent(""); setImageFile(null); setImagePreview(null); setVideoUrl(""); setShowVideoInput(false);
       queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts/my-usage"] });
       queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
       toast({ title: "Posted!", description: "Your update is now live" });
     },
-    onError: () => toast({ title: "Error", description: "Failed to create post", variant: "destructive" }),
+    onError: (e: any) => {
+      if (e.upgradeRequired) {
+        setShowUpgradeDialog(true);
+      } else {
+        toast({ title: "Error", description: e.message || "Failed to create post", variant: "destructive" });
+      }
+    },
   });
 
+  const atLimit = postUsage?.limit !== null && postUsage?.limit !== undefined && (postUsage?.count ?? 0) >= postUsage.limit;
+  const tierLabel = postUsage?.tier === 'free' ? 'Free (3/mo)' : postUsage?.tier === 'monthly' ? 'Monthly (12/mo)' : 'Yearly (∞)';
+  const tdripPoints = (user as any)?.totalPoints || 0;
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-      <div className="flex gap-3">
-        <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src={(user as any)?.profileImageUrl} />
-          <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-sm font-semibold">
-            {(user as any)?.firstName?.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <Textarea
-            placeholder="Share a campaign win, tip, or update with the community..."
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            className="resize-none border-gray-200 rounded-xl text-sm focus:border-purple-400 transition-colors min-h-[80px]"
-            rows={3}
-            data-testid="create-post-content"
-          />
-          {imagePreview && (
-            <div className="relative mt-2">
-              <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-cover rounded-xl" />
-              <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black">✕</button>
-            </div>
+    <>
+    <div className={`bg-white rounded-2xl border shadow-sm p-4 ${atLimit ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100'}`}>
+      {/* Post limit bar */}
+      {postUsage && (
+        <div className="flex items-center justify-between mb-3 text-xs">
+          <span className="text-gray-400 font-medium">{tierLabel} plan</span>
+          {postUsage.limit !== null ? (
+            <span className={`font-bold ${atLimit ? 'text-red-500' : postUsage.count >= postUsage.limit - 1 ? 'text-amber-500' : 'text-gray-500'}`}>
+              {postUsage.count}/{postUsage.limit} posts this month
+              {atLimit && <Link href="/subscription" className="ml-2 text-purple-600 hover:underline">Upgrade ↑</Link>}
+            </span>
+          ) : (
+            <span className="text-green-500 font-bold">{postUsage.count} posts · Unlimited ∞</span>
           )}
-          {showVideoInput && (
-            <div className="mt-2 flex gap-2">
-              <Input placeholder="Paste YouTube URL..." value={videoUrl} onChange={e => setVideoUrl(e.target.value)} className="rounded-xl text-sm border-gray-200 flex-1" data-testid="create-post-video-url" />
-              {videoUrl && extractYouTubeId(videoUrl) && <span className="text-green-500 text-xs self-center whitespace-nowrap">✓ Valid</span>}
-            </div>
-          )}
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2">
-              <label className="cursor-pointer flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors px-2 py-1.5 rounded-lg hover:bg-purple-50" data-testid="upload-image-btn">
-                <Camera className="w-4 h-4" /><span className="hidden sm:inline">Photo</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-              </label>
-              <button onClick={() => setShowVideoInput(!showVideoInput)} className={`flex items-center gap-1 text-xs transition-colors px-2 py-1.5 rounded-lg ${showVideoInput ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'}`} data-testid="add-video-btn">
-                <Play className="w-4 h-4" /><span className="hidden sm:inline">YouTube</span>
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-400">{content.length}/500</span>
-              <Button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 rounded-xl px-5 text-sm" onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !content.trim() || content.length > 500} data-testid="create-post-submit">
-                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Post
-              </Button>
+        </div>
+      )}
+
+      {atLimit ? (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-center">
+          <p className="text-amber-800 font-semibold text-sm">You've reached your {postUsage?.limit}-post monthly limit.</p>
+          <p className="text-amber-600 text-xs mt-1">Upgrade to Monthly (12 posts) or Yearly (unlimited) to keep posting.</p>
+          <Link href="/subscription">
+            <Button size="sm" className="mt-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold" data-testid="button-upgrade-feed">
+              <Zap className="w-3.5 h-3.5 mr-1.5" /> Upgrade Plan
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="flex gap-3">
+          <Avatar className="h-10 w-10 flex-shrink-0">
+            <AvatarImage src={(user as any)?.profileImageUrl} />
+            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-sm font-semibold">
+              {(user as any)?.firstName?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <Textarea
+              placeholder="Share a campaign win, tip, or update with the community..."
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              className="resize-none border-gray-200 rounded-xl text-sm focus:border-purple-400 transition-colors min-h-[80px]"
+              rows={3}
+              data-testid="create-post-content"
+            />
+            {imagePreview && (
+              <div className="relative mt-2">
+                <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-cover rounded-xl" />
+                <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black">✕</button>
+              </div>
+            )}
+            {showVideoInput && (
+              <div className="mt-2 flex gap-2">
+                <Input placeholder="Paste YouTube URL..." value={videoUrl} onChange={e => setVideoUrl(e.target.value)} className="rounded-xl text-sm border-gray-200 flex-1" data-testid="create-post-video-url" />
+                {videoUrl && extractYouTubeId(videoUrl) && <span className="text-green-500 text-xs self-center whitespace-nowrap">✓ Valid</span>}
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors px-2 py-1.5 rounded-lg hover:bg-purple-50" data-testid="upload-image-btn">
+                  <Camera className="w-4 h-4" /><span className="hidden sm:inline">Photo</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                </label>
+                <button onClick={() => setShowVideoInput(!showVideoInput)} className={`flex items-center gap-1 text-xs transition-colors px-2 py-1.5 rounded-lg ${showVideoInput ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'}`} data-testid="add-video-btn">
+                  <Play className="w-4 h-4" /><span className="hidden sm:inline">YouTube</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">
+                  <Wallet className="w-3 h-3" /> {tdripPoints.toLocaleString()} $TDRIP
+                  {tdripPoints < 100 && <Link href="/wallet" className="text-purple-700 font-bold hover:underline ml-1">Top Up</Link>}
+                </div>
+                <span className="text-xs text-gray-400">{content.length}/500</span>
+                <Button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 rounded-xl px-5 text-sm" onClick={() => createMutation.mutate()} disabled={createMutation.isPending || !content.trim() || content.length > 500} data-testid="create-post-submit">
+                  {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Post
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
+
+    {/* Upgrade Dialog */}
+    <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-purple-600" /> Post Limit Reached</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-gray-600 text-sm leading-relaxed">You've used all your monthly posts. Upgrade to keep sharing with your audience.</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between bg-gray-50 rounded-xl px-4 py-2"><span className="text-gray-500">Free</span><span className="font-bold text-gray-700">3 posts/month</span></div>
+            <div className="flex justify-between bg-purple-50 rounded-xl px-4 py-2 border border-purple-200"><span className="text-purple-700 font-semibold">Monthly Premium</span><span className="font-bold text-purple-800">12 posts/month</span></div>
+            <div className="flex justify-between bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl px-4 py-2 border border-yellow-200"><span className="text-yellow-700 font-semibold">Yearly Premium</span><span className="font-bold text-yellow-800">Unlimited ∞</span></div>
+          </div>
+          <Link href="/subscription">
+            <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl" data-testid="button-upgrade-limit">
+              <Zap className="w-4 h-4 mr-2" /> Upgrade Now
+            </Button>
+          </Link>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

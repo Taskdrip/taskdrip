@@ -435,6 +435,8 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
 }
 
 // ── Create Listing Dialog ──────────────────────────────────────────────────────
+type TaskAddonEntry = { task: string; platform: string };
+
 function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; open: boolean; onClose: () => void; defaultType?: string }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -451,11 +453,17 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
     paymentMethod: "USDT TRC20 (TRON)",
     country: user?.country || "",
     shippingInfo: "",
-    taskAddon: "",
     tdripPointsPerParticipant: "",
     tdripParticipantLimit: "",
     featuredImage: null as File | null,
   });
+
+  const [taskAddons, setTaskAddons] = useState<TaskAddonEntry[]>([{ task: "", platform: "Instagram" }]);
+
+  const addTaskAddon = () => setTaskAddons(prev => [...prev, { task: "", platform: "Instagram" }]);
+  const removeTaskAddon = (i: number) => setTaskAddons(prev => prev.filter((_, idx) => idx !== i));
+  const updateTaskAddon = (i: number, field: keyof TaskAddonEntry, value: string) =>
+    setTaskAddons(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t));
 
   const createListing = useMutation({
     mutationFn: async () => {
@@ -463,10 +471,12 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
       Object.entries(form).forEach(([k, v]) => {
         if (v !== null && v !== undefined && k !== "featuredImage") fd.append(k, String(v));
       });
-      const taskAddons = form.taskAddon
-        ? [{ task: form.taskAddon, platform: "Social", requiredProof: "Profile link or screenshot" }]
-        : [];
-      fd.set("taskAddons", JSON.stringify(taskAddons));
+      const validAddons = taskAddons.filter(t => t.task.trim()).map(t => ({
+        task: t.task.trim(),
+        platform: t.platform,
+        requiredProof: "Profile link or screenshot",
+      }));
+      fd.set("taskAddons", JSON.stringify(validAddons));
       if (form.featuredImage) fd.append("featuredImage", form.featuredImage);
       const res = await fetch("/api/p2p/listings", { method: "POST", body: fd, credentials: "include" });
       if (!res.ok) throw new Error((await res.json()).message || "Failed to create listing");
@@ -604,20 +614,51 @@ function CreateListingDialog({ user, open, onClose, defaultType }: { user: any; 
           </div>
 
           <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4 space-y-3">
-            <div>
-              <Label className="text-sm font-bold text-violet-950">Optional $TDRIP task add-on</Label>
-              <p className="text-xs text-violet-700 mt-1">
-                Reward users for a small action tied to this listing, like following your shop or commenting on a post. 100 $TDRIP = $1.
-              </p>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <Label className="text-sm font-bold text-violet-950">Optional $TDRIP task add-on</Label>
+                <p className="text-xs text-violet-700 mt-1">
+                  Reward users for a small action tied to this listing, like following your shop or commenting on a post. 100 $TDRIP = $1.
+                </p>
+              </div>
+              <div className="flex-shrink-0 rounded-xl bg-white border border-violet-200 px-3 py-2 text-right">
+                <p className="text-xs text-violet-500 font-medium">Your balance</p>
+                <p className="font-black text-violet-900 text-sm">{(user as any)?.totalPoints?.toLocaleString() || 0} <span className="text-violet-500 font-semibold">$TDRIP</span></p>
+                {((user as any)?.totalPoints || 0) < 500 && (
+                  <Link href="/wallet" className="text-xs text-violet-600 hover:underline font-semibold">+ Top Up</Link>
+                )}
+              </div>
             </div>
-            <Textarea
-              value={form.taskAddon}
-              onChange={e => setForm(f => ({ ...f, taskAddon: e.target.value }))}
-              rows={3}
-              placeholder="Example: Follow my X page and comment 'Taskdrip' on the pinned post before buying."
-              className="rounded-xl bg-white"
-              data-testid="input-listing-task-addon"
-            />
+            <div className="space-y-2">
+              {taskAddons.map((addon, i) => (
+                <div key={i} className="flex gap-2">
+                  <select
+                    value={addon.platform}
+                    onChange={e => updateTaskAddon(i, "platform", e.target.value)}
+                    className="rounded-xl border border-violet-200 bg-white text-xs px-2 py-1.5 flex-shrink-0"
+                  >
+                    {["Instagram", "TikTok", "YouTube", "X (Twitter)", "Facebook", "Telegram", "Discord", "Other"].map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <input
+                    value={addon.task}
+                    onChange={e => updateTaskAddon(i, "task", e.target.value)}
+                    placeholder={`Task ${i + 1}: e.g., Follow our page & comment...`}
+                    className="rounded-xl border border-violet-200 bg-white text-sm px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-violet-400"
+                    data-testid={`input-listing-task-addon-${i}`}
+                  />
+                  {taskAddons.length > 1 && (
+                    <button onClick={() => removeTaskAddon(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0" title="Remove">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button onClick={addTaskAddon} className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-semibold transition-colors" type="button" data-testid="button-add-task-addon">
+                <PlusCircle className="w-4 h-4" /> Add another task
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-bold mb-1.5 block">$TDRIP per participant</Label>
@@ -1018,6 +1059,7 @@ export default function P2PHub() {
 
   const [activeTab, setActiveTab] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showGuideBot, setShowGuideBot] = useState(true);
   const [acceptingListing, setAcceptingListing] = useState<any>(null);
@@ -1089,7 +1131,13 @@ export default function P2PHub() {
             <div className="flex flex-wrap gap-3 mb-6">
               {isAuthenticated ? (
                 <>
-                  <Button size="lg" className="bg-white text-black hover:bg-gray-100 font-bold px-6 rounded-xl shadow-xl" onClick={() => setShowCreateDialog(true)} data-testid="button-create-listing">
+                  <Button size="lg" className="bg-white text-black hover:bg-gray-100 font-bold px-6 rounded-xl shadow-xl" onClick={() => {
+                    if ((user as any)?.subscriptionStatus !== 'active') {
+                      setShowUpgradeGate(true);
+                    } else {
+                      setShowCreateDialog(true);
+                    }
+                  }} data-testid="button-create-listing">
                     <Plus className="w-5 h-5 mr-2" /> Create Listing
                   </Button>
                   <Button size="lg" variant="outline" className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm font-bold px-6 rounded-xl" onClick={() => setShowSettingsModal(true)} data-testid="button-trading-profile">
@@ -1365,6 +1413,40 @@ export default function P2PHub() {
           <BookOpen className="w-5 h-5" />
         </button>
       )}
+
+      {/* ── UPGRADE GATE ── */}
+      <Dialog open={showUpgradeGate} onOpenChange={v => !v && setShowUpgradeGate(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+              <Lock className="w-5 h-5 text-violet-600" /> Premium Feature
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 p-5 text-center">
+              <div className="text-4xl mb-3">🏪</div>
+              <h3 className="font-black text-gray-900 text-lg">P2P Marketplace Listings</h3>
+              <p className="text-gray-600 text-sm mt-2 leading-relaxed">
+                Listing items on the P2P marketplace is a <strong>Premium feature</strong>. Upgrade to Monthly or Yearly to start selling crypto, products, and services globally.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-700"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Unlimited P2P listings</div>
+              <div className="flex items-center gap-2 text-sm text-gray-700"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Escrow-protected trades</div>
+              <div className="flex items-center gap-2 text-sm text-gray-700"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> $TDRIP task add-ons</div>
+              <div className="flex items-center gap-2 text-sm text-gray-700"><CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> Up to 12 feed posts/month</div>
+            </div>
+            <Link href="/subscription">
+              <Button className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl" data-testid="button-upgrade-p2p">
+                <Zap className="w-4 h-4 mr-2" /> Upgrade to Premium
+              </Button>
+            </Link>
+            <button onClick={() => setShowUpgradeGate(false)} className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors py-1">
+              Maybe later
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── MODALS ── */}
       {showSettingsModal && (

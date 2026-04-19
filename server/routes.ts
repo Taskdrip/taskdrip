@@ -3,9 +3,22 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts } from "@shared/schema";
 import { db } from "./db";
-import { desc, sql, eq, and } from "drizzle-orm";
+import { desc, sql, eq, and, count, gte } from "drizzle-orm";
+
+// ── Subscription tier helper ──────────────────────────────────────────────────
+function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
+  if (!user || user.subscriptionStatus !== 'active') return 'free';
+  const plan = (user.subscriptionPlan || '').toLowerCase();
+  if (plan.includes('yearly')) return 'yearly';
+  return 'monthly'; // 3day, 5day, monthly all get monthly tier
+}
+
+// Post limits per subscription tier
+const POST_LIMITS: Record<string, number> = { free: 3, monthly: 12, yearly: Infinity };
+// Campaign limits per subscription tier for brands
+const CAMPAIGN_LIMITS: Record<string, number> = { free: 3, monthly: Infinity, yearly: Infinity };
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcrypt";
@@ -609,11 +622,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/posts/my-usage — returns user's monthly post count + limit
+  app.get('/api/posts/my-usage', isAuthenticated, async (req: any, res) => {
+    try {
+      const usageUser = await storage.getUser(req.user.id);
+      const tier = getSubscriptionTier(usageUser);
+      const limit = POST_LIMITS[tier];
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const [{ value: postCount }] = await db
+        .select({ value: count() })
+        .from(posts)
+        .where(and(eq(posts.userId, req.user.id), gte(posts.createdAt, startOfMonth)));
+      res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.post('/api/posts', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
       const { content, imageUrl, videoUrl } = req.body;
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
+      }
+
+      // ── Subscription-based monthly post limit ────────────────────────────────
+      const postUser = await storage.getUser(req.user.id);
+      const tier = getSubscriptionTier(postUser);
+      const postLimit = POST_LIMITS[tier];
+      if (postLimit !== Infinity) {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+        const [{ value: postCount }] = await db
+          .select({ value: count() })
+          .from(posts)
+          .where(and(eq(posts.userId, req.user.id), gte(posts.createdAt, startOfMonth)));
+        if (Number(postCount) >= postLimit) {
+          return res.status(429).json({
+            message: `You've reached your ${postLimit}-post monthly limit on the ${tier === 'free' ? 'Free' : 'Monthly'} plan.`,
+            limit: postLimit,
+            tier,
+            upgradeRequired: true,
+          });
+        }
       }
       const { nanoid } = await import('nanoid');
       const id = `post_${nanoid()}`;
@@ -859,6 +911,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user is a brand
       if (user.userType !== 'brand') {
         return res.status(403).json({ message: "Only brands can create campaigns" });
+      }
+
+      // ── Free brand campaign limit ─────────────────────────────────────────────
+      const campaignUser = await storage.getUser(user.id);
+      const campaignTier = getSubscriptionTier(campaignUser);
+      const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
+      if (campaignLimit !== Infinity) {
+        const [{ value: campCount }] = await db
+          .select({ value: count() })
+          .from(campaigns)
+          .where(eq(campaigns.brandId, user.id));
+        if (Number(campCount) >= campaignLimit) {
+          return res.status(429).json({
+            message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
+            limit: campaignLimit,
+            upgradeRequired: true,
+          });
+        }
       }
 
       const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -5150,6 +5220,14 @@ Instructions:
       if (req.user.userType !== 'brand' && req.user.userType !== 'admin') {
         return res.status(403).json({ message: 'Only brands can send hire offers' });
       }
+      // ── Free brand hire gate ─────────────────────────────────────────────────
+      const hireUser = await storage.getUser(req.user.id);
+      if (getSubscriptionTier(hireUser) === 'free' && req.user.userType !== 'admin') {
+        return res.status(403).json({
+          message: 'Direct hiring requires a Premium Brand subscription. Upgrade to Monthly or Yearly to hire influencers directly.',
+          upgradeRequired: true,
+        });
+      }
       const { influencerId, title, description, deliverables, budget, deadline } = req.body;
       if (!influencerId || !title || !description || !budget) {
         return res.status(400).json({ message: 'Missing required fields' });
@@ -5862,6 +5940,15 @@ Instructions:
 
   app.post('/api/p2p/listings', isAuthenticated, upload.single('featuredImage'), async (req: any, res) => {
     try {
+      // ── Free user gate ────────────────────────────────────────────────────────
+      const p2pUser = await storage.getUser(req.user.id);
+      if (getSubscriptionTier(p2pUser) === 'free') {
+        return res.status(403).json({
+          message: 'P2P listing requires a Premium subscription. Upgrade to Monthly or Yearly to start selling.',
+          upgradeRequired: true,
+        });
+      }
+
       const listingType = String(req.body.listingType || '').toLowerCase();
       if (!p2pTypes.includes(listingType)) return res.status(400).json({ message: 'Invalid listing type' });
       const title = String(req.body.title || '').trim();
