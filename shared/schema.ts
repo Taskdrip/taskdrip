@@ -1318,6 +1318,28 @@ export type SponsoredAd = typeof sponsoredAds.$inferSelect;
 export type InsertSponsoredAd = z.infer<typeof insertSponsoredAdSchema>;
 
 // ──────────────────────────────────────────────────────────────
+// Ad Analytics — detailed event tracking per ad
+// ──────────────────────────────────────────────────────────────
+export const adAnalytics = pgTable("ad_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adId: varchar("ad_id").references(() => sponsoredAds.id, { onDelete: "cascade" }),
+  eventType: varchar("event_type").notNull(), // 'impression', 'click'
+  sessionId: varchar("session_id"),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  deviceType: varchar("device_type"), // 'mobile', 'tablet', 'desktop'
+  browser: varchar("browser"),
+  os: varchar("os"),
+  country: varchar("country"),
+  city: varchar("city"),
+  ipAddress: varchar("ip_address"),
+  pageUrl: varchar("page_url"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type AdAnalytic = typeof adAnalytics.$inferSelect;
+
+// ──────────────────────────────────────────────────────────────
 // Advertise Applications — from "Advertise With Us" public form
 // ──────────────────────────────────────────────────────────────
 export const advertiseApplications = pgTable("advertise_applications", {

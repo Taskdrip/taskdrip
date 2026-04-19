@@ -554,62 +554,89 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
 
-      {/* ── Hero Section with background image ───────────────── */}
-      <div className="relative overflow-hidden bg-gray-900 text-white">
-        {/* Multi-layer background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-gray-800" />
+      {/* ── Hero Section ───────────────────────────────────── */}
+      <div className="relative overflow-hidden bg-gray-950 text-white">
+        {/* Deep gradient base */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-[#0f0a1f] to-gray-950" />
+
+        {/* Radial glows - gold centre, purple + blue corners */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_0%,rgba(245,158,11,0.22)_0%,transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_0%_100%,rgba(139,92,246,0.15)_0%,transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_100%_0%,rgba(59,130,246,0.12)_0%,transparent_60%)]" />
+
+        {/* Animated gold ring */}
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-yellow-500/10 animate-pulse" />
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/3 w-[400px] h-[400px] rounded-full border border-yellow-500/8 animate-pulse [animation-delay:500ms]" />
+
+        {/* Floating decorative icons */}
+        <div className="absolute top-8 left-6 opacity-8 hidden md:block animate-bounce [animation-duration:4s]">
+          <Trophy className="w-28 h-28 text-yellow-500 rotate-[-18deg]" />
+        </div>
+        <div className="absolute bottom-8 left-20 opacity-6 hidden md:block">
+          <Star className="w-14 h-14 text-yellow-400 rotate-[25deg]" />
+        </div>
+        <div className="absolute top-10 right-8 opacity-8 hidden md:block animate-bounce [animation-duration:5s] [animation-delay:1s]">
+          <Sparkles className="w-20 h-20 text-amber-400 rotate-[10deg]" />
+        </div>
+        <div className="absolute bottom-4 right-16 opacity-5 hidden md:block">
+          <Medal className="w-16 h-16 text-yellow-300" />
+        </div>
+
+        {/* Dot grid overlay */}
         <div
-          className="absolute inset-0 opacity-[0.07]"
+          className="absolute inset-0 opacity-[0.035]"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M0 0h40v40H0V0zm40 40h40v40H40V40zm0-40h2l-2 2V0zm0 4l4-4h2l-6 6V4zm0 4l8-8h2L40 10V8zm0 4L52 0h2L40 14v-2zm0 4L56 0h2L40 18v-2zm0 4L60 0h2L40 22v-2zm0 4L64 0h2L40 26v-2zm0 4L68 0h2L40 30v-2zm0 4L72 0h2L40 34v-2zm0 4L76 0h2L40 38v-2zm0 4L80 0v2L42 40h-2zm4 0L80 4v2L46 40h-2zm4 0L80 8v2L50 40h-2zm4 0L80 12v2L54 40h-2zm4 0L80 16v2L58 40h-2zm4 0L80 20v2L62 40h-2zm4 0L80 24v2L66 40h-2zm4 0L80 28v2L70 40h-2zm4 0L80 32v2L74 40h-2zm4 0L80 36v2L78 40h-2zm4 0L80 40v0h-2v0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
           }}
         />
-        {/* Gold radial glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(245,158,11,0.18)_0%,transparent_65%)]" />
-        {/* Decorative floating trophies */}
-        <div className="absolute top-6 left-8 opacity-10 hidden md:block">
-          <Trophy className="w-32 h-32 text-yellow-400 rotate-[-15deg]" />
-        </div>
-        <div className="absolute bottom-4 right-10 opacity-10 hidden md:block">
-          <Star className="w-24 h-24 text-yellow-400 rotate-[15deg]" />
-        </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 py-16 sm:py-20 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-yellow-400" />
-            <span className="text-yellow-400 font-semibold text-sm uppercase tracking-widest">Monthly Rankings</span>
+        <div className="relative max-w-5xl mx-auto px-4 py-20 sm:py-28 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 backdrop-blur-sm mb-6">
+            <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+            <span className="text-yellow-400 font-semibold text-xs uppercase tracking-widest">Monthly Rankings</span>
           </div>
 
-          <div className="flex items-center justify-center mb-5">
+          {/* Trophy icon with layered glow */}
+          <div className="flex items-center justify-center mb-6">
             <div className="relative">
-              <Trophy className="w-16 h-16 text-yellow-400 drop-shadow-lg" />
-              <div className="absolute inset-0 bg-yellow-400/20 blur-2xl rounded-full" />
+              <div className="absolute inset-0 scale-150 bg-yellow-400/20 blur-3xl rounded-full" />
+              <div className="absolute inset-0 scale-110 bg-amber-500/15 blur-xl rounded-full" />
+              <div className="relative bg-gradient-to-br from-yellow-400/20 to-amber-600/20 p-5 rounded-2xl border border-yellow-500/20 backdrop-blur-sm shadow-2xl">
+                <Trophy className="w-14 h-14 text-yellow-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.8)]" />
+              </div>
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-4 bg-gradient-to-r from-yellow-300 via-amber-300 to-orange-300 bg-clip-text text-transparent">
-            Leaderboard
+          {/* Heading */}
+          <h1 className="text-5xl md:text-7xl font-black mb-3 tracking-tight">
+            <span className="bg-gradient-to-r from-yellow-200 via-amber-300 to-orange-400 bg-clip-text text-transparent drop-shadow-sm">
+              Leaderboard
+            </span>
           </h1>
-          <p className="text-gray-400 max-w-lg mx-auto text-lg mb-8">
-            Top influencers ranked by $TDRIP points, referrals, and earnings. Rankings reset every month.
+          <p className="text-gray-400 max-w-lg mx-auto text-base md:text-lg mb-10">
+            Top influencers ranked by $TDRIP points, referrals, and earnings.
+            <span className="block mt-1 text-gray-500 text-sm">Rankings reset every month.</span>
           </p>
 
           {/* Stats strip */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-2.5">
-              <Users className="h-4 w-4 text-blue-400" />
-              <span className="text-white font-semibold">{(pointsLeaders as any[]).length} Participants</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-2.5">
-              <Trophy className="h-4 w-4 text-yellow-400" />
-              <span className="text-white font-semibold">${totalPrizePool.toLocaleString()} Prize Pool</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-2.5">
-              <Gift className="h-4 w-4 text-purple-400" />
-              <span className="text-white font-semibold">{activeGiveaways.length} Active Giveaways</span>
-            </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-sm">
+            {[
+              { icon: Users, color: "text-blue-400", bg: "from-blue-500/15 to-blue-600/10 border-blue-500/20", label: `${(pointsLeaders as any[]).length} Participants` },
+              { icon: Trophy, color: "text-yellow-400", bg: "from-yellow-500/15 to-amber-600/10 border-yellow-500/20", label: `$${totalPrizePool.toLocaleString()} Prize Pool` },
+              { icon: Gift, color: "text-purple-400", bg: "from-purple-500/15 to-purple-600/10 border-purple-500/20", label: `${activeGiveaways.length} Active Giveaways` },
+            ].map(s => (
+              <div key={s.label} className={`flex items-center gap-2.5 bg-gradient-to-br ${s.bg} backdrop-blur-sm border rounded-2xl px-4 py-2.5 shadow-sm`}>
+                <s.icon className={`h-4 w-4 ${s.color} flex-shrink-0`} />
+                <span className="text-white font-semibold">{s.label}</span>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent" />
       </div>
 
       {/* ── Content ─────────────────────────────────────────── */}

@@ -1,6 +1,15 @@
 # Overview
 
-Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally. Creators earn cryptocurrency by completing brand campaigns. Brands discover vetted creators through an advanced tier-based discovery system. The platform features non-custodial crypto payments, automatic creator tier classification, and a comprehensive campaign management system.
+Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
+
+## Recent Changes (April 2026)
+- **Ad Analytics**: Added `ad_analytics` DB table; impressions and clicks now record device type, browser, OS, IP, and page URL server-side. Per-ad analytics panel in admin-ads with bar chart breakdowns.
+- **Ad Image Upload**: Admin ads create/edit now use `multipart/form-data` file uploads instead of URL text fields. Accepts ad image (1200×628 recommended) and advertiser logo (200×200 recommended).
+- **Leaderboard Hero Redesign**: Deep dark background (`gray-950`) with multi-layer radial glows (gold, purple, blue), animated concentric rings, dot-grid overlay, glowing trophy card, large gradient heading, and frosted-glass stats strip.
+- **Upgrade Banner Component**: `client/src/components/ui/upgrade-banner.tsx` — `UpgradeBanner` (full + compact) and `FeatureLockOverlay` for gating premium features per user type.
+- **Subscription Page Rewrite**: Side-by-side Free vs Paid plan cards with feature check/cross rows, testimonials section, polished payment dialog, monthly/yearly billing toggle, and user-type-specific theming.
+
+Creators earn cryptocurrency by completing brand campaigns. Brands discover vetted creators through an advanced tier-based discovery system. The platform features non-custodial crypto payments, automatic creator tier classification, and a comprehensive campaign management system.
 
 ## User Preferences
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +18,8 @@ import {
   Megaphone, Plus, Edit, Trash2, Eye, MousePointerClick, BarChart3, ExternalLink,
   Image, Monitor, Smartphone, Globe, ArrowLeft, AlertCircle, CheckCircle2,
   XCircle, Clock, ShoppingBag, BookOpen, Rss, Newspaper, Target, Settings,
-  TrendingUp, DollarSign, ToggleLeft, Code2, Shield
+  TrendingUp, DollarSign, ToggleLeft, Code2, Shield, Upload, X, LayoutDashboard,
+  Laptop, Tablet
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -55,10 +56,90 @@ const STATUS_COLORS: Record<string, string> = {
   inactive: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
-function AdForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
+function ImageUploadField({
+  label, value, onChange, onFileChange, fieldName, hint, dimensions, maxSize
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  onFileChange: (file: File | null) => void;
+  fieldName: string;
+  hint?: string;
+  dimensions: string;
+  maxSize: string;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string>(value || "");
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    onFileChange(file);
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    onChange("");
+  };
+
+  const clear = () => {
+    setPreview("");
+    onChange("");
+    onFileChange(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const displaySrc = preview || value;
+
+  return (
+    <div>
+      <Label className="mb-1 block">{label}</Label>
+      <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors">
+        {displaySrc ? (
+          <div className="relative">
+            <img src={displaySrc} alt="preview" className="w-full h-28 object-cover rounded-lg border border-gray-200" />
+            <button
+              onClick={clear}
+              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-colors"
+              type="button"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="w-full flex flex-col items-center gap-2 py-4 text-gray-500 hover:text-blue-600"
+          >
+            <div className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-sm">
+              <Upload className="w-5 h-5" />
+            </div>
+            <span className="text-sm font-medium">Click to upload</span>
+            <span className="text-xs text-gray-400">or drag and drop</span>
+          </button>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" data-testid={`input-file-${fieldName}`} onChange={handleFile} />
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-gray-400">
+        <span className="flex items-center gap-1"><Monitor className="w-3 h-3" /> Recommended: {dimensions}</span>
+        <span className="flex items-center gap-1"><Image className="w-3 h-3" /> Max size: {maxSize}</span>
+        <span>Formats: JPG, PNG, WebP</span>
+      </div>
+      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+function AdForm({ form, setForm, imageFile, setImageFile, logoFile, setLogoFile }: {
+  form: any;
+  setForm: (f: any) => void;
+  imageFile: File | null;
+  setImageFile: (f: File | null) => void;
+  logoFile: File | null;
+  setLogoFile: (f: File | null) => void;
+}) {
   const set = (key: string, val: any) => setForm((p: any) => ({ ...p, [key]: val }));
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <Label>Ad Title *</Label>
@@ -69,27 +150,39 @@ function AdForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
           <Input value={form.advertiserName} onChange={e => set("advertiserName", e.target.value)} placeholder="e.g. BrandX Inc." />
         </div>
         <div>
-          <Label>Advertiser Logo URL</Label>
-          <Input value={form.advertiserLogo} onChange={e => set("advertiserLogo", e.target.value)} placeholder="https://..." />
+          <Label>Click Destination URL *</Label>
+          <Input value={form.linkUrl} onChange={e => set("linkUrl", e.target.value)} placeholder="https://brand.com/campaign" />
         </div>
       </div>
+
       <div>
         <Label>Ad Description</Label>
         <Textarea value={form.description} onChange={e => set("description", e.target.value)} placeholder="Brief description or tagline..." rows={2} />
       </div>
-      <div>
-        <Label>Ad Image URL *</Label>
-        <Input data-testid="input-ad-image" value={form.imageUrl} onChange={e => set("imageUrl", e.target.value)} placeholder="https://..." />
-        {form.imageUrl && (
-          <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 max-h-32">
-            <img src={form.imageUrl} alt="preview" className="w-full h-32 object-cover" onError={e => (e.currentTarget.style.display = "none")} />
-          </div>
-        )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ImageUploadField
+          label="Featured Ad Image *"
+          value={form.imageUrl}
+          onChange={url => set("imageUrl", url)}
+          onFileChange={setImageFile}
+          fieldName="ad-image"
+          dimensions="1200 × 628 px (landscape)"
+          maxSize="2 MB"
+          hint="Used in banner, feed, and display placements. Landscape images perform best."
+        />
+        <ImageUploadField
+          label="Advertiser Logo"
+          value={form.advertiserLogo}
+          onChange={url => set("advertiserLogo", url)}
+          onFileChange={setLogoFile}
+          fieldName="ad-logo"
+          dimensions="200 × 200 px (square)"
+          maxSize="500 KB"
+          hint="Square logo shown alongside the ad. Transparent PNG recommended."
+        />
       </div>
-      <div>
-        <Label>Click Destination URL *</Label>
-        <Input value={form.linkUrl} onChange={e => set("linkUrl", e.target.value)} placeholder="https://brand.com/campaign" />
-      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Placement *</Label>
@@ -136,6 +229,7 @@ function AdForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
           <Input type="number" value={form.cpm} onChange={e => set("cpm", e.target.value)} placeholder="0.00" />
         </div>
       </div>
+
       <div className="flex items-center gap-3">
         <Switch checked={form.isActive} onCheckedChange={v => set("isActive", v)} data-testid="switch-ad-active" />
         <Label>Active (show this ad now)</Label>
@@ -144,7 +238,83 @@ function AdForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
   );
 }
 
+function AnalyticsBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-xs text-gray-600 w-20 text-right shrink-0">{label}</div>
+      <div className="flex-1 bg-gray-100 rounded-full h-2">
+        <div className={`h-2 rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="text-xs font-semibold text-gray-700 w-10 text-right shrink-0">{value}</div>
+    </div>
+  );
+}
+
+function AdAnalyticsPanel({ adId }: { adId: string }) {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: [`/api/admin/ads/analytics/${adId}`],
+    enabled: !!adId,
+    staleTime: 30000,
+  });
+
+  if (isLoading) return <div className="animate-pulse h-40 bg-gray-50 rounded-xl" />;
+  if (!data) return null;
+
+  const deviceMax = Math.max(...Object.values(data.byDevice || {}).map(Number), 1);
+  const browserMax = Math.max(...Object.values(data.byBrowser || {}).map(Number), 1);
+
+  const deviceColors: Record<string, string> = { desktop: "bg-blue-500", mobile: "bg-green-500", tablet: "bg-purple-500" };
+  const browserColors = ["bg-blue-400", "bg-orange-400", "bg-green-400", "bg-red-400", "bg-indigo-400"];
+
+  return (
+    <div className="space-y-4 pt-2">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+          <div className="text-2xl font-bold text-blue-700">{data.totalImpressions}</div>
+          <div className="text-xs text-blue-500">Tracked Impressions</div>
+        </div>
+        <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center">
+          <div className="text-2xl font-bold text-purple-700">{data.totalClicks}</div>
+          <div className="text-xs text-purple-500">Tracked Clicks</div>
+        </div>
+      </div>
+
+      {Object.keys(data.byDevice || {}).length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <Laptop className="w-3.5 h-3.5" /> Device Breakdown
+          </p>
+          <div className="space-y-2">
+            {Object.entries(data.byDevice).map(([device, count]: any) => (
+              <AnalyticsBar key={device} label={device} value={count} max={deviceMax} color={deviceColors[device] || "bg-gray-400"} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {Object.keys(data.byBrowser || {}).length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5" /> Browser Breakdown
+          </p>
+          <div className="space-y-2">
+            {Object.entries(data.byBrowser).map(([browser, count]: any, i) => (
+              <AnalyticsBar key={browser} label={browser} value={count} max={browserMax} color={browserColors[i % browserColors.length]} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.totalImpressions === 0 && data.totalClicks === 0 && (
+        <p className="text-center text-sm text-gray-400 py-4">No analytics data yet — analytics populate as the ad receives traffic.</p>
+      )}
+    </div>
+  );
+}
+
 function AdCard({ ad, onEdit, onDelete, onToggle }: { ad: any; onEdit: () => void; onDelete: () => void; onToggle: (v: boolean) => void }) {
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const ctr = ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(2) : "0.00";
   const placement = PLACEMENTS.find(p => p.value === ad.placement);
   return (
@@ -156,11 +326,16 @@ function AdCard({ ad, onEdit, onDelete, onToggle }: { ad: any; onEdit: () => voi
           </div>
         )}
         <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 truncate">{ad.title}</p>
-            <p className="text-sm text-gray-500">{ad.advertiserName}</p>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {ad.advertiserLogo && (
+              <img src={ad.advertiserLogo} alt="" className="w-7 h-7 rounded-lg border border-gray-100 object-cover flex-shrink-0" onError={e => (e.currentTarget.style.display = "none")} />
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{ad.title}</p>
+              <p className="text-sm text-gray-500">{ad.advertiserName}</p>
+            </div>
           </div>
-          <div className={`ml-2 px-2 py-0.5 rounded-full text-xs border font-medium ${ad.isActive ? STATUS_COLORS.active : STATUS_COLORS.inactive}`}>
+          <div className={`ml-2 px-2 py-0.5 rounded-full text-xs border font-medium flex-shrink-0 ${ad.isActive ? STATUS_COLORS.active : STATUS_COLORS.inactive}`}>
             {ad.isActive ? "Live" : "Paused"}
           </div>
         </div>
@@ -172,7 +347,7 @@ function AdCard({ ad, onEdit, onDelete, onToggle }: { ad: any; onEdit: () => voi
           <span className="text-xs text-gray-500 capitalize">{ad.adType}</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+        <div className="grid grid-cols-3 gap-2 mb-3 text-center">
           <div className="bg-gray-50 rounded-lg p-2">
             <p className="text-sm font-bold text-gray-800">{(ad.impressions || 0).toLocaleString()}</p>
             <p className="text-xs text-gray-400 flex items-center justify-center gap-1"><Eye className="h-3 w-3" />Views</p>
@@ -187,12 +362,17 @@ function AdCard({ ad, onEdit, onDelete, onToggle }: { ad: any; onEdit: () => voi
           </div>
         </div>
 
+        {showAnalytics && <AdAnalyticsPanel adId={ad.id} />}
+
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div className="flex items-center gap-2">
             <Switch checked={ad.isActive} onCheckedChange={onToggle} data-testid={`switch-ad-${ad.id}`} />
             <span className="text-xs text-gray-500">{ad.isActive ? "Running" : "Paused"}</span>
           </div>
           <div className="flex gap-1">
+            <Button size="sm" variant="ghost" onClick={() => setShowAnalytics(v => !v)} className={showAnalytics ? "text-blue-600 bg-blue-50" : ""} title="Analytics">
+              <BarChart3 className="h-4 w-4" />
+            </Button>
             <Button size="sm" variant="ghost" onClick={onEdit} data-testid={`button-edit-ad-${ad.id}`}><Edit className="h-4 w-4" /></Button>
             <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={onDelete} data-testid={`button-delete-ad-${ad.id}`}><Trash2 className="h-4 w-4" /></Button>
             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer">
@@ -212,6 +392,8 @@ export default function AdminAds() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAd, setEditingAd] = useState<any>(null);
   const [form, setForm] = useState<any>(EMPTY_AD);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [adSenseCode, setAdSenseCode] = useState("");
   const [adSenseEnabled, setAdSenseEnabled] = useState(false);
@@ -221,15 +403,34 @@ export default function AdminAds() {
   const { data: applications = [] } = useQuery<any[]>({ queryKey: ["/api/admin/advertise-applications"] });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/admin/ads", data),
+    mutationFn: async (data: any) => {
+      const fd = new FormData();
+      Object.entries(data).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== "") fd.append(k, String(v)); });
+      if (imageFile) fd.append("image", imageFile);
+      if (logoFile) fd.append("logo", logoFile);
+      const res = await fetch("/api/admin/ads", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/ads"] }); setDialogOpen(false); toast({ title: "Ad created successfully" }); },
-    onError: () => toast({ title: "Failed to create ad", variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Failed to create ad", description: e.message, variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: any) => apiRequest("PATCH", `/api/admin/ads/${id}`, data),
+    mutationFn: async ({ id, data }: any) => {
+      if (imageFile || logoFile) {
+        const fd = new FormData();
+        Object.entries(data).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== "") fd.append(k, String(v)); });
+        if (imageFile) fd.append("image", imageFile);
+        if (logoFile) fd.append("logo", logoFile);
+        const res = await fetch(`/api/admin/ads/${id}`, { method: "PATCH", body: fd, credentials: "include" });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+      return apiRequest("PATCH", `/api/admin/ads/${id}`, data);
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/ads"] }); setDialogOpen(false); toast({ title: "Ad updated" }); },
-    onError: () => toast({ title: "Failed to update ad", variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Failed to update ad", description: e.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -243,23 +444,32 @@ export default function AdminAds() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/advertise-applications"] }); toast({ title: "Application updated" }); },
   });
 
-  const openAdd = () => { setEditingAd(null); setForm(EMPTY_AD); setDialogOpen(true); };
-  const openEdit = (ad: any) => { setEditingAd(ad); setForm({ ...EMPTY_AD, ...ad, startDate: ad.startDate ? ad.startDate.split("T")[0] : "", endDate: ad.endDate ? ad.endDate.split("T")[0] : "" }); setDialogOpen(true); };
+  const openAdd = () => { setEditingAd(null); setForm(EMPTY_AD); setImageFile(null); setLogoFile(null); setDialogOpen(true); };
+  const openEdit = (ad: any) => {
+    setEditingAd(ad);
+    setForm({ ...EMPTY_AD, ...ad, startDate: ad.startDate ? ad.startDate.split("T")[0] : "", endDate: ad.endDate ? ad.endDate.split("T")[0] : "" });
+    setImageFile(null);
+    setLogoFile(null);
+    setDialogOpen(true);
+  };
 
   const handleSave = () => {
     if (!form.title || !form.linkUrl || !form.advertiserName) {
       return toast({ title: "Title, destination URL and advertiser name are required", variant: "destructive" });
+    }
+    if (!form.imageUrl && !imageFile) {
+      return toast({ title: "Please upload a featured ad image", variant: "destructive" });
     }
     if (editingAd) updateMutation.mutate({ id: editingAd.id, data: form });
     else createMutation.mutate(form);
   };
 
   const filteredAds = filterPlacement === "all" ? ads : ads.filter((a: any) => a.placement === filterPlacement);
-
   const totalImpressions = ads.reduce((s: number, a: any) => s + (a.impressions || 0), 0);
   const totalClicks = ads.reduce((s: number, a: any) => s + (a.clicks || 0), 0);
   const liveAds = ads.filter((a: any) => a.isActive).length;
   const pendingApps = applications.filter((a: any) => a.status === "pending").length;
+  const globalCtr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : "0.00";
 
   if ((user as any)?.userType !== "admin") {
     return (
@@ -284,7 +494,7 @@ export default function AdminAds() {
                 <div className="p-2 bg-blue-100 rounded-xl"><Megaphone className="h-7 w-7 text-blue-600" /></div>
                 Ads Control Center
               </h1>
-              <p className="text-gray-500 mt-1">Manage Google AdSense, sponsored ads, and advertising applications</p>
+              <p className="text-gray-500 mt-1">Manage sponsored ads, Google AdSense, analytics, and advertiser applications</p>
             </div>
             <Button onClick={openAdd} data-testid="button-add-ad" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
               <Plus className="h-4 w-4" /> Create Ad
@@ -293,17 +503,18 @@ export default function AdminAds() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {[
-            { label: "Live Ads", value: liveAds, icon: CheckCircle2, color: "text-green-600 bg-green-50" },
-            { label: "Total Impressions", value: totalImpressions.toLocaleString(), icon: Eye, color: "text-blue-600 bg-blue-50" },
-            { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick, color: "text-purple-600 bg-purple-50" },
-            { label: "Ad Applications", value: pendingApps, icon: Megaphone, color: "text-amber-600 bg-amber-50" },
+            { label: "Live Ads", value: liveAds, icon: CheckCircle2, color: "text-green-600 bg-green-50", border: "border-green-100" },
+            { label: "Total Impressions", value: totalImpressions.toLocaleString(), icon: Eye, color: "text-blue-600 bg-blue-50", border: "border-blue-100" },
+            { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick, color: "text-purple-600 bg-purple-50", border: "border-purple-100" },
+            { label: "Global CTR", value: `${globalCtr}%`, icon: TrendingUp, color: "text-indigo-600 bg-indigo-50", border: "border-indigo-100" },
+            { label: "Ad Applications", value: pendingApps, icon: Megaphone, color: "text-amber-600 bg-amber-50", border: "border-amber-100" },
           ].map(s => (
-            <Card key={s.label} className="border-0 shadow-sm">
+            <Card key={s.label} className={`border shadow-sm ${s.border}`}>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className={`p-2.5 rounded-lg ${s.color}`}><s.icon className="h-5 w-5" /></div>
-                <div><p className="text-2xl font-bold">{s.value}</p><p className="text-xs text-gray-500">{s.label}</p></div>
+                <div><p className="text-xl font-bold">{s.value}</p><p className="text-xs text-gray-500">{s.label}</p></div>
               </CardContent>
             </Card>
           ))}
@@ -422,24 +633,6 @@ export default function AdminAds() {
                   </Button>
                 </CardContent>
               </Card>
-
-              <Card className="border shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base">Individual Ad Unit Codes</CardTitle>
-                  <CardDescription>Add specific AdSense ad unit codes for targeted placements.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {PLACEMENTS.slice(0, 4).map(p => (
-                    <div key={p.value}>
-                      <Label className="flex items-center gap-2 mb-1"><p.icon className="h-3.5 w-3.5" />{p.label}</Label>
-                      <Input placeholder={`Ad unit code for ${p.label.toLowerCase()}...`} className="font-mono text-xs" />
-                    </div>
-                  ))}
-                  <Button variant="outline" className="w-full gap-2" onClick={() => toast({ title: "Ad unit codes saved" })}>
-                    Save Ad Unit Codes
-                  </Button>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
@@ -532,7 +725,7 @@ export default function AdminAds() {
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <span>{adsHere.length} ad{adsHere.length !== 1 ? "s" : ""} configured</span>
                         <Button size="sm" variant="ghost" className="text-blue-600 gap-1.5 h-7"
-                          onClick={() => { setFilterPlacement(p.value); const el = document.querySelector('[data-state="active"][value="sponsored"]'); }}>
+                          onClick={() => setFilterPlacement(p.value)}>
                           <Eye className="h-3.5 w-3.5" />View
                         </Button>
                       </div>
@@ -555,7 +748,7 @@ export default function AdminAds() {
             </DialogTitle>
           </DialogHeader>
           <div className="py-2">
-            <AdForm form={form} setForm={setForm} />
+            <AdForm form={form} setForm={setForm} imageFile={imageFile} setImageFile={setImageFile} logoFile={logoFile} setLogoFile={setLogoFile} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

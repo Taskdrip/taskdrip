@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -6795,21 +6795,79 @@ Instructions:
     }
   });
 
-  app.post('/api/ads/:id/impression', async (req, res) => {
+  // ── Ad Analytics helpers ──────────────────────────────────────
+  function parseDevice(ua: string): { deviceType: string; browser: string; os: string } {
+    const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|windows phone/i.test(ua);
+    const isTablet = /tablet|ipad/i.test(ua);
+    const deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
+    let browser = 'Other';
+    if (/Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua)) browser = 'Chrome';
+    else if (/Firefox\//.test(ua)) browser = 'Firefox';
+    else if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) browser = 'Safari';
+    else if (/Edg\//.test(ua)) browser = 'Edge';
+    else if (/OPR\//.test(ua)) browser = 'Opera';
+    let os = 'Other';
+    if (/Windows/.test(ua)) os = 'Windows';
+    else if (/Mac OS/.test(ua)) os = 'macOS';
+    else if (/Linux/.test(ua)) os = 'Linux';
+    else if (/Android/.test(ua)) os = 'Android';
+    else if (/iOS|iPhone|iPad/.test(ua)) os = 'iOS';
+    return { deviceType, browser, os };
+  }
+
+  async function recordAdAnalytic(adId: string, eventType: 'impression' | 'click', req: any) {
+    try {
+      const ua = req.headers['user-agent'] || '';
+      const ip = (req.headers['x-forwarded-for'] as string || req.socket?.remoteAddress || '').split(',')[0].trim();
+      const { deviceType, browser, os } = parseDevice(ua);
+      await db.insert(adAnalytics).values({
+        adId,
+        eventType,
+        sessionId: req.body?.sessionId || null,
+        userId: req.user?.id || null,
+        deviceType,
+        browser,
+        os,
+        ipAddress: ip,
+        pageUrl: req.body?.pageUrl || req.headers['referer'] || null,
+        userAgent: ua.substring(0, 500),
+      });
+    } catch (_) {}
+  }
+
+  app.post('/api/ads/:id/impression', async (req: any, res) => {
     try {
       await storage.incrementAdImpressions(req.params.id);
+      await recordAdAnalytic(req.params.id, 'impression', req);
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: 'Failed to record impression' });
     }
   });
 
-  app.post('/api/ads/:id/click', async (req, res) => {
+  app.post('/api/ads/:id/click', async (req: any, res) => {
     try {
       await storage.incrementAdClicks(req.params.id);
+      await recordAdAnalytic(req.params.id, 'click', req);
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: 'Failed to record click' });
+    }
+  });
+
+  app.get('/api/admin/ads/analytics/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const rows = await db.select().from(adAnalytics).where(eq(adAnalytics.adId, req.params.id)).orderBy(desc(adAnalytics.createdAt)).limit(500);
+      // Aggregate
+      const byDevice = rows.reduce((acc: any, r) => { acc[r.deviceType || 'unknown'] = (acc[r.deviceType || 'unknown'] || 0) + 1; return acc; }, {});
+      const byBrowser = rows.reduce((acc: any, r) => { acc[r.browser || 'Other'] = (acc[r.browser || 'Other'] || 0) + 1; return acc; }, {});
+      const byOs = rows.reduce((acc: any, r) => { acc[r.os || 'Other'] = (acc[r.os || 'Other'] || 0) + 1; return acc; }, {});
+      const impressions = rows.filter(r => r.eventType === 'impression');
+      const clicks = rows.filter(r => r.eventType === 'click');
+      res.json({ byDevice, byBrowser, byOs, recentImpressions: impressions.slice(0, 50), recentClicks: clicks.slice(0, 50), totalImpressions: impressions.length, totalClicks: clicks.length });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
     }
   });
 
@@ -6823,23 +6881,29 @@ Instructions:
     }
   });
 
-  app.post('/api/admin/ads', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/ads', isAuthenticated, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'logo', maxCount: 1 }]), async (req: any, res) => {
     try {
       if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      const ad = await storage.createSponsoredAd(req.body);
+      const body = { ...req.body };
+      if (req.files?.image?.[0]) body.imageUrl = `/uploads/${req.files.image[0].filename}`;
+      if (req.files?.logo?.[0]) body.advertiserLogo = `/uploads/${req.files.logo[0].filename}`;
+      const ad = await storage.createSponsoredAd(body);
       res.json(ad);
-    } catch (e) {
-      res.status(500).json({ message: 'Failed to create ad' });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to create ad' });
     }
   });
 
-  app.patch('/api/admin/ads/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/admin/ads/:id', isAuthenticated, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'logo', maxCount: 1 }]), async (req: any, res) => {
     try {
       if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      const ad = await storage.updateSponsoredAd(req.params.id, req.body);
+      const body = { ...req.body };
+      if (req.files?.image?.[0]) body.imageUrl = `/uploads/${req.files.image[0].filename}`;
+      if (req.files?.logo?.[0]) body.advertiserLogo = `/uploads/${req.files.logo[0].filename}`;
+      const ad = await storage.updateSponsoredAd(req.params.id, body);
       res.json(ad);
-    } catch (e) {
-      res.status(500).json({ message: 'Failed to update ad' });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to update ad' });
     }
   });
 
