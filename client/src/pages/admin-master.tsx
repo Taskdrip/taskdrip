@@ -129,6 +129,7 @@ const FULL_ADMIN_TABS = [
   "overview", "users", "campaigns", "tasks", "networks", "payments", "direct-hires", "p2p",
   "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
   "settings", "pwa", "hero-sliders", "payout-center", "content-editor", "leaderboard",
+  "social-tasks", "transactions",
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -2423,6 +2424,8 @@ export default function AdminMaster() {
                 { value: "payout-center", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payouts" },
                 { value: "content-editor", icon: <Edit className="h-3.5 w-3.5" />, label: "Content Editor" },
                 { value: "leaderboard", icon: <Trophy className="h-3.5 w-3.5" />, label: "Leaderboard" },
+                { value: "social-tasks", icon: <Zap className="h-3.5 w-3.5" />, label: "Social Tasks" },
+                { value: "transactions", icon: <Coins className="h-3.5 w-3.5" />, label: "Transactions" },
               ].filter((tab) => allowedTabs.includes(tab.value)).map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -5745,6 +5748,16 @@ export default function AdminMaster() {
             <LeaderboardManagementPanel />
           </TabsContent>
 
+          {/* ── SOCIAL TASKS + SITE LINKS TAB ── */}
+          <TabsContent value="social-tasks" className="space-y-6 pb-8">
+            <SocialTasksAdminPanel />
+          </TabsContent>
+
+          {/* ── ALL TRANSACTIONS TAB ── */}
+          <TabsContent value="transactions" className="space-y-6 pb-8">
+            <AllTransactionsAdminPanel />
+          </TabsContent>
+
         </Tabs>
 
         {/* Campaign Detail Dialog */}
@@ -6479,6 +6492,444 @@ export default function AdminMaster() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// SOCIAL TASKS + SITE SOCIAL LINKS ADMIN PANEL
+// ═══════════════════════════════════════════════════
+const PLATFORM_OPTIONS = [
+  { value: "twitter", label: "Twitter / X", emoji: "🐦" },
+  { value: "instagram", label: "Instagram", emoji: "📸" },
+  { value: "telegram", label: "Telegram", emoji: "✈️" },
+  { value: "youtube", label: "YouTube", emoji: "▶️" },
+  { value: "tiktok", label: "TikTok", emoji: "🎵" },
+  { value: "discord", label: "Discord", emoji: "🎮" },
+  { value: "facebook", label: "Facebook", emoji: "👍" },
+  { value: "linkedin", label: "LinkedIn", emoji: "💼" },
+  { value: "whatsapp", label: "WhatsApp", emoji: "💬" },
+  { value: "other", label: "Other", emoji: "🔗" },
+];
+
+function SocialTasksAdminPanel() {
+  const { toast } = useToast();
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [taskForm, setTaskForm] = useState({ platform: "twitter", label: "", actionUrl: "", pointsReward: 50, iconEmoji: "🔗", description: "", isActive: true, sortOrder: 0 });
+
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<any>(null);
+  const [linkForm, setLinkForm] = useState({ platform: "twitter", label: "", url: "", iconEmoji: "🔗", placement: "footer", isActive: true, sortOrder: 0 });
+
+  const { data: tasks = [], refetch: refetchTasks } = useQuery<any[]>({ queryKey: ["/api/admin/social-quick-tasks"] });
+  const { data: links = [], refetch: refetchLinks } = useQuery<any[]>({ queryKey: ["/api/admin/site-social-links"] });
+  const { data: taskStats = [] } = useQuery<any[]>({ queryKey: ["/api/admin/social-task-stats"] });
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/social-quick-tasks", data),
+    onSuccess: () => { refetchTasks(); setTaskOpen(false); setEditingTask(null); toast({ title: "Social task created" }); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, data }: any) => apiRequest("PATCH", `/api/admin/social-quick-tasks/${id}`, data),
+    onSuccess: () => { refetchTasks(); setTaskOpen(false); setEditingTask(null); toast({ title: "Task updated" }); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/social-quick-tasks/${id}`, {}),
+    onSuccess: () => { refetchTasks(); toast({ title: "Task deleted" }); },
+  });
+
+  const createLinkMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/site-social-links", data),
+    onSuccess: () => { refetchLinks(); setLinkOpen(false); setEditingLink(null); toast({ title: "Social link created" }); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+  const updateLinkMutation = useMutation({
+    mutationFn: ({ id, data }: any) => apiRequest("PATCH", `/api/admin/site-social-links/${id}`, data),
+    onSuccess: () => { refetchLinks(); setLinkOpen(false); setEditingLink(null); toast({ title: "Link updated" }); },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+  const deleteLinkMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/site-social-links/${id}`, {}),
+    onSuccess: () => { refetchLinks(); toast({ title: "Link deleted" }); },
+  });
+
+  const openEditTask = (t: any) => {
+    setEditingTask(t);
+    setTaskForm({ platform: t.platform, label: t.label, actionUrl: t.actionUrl, pointsReward: t.pointsReward || 50, iconEmoji: t.iconEmoji || "🔗", description: t.description || "", isActive: t.isActive !== false, sortOrder: t.sortOrder || 0 });
+    setTaskOpen(true);
+  };
+  const openEditLink = (l: any) => {
+    setEditingLink(l);
+    setLinkForm({ platform: l.platform, label: l.label, url: l.url, iconEmoji: l.iconEmoji || "🔗", placement: l.placement || "footer", isActive: l.isActive !== false, sortOrder: l.sortOrder || 0 });
+    setLinkOpen(true);
+  };
+
+  const statMap: Record<string, number> = {};
+  (taskStats as any[]).forEach((s: any) => { statMap[s.taskId] = Number(s.count || 0); });
+
+  return (
+    <div className="space-y-8">
+      {/* Social Quick Tasks */}
+      <Card className="border border-gray-800 bg-gray-900">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2"><Zap className="h-5 w-5 text-violet-400" />Social Quick Tasks</CardTitle>
+              <CardDescription className="text-gray-400 mt-1">Tasks shown to users after registration. Completing them earns $TDRIP points.</CardDescription>
+            </div>
+            <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { setEditingTask(null); setTaskForm({ platform: "twitter", label: "", actionUrl: "", pointsReward: 50, iconEmoji: "🔗", description: "", isActive: true, sortOrder: 0 }); setTaskOpen(true); }} data-testid="btn-add-social-task">
+              <Plus className="h-4 w-4 mr-2" /> Add Task
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(tasks as any[]).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No social tasks yet. Add your first one!</div>
+          ) : (
+            <div className="space-y-3">
+              {(tasks as any[]).map((task: any) => (
+                <div key={task.id} className="flex items-center gap-3 bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <span className="text-2xl">{task.iconEmoji || "🔗"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-white font-semibold text-sm">{task.label}</span>
+                      <Badge className={task.isActive ? "bg-emerald-900 text-emerald-300 text-xs" : "bg-gray-700 text-gray-400 text-xs"}>{task.isActive ? "Active" : "Inactive"}</Badge>
+                      <Badge className="bg-violet-900 text-violet-300 text-xs">+{task.pointsReward} pts</Badge>
+                    </div>
+                    <p className="text-gray-400 text-xs truncate mt-0.5">{task.actionUrl}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{statMap[task.id] || 0} completions</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="border-gray-700 text-gray-300 hover:text-white" onClick={() => openEditTask(task)} data-testid={`btn-edit-task-${task.id}`}>Edit</Button>
+                    <Button size="sm" variant="outline" className="border-red-900 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this task?")) deleteTaskMutation.mutate(task.id); }} data-testid={`btn-delete-task-${task.id}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Task form dialog */}
+      <Dialog open={taskOpen} onOpenChange={v => { setTaskOpen(v); if (!v) setEditingTask(null); }}>
+        <DialogContent className="max-w-md bg-gray-900 border border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle>{editingTask ? "Edit Social Task" : "New Social Quick Task"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">Platform</Label>
+                <select value={taskForm.platform} onChange={e => { const p = PLATFORM_OPTIONS.find(o => o.value === e.target.value); setTaskForm(f => ({ ...f, platform: e.target.value, iconEmoji: p?.emoji || "🔗" })); }} className="w-full rounded-xl border border-gray-700 bg-gray-800 text-white text-sm px-3 py-2" data-testid="select-task-platform">
+                  {PLATFORM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.emoji} {o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">Icon Emoji</Label>
+                <Input value={taskForm.iconEmoji} onChange={e => setTaskForm(f => ({ ...f, iconEmoji: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="🔗" data-testid="input-task-emoji" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-gray-300 text-sm mb-1 block">Label (shown to users)</Label>
+              <Input value={taskForm.label} onChange={e => setTaskForm(f => ({ ...f, label: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="Follow us on Twitter" data-testid="input-task-label" />
+            </div>
+            <div>
+              <Label className="text-gray-300 text-sm mb-1 block">Action URL (the social link)</Label>
+              <Input value={taskForm.actionUrl} onChange={e => setTaskForm(f => ({ ...f, actionUrl: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="https://twitter.com/taskdrip" data-testid="input-task-url" />
+            </div>
+            <div>
+              <Label className="text-gray-300 text-sm mb-1 block">Description (optional)</Label>
+              <Input value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="Follow for updates, campaigns & rewards" data-testid="input-task-description" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">$TDRIP Points Reward</Label>
+                <Input type="number" value={taskForm.pointsReward} onChange={e => setTaskForm(f => ({ ...f, pointsReward: Number(e.target.value) }))} className="bg-gray-800 border-gray-700 text-white" min={1} data-testid="input-task-reward" />
+              </div>
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">Sort Order</Label>
+                <Input type="number" value={taskForm.sortOrder} onChange={e => setTaskForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} className="bg-gray-800 border-gray-700 text-white" min={0} data-testid="input-task-sort" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={taskForm.isActive} onCheckedChange={v => setTaskForm(f => ({ ...f, isActive: v }))} data-testid="switch-task-active" />
+              <Label className="text-gray-300 text-sm">Active (visible to users)</Label>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 border-gray-700 text-gray-300" onClick={() => setTaskOpen(false)}>Cancel</Button>
+              <Button className="flex-1 bg-violet-600 hover:bg-violet-700 text-white" onClick={() => editingTask ? updateTaskMutation.mutate({ id: editingTask.id, data: taskForm }) : createTaskMutation.mutate(taskForm)} disabled={createTaskMutation.isPending || updateTaskMutation.isPending || !taskForm.label || !taskForm.actionUrl} data-testid="btn-save-task">
+                {editingTask ? "Update" : "Create"} Task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Site Social Links */}
+      <Card className="border border-gray-800 bg-gray-900">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2"><Link2 className="h-5 w-5 text-blue-400" />Site-Wide Social Links</CardTitle>
+              <CardDescription className="text-gray-400 mt-1">Social media links shown in footer, navigation, and throughout the site.</CardDescription>
+            </div>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => { setEditingLink(null); setLinkForm({ platform: "twitter", label: "", url: "", iconEmoji: "🔗", placement: "footer", isActive: true, sortOrder: 0 }); setLinkOpen(true); }} data-testid="btn-add-site-link">
+              <Plus className="h-4 w-4 mr-2" /> Add Link
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(links as any[]).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No site social links yet.</div>
+          ) : (
+            <div className="space-y-3">
+              {(links as any[]).map((link: any) => (
+                <div key={link.id} className="flex items-center gap-3 bg-gray-800 rounded-xl p-4 border border-gray-700">
+                  <span className="text-2xl">{link.iconEmoji || "🔗"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-white font-semibold text-sm">{link.label}</span>
+                      <Badge className="bg-blue-900 text-blue-300 text-xs capitalize">{link.placement}</Badge>
+                      <Badge className={link.isActive ? "bg-emerald-900 text-emerald-300 text-xs" : "bg-gray-700 text-gray-400 text-xs"}>{link.isActive ? "Active" : "Hidden"}</Badge>
+                    </div>
+                    <p className="text-gray-400 text-xs truncate mt-0.5">{link.url}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <a href={link.url} target="_blank" rel="noopener noreferrer"><Button size="sm" variant="ghost" className="text-gray-400 hover:text-white h-8 w-8 p-0"><ExternalLink className="h-3.5 w-3.5" /></Button></a>
+                    <Button size="sm" variant="outline" className="border-gray-700 text-gray-300 hover:text-white" onClick={() => openEditLink(link)} data-testid={`btn-edit-link-${link.id}`}>Edit</Button>
+                    <Button size="sm" variant="outline" className="border-red-900 text-red-400 hover:text-red-300" onClick={() => { if (confirm("Delete this link?")) deleteLinkMutation.mutate(link.id); }} data-testid={`btn-delete-link-${link.id}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Link form dialog */}
+      <Dialog open={linkOpen} onOpenChange={v => { setLinkOpen(v); if (!v) setEditingLink(null); }}>
+        <DialogContent className="max-w-md bg-gray-900 border border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle>{editingLink ? "Edit Site Social Link" : "New Site Social Link"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">Platform</Label>
+                <select value={linkForm.platform} onChange={e => { const p = PLATFORM_OPTIONS.find(o => o.value === e.target.value); setLinkForm(f => ({ ...f, platform: e.target.value, iconEmoji: p?.emoji || "🔗" })); }} className="w-full rounded-xl border border-gray-700 bg-gray-800 text-white text-sm px-3 py-2" data-testid="select-link-platform">
+                  {PLATFORM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.emoji} {o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">Icon Emoji</Label>
+                <Input value={linkForm.iconEmoji} onChange={e => setLinkForm(f => ({ ...f, iconEmoji: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="🐦" data-testid="input-link-emoji" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-gray-300 text-sm mb-1 block">Label</Label>
+              <Input value={linkForm.label} onChange={e => setLinkForm(f => ({ ...f, label: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="Follow us on Twitter" data-testid="input-link-label" />
+            </div>
+            <div>
+              <Label className="text-gray-300 text-sm mb-1 block">URL</Label>
+              <Input value={linkForm.url} onChange={e => setLinkForm(f => ({ ...f, url: e.target.value }))} className="bg-gray-800 border-gray-700 text-white" placeholder="https://twitter.com/taskdrip" data-testid="input-link-url" />
+            </div>
+            <div>
+              <Label className="text-gray-300 text-sm mb-1 block">Placement</Label>
+              <select value={linkForm.placement} onChange={e => setLinkForm(f => ({ ...f, placement: e.target.value }))} className="w-full rounded-xl border border-gray-700 bg-gray-800 text-white text-sm px-3 py-2" data-testid="select-link-placement">
+                <option value="footer">Footer only</option>
+                <option value="header">Header / Navigation only</option>
+                <option value="both">Both Header & Footer</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300 text-sm mb-1 block">Sort Order</Label>
+                <Input type="number" value={linkForm.sortOrder} onChange={e => setLinkForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} className="bg-gray-800 border-gray-700 text-white" min={0} data-testid="input-link-sort" />
+              </div>
+              <div className="flex items-end gap-2 pb-1">
+                <Switch checked={linkForm.isActive} onCheckedChange={v => setLinkForm(f => ({ ...f, isActive: v }))} data-testid="switch-link-active" />
+                <Label className="text-gray-300 text-sm">Active</Label>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 border-gray-700 text-gray-300" onClick={() => setLinkOpen(false)}>Cancel</Button>
+              <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => editingLink ? updateLinkMutation.mutate({ id: editingLink.id, data: linkForm }) : createLinkMutation.mutate(linkForm)} disabled={createLinkMutation.isPending || updateLinkMutation.isPending || !linkForm.label || !linkForm.url} data-testid="btn-save-link">
+                {editingLink ? "Update" : "Create"} Link
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ALL TRANSACTIONS ADMIN PANEL
+// ═══════════════════════════════════════════════════
+function AllTransactionsAdminPanel() {
+  const { toast } = useToast();
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
+  const { data: transactions = [], isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/all-transactions"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/all-transactions?limit=200", { credentials: "include" });
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/transactions/${id}`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/all-transactions"] });
+      toast({ title: "Transaction updated" });
+      setApprovingId(null);
+    },
+    onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const TYPE_FILTERS = ["all", "tdrip_topup", "campaign_reward", "payout", "tdrip_tip", "tdrip_transfer"];
+  const filteredTxs = (transactions as any[]).filter(tx => {
+    if (filter !== "all" && tx.type !== filter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return tx.user?.email?.toLowerCase().includes(q) ||
+        tx.user?.firstName?.toLowerCase().includes(q) ||
+        tx.description?.toLowerCase().includes(q) ||
+        tx.type?.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const typeColors: Record<string, string> = {
+    campaign_reward: "bg-emerald-900 text-emerald-300",
+    tdrip_topup: "bg-violet-900 text-violet-300",
+    tdrip_tip: "bg-purple-900 text-purple-300",
+    tdrip_transfer: "bg-indigo-900 text-indigo-300",
+    payout: "bg-red-900 text-red-300",
+    platform_fee: "bg-amber-900 text-amber-300",
+  };
+
+  const totalPending = (transactions as any[]).filter(tx => tx.status === "pending" && tx.type === "tdrip_topup").length;
+
+  return (
+    <div className="space-y-5">
+      <Card className="border border-gray-800 bg-gray-900">
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2"><Coins className="h-5 w-5 text-violet-400" />All User Transactions</CardTitle>
+              <CardDescription className="text-gray-400 mt-1">Monitor and approve all platform transactions. {totalPending > 0 && <span className="text-amber-400 font-semibold">{totalPending} pending $TDRIP top-ups need approval.</span>}</CardDescription>
+            </div>
+            <Button variant="outline" className="border-gray-700 text-gray-300 hover:text-white" onClick={() => refetch()} data-testid="btn-refresh-transactions">
+              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Summary stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Total", value: (transactions as any[]).length, color: "text-white" },
+              { label: "Pending", value: (transactions as any[]).filter((t: any) => t.status === "pending").length, color: "text-amber-400" },
+              { label: "Completed", value: (transactions as any[]).filter((t: any) => t.status === "completed").length, color: "text-emerald-400" },
+              { label: "TDRIP Topups", value: (transactions as any[]).filter((t: any) => t.type === "tdrip_topup").length, color: "text-violet-400" },
+            ].map(s => (
+              <div key={s.label} className="bg-gray-800 rounded-xl p-3 border border-gray-700">
+                <p className="text-gray-500 text-xs">{s.label}</p>
+                <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by user email, type, description..." className="bg-gray-800 border-gray-700 text-white flex-1" data-testid="input-tx-search" />
+            <div className="flex gap-2 flex-wrap">
+              {TYPE_FILTERS.map(f => (
+                <button key={f} onClick={() => setFilter(f)} className={`text-xs px-3 py-1.5 rounded-full font-medium ${filter === f ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"}`} data-testid={`btn-tx-filter-${f}`}>{f}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Transaction table */}
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading transactions...</div>
+          ) : filteredTxs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No transactions match your filters.</div>
+          ) : (
+            <div className="rounded-xl border border-gray-800 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-800 hover:bg-transparent">
+                    <TableHead className="text-gray-400">User</TableHead>
+                    <TableHead className="text-gray-400">Type</TableHead>
+                    <TableHead className="text-gray-400">Amount</TableHead>
+                    <TableHead className="text-gray-400">Status</TableHead>
+                    <TableHead className="text-gray-400">Date</TableHead>
+                    <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTxs.slice(0, 100).map((tx: any) => (
+                    <TableRow key={tx.id} className="border-gray-800 hover:bg-gray-800/50">
+                      <TableCell>
+                        <div>
+                          <p className="text-white text-sm font-medium">{tx.user?.firstName} {tx.user?.lastName}</p>
+                          <p className="text-gray-500 text-xs">{tx.user?.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`text-xs ${typeColors[tx.type] || "bg-gray-800 text-gray-300"}`}>{tx.type?.replace(/_/g, " ")}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-white font-semibold text-sm">${Number(tx.amount || 0).toFixed(2)}</p>
+                        {tx.type === "tdrip_topup" && tx.referenceId && <p className="text-violet-400 text-xs">{tx.referenceId} pts</p>}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={tx.status === "completed" ? "bg-emerald-900 text-emerald-300 text-xs" : tx.status === "pending" ? "bg-amber-900 text-amber-300 text-xs" : tx.status === "failed" ? "bg-red-900 text-red-300 text-xs" : "bg-gray-800 text-gray-300 text-xs"}>
+                          {tx.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-gray-400 text-xs">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell className="text-right">
+                        {tx.status === "pending" && tx.type === "tdrip_topup" && (
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs h-7" onClick={() => approveMutation.mutate({ id: tx.id, status: "completed" })} disabled={approveMutation.isPending} data-testid={`btn-approve-tx-${tx.id}`}>
+                              ✓ Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-red-800 text-red-400 hover:text-red-300 text-xs h-7" onClick={() => approveMutation.mutate({ id: tx.id, status: "failed" })} disabled={approveMutation.isPending} data-testid={`btn-reject-tx-${tx.id}`}>
+                              ✗ Reject
+                            </Button>
+                          </div>
+                        )}
+                        {tx.description && (
+                          <p className="text-gray-600 text-xs truncate max-w-32 text-right mt-1" title={tx.description}>{tx.description}</p>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

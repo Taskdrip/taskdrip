@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -7376,6 +7376,120 @@ Instructions:
       const [product] = await db.select().from(shopProducts).where(eq(shopProducts.id, purchase.productId));
       res.json({ ...purchase, product: product || null });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Social Quick Tasks (public + admin) ────────────────────────────────────
+  app.get('/api/social-quick-tasks', async (req: any, res) => {
+    try {
+      const tasks = await storage.getSocialQuickTasks(true);
+      if (req.user) {
+        const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
+        return res.json(tasks.map(t => ({ ...t, completed: completedIds.includes(t.id) })));
+      }
+      res.json(tasks.map(t => ({ ...t, completed: false })));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/social-quick-tasks/:id/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const taskId = req.params.id;
+      const [task] = await db.select().from(socialQuickTasks).where(eq(socialQuickTasks.id, taskId));
+      if (!task || !task.isActive) return res.status(404).json({ message: 'Task not found' });
+      const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
+      if (completedIds.includes(taskId)) return res.status(409).json({ message: 'Already completed' });
+      await storage.completeSocialQuickTask(req.user.id, taskId);
+      const reward = task.pointsReward || 0;
+      if (reward > 0) {
+        await storage.awardPoints(req.user.id, 'social_task', reward, `Completed social task: ${task.label}`, taskId);
+      }
+      res.json({ success: true, pointsEarned: reward });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin CRUD social quick tasks
+  app.get('/api/admin/social-quick-tasks', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    res.json(await storage.getSocialQuickTasks(false));
+  });
+
+  app.post('/api/admin/social-quick-tasks', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    const task = await storage.createSocialQuickTask(req.body);
+    res.status(201).json(task);
+  });
+
+  app.patch('/api/admin/social-quick-tasks/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    const task = await storage.updateSocialQuickTask(req.params.id, req.body);
+    res.json(task);
+  });
+
+  app.delete('/api/admin/social-quick-tasks/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    await storage.deleteSocialQuickTask(req.params.id);
+    res.json({ success: true });
+  });
+
+  // ── Site Social Links (public + admin) ─────────────────────────────────────
+  app.get('/api/site-social-links', async (req: any, res) => {
+    res.json(await storage.getSiteSocialLinks(true));
+  });
+
+  app.get('/api/admin/site-social-links', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    res.json(await storage.getSiteSocialLinks(false));
+  });
+
+  app.post('/api/admin/site-social-links', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    const link = await storage.createSiteSocialLink(req.body);
+    res.status(201).json(link);
+  });
+
+  app.patch('/api/admin/site-social-links/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    const link = await storage.updateSiteSocialLink(req.params.id, req.body);
+    res.json(link);
+  });
+
+  app.delete('/api/admin/site-social-links/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    await storage.deleteSiteSocialLink(req.params.id);
+    res.json({ success: true });
+  });
+
+  // ── Admin All Transactions ────────────────────────────────────────────────
+  app.get('/api/admin/all-transactions', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    const limit = Math.min(200, Number(req.query.limit) || 100);
+    const offset = Number(req.query.offset) || 0;
+    const txs = await storage.getAllTransactionsPaginated(limit, offset);
+    res.json(txs);
+  });
+
+  app.patch('/api/admin/transactions/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    try {
+      const { status, adminNotes } = req.body;
+      const updated = await storage.updateTransaction(req.params.id as any, { status, description: adminNotes } as any);
+      if (status === 'completed' && updated.type === 'tdrip_topup') {
+        const points = Number(updated.referenceId || 0);
+        if (points > 0 && updated.userId) {
+          await storage.awardPoints(updated.userId, 'tdrip_purchase', points, `Admin approved: ${points} $TDRIP top-up`, updated.id as any);
+          await storage.createNotification({ userId: updated.userId, type: 'tdrip_credited', title: '$TDRIP Points Credited', content: `Your top-up of ${points} $TDRIP points has been approved and credited to your wallet.`, actionUrl: '/wallet' } as any);
+        }
+      }
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Admin Social Tasks Completions stats ─────────────────────────────────
+  app.get('/api/admin/social-task-stats', isAuthenticated, async (req: any, res) => {
+    if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql<number>`count(*)` })
+      .from(userSocialTaskCompletions)
+      .groupBy(userSocialTaskCompletions.taskId);
+    res.json(stats);
   });
 
   const httpServer = createServer(app);

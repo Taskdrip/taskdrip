@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
+import { triggerSocialTasksModal } from '@/components/ui/social-tasks-welcome-modal';
 import { Link, useLocation } from 'wouter';
 import { ArrowLeft, User, Building2, CheckCircle, Zap, ArrowRight } from 'lucide-react';
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiYoutube } from 'react-icons/si';
@@ -169,6 +170,7 @@ export default function SimpleSignup() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      triggerSocialTasksModal();
       setSuccessUser({ firstName: data.user.firstName });
     },
     onError: (error: any) => {

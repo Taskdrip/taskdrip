@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
 import { 
   ArrowRight,
   Home,
@@ -17,11 +18,45 @@ import {
   Newspaper,
   Trophy,
   Store,
+  ExternalLink,
 } from "lucide-react";
-import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp } from "react-icons/si";
+import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp, SiDiscord, SiLinkedin } from "react-icons/si";
 import { SOCIALS, OFFICES } from "@/config/socials";
 
+const PLATFORM_ICON_MAP: Record<string, React.ReactNode> = {
+  twitter: <SiX className="h-4 w-4 text-white" />,
+  instagram: <SiInstagram className="h-4 w-4 text-[#E1306C]" />,
+  telegram: <SiTelegram className="h-4 w-4 text-[#229ED9]" />,
+  youtube: <SiYoutube className="h-4 w-4 text-[#FF0000]" />,
+  tiktok: <SiTiktok className="h-4 w-4 text-white" />,
+  discord: <SiDiscord className="h-4 w-4 text-[#5865F2]" />,
+  facebook: <SiFacebook className="h-4 w-4 text-[#1877F2]" />,
+  linkedin: <SiLinkedin className="h-4 w-4 text-[#0A66C2]" />,
+  whatsapp: <SiWhatsapp className="h-4 w-4 text-[#25D366]" />,
+};
+
+const PLATFORM_BG_MAP: Record<string, string> = {
+  twitter: "bg-white/10 hover:bg-white/20",
+  instagram: "bg-[#E1306C]/20 hover:bg-[#E1306C]/40",
+  telegram: "bg-[#229ED9]/20 hover:bg-[#229ED9]/40",
+  youtube: "bg-[#FF0000]/20 hover:bg-[#FF0000]/40",
+  tiktok: "bg-white/10 hover:bg-white/20",
+  discord: "bg-[#5865F2]/20 hover:bg-[#5865F2]/40",
+  facebook: "bg-[#1877F2]/20 hover:bg-[#1877F2]/40",
+  linkedin: "bg-[#0A66C2]/20 hover:bg-[#0A66C2]/40",
+  whatsapp: "bg-[#25D366]/20 hover:bg-[#25D366]/40",
+};
+
 export function Footer() {
+  const { data: siteLinks = [] } = useQuery<any[]>({
+    queryKey: ["/api/site-social-links"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const footerLinks = (siteLinks as any[]).filter(
+    (l: any) => l.isActive && (l.placement === "footer" || l.placement === "both")
+  );
+
   return (
     <footer className="bg-gray-900 text-white py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,52 +70,88 @@ export function Footer() {
               The #1 Web3 influencer marketplace — where influencers turn their reach into real crypto income. Join thousands of influencers earning USDT from top global brands, one task at a time.
             </p>
 
-            {/* Social Icons */}
+            {/* Social Icons — DB-driven if available, else static fallback */}
             <div className="flex flex-wrap gap-2 mb-5">
-              <a href={SOCIALS.telegram} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-[#229ED9]/20 hover:bg-[#229ED9]/40 flex items-center justify-center transition-colors" title="Telegram">
-                <SiTelegram className="h-4 w-4 text-[#229ED9]" />
-              </a>
-              <a href={SOCIALS.x} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" title="X (Twitter)">
-                <SiX className="h-4 w-4 text-white" />
-              </a>
-              <a href={SOCIALS.instagram} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-[#E1306C]/20 hover:bg-[#E1306C]/40 flex items-center justify-center transition-colors" title="Instagram">
-                <SiInstagram className="h-4 w-4 text-[#E1306C]" />
-              </a>
-              <a href={SOCIALS.facebook} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2]/40 flex items-center justify-center transition-colors" title="Facebook">
-                <SiFacebook className="h-4 w-4 text-[#1877F2]" />
-              </a>
-              <a href={SOCIALS.youtube} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-[#FF0000]/20 hover:bg-[#FF0000]/40 flex items-center justify-center transition-colors" title="YouTube">
-                <SiYoutube className="h-4 w-4 text-[#FF0000]" />
-              </a>
-              <a href={SOCIALS.tiktok} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" title="TikTok">
-                <SiTiktok className="h-4 w-4 text-white" />
-              </a>
-              <a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/40 flex items-center justify-center transition-colors" title="WhatsApp">
-                <SiWhatsapp className="h-4 w-4 text-[#25D366]" />
-              </a>
+              {footerLinks.length > 0 ? (
+                footerLinks.map((link: any) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={link.label}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${PLATFORM_BG_MAP[link.platform] || "bg-white/10 hover:bg-white/20"}`}
+                    data-testid={`footer-social-${link.platform}`}
+                  >
+                    {PLATFORM_ICON_MAP[link.platform] || <span className="text-xs">{link.iconEmoji || "🔗"}</span>}
+                  </a>
+                ))
+              ) : (
+                <>
+                  <a href={SOCIALS.telegram} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-[#229ED9]/20 hover:bg-[#229ED9]/40 flex items-center justify-center transition-colors" title="Telegram">
+                    <SiTelegram className="h-4 w-4 text-[#229ED9]" />
+                  </a>
+                  <a href={SOCIALS.x} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" title="X (Twitter)">
+                    <SiX className="h-4 w-4 text-white" />
+                  </a>
+                  <a href={SOCIALS.instagram} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-[#E1306C]/20 hover:bg-[#E1306C]/40 flex items-center justify-center transition-colors" title="Instagram">
+                    <SiInstagram className="h-4 w-4 text-[#E1306C]" />
+                  </a>
+                  <a href={SOCIALS.facebook} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-[#1877F2]/20 hover:bg-[#1877F2]/40 flex items-center justify-center transition-colors" title="Facebook">
+                    <SiFacebook className="h-4 w-4 text-[#1877F2]" />
+                  </a>
+                  <a href={SOCIALS.youtube} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-[#FF0000]/20 hover:bg-[#FF0000]/40 flex items-center justify-center transition-colors" title="YouTube">
+                    <SiYoutube className="h-4 w-4 text-[#FF0000]" />
+                  </a>
+                  <a href={SOCIALS.tiktok} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" title="TikTok">
+                    <SiTiktok className="h-4 w-4 text-white" />
+                  </a>
+                  <a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-[#25D366]/20 hover:bg-[#25D366]/40 flex items-center justify-center transition-colors" title="WhatsApp">
+                    <SiWhatsapp className="h-4 w-4 text-[#25D366]" />
+                  </a>
+                </>
+              )}
             </div>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons — use DB links if set, else static */}
             <div className="flex flex-col gap-2">
-              <a href={SOCIALS.telegram} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs bg-[#229ED9]/20 hover:bg-[#229ED9]/30 text-[#229ED9] px-3 py-2 rounded-lg transition-colors font-medium">
-                <SiTelegram className="h-3.5 w-3.5" /> Join Telegram Community
-              </a>
-              <a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] px-3 py-2 rounded-lg transition-colors font-medium">
-                <SiWhatsapp className="h-3.5 w-3.5" /> Chat on WhatsApp
-              </a>
-              <a href={SOCIALS.x} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg transition-colors font-medium">
-                <SiX className="h-3.5 w-3.5" /> Follow on X
-              </a>
+              {footerLinks.length > 0 ? (
+                footerLinks.slice(0, 3).map((link: any) => (
+                  <a
+                    key={`cta-${link.id}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg transition-colors font-medium ${PLATFORM_BG_MAP[link.platform] || "bg-white/10 hover:bg-white/20"} text-white`}
+                    data-testid={`footer-cta-${link.platform}`}
+                  >
+                    {PLATFORM_ICON_MAP[link.platform] || <span>{link.iconEmoji}</span>}
+                    {link.label}
+                  </a>
+                ))
+              ) : (
+                <>
+                  <a href={SOCIALS.telegram} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs bg-[#229ED9]/20 hover:bg-[#229ED9]/30 text-[#229ED9] px-3 py-2 rounded-lg transition-colors font-medium">
+                    <SiTelegram className="h-3.5 w-3.5" /> Join Telegram Community
+                  </a>
+                  <a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] px-3 py-2 rounded-lg transition-colors font-medium">
+                    <SiWhatsapp className="h-3.5 w-3.5" /> Chat on WhatsApp
+                  </a>
+                  <a href={SOCIALS.x} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg transition-colors font-medium">
+                    <SiX className="h-3.5 w-3.5" /> Follow on X
+                  </a>
+                </>
+              )}
             </div>
           </div>
 

@@ -1599,3 +1599,48 @@ export const leaderboardGiveaways = pgTable("leaderboard_giveaways", {
 export const insertLeaderboardGiveawaySchema = createInsertSchema(leaderboardGiveaways).omit({ id: true, createdAt: true, updatedAt: true });
 export type LeaderboardGiveaway = typeof leaderboardGiveaways.$inferSelect;
 export type InsertLeaderboardGiveaway = z.infer<typeof insertLeaderboardGiveawaySchema>;
+
+// ── Social Quick Tasks (admin-managed, shown after registration) ───────────────
+export const socialQuickTasks = pgTable("social_quick_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  platform: varchar("platform", { length: 50 }).notNull(), // 'twitter','instagram','telegram','youtube','tiktok','discord', etc.
+  label: varchar("label", { length: 200 }).notNull(), // e.g. "Follow us on Twitter"
+  actionUrl: varchar("action_url", { length: 500 }).notNull(), // the social link to open
+  pointsReward: integer("points_reward").default(50), // $TDRIP points given on completion
+  iconEmoji: varchar("icon_emoji", { length: 10 }).default("🔗"),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSocialQuickTaskSchema = createInsertSchema(socialQuickTasks).omit({ id: true, createdAt: true, updatedAt: true });
+export type SocialQuickTask = typeof socialQuickTasks.$inferSelect;
+export type InsertSocialQuickTask = z.infer<typeof insertSocialQuickTaskSchema>;
+
+// ── Track which users completed which social quick tasks ──────────────────────
+export const userSocialTaskCompletions = pgTable("user_social_task_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  taskId: varchar("task_id").notNull().references(() => socialQuickTasks.id, { onDelete: "cascade" }),
+  completedAt: timestamp("completed_at").defaultNow(),
+});
+
+// ── Site-wide Social Media Links (admin-managed, shown in footer/nav) ─────────
+export const siteSocialLinks = pgTable("site_social_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  platform: varchar("platform", { length: 50 }).notNull(), // 'twitter','instagram','telegram', etc.
+  label: varchar("label", { length: 100 }).notNull(),
+  url: varchar("url", { length: 500 }).notNull(),
+  iconEmoji: varchar("icon_emoji", { length: 10 }).default("🔗"),
+  placement: varchar("placement", { length: 30 }).default("footer"), // 'footer','header','both'
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSiteSocialLinkSchema = createInsertSchema(siteSocialLinks).omit({ id: true, createdAt: true, updatedAt: true });
+export type SiteSocialLink = typeof siteSocialLinks.$inferSelect;
+export type InsertSiteSocialLink = z.infer<typeof insertSiteSocialLinkSchema>;

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { triggerSocialTasksModal } from '@/components/ui/social-tasks-welcome-modal';
 import { User, Building2, Star, Users, Camera, MapPin } from 'lucide-react';
 
 const creatorFormSchema = z.object({
@@ -119,6 +120,7 @@ export default function Signup() {
         title: 'Influencer Profile Created!',
         description: 'Your profile has been created successfully. You can now start joining campaigns.',
       });
+      triggerSocialTasksModal();
       window.location.href = '/';
     },
     onError: (error) => {

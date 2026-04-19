@@ -123,6 +123,13 @@ import {
   type InsertLeaderboardReward,
   type LeaderboardGiveaway,
   type InsertLeaderboardGiveaway,
+  socialQuickTasks,
+  siteSocialLinks,
+  userSocialTaskCompletions,
+  type SocialQuickTask,
+  type InsertSocialQuickTask,
+  type SiteSocialLink,
+  type InsertSiteSocialLink,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ne, inArray } from "drizzle-orm";
@@ -299,6 +306,23 @@ export interface IStorage {
   createLeaderboardGiveaway(data: InsertLeaderboardGiveaway): Promise<LeaderboardGiveaway>;
   updateLeaderboardGiveaway(id: string, data: Partial<InsertLeaderboardGiveaway>): Promise<LeaderboardGiveaway>;
   deleteLeaderboardGiveaway(id: string): Promise<void>;
+
+  // Social Quick Tasks
+  getSocialQuickTasks(activeOnly?: boolean): Promise<SocialQuickTask[]>;
+  createSocialQuickTask(data: InsertSocialQuickTask): Promise<SocialQuickTask>;
+  updateSocialQuickTask(id: string, data: Partial<InsertSocialQuickTask>): Promise<SocialQuickTask>;
+  deleteSocialQuickTask(id: string): Promise<void>;
+  getUserSocialTaskCompletions(userId: string): Promise<string[]>;
+  completeSocialQuickTask(userId: string, taskId: string): Promise<void>;
+
+  // Site Social Links
+  getSiteSocialLinks(activeOnly?: boolean): Promise<SiteSocialLink[]>;
+  createSiteSocialLink(data: InsertSiteSocialLink): Promise<SiteSocialLink>;
+  updateSiteSocialLink(id: string, data: Partial<InsertSiteSocialLink>): Promise<SiteSocialLink>;
+  deleteSiteSocialLink(id: string): Promise<void>;
+
+  // Admin all transactions
+  getAllTransactionsPaginated(limit?: number, offset?: number): Promise<(Transaction & { user?: Partial<User> })[]>;
 
   getAllCreators(): Promise<User[]>;
 
@@ -2492,6 +2516,85 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { inserted, updated };
+  }
+
+  // ── Social Quick Tasks ─────────────────────────────────────────────────────
+  async getSocialQuickTasks(activeOnly = false): Promise<SocialQuickTask[]> {
+    const rows = activeOnly
+      ? await db.select().from(socialQuickTasks).where(eq(socialQuickTasks.isActive, true)).orderBy(socialQuickTasks.sortOrder)
+      : await db.select().from(socialQuickTasks).orderBy(socialQuickTasks.sortOrder);
+    return rows;
+  }
+
+  async createSocialQuickTask(data: InsertSocialQuickTask): Promise<SocialQuickTask> {
+    const [row] = await db.insert(socialQuickTasks).values(data as any).returning();
+    return row;
+  }
+
+  async updateSocialQuickTask(id: string, data: Partial<InsertSocialQuickTask>): Promise<SocialQuickTask> {
+    const [row] = await db.update(socialQuickTasks).set({ ...data, updatedAt: new Date() } as any).where(eq(socialQuickTasks.id, id)).returning();
+    return row;
+  }
+
+  async deleteSocialQuickTask(id: string): Promise<void> {
+    await db.delete(socialQuickTasks).where(eq(socialQuickTasks.id, id));
+  }
+
+  async getUserSocialTaskCompletions(userId: string): Promise<string[]> {
+    const rows = await db.select().from(userSocialTaskCompletions).where(eq(userSocialTaskCompletions.userId, userId));
+    return rows.map(r => r.taskId);
+  }
+
+  async completeSocialQuickTask(userId: string, taskId: string): Promise<void> {
+    const existing = await db.select().from(userSocialTaskCompletions)
+      .where(and(eq(userSocialTaskCompletions.userId, userId), eq(userSocialTaskCompletions.taskId, taskId)));
+    if (existing.length === 0) {
+      await db.insert(userSocialTaskCompletions).values({ userId, taskId } as any);
+    }
+  }
+
+  // ── Site Social Links ──────────────────────────────────────────────────────
+  async getSiteSocialLinks(activeOnly = false): Promise<SiteSocialLink[]> {
+    const rows = activeOnly
+      ? await db.select().from(siteSocialLinks).where(eq(siteSocialLinks.isActive, true)).orderBy(siteSocialLinks.sortOrder)
+      : await db.select().from(siteSocialLinks).orderBy(siteSocialLinks.sortOrder);
+    return rows;
+  }
+
+  async createSiteSocialLink(data: InsertSiteSocialLink): Promise<SiteSocialLink> {
+    const [row] = await db.insert(siteSocialLinks).values(data as any).returning();
+    return row;
+  }
+
+  async updateSiteSocialLink(id: string, data: Partial<InsertSiteSocialLink>): Promise<SiteSocialLink> {
+    const [row] = await db.update(siteSocialLinks).set({ ...data, updatedAt: new Date() } as any).where(eq(siteSocialLinks.id, id)).returning();
+    return row;
+  }
+
+  async deleteSiteSocialLink(id: string): Promise<void> {
+    await db.delete(siteSocialLinks).where(eq(siteSocialLinks.id, id));
+  }
+
+  // ── Admin all transactions paginated ──────────────────────────────────────
+  async getAllTransactionsPaginated(limit = 100, offset = 0): Promise<(Transaction & { user?: Partial<User> })[]> {
+    const rows = await db
+      .select({
+        tx: transactions,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          userType: users.userType,
+          profileImageUrl: users.profileImageUrl,
+        },
+      })
+      .from(transactions)
+      .leftJoin(users, eq(transactions.userId, users.id))
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit)
+      .offset(offset);
+    return rows.map(r => ({ ...r.tx, user: r.user || undefined }));
   }
 }
 

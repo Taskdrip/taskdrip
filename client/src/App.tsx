@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { GuideBot } from "@/components/ui/guide-bot";
+import { SocialTasksWelcomeModal } from "@/components/ui/social-tasks-welcome-modal";
 import { useAuth } from "@/hooks/useAuth";
 import FinalLanding from "@/pages/final-landing";
 import Home from "@/pages/home";
@@ -208,6 +209,7 @@ function App() {
         <Router />
         <PWAInstallPrompt />
         <GuideBot />
+        <SocialTasksWelcomeModal />
       </TooltipProvider>
     </QueryClientProvider>
   );
