@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowRight,
   Home,
@@ -19,6 +22,8 @@ import {
   Trophy,
   Store,
   ExternalLink,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp, SiDiscord, SiLinkedin } from "react-icons/si";
 import { SOCIALS, OFFICES } from "@/config/socials";
@@ -48,6 +53,28 @@ const PLATFORM_BG_MAP: Record<string, string> = {
 };
 
 export function Footer() {
+  const { toast } = useToast();
+  const [subscribeEmail, setSubscribeEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
+  const subscribeMutation = useMutation({
+    mutationFn: (email: string) => apiRequest("POST", "/api/subscribe", { email, source: "footer" }),
+    onSuccess: async (res) => {
+      const data = await res.json();
+      setSubscribed(true);
+      setSubscribeEmail("");
+      toast({ title: "Subscribed!", description: data.message || "Welcome to the Taskdrip newsletter." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Please enter a valid email address.", variant: "destructive" });
+    },
+  });
+
+  const handleSubscribe = () => {
+    if (!subscribeEmail.trim()) return;
+    subscribeMutation.mutate(subscribeEmail.trim());
+  };
+
   const { data: siteLinks = [] } = useQuery<any[]>({
     queryKey: ["/api/site-social-links"],
     staleTime: 5 * 60 * 1000,
@@ -267,17 +294,35 @@ export function Footer() {
           <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
             <div>
               <h4 className="font-semibold text-lg mb-2">Stay Updated</h4>
-              <p className="text-gray-400 text-sm">Get the latest updates on new campaigns and platform features.</p>
+              <p className="text-gray-400 text-sm">Get campaign alerts, earning tips, and platform updates — straight to your inbox.</p>
             </div>
-            <div className="flex space-x-4 w-full lg:w-auto">
-              <Input 
-                placeholder="Enter your email" 
-                className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 w-full lg:w-80"
-              />
-              <Button className="bg-white text-black hover:bg-gray-100 px-8">
-                Subscribe
-              </Button>
-            </div>
+            {subscribed ? (
+              <div className="flex items-center gap-2 text-green-400 font-medium" data-testid="status-subscribed">
+                <CheckCircle className="h-5 w-5" />
+                <span>You're subscribed! Check your inbox.</span>
+              </div>
+            ) : (
+              <div className="flex space-x-3 w-full lg:w-auto">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={subscribeEmail}
+                  onChange={e => setSubscribeEmail(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSubscribe()}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 w-full lg:w-80"
+                  data-testid="input-subscribe-email"
+                  disabled={subscribeMutation.isPending}
+                />
+                <Button
+                  onClick={handleSubscribe}
+                  disabled={subscribeMutation.isPending || !subscribeEmail.trim()}
+                  className="bg-white text-black hover:bg-gray-100 px-8 shrink-0"
+                  data-testid="btn-subscribe"
+                >
+                  {subscribeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -287,7 +332,7 @@ export function Footer() {
             <p className="text-gray-400 text-center lg:text-left text-sm">
               © 2026 Taskdrip LLC. All rights reserved. Points = Off-chain rewards, convertible to $TDRIP token.
             </p>
-            <div className="flex space-x-6">
+            <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center">
               <Link href="/terms" className="text-gray-400 hover:text-white transition-colors text-sm">
                 Terms of Service
               </Link>
@@ -296,6 +341,9 @@ export function Footer() {
               </Link>
               <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors text-sm">
                 Cookie Policy
+              </Link>
+              <Link href="/disclaimer" className="text-gray-400 hover:text-white transition-colors text-sm">
+                Disclaimer
               </Link>
             </div>
           </div>

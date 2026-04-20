@@ -71,6 +71,7 @@ import MyOrdersPage from "@/pages/my-orders";
 import TDripInfoPage from "@/pages/tdrip-info";
 import AdminCMSEditor from "@/pages/admin-cms-editor";
 import AdminSEO from "@/pages/admin-seo";
+import { LegalPageTemplate } from "@/pages/legal-page";
 import { injectAnalytics, trackPageView } from "@/hooks/useSeoMeta";
 
 function hasAdminDashboardAccess(user: any) {
@@ -118,6 +119,10 @@ function Router() {
       <Route path="/shop/checkout/:id" component={ShopCheckout} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
+      <Route path="/terms" component={() => <LegalPageTemplate slug="terms" />} />
+      <Route path="/privacy" component={() => <LegalPageTemplate slug="privacy" />} />
+      <Route path="/cookies" component={() => <LegalPageTemplate slug="cookies" />} />
+      <Route path="/disclaimer" component={() => <LegalPageTemplate slug="disclaimer" />} />
       <Route path="/tasks" component={TasksPage} />
       <Route path="/advertise" component={AdvertiseWithUs} />
       <Route path="/get-started" component={GetStarted} />

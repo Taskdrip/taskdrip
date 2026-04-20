@@ -422,4 +422,54 @@ export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
       <p>The Taskdrip Advertising Team</p>
     `),
   },
+  newsletter_welcome: {
+    subject: "You're in! Welcome to the Taskdrip Inner Circle 🎉",
+    body: buildDefaultEmailHtml(`
+      <h2>Welcome to Taskdrip! 🚀</h2>
+      <p>You've just subscribed to the Taskdrip newsletter — the #1 source for Web3 influencer marketing insights, new campaign alerts, and platform updates.</p>
+
+      <h3 style="color:#7c3aed;margin-top:24px;">What to expect from us:</h3>
+      <ul>
+        <li><strong>🎯 Campaign Alerts</strong> — Be the first to know about new high-paying brand campaigns</li>
+        <li><strong>💰 Earning Tips</strong> — Strategies to maximize your crypto earnings as an influencer</li>
+        <li><strong>📊 Platform Updates</strong> — New features, tools, and improvements announced first to subscribers</li>
+        <li><strong>🎓 BreedSkool Courses</strong> — Free educational content to help you grow your influence and income</li>
+        <li><strong>🏆 Exclusive Giveaways</strong> — Subscriber-only contests and rewards in $TDRIP tokens</li>
+      </ul>
+
+      <h3 style="color:#7c3aed;margin-top:24px;">Your Next Steps:</h3>
+      <ol>
+        <li>Create your free Taskdrip account and set up your influencer profile</li>
+        <li>Browse active campaigns and apply to earn USDT from top brands</li>
+        <li>Join our Telegram community for real-time campaign alerts and tips</li>
+        <li>Enroll in BreedSkool — our free academy for influencer skill-building</li>
+      </ol>
+
+      <div style="background:#f5f3ff;border-left:4px solid #7c3aed;padding:16px;margin:24px 0;border-radius:4px;">
+        <p style="margin:0;font-weight:600;color:#7c3aed;">Pro Tip:</p>
+        <p style="margin:8px 0 0;color:#374151;">Influencers who complete their profile and verify their social accounts earn 3x more from campaigns. It takes less than 5 minutes!</p>
+      </div>
+
+      <a href="{{site_url}}/signup" class="btn">Create Your Free Account →</a>
+
+      <p style="margin-top:24px;color:#6b7280;font-size:13px;">You're receiving this because you subscribed at taskdrip.online. You can <a href="{{site_url}}/unsubscribe?email={{email}}" style="color:#7c3aed;">unsubscribe anytime</a>.</p>
+      <p>The Taskdrip Team</p>
+    `),
+  },
 };
+
+export async function sendNewsletterWelcomeEmail(email: string, name?: string): Promise<void> {
+  try {
+    const siteUrl = "https://taskdrip.online";
+    const firstName = name ? name.split(" ")[0] : "there";
+    const vars: Record<string, string> = {
+      first_name: firstName,
+      email,
+      site_url: siteUrl,
+    };
+    const template = AI_TEMPLATES['newsletter_welcome'];
+    const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
+    await sendEmail({ to: email, toName: name || undefined, subject, html });
+  } catch (_) { /* non-blocking */ }
+}

@@ -1792,3 +1792,36 @@ export const adNetworkPlacements = pgTable("ad_network_placements", {
 export const insertAdNetworkPlacementSchema = createInsertSchema(adNetworkPlacements).omit({ id: true, createdAt: true, updatedAt: true });
 export type AdNetworkPlacement = typeof adNetworkPlacements.$inferSelect;
 export type InsertAdNetworkPlacement = z.infer<typeof insertAdNetworkPlacementSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Legal Pages — CMS-editable terms/privacy/cookies/disclaimer
+// ──────────────────────────────────────────────────────────────
+export const legalPages = pgTable("legal_pages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug").unique().notNull(), // terms | privacy | cookies | disclaimer
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  lastUpdatedBy: varchar("last_updated_by"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLegalPageSchema = createInsertSchema(legalPages).omit({ id: true, updatedAt: true });
+export type LegalPage = typeof legalPages.$inferSelect;
+export type InsertLegalPage = z.infer<typeof insertLegalPageSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Newsletter Subscribers — footer opt-in mailing list
+// ──────────────────────────────────────────────────────────────
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique().notNull(),
+  name: varchar("name"),
+  status: varchar("status").default("active"), // active | unsubscribed
+  source: varchar("source").default("footer"), // footer | popup | campaign
+  ipAddress: varchar("ip_address"),
+  subscribedAt: timestamp("subscribed_at").defaultNow(),
+});
+
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({ id: true, subscribedAt: true });
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;

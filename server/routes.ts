@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
-import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
+import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -8501,6 +8501,82 @@ Instructions:
       xml += `</urlset>`;
       res.type('application/xml');
       res.send(xml);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Legal Pages (public read, admin write) ────────────────────────────────
+  app.get('/api/legal/:slug', async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      const rows = await db.select().from(legalPages).where(eq(legalPages.slug, slug)).limit(1);
+      if (!rows.length) return res.status(404).json({ message: 'Page not found' });
+      res.json(rows[0]);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/legal/:slug', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const { slug } = req.params;
+      const { title, content } = req.body;
+      if (!content) return res.status(400).json({ message: 'content is required' });
+      const existing = await db.select().from(legalPages).where(eq(legalPages.slug, slug)).limit(1);
+      if (existing.length) {
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: new Date() }).where(eq(legalPages.slug, slug));
+      } else {
+        await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
+      }
+      const updated = await db.select().from(legalPages).where(eq(legalPages.slug, slug)).limit(1);
+      res.json(updated[0]);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/legal', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const rows = await db.select().from(legalPages).orderBy(legalPages.slug);
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Newsletter Subscribers ────────────────────────────────────────────────
+  app.post('/api/subscribe', async (req: any, res) => {
+    try {
+      const { email, name, source } = req.body;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: 'A valid email address is required.' });
+      }
+      const existing = await db.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      if (existing.length) {
+        if (existing[0].status === 'unsubscribed') {
+          await db.update(newsletterSubscribers).set({ status: 'active', subscribedAt: new Date() }).where(eq(newsletterSubscribers.email, email.toLowerCase().trim()));
+          sendNewsletterWelcomeEmail(email, name).catch(() => {});
+          return res.json({ message: 'Welcome back! You have been re-subscribed.' });
+        }
+        return res.json({ message: 'You are already subscribed. Thank you!' });
+      }
+      const ip = (req.headers['x-forwarded-for'] as string || req.ip || '').split(',')[0].trim();
+      await db.insert(newsletterSubscribers).values({ email: email.toLowerCase().trim(), name: name || null, source: source || 'footer', ipAddress: ip });
+      sendNewsletterWelcomeEmail(email, name).catch(() => {});
+      res.json({ message: 'You have been subscribed! Check your inbox for a welcome email.' });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/newsletter-subscribers', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const rows = await db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.subscribedAt));
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/newsletter-subscribers/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const { status } = req.body;
+      if (!['active', 'unsubscribed'].includes(status)) return res.status(400).json({ message: 'Invalid status' });
+      await db.update(newsletterSubscribers).set({ status }).where(eq(newsletterSubscribers.id, req.params.id));
+      res.json({ success: true });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

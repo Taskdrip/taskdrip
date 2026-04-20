@@ -7,6 +7,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 import { seedDemoData } from "./seed-demo";
 import { seedCmsContent } from "./seed-cms";
+import { seedLegalPages } from "./seed-legal";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 
@@ -201,6 +202,7 @@ async function ensureAdminExists() {
   }
 
   await seedCmsContent();
+  await seedLegalPages();
 
   if (app.get("env") === "development") {
     // await seedDatabase(); // Temporarily disabled during schema updates

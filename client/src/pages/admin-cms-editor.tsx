@@ -39,6 +39,7 @@ const MODULES = [
   { id: "fees-rates", label: "Fees & Rates", icon: DollarSign, desc: "Platform fees & P2P rates" },
   { id: "footer-management", label: "Footer Management", icon: Layout, desc: "Footer columns & links" },
   { id: "announcement", label: "Announcement", icon: Megaphone, desc: "Site-wide banner message" },
+  { id: "legal-pages", label: "Legal Pages", icon: Shield, desc: "Terms, Privacy, Cookies, Disclaimer" },
 ];
 
 const DEFAULT_NAV_ITEMS = [
@@ -1040,6 +1041,120 @@ function FooterManagementPanel() {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Legal Pages Panel — edit Terms, Privacy, Cookies, Disclaimer
+// ──────────────────────────────────────────────────────────────
+
+const LEGAL_SLUGS = [
+  { slug: "terms", label: "Terms of Service", icon: "📋" },
+  { slug: "privacy", label: "Privacy Policy", icon: "🔒" },
+  { slug: "cookies", label: "Cookie Policy", icon: "🍪" },
+  { slug: "disclaimer", label: "Disclaimer", icon: "⚠️" },
+];
+
+function LegalPagesPanel() {
+  const { toast } = useToast();
+  const [activeSlug, setActiveSlug] = useState("terms");
+  const [editContent, setEditContent] = useState<Record<string, string>>({});
+  const [editTitle, setEditTitle] = useState<Record<string, string>>({});
+
+  const { data: pages = [], refetch } = useQuery<any[]>({ queryKey: ["/api/admin/legal"] });
+
+  useEffect(() => {
+    if (pages.length) {
+      const c: Record<string, string> = {};
+      const t: Record<string, string> = {};
+      for (const p of pages) { c[p.slug] = p.content; t[p.slug] = p.title; }
+      setEditContent(c);
+      setEditTitle(t);
+    }
+  }, [pages]);
+
+  const saveMutation = useMutation({
+    mutationFn: ({ slug, title, content }: { slug: string; title: string; content: string }) =>
+      apiRequest("PUT", `/api/admin/legal/${slug}`, { title, content }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/legal"] });
+      refetch();
+      toast({ title: "Page saved!", description: "Changes are now live on the website." });
+    },
+    onError: () => toast({ title: "Save failed", variant: "destructive" }),
+  });
+
+  const activePage = pages.find((p: any) => p.slug === activeSlug);
+
+  return (
+    <div className="space-y-6">
+      <PanelHeader
+        icon={FileText}
+        title="Legal Pages"
+        description="Edit Terms of Service, Privacy Policy, Cookie Policy, and Disclaimer. Changes go live immediately. Content supports HTML formatting."
+        action={
+          <Button
+            onClick={() => saveMutation.mutate({ slug: activeSlug, title: editTitle[activeSlug] || activeSlug, content: editContent[activeSlug] || "" })}
+            disabled={saveMutation.isPending}
+            className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
+            data-testid="button-legal-save"
+          >
+            <Save className="w-4 h-4" />
+            {saveMutation.isPending ? "Saving…" : "Save Page"}
+          </Button>
+        }
+      />
+
+      {/* Page selector tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {LEGAL_SLUGS.map(({ slug, label, icon }) => (
+          <button
+            key={slug}
+            onClick={() => setActiveSlug(slug)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeSlug === slug ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
+            data-testid={`button-legal-tab-${slug}`}
+          >
+            <span>{icon}</span> {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label className="text-gray-300 text-sm mb-2 block">Page Title</Label>
+          <Input
+            value={editTitle[activeSlug] || ""}
+            onChange={e => setEditTitle(prev => ({ ...prev, [activeSlug]: e.target.value }))}
+            className="bg-gray-800 border-gray-700 text-white"
+            placeholder="Page title"
+            data-testid="input-legal-title"
+          />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-gray-300 text-sm">Page Content (HTML supported)</Label>
+            {activePage?.updatedAt && (
+              <span className="text-gray-500 text-xs">Last updated: {new Date(activePage.updatedAt).toLocaleDateString()}</span>
+            )}
+          </div>
+          <Textarea
+            value={editContent[activeSlug] || ""}
+            onChange={e => setEditContent(prev => ({ ...prev, [activeSlug]: e.target.value }))}
+            className="bg-gray-800 border-gray-700 text-white font-mono text-xs min-h-[500px] resize-y"
+            placeholder="Enter HTML content for this legal page…"
+            data-testid="textarea-legal-content"
+          />
+          <p className="text-gray-600 text-xs mt-2">💡 You can use HTML tags like &lt;h3&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;a&gt;, &lt;p&gt; for formatting.</p>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <p className="text-gray-400 text-xs font-medium mb-2">Public URL:</p>
+          <a href={`/${activeSlug}`} target="_blank" rel="noreferrer" className="text-purple-400 text-sm hover:underline flex items-center gap-1">
+            <ExternalLink className="w-3.5 h-3.5" />
+            taskdrip.online/{activeSlug}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
 // Main Admin CMS Editor Page
 // ──────────────────────────────────────────────────────────────
 
@@ -1080,6 +1195,7 @@ export default function AdminCMSEditor() {
     "fees-rates": FeesRatesPanel,
     "footer-management": FooterManagementPanel,
     "announcement": AnnouncementPanel,
+    "legal-pages": LegalPagesPanel,
   }[activeModule] || SiteSettingsPanel;
 
   return (

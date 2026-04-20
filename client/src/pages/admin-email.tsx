@@ -17,7 +17,7 @@ import {
   Play, Eye, Edit, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw,
   Server, Shield, Globe, Key, TestTube, Inbox, Bot, ChevronRight,
   ArrowLeft, Copy, Info, Layers, BookOpen, ExternalLink, Terminal, Lock,
-  Database, HelpCircle, Package
+  Database, HelpCircle, Package, Bell, Download
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -747,6 +747,12 @@ export default function AdminEmail() {
   const { data: logs = [] } = useQuery<EmailLog[]>({ queryKey: ["/api/admin/email/logs"] });
   const { data: contacts = [] } = useQuery<Contact[]>({ queryKey: ["/api/admin/email/contacts"] });
   const { data: aiTemplates = {} } = useQuery<Record<string, any>>({ queryKey: ["/api/admin/email/ai-templates"] });
+  const { data: newsletterSubs = [], refetch: refetchSubs } = useQuery<any[]>({ queryKey: ["/api/admin/newsletter-subscribers"] });
+
+  const updateSubStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => apiRequest("PATCH", `/api/admin/newsletter-subscribers/${id}/status`, { status }),
+    onSuccess: () => { refetchSubs(); toast({ title: "Status updated" }); },
+  });
 
   useEffect(() => {
     if (settingsData) setSettings(settingsData);
@@ -914,6 +920,7 @@ export default function AdminEmail() {
             { value: "campaigns", icon: Send, label: "Campaigns" },
             { value: "templates", icon: FileText, label: "Templates" },
             { value: "auto-responders", icon: Bot, label: "Auto-Responders" },
+            { value: "newsletter", icon: Bell, label: "Newsletter Subscribers" },
             { value: "contacts", icon: Users, label: "Contacts" },
             { value: "logs", icon: Inbox, label: "Email Logs" },
             { value: "settings", icon: Settings, label: "SMTP / IMAP" },
@@ -1225,6 +1232,77 @@ export default function AdminEmail() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* ─────────────── CONTACTS ─────────────── */}
+        {/* ─────────────── NEWSLETTER SUBSCRIBERS ─────────────── */}
+        <TabsContent value="newsletter">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Newsletter Subscribers</h2>
+              <p className="text-sm text-gray-500">{newsletterSubs.length} footer opt-in subscribers · {newsletterSubs.filter((s: any) => s.status === "active").length} active</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => refetchSubs()} className="gap-1">
+                <RefreshCw className="h-3.5 w-3.5" />Refresh
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => {
+                const csv = ["Email,Name,Status,Source,Subscribed At",
+                  ...newsletterSubs.map((s: any) => `${s.email},${s.name || ""},${s.status},${s.source},${new Date(s.subscribedAt).toLocaleDateString()}`)
+                ].join("\n");
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                a.download = "newsletter-subscribers.csv";
+                a.click();
+              }}>
+                <Download className="h-3.5 w-3.5" />Export CSV
+              </Button>
+            </div>
+          </div>
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    {["Email", "Name", "Status", "Source", "Subscribed", "Action"].map(h => (
+                      <th key={h} className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {newsletterSubs.map((s: any) => (
+                    <tr key={s.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{s.email}</td>
+                      <td className="px-4 py-3 text-gray-600">{s.name || "—"}</td>
+                      <td className="px-4 py-3">
+                        <Badge className={`text-xs border-0 ${s.status === "active" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                          {s.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{s.source || "footer"}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{new Date(s.subscribedAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <Button
+                          size="sm" variant="ghost"
+                          className={`text-xs h-7 ${s.status === "active" ? "text-red-600 hover:text-red-700" : "text-green-600 hover:text-green-700"}`}
+                          onClick={() => updateSubStatusMutation.mutate({ id: s.id, status: s.status === "active" ? "unsubscribed" : "active" })}
+                        >
+                          {s.status === "active" ? "Unsubscribe" : "Re-activate"}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {newsletterSubs.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                  <Bell className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No newsletter subscribers yet</p>
+                  <p className="text-sm mt-1">Subscribers from the footer email form will appear here</p>
+                </div>
+              )}
+            </div>
+          </Card>
         </TabsContent>
 
         {/* ─────────────── CONTACTS ─────────────── */}

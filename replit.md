@@ -2,6 +2,17 @@
 
 Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
 
+## Recent Changes (April 2026 — Legal Pages, Newsletter Subscription, Admin CMS)
+- **4 Legal Pages Created** (`/terms`, `/privacy`, `/cookies`, `/disclaimer`): Full comprehensive content for each page — Terms of Service (14 sections), Privacy Policy (10 sections), Cookie Policy (5 sections with cookie tables), Disclaimer (11 sections). All pages are publicly accessible, no auth required.
+- **Legal Pages DB Table** (`legal_pages`): Stores slug, title, HTML content, and last-updated timestamp. Seeded automatically on server startup via `server/seed-legal.ts`.
+- **Legal Pages Admin Editor**: Added "Legal Pages" module to Admin CMS Editor (`/admin/cms`). Admins can edit all 4 pages with an HTML editor, title field, and one-click publish. Changes go live instantly.
+- **Footer Disclaimer Link Added**: "Disclaimer" link added to the footer legal row alongside Terms, Privacy, Cookie Policy.
+- **Newsletter Subscription Form Fixed**: Footer "Stay Updated" form is now fully wired to the backend. Submits to `POST /api/subscribe`, stores email in `newsletter_subscribers` DB table, shows success state with checkmark. Duplicate email protection and re-subscribe logic included.
+- **Auto Welcome Email**: When someone subscribes via the footer form, a personalized welcome email is sent automatically with next steps guide, platform highlights, and signup CTA. Uses the existing SendGrid/SMTP email system.
+- **Newsletter Subscribers Table** (`newsletter_subscribers`): Stores email, name, source, status (active/unsubscribed), IP, and subscribed date.
+- **Admin Newsletter Management**: New "Newsletter Subscribers" tab added to Admin → Email dashboard. Shows all subscribers with status badges, CSV export, and activate/unsubscribe controls.
+- **New API Routes**: `GET /api/legal/:slug` (public), `PUT /api/admin/legal/:slug` (admin), `GET /api/admin/legal` (admin), `POST /api/subscribe` (public), `GET/PATCH /api/admin/newsletter-subscribers` (admin).
+
 ## Recent Changes (April 2026 — Railway Deployment, Security Hardening, Branding Cleanup)
 - **Replit Branding Completely Removed**: Removed `@replit/vite-plugin-runtime-error-modal` and `@replit/vite-plugin-cartographer` from `vite.config.ts`. Removed all user-facing "Replit" references across `shop.tsx`, `admin-products.tsx`, `final-landing.tsx`, `admin-email.tsx`, `seed-demo.ts`, and `seed-cms.ts`. "Replit Projects" category renamed to "Dev Projects" throughout the UI (internal DB key `replit_projects` preserved for backward compatibility).
 - **Security Fixes**: Password hashes and 2FA secrets are now stripped from all API responses (`/api/user`, `/api/auth/user`, `/api/login`, `/api/admin/users`). Admin-only endpoints now properly require authentication and return 401/403 for unauthorized access.
