@@ -1330,7 +1330,7 @@ export default function AdminEmail() {
               <div className="mt-3 grid sm:grid-cols-2 gap-3">
                 <div className="bg-white border border-amber-100 rounded-lg p-3">
                   <p className="font-semibold text-gray-800 text-xs mb-1">⚡ Option 1 — SendGrid (Fastest)</p>
-                  <p className="text-xs text-gray-600">Create a free SendGrid account at <strong>sendgrid.com</strong>, get your API key, then add it as <code className="bg-gray-100 px-1 rounded text-xs">SENDGRID_API_KEY</code> in your Replit Secrets panel. No SMTP config needed.</p>
+                  <p className="text-xs text-gray-600">Create a free SendGrid account at <strong>sendgrid.com</strong>, get your API key, then add it as <code className="bg-gray-100 px-1 rounded text-xs">SENDGRID_API_KEY</code> in your environment variables. No SMTP config needed.</p>
                 </div>
                 <div className="bg-white border border-amber-100 rounded-lg p-3">
                   <p className="font-semibold text-gray-800 text-xs mb-1">🔧 Option 2 — SMTP Server</p>
@@ -1568,7 +1568,7 @@ export default function AdminEmail() {
                       <li>Create a free account at <strong>sendgrid.com</strong></li>
                       <li>Go to Settings → API Keys → Create API Key (Full Access)</li>
                       <li>Copy the key</li>
-                      <li>In Replit, open <strong>Secrets</strong> and add: <code className="bg-green-100 px-1 rounded">SENDGRID_API_KEY</code></li>
+                      <li>In your server environment, add the variable: <code className="bg-green-100 px-1 rounded">SENDGRID_API_KEY</code></li>
                       <li>Restart the app — emails will start working immediately</li>
                     </ol>
                     <p className="text-xs text-green-600 mt-2">Free tier: 100 emails/day forever</p>

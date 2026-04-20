@@ -2,6 +2,15 @@
 
 Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
 
+## Recent Changes (April 2026 — Railway Deployment, Security Hardening, Branding Cleanup)
+- **Replit Branding Completely Removed**: Removed `@replit/vite-plugin-runtime-error-modal` and `@replit/vite-plugin-cartographer` from `vite.config.ts`. Removed all user-facing "Replit" references across `shop.tsx`, `admin-products.tsx`, `final-landing.tsx`, `admin-email.tsx`, `seed-demo.ts`, and `seed-cms.ts`. "Replit Projects" category renamed to "Dev Projects" throughout the UI (internal DB key `replit_projects` preserved for backward compatibility).
+- **Security Fixes**: Password hashes and 2FA secrets are now stripped from all API responses (`/api/user`, `/api/auth/user`, `/api/login`, `/api/admin/users`). Admin-only endpoints now properly require authentication and return 401/403 for unauthorized access.
+- **Health Check Endpoint**: Added `GET /api/health` endpoint returning `{ status: "ok", timestamp }` — used by Railway and uptime monitors.
+- **Platform Settings API**: Added `GET /api/admin/platform-settings?keys=key1,key2` and `PUT /api/admin/platform-settings/:key` for admin-controlled feature flags stored in `platform_settings` table. Public read of safe flags via `GET /api/platform-settings`.
+- **Admin Platform Branding Toggle**: New "Platform Branding Controls" card added to the admin dashboard Settings tab. Admin can toggle the platform attribution badge on/off and customize the badge text — all from the backend, effective even in live production mode. Uses the `platform_settings` table for persistence.
+- **Railway Deployment Ready**: Created `railway.toml` with build (`npm run build`) and start (`npm start`) commands, health check path `/api/health`, and auto-restart policy. The production build outputs `dist/index.js` (backend) and `dist/public/` (frontend static assets). CSP `frameAncestors` updated to `'self'` only (removed Replit-specific domains).
+- **DialogFooter Import Fix**: Added missing `DialogFooter` import to `admin-master.tsx` (was causing potential runtime errors in dialog forms).
+
 ## Recent Changes (April 2026 — SEO, Footer CMS, Analytics)
 - **Advanced SEO Management** (`/admin/seo`): New dedicated admin page with 3 tabs — Per-Page SEO editor (meta title, description, Open Graph, Twitter card, canonical URL, noIndex/noFollow, structured data JSON-LD), Google Analytics 4 + GTM setup, and Technical SEO checklist with live robots.txt/sitemap.xml links.
 - **CMS Footer Management**: Added "Footer Management" module to `admin-cms-editor.tsx` — full CRUD for footer link columns (title, links with label/URL/isExternal, active toggle). Footer (`footer.tsx`) now dynamically fetches `/api/footer-columns` and renders CMS columns if any exist; falls back to hardcoded defaults.

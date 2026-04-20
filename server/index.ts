@@ -31,7 +31,7 @@ if (isProd) {
           objectSrc: ["'none'"],
           frameSrc: ["'self'", "https:"],
           workerSrc: ["'self'", "blob:"],
-          frameAncestors: ["'self'", "https://*.replit.app", "https://*.replit.dev"],
+          frameAncestors: ["'self'"],
           upgradeInsecureRequests: [],
         },
       },

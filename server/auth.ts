@@ -278,7 +278,8 @@ export function setupAuth(app: Express) {
       }
       req.logIn(user, (err) => {
         if (err) return next(err);
-        return res.json(user);
+        const { password: _pw, twoFactorSecret: _tfs, ...safeUser } = user;
+        return res.json(safeUser);
       });
     })(req, res, next);
   });
@@ -288,7 +289,8 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    res.json(req.user);
+    const { password: _pw, twoFactorSecret: _tfs, ...safeUser } = req.user as any;
+    res.json(safeUser);
   });
 
   // Legacy logout route for compatibility (redirects)
@@ -308,7 +310,8 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    res.json(req.user);
+    const { password: _pw, twoFactorSecret: _tfs, ...safeUser } = req.user as any;
+    res.json(safeUser);
   });
 
   // Change password (authenticated user)

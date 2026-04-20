@@ -113,7 +113,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s6",
     badge: "Influencer Shop",
     headline: "Tools Built for Influencers Who Mean Business.",
-    subheadline: "Browse templates, Replit projects, scripts, GitHub repos, and digital toolkits that help you grow faster, improve your content, and sell your own digital assets to thousands of creators.",
+    subheadline: "Browse templates, dev projects, scripts, GitHub repos, and digital toolkits that help you grow faster, improve your content, and sell your own digital assets to thousands of creators.",
     ctaPrimaryLabel: "Browse the Shop",
     ctaPrimaryLink: "/shop",
     ctaSecondaryLabel: "Sell Your Products",
@@ -443,7 +443,7 @@ export default function FinalLanding() {
               {
                 icon: <ShoppingBag className="w-6 h-6 text-emerald-500" />,
                 title: "Shop",
-                desc: "Buy and sell scripts, templates, Replit projects & digital tools.",
+                desc: "Buy and sell scripts, templates, dev projects & digital tools.",
                 href: "/shop",
                 color: "bg-emerald-50 border-emerald-100",
               },

@@ -313,7 +313,7 @@ export default function AdminProducts() {
                             <SelectItem value="templates">Templates & Designs</SelectItem>
                             <SelectItem value="education">Guides & Courses</SelectItem>
                             <SelectItem value="tools">Tech Tools</SelectItem>
-                            <SelectItem value="replit_projects">Replit Projects</SelectItem>
+                            <SelectItem value="replit_projects">Dev Projects</SelectItem>
                             <SelectItem value="github_repos">GitHub Repos</SelectItem>
                             <SelectItem value="service">Service</SelectItem>
                           </SelectContent>

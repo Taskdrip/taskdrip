@@ -2628,7 +2628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const users = await storage.getAllUsers();
-      res.json(users);
+      res.json(users.map(({ password: _pw, twoFactorSecret: _tfs, ...u }) => u));
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
@@ -8501,6 +8501,50 @@ Instructions:
       xml += `</urlset>`;
       res.type('application/xml');
       res.send(xml);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Health Check (Railway / uptime monitors) ─────────────────────────────
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // ── Platform Settings (key/value store for admin-controlled flags) ────────
+  app.get('/api/admin/platform-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const keys = (req.query.keys as string || '').split(',').filter(Boolean);
+      const result: Record<string, string | null> = {};
+      for (const key of keys) {
+        result[key] = await storage.getPlatformSetting(key);
+      }
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/platform-settings/:key', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const key = decodeURIComponent(req.params.key);
+      const { value } = req.body;
+      if (value === undefined) return res.status(400).json({ message: 'value is required' });
+      await storage.setPlatformSetting(key, String(value));
+      res.json({ key, value: String(value) });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Public endpoint for client to read specific platform flags
+  app.get('/api/platform-settings', async (req: any, res) => {
+    try {
+      const keys = (req.query.keys as string || '').split(',').filter(Boolean);
+      const publicKeys = ['show_platform_badge', 'platform_badge_text', 'maintenance_mode'];
+      const result: Record<string, string | null> = {};
+      for (const key of keys) {
+        if (publicKeys.includes(key)) {
+          result[key] = await storage.getPlatformSetting(key);
+        }
+      }
+      res.json(result);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

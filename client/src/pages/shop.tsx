@@ -28,7 +28,7 @@ const CATEGORIES = [
   { value: "plugins", label: "Plugins & Extensions", icon: Zap },
   { value: "tools", label: "Tech Tools", icon: FileCode },
   { value: "education", label: "Guides & Courses", icon: Globe },
-  { value: "replit_projects", label: "Replit Projects", icon: Rocket },
+  { value: "replit_projects", label: "Dev Projects", icon: Rocket },
   { value: "github_repos", label: "GitHub Repos", icon: Github },
   { value: "equipment", label: "Equipment", icon: Package },
 ];
@@ -310,7 +310,7 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
           <div className="hidden md:block">
             <div className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-md p-5 text-white shadow-2xl">
               <p className="text-xs uppercase tracking-[0.25em] text-white/50 mb-3">Marketplace update</p>
-              <h3 className="text-xl font-bold mb-2">Now featuring Replit builds, GitHub repos, templates, tools, and creator-ready digital assets.</h3>
+              <h3 className="text-xl font-bold mb-2">Now featuring dev projects, GitHub repos, templates, tools, and creator-ready digital assets.</h3>
               <p className="text-sm text-white/70">Use the advanced filters below to find launch-ready products faster.</p>
             </div>
           </div>
@@ -701,7 +701,7 @@ export default function Shop() {
             <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-400 bg-clip-text text-transparent">Launch Market</span>
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            Premium software, Replit projects, GitHub repos, automation tools, templates, and creator resources with admin-reviewed checkout options.
+            Premium software, dev projects, GitHub repos, automation tools, templates, and creator resources with admin-reviewed checkout options.
           </p>
 
           {/* Stats bar */}
@@ -724,7 +724,7 @@ export default function Shop() {
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search Replit projects, repos, scripts, tools..."
+              placeholder="Search dev projects, repos, scripts, tools..."
               className="pl-14 pr-4 h-14 text-base bg-white/95 backdrop-blur rounded-2xl border-0 shadow-2xl text-gray-900 placeholder-gray-400"
               data-testid="input-shop-search"
             />
@@ -758,7 +758,7 @@ export default function Shop() {
 
         <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { title: "New: Replit Projects", body: "Launch-ready Replit builds now have their own marketplace category.", icon: Rocket },
+            { title: "New: Dev Projects", body: "Launch-ready full-stack builds now have their own marketplace category.", icon: Rocket },
             { title: "New: GitHub Repo Kits", body: "Repository templates, docs packs, and developer assets are easier to find.", icon: Github },
             { title: "Better discovery", body: "Advanced filters now sort by type, price, topic tags, popularity, rating, and likes.", icon: Filter },
           ].map(({ title, body, icon: Icon }) => (

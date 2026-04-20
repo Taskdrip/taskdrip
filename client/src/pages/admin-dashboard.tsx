@@ -108,6 +108,39 @@ export default function AdminDashboard() {
   const [screenshotZoom, setScreenshotZoom] = useState<string | null>(null);
   const [expandedPayoutId, setExpandedPayoutId] = useState<string | null>(null);
 
+  // ── Platform Branding Settings ──
+  const [brandingSettings, setBrandingSettings] = useState({
+    show_platform_badge: "false",
+    platform_badge_text: "Powered by Taskdrip",
+  });
+
+  const { data: platformSettingsData } = useQuery<Record<string, string | null>>({
+    queryKey: ["/api/admin/platform-settings?keys=show_platform_badge,platform_badge_text"],
+    enabled: isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (platformSettingsData) {
+      setBrandingSettings(prev => ({
+        show_platform_badge: platformSettingsData.show_platform_badge ?? prev.show_platform_badge,
+        platform_badge_text: platformSettingsData.platform_badge_text ?? prev.platform_badge_text,
+      }));
+    }
+  }, [platformSettingsData]);
+
+  const updatePlatformSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      const r = await apiRequest("PUT", `/api/admin/platform-settings/${encodeURIComponent(key)}`, { value });
+      return r.json();
+    },
+    onSuccess: (_, { key, value }) => {
+      setBrandingSettings(prev => ({ ...prev, [key]: value }));
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-settings?keys=show_platform_badge,platform_badge_text"] });
+      toast({ title: "Setting saved" });
+    },
+    onError: (e: any) => toast({ title: "Failed to save setting", description: e.message, variant: "destructive" }),
+  });
+
   const { data: adminCampaigns = [] } = useQuery<any[]>({ queryKey: ["/api/admin/campaigns"] });
   const { data: allParticipations = [] } = useQuery<any[]>({ queryKey: ["/api/admin/participations"] });
   const { data: escrowPayments = [] } = useQuery<any[]>({ queryKey: ["/api/admin/escrow-payments"] });
@@ -1140,6 +1173,72 @@ export default function AdminDashboard() {
                     <Badge className="bg-blue-600 text-white">Active</Badge>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Platform Branding Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" /> Platform Branding Controls
+                </CardTitle>
+                <p className="text-sm text-gray-500">
+                  Control attribution badges and branding text displayed on the platform. Changes take effect immediately — even in live production mode.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Show Platform Badge Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                  <div>
+                    <p className="font-medium text-sm">Show Platform Attribution Badge</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Display a small badge in the footer crediting the platform builder. Turn off to hide completely.
+                    </p>
+                  </div>
+                  <Switch
+                    data-testid="toggle-platform-badge"
+                    checked={brandingSettings.show_platform_badge === "true"}
+                    onCheckedChange={(checked) =>
+                      updatePlatformSettingMutation.mutate({ key: "show_platform_badge", value: String(checked) })
+                    }
+                    disabled={updatePlatformSettingMutation.isPending}
+                  />
+                </div>
+
+                {/* Badge Text */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Badge / Attribution Text</Label>
+                  <p className="text-xs text-gray-500">Shown when the badge is enabled. E.g. "Built with ❤️ by Taskdrip"</p>
+                  <div className="flex gap-2">
+                    <Input
+                      data-testid="input-badge-text"
+                      value={brandingSettings.platform_badge_text}
+                      onChange={e => setBrandingSettings(prev => ({ ...prev, platform_badge_text: e.target.value }))}
+                      placeholder="e.g. Powered by Taskdrip"
+                      className="flex-1"
+                    />
+                    <Button
+                      data-testid="btn-save-badge-text"
+                      size="sm"
+                      onClick={() =>
+                        updatePlatformSettingMutation.mutate({ key: "platform_badge_text", value: brandingSettings.platform_badge_text })
+                      }
+                      disabled={updatePlatformSettingMutation.isPending}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Preview */}
+                {brandingSettings.show_platform_badge === "true" && (
+                  <div className="p-3 bg-gray-100 rounded-md border border-dashed border-gray-300">
+                    <p className="text-xs text-gray-400 mb-1">Preview:</p>
+                    <span className="text-xs bg-white border border-gray-200 px-2 py-1 rounded-full text-gray-600 shadow-sm">
+                      {brandingSettings.platform_badge_text || "Powered by Taskdrip"}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
