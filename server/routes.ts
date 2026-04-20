@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -8380,6 +8380,128 @@ Instructions:
       .from(userSocialTaskCompletions)
       .groupBy(userSocialTaskCompletions.taskId);
     res.json(stats);
+  });
+
+  // ── Page SEO Settings ──────────────────────────────────────────────────────
+  app.get('/api/seo/pages', async (_req, res) => {
+    try {
+      const pages = await db.select().from(pageSeoSettings).orderBy(pageSeoSettings.pageTitle);
+      res.json(pages);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/seo/page/:slug', async (req, res) => {
+    try {
+      const [page] = await db.select().from(pageSeoSettings).where(eq(pageSeoSettings.pageSlug, req.params.slug));
+      res.json(page || null);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/seo/page/:slug', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const { pageSlug, ...body } = req.body;
+      const slug = req.params.slug;
+      const existing = await db.select().from(pageSeoSettings).where(eq(pageSeoSettings.pageSlug, slug));
+      if (existing.length > 0) {
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: new Date() }).where(eq(pageSeoSettings.pageSlug, slug)).returning();
+        res.json(updated);
+      } else {
+        const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
+        res.json(created);
+      }
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/seo/seed-defaults', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const defaultPages = [
+        { pageSlug: 'home', pageTitle: 'Home', metaTitle: 'Taskdrip — Web3 Influencer Marketplace | Earn Crypto', metaDescription: 'The #1 Web3 influencer marketplace. Complete brand campaigns and earn USDT crypto. Join 10K+ verified creators today.' },
+        { pageSlug: 'tasks', pageTitle: 'Tasks / Campaigns', metaTitle: 'Browse Crypto Campaigns | Taskdrip', metaDescription: 'Browse hundreds of brand campaigns. Complete tasks and earn USDT, TON, and other crypto rewards.' },
+        { pageSlug: 'p2p-hub', pageTitle: 'P2P Marketplace', metaTitle: 'P2P Crypto Marketplace | Trade Safely on Taskdrip', metaDescription: 'Buy and sell crypto, products, and services with escrow protection. Secure P2P trading on Taskdrip.' },
+        { pageSlug: 'shop', pageTitle: 'Shop', metaTitle: 'Digital Products & Tools | Taskdrip Shop', metaDescription: 'Discover premium digital products, tools, and resources for creators and brands.' },
+        { pageSlug: 'influencers', pageTitle: 'Influencers Directory', metaTitle: 'Top Influencers & Creators | Taskdrip', metaDescription: 'Discover verified influencers across all niches. Connect with creators for your next campaign.' },
+        { pageSlug: 'about', pageTitle: 'About Us', metaTitle: 'About Taskdrip — Our Story & Mission', metaDescription: 'Learn about Taskdrip, our mission to empower creators with crypto, and our team.' },
+        { pageSlug: 'blog', pageTitle: 'Blog', metaTitle: 'Blog & Updates | Taskdrip', metaDescription: 'Stay updated with the latest crypto, influencer marketing, and Web3 news from Taskdrip.' },
+        { pageSlug: 'breedskool', pageTitle: 'BreedSkool', metaTitle: 'BreedSkool — Learn & Earn | Taskdrip', metaDescription: 'Take courses, build skills, and earn crypto. Taskdrip\'s learning platform for creators.' },
+        { pageSlug: 'leaderboard', pageTitle: 'Leaderboard', metaTitle: 'Top Earners Leaderboard | Taskdrip', metaDescription: 'See the top-earning creators on Taskdrip. Compete to reach the top of the leaderboard.' },
+        { pageSlug: 'advertise', pageTitle: 'Advertise With Us', metaTitle: 'Advertise With Taskdrip — Reach 10K+ Influencers', metaDescription: 'Launch your influencer marketing campaign on Taskdrip and reach thousands of verified creators.' },
+        { pageSlug: 'contact', pageTitle: 'Contact', metaTitle: 'Contact Taskdrip Support', metaDescription: 'Get in touch with Taskdrip support. We\'re here to help with campaigns, payments, and more.' },
+        { pageSlug: 'login', pageTitle: 'Login', metaTitle: 'Login to Taskdrip', metaDescription: 'Log in to your Taskdrip account to manage campaigns, check earnings, and more.', noIndex: true },
+        { pageSlug: 'signup', pageTitle: 'Sign Up', metaTitle: 'Join Taskdrip — Sign Up Free', metaDescription: 'Create your free Taskdrip account and start earning crypto from brand campaigns today.' },
+        { pageSlug: 'tdrip', pageTitle: '$TDRIP Token', metaTitle: '$TDRIP Token — The Taskdrip Reward Token', metaDescription: 'Learn about the $TDRIP points system and how creators earn and redeem rewards on Taskdrip.' },
+      ];
+      let seeded = 0;
+      for (const page of defaultPages) {
+        const existing = await db.select().from(pageSeoSettings).where(eq(pageSeoSettings.pageSlug, page.pageSlug));
+        if (existing.length === 0) {
+          await db.insert(pageSeoSettings).values(page);
+          seeded++;
+        }
+      }
+      res.json({ message: `Seeded ${seeded} SEO pages`, total: defaultPages.length });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Footer Columns ───────────────────────────────────────────────────────
+  app.get('/api/footer-columns', async (_req, res) => {
+    try {
+      const cols = await db.select().from(footerColumns).orderBy(footerColumns.sortOrder);
+      res.json(cols);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/footer-columns', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const [col] = await db.insert(footerColumns).values({ title: req.body.title, links: req.body.links || [], sortOrder: req.body.sortOrder || 0, isActive: req.body.isActive !== false }).returning();
+      res.json(col);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/footer-columns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq(footerColumns.id, req.params.id)).returning();
+      res.json(col);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.delete('/api/admin/footer-columns/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      await db.delete(footerColumns).where(eq(footerColumns.id, req.params.id));
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Robots.txt & Sitemap ────────────────────────────────────────────────
+  app.get('/robots.txt', async (_req, res) => {
+    try {
+      const settings = await storage.getPwaSettings() as any;
+      const domain = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://taskdrip.online';
+      res.type('text/plain');
+      res.send(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nDisallow: /dashboard\nSitemap: ${domain}/sitemap.xml\n`);
+    } catch { res.type('text/plain'); res.send('User-agent: *\nAllow: /\n'); }
+  });
+
+  app.get('/sitemap.xml', async (_req, res) => {
+    try {
+      const domain = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://taskdrip.online';
+      const staticPages = ['', '/tasks', '/p2p-hub', '/shop', '/influencers', '/about', '/blog', '/breedskool', '/leaderboard', '/advertise', '/contact', '/tdrip', '/signup'];
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      for (const page of staticPages) {
+        xml += `  <url><loc>${domain}${page}</loc><changefreq>weekly</changefreq><priority>${page === '' ? '1.0' : '0.8'}</priority></url>\n`;
+      }
+      const blogPostsList = await db.select({ slug: posts.slug }).from(posts).where(eq(posts.status, 'published')).limit(200);
+      for (const post of blogPostsList) {
+        if (post.slug) xml += `  <url><loc>${domain}/blog/${post.slug}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+      }
+      xml += `</urlset>`;
+      res.type('application/xml');
+      res.send(xml);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   const httpServer = createServer(app);

@@ -70,6 +70,8 @@ import AdminPlatformFees from "@/pages/admin-platform-fees";
 import MyOrdersPage from "@/pages/my-orders";
 import TDripInfoPage from "@/pages/tdrip-info";
 import AdminCMSEditor from "@/pages/admin-cms-editor";
+import AdminSEO from "@/pages/admin-seo";
+import { injectAnalytics, trackPageView } from "@/hooks/useSeoMeta";
 
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
@@ -105,6 +107,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin/cms" component={AdminCMSEditor} />
+      <Route path="/admin/seo" component={AdminSEO} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/breedskool" component={BreedSkool} />
       <Route path="/breedskool/:id" component={BreedSkoolCourse} />
@@ -172,6 +175,7 @@ function Router() {
           <Route path="/admin/p2p-fees" component={AdminP2PFees} />
           <Route path="/admin/platform-fees" component={AdminPlatformFees} />
           <Route path="/admin/cms" component={AdminCMSEditor} />
+          <Route path="/admin/seo" component={AdminSEO} />
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
@@ -247,12 +251,49 @@ function ThemeLoader() {
   return null;
 }
 
+function AnalyticsLoader() {
+  const [location] = useLocation();
+  useEffect(() => {
+    fetch("/api/pwa-settings")
+      .then(r => r.ok ? r.json() : null)
+      .then((settings: any) => {
+        if (!settings) return;
+        if (settings.gaTrackingId) injectAnalytics(settings.gaTrackingId, settings.gtmId || undefined);
+        if (settings.googleSiteVerification) {
+          let el = document.querySelector('meta[name="google-site-verification"]') as HTMLMetaElement;
+          if (!el) { el = document.createElement("meta"); el.setAttribute("name", "google-site-verification"); document.head.appendChild(el); }
+          el.setAttribute("content", settings.googleSiteVerification);
+        }
+        if (settings.bingVerification) {
+          let el = document.querySelector('meta[name="msvalidate.01"]') as HTMLMetaElement;
+          if (!el) { el = document.createElement("meta"); el.setAttribute("name", "msvalidate.01"); document.head.appendChild(el); }
+          el.setAttribute("content", settings.bingVerification);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/pwa-settings")
+      .then(r => r.ok ? r.json() : null)
+      .then((settings: any) => {
+        if (settings?.gaTrackingId && (window as any).gtag) {
+          trackPageView(location, settings.gaTrackingId);
+        }
+      })
+      .catch(() => {});
+  }, [location]);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <ThemeLoader />
+        <AnalyticsLoader />
         <ScrollToTop />
         <DailyLoginBonus />
         <Router />

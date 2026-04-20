@@ -3141,7 +3141,7 @@ export default function AdminMaster() {
             </div>
 
             {/* ── ROW 4: New Admin Hubs ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <a href="/admin/payments" className="group">
                 <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-purple-500/30 hover:border-purple-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-purple-900/20">
                   <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
@@ -3176,6 +3176,18 @@ export default function AdminMaster() {
                     <p className="text-xs text-gray-500 mt-0.5">Blast campaigns, AI auto-responders, SMTP/IMAP config, domain management, and email analytics</p>
                   </div>
                   <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-green-400 transition-colors flex-shrink-0" />
+                </div>
+              </a>
+              <a href="/admin/seo" className="group">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-orange-500/30 hover:border-orange-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-orange-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                    <Globe className="h-6 w-6 text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">SEO & Analytics</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Per-page SEO, Google Analytics 4, GTM, sitemap, robots.txt, structured data, and search verification</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-orange-400 transition-colors flex-shrink-0" />
                 </div>
               </a>
             </div>

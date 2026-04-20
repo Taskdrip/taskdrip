@@ -1274,12 +1274,60 @@ export const pwaSettings = pgTable("pwa_settings", {
   promptEnabled: boolean("prompt_enabled").notNull().default(true),
   promptDelay: integer("prompt_delay").notNull().default(30),
   promptScrollPercent: integer("prompt_scroll_percent").notNull().default(25),
+  gaTrackingId: varchar("ga_tracking_id"),
+  gtmId: varchar("gtm_id"),
+  googleSiteVerification: varchar("google_site_verification"),
+  bingVerification: varchar("bing_verification"),
+  defaultOgImage: varchar("default_og_image"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertPwaSettingsSchema = createInsertSchema(pwaSettings).omit({ id: true, updatedAt: true });
 export type PwaSettings = typeof pwaSettings.$inferSelect;
 export type InsertPwaSettings = z.infer<typeof insertPwaSettingsSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Page SEO Settings — per-page meta, OG, Twitter card, structured data
+// ──────────────────────────────────────────────────────────────
+export const pageSeoSettings = pgTable("page_seo_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pageSlug: varchar("page_slug").notNull().unique(),
+  pageTitle: varchar("page_title").notNull(),
+  metaTitle: varchar("meta_title"),
+  metaDescription: text("meta_description"),
+  ogTitle: varchar("og_title"),
+  ogDescription: text("og_description"),
+  ogImage: varchar("og_image"),
+  twitterCard: varchar("twitter_card").default("summary_large_image"),
+  twitterTitle: varchar("twitter_title"),
+  twitterDescription: text("twitter_description"),
+  twitterImage: varchar("twitter_image"),
+  keywords: text("keywords"),
+  canonicalUrl: varchar("canonical_url"),
+  noIndex: boolean("no_index").default(false),
+  noFollow: boolean("no_follow").default(false),
+  structuredData: text("structured_data"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPageSeoSettingsSchema = createInsertSchema(pageSeoSettings).omit({ id: true, updatedAt: true });
+export type PageSeoSettings = typeof pageSeoSettings.$inferSelect;
+export type InsertPageSeoSettings = z.infer<typeof insertPageSeoSettingsSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// Footer Columns — admin-managed footer link columns
+// ──────────────────────────────────────────────────────────────
+export const footerColumns = pgTable("footer_columns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  links: jsonb("links").notNull().default([]),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+});
+
+export const insertFooterColumnSchema = createInsertSchema(footerColumns).omit({ id: true });
+export type FooterColumn = typeof footerColumns.$inferSelect;
+export type InsertFooterColumn = z.infer<typeof insertFooterColumnSchema>;
 
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCourseEnrollmentSchema = createInsertSchema(courseEnrollments).omit({ id: true, createdAt: true, updatedAt: true });

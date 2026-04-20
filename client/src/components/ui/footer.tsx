@@ -53,6 +53,13 @@ export function Footer() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: cmsColumns = [] } = useQuery<any[]>({
+    queryKey: ["/api/footer-columns"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const activeColumns = (cmsColumns as any[]).filter((c: any) => c.isActive !== false);
+
   const footerLinks = (siteLinks as any[]).filter(
     (l: any) => l.isActive && (l.placement === "footer" || l.placement === "both")
   );
@@ -60,7 +67,7 @@ export function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
+        <div className={`grid gap-12 mb-12 ${activeColumns.length > 0 ? `md:grid-cols-${Math.min(activeColumns.length + 1, 5)}` : "md:grid-cols-4"}`}>
           {/* Brand Section */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
@@ -155,181 +162,104 @@ export function Footer() {
             </div>
           </div>
 
-          {/* For Influencers */}
-          <div>
-            <h4 className="font-semibold mb-6 text-lg flex items-center">
-              <Users className="h-5 w-5 mr-2" />
-              For Influencers
-            </h4>
-            <ul className="space-y-3">
-              <li>
-                <Link href="/shop" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-shop">
-                  <ShoppingBag className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Shop
-                </Link>
-              </li>
-              <li>
-                <Link href="/tasks" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-tasks">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Browse Tasks
-                </Link>
-              </li>
-              <li>
-                <Link href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Join as Influencer
-                </Link>
-              </li>
-              <li>
-                <Link href="/get-started" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Get Started Guide
-                </Link>
-              </li>
-              <li>
-                <Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-breedskool">
-                  <BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />
-                  BreedSkool Academy
-                </Link>
-              </li>
-              <li>
-                <Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-leaderboard">
-                  <Trophy className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Leaderboard
-                </Link>
-              </li>
-              <li>
-                <Link href="/wallet" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Wallet & Payouts
-                </Link>
-              </li>
-              <li>
-                <Link href="/tdrip" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  $TDRIP Points
-                </Link>
-              </li>
-              <li>
-                <Link href="/referrals" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Referral Program
-                </Link>
-              </li>
-              <li>
-                <Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Social Feed
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Dynamic CMS columns OR hardcoded fallback */}
+          {activeColumns.length > 0 ? (
+            activeColumns.map((col: any) => (
+              <div key={col.id} data-testid={`footer-cms-col-${col.id}`}>
+                <h4 className="font-semibold mb-6 text-lg">{col.title}</h4>
+                <ul className="space-y-3">
+                  {Array.isArray(col.links) && col.links.map((link: any, idx: number) => (
+                    <li key={idx}>
+                      {link.isExternal ? (
+                        <a href={link.url} target="_blank" rel="noopener noreferrer"
+                          className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"
+                          data-testid={`link-footer-${col.id}-${idx}`}>
+                          <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                          {link.label}
+                          <ExternalLink className="h-3 w-3 ml-1 opacity-50" />
+                        </a>
+                      ) : (
+                        <Link href={link.url}
+                          className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"
+                          data-testid={`link-footer-${col.id}-${idx}`}>
+                          <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <>
+              {/* For Influencers — fallback */}
+              <div>
+                <h4 className="font-semibold mb-6 text-lg flex items-center">
+                  <Users className="h-5 w-5 mr-2" />
+                  For Influencers
+                </h4>
+                <ul className="space-y-3">
+                  <li><Link href="/shop" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-shop"><ShoppingBag className="h-4 w-4 mr-2 flex-shrink-0" />Shop</Link></li>
+                  <li><Link href="/tasks" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-tasks"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Browse Tasks</Link></li>
+                  <li><Link href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Join as Influencer</Link></li>
+                  <li><Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-breedskool"><BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />BreedSkool Academy</Link></li>
+                  <li><Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-leaderboard"><Trophy className="h-4 w-4 mr-2 flex-shrink-0" />Leaderboard</Link></li>
+                  <li><Link href="/wallet" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />Wallet & Payouts</Link></li>
+                  <li><Link href="/referrals" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Users className="h-4 w-4 mr-2 flex-shrink-0" />Referral Program</Link></li>
+                  <li><Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />Social Feed</Link></li>
+                </ul>
+              </div>
 
-          {/* For Brands */}
-          <div>
-            <h4 className="font-semibold mb-6 text-lg flex items-center">
-              <Shield className="h-5 w-5 mr-2" />
-              For Brands
-            </h4>
-            <ul className="space-y-3">
-              <li>
-                <Link href="/signup?type=brand" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Launch Campaign
-                </Link>
-              </li>
-              <li>
-                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-influencers">
-                  <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Find Influencers
-                </Link>
-              </li>
-              <li>
-                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Direct Hire
-                </Link>
-              </li>
-              <li>
-                <Link href="/p2p-hub" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-p2p-market">
-                  <Store className="h-4 w-4 mr-2 flex-shrink-0" />
-                  P2P Market
-                </Link>
-              </li>
-              <li>
-                <Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-feed">
-                  <Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Social Feed
-                </Link>
-              </li>
-              <li>
-                <Link href="/advertise" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm font-medium text-purple-300 hover:text-purple-200" data-testid="link-footer-advertise">
-                  <Megaphone className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Advertise With Us
-                </Link>
-              </li>
-            </ul>
-          </div>
+              {/* For Brands — fallback */}
+              <div>
+                <h4 className="font-semibold mb-6 text-lg flex items-center">
+                  <Shield className="h-5 w-5 mr-2" />
+                  For Brands
+                </h4>
+                <ul className="space-y-3">
+                  <li><Link href="/signup?type=brand" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Launch Campaign</Link></li>
+                  <li><Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-influencers"><Users className="h-4 w-4 mr-2 flex-shrink-0" />Find Influencers</Link></li>
+                  <li><Link href="/p2p-hub" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-p2p-market"><Store className="h-4 w-4 mr-2 flex-shrink-0" />P2P Market</Link></li>
+                  <li><Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-feed"><Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />Social Feed</Link></li>
+                  <li><Link href="/advertise" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm font-medium text-purple-300 hover:text-purple-200" data-testid="link-footer-advertise"><Megaphone className="h-4 w-4 mr-2 flex-shrink-0" />Advertise With Us</Link></li>
+                </ul>
+              </div>
 
-          {/* Support & Contact */}
-          <div>
-            <h4 className="font-semibold mb-6 text-lg flex items-center">
-              <Phone className="h-5 w-5 mr-2" />
-              Support & Contact
-            </h4>
-            <ul className="space-y-3 mb-6">
-              <li>
-                <Link href="/about" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-about">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-contact">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Contact Support
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-blog">
-                  <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-                  Blog & Updates
-                </Link>
-              </li>
-              <li>
-                <a href="mailto:support@taskdrip.online" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
-                  support@taskdrip.online
-                </a>
-              </li>
-              <li>
-                <a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm">
-                  <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                  {SOCIALS.whatsappNumber}
-                </a>
-              </li>
-            </ul>
-
-            {/* Office Addresses */}
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white text-xs font-semibold">{OFFICES.usa.name}</p>
-                  <p className="text-gray-500 text-xs">{OFFICES.usa.address}</p>
-                  <p className="text-gray-500 text-xs">{OFFICES.usa.city}, {OFFICES.usa.country}</p>
+              {/* Support & Contact — fallback */}
+              <div>
+                <h4 className="font-semibold mb-6 text-lg flex items-center">
+                  <Phone className="h-5 w-5 mr-2" />
+                  Support & Contact
+                </h4>
+                <ul className="space-y-3 mb-6">
+                  <li><Link href="/about" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-about"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />About Us</Link></li>
+                  <li><Link href="/contact" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-contact"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Contact Support</Link></li>
+                  <li><Link href="/blog" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-blog"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Blog & Updates</Link></li>
+                  <li><a href="mailto:support@taskdrip.online" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Mail className="h-4 w-4 mr-2 flex-shrink-0" />support@taskdrip.online</a></li>
+                  <li><a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Phone className="h-4 w-4 mr-2 flex-shrink-0" />{SOCIALS.whatsappNumber}</a></li>
+                </ul>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-white text-xs font-semibold">{OFFICES.usa.name}</p>
+                      <p className="text-gray-500 text-xs">{OFFICES.usa.address}</p>
+                      <p className="text-gray-500 text-xs">{OFFICES.usa.city}, {OFFICES.usa.country}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-white text-xs font-semibold">{OFFICES.nigeria.name}</p>
+                      <p className="text-gray-500 text-xs">{OFFICES.nigeria.address}</p>
+                      <p className="text-gray-500 text-xs">{OFFICES.nigeria.city}, {OFFICES.nigeria.country}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white text-xs font-semibold">{OFFICES.nigeria.name}</p>
-                  <p className="text-gray-500 text-xs">{OFFICES.nigeria.address}</p>
-                  <p className="text-gray-500 text-xs">{OFFICES.nigeria.city}, {OFFICES.nigeria.country}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Newsletter Signup */}

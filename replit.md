@@ -2,6 +2,16 @@
 
 Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
 
+## Recent Changes (April 2026 — SEO, Footer CMS, Analytics)
+- **Advanced SEO Management** (`/admin/seo`): New dedicated admin page with 3 tabs — Per-Page SEO editor (meta title, description, Open Graph, Twitter card, canonical URL, noIndex/noFollow, structured data JSON-LD), Google Analytics 4 + GTM setup, and Technical SEO checklist with live robots.txt/sitemap.xml links.
+- **CMS Footer Management**: Added "Footer Management" module to `admin-cms-editor.tsx` — full CRUD for footer link columns (title, links with label/URL/isExternal, active toggle). Footer (`footer.tsx`) now dynamically fetches `/api/footer-columns` and renders CMS columns if any exist; falls back to hardcoded defaults.
+- **Google Analytics 4 + GTM Auto-Injection**: `AnalyticsLoader` component in App.tsx fetches pwa-settings on mount and injects GA4 (`gtag.js`) and/or GTM snippet into `<head>` automatically. Also injects `google-site-verification` and `msvalidate.01` meta tags if set. Tracks SPA route changes via `trackPageView`.
+- **SEO Meta Hook** (`client/src/hooks/useSeoMeta.ts`): `usePageSeo(slug)` fetches per-page SEO and injects meta/og/twitter tags into `<head>`. `injectAnalytics` and `trackPageView` are utility functions for GA4 SPA tracking.
+- **Schema Additions**: `pageSeoSettings` table (per-page SEO config), `footerColumns` table (dynamic footer content), GA/verification fields on `pwaSettings` (gaTrackingId, gtmId, googleSiteVerification, bingVerification, defaultOgImage).
+- **Dynamic robots.txt and sitemap.xml**: Server-side `/robots.txt` and `/sitemap.xml` routes generate content based on DB settings (noIndex pages auto-added to Disallow, blog posts included in sitemap with lastmod and priority).
+- **Admin Hub SEO Card**: Admin master dashboard (row 4 of hub cards) now includes an "SEO & Analytics" card linking to `/admin/seo`.
+- **User Role Management**: `admin-user-management.tsx` already provides full role assignment (admin, content_editor, moderator, store_manager) and user type switching (creator/brand/admin) via PATCH `/api/admin/users/:userId/role`.
+
 ## Recent Changes (April 2026 — Security & Task Addon Features)
 - **Bank-Level Server Security**: `server/index.ts` now uses Helmet with strict CSP/HSTS, global rate limiter (200 req/15 min), auth rate limiter (10 req/15 min), write rate limiter (50 req/10 min), upload allow-list (only images/video/pdf accepted), and custom security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy).
 - **Content Security Scanner**: `server/content-scanner.ts` (server) and `client/src/lib/security-scanner.ts` (client) scan all user-submitted text and URLs for XSS patterns, SQL injection, malicious script tags, dangerous HTML events, command injection, and known malware domains. A middleware in `server/routes.ts` blocks all POST/PUT/PATCH requests containing malicious content and returns a 403 with ban warning. The `/api/content/scan` endpoint allows on-demand scanning.

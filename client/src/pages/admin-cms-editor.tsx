@@ -22,7 +22,8 @@ import {
   Settings, Navigation, Image, FileText, Palette, DollarSign, Megaphone,
   Save, Plus, Trash2, Edit, MoveUp, MoveDown, ChevronLeft, Eye, EyeOff,
   Globe, ArrowLeft, CheckCircle, RefreshCw, ToggleLeft, ToggleRight, Layers,
-  Shield, Lock, ExternalLink, RotateCcw, Zap, Store, BookOpen, Users
+  Shield, Lock, ExternalLink, RotateCcw, Zap, Store, BookOpen, Users,
+  Layout, Link2, GripVertical, X
 } from "lucide-react";
 
 // ──────────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ const MODULES = [
   { id: "pages-content", label: "Pages & Content", icon: FileText, desc: "All text, images, buttons" },
   { id: "theme-colors", label: "Theme & Colors", icon: Palette, desc: "Brand colors & gradients" },
   { id: "fees-rates", label: "Fees & Rates", icon: DollarSign, desc: "Platform fees & P2P rates" },
+  { id: "footer-management", label: "Footer Management", icon: Layout, desc: "Footer columns & links" },
   { id: "announcement", label: "Announcement", icon: Megaphone, desc: "Site-wide banner message" },
 ];
 
@@ -872,6 +874,172 @@ function LoadingState({ label }: { label: string }) {
 }
 
 // ──────────────────────────────────────────────────────────────
+// Footer Management Panel
+// ──────────────────────────────────────────────────────────────
+
+function FooterManagementPanel() {
+  const { toast } = useToast();
+  const [editingCol, setEditingCol] = useState<any>(null);
+  const [newColTitle, setNewColTitle] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { data: columns = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/footer-columns"] });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/footer-columns", data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/footer-columns"] }); toast({ title: "Column created" }); setDialogOpen(false); setNewColTitle(""); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/admin/footer-columns/${id}`, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/footer-columns"] }); toast({ title: "Saved" }); setEditingCol(null); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/footer-columns/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/footer-columns"] }); toast({ title: "Column deleted" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const [editForm, setEditForm] = useState<any>(null);
+
+  const startEdit = (col: any) => {
+    setEditingCol(col.id);
+    setEditForm({ title: col.title, links: Array.isArray(col.links) ? JSON.parse(JSON.stringify(col.links)) : [], isActive: col.isActive !== false, sortOrder: col.sortOrder || 0 });
+  };
+
+  const addLink = () => {
+    setEditForm((prev: any) => ({ ...prev, links: [...(prev.links || []), { label: "", url: "", isExternal: false }] }));
+  };
+
+  const updateLink = (idx: number, field: string, val: any) => {
+    setEditForm((prev: any) => {
+      const links = [...(prev.links || [])];
+      links[idx] = { ...links[idx], [field]: val };
+      return { ...prev, links };
+    });
+  };
+
+  const removeLink = (idx: number) => {
+    setEditForm((prev: any) => ({ ...prev, links: prev.links.filter((_: any, i: number) => i !== idx) }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white text-base flex items-center gap-2"><Layout className="w-4 h-4 text-purple-400" />Footer Link Columns</CardTitle>
+              <CardDescription className="text-gray-400 mt-1">Manage the footer columns and links shown across the site.</CardDescription>
+            </div>
+            <Button onClick={() => setDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white gap-2 h-9" data-testid="button-add-footer-column"><Plus className="w-4 h-4" />Add Column</Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading ? (
+            <div className="py-8 text-center"><div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+          ) : columns.length === 0 ? (
+            <div className="py-10 text-center rounded-xl border border-dashed border-gray-700">
+              <Layout className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">No footer columns yet.</p>
+              <p className="text-gray-600 text-xs mt-1">Add columns like "Company", "Resources", "Legal" with links.</p>
+            </div>
+          ) : (
+            columns.map((col: any) => (
+              <div key={col.id} className="rounded-xl border border-gray-700 overflow-hidden" data-testid={`card-footer-col-${col.id}`}>
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-800">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${col.isActive ? "bg-green-400" : "bg-gray-500"}`} />
+                    <span className="text-white font-semibold text-sm">{col.title}</span>
+                    <span className="text-gray-500 text-xs">({Array.isArray(col.links) ? col.links.length : 0} links)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => startEdit(col)} className="h-7 w-7 p-0 text-gray-400 hover:text-blue-400" data-testid={`button-edit-footer-col-${col.id}`}><Edit className="w-3.5 h-3.5" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(col.id)} className="h-7 w-7 p-0 text-gray-400 hover:text-red-400" data-testid={`button-delete-footer-col-${col.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                  </div>
+                </div>
+                {editingCol === col.id && editForm && (
+                  <div className="p-4 bg-gray-900 border-t border-gray-700 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-gray-400 text-xs mb-1 block">Column Title</Label>
+                        <Input value={editForm.title} onChange={e => setEditForm((p: any) => ({ ...p, title: e.target.value }))} className="bg-gray-800 border-gray-700 text-white h-8 text-sm" data-testid="input-footer-col-title" />
+                      </div>
+                      <div className="flex items-end gap-3">
+                        <div className="flex items-center gap-2">
+                          <Switch checked={editForm.isActive} onCheckedChange={v => setEditForm((p: any) => ({ ...p, isActive: v }))} />
+                          <Label className="text-gray-400 text-xs">Active</Label>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-gray-400 text-xs">Links</Label>
+                        <Button size="sm" variant="ghost" onClick={addLink} className="h-6 px-2 text-xs text-purple-400 hover:text-purple-300" data-testid="button-add-footer-link"><Plus className="w-3 h-3 mr-1" />Add Link</Button>
+                      </div>
+                      <div className="space-y-2">
+                        {(editForm.links || []).map((link: any, idx: number) => (
+                          <div key={idx} className="flex items-center gap-2" data-testid={`row-footer-link-${idx}`}>
+                            <Input value={link.label} onChange={e => updateLink(idx, "label", e.target.value)} placeholder="Label" className="bg-gray-800 border-gray-700 text-white h-8 text-xs w-32 flex-shrink-0" />
+                            <Input value={link.url} onChange={e => updateLink(idx, "url", e.target.value)} placeholder="/path or https://..." className="bg-gray-800 border-gray-700 text-white h-8 text-xs flex-1" />
+                            <label className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+                              <input type="checkbox" checked={!!link.isExternal} onChange={e => updateLink(idx, "isExternal", e.target.checked)} className="rounded w-3 h-3" />Ext
+                            </label>
+                            <Button variant="ghost" size="sm" onClick={() => removeLink(idx)} className="h-7 w-7 p-0 text-gray-500 hover:text-red-400 flex-shrink-0"><X className="w-3 h-3" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <Button variant="outline" size="sm" onClick={() => setEditingCol(null)} className="border-gray-700 text-gray-400 hover:text-white h-8">Cancel</Button>
+                      <Button size="sm" onClick={() => updateMutation.mutate({ id: col.id, data: editForm })} disabled={updateMutation.isPending} className="bg-purple-600 hover:bg-purple-700 text-white h-8" data-testid={`button-save-footer-col-${col.id}`}>
+                        {updateMutation.isPending ? "Saving..." : <><Save className="w-3.5 h-3.5 mr-1.5" />Save</>}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {editingCol !== col.id && Array.isArray(col.links) && col.links.length > 0 && (
+                  <div className="px-4 py-2 bg-gray-900/50">
+                    {col.links.map((link: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-2 py-1">
+                        <Link2 className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                        <span className="text-gray-400 text-xs">{link.label}</span>
+                        <span className="text-gray-600 text-xs">→</span>
+                        <span className="text-purple-400 text-xs truncate">{link.url}</span>
+                        {link.isExternal && <ExternalLink className="w-3 h-3 text-gray-600 flex-shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {dialogOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-sm w-full p-6">
+            <h3 className="text-white font-bold text-base mb-4">Add Footer Column</h3>
+            <Label className="text-gray-400 text-xs mb-1.5 block">Column Title</Label>
+            <Input value={newColTitle} onChange={e => setNewColTitle(e.target.value)} placeholder="e.g. Company, Resources, Legal" className="bg-gray-800 border-gray-700 text-white mb-4" data-testid="input-new-footer-col-title" />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setDialogOpen(false)} className="flex-1 border-gray-700 text-gray-400">Cancel</Button>
+              <Button onClick={() => createMutation.mutate({ title: newColTitle, links: [], sortOrder: columns.length, isActive: true })} disabled={!newColTitle.trim() || createMutation.isPending} className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid="button-create-footer-col">
+                {createMutation.isPending ? "Creating..." : "Create Column"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
 // Main Admin CMS Editor Page
 // ──────────────────────────────────────────────────────────────
 
@@ -910,6 +1078,7 @@ export default function AdminCMSEditor() {
     "pages-content": PagesContentPanel,
     "theme-colors": ThemeColorsPanel,
     "fees-rates": FeesRatesPanel,
+    "footer-management": FooterManagementPanel,
     "announcement": AnnouncementPanel,
   }[activeModule] || SiteSettingsPanel;
 
