@@ -717,6 +717,12 @@ export default function AdminEmail() {
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
 
+  // ── Welcome email test state
+  const [welcomeTestEmail, setWelcomeTestEmail] = useState("");
+  const [welcomeTestName, setWelcomeTestName] = useState("");
+  const [welcomeTestType, setWelcomeTestType] = useState("creator");
+  const [sendingWelcomeTest, setSendingWelcomeTest] = useState(false);
+
   // ── Campaign state
   const [campaignModal, setCampaignModal] = useState(false);
   const [editCampaign, setEditCampaign] = useState<Partial<EmailCampaign> | null>(null);
@@ -734,6 +740,7 @@ export default function AdminEmail() {
 
   // ── Queries
   const { data: settingsData } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email/settings"] });
+  const { data: emailStatus, refetch: refetchStatus } = useQuery<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean }>({ queryKey: ["/api/admin/email/status"], refetchInterval: 30000 });
   const { data: campaigns = [] } = useQuery<EmailCampaign[]>({ queryKey: ["/api/admin/email/campaigns"] });
   const { data: templates = [] } = useQuery<EmailTemplate[]>({ queryKey: ["/api/admin/email/templates"] });
   const { data: autoResponders = [] } = useQuery<EmailAutoResponder[]>({ queryKey: ["/api/admin/email/auto-responders"] });
@@ -832,6 +839,18 @@ export default function AdminEmail() {
     setSendingTest(false);
   };
 
+  const handleSendWelcomeTest = async () => {
+    if (!welcomeTestEmail || !welcomeTestName) { toast({ title: "Enter email and name", variant: "destructive" }); return; }
+    setSendingWelcomeTest(true);
+    try {
+      const res = await apiRequest("POST", "/api/admin/email/test-welcome", { email: welcomeTestEmail, firstName: welcomeTestName, userType: welcomeTestType });
+      const data = await res.json();
+      if (data.success) toast({ title: `Welcome email sent to ${welcomeTestEmail}`, description: `Delivered via ${data.provider || "email provider"}` });
+      else toast({ title: `Failed: ${data.error}`, variant: "destructive" });
+    } catch { toast({ title: "Failed to send welcome test", variant: "destructive" }); }
+    setSendingWelcomeTest(false);
+  };
+
   const handleSaveCampaign = () => {
     if (!editCampaign) return;
     if (editCampaign.id) updateCampaign.mutate(editCampaign as any);
@@ -877,10 +896,12 @@ export default function AdminEmail() {
             <p className="text-sm text-gray-500">Campaigns · Templates · Auto-Responders · SMTP / IMAP · Domain Management</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            {settings?.isVerified ? (
-              <Badge className="bg-green-100 text-green-700 border-0 gap-1"><CheckCircle className="h-3 w-3" />SMTP Verified</Badge>
+            {emailStatus?.configured ? (
+              <Badge className="bg-green-100 text-green-700 border-0 gap-1"><CheckCircle className="h-3 w-3" />Email Active ({emailStatus.provider.toUpperCase()})</Badge>
+            ) : emailStatus ? (
+              <Badge className="bg-red-100 text-red-700 border-0 gap-1"><AlertCircle className="h-3 w-3" />Email Not Configured</Badge>
             ) : (
-              <Badge className="bg-red-100 text-red-700 border-0 gap-1"><AlertCircle className="h-3 w-3" />SMTP Not Configured</Badge>
+              <Badge className="bg-gray-100 text-gray-500 border-0 gap-1"><Clock className="h-3 w-3" />Checking…</Badge>
             )}
           </div>
         </div>
@@ -895,8 +916,9 @@ export default function AdminEmail() {
             { value: "auto-responders", icon: Bot, label: "Auto-Responders" },
             { value: "contacts", icon: Users, label: "Contacts" },
             { value: "logs", icon: Inbox, label: "Email Logs" },
-            { value: "settings", icon: Settings, label: "SMTP / IMAP / Domain" },
-            { value: "setup-guide", icon: BookOpen, label: "Setup Guide" },
+            { value: "settings", icon: Settings, label: "SMTP / IMAP" },
+            { value: "how-it-works", icon: HelpCircle, label: "How It Works" },
+            { value: "setup-guide", icon: BookOpen, label: "DNS Setup Guide" },
           ].map(tab => (
             <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1.5 text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white">
               <tab.icon className="h-4 w-4" />{tab.label}
@@ -906,6 +928,28 @@ export default function AdminEmail() {
 
         {/* ─────────────── OVERVIEW ─────────────── */}
         <TabsContent value="overview">
+          {/* Email provider status banner */}
+          {emailStatus && !emailStatus.configured && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-red-800 text-sm">Email not configured — welcome emails won't be sent!</p>
+                <p className="text-red-700 text-xs mt-1">New users who register will NOT receive a welcome email until you set up an email provider. Go to <strong>SMTP / IMAP / Domain</strong> tab to configure your SMTP server, or add a <code className="bg-red-100 px-1 rounded">SENDGRID_API_KEY</code> environment variable.</p>
+              </div>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-xs shrink-0" onClick={() => setActiveTab("settings")}>Configure Now</Button>
+            </div>
+          )}
+          {emailStatus?.configured && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-green-800 text-sm">Email is active — welcome emails will be sent automatically</p>
+                <p className="text-green-700 text-xs mt-0.5">Provider: <strong>{emailStatus.provider === "smtp" ? `SMTP (${emailStatus.smtpHost})` : "SendGrid"}</strong> · All new registrations will trigger the welcome email flow.</p>
+              </div>
+              <Badge className="bg-green-100 text-green-700 border-0 text-xs">{emailStatus.provider.toUpperCase()}</Badge>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <StatCard label="Total Sent" value={totalSent.toLocaleString()} icon={Send} color="bg-purple-600" />
             <StatCard label="Opened" value={totalOpened.toLocaleString()} icon={Eye} color="bg-blue-600" />
@@ -916,6 +960,43 @@ export default function AdminEmail() {
             <StatCard label="Total Campaigns" value={campaigns.length} icon={Layers} color="bg-indigo-600" />
             <StatCard label="Email Templates" value={templates.length} icon={FileText} color="bg-pink-600" />
           </div>
+
+          {/* Test welcome email panel */}
+          <Card className="mb-6 border border-purple-100 bg-purple-50/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Inbox className="h-4 w-4 text-purple-600" />
+                Test Welcome Email (New Registration Flow)
+              </CardTitle>
+              <p className="text-xs text-gray-500">Send a preview of the exact welcome email new users receive when they sign up. Use this to verify your email setup is working correctly.</p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="flex-1 min-w-[160px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">Recipient Email</Label>
+                  <Input placeholder="test@example.com" value={welcomeTestEmail} onChange={e => setWelcomeTestEmail(e.target.value)} className="text-sm h-9" data-testid="input-welcome-test-email" />
+                </div>
+                <div className="flex-1 min-w-[120px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">First Name</Label>
+                  <Input placeholder="John" value={welcomeTestName} onChange={e => setWelcomeTestName(e.target.value)} className="text-sm h-9" data-testid="input-welcome-test-name" />
+                </div>
+                <div className="min-w-[130px]">
+                  <Label className="text-xs text-gray-600 mb-1 block">User Type</Label>
+                  <Select value={welcomeTestType} onValueChange={setWelcomeTestType}>
+                    <SelectTrigger className="text-sm h-9" data-testid="select-welcome-test-type"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="creator">Influencer / Creator</SelectItem>
+                      <SelectItem value="brand">Brand</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleSendWelcomeTest} disabled={sendingWelcomeTest || !emailStatus?.configured} className="bg-purple-600 hover:bg-purple-700 h-9 text-sm" data-testid="button-send-welcome-test">
+                  {sendingWelcomeTest ? <><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Sending…</> : <><Send className="h-3 w-3 mr-1" />Send Welcome Email Test</>}
+                </Button>
+              </div>
+              {!emailStatus?.configured && <p className="text-xs text-red-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Configure SMTP or SendGrid first before sending test emails.</p>}
+            </CardContent>
+          </Card>
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
@@ -1242,6 +1323,22 @@ export default function AdminEmail() {
 
         {/* ─────────────── SETTINGS ─────────────── */}
         <TabsContent value="settings">
+          {/* Quick-start banner */}
+          {!emailStatus?.configured && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <p className="font-semibold text-amber-800 text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4" />Email is not active — choose an option below to enable welcome emails and campaigns</p>
+              <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                <div className="bg-white border border-amber-100 rounded-lg p-3">
+                  <p className="font-semibold text-gray-800 text-xs mb-1">⚡ Option 1 — SendGrid (Fastest)</p>
+                  <p className="text-xs text-gray-600">Create a free SendGrid account at <strong>sendgrid.com</strong>, get your API key, then add it as <code className="bg-gray-100 px-1 rounded text-xs">SENDGRID_API_KEY</code> in your Replit Secrets panel. No SMTP config needed.</p>
+                </div>
+                <div className="bg-white border border-amber-100 rounded-lg p-3">
+                  <p className="font-semibold text-gray-800 text-xs mb-1">🔧 Option 2 — SMTP Server</p>
+                  <p className="text-xs text-gray-600">Fill in the SMTP form below with your email provider credentials (Gmail App Password, Namecheap Private Email, Brevo, Mailgun, etc.).</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid lg:grid-cols-2 gap-6">
             {/* SMTP */}
             <Card>
@@ -1437,6 +1534,220 @@ export default function AdminEmail() {
                 <Button onClick={() => saveSettings.mutate(settings)} disabled={!settingsDirty} className="w-full bg-orange-600 hover:bg-orange-700">
                   Save DNS Records
                 </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ─────────────── HOW IT WORKS ─────────────── */}
+        <TabsContent value="how-it-works">
+          <div className="max-w-4xl space-y-6">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
+              <div className="flex items-center gap-3 mb-2">
+                <Mail className="h-7 w-7" />
+                <h2 className="text-xl font-bold">Email Marketing System — Full Guide</h2>
+              </div>
+              <p className="text-purple-100 text-sm leading-relaxed">Everything you need to know to run effective email campaigns, automated welcome flows, and targeted broadcasts on Taskdrip.</p>
+            </div>
+
+            {/* Step 1 */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                  <Server className="h-4 w-4 text-gray-600" />
+                  Set Up Your Email Provider (Required First Step)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-700">
+                <p>Before any email can be sent — including welcome emails — you must configure an email provider. You have two options:</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="font-semibold text-green-800 mb-2">⚡ SendGrid (Recommended)</p>
+                    <ol className="text-xs text-green-700 space-y-1 list-decimal ml-4">
+                      <li>Create a free account at <strong>sendgrid.com</strong></li>
+                      <li>Go to Settings → API Keys → Create API Key (Full Access)</li>
+                      <li>Copy the key</li>
+                      <li>In Replit, open <strong>Secrets</strong> and add: <code className="bg-green-100 px-1 rounded">SENDGRID_API_KEY</code></li>
+                      <li>Restart the app — emails will start working immediately</li>
+                    </ol>
+                    <p className="text-xs text-green-600 mt-2">Free tier: 100 emails/day forever</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="font-semibold text-blue-800 mb-2">🔧 SMTP (Custom Email)</p>
+                    <ol className="text-xs text-blue-700 space-y-1 list-decimal ml-4">
+                      <li>Go to the <strong>SMTP / IMAP</strong> tab above</li>
+                      <li>Enter your SMTP credentials (Gmail, Namecheap, Brevo, etc.)</li>
+                      <li>Click <strong>Test Connection</strong> to verify</li>
+                      <li>Click <strong>Save SMTP</strong></li>
+                      <li>Use Send Test Email to confirm delivery</li>
+                    </ol>
+                    <p className="text-xs text-blue-600 mt-2">Best for custom domain email (e.g. no-reply@taskdrip.online)</p>
+                  </div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                  <strong>Note:</strong> If both SMTP and SendGrid are configured, SMTP takes priority. SendGrid is used as a fallback only when SMTP is not set up.
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Step 2 — Welcome Emails */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                  <Inbox className="h-4 w-4 text-gray-600" />
+                  Welcome Emails — Automatic on Registration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700 space-y-3">
+                <p>Welcome emails are triggered automatically when a new user signs up. No configuration is needed beyond the email provider setup above.</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="border border-gray-100 rounded-lg p-3">
+                    <p className="font-semibold text-gray-800 mb-1">Influencer Welcome Email</p>
+                    <p className="text-xs text-gray-600">Sent to creators/influencers. Encourages them to complete their profile, browse campaigns, and set up their wallet.</p>
+                  </div>
+                  <div className="border border-gray-100 rounded-lg p-3">
+                    <p className="font-semibold text-gray-800 mb-1">Brand Welcome Email</p>
+                    <p className="text-xs text-gray-600">Sent to brand accounts. Highlights the influencer network and prompts them to create their first campaign.</p>
+                  </div>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 rounded-lg p-3">
+                  <p className="font-semibold text-purple-800 text-xs mb-1">Testing the Welcome Flow</p>
+                  <p className="text-xs text-purple-700">Go to the <strong>Overview</strong> tab and use the <strong>Test Welcome Email</strong> panel to send a preview to any email address. This lets you verify formatting and delivery without creating a real account.</p>
+                </div>
+                <p className="text-xs text-gray-500">To customize the welcome email content, go to <strong>Templates</strong> tab → click any AI template → edit and save.</p>
+              </CardContent>
+            </Card>
+
+            {/* Step 3 — Campaigns */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold shrink-0">3</div>
+                  <Send className="h-4 w-4 text-gray-600" />
+                  Running Email Campaigns (Mass Broadcasts)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700 space-y-3">
+                <p>Email campaigns let you send a broadcast to a targeted segment of your users. Here's the step-by-step workflow:</p>
+                <div className="space-y-2">
+                  {[
+                    { step: "Go to Campaigns tab", desc: "Click 'New Campaign' to open the campaign builder." },
+                    { step: "Choose a target segment", desc: "All Users, Influencers Only, Brands Only, Verified Users, or a specific tier (Rising Sparks, Growth Engines, etc.)." },
+                    { step: "Set subject line", desc: "Write a compelling subject. Use {{first_name}} to personalize — it will be replaced with each recipient's first name." },
+                    { step: "Compose the HTML body", desc: "Write your email using HTML. Use the Templates tab to load a pre-built design, or write from scratch. Variables like {{first_name}}, {{email}} are supported." },
+                    { step: "Save as Draft", desc: "Click Create Campaign. Status starts as 'draft'." },
+                    { step: "Send the campaign", desc: "Click the green Send button on the campaign card. Confirm the blast. Emails are sent in the background — the page stays responsive." },
+                    { step: "Monitor results", desc: "Check the Email Logs tab to see sent/failed status per recipient. Campaign cards show open rate and click rate as stats come in." },
+                  ].map((item, i) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-xs">{item.step}</p>
+                        <p className="text-xs text-gray-600">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
+                  <strong>Template variables</strong> available in campaigns: <code>{"{{first_name}}"}</code>, <code>{"{{last_name}}"}</code>, <code>{"{{full_name}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{username}}"}</code>, <code>{"{{user_type}}"}</code>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Step 4 — Auto-Responders */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">4</div>
+                  <Bot className="h-4 w-4 text-gray-600" />
+                  Auto-Responders (Triggered Emails)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700 space-y-3">
+                <p>Auto-responders fire automatically based on user actions — like signing up, completing a campaign, or making a purchase. Unlike one-off campaigns, they run continuously in the background.</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {[
+                    { trigger: "signup", label: "User Signs Up", use: "Send an onboarding series or welcome drip" },
+                    { trigger: "campaign_complete", label: "Completes a Campaign", use: "Congratulate them, suggest next campaigns" },
+                    { trigger: "purchase", label: "Makes a Purchase", use: "Order confirmation, delivery instructions" },
+                    { trigger: "kyc_approved", label: "KYC Approved", use: "Tell them they're verified, unlock premium campaigns" },
+                    { trigger: "payout_sent", label: "Payout Sent", use: "Notify them their crypto payment is on the way" },
+                    { trigger: "custom", label: "Manual / Custom", use: "Trigger manually via API for custom events" },
+                  ].map(item => (
+                    <div key={item.trigger} className="border border-gray-100 rounded-lg p-3">
+                      <p className="font-semibold text-xs text-gray-800">{item.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{item.use}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500">To create an auto-responder: go to the <strong>Auto-Responders</strong> tab → New Auto-Responder → select a trigger → write the email body → activate it.</p>
+              </CardContent>
+            </Card>
+
+            {/* Step 5 — Email Logs */}
+            <Card className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">5</div>
+                  <Inbox className="h-4 w-4 text-gray-600" />
+                  Reading Email Logs
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700 space-y-2">
+                <p>Every email sent through the platform is logged in the <strong>Email Logs</strong> tab. This includes welcome emails, campaign blasts, and auto-responders.</p>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { status: "sent", color: "bg-green-100 text-green-700", desc: "Email was delivered to the server without error" },
+                    { status: "failed", color: "bg-red-100 text-red-700", desc: "Delivery failed — see error message for details" },
+                    { status: "opened", color: "bg-purple-100 text-purple-700", desc: "Recipient opened the email (tracking pixel)" },
+                  ].map(item => (
+                    <div key={item.status} className="border border-gray-100 rounded-lg p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-1 ${item.color}`}>{item.status}</span>
+                      <p className="text-xs text-gray-600">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">If you see many "failed" logs, check that your SMTP credentials are correct or that your SendGrid account is not in sandbox mode.</p>
+              </CardContent>
+            </Card>
+
+            {/* Quick Reference */}
+            <Card className="border border-purple-200 bg-purple-50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-purple-800 flex items-center gap-2"><Zap className="h-4 w-4" />Quick Reference — Common SMTP Providers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-purple-200">
+                        <th className="text-left py-2 text-purple-700 font-semibold">Provider</th>
+                        <th className="text-left py-2 text-purple-700 font-semibold">SMTP Host</th>
+                        <th className="text-left py-2 text-purple-700 font-semibold">Port</th>
+                        <th className="text-left py-2 text-purple-700 font-semibold">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-purple-100">
+                      {[
+                        ["Gmail (App Password)", "smtp.gmail.com", "587", "Enable 2FA → create App Password"],
+                        ["Namecheap Private Email", "mail.privateemail.com", "587", "Best for @taskdrip.online"],
+                        ["Brevo (Sendinblue)", "smtp-relay.brevo.com", "587", "300 free/day, great deliverability"],
+                        ["SendGrid (SMTP)", "smtp.sendgrid.net", "587", "Username: apikey, Password: your API key"],
+                        ["Mailgun", "smtp.mailgun.org", "587", "Requires domain verification"],
+                        ["Zoho Mail", "smtp.zoho.com", "587", "5GB free, custom domain"],
+                      ].map(([provider, host, port, notes]) => (
+                        <tr key={provider}>
+                          <td className="py-2 font-medium text-gray-800">{provider}</td>
+                          <td className="py-2 text-gray-600 font-mono">{host}</td>
+                          <td className="py-2 text-gray-600">{port}</td>
+                          <td className="py-2 text-gray-500">{notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </div>

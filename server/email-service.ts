@@ -34,25 +34,37 @@ export function buildTransporter(settings: any) {
   });
 }
 
-export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean; error?: string }> {
-  try {
-    const settings = await getEmailSettings();
-    if (!settings?.smtpHost || !settings?.smtpUser || !settings?.smtpPass) {
-      return { success: false, error: "SMTP not configured" };
-    }
+export async function getEmailStatus(): Promise<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean }> {
+  const settings = await getEmailSettings();
+  const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
+  const sendgridOk = !!process.env.SENDGRID_API_KEY;
+  return {
+    configured: smtpOk || sendgridOk,
+    provider: smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none",
+    smtpHost: settings?.smtpHost,
+    sendgridAvailable: sendgridOk,
+  };
+}
 
-    const transporter = buildTransporter(settings);
-    const fromEmail = settings.smtpFromEmail || settings.smtpUser;
-    const fromName = settings.smtpFromName || "Taskdrip";
+async function sendViaSendGrid(opts: EmailOptions, fromEmail: string, fromName: string): Promise<void> {
+  const sgMail = (await import("@sendgrid/mail")).default;
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+  await sgMail.send({
+    to: { email: opts.to, name: opts.toName },
+    from: { email: fromEmail, name: fromName },
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
+  });
+}
 
-    await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
-    });
+export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean; error?: string; provider?: string }> {
+  const settings = await getEmailSettings();
+  const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
+  const sendgridKey = process.env.SENDGRID_API_KEY;
 
+  if (!smtpOk && !sendgridKey) {
+    console.warn("[email] No email provider configured — SMTP settings not set and SENDGRID_API_KEY not found.");
     await db.insert(emailLogs).values({
       id: crypto.randomUUID(),
       campaignId: opts.campaignId || null,
@@ -60,12 +72,53 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
       recipientEmail: opts.to,
       recipientName: opts.toName || null,
       subject: opts.subject,
-      status: "sent",
+      status: "failed",
+      errorMessage: "No email provider configured. Configure SMTP in Admin → Email → Settings or set SENDGRID_API_KEY.",
       sentAt: new Date(),
     });
+    return { success: false, error: "No email provider configured. Set up SMTP or SendGrid in Admin → Email → Settings." };
+  }
 
-    return { success: true };
+  try {
+    const fromEmail = settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
+    const fromName = settings?.smtpFromName || "Taskdrip";
+
+    if (smtpOk) {
+      const transporter = buildTransporter(settings);
+      await transporter.sendMail({
+        from: `"${fromName}" <${fromEmail}>`,
+        to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
+      });
+      await db.insert(emailLogs).values({
+        id: crypto.randomUUID(),
+        campaignId: opts.campaignId || null,
+        autoResponderId: opts.autoResponderId || null,
+        recipientEmail: opts.to,
+        recipientName: opts.toName || null,
+        subject: opts.subject,
+        status: "sent",
+        sentAt: new Date(),
+      });
+      return { success: true, provider: "smtp" };
+    } else {
+      await sendViaSendGrid(opts, fromEmail, fromName);
+      await db.insert(emailLogs).values({
+        id: crypto.randomUUID(),
+        campaignId: opts.campaignId || null,
+        autoResponderId: opts.autoResponderId || null,
+        recipientEmail: opts.to,
+        recipientName: opts.toName || null,
+        subject: opts.subject,
+        status: "sent",
+        sentAt: new Date(),
+      });
+      return { success: true, provider: "sendgrid" };
+    }
   } catch (err: any) {
+    console.error("[email] Send failed:", err.message);
     await db.insert(emailLogs).values({
       id: crypto.randomUUID(),
       campaignId: opts.campaignId || null,

@@ -7396,7 +7396,32 @@ Instructions:
   // ──────────────────────────────────────────────────────────────
   // Email Marketing CRM
   // ──────────────────────────────────────────────────────────────
-  const { sendEmail, testSmtpConnection, blastCampaign, AI_TEMPLATES, buildDefaultEmailHtml } = await import("./email-service");
+  const { sendEmail, testSmtpConnection, blastCampaign, AI_TEMPLATES, buildDefaultEmailHtml, getEmailStatus, sendWelcomeEmail } = await import("./email-service");
+
+  // Email Status
+  app.get('/api/admin/email/status', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const status = await getEmailStatus();
+      res.json(status);
+    } catch (e) { res.status(500).json({ message: 'Failed to get email status' }); }
+  });
+
+  // Send test welcome email for a given user type
+  app.post('/api/admin/email/test-welcome', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { email, firstName, userType } = req.body;
+      if (!email || !firstName) return res.status(400).json({ message: 'email and firstName required' });
+      const result = await sendEmail({
+        to: email,
+        toName: firstName,
+        subject: userType === 'brand' ? `Welcome to Taskdrip, ${firstName}! Let's launch your first campaign 🚀` : `Welcome to Taskdrip, ${firstName}! 🚀`,
+        html: AI_TEMPLATES[userType === 'brand' ? 'welcome_brand' : 'welcome_creator']?.body?.replace(/\{\{(\w+)\}\}/g, (_: string, k: string) => ({ first_name: firstName, site_url: 'https://taskdrip.online' }[k] || '')) || '<p>Welcome to Taskdrip!</p>',
+      });
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
 
   // Email Settings
   app.get('/api/admin/email/settings', isAuthenticated, async (req: any, res) => {
