@@ -190,6 +190,10 @@ Design preferences: Clean, professional web app design with white background and
 
 ## Replit Migration (April 2026)
 
+✓ Railway deployment hardening: `/api/health` now responds immediately during startup instead of waiting for database seeding and full route registration, preventing Railway network healthcheck timeouts on slower cold starts.
+✓ Railway config now explicitly builds with `npm run build`, syncs the database schema with `npm run db:push` before deployment, starts with `npm start`, uses `/api/health`, and allows a 120-second healthcheck window.
+✓ Database connection now uses the standard PostgreSQL driver with SSL support for hosted Postgres, so the app works with Railway Postgres as well as Neon/Replit-style Postgres URLs.
+✓ Production session storage now reuses the main database pool and creates the `sessions` table automatically when deploying to a fresh database.
 ✓ Installed Node.js dependencies for the imported project.
 ✓ Confirmed the app uses a single Express server on `0.0.0.0` and `PORT=5000` for Replit preview compatibility.
 ✓ Updated Vite dev-server host handling so Replit's proxied preview can load the app safely.

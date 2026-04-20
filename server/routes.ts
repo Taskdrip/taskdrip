@@ -305,7 +305,7 @@ export async function runSubscriptionExpiryCheck() {
   return { expired, reminded };
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
   setupAuth(app);
 
   const SCAN_SKIP_PATHS = ['/api/health', '/api/login', '/api/register', '/api/uploads'];
@@ -8624,6 +8624,6 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
-  const httpServer = createServer(app);
+  const httpServer = existingServer ?? createServer(app);
   return httpServer;
 }

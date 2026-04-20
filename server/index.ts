@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { createServer } from "http";
 import { registerRoutes, runSubscriptionExpiryCheck } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
@@ -13,8 +14,20 @@ import bcrypt from "bcrypt";
 
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
+let appReady = false;
+let startupError: string | null = null;
 
 app.set("trust proxy", 1);
+
+app.get(["/api/health", "/health"], (_req, res) => {
+  const body = {
+    status: startupError ? "error" : appReady ? "ok" : "starting",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    error: startupError,
+  };
+  res.status(startupError ? 500 : 200).json(body);
+});
 
 if (isProd) {
   app.use(
@@ -71,7 +84,12 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many requests, please try again later." },
-  skip: (req) => isDev || req.path.startsWith("/assets") || req.path.startsWith("/uploads"),
+  skip: (req) =>
+    isDev ||
+    req.path.startsWith("/api/health") ||
+    req.path.startsWith("/health") ||
+    req.path.startsWith("/assets") ||
+    req.path.startsWith("/uploads"),
 });
 
 const authLimiter = rateLimit({
@@ -193,51 +211,60 @@ async function ensureAdminExists() {
   }
 }
 
+const port = parseInt(process.env.PORT || '5000', 10);
+const server = createServer(app);
+
+server.listen({
+  port,
+  host: "0.0.0.0",
+  reusePort: true,
+}, () => {
+  log(`serving on port ${port}`);
+});
+
 (async () => {
-  await ensureAdminExists();
+  try {
+    await ensureAdminExists();
 
-  const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
-  if (adminUser) {
-    await seedDemoData(adminUser.id);
-  }
-
-  await seedCmsContent();
-  await seedLegalPages();
-
-  if (app.get("env") === "development") {
-    // await seedDatabase(); // Temporarily disabled during schema updates
-  }
-
-  const server = await registerRoutes(app);
-
-  const runExpiryCheck = async () => {
-    const result = await runSubscriptionExpiryCheck();
-    if (result.expired > 0 || result.reminded > 0) {
-      log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
+    const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+    if (adminUser) {
+      await seedDemoData(adminUser.id);
     }
-  };
-  runExpiryCheck();
-  setInterval(runExpiryCheck, 30 * 60 * 1000);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    res.status(status).json({ message });
-    throw err;
-  });
+    await seedCmsContent();
+    await seedLegalPages();
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    if (app.get("env") === "development") {
+      // await seedDatabase(); // Temporarily disabled during schema updates
+    }
+
+    await registerRoutes(app, server);
+
+    const runExpiryCheck = async () => {
+      const result = await runSubscriptionExpiryCheck();
+      if (result.expired > 0 || result.reminded > 0) {
+        log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
+      }
+    };
+    runExpiryCheck();
+    setInterval(runExpiryCheck, 30 * 60 * 1000);
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+      throw err;
+    });
+
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    appReady = true;
+  } catch (err: any) {
+    startupError = err?.message || "Startup failed";
+    console.error("Startup error:", err);
   }
-
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

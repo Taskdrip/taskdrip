@@ -3,6 +3,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcrypt";
@@ -52,8 +53,8 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
-      conString: process.env.DATABASE_URL,
-      createTableIfMissing: false,
+      pool,
+      createTableIfMissing: true,
       tableName: 'sessions',
     }),
     cookie: {
