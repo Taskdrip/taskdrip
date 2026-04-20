@@ -69,6 +69,7 @@ import AdminP2PFees from "@/pages/admin-p2p-fees";
 import AdminPlatformFees from "@/pages/admin-platform-fees";
 import MyOrdersPage from "@/pages/my-orders";
 import TDripInfoPage from "@/pages/tdrip-info";
+import AdminCMSEditor from "@/pages/admin-cms-editor";
 
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
@@ -103,6 +104,7 @@ function Router() {
       <Route path="/signup" component={SimpleSignup} />
       <Route path="/login" component={Login} />
       <Route path="/admin-login" component={AdminLogin} />
+      <Route path="/admin/cms" component={AdminCMSEditor} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/breedskool" component={BreedSkool} />
       <Route path="/breedskool/:id" component={BreedSkoolCourse} />
@@ -169,6 +171,7 @@ function Router() {
           <Route path="/admin/p2p-transactions" component={AdminP2PTransactions} />
           <Route path="/admin/p2p-fees" component={AdminP2PFees} />
           <Route path="/admin/platform-fees" component={AdminPlatformFees} />
+          <Route path="/admin/cms" component={AdminCMSEditor} />
           <Route path="/subscription" component={SubscriptionPage} />
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
@@ -225,11 +228,31 @@ function DailyLoginBonus() {
   return null;
 }
 
+function ThemeLoader() {
+  useEffect(() => {
+    fetch("/api/theme-config")
+      .then((r) => r.ok ? r.json() : {})
+      .then((theme: Record<string, string>) => {
+        if (!theme || !Object.keys(theme).length) return;
+        const root = document.documentElement;
+        if (theme.primaryColor) root.style.setProperty("--brand-primary", theme.primaryColor);
+        if (theme.secondaryColor) root.style.setProperty("--brand-secondary", theme.secondaryColor);
+        if (theme.accentColor) root.style.setProperty("--brand-accent", theme.accentColor);
+        if (theme.bgColor) root.style.setProperty("--brand-bg", theme.bgColor);
+        if (theme.navBg) root.style.setProperty("--brand-nav-bg", theme.navBg);
+        if (theme.navText) root.style.setProperty("--brand-nav-text", theme.navText);
+      })
+      .catch(() => {});
+  }, []);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <ThemeLoader />
         <ScrollToTop />
         <DailyLoginBonus />
         <Router />

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -8321,6 +8321,55 @@ Instructions:
         }
       }
       res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  // CMS: Nav Config, Theme Config, Announcement Banner
+  // ──────────────────────────────────────────────────────────────
+
+  app.get('/api/nav-config', async (_req, res) => {
+    try {
+      const [config] = await db.select().from(siteContent).where(eq(siteContent.contentKey, 'cms_nav_config'));
+      res.json({ items: config?.value ? JSON.parse(config.value) : null });
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch nav config' }); }
+  });
+
+  app.put('/api/admin/nav-config', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const result = await storage.upsertSiteContent({ contentKey: 'cms_nav_config', label: 'Navigation Items', contentType: 'json', page: 'global', section: 'nav', value: JSON.stringify(req.body.items), defaultValue: '[]' });
+      res.json({ items: JSON.parse(result.value) });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/theme-config', async (_req, res) => {
+    try {
+      const [config] = await db.select().from(siteContent).where(eq(siteContent.contentKey, 'cms_theme_config'));
+      res.json(config?.value ? JSON.parse(config.value) : {});
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch theme config' }); }
+  });
+
+  app.put('/api/admin/theme-config', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const result = await storage.upsertSiteContent({ contentKey: 'cms_theme_config', label: 'Theme Colors', contentType: 'json', page: 'global', section: 'theme', value: JSON.stringify(req.body), defaultValue: '{}' });
+      res.json(JSON.parse(result.value));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/announcement', async (_req, res) => {
+    try {
+      const [config] = await db.select().from(siteContent).where(eq(siteContent.contentKey, 'cms_announcement'));
+      res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: '', color: 'purple', link: '' });
+    } catch (e) { res.status(500).json({ message: 'Failed to fetch announcement' }); }
+  });
+
+  app.put('/api/admin/announcement', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const result = await storage.upsertSiteContent({ contentKey: 'cms_announcement', label: 'Site Announcement', contentType: 'json', page: 'global', section: 'announcement', value: JSON.stringify(req.body), defaultValue: '{"enabled":false,"message":"","color":"purple","link":""}' });
+      res.json(JSON.parse(result.value));
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

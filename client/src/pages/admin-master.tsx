@@ -2960,6 +2960,24 @@ export default function AdminMaster() {
 
           <TabsContent value="overview" className="space-y-5 pb-8">
 
+            {/* ── CMS Editor Quick Access ── */}
+            <div className="rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-violet-900/10 to-indigo-900/20 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/30 flex items-center justify-center shrink-0">
+                  <Palette className="w-5 h-5 text-purple-300" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">CMS Editor — Full Web App Control</p>
+                  <p className="text-gray-400 text-xs">Edit every page, text, image, button, color, navigation, fees, and announcements in one place.</p>
+                </div>
+              </div>
+              <RouterLink href="/admin/cms">
+                <button className="shrink-0 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors flex items-center gap-2" data-testid="button-open-cms-editor">
+                  <Palette className="w-4 h-4" /> Open CMS Editor
+                </button>
+              </RouterLink>
+            </div>
+
             {/* ── ROW 1: 8 secondary KPI cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {[
