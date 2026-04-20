@@ -177,7 +177,7 @@ export default function SimpleDashboard() {
                   size="sm"
                   className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                   data-testid="button-logout"
-                  onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => setLocation("/"))}
+                  onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => { window.location.href = "/"; })}
                 >
                   <LogOut className="h-3 w-3 mr-1" />Log Out
                 </Button>

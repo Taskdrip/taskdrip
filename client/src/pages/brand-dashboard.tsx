@@ -813,7 +813,7 @@ export default function BrandDashboard() {
                   size="sm"
                   className="text-sm text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                   data-testid="button-brand-logout"
-                  onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => setLocation("/"))}
+                  onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => { window.location.href = "/"; })}
                 >
                   Log Out
                 </Button>
