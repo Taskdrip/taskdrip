@@ -808,6 +808,15 @@ export default function BrandDashboard() {
                 <Link href="/profile-edit">
                   <Button variant="outline" size="sm" className="text-sm" data-testid="button-brand-edit-profile">Edit Profile</Button>
                 </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-sm text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  data-testid="button-brand-logout"
+                  onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => setLocation("/"))}
+                >
+                  Log Out
+                </Button>
               </div>
             </div>
 

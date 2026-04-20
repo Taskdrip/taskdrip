@@ -342,6 +342,9 @@ function getCreatorBotResponse(message: string, user: any, socialLinks: any[]): 
   if (lower.includes("get campaigns") || lower.includes("how do i get campaigns") || lower.includes("find campaigns")) {
     return `Here's how to get brand campaigns on Taskdrip:\n\n🔍 **Browse Tasks** — Go to /tasks to see all available campaigns by category and niche\n📝 **Apply** — Click "Apply" on any campaign that matches your audience\n✅ **Get Approved** — Brands review your profile and approve the best fit influencers\n📸 **Complete & Submit Proof** — Do the task, submit screenshots/links as proof\n💰 **Get Paid** — Approved submissions receive crypto payment to your wallet\n\n💡 **Pro Tip**: A complete profile with follower counts gets 5× more approvals. Update yours at /profile-edit!`;
   }
+  if (lower.includes("order") || lower.includes("my order") || lower.includes("purchase") || lower.includes("bought") || lower.includes("shop")) {
+    return `Here's a summary of your shop activity on Taskdrip:\n\n🛍️ **View your orders** — Go to /my-orders to see the full list of your purchases, including delivery status and payment verification.\n\n📦 **Order statuses:**\n- **Pending** — Your payment proof is being reviewed by admin\n- **Approved** — Order confirmed and processing delivery\n- **Completed** — Delivered and done!\n- **Rejected** — Payment proof not accepted (contact support)\n\n💳 **Payment tips:**\n- For crypto payments, always paste your full **Transaction Hash** from your wallet or blockchain explorer\n- Upload a screenshot as extra proof for faster approval\n- Approval usually takes under 24 hours\n\n🔗 Visit /shop to browse more products, or /my-orders to track your current orders.`;
+  }
   if (lower.includes("support") || lower.includes("contact") || lower.includes("how do i contact")) {
     return `Need help? Here's how to reach our support team:\n\n💬 **WhatsApp**: +1 (201) 680-0266 — fastest response (under 1 hour)\n📱 **Telegram**: t.me/taskdrip — join the community for peer support\n📧 **Contact form**: Visit /contact for formal support tickets\n📨 **Messages**: Use /chat to send a direct message to the team\n⏰ **Hours**: Mon–Fri, 9am–6pm WAT\n\nFor account issues, payments, or disputes, WhatsApp is the fastest way to get help!`;
   }
@@ -579,6 +582,11 @@ export function GuideBot() {
     enabled: isAuthenticated && !!(user as any)?.id && isCreator,
   });
 
+  const { data: myOrdersData } = useQuery<any>({
+    queryKey: ["/api/my-orders"],
+    enabled: isAuthenticated && !isAdmin,
+  });
+
   const { data: adminUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: isAuthenticated && isAdmin,
@@ -666,6 +674,13 @@ export function GuideBot() {
         role: m.role === "bot" ? "assistant" : "user",
         content: m.content,
       }));
+      const shopOrders: any[] = myOrdersData?.shopOrders || [];
+      const latestOrders = shopOrders.slice(0, 5).map((o: any) => ({
+        product: o.productTitle || o.title || o.productName || "Unknown product",
+        status: o.status,
+        amount: o.totalAmount || o.amount,
+        date: o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "",
+      }));
       const userContext = {
         name: (user as any)?.firstName || (user as any)?.companyName,
         userType: (user as any)?.userType || "influencer",
@@ -676,6 +691,9 @@ export function GuideBot() {
         totalEarned: (user as any)?.totalEarned || "0",
         location: (user as any)?.location,
         socialChannels: (socialLinks as any[]).map(l => l.platform),
+        recentShopOrders: latestOrders,
+        totalShopOrders: shopOrders.length,
+        courseEnrollments: (myOrdersData?.courseOrders || []).length,
       };
       const res = await apiRequest("POST", "/api/guide/chat", {
         messages: [...history, { role: "user", content: input }],

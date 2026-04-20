@@ -3451,14 +3451,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sendOrderConfirmationEmail({
           email: buyer.email,
           firstName: buyer.firstName || '',
-          productName: product.name,
+          productName: product.title,
           amount: `${amount || "0"} ${currency || ""}`.trim(),
           isFree: !!product.isFree,
         }).catch(() => {});
         storage.createNotification({
           userId: buyer.id,
           type: 'order',
-          title: product.isFree ? `${product.name} is ready! 🎉` : `Order received for ${product.name}`,
+          title: product.isFree ? `${product.title} is ready! 🎉` : `Order received for ${product.title}`,
           content: product.isFree
             ? 'Your free product is approved and ready to access.'
             : "Your payment is under review. We'll notify you once approved (usually within 24 hours).",

@@ -163,7 +163,7 @@ export default function SimpleDashboard() {
                   {(user as any)?.niche ? ` · ${(user as any).niche}` : ""}
                 </p>
               </div>
-              <div className="flex gap-2 mt-2 sm:mt-0 flex-wrap">
+              <div className="flex gap-2 mt-2 sm:mt-0 flex-wrap items-center">
                 <Link href="/profile-edit">
                   <Button variant="outline" size="sm" className="text-xs" data-testid="button-edit-profile">Edit Profile</Button>
                 </Link>
@@ -172,6 +172,15 @@ export default function SimpleDashboard() {
                     <ExternalLink className="h-3 w-3 mr-1" />View Public Profile
                   </Button>
                 </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  data-testid="button-logout"
+                  onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => setLocation("/"))}
+                >
+                  <LogOut className="h-3 w-3 mr-1" />Log Out
+                </Button>
               </div>
             </div>
 

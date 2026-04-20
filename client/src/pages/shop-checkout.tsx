@@ -745,7 +745,7 @@ export default function ShopCheckout() {
                   {selectedMethod?.type === 'bank' ? 'Reference / Transfer Code' :
                    selectedMethod?.type === 'paypal' ? 'PayPal Transaction ID' :
                     selectedMethod?.type === 'manual' ? 'Payment Reference / Note' :
-                    'Transaction ID'} <span className="text-red-500">*</span>
+                    'Transaction Hash'} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   value={txHash}
@@ -754,11 +754,11 @@ export default function ShopCheckout() {
                     selectedMethod?.type === 'bank' ? 'Enter transfer reference...' :
                     selectedMethod?.type === 'paypal' ? 'PayPal transaction ID...' :
                     selectedMethod?.type === 'manual' ? 'Enter receipt reference or payment note...' :
-                    'Enter transaction ID...'
+                    'Enter transaction hash (e.g. 0xabc123...)'
                   }
                   className="font-mono text-sm h-12 bg-gray-50 border-gray-200"
                 />
-                <p className="text-xs text-gray-400 mt-1.5">Find this in your {selectedMethod?.type === 'bank' ? 'bank statement' : selectedMethod?.type === 'paypal' ? 'PayPal activity' : selectedMethod?.type === 'manual' ? 'receipt or transfer confirmation' : "payment confirmation"}</p>
+                <p className="text-xs text-gray-400 mt-1.5">Find this in your {selectedMethod?.type === 'bank' ? 'bank statement' : selectedMethod?.type === 'paypal' ? 'PayPal activity' : selectedMethod?.type === 'manual' ? 'receipt or transfer confirmation' : 'crypto wallet or blockchain explorer (the tx hash after sending)'}</p>
               </div>
 
               <div className="border-t pt-4">
