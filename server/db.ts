@@ -15,12 +15,15 @@ if (!connectionString) {
 }
 
 const { Pool } = pg;
-const isLocalDatabase = /localhost|127\.0\.0\.1/.test(connectionString);
+const isLocalDatabase = /localhost|127\.0\.0\.1|\.internal/.test(connectionString);
 const usesSsl =
   process.env.PGSSL === "true" ||
   process.env.DATABASE_PUBLIC_URL === connectionString ||
   connectionString.includes("sslmode=require") ||
-  connectionString.includes("neon.tech");
+  connectionString.includes("neon.tech") ||
+  connectionString.includes("railway.app") ||
+  connectionString.includes("supabase.co") ||
+  connectionString.includes("rds.amazonaws.com");
 
 export const pool = new Pool({
   connectionString,
