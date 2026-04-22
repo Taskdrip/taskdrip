@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AnnouncementConfig {
   enabled: boolean;
@@ -22,6 +23,7 @@ const COLOR_CLASSES: Record<string, string> = {
 
 export function AnnouncementBanner() {
   const [dismissed, setDismissed] = useState(false);
+  const { user } = useAuth();
 
   const { data: config } = useQuery<AnnouncementConfig>({
     queryKey: ["/api/announcement"],
@@ -29,6 +31,14 @@ export function AnnouncementBanner() {
   });
 
   if (dismissed || !config?.enabled || !config?.message) return null;
+
+  // Hide premium/upgrade announcements from admins (they don't need to upgrade themselves)
+  if ((user as any)?.userType === 'admin') {
+    const promo = `${config.message} ${config.link || ''}`.toLowerCase();
+    if (/upgrade|premium|subscription|subscribe|brand pro|influencer premium/.test(promo)) {
+      return null;
+    }
+  }
 
   const colorClass = COLOR_CLASSES[config.color] || COLOR_CLASSES.purple;
   const isExternal = config.link?.startsWith("http");

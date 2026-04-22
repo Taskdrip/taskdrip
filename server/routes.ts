@@ -3747,6 +3747,58 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Admin: list all subscriptions with user enrichment (for review/approval)
+  app.get('/api/admin/subscriptions', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const status = (req.query.status as string) || undefined;
+      const list = await storage.getAllSubscriptions(status);
+      const enriched = await Promise.all(list.map(async (s: any) => {
+        const u = await storage.getUser(s.userId);
+        return {
+          ...s,
+          user: u ? {
+            id: u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            email: u.email,
+            userType: u.userType,
+            profileImageUrl: (u as any).profileImageUrl,
+          } : null,
+        };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error('Error listing subscriptions:', error);
+      res.status(500).json({ message: 'Failed to list subscriptions' });
+    }
+  });
+
+  // Admin: reject a subscription payment with optional reason + notify user
+  app.patch('/api/admin/subscriptions/:id/reject', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const { reason } = req.body || {};
+      const sub = await storage.updateSubscriptionStatus(req.params.id, 'rejected');
+      await storage.createNotification({
+        userId: sub.userId,
+        type: 'subscription_rejected',
+        title: 'Subscription Payment Rejected',
+        content: reason
+          ? `Your subscription payment was rejected. Reason: ${reason}. Please re-submit a valid payment proof or contact support.`
+          : `Your subscription payment was rejected. Please re-submit a valid payment proof or contact support.`,
+        priority: 'high',
+        actionUrl: '/subscription',
+      });
+      res.json(sub);
+    } catch (error) {
+      console.error('Error rejecting subscription:', error);
+      res.status(500).json({ message: 'Failed to reject subscription' });
+    }
+  });
+
   // Auto-expiry checker — called periodically or on demand
   app.post('/api/admin/subscriptions/check-expiry', isAuthenticated, async (req: any, res) => {
     try {
@@ -8191,6 +8243,13 @@ Instructions:
         ))
         .orderBy(desc(paymentDeposits.createdAt));
 
+      // Subscription receipts (premium / brand pro)
+      const subscriptionOrders = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, userId))
+        .orderBy(desc(subscriptions.createdAt));
+
       res.json({
         shopOrders,
         courseOrders,
@@ -8199,6 +8258,7 @@ Instructions:
         directHireOrders,
         adApplications,
         adPaymentDeposits,
+        subscriptionOrders,
         userType: user.userType,
         generatedAt: new Date().toISOString(),
       });

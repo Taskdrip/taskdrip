@@ -268,6 +268,7 @@ export default function CreatorProfile() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
   const [hireDialogOpen, setHireDialogOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [hireForm, setHireForm] = useState({ title: '', description: '', deliverables: '', budget: '', deadline: '' });
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
   const [editingPortfolio, setEditingPortfolio] = useState<any>(null);
@@ -341,7 +342,16 @@ export default function CreatorProfile() {
       setHireForm({ title: '', description: '', deliverables: '', budget: '', deadline: '' });
       navigate(`/direct-hire/${data.id}`);
     },
-    onError: (e: Error) => toast({ title: "Failed to send offer", description: (e as any)?.message || "Please try again.", variant: "destructive" }),
+    onError: (e: Error) => {
+      const msg = (e as any)?.message || '';
+      // Backend returns 403 with body containing "upgradeRequired" for free brands
+      if (/403/.test(msg) && /upgrade|premium/i.test(msg)) {
+        setHireDialogOpen(false);
+        setUpgradeDialogOpen(true);
+        return;
+      }
+      toast({ title: "Failed to send offer", description: msg || "Please try again.", variant: "destructive" });
+    },
   });
 
   const resetPortfolioDialog = () => {
@@ -1257,6 +1267,45 @@ export default function CreatorProfile() {
                   )}
                 </Button>
                 <Button variant="outline" onClick={() => setHireDialogOpen(false)} className="flex-1" data-testid="button-cancel-hire">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-500" /> Premium Required
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-gray-600">
+                Direct hiring is a Premium Brand feature. Upgrade your account to send hire offers, message influencers directly, and unlock unlimited campaigns.
+              </p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between bg-gray-50 rounded-xl px-4 py-2">
+                  <span className="text-gray-500">Free Brand</span>
+                  <span className="font-bold text-gray-700">No direct hire</span>
+                </div>
+                <div className="flex justify-between bg-purple-50 rounded-xl px-4 py-2 border border-purple-200">
+                  <span className="text-purple-700 font-semibold">Brand Premium</span>
+                  <span className="font-bold text-purple-800">Unlimited hires</span>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Link href="/subscription" className="flex-1">
+                  <Button
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold"
+                    onClick={() => setUpgradeDialogOpen(false)}
+                    data-testid="button-upgrade-from-hire"
+                  >
+                    <Crown className="w-4 h-4 mr-2" /> Upgrade Now
+                  </Button>
+                </Link>
+                <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)}>
                   Cancel
                 </Button>
               </div>

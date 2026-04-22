@@ -35,7 +35,7 @@ import {
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog, Coins,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
-  Briefcase, Store, Trophy, Gift, Award
+  Briefcase, Store, Trophy, Gift, Award, Crown, MessageCircle
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -2061,6 +2061,12 @@ export default function AdminMaster() {
     retry: false,
   });
 
+  const { data: subscriptionPayments = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/subscriptions"],
+    enabled: isFullAdmin,
+    retry: false,
+  });
+
   const { data: courses = [] } = useQuery<any[]>({
     queryKey: ["/api/courses/admin/all"],
     enabled: isFullAdmin,
@@ -2429,6 +2435,43 @@ export default function AdminMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/escrow-payments"] });
       toast({ title: "Rejected", description: "Payment rejected and brand notified" });
     },
+  });
+
+  const approveSubscription = useMutation({
+    mutationFn: async ({ id, plan }: { id: string; plan?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/subscriptions/${id}/approve`, { plan });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "✅ Subscription activated!", description: "User has been notified and premium features enabled." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectSubscription = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/subscriptions/${id}/reject`, { reason });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/subscriptions"] });
+      toast({ title: "Subscription rejected", description: "User has been notified" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const messageUserMutation = useMutation({
+    mutationFn: async ({ receiverId, content }: { receiverId: string; content: string }) => {
+      const res = await apiRequest("POST", "/api/messages", { receiverId, content, messageType: 'general' });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => toast({ title: "Message sent", description: "The user will be notified." }),
+    onError: (e: any) => toast({ title: "Failed to send", description: e.message, variant: "destructive" }),
   });
 
   const suspendUser = useMutation({
@@ -4598,6 +4641,122 @@ export default function AdminMaster() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold">Payment Management</h2>
             </div>
+
+            {/* Subscription Payment Reviews */}
+            <Card className="border-purple-200 bg-purple-50/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-purple-800">
+                  <Crown className="h-5 w-5" />
+                  Subscription Payment Proofs ({subscriptionPayments.filter((s: any) => s.status === 'pending').length} pending)
+                </CardTitle>
+                <CardDescription>Review brand & influencer premium subscription payments and approve to activate</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {subscriptionPayments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <CheckCircle className="h-10 w-10 mx-auto mb-2" />
+                    <p className="text-sm">No subscription payments yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {subscriptionPayments.map((sp: any) => {
+                      const planLabel = (sp.plan || '').includes('brand') ? 'Brand Pro' : 'Premium';
+                      const periodLabel = sp.periodDays === 3 ? '3-day' : sp.periodDays === 5 ? '5-day' : sp.periodDays === 365 ? 'Yearly' : 'Monthly';
+                      return (
+                        <div key={sp.id} className="bg-white border rounded-xl p-4 shadow-sm" data-testid={`subscription-row-${sp.id}`}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="font-semibold text-gray-900">
+                                  {sp.user ? `${sp.user.firstName || ''} ${sp.user.lastName || ''}`.trim() || sp.user.email : 'Unknown user'}
+                                </span>
+                                <Badge variant={sp.status === 'pending' ? 'secondary' : sp.status === 'active' ? 'default' : sp.status === 'rejected' ? 'destructive' : 'outline'}>
+                                  {sp.status}
+                                </Badge>
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                  {periodLabel} {planLabel}
+                                </Badge>
+                                {sp.user?.userType && (
+                                  <Badge variant="outline" className="text-xs capitalize">{sp.user.userType}</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">
+                                {sp.user?.email} · ${sp.amount} · {sp.paymentMethodLabel || sp.network || 'manual'}
+                              </p>
+                              {sp.transactionHash && (
+                                <p className="text-xs font-mono text-blue-600 mt-1 break-all">TX: {sp.transactionHash}</p>
+                              )}
+                              <p className="text-xs text-gray-400">Submitted: {sp.createdAt ? new Date(sp.createdAt).toLocaleString() : '—'}</p>
+                            </div>
+                            <div className="flex flex-col gap-2 min-w-[180px]">
+                              {(sp.paymentProof || sp.transactionHash) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                                  onClick={() => setProofModal({
+                                    open: true,
+                                    url: sp.paymentProof,
+                                    txHash: sp.transactionHash,
+                                    network: sp.network,
+                                    amount: sp.amount,
+                                    label: `${planLabel} — ${sp.user?.email || 'subscription'}`,
+                                  })}
+                                  data-testid={`btn-view-subscription-${sp.id}`}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" /> View Proof
+                                </Button>
+                              )}
+                              {sp.status === 'pending' && (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                                    onClick={() => approveSubscription.mutate({ id: sp.id, plan: sp.plan })}
+                                    disabled={approveSubscription.isPending}
+                                    data-testid={`btn-approve-subscription-${sp.id}`}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-200 text-red-600 hover:bg-red-50 flex-1"
+                                    onClick={() => {
+                                      const reason = prompt('Rejection reason (optional):') || '';
+                                      rejectSubscription.mutate({ id: sp.id, reason });
+                                    }}
+                                    disabled={rejectSubscription.isPending}
+                                    data-testid={`btn-reject-subscription-${sp.id}`}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" /> Reject
+                                  </Button>
+                                </div>
+                              )}
+                              {sp.user?.id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const content = prompt(`Send a message to ${sp.user.email}:`);
+                                    if (content && content.trim()) {
+                                      messageUserMutation.mutate({ receiverId: sp.user.id, content: content.trim() });
+                                    }
+                                  }}
+                                  data-testid={`btn-message-subscription-${sp.id}`}
+                                >
+                                  <MessageCircle className="h-4 w-4 mr-1" /> Message User
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Escrow Payment Reviews */}
             <Card className="border-orange-200 bg-orange-50/30">

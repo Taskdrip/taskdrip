@@ -14,11 +14,11 @@ import {
   Download, Eye, FileText, Package, Clock, CheckCircle2,
   XCircle, AlertCircle, Truck, ReceiptText, FileSpreadsheet,
   CalendarRange, Filter, TrendingUp, DollarSign,
-  Megaphone,
+  Megaphone, Trophy,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type OrderType = "shop" | "course" | "p2p" | "campaign" | "direct_hire" | "ad";
+type OrderType = "shop" | "course" | "p2p" | "campaign" | "direct_hire" | "ad" | "subscription";
 
 interface UnifiedOrder {
   id: string;
@@ -62,6 +62,7 @@ function typeIcon(type: OrderType) {
     campaign: <Shield className="h-4 w-4" />,
     direct_hire: <Briefcase className="h-4 w-4" />,
     ad: <Megaphone className="h-4 w-4" />,
+    subscription: <Trophy className="h-4 w-4" />,
   };
   return icons[type];
 }
@@ -74,6 +75,7 @@ function typeLabel(type: OrderType) {
     campaign: "Campaign Escrow",
     direct_hire: "Direct Hire",
     ad: "Ads Campaign",
+    subscription: "Subscription",
   };
   return labels[type];
 }
@@ -86,6 +88,7 @@ function typeColor(type: OrderType) {
     campaign: "bg-green-100 text-green-800",
     direct_hire: "bg-rose-100 text-rose-800",
     ad: "bg-violet-100 text-violet-800",
+    subscription: "bg-amber-100 text-amber-800",
   };
   return colors[type];
 }
@@ -222,6 +225,32 @@ function normaliseOrders(data: any): UnifiedOrder[] {
       status: o.status,
       date: o.createdAt,
       paymentMethod: o.paymentNetwork,
+      transactionHash: o.transactionHash,
+      paymentProof: o.paymentProof,
+      raw: o,
+    });
+  });
+
+  // Premium / Brand Pro subscriptions
+  (data.subscriptionOrders || []).forEach((o: any) => {
+    const planLabel = String(o.plan || '').includes('brand') ? 'Brand Pro' : 'Influencer Premium';
+    const periodLabel = o.periodDays === 3 ? '3-day' : o.periodDays === 5 ? '5-day' : o.periodDays === 365 ? 'Yearly' : 'Monthly';
+    const base = Number(o.amount || 0);
+    orders.push({
+      id: o.id,
+      type: "subscription",
+      title: `${periodLabel} ${planLabel} Subscription`,
+      description: o.status === 'active' && o.expiresAt
+        ? `Active until ${new Date(o.expiresAt).toLocaleDateString()}`
+        : o.status === 'pending' ? 'Awaiting admin approval'
+        : o.status === 'rejected' ? (o.rejectionReason || 'Payment rejected')
+        : 'Subscription receipt',
+      amount: base,
+      fee: 0,
+      totalCharged: base,
+      status: o.status,
+      date: o.createdAt,
+      paymentMethod: o.network || 'crypto',
       transactionHash: o.transactionHash,
       paymentProof: o.paymentProof,
       raw: o,

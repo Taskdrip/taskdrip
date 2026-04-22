@@ -264,6 +264,8 @@ export interface IStorage {
   getExpiredSubscriptions(): Promise<Subscription[]>;
   getExpiringSubscriptions(withinDays: number): Promise<Subscription[]>;
   getAllActiveSubscriptions(): Promise<Subscription[]>;
+  getAllSubscriptions(status?: string): Promise<Subscription[]>;
+  getSubscriptionById(id: string): Promise<Subscription | undefined>;
   markExpiryReminderSent(id: string): Promise<void>;
 
   // Payout requests
@@ -1620,6 +1622,18 @@ export class DatabaseStorage implements IStorage {
 
   async getAllActiveSubscriptions(): Promise<Subscription[]> {
     return await db.select().from(subscriptions).where(eq(subscriptions.status, 'active'));
+  }
+
+  async getAllSubscriptions(status?: string): Promise<Subscription[]> {
+    if (status) {
+      return await db.select().from(subscriptions).where(eq(subscriptions.status, status)).orderBy(desc(subscriptions.createdAt));
+    }
+    return await db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt));
+  }
+
+  async getSubscriptionById(id: string): Promise<Subscription | undefined> {
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1);
+    return sub;
   }
 
   async markExpiryReminderSent(id: string): Promise<void> {

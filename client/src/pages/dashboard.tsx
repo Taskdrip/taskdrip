@@ -318,6 +318,46 @@ export default function Dashboard() {
               </Card>
             </div>
 
+            {/* Quick Links */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <Link href="/my-orders">
+                <Button variant="outline" className="w-full h-auto p-4 flex items-center gap-2 justify-start" data-testid="button-open-my-orders-influencer">
+                  <Package className="h-5 w-5 text-purple-600" />
+                  <div className="text-left">
+                    <div className="font-medium">My Orders</div>
+                    <div className="text-xs text-muted-foreground">All transactions & history</div>
+                  </div>
+                </Button>
+              </Link>
+              <Link href="/wallet">
+                <Button variant="outline" className="w-full h-auto p-4 flex items-center gap-2 justify-start" data-testid="button-open-wallet">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                  <div className="text-left">
+                    <div className="font-medium">Wallet</div>
+                    <div className="text-xs text-muted-foreground">Balance & withdrawals</div>
+                  </div>
+                </Button>
+              </Link>
+              <Link href="/messages">
+                <Button variant="outline" className="w-full h-auto p-4 flex items-center gap-2 justify-start" data-testid="button-open-messages">
+                  <MessageSquare className="h-5 w-5 text-blue-600" />
+                  <div className="text-left">
+                    <div className="font-medium">Messages</div>
+                    <div className="text-xs text-muted-foreground">Brand conversations</div>
+                  </div>
+                </Button>
+              </Link>
+              <Link href="/subscription">
+                <Button variant="outline" className="w-full h-auto p-4 flex items-center gap-2 justify-start" data-testid="button-open-subscription">
+                  <Trophy className="h-5 w-5 text-amber-600" />
+                  <div className="text-left">
+                    <div className="font-medium">Premium</div>
+                    <div className="text-xs text-muted-foreground">Upgrade benefits</div>
+                  </div>
+                </Button>
+              </Link>
+            </div>
+
             {/* Active Campaigns with Messaging */}
             <Card>
               <CardHeader>
