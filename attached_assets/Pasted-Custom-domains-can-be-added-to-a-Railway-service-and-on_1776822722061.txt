@@ -1,0 +1,34 @@
+Custom domains can be added to a Railway service and once setup we will automatically issue an SSL certificate for you.
+
+Navigate to the Settings tab of your desired service.
+
+Click + Custom Domain in the Public Networking section of Settings
+
+Type in the custom domain (wildcard domains are supported, see below for more details)
+
+You will be provided with two records to add to your DNS - a CNAME record (e.g., g05ns7.up.railway.app) and a TXT record used to verify domain ownership.
+
+In your DNS provider (Cloudflare, DNSimple, Namecheap, etc), create both the CNAME record and the TXT record exactly as shown in the Railway dashboard. Both records are required - the domain will not verify with only the CNAME in place.
+
+Important: If the TXT record is missing, requests to your custom domain will return a 404 error even after the CNAME resolves. Railway uses the TXT record to confirm domain ownership before routing traffic, so your service will not be reachable on the custom domain until both records are in place and verified.
+
+Wait for Railway to verify your domain. When verified, you will see a green check mark next to the domain(s) -
+
+Screenshot of Custom Domain
+You will also see a Cloudflare proxy detected message if we have detected that you are using Cloudflare.
+
+Note: Changes to DNS settings may take up to 72 hours to propagate worldwide.
+
+Important considerations
+Freenom domains are not allowed and not supported.
+The Trial Plan is limited to 1 custom domain. It is therefore not possible to use both yourdomain.com and www.yourdomain.com as these are considered two distinct custom domains.
+The Hobby Plan is limited to 2 custom domains per service.
+The Pro Plan is limited to 20 domains per service by default. This limit can be increased for Pro users on request, simply reach out to us via a private thread.
+Wildcard domains
+Wildcard domains allow for flexible subdomain management. There are a few important things to know when using them -
+
+Ensure that the CNAME record for authorize.railwaydns.net is not proxied by your provider (eg: Cloudflare). This is required for the verification process to work.
+
+Wildcards cannot be nested (e.g., \*.\*.yourdomain.com).
+
+Wildcards can be used for any subdomain level (e.g., *.example.com or
