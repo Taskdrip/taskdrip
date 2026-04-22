@@ -1,0 +1,27 @@
+As an admin , i couldn't see payments for a brands premium subscription, i also couldn't see anywhere in the brands dashboard to track the order transaction that was made by the brand.
+also when an influencer makes a payment for a product, course, or service, there was no details on the order in his dashboard this issue needs to be resolved for everyone. I AM ALSO SEEING NOTIFICATIONS in admin dashboard to upgrade to premium, that's so wrong, fix it. Make the order and shipping dashboard track users orders , details and products and grant access , make this work for all users, admin should be able to allow a license or link to download, or access granted to join an private group course from the admin dashboard after payment has been confirmed for a particular item , allow admin set this from backend
+
+Tried hiring an influencer, after filling details and clicked send offer an a brand , it showed me a red 403 error saying i need to upgrade to premium without giving me the link to upgrade, make this also work sitewide for other users
+
+Allow all users message users directly from their profile with the message button into their message box , without any other popups just simple clean chat tabs to monitor all chats with other users like telegram
+
+I See users who dont have enough followers , showing on rising star category, make sure to ascribe the right role based on their social reach they added , using a combination of all their social media channels, dont use the platform followers , make sure this is calculated appropriately and user assigned to the right category
+
+The payment page is the admin area doesn't allow the admin to preview payments , approve, disapprove and send a message to user, page doesn't even look organized . fix it
+
+The welcome popup , that shows users to perform simple social media task of following our social media channels, doesn't add any points when they click it , get directed to perform the action, there should be a button to confirm action done and then shows $tdrip point is added , fix this issue for all users.
+
+and the welcome to taskdrip popup message text doesn't fit to screen on mobile , i see some text cutting into the edge of the screen.
+
+Fix the next buttons on the sliders on the Header hero sliders and also the spotlight sections on pages, the arrors covers the text, it should be removed and user allowed to flip to the left or right or put below for both on desktop and mobile view that it doesn't obstruct the text.
+
+Discovered that when a brand is adding an addon service to a campaign, i dont see provision to add action link/ url for that particular addon task, implement this sitewide and make it work seamlessly , when the action is done, allow user confirm completion, and automatically add point on page to users $tdrip balance with aa beautiful message, do this for order earnings on the app. 
+
+The share and report buttons on campaigns , products , courses , and other items are not functional, fix this.
+
+I dont See the use of the support wallet button showing a users profile if doesn't allow someone who clicks it to see the users wallet added to receive support and a brief message added by the user from his/her backend
+
+Add a notice to all transactions to guide the users based on their role and user type on that transaction on how to deal with the other party, make it professional and appealing.
+
+
+On the live site, when i click a page , i dont see the web url reflect i am on another page, this need to be fixed , to ensure all site pages can be indexed, Add a google search console area where we can input all the necessary code to get it work , and robot txt, crawlers to automatically index all post and pages, fix entire web app url structure without breaking web app.
