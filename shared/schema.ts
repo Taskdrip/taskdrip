@@ -58,7 +58,7 @@ export const users = pgTable("users", {
   whatsappFollowers: integer("whatsapp_followers").default(0),
   totalFollowers: integer("total_followers").default(0),
   // Creator classification
-  creatorTier: varchar("creator_tier").default("rising_sparks"), // rising_sparks, growth_engines, power_influencers, global_titans
+  creatorTier: varchar("creator_tier").default("newcomer"), // newcomer, aspiring, rising_sparks, growth_engines, power_influencers, global_titans
   niche: varchar("niche"), // Gaming, Fitness, Fashion, Tech, etc.
   username: varchar("username").unique(),
   bannerImageUrl: varchar("banner_image_url"),

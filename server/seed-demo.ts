@@ -1,10 +1,50 @@
 import { db } from "./db";
-import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks, paymentMethods } from "@shared/schema";
+import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks, paymentMethods, users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 
 const ADMIN_ID = "demo-admin-seed-id";
+
+// Backfill creator_tier for every creator using the SUM of their social-media followers.
+// Runs once on each boot — cheap, idempotent.
+export async function backfillCreatorTiers() {
+  try {
+    await db.execute(sql`
+      UPDATE users SET
+        total_followers = COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
+          + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
+          + COALESCE(twitch_followers,0) + COALESCE(telegram_followers,0)
+          + COALESCE(whatsapp_followers,0),
+        creator_tier = CASE
+          WHEN COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
+            + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
+            + COALESCE(twitch_followers,0) + COALESCE(telegram_followers,0)
+            + COALESCE(whatsapp_followers,0) >= 10000000 THEN 'global_titans'
+          WHEN COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
+            + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
+            + COALESCE(twitch_followers,0) + COALESCE(telegram_followers,0)
+            + COALESCE(whatsapp_followers,0) >= 1000000 THEN 'power_influencers'
+          WHEN COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
+            + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
+            + COALESCE(twitch_followers,0) + COALESCE(telegram_followers,0)
+            + COALESCE(whatsapp_followers,0) >= 100000 THEN 'growth_engines'
+          WHEN COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
+            + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
+            + COALESCE(twitch_followers,0) + COALESCE(telegram_followers,0)
+            + COALESCE(whatsapp_followers,0) >= 10000 THEN 'rising_sparks'
+          WHEN COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
+            + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
+            + COALESCE(twitch_followers,0) + COALESCE(telegram_followers,0)
+            + COALESCE(whatsapp_followers,0) >= 1 THEN 'aspiring'
+          ELSE 'newcomer'
+        END
+      WHERE user_type = 'creator';
+    `);
+  } catch (err) {
+    console.error('[backfill] tier recompute failed:', err);
+  }
+}
 
 const DEMO_COURSES = [
   {

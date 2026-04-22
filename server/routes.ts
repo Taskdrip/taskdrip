@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -397,21 +397,33 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   // Creators grouped by tier - sorted highest to lowest within each tier
+  // Tier is ALWAYS recomputed from the sum of social-media followers, never trusted from the stored field.
   app.get('/api/creators/by-tier', async (req, res) => {
     try {
       const creators = await storage.getCreators();
-      const tierOrder = ['global_titans', 'power_influencers', 'growth_engines', 'rising_sparks'];
+      const tierOrder = ['global_titans', 'power_influencers', 'growth_engines', 'rising_sparks', 'aspiring', 'newcomer'];
       const grouped: Record<string, any[]> = {
-        global_titans: [],
-        power_influencers: [],
-        growth_engines: [],
-        rising_sparks: [],
+        global_titans: [], power_influencers: [], growth_engines: [],
+        rising_sparks: [], aspiring: [], newcomer: [],
+      };
+      const platformKeys = [
+        'tiktokFollowers', 'youtubeFollowers', 'instagramFollowers',
+        'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers',
+      ];
+      const computeTier = (n: number) => {
+        if (n >= 10_000_000) return 'global_titans';
+        if (n >= 1_000_000) return 'power_influencers';
+        if (n >= 100_000) return 'growth_engines';
+        if (n >= 10_000) return 'rising_sparks';
+        if (n >= 1) return 'aspiring';
+        return 'newcomer';
       };
       for (const creator of creators) {
         const { password, ...safe } = creator as any;
-        const tier = safe.creatorTier || 'rising_sparks';
-        if (grouped[tier]) grouped[tier].push(safe);
-        else grouped['rising_sparks'].push(safe);
+        const reach = platformKeys.reduce((s, k) => s + (Number(safe[k]) || 0), 0);
+        safe.totalFollowers = reach;
+        safe.creatorTier = computeTier(reach);
+        grouped[safe.creatorTier].push(safe);
       }
       for (const tier of tierOrder) {
         grouped[tier].sort((a: any, b: any) => (b.totalFollowers || 0) - (a.totalFollowers || 0));
@@ -3109,6 +3121,109 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     } catch (error) {
       console.error('Error fetching admin transactions:', error);
       res.status(500).json({ message: 'Failed to fetch transactions' });
+    }
+  });
+
+  // Unified payments feed — every payment-bearing event in one stream, with users linked.
+  // Sources: generic transactions, P2P transactions, shop purchases, escrow payments,
+  // payment deposits, and subscriptions.
+  app.get('/api/admin/payments-unified', isAuthenticated, async (req: any, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+
+      const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, allUsers] = await Promise.all([
+        db.select().from(transactions).orderBy(desc(transactions.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt)),
+        db.select().from(purchases).orderBy(desc(purchases.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc(escrowPayments.createdAt)),
+        db.select().from(paymentDeposits).orderBy(desc(paymentDeposits.createdAt)),
+        db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt)),
+        db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users),
+      ]);
+
+      const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+      const u = (id: string | null | undefined) => (id ? userMap.get(id) || null : null);
+
+      const unified: any[] = [];
+
+      for (const t of txs as any[]) {
+        unified.push({
+          id: `tx_${t.id}`, source: 'transaction', kind: t.type || 'transaction',
+          amount: Number(t.amount || 0), currency: 'USD', status: t.status,
+          createdAt: t.createdAt, reference: t.transactionHash || t.referenceId || null,
+          method: t.network || t.referenceType || null,
+          fromUser: u(t.userId), toUser: null, approvedBy: u(t.approvedBy),
+          description: t.description || null,
+        });
+      }
+      for (const t of p2ps as any[]) {
+        unified.push({
+          id: `p2p_${t.id}`, source: 'p2p', kind: t.transactionType || 'p2p_trade',
+          amount: Number(t.totalAmount || t.amount || 0), currency: t.currency || 'USD',
+          status: t.status, createdAt: t.createdAt,
+          reference: t.id, method: t.sellerCryptoWallet ? 'crypto' : 'p2p',
+          fee: Number(t.fee || 0),
+          fromUser: u(t.buyerId), toUser: u(t.sellerId), approvedBy: u(t.adminId),
+          description: `P2P ${t.transactionType || ''} • listing ${t.listingId}`,
+        });
+      }
+      for (const t of purchaseRows as any[]) {
+        unified.push({
+          id: `pur_${t.id}`, source: 'purchase', kind: 'shop_purchase',
+          amount: Number(t.totalAmount || t.amount || 0), currency: 'USD', status: t.status,
+          createdAt: t.createdAt, reference: t.transactionHash || t.id,
+          method: t.paymentMethod || null,
+          fromUser: u(t.userId), toUser: null, approvedBy: null,
+          description: `Shop purchase • product ${t.productId}`,
+        });
+      }
+      for (const t of escrows as any[]) {
+        unified.push({
+          id: `esc_${t.id}`, source: 'escrow', kind: 'campaign_escrow',
+          amount: Number(t.amount || 0), currency: 'USD', status: t.status,
+          createdAt: t.createdAt, reference: t.transactionHash || t.id,
+          method: t.network || null,
+          fromUser: u(t.brandId), toUser: null, approvedBy: u(t.verifiedBy),
+          description: `Campaign escrow • campaign ${t.campaignId || ''}`,
+        });
+      }
+      for (const t of depositRows as any[]) {
+        unified.push({
+          id: `dep_${t.id}`, source: 'deposit', kind: 'wallet_deposit',
+          amount: Number(t.amount || 0), currency: 'USD', status: t.status,
+          createdAt: t.createdAt, reference: t.transactionHash || t.id,
+          method: t.network || null,
+          fromUser: u(t.brandId), toUser: null, approvedBy: u(t.approvedBy),
+          description: t.adminNotes || 'Wallet deposit',
+        });
+      }
+      for (const t of subRows as any[]) {
+        unified.push({
+          id: `sub_${t.id}`, source: 'subscription', kind: t.plan || 'subscription',
+          amount: Number(t.amount || 0), currency: 'USD', status: t.status,
+          createdAt: t.createdAt, reference: t.transactionHash || t.id,
+          method: t.paymentMethodLabel || t.network || null,
+          fromUser: u(t.userId), toUser: null, approvedBy: null,
+          description: `Subscription ${t.plan || ''}`,
+        });
+      }
+
+      unified.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      const totals = unified.reduce((acc, t) => {
+        acc.count++;
+        acc.gross += Number(t.amount) || 0;
+        if (['completed', 'released', 'paid', 'approved', 'active'].includes(String(t.status))) acc.settled += Number(t.amount) || 0;
+        if (['pending', 'funded', 'delivered', 'submitted'].includes(String(t.status))) acc.pending += Number(t.amount) || 0;
+        acc.bySource[t.source] = (acc.bySource[t.source] || 0) + 1;
+        return acc;
+      }, { count: 0, gross: 0, settled: 0, pending: 0, bySource: {} as Record<string, number> });
+
+      res.json({ items: unified, totals });
+    } catch (error) {
+      console.error('Error fetching unified payments:', error);
+      res.status(500).json({ message: 'Failed to fetch unified payments' });
     }
   });
 

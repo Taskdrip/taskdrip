@@ -6,7 +6,7 @@ import { createServer } from "http";
 import { registerRoutes, runSubscriptionExpiryCheck } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
-import { seedDemoData } from "./seed-demo";
+import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
 import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
 import { storage } from "./storage";
@@ -233,6 +233,7 @@ server.listen({
 
     await seedCmsContent();
     await seedLegalPages();
+    await backfillCreatorTiers();
 
     if (app.get("env") === "development") {
       // await seedDatabase(); // Temporarily disabled during schema updates
