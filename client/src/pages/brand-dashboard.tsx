@@ -219,6 +219,7 @@ export default function BrandDashboard() {
         description: data.description,
         tdripReward: Number(data.tdripReward || 0),
         participantLimit: Number(data.participantLimit || 0),
+        actionUrl: data.actionUrl || "",
         proofRequired: data.proofRequired !== false,
         autoApprove: !!data.autoApprove,
       });
@@ -1126,6 +1127,17 @@ export default function BrandDashboard() {
                                   rows={4}
                                   data-testid={`input-micro-task-description-${campaign.id}`}
                                 />
+                                <div>
+                                  <Label className="text-xs font-medium text-violet-900">Action URL <span className="text-violet-500 font-normal">(optional — link creators open to perform the task)</span></Label>
+                                  <Input
+                                    type="url"
+                                    value={microTaskDrafts[campaign.id]?.actionUrl || ""}
+                                    onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], actionUrl: e.target.value } }))}
+                                    placeholder="https://twitter.com/yourhandle/status/123…"
+                                    className="mt-1.5"
+                                    data-testid={`input-micro-task-action-url-${campaign.id}`}
+                                  />
+                                </div>
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <Label>Reward per creator</Label>

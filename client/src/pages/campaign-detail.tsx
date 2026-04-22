@@ -18,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { SecurityWarning } from '@/components/ui/security-warning';
+import { ReportDialog } from '@/components/ui/report-dialog';
+import { shareItem } from '@/lib/share';
 import { 
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
@@ -425,14 +427,16 @@ export default function CampaignDetail() {
               Back to Campaigns
             </Button>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => shareItem({ title: (campaign as any)?.title || 'Campaign on Taskdrip', text: (campaign as any)?.description, url: `/campaigns/${campaignId}` })}
+                data-testid="button-share-campaign"
+              >
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
               </Button>
-              <Button variant="outline" size="sm">
-                <Flag className="w-4 h-4 mr-2" />
-                Report
-              </Button>
+              <ReportDialog contentType="campaign" contentId={campaignId || ''} />
             </div>
           </div>
         </div>
@@ -846,6 +850,8 @@ export default function CampaignDetail() {
                       const draft = microTaskProofs[task.id] || {};
                       const submitted = task.mySubmission;
                       const canSubmitMicroTask = !!user && hasJoined && ['approved', 'submitted', 'completed'].includes(String(participationStatus));
+                      const opened = !!microTaskProofs[task.id]?.opened;
+                      const requiresProof = task.proofRequired !== false;
                       return (
                         <div key={task.id} className="rounded-2xl border border-violet-100 bg-violet-50/50 p-4" data-testid={`card-campaign-micro-task-${task.id}`}>
                           <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
@@ -856,13 +862,25 @@ export default function CampaignDetail() {
                                 <Badge variant="outline">{task.autoApprove ? 'Auto approve' : 'Manual review'}</Badge>
                               </div>
                               <p className="text-sm text-gray-600 mt-2">{task.description}</p>
+                              {task.actionUrl && (
+                                <a
+                                  href={task.actionUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], opened: true } }))}
+                                  className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-violet-700 hover:text-violet-900 underline-offset-4 hover:underline break-all"
+                                  data-testid={`link-micro-task-action-${task.id}`}
+                                >
+                                  🔗 Open action link
+                                </a>
+                              )}
                               {submitted && (
                                 <div className={`mt-3 rounded-xl p-3 text-sm ${
                                   submitted.status === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
                                   submitted.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
                                   'bg-yellow-50 text-yellow-700 border border-yellow-200'
                                 }`} data-testid={`status-micro-task-submission-${task.id}`}>
-                                  {submitted.status === 'approved' ? 'Approved — points added to your $TDRIP wallet.' :
+                                  {submitted.status === 'approved' ? `🎉 Approved — ${task.tdripReward} $TDRIP added to your wallet.` :
                                    submitted.status === 'rejected' ? 'Rejected — you can resubmit with better proof.' :
                                    'Submitted — waiting for brand review.'}
                                 </div>
@@ -871,35 +889,49 @@ export default function CampaignDetail() {
                           </div>
                           {!submitted && canSubmitMicroTask && (
                             <div className="mt-4 grid gap-3">
-                              <Textarea
-                                value={draft.proofText || ''}
-                                onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofText: e.target.value } }))}
-                                placeholder="Describe the proof for this add-on task..."
-                                rows={3}
-                                data-testid={`input-micro-task-proof-text-${task.id}`}
-                              />
-                              <div className="grid md:grid-cols-2 gap-3">
-                                <Input
-                                  value={draft.proofUrl || ''}
-                                  onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofUrl: e.target.value } }))}
-                                  placeholder="Proof link"
-                                  data-testid={`input-micro-task-proof-url-${task.id}`}
-                                />
-                                <Input
-                                  type="file"
-                                  onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofFile: e.target.files?.[0] || null } }))}
-                                  data-testid={`input-micro-task-proof-file-${task.id}`}
-                                />
-                              </div>
-                              <Button
-                                className="bg-violet-600 hover:bg-violet-700"
-                                onClick={() => submitMicroTaskMutation.mutate(task.id)}
-                                disabled={submitMicroTaskMutation.isPending}
-                                data-testid={`button-submit-micro-task-${task.id}`}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                {submitMicroTaskMutation.isPending ? 'Submitting...' : `Submit Proof for ${task.tdripReward} $TDRIP`}
-                              </Button>
+                              {requiresProof ? (
+                                <>
+                                  <Textarea
+                                    value={draft.proofText || ''}
+                                    onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofText: e.target.value } }))}
+                                    placeholder="Describe the proof for this add-on task..."
+                                    rows={3}
+                                    data-testid={`input-micro-task-proof-text-${task.id}`}
+                                  />
+                                  <div className="grid md:grid-cols-2 gap-3">
+                                    <Input
+                                      value={draft.proofUrl || ''}
+                                      onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofUrl: e.target.value } }))}
+                                      placeholder="Proof link"
+                                      data-testid={`input-micro-task-proof-url-${task.id}`}
+                                    />
+                                    <Input
+                                      type="file"
+                                      onChange={(e) => setMicroTaskProofs((prev) => ({ ...prev, [task.id]: { ...prev[task.id], proofFile: e.target.files?.[0] || null } }))}
+                                      data-testid={`input-micro-task-proof-file-${task.id}`}
+                                    />
+                                  </div>
+                                  <Button
+                                    className="bg-violet-600 hover:bg-violet-700"
+                                    onClick={() => submitMicroTaskMutation.mutate(task.id)}
+                                    disabled={submitMicroTaskMutation.isPending}
+                                    data-testid={`button-submit-micro-task-${task.id}`}
+                                  >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    {submitMicroTaskMutation.isPending ? 'Submitting...' : `Submit Proof for ${task.tdripReward} $TDRIP`}
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+                                  onClick={() => submitMicroTaskMutation.mutate(task.id)}
+                                  disabled={submitMicroTaskMutation.isPending || (!!task.actionUrl && !opened)}
+                                  data-testid={`button-confirm-micro-task-${task.id}`}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  {submitMicroTaskMutation.isPending ? 'Confirming…' : (task.actionUrl && !opened) ? 'Open the action link first' : `I've completed this — claim ${task.tdripReward} $TDRIP`}
+                                </Button>
+                              )}
                             </div>
                           )}
                           {!canSubmitMicroTask && !submitted && (

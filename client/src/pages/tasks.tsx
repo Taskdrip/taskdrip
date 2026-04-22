@@ -321,24 +321,26 @@ function SpotlightCarousel({ campaigns, appliedIds }: { campaigns: any[]; applie
 
       {total > 1 && (
         <>
-          {/* Prev / Next arrows */}
-          <button
-            onClick={prev}
-            data-testid="btn-spotlight-prev"
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={next}
-            data-testid="btn-spotlight-next"
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          {/* Arrows: bottom-right so they don't cover headline text */}
+          <div className="absolute right-3 bottom-3 z-10 flex items-center gap-2">
+            <button
+              onClick={prev}
+              data-testid="btn-spotlight-prev"
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={next}
+              data-testid="btn-spotlight-next"
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
 
-          {/* Dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {/* Dots: bottom-left */}
+          <div className="absolute bottom-4 left-4 flex gap-2 z-10">
             {campaigns.map((_, i) => (
               <button
                 key={i}

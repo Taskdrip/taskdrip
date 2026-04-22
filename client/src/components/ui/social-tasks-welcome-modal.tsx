@@ -89,66 +89,67 @@ export function SocialTasksWelcomeModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md p-0 overflow-hidden border-0 shadow-2xl">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md p-0 overflow-hidden border-0 shadow-2xl rounded-2xl max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className={`relative p-6 text-white ${isBrand ? "bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700" : "bg-gradient-to-br from-violet-700 via-purple-600 to-indigo-700"}`}>
+        <div className={`relative px-5 pt-5 pb-4 sm:px-6 sm:pt-6 text-white shrink-0 ${isBrand ? "bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700" : "bg-gradient-to-br from-violet-700 via-purple-600 to-indigo-700"}`}>
           <button
             onClick={() => setOpen(false)}
-            className="absolute top-4 right-4 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            className="absolute top-3 right-3 p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
             data-testid="close-welcome-modal"
+            aria-label="Close"
           >
             <X className="h-4 w-4 text-white" />
           </button>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl">
+          <div className="flex items-center gap-3 mb-3 pr-8">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl sm:text-2xl shrink-0">
               {isBrand ? "🚀" : "⚡"}
             </div>
-            <div>
-              <p className="text-white/80 text-sm">Welcome to Taskdrip</p>
-              <h2 className="text-xl font-black">Hey {firstName}! 👋</h2>
+            <div className="min-w-0">
+              <p className="text-white/80 text-xs sm:text-sm">Welcome to Taskdrip</p>
+              <h2 className="text-lg sm:text-xl font-black truncate">Hey {firstName}! 👋</h2>
             </div>
           </div>
-          <p className="text-white/90 text-sm leading-relaxed">
+          <p className="text-white/90 text-[13px] sm:text-sm leading-relaxed break-words">
             {isBrand
-              ? "Your brand deserves real reach. Taskdrip connects you with authentic creators who turn influence into results you can measure."
+              ? "Your brand deserves real reach. Taskdrip connects you with authentic creators who turn influence into measurable results."
               : "Your influence is your superpower. Taskdrip helps you turn it into real income, skills, and a thriving community."}
           </p>
           {!isBrand && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 text-xs font-semibold">
-              <Star className="h-3.5 w-3.5 text-yellow-300" />
-              50 welcome $TDRIP points credited to your account!
+            <div className="mt-3 inline-flex items-start gap-2 bg-white/20 rounded-full px-3 py-1.5 text-[11px] sm:text-xs font-semibold max-w-full">
+              <Star className="h-3.5 w-3.5 text-yellow-300 shrink-0 mt-0.5" />
+              <span className="break-words">50 welcome $TDRIP points credited to your account!</span>
             </div>
           )}
         </div>
 
-        {/* Highlights */}
-        <div className="p-4 space-y-2 bg-white">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        {/* Highlights — scrollable */}
+        <div className="px-3 sm:px-4 py-3 space-y-2 bg-white overflow-y-auto flex-1 min-h-0">
+          <p className="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
             {isBrand ? "What you can do" : "Start your journey"}
           </p>
           {highlights.map((item, i) => (
             <Link key={i} href={item.href} onClick={() => setOpen(false)}>
               <div
-                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all cursor-pointer group"
+                className="flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all cursor-pointer group"
                 data-testid={`welcome-highlight-${i}`}
               >
-                <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   {item.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
-                  <p className="text-xs text-gray-500 truncate">{item.desc}</p>
+                  <p className="font-semibold text-gray-900 text-[13px] sm:text-sm truncate">{item.title}</p>
+                  <p className="text-[11px] sm:text-xs text-gray-500 line-clamp-2">{item.desc}</p>
                 </div>
-                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-violet-500 transition-colors shrink-0" />
               </div>
             </Link>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="px-4 pb-4 bg-white">
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4 bg-white shrink-0">
           <Button
-            className="w-full bg-black text-white hover:bg-gray-800 rounded-xl h-10 font-semibold"
+            className="w-full bg-black text-white hover:bg-gray-800 rounded-xl h-10 font-semibold text-sm"
             onClick={() => setOpen(false)}
             data-testid="button-welcome-explore"
           >

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -2163,6 +2163,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const participantLimit = Math.max(1, Math.floor(Number(req.body.participantLimit || access.campaign.totalSlots || 1)));
       const proofRequired = req.body.proofRequired !== false && req.body.proofRequired !== "false";
       const autoApprove = req.body.autoApprove === true || req.body.autoApprove === "true" || !!access.campaign.autoApproveMicroTasks;
+      const actionUrl = String(req.body.actionUrl || "").trim() || null;
       if (!title || !description || tdripReward <= 0) {
         return res.status(400).json({ message: "Title, description, and reward points are required" });
       }
@@ -2184,6 +2185,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         tdripReward,
         participantLimit,
         escrowedPoints,
+        actionUrl,
         proofRequired,
         autoApprove,
         createdBy: userId,
@@ -2227,6 +2229,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (task.proofRequired && !proofText && !proofUrl && !proofFile) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
+      // Auto-confirm flow when no proof is required: brief confirmation text recorded
+      const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
       const existing = await db.select().from(microTaskSubmissions)
         .where(and(eq(microTaskSubmissions.microTaskId, task.id), eq(microTaskSubmissions.userId, userId)));
       if (existing.some((submission) => submission.status !== "rejected")) {
@@ -2243,7 +2247,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         microTaskId: task.id,
         campaignId: task.campaignId,
         userId,
-        proofText,
+        proofText: confirmText,
         proofUrl,
         proofFile,
         status,
@@ -3180,32 +3184,41 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       }
       for (const t of escrows as any[]) {
         unified.push({
-          id: `esc_${t.id}`, source: 'escrow', kind: 'campaign_escrow',
+          id: `esc_${t.id}`, rawId: t.id, source: 'escrow', kind: 'campaign_escrow',
           amount: Number(t.amount || 0), currency: 'USD', status: t.status,
           createdAt: t.createdAt, reference: t.transactionHash || t.id,
           method: t.network || null,
           fromUser: u(t.brandId), toUser: null, approvedBy: u(t.verifiedBy),
           description: `Campaign escrow • campaign ${t.campaignId || ''}`,
+          proofImageUrl: t.paymentScreenshot || t.proofImageUrl || null,
+          adminNotes: t.adminNotes || null,
+          reviewable: true,
         });
       }
       for (const t of depositRows as any[]) {
         unified.push({
-          id: `dep_${t.id}`, source: 'deposit', kind: 'wallet_deposit',
+          id: `dep_${t.id}`, rawId: t.id, source: 'deposit', kind: 'wallet_deposit',
           amount: Number(t.amount || 0), currency: 'USD', status: t.status,
           createdAt: t.createdAt, reference: t.transactionHash || t.id,
           method: t.network || null,
           fromUser: u(t.brandId), toUser: null, approvedBy: u(t.approvedBy),
           description: t.adminNotes || 'Wallet deposit',
+          proofImageUrl: t.proofImageUrl || t.paymentScreenshot || null,
+          adminNotes: t.adminNotes || null,
+          reviewable: true,
         });
       }
       for (const t of subRows as any[]) {
         unified.push({
-          id: `sub_${t.id}`, source: 'subscription', kind: t.plan || 'subscription',
+          id: `sub_${t.id}`, rawId: t.id, source: 'subscription', kind: t.plan || 'subscription',
           amount: Number(t.amount || 0), currency: 'USD', status: t.status,
           createdAt: t.createdAt, reference: t.transactionHash || t.id,
           method: t.paymentMethodLabel || t.network || null,
           fromUser: u(t.userId), toUser: null, approvedBy: null,
           description: `Subscription ${t.plan || ''}`,
+          proofImageUrl: t.proofImageUrl || t.paymentScreenshot || null,
+          adminNotes: t.adminNotes || null,
+          reviewable: true,
         });
       }
 
@@ -3915,6 +3928,122 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     } catch (error) {
       console.error('Error rejecting subscription:', error);
       res.status(500).json({ message: 'Failed to reject subscription' });
+    }
+  });
+
+  // ── Content Reports ────────────────────────────────────────────────────────
+  app.post('/api/reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const contentType = String(req.body.contentType || "").trim();
+      const contentId = String(req.body.contentId || "").trim();
+      const reason = String(req.body.reason || "").trim();
+      const details = String(req.body.details || "").trim() || null;
+      if (!contentType || !contentId || !reason) {
+        return res.status(400).json({ message: "contentType, contentId and reason are required" });
+      }
+      const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
+      // Notify all admins
+      try {
+        const admins = await db.select().from(users).where(eq(users.userType, 'admin'));
+        for (const a of admins) {
+          await storage.createNotification({
+            userId: a.id, type: 'content_report', title: 'New content report',
+            content: `${contentType} ${contentId} reported for ${reason}`,
+            actionUrl: '/admin', isRead: false, priority: 'high',
+          } as any);
+        }
+      } catch {}
+      res.status(201).json(report);
+    } catch (error) {
+      console.error('Error creating report:', error);
+      res.status(500).json({ message: 'Failed to submit report' });
+    }
+  });
+
+  app.get('/api/admin/reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const list = await db.select().from(contentReports).orderBy(desc(contentReports.createdAt));
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to list reports' });
+    }
+  });
+
+  // ── Admin: Wallet Deposit approve/reject ───────────────────────────────────
+  app.patch('/api/admin/payment-deposits/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const [dep] = await db.select().from(paymentDeposits).where(eq(paymentDeposits.id as any, req.params.id));
+      if (!dep) return res.status(404).json({ message: 'Deposit not found' });
+      const [updated] = await db.update(paymentDeposits).set({
+        status: 'approved', approvedBy: req.user.id, approvedAt: new Date(), updatedAt: new Date(),
+      }).where(eq(paymentDeposits.id as any, req.params.id)).returning();
+      if (dep.brandId) {
+        await storage.createNotification({
+          userId: dep.brandId, type: 'deposit_approved', title: '✅ Deposit approved',
+          content: `Your wallet deposit of $${dep.amount} has been approved.`,
+          actionUrl: '/wallet', isRead: false,
+        } as any);
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error('Error approving deposit:', error);
+      res.status(500).json({ message: 'Failed to approve deposit' });
+    }
+  });
+
+  app.patch('/api/admin/payment-deposits/:id/reject', isAuthenticated, async (req: any, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const reason = String(req.body?.reason || "").trim();
+      const [dep] = await db.select().from(paymentDeposits).where(eq(paymentDeposits.id as any, req.params.id));
+      if (!dep) return res.status(404).json({ message: 'Deposit not found' });
+      const [updated] = await db.update(paymentDeposits).set({
+        status: 'rejected', adminNotes: reason || dep.adminNotes, updatedAt: new Date(),
+      }).where(eq(paymentDeposits.id as any, req.params.id)).returning();
+      if (dep.brandId) {
+        await storage.createNotification({
+          userId: dep.brandId, type: 'deposit_rejected', title: 'Deposit rejected',
+          content: reason ? `Your deposit was rejected: ${reason}` : 'Your deposit was rejected.',
+          actionUrl: '/wallet', isRead: false, priority: 'high',
+        } as any);
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error('Error rejecting deposit:', error);
+      res.status(500).json({ message: 'Failed to reject deposit' });
+    }
+  });
+
+  // Admin: simple message-to-user helper for payment review
+  app.post('/api/admin/users/:userId/message', isAuthenticated, async (req: any, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const { subject, content } = req.body || {};
+      if (!content) return res.status(400).json({ message: 'Message content required' });
+      const message = await storage.createMessage({
+        senderId: req.user.id,
+        receiverId: req.params.userId,
+        subject: subject || 'Message from Taskdrip team',
+        content: String(content),
+        messageType: 'admin',
+      } as any);
+      await storage.createNotification({
+        userId: req.params.userId, type: 'message',
+        title: subject || 'New message from Taskdrip',
+        content: String(content).slice(0, 140),
+        actionUrl: '/chat', relatedId: message.id, isRead: false,
+      } as any);
+      res.json({ ok: true, messageId: message.id });
+    } catch (error) {
+      console.error('Error sending admin message:', error);
+      res.status(500).json({ message: 'Failed to send message' });
     }
   });
 

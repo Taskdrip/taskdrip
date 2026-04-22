@@ -5,10 +5,12 @@ import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { 
   ShoppingCart, Star, Download, ExternalLink, ChevronLeft, 
-  Package, Shield, CheckCircle, MessageCircle, Share2, 
+  Package, Shield, CheckCircle, MessageCircle, Share2, Flag,
   Heart, Eye, Calendar, Tag, ArrowRight, PlayCircle,
   ThumbsUp, ThumbsDown
 } from "lucide-react";
+import { ReportDialog } from "@/components/ui/report-dialog";
+import { shareItem } from "@/lib/share";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -350,9 +352,23 @@ export default function ProductDetail() {
                 <Button variant="outline" size="lg">
                   <Heart className="w-5 h-5" />
                 </Button>
-                <Button variant="outline" size="lg">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => shareItem({ title: product?.title || product?.name || 'Product on Taskdrip', text: product?.description, url: typeof window !== 'undefined' ? window.location.pathname : '/' })}
+                  data-testid="button-share-product"
+                >
                   <Share2 className="w-5 h-5" />
                 </Button>
+                <ReportDialog
+                  contentType="product"
+                  contentId={String(product?.id || '')}
+                  trigger={
+                    <Button variant="outline" size="lg" data-testid="button-report-product">
+                      <Flag className="w-5 h-5" />
+                    </Button>
+                  }
+                />
               </div>
 
               {/* Demo and Download Links */}

@@ -179,6 +179,7 @@ export const campaignMicroTasks = pgTable("campaign_micro_tasks", {
   tdripReward: integer("tdrip_reward").notNull(),
   participantLimit: integer("participant_limit").default(0),
   escrowedPoints: integer("escrowed_points").notNull(),
+  actionUrl: varchar("action_url", { length: 500 }),
   proofRequired: boolean("proof_required").default(true),
   autoApprove: boolean("auto_approve").default(false),
   isActive: boolean("is_active").default(true),
@@ -769,6 +770,20 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   deadline: z.string().min(1, "Deadline is required"),
   estimatedTime: z.string().min(1, "Estimated time is required"),
 });
+
+export const contentReports = pgTable("content_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").references(() => users.id),
+  contentType: varchar("content_type", { length: 30 }).notNull(),
+  contentId: varchar("content_id").notNull(),
+  reason: varchar("reason", { length: 60 }).notNull(),
+  details: text("details"),
+  status: varchar("status", { length: 20 }).default("open"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type ContentReport = typeof contentReports.$inferSelect;
 
 export const insertCampaignMicroTaskSchema = createInsertSchema(campaignMicroTasks).omit({
   id: true,

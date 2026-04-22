@@ -20,10 +20,12 @@ import {
   ShoppingCart, Target, Crown, BookOpen, Heart, ArrowDownToLine,
   AlertCircle, Lock, Eye, EyeOff, Settings, Layers, ArrowRight,
   Shield, Zap, Globe, ArrowLeft, Search, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, DollarSign, Users, Receipt
+  TrendingUp, DollarSign, Users, Receipt,
+  MessageSquare, ThumbsUp, ThumbsDown, X as CloseIcon
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
+import { ZoomableImage } from "@/components/ui/image-lightbox";
 
 const FEATURES = [
   { key: "shop", label: "Shop", icon: ShoppingCart },
@@ -261,6 +263,9 @@ export default function AdminPayments() {
   const [txSearch, setTxSearch] = useState("");
   const [txSourceFilter, setTxSourceFilter] = useState<string>("all");
   const [txStatusFilter, setTxStatusFilter] = useState<string>("all");
+  const [reviewItem, setReviewItem] = useState<any | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
 
   const { data: methods = [], isLoading: methodsLoading } = useQuery<any[]>({ queryKey: ["/api/admin/payment-methods"] });
   const { data: toggles = [] } = useQuery<any[]>({ queryKey: ["/api/admin/payment-feature-toggles"] });
@@ -287,6 +292,39 @@ export default function AdminPayments() {
   const toggleMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/admin/payment-feature-toggles", data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/payment-feature-toggles"] }),
+  });
+
+  // Review approve / reject endpoints per source
+  function endpointFor(item: any, action: "approve" | "reject"): { method: "PATCH" | "PUT"; url: string } | null {
+    if (!item?.rawId) return null;
+    if (item.source === "deposit") return { method: "PATCH", url: `/api/admin/payment-deposits/${item.rawId}/${action}` };
+    if (item.source === "escrow") return { method: "PUT", url: `/api/admin/escrow-payments/${item.rawId}/${action}` };
+    if (item.source === "subscription") return { method: "PATCH", url: `/api/admin/subscriptions/${item.rawId}/${action}` };
+    return null;
+  }
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ item, action, notes }: { item: any; action: "approve" | "reject"; notes: string }) => {
+      const ep = endpointFor(item, action);
+      if (!ep) throw new Error("This payment type can't be reviewed here.");
+      const res = await apiRequest(ep.method, ep.url, { adminNotes: notes, notes });
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/payments-unified"] });
+      toast({ title: vars.action === "approve" ? "Payment approved" : "Payment rejected" });
+      setReviewItem(null); setReviewNotes(""); setReviewMessage("");
+    },
+    onError: (e: any) => toast({ title: "Review failed", description: e?.message || "Try again", variant: "destructive" }),
+  });
+
+  const messageMutation = useMutation({
+    mutationFn: async ({ userId, content }: { userId: string; content: string }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/message`, { content });
+      return res.json();
+    },
+    onSuccess: () => { toast({ title: "Message sent" }); setReviewMessage(""); },
+    onError: () => toast({ title: "Failed to send message", variant: "destructive" }),
   });
 
   const openAdd = () => { setEditingMethod(null); setForm(EMPTY_METHOD); setDialogOpen(true); };
@@ -445,7 +483,12 @@ export default function AdminPayments() {
                       </tr>
                     ) : (
                       filteredTx.map((t: any) => (
-                        <tr key={t.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors" data-testid={`row-tx-${t.id}`}>
+                        <tr
+                          key={t.id}
+                          className={`border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors ${t.reviewable ? "cursor-pointer" : ""}`}
+                          onClick={() => t.reviewable && (setReviewItem(t), setReviewNotes(""), setReviewMessage(""))}
+                          data-testid={`row-tx-${t.id}`}
+                        >
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-2">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${SOURCE_TONE[t.source] || "bg-slate-100 text-slate-700"}`}>
@@ -681,6 +724,160 @@ export default function AdminPayments() {
               {deleteMutation.isPending ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Payment Review Drawer ────────────────────────────────────────── */}
+      <Dialog open={!!reviewItem} onOpenChange={(o) => !o && setReviewItem(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden gap-0">
+          {reviewItem && (
+            <>
+              <div className="flex items-start justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${SOURCE_TONE[reviewItem.source] || "bg-slate-100 text-slate-700"}`}>
+                      {SOURCE_LABEL[reviewItem.source] || reviewItem.source}
+                    </span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ring-1 ring-inset ${STATUS_TONE[reviewItem.status] || "bg-slate-100 text-slate-600 ring-slate-500/20"}`}>
+                      {reviewItem.status || "—"}
+                    </span>
+                  </div>
+                  <DialogTitle className="text-lg font-semibold text-slate-900 mt-1.5">
+                    {fmtMoney(Number(reviewItem.amount), reviewItem.currency)} payment review
+                  </DialogTitle>
+                  <p className="text-xs text-slate-500 mt-0.5">{reviewItem.description}</p>
+                </div>
+                <button onClick={() => setReviewItem(null)} className="p-1 hover:bg-slate-200 rounded" aria-label="Close">
+                  <CloseIcon className="h-4 w-4 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-0 max-h-[70vh] overflow-y-auto">
+                {/* Left: details + proof */}
+                <div className="p-6 space-y-4 border-r border-slate-200">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Method</p>
+                      <p className="text-slate-900 font-medium">{reviewItem.method || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Date</p>
+                      <p className="text-slate-900 font-medium tabular-nums">
+                        {reviewItem.createdAt ? format(new Date(reviewItem.createdAt), "MMM d, yyyy h:mm a") : "—"}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Reference</p>
+                      <p className="text-slate-700 font-mono text-xs break-all">{reviewItem.reference || "—"}</p>
+                    </div>
+                    {reviewItem.adminNotes && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">User note</p>
+                        <p className="text-slate-700 text-sm whitespace-pre-wrap">{reviewItem.adminNotes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Payment proof</p>
+                    {reviewItem.proofImageUrl ? (
+                      <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                        <ZoomableImage
+                          src={reviewItem.proofImageUrl}
+                          alt="Payment proof"
+                          caption="Click to zoom, pan, rotate, or download"
+                          className="w-full h-auto max-h-72 object-contain bg-white"
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+                        <Receipt className="h-6 w-6 text-slate-400 mx-auto mb-2" />
+                        <p className="text-xs text-slate-500">No image proof attached</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Admin notes (optional)</Label>
+                    <Textarea
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                      placeholder="Reason for approval / rejection (saved on the record)"
+                      rows={3}
+                      className="mt-1.5"
+                      data-testid="input-review-notes"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={() => reviewMutation.mutate({ item: reviewItem, action: "approve", notes: reviewNotes })}
+                      disabled={reviewMutation.isPending}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-9"
+                      data-testid="button-review-approve"
+                    >
+                      <ThumbsUp className="h-4 w-4 mr-1.5" />
+                      Approve
+                    </Button>
+                    <Button
+                      onClick={() => reviewMutation.mutate({ item: reviewItem, action: "reject", notes: reviewNotes })}
+                      disabled={reviewMutation.isPending}
+                      variant="destructive"
+                      className="flex-1 h-9"
+                      data-testid="button-review-reject"
+                    >
+                      <ThumbsDown className="h-4 w-4 mr-1.5" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Right: parties + message */}
+                <div className="p-6 space-y-4 bg-slate-50/30">
+                  <div>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">From</p>
+                    <UserCell user={reviewItem.fromUser} />
+                  </div>
+                  {reviewItem.toUser && (
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">To</p>
+                      <UserCell user={reviewItem.toUser} />
+                    </div>
+                  )}
+                  {reviewItem.approvedBy && (
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Reviewed by</p>
+                      <UserCell user={reviewItem.approvedBy} />
+                    </div>
+                  )}
+
+                  <div className="border-t border-slate-200 pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="h-4 w-4 text-slate-500" />
+                      <p className="text-xs text-slate-500 uppercase tracking-wide">Message the user</p>
+                    </div>
+                    <Textarea
+                      value={reviewMessage}
+                      onChange={(e) => setReviewMessage(e.target.value)}
+                      placeholder={`Send ${reviewItem.fromUser?.firstName || "the user"} a quick note about this payment…`}
+                      rows={4}
+                      data-testid="input-review-message"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => reviewItem.fromUser?.id && messageMutation.mutate({ userId: reviewItem.fromUser.id, content: reviewMessage })}
+                      disabled={messageMutation.isPending || !reviewMessage.trim() || !reviewItem.fromUser?.id}
+                      className="mt-2 w-full bg-slate-900 hover:bg-slate-800 text-white h-9"
+                      data-testid="button-review-send-message"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                      {messageMutation.isPending ? "Sending…" : "Send message"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

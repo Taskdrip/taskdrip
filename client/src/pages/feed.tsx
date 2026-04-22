@@ -17,8 +17,10 @@ import {
   Gift, Copy, CheckCircle, Wallet, Eye, CreditCard, Landmark, Trash2,
   Search, Filter, ChevronLeft, ChevronRight, Megaphone, Flame, Clock,
   Image as ImageIcon, Play, Star, Users, Zap, X, SlidersHorizontal,
-  BookOpen, Hash, Camera
+  BookOpen, Hash, Camera, Flag
 } from "lucide-react";
+import { ReportDialog } from "@/components/ui/report-dialog";
+import { shareItem } from "@/lib/share";
 import { getTierConfig, getTierFromFollowers, formatFollowers } from "@/lib/tiers";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
@@ -305,16 +307,18 @@ function SpotlightCarousel({ posts }: { posts: any[] }) {
         </div>
       </div>
 
-      {/* Navigation arrows */}
+      {/* Navigation arrows — pinned bottom-right; dots bottom-left */}
       {posts.length > 1 && (
         <>
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/15 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all" data-testid="btn-spotlight-prev">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/15 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all" data-testid="btn-spotlight-next">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <div className="absolute bottom-4 right-4 flex gap-1.5">
+          <div className="absolute right-3 bottom-3 flex items-center gap-2">
+            <button onClick={prev} className="w-8 h-8 bg-white/15 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all" data-testid="btn-spotlight-prev">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button onClick={next} className="w-8 h-8 bg-white/15 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all" data-testid="btn-spotlight-next">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="absolute bottom-4 left-4 flex gap-1.5">
             {posts.map((_, i) => (
               <button key={i} onClick={() => setActive(i)} className={`h-1.5 rounded-full transition-all ${i === active ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} data-testid={`btn-spotlight-dot-${i}`} />
             ))}
@@ -382,9 +386,13 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
   const isSpotlight = post.isSpotlight;
   const youtubeId = post.videoUrl ? extractYouTubeId(post.videoUrl) : "";
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.origin + "/feed");
-    toast({ title: "Link copied!", description: "Share Taskdrip with others" });
+  const handleShare = async () => {
+    const ok = await shareItem({
+      title: 'Post on Taskdrip',
+      text: (post.content || '').slice(0, 140),
+      url: `/feed?post=${post.id}`,
+    });
+    if (ok === 'copied') toast({ title: "Link copied!", description: "Paste it anywhere to share." });
   };
 
   return (
@@ -499,6 +507,17 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
         <button onClick={handleShare} className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-green-500 transition-colors ml-auto" data-testid={`button-share-post-${post.id}`}>
           <Share2 className="w-4 h-4" />
         </button>
+        {currentUserId && !isSelf && (
+          <ReportDialog
+            contentType="post"
+            contentId={String(post.id)}
+            trigger={
+              <button className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-red-500 transition-colors" data-testid={`button-report-post-${post.id}`} title="Report post">
+                <Flag className="w-4 h-4" />
+              </button>
+            }
+          />
+        )}
         {(isSelf || isAdmin) && (
           <div className="flex items-center gap-1">
             {isSelf && (

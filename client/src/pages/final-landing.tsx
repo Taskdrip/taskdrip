@@ -256,13 +256,17 @@ function HeroSlider({ slides }: { slides: Slide[] }) {
 
       {slides.length > 1 && (
         <>
-          <button onClick={prev} className="absolute right-16 sm:right-20 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20" data-testid="button-slider-prev" aria-label="Previous slide">
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          <button onClick={next} className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110 z-20" data-testid="button-slider-next" aria-label="Next slide">
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          <div className="absolute bottom-5 sm:bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-2.5 z-20">
+          {/* Arrows: bottom-right corner so they never cover hero text */}
+          <div className="absolute right-3 sm:right-6 bottom-3 sm:bottom-6 flex items-center gap-2 z-20">
+            <button onClick={prev} className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110" data-testid="button-slider-prev" aria-label="Previous slide">
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+            <button onClick={next} className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all hover:scale-110" data-testid="button-slider-next" aria-label="Next slide">
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+          {/* Dots: bottom-left so they don't overlap with arrows */}
+          <div className="absolute bottom-5 sm:bottom-8 left-4 sm:left-8 flex items-center gap-2 sm:gap-2.5 z-20">
             {slides.map((_, i) => (
               <button key={i} onClick={() => goTo(i)} data-testid={`button-slide-dot-${i}`} className={`transition-all duration-300 rounded-full ${i === current ? "w-7 sm:w-8 h-2 sm:h-2.5 bg-white" : "w-2 sm:w-2.5 h-2 sm:h-2.5 bg-white/40 hover:bg-white/70"}`} aria-label={`Go to slide ${i + 1}`} />
             ))}
