@@ -23,6 +23,7 @@ import { PWASettingsPanel } from "@/components/PWASettingsPanel";
 import { ContentEditorPanel } from "@/components/ContentEditorPanel";
 import { AdminPayoutsCenter } from "@/components/AdminPayoutsCenter";
 import { AdminConversationDrawer } from "@/components/AdminConversationDrawer";
+import { OrderDeliveryAccessPanel } from "@/components/admin/OrderDeliveryAccessPanel";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -4757,6 +4758,9 @@ export default function AdminMaster() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Order Delivery & Access — admin grants license/download/access link after payment confirmed */}
+            <OrderDeliveryAccessPanel />
 
             {/* Escrow Payment Reviews */}
             <Card className="border-orange-200 bg-orange-50/30">

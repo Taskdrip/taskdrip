@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -267,6 +267,8 @@ export async function runSubscriptionExpiryCheck() {
     const expiredSubs = await storage.getExpiredSubscriptions();
     for (const sub of expiredSubs) {
       await storage.updateSubscriptionStatus(sub.id, 'expired');
+      const subUser = await storage.getUser(sub.userId);
+      if (subUser?.userType === 'admin') { expired++; continue; }
       await storage.updateUserProfile(sub.userId, {
         subscriptionStatus: 'expired',
         isVerified: false,
@@ -287,6 +289,8 @@ export async function runSubscriptionExpiryCheck() {
     // 2. Send 1-day expiry reminders
     const expiringSubs = await storage.getExpiringSubscriptions(1);
     for (const sub of expiringSubs) {
+      const subUser = await storage.getUser(sub.userId);
+      if (subUser?.userType === 'admin') { reminded++; continue; }
       const planLabel = (sub.plan || '').includes('brand') ? 'Brand Pro' : 'Premium';
       await storage.createNotification({
         userId: sub.userId,
@@ -5799,6 +5803,107 @@ Instructions:
       });
       res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── ADMIN: Grant access / set delivery for paid orders ─────────────────
+  // Shop purchases — set deliveryDetails (downloadUrl, accessUrl, licenseKey, accessNotes) and mark delivered
+  app.patch('/api/admin/purchases/:id/deliver', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { downloadUrl, accessUrl, licenseKey, accessNotes, status, adminNotes } = req.body;
+      const existing = await storage.getPurchaseById(req.params.id);
+      if (!existing) return res.status(404).json({ message: 'Purchase not found' });
+      const prev = (existing.deliveryDetails as any) || {};
+      const deliveryDetails = {
+        ...prev,
+        ...(downloadUrl !== undefined ? { downloadUrl } : {}),
+        ...(accessUrl !== undefined ? { accessUrl } : {}),
+        ...(licenseKey !== undefined ? { licenseKey } : {}),
+        ...(accessNotes !== undefined ? { accessNotes } : {}),
+        grantedBy: req.user.id,
+        grantedAt: new Date().toISOString(),
+      };
+      const updates: any = { deliveryDetails };
+      if (status) updates.status = status;
+      if (adminNotes !== undefined) updates.adminNotes = adminNotes;
+      if (status === 'delivered' || downloadUrl || accessUrl || licenseKey) {
+        updates.deliveredAt = new Date();
+      }
+      const updated = await storage.updatePurchase(req.params.id, updates);
+      const product = await storage.getShopProductById(existing.productId);
+      await storage.createNotification({
+        userId: existing.userId,
+        type: 'order_delivered',
+        title: '🎉 Your order is ready',
+        content: `Your purchase of "${product?.title || 'product'}" has been fulfilled. View access details in My Orders.`,
+        actionUrl: '/my-orders',
+        relatedId: existing.id,
+      });
+      res.json(updated);
+    } catch (e: any) {
+      console.error('Error granting purchase access:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Course enrollments — admin grants/activates and sets access link (e.g. private group)
+  app.patch('/api/admin/enrollments/:id/grant', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { accessUrl, accessNotes, status } = req.body;
+      const [existing] = await db.select().from(courseEnrollments).where(eq(courseEnrollments.id, req.params.id));
+      if (!existing) return res.status(404).json({ message: 'Enrollment not found' });
+      const updates: any = {
+        approvedBy: req.user.id,
+        approvedAt: new Date(),
+        isPaid: true,
+        status: status || 'active',
+        updatedAt: new Date(),
+      };
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq(courseEnrollments.id, req.params.id)).returning();
+      // Store accessUrl/notes in a notification so user can see it
+      await storage.createNotification({
+        userId: existing.userId,
+        type: 'course_access_granted',
+        title: '🎓 Course access granted',
+        content: accessUrl
+          ? `Your enrollment is active. Access link: ${accessUrl}${accessNotes ? `\n${accessNotes}` : ''}`
+          : `Your enrollment is now active.${accessNotes ? `\n${accessNotes}` : ''}`,
+        actionUrl: accessUrl || '/my-orders',
+        relatedId: existing.id,
+      });
+      res.json(updated);
+    } catch (e: any) {
+      console.error('Error granting course access:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Direct hire — admin attaches a deliverable link / access note
+  app.patch('/api/admin/direct-hire/:id/grant', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { adminNote, workSubmissionUrl, status } = req.body;
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      const updated = await storage.updateDirectHireOffer(req.params.id, {
+        ...(adminNote !== undefined ? { adminNote } : {}),
+        ...(workSubmissionUrl !== undefined ? { workSubmissionUrl } : {}),
+        ...(status ? { status } : {}),
+      } as any);
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_update',
+        title: '📦 Hire offer updated by admin',
+        content: adminNote || 'Admin attached additional access details to your hire.',
+        actionUrl: `/direct-hire/${offer.id}`,
+        relatedId: offer.id,
+      });
+      res.json(updated);
+    } catch (e: any) {
+      console.error('Error granting hire access:', e);
+      res.status(500).json({ message: e.message });
+    }
   });
 
   // Admin: list all direct hire offers

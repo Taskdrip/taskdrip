@@ -399,6 +399,47 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             </div>
           )}
 
+          {/* Access / Delivery granted by admin */}
+          {(deliveryDetails?.downloadUrl || deliveryDetails?.accessUrl || deliveryDetails?.licenseKey || deliveryDetails?.accessNotes) && (
+            <div>
+              <h3 className="text-sm font-bold text-emerald-800 mb-3 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Access Granted
+              </h3>
+              <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 divide-y divide-emerald-100">
+                {deliveryDetails.downloadUrl && (
+                  <div className="flex justify-between items-center px-4 py-3">
+                    <span className="text-sm text-emerald-700 font-semibold">Download</span>
+                    <a href={deliveryDetails.downloadUrl} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 underline font-medium" data-testid={`link-download-${order.id}`}>
+                      Open file ↗
+                    </a>
+                  </div>
+                )}
+                {deliveryDetails.accessUrl && (
+                  <div className="flex justify-between items-center px-4 py-3">
+                    <span className="text-sm text-emerald-700 font-semibold">Access link</span>
+                    <a href={deliveryDetails.accessUrl} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 underline font-medium break-all text-right" data-testid={`link-access-${order.id}`}>
+                      {deliveryDetails.accessUrl}
+                    </a>
+                  </div>
+                )}
+                {deliveryDetails.licenseKey && (
+                  <div className="flex justify-between items-center px-4 py-3 gap-3">
+                    <span className="text-sm text-emerald-700 font-semibold">License key</span>
+                    <span className="text-xs font-mono bg-white border border-emerald-200 px-2 py-1 rounded text-emerald-800 select-all" data-testid={`text-license-${order.id}`}>
+                      {deliveryDetails.licenseKey}
+                    </span>
+                  </div>
+                )}
+                {deliveryDetails.accessNotes && (
+                  <div className="px-4 py-3">
+                    <p className="text-xs font-semibold text-emerald-700 mb-1">Notes from admin</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{deliveryDetails.accessNotes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Shipping / Delivery */}
           {order.type === "shop" && (
             <div>

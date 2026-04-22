@@ -344,13 +344,18 @@ export default function CreatorProfile() {
     },
     onError: (e: Error) => {
       const msg = (e as any)?.message || '';
+      // Try to parse JSON body that follows "STATUS: " prefix
+      let body: any = {};
+      const jsonMatch = msg.match(/^\d+:\s*(\{.*\})/s);
+      if (jsonMatch) { try { body = JSON.parse(jsonMatch[1]); } catch {} }
       // Backend returns 403 with body containing "upgradeRequired" for free brands
-      if (/403/.test(msg) && /upgrade|premium/i.test(msg)) {
+      if (body?.upgradeRequired || (/40[39]/.test(msg) && /upgrade|premium|subscri/i.test(msg))) {
         setHireDialogOpen(false);
         setUpgradeDialogOpen(true);
         return;
       }
-      toast({ title: "Failed to send offer", description: msg || "Please try again.", variant: "destructive" });
+      const friendly = body?.message || msg.replace(/^\d+:\s*/, '') || 'Please try again.';
+      toast({ title: "Failed to send offer", description: friendly, variant: "destructive" });
     },
   });
 
