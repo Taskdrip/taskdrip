@@ -520,6 +520,24 @@ export default function Dashboard() {
                     <Trophy className="w-4 h-4" />
                     Browse Campaigns
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.href = '/short-links'}
+                    className="flex items-center gap-2"
+                    data-testid="button-open-short-links-influencer"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    URL Shortener
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.href = '/security'}
+                    className="flex items-center gap-2"
+                    data-testid="button-open-security-influencer"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    Security & 2FA
+                  </Button>
                 </div>
               </CardContent>
             </Card>

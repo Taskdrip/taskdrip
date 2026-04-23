@@ -1001,6 +1001,24 @@ export default function BrandDashboard() {
                       </div>
                     </Button>
                   </Link>
+                  <Link href="/short-links">
+                    <Button variant="outline" className="flex items-center gap-2 h-auto p-4 w-full" data-testid="button-open-short-links-brand">
+                      <Plus className="h-5 w-5" />
+                      <div className="text-left">
+                        <div className="font-medium">URL Shortener</div>
+                        <div className="text-xs opacity-75">Track promo links & clicks</div>
+                      </div>
+                    </Button>
+                  </Link>
+                  <Link href="/security">
+                    <Button variant="outline" className="flex items-center gap-2 h-auto p-4 w-full" data-testid="button-open-security-brand">
+                      <CheckCircle className="h-5 w-5" />
+                      <div className="text-left">
+                        <div className="font-medium">Security & 2FA</div>
+                        <div className="text-xs opacity-75">Protect your account</div>
+                      </div>
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

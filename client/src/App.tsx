@@ -62,6 +62,9 @@ import GetStarted from "@/pages/get-started";
 import DirectHirePayment from "@/pages/direct-hire-payment";
 import LedgerPage from "@/pages/ledger";
 import SecuritySettings from "@/pages/security-settings";
+import ShortLinksPage from "@/pages/short-links";
+import ShortLinkAnalyticsPage from "@/pages/short-link-analytics";
+import AdminUrlShortenerPage from "@/pages/admin-url-shortener";
 import P2PHub from "@/pages/p2p-hub";
 import P2PDealRoom from "@/pages/p2p-deal-room";
 import P2PListing from "@/pages/p2p-listing";
@@ -193,6 +196,9 @@ function Router() {
           <Route path="/my-orders" component={MyOrdersPage} />
           <Route path="/referrals" component={ReferralsPage} />
           <Route path="/security" component={SecuritySettings} />
+          <Route path="/short-links" component={ShortLinksPage} />
+          <Route path="/short-links/:id/analytics" component={ShortLinkAnalyticsPage} />
+          <Route path="/admin/url-shortener" component={AdminUrlShortenerPage} />
         </>
       ) : (
         <>

@@ -1924,3 +1924,53 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
 export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({ id: true, subscribedAt: true });
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+
+// ──────────────────────────────────────────────────────────────
+// URL Shortener — short links + per-click analytics
+// ──────────────────────────────────────────────────────────────
+export const shortLinks = pgTable("short_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  slug: varchar("slug").unique().notNull(),
+  originalUrl: text("original_url").notNull(),
+  title: varchar("title"),
+  isReferral: boolean("is_referral").default(false),
+  isActive: boolean("is_active").default(true),
+  clickCount: integer("click_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const shortLinkClicks = pgTable("short_link_clicks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  linkId: varchar("link_id").notNull().references(() => shortLinks.id, { onDelete: "cascade" }),
+  clickedAt: timestamp("clicked_at").defaultNow(),
+  ipAddress: varchar("ip_address"),
+  country: varchar("country"),
+  countryCode: varchar("country_code"),
+  region: varchar("region"),
+  city: varchar("city"),
+  userAgent: text("user_agent"),
+  browser: varchar("browser"),
+  os: varchar("os"),
+  device: varchar("device"), // 'desktop' | 'mobile' | 'tablet'
+  referer: text("referer"),
+});
+
+export const shortenerSettings = pgTable("shortener_settings", {
+  id: varchar("id").primaryKey().default("singleton"),
+  enabled: boolean("enabled").default(true),
+  allowFreeUsers: boolean("allow_free_users").default(true),
+  allowVerifiedUsers: boolean("allow_verified_users").default(true),
+  allowPremiumUsers: boolean("allow_premium_users").default(true),
+  allowBrands: boolean("allow_brands").default(true),
+  allowInfluencers: boolean("allow_influencers").default(true),
+  freeUserLimit: integer("free_user_limit").default(5),
+  premiumUserLimit: integer("premium_user_limit").default(500),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertShortLinkSchema = createInsertSchema(shortLinks).omit({ id: true, createdAt: true, clickCount: true });
+export type ShortLink = typeof shortLinks.$inferSelect;
+export type InsertShortLink = z.infer<typeof insertShortLinkSchema>;
+export type ShortLinkClick = typeof shortLinkClicks.$inferSelect;
+export type ShortenerSettings = typeof shortenerSettings.$inferSelect;
