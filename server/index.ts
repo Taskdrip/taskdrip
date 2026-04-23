@@ -10,6 +10,7 @@ import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
 import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
 import { storage } from "./storage";
+import { runStartupMigrations } from "./startup-migrations";
 import bcrypt from "bcrypt";
 
 const app = express();
@@ -223,6 +224,10 @@ server.listen({
 
 (async () => {
   try {
+    // Self-heal database schema before serving traffic so missing columns
+    // from recent schema changes never cause runtime errors in production.
+    await runStartupMigrations();
+
     // Register API routes first so the app is responsive before slow seeds.
     await registerRoutes(app, server);
 
