@@ -54,3 +54,7 @@ stack = "FULLSTACK_JS"
 
 [userenv.shared]
 PORT = "5000"
+GOOGLE_PLACES_API_KEY = "AIzaSyAOT65CH-5xKm9amKq9Ndrw7lpz45OUycE"
+YOUTUBE_API_KEY = "AIzaSyBkCuwZTBozIL_IMFB6TLwQfIPyhcdZy4I"
+GEMINI_API_KEY = "AIzaSyAcRzBwoSOiHriTzD_YqDf4qxHuhlnUbes"
+GOOGLE_GENAI_API_KEY = "AIzaSyAcRzBwoSOiHriTzD_YqDf4qxHuhlnUbes"

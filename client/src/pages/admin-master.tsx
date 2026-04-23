@@ -384,12 +384,15 @@ function EnrollmentPaymentDialog({ enrollment, onApprove, approving }: { enrollm
 
 // ─── Hero Sliders Panel ──────────────────────────────────────────────────────
 const PAGE_TARGETS = [
+  { value: "all", label: "All Pages" },
   { value: "landing", label: "Landing Page" },
   { value: "campaigns", label: "Campaigns" },
   { value: "shop", label: "Shop" },
   { value: "breedskool", label: "BreedSkool (Courses)" },
   { value: "p2p", label: "P2P Market" },
   { value: "influencers", label: "Influencers" },
+  { value: "influencer-profile", label: "Influencer Profiles" },
+  { value: "brand-profile", label: "Brand Profiles" },
   { value: "tasks", label: "Tasks" },
   { value: "dashboard", label: "Dashboard" },
   { value: "feed", label: "Feed / Blog" },

@@ -258,8 +258,19 @@ function CreateProfilePost({ creatorId }: { creatorId: string }) {
   );
 }
 
-function FeaturedSpotlight({ portfolio, posts, profile }: { portfolio: any[]; posts: any[]; profile: any }) {
+function FeaturedSpotlight({ portfolio, posts, profile, spotlightAds = [] }: { portfolio: any[]; posts: any[]; profile: any; spotlightAds?: any[] }) {
   const items = [
+    // Admin-injected ads appear first
+    ...spotlightAds.map((ad: any) => ({
+      kind: 'ad' as const,
+      id: ad.id,
+      title: ad.customTitle || ad.name,
+      description: ad.customDescription,
+      imageUrl: ad.customImage,
+      videoUrl: '',
+      url: ad.customLink || '',
+      category: ad.badgeLabel || 'Spotlight',
+    })),
     ...portfolio.slice(0, 4).map((p) => ({
       kind: 'portfolio' as const,
       id: p.id,
@@ -316,8 +327,8 @@ function FeaturedSpotlight({ portfolio, posts, profile }: { portfolio: any[]; po
                   <Sparkles className="w-16 h-16 text-violet-400/60" />
                 </div>
               )}
-              <Badge className="absolute top-3 left-3 bg-white/90 text-violet-700 border-0 shadow-sm">
-                {item.kind === 'portfolio' ? <><Briefcase className="w-3 h-3 mr-1" />Portfolio</> : <><Eye className="w-3 h-3 mr-1" />Post</>}
+              <Badge className={`absolute top-3 left-3 border-0 shadow-sm ${item.kind === 'ad' ? 'bg-violet-600 text-white' : 'bg-white/90 text-violet-700'}`}>
+                {item.kind === 'portfolio' ? <><Briefcase className="w-3 h-3 mr-1" />Portfolio</> : item.kind === 'ad' ? <><Sparkles className="w-3 h-3 mr-1" />{item.category}</> : <><Eye className="w-3 h-3 mr-1" />Post</>}
               </Badge>
             </div>
             <div className="p-6 flex flex-col justify-between">
@@ -423,6 +434,11 @@ export default function CreatorProfile() {
   const messageBlockedReason = canMessageData?.reason || null;
 
   const { data: adminPlatforms = [] } = useQuery<any[]>({ queryKey: ['/api/social-platforms'] });
+
+  const { data: spotlightAds = [] } = useQuery<any[]>({
+    queryKey: ['/api/spotlight', 'influencer-profile'],
+    queryFn: () => fetch('/api/spotlight?page=influencer-profile').then(r => r.json()),
+  });
 
   const followMutation = useMutation({
     mutationFn: async () => {
@@ -919,8 +935,8 @@ export default function CreatorProfile() {
         </div>
 
         {/* ── Featured Spotlight ── */}
-        {(profile.portfolio?.length > 0 || profile.posts?.length > 0) && (
-          <FeaturedSpotlight portfolio={profile.portfolio || []} posts={profile.posts || []} profile={profile} />
+        {(profile.portfolio?.length > 0 || profile.posts?.length > 0 || spotlightAds.length > 0) && (
+          <FeaturedSpotlight portfolio={profile.portfolio || []} posts={profile.posts || []} profile={profile} spotlightAds={spotlightAds} />
         )}
 
         {/* ── Main Tabs ── */}

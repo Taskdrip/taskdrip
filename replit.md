@@ -1,5 +1,14 @@
 # Overview
 
+## Recent Changes (April 2026 — Messaging UX, Spotlight, Admin Ads, Auto-Blogger, Lead Gen)
+- **Chat UX Fixed** (`client/src/pages/chat.tsx`): When clicking Message on any profile (`/chat?to=userId`), the app now fetches the target user's profile and immediately shows the compose UI — even if no prior conversation exists. No more empty "no conversations" fallback. A three-state layout handles: loading, new conversation, and existing conversation.
+- **Brand Profile Spotlight** (`client/src/pages/brand-profile.tsx`): Added `BrandFeaturedSpotlight` component — a dark-themed carousel showing active campaigns (with reward badges), posts, and admin-injected spotlight ads. Uses emerald/slate colour scheme matching the brand profile design.
+- **Influencer Profile Spotlight Enhanced** (`client/src/pages/influencer-profile.tsx`): `FeaturedSpotlight` now accepts `spotlightAds` prop — admin-injected ads appear first in the carousel with violet "Spotlight" badges. Spotlight section now also shows when admin ads exist, even if the creator has no portfolio or posts.
+- **Admin Spotlight Ad Injection**: Admin can target spotlight ads to `influencer-profile` and `brand-profile` pages from the Spotlight panel. Added `all`, `influencer-profile`, and `brand-profile` to `PAGE_TARGETS` in `admin-master.tsx`. Ads marked as `influencer-profile` or `brand-profile` appear automatically in all matching profile pages.
+- **Auto-Blogger Fixed**: `GEMINI_API_KEY` stored as environment secret — the Gemini AI rewriting pipeline now works. Auto-blogger at `/admin/auto-blogger` can generate SEO blog posts from RSS, Reddit, YouTube, and custom sources using Gemini 2.5 Flash.
+- **Lead Generation Activated**: `GOOGLE_PLACES_API_KEY` and `YOUTUBE_API_KEY` stored — business and influencer discovery at `/admin/leads` now calls live APIs. Existing WhatsApp/Call/SMS and AI report features now functional.
+- **API Keys**: All three keys (Gemini, Google Places, YouTube) stored as Replit secrets and accessible as environment variables.
+
 Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
 
 ## Recent Changes (April 2026 — Brand Discovery, SEO, Payments Unification, Location & Mobile UX)

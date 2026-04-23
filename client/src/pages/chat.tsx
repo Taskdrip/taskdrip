@@ -147,6 +147,14 @@ export default function ChatPage() {
   const { data: user } = useQuery({ queryKey: ["/api/user"], retry: false });
   const isBrand = (user as any)?.userType === 'brand';
 
+  // When navigating from a profile page (?to=userId), fetch that user's profile
+  // so we can show the compose area even before any messages exist
+  const { data: initUserProfile } = useQuery<any>({
+    queryKey: [`/api/users/${initTo}`],
+    enabled: !!initTo,
+    retry: false,
+  });
+
   const { data: allMessages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
     retry: false,
@@ -235,7 +243,23 @@ export default function ChatPage() {
     !searchQuery || c.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeConv = conversations.find(c => c.userId === selectedConversation);
+  // Build activeConv from existing messages, OR fall back to the fetched profile
+  // (so the compose UI works even when starting a brand new conversation)
+  const convFromMessages = conversations.find(c => c.userId === selectedConversation);
+  const convFromProfile: Conversation | null = (!convFromMessages && selectedConversation && initUserProfile)
+    ? {
+        userId: initUserProfile.id,
+        userName: initUserProfile.userType === 'brand' && initUserProfile.companyName
+          ? initUserProfile.companyName
+          : `${initUserProfile.firstName || ''} ${initUserProfile.lastName || ''}`.trim() || initUserProfile.username || 'Unknown',
+        userType: initUserProfile.userType || 'influencer',
+        lastMessage: '',
+        lastMessageTime: new Date().toISOString(),
+        unreadCount: 0,
+        avatar: initUserProfile.profileImageUrl,
+      }
+    : null;
+  const activeConv = convFromMessages || convFromProfile;
   const profileLink = activeConv?.userType === 'brand' ? `/brand/${selectedConversation}` : `/influencers/${selectedConversation}`;
 
   // Group messages by date
@@ -335,7 +359,16 @@ export default function ChatPage() {
 
         {/* Chat Area */}
         <div className={`flex-1 flex flex-col overflow-hidden ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
-          {selectedConversation && activeConv ? (
+          {selectedConversation && !activeConv && !!initTo && !initUserProfile ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-3 animate-pulse">
+                  <MessageCircle className="w-6 h-6 text-purple-300" />
+                </div>
+                <p className="text-gray-500 text-sm">Loading conversation…</p>
+              </div>
+            </div>
+          ) : selectedConversation && activeConv ? (
             <>
               {/* Chat Header */}
               <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0 shadow-sm">

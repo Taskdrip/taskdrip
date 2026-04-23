@@ -20,7 +20,8 @@ import {
   ArrowLeft, Star, Share2, MessageCircle, Building2,
   MapPin, Calendar, Users, DollarSign, Target, Briefcase,
   TrendingUp, CheckCircle, Globe, ExternalLink, Award,
-  UserPlus, UserCheck, Edit3, Link2, Coins, Wallet, Heart
+  UserPlus, UserCheck, Edit3, Link2, Coins, Wallet, Heart,
+  ChevronLeft, ChevronRight, Sparkles, Megaphone, Eye
 } from 'lucide-react';
 import {
   SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
@@ -96,6 +97,148 @@ function FollowListModal({ userId, type, open, onClose }: { userId: string; type
   );
 }
 
+type SpotlightItem = {
+  id: string;
+  kind: 'campaign' | 'post' | 'ad';
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  badge?: string;
+  link?: string;
+  reward?: string;
+};
+
+function BrandFeaturedSpotlight({
+  campaigns,
+  posts,
+  brand,
+  spotlightAds,
+}: {
+  campaigns: any[];
+  posts: any[];
+  brand: any;
+  spotlightAds: any[];
+}) {
+  const items: SpotlightItem[] = [
+    ...spotlightAds.map((ad: any) => ({
+      kind: 'ad' as const,
+      id: ad.id,
+      title: ad.customTitle || ad.name,
+      description: ad.customDescription,
+      imageUrl: ad.customImage,
+      badge: ad.badgeLabel || 'Spotlight',
+      link: ad.customLink,
+    })),
+    ...campaigns.filter((c: any) => c.isActive || c.status === 'active').slice(0, 3).map((c: any) => ({
+      kind: 'campaign' as const,
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      imageUrl: c.imageUrl,
+      badge: 'Live Campaign',
+      link: `/campaigns/${c.id}`,
+      reward: c.reward,
+    })),
+    ...posts.slice(0, 2).map((p: any) => ({
+      kind: 'post' as const,
+      id: p.id,
+      title: p.content?.split('\n')[0]?.slice(0, 80) || 'Update',
+      description: p.content,
+      imageUrl: p.imageUrl,
+      badge: 'Post',
+    })),
+  ];
+
+  const [current, setCurrent] = useState(0);
+  const total = items.length;
+  if (total === 0) return null;
+  const item = items[current];
+  const goTo = (i: number) => setCurrent(((i % total) + total) % total);
+
+  const badgeColors: Record<string, string> = {
+    campaign: 'bg-emerald-500/90 text-white',
+    post: 'bg-slate-500/90 text-white',
+    ad: 'bg-violet-500/90 text-white',
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">Featured Spotlight</h3>
+        </div>
+        <span className="text-xs text-slate-400">{current + 1} / {total}</span>
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-slate-700 shadow-xl bg-gradient-to-br from-slate-800 to-slate-900">
+        <div className="grid md:grid-cols-2 gap-0">
+          <div className="relative aspect-[4/3] md:aspect-auto bg-gradient-to-br from-emerald-900/40 to-slate-800 overflow-hidden min-h-[200px]">
+            {item.imageUrl ? (
+              <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                {item.kind === 'campaign' ? <Megaphone className="w-16 h-16 text-emerald-700/60" /> : item.kind === 'ad' ? <Sparkles className="w-16 h-16 text-violet-600/60" /> : <Eye className="w-16 h-16 text-slate-600" />}
+              </div>
+            )}
+            <Badge className={`absolute top-3 left-3 border-0 shadow-sm text-xs font-semibold ${badgeColors[item.kind]}`}>
+              {item.kind === 'campaign' ? <><Megaphone className="w-3 h-3 mr-1" />{item.badge}</> : item.kind === 'ad' ? <><Sparkles className="w-3 h-3 mr-1" />{item.badge}</> : <><Eye className="w-3 h-3 mr-1" />{item.badge}</>}
+            </Badge>
+          </div>
+          <div className="p-6 flex flex-col justify-between">
+            <div>
+              {item.kind === 'campaign' && item.reward && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400 mb-2 flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />${parseFloat(item.reward).toFixed(2)} reward
+                </p>
+              )}
+              <h4 className="text-xl font-black text-white mb-2 leading-tight" data-testid={`brand-spotlight-title-${item.id}`}>
+                {item.title}
+              </h4>
+              {item.description && (
+                <p className="text-sm text-slate-400 leading-relaxed line-clamp-4">{item.description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-700">
+              <Avatar className="h-9 w-9 ring-2 ring-emerald-900">
+                <AvatarImage src={brand?.logoUrl || brand?.profileImageUrl} />
+                <AvatarFallback className="bg-emerald-900 text-emerald-300 text-xs font-bold">{(brand?.companyName || brand?.firstName || 'B')[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">{brand?.companyName || `${brand?.firstName} ${brand?.lastName}`}</p>
+                <p className="text-xs text-slate-500">@{brand?.username || 'brand'}</p>
+              </div>
+              {item.link && (
+                <a
+                  href={item.link}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300"
+                  data-testid={`brand-spotlight-link-${item.id}`}
+                >
+                  {item.kind === 'campaign' ? 'Apply' : 'View'} <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button onClick={() => goTo(current - 1)} data-testid="btn-brand-spotlight-prev" className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 flex items-center justify-center transition-all">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="flex gap-1.5">
+            {items.map((_, i) => (
+              <button key={i} onClick={() => goTo(i)} data-testid={`btn-brand-spotlight-dot-${i}`} className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-5 bg-emerald-400' : 'w-1.5 bg-slate-600 hover:bg-slate-500'}`} />
+            ))}
+          </div>
+          <button onClick={() => goTo(current + 1)} data-testid="btn-brand-spotlight-next" className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 flex items-center justify-center transition-all">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BrandProfile() {
   const params = useParams();
   const [, setLocation] = useLocation();
@@ -142,6 +285,11 @@ export default function BrandProfile() {
   const { data: socialLinks = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${brandId}/social-links`],
     enabled: !!brandId,
+  });
+
+  const { data: spotlightAds = [] } = useQuery<any[]>({
+    queryKey: ['/api/spotlight', 'brand-profile'],
+    queryFn: () => fetch('/api/spotlight?page=brand-profile').then(r => r.json()),
   });
 
   const followMutation = useMutation({
@@ -451,8 +599,14 @@ export default function BrandProfile() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Active Campaigns */}
+          {/* Spotlight + Active Campaigns */}
           <div className="lg:col-span-2 space-y-6">
+            <BrandFeaturedSpotlight
+              campaigns={campaigns}
+              posts={posts}
+              brand={brand}
+              spotlightAds={spotlightAds}
+            />
             <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
               <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
