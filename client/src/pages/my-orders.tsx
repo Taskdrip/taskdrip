@@ -1,5 +1,12 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { MessageCircle, Star, Send } from "lucide-react";
 import { format, subDays, subMonths, subYears, isAfter } from "date-fns";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Button } from "@/components/ui/button";
@@ -301,6 +308,62 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
 
   const raw = order.raw;
   const deliveryDetails = raw.deliveryDetails;
+  const isShop = order.type === "shop";
+  const isCourse = order.type === "course";
+  const { toast } = useToast();
+
+  // Live order detail (for tracking timeline + seller info). Polls every 5s while dialog open.
+  const { data: detail } = useQuery<any>({
+    queryKey: ["/api/my-orders/shop", order.id],
+    enabled: open && isShop,
+    refetchInterval: open && isShop ? 5000 : false,
+  });
+  const seller = detail?.seller || null;
+  const role: "buyer" | "seller" | undefined = detail?.role;
+  const liveDelivery = detail?.deliveryDetails || deliveryDetails || {};
+  const shippingUpdates: any[] = Array.isArray(liveDelivery?.shippingUpdates) ? liveDelivery.shippingUpdates : [];
+
+  // Course seller (instructor) — pulled from raw enrollment data
+  const courseSellerId: string | null = isCourse ? (raw?.sellerId || raw?.course?.instructorId || null) : (detail?.sellerId || null);
+  const sellerIdToMessage = isShop ? (detail?.sellerId || null) : courseSellerId;
+
+  // ── Mutations ──
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const reviewMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/my-orders/shop/${order.id}/review`, { rating: reviewRating, comment: reviewComment });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Review submitted", description: "Thanks for your feedback!" });
+      setReviewComment("");
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
+    },
+    onError: (e: any) => toast({ title: "Failed", description: e?.message || "Could not submit review", variant: "destructive" }),
+  });
+
+  const [updStatus, setUpdStatus] = useState("shipped");
+  const [updNote, setUpdNote] = useState("");
+  const [updLocation, setUpdLocation] = useState("");
+  const [updTracking, setUpdTracking] = useState("");
+  const [updCarrier, setUpdCarrier] = useState("");
+  const trackingMutation = useMutation({
+    mutationFn: async () => {
+      const body: any = { status: updStatus, note: updNote, location: updLocation };
+      if (updTracking) body.trackingNumber = updTracking;
+      if (updCarrier) body.carrier = updCarrier;
+      const res = await apiRequest("POST", `/api/my-orders/shop/${order.id}/tracking`, body);
+      return res.json();
+    },
+    onSuccess: () => {
+      setUpdNote(""); setUpdLocation("");
+      queryClient.invalidateQueries({ queryKey: ["/api/my-orders/shop", order.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/my-orders"] });
+      toast({ title: "Tracking updated", description: "Buyer will see this in real time." });
+    },
+    onError: (e: any) => toast({ title: "Failed", description: e?.message || "Could not update tracking", variant: "destructive" }),
+  });
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -477,10 +540,139 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                     <span className="text-sm font-medium">{format(new Date(order.shipping.deliveredAt), "MMM d, yyyy")}</span>
                   </div>
                 ) : null}
-                {!order.shipping?.address && !order.shipping?.trackingNumber && (
+                {!order.shipping?.address && !order.shipping?.trackingNumber && shippingUpdates.length === 0 && (
                   <div className="px-4 py-3 text-sm text-gray-400 text-center">No shipping details yet</div>
                 )}
               </div>
+
+              {/* Real-time tracking timeline */}
+              {shippingUpdates.length > 0 && (
+                <div className="mt-3 rounded-xl border border-gray-100 bg-white p-4">
+                  <p className="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" /> Live tracking timeline
+                  </p>
+                  <ol className="space-y-3">
+                    {shippingUpdates.slice().reverse().map((u, i) => (
+                      <li key={i} className="flex gap-3" data-testid={`tracking-update-${order.id}-${i}`}>
+                        <div className="mt-1 h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-900 capitalize">{u.status?.replace(/_/g, " ")}</span>
+                            <span className="text-xs text-gray-400">{u.ts ? format(new Date(u.ts), "MMM d · h:mm a") : ""}</span>
+                          </div>
+                          {u.location && <p className="text-xs text-gray-500">📍 {u.location}</p>}
+                          {u.note && <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{u.note}</p>}
+                          <p className="text-[10px] text-gray-400 mt-0.5">via {u.byRole}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Seller controls: post a new tracking update */}
+              {role === "seller" && (
+                <div className="mt-3 rounded-xl border border-purple-200 bg-purple-50 p-4">
+                  <p className="text-xs font-bold text-purple-800 mb-3">Post a tracking update (visible to buyer in real time)</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Status</Label>
+                      <Select value={updStatus} onValueChange={setUpdStatus}>
+                        <SelectTrigger data-testid="select-tracking-status"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="processing">Processing</SelectItem>
+                          <SelectItem value="shipped">Shipped</SelectItem>
+                          <SelectItem value="in_transit">In transit</SelectItem>
+                          <SelectItem value="out_for_delivery">Out for delivery</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="delayed">Delayed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Location</Label>
+                      <Input value={updLocation} onChange={(e) => setUpdLocation(e.target.value)} placeholder="e.g. Lagos hub" data-testid="input-tracking-location" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Tracking #</Label>
+                      <Input value={updTracking} onChange={(e) => setUpdTracking(e.target.value)} placeholder="optional" data-testid="input-tracking-number" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Carrier</Label>
+                      <Input value={updCarrier} onChange={(e) => setUpdCarrier(e.target.value)} placeholder="optional" data-testid="input-tracking-carrier" />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Label className="text-xs">Note for buyer</Label>
+                    <Textarea value={updNote} onChange={(e) => setUpdNote(e.target.value)} rows={2} placeholder="Package picked up, ETA Friday" data-testid="textarea-tracking-note" />
+                  </div>
+                  <Button
+                    className="mt-3 bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => trackingMutation.mutate()}
+                    disabled={trackingMutation.isPending}
+                    data-testid="button-post-tracking"
+                  >
+                    <Send className="h-4 w-4 mr-1.5" /> {trackingMutation.isPending ? "Posting…" : "Post update"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Buyer actions: Message seller + leave a review */}
+          {(isShop || isCourse) && role !== "seller" && (
+            <div className="rounded-xl border border-gray-100 bg-white p-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900">{isShop ? "Sold by" : "Taught by"}</p>
+                  <p className="text-sm text-gray-600 truncate">
+                    {seller ? `${seller.firstName || ""} ${seller.lastName || ""}`.trim() || "Seller" : "Loading…"}
+                  </p>
+                </div>
+                {sellerIdToMessage ? (
+                  <Link href={`/chat?to=${sellerIdToMessage}`}>
+                    <Button variant="outline" data-testid={`button-message-seller-${order.id}`}>
+                      <MessageCircle className="h-4 w-4 mr-1.5" /> Message {isShop ? "seller" : "instructor"}
+                    </Button>
+                  </Link>
+                ) : null}
+              </div>
+
+              {isShop && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-1.5">
+                    <Star className="h-4 w-4 text-amber-500" /> Leave a review
+                  </p>
+                  <div className="flex items-center gap-1 mb-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setReviewRating(n)}
+                        className="p-0.5"
+                        data-testid={`button-rating-${n}`}
+                      >
+                        <Star className={`h-6 w-6 ${n <= reviewRating ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} />
+                      </button>
+                    ))}
+                  </div>
+                  <Textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Share your experience…"
+                    rows={3}
+                    data-testid="textarea-review"
+                  />
+                  <Button
+                    className="mt-2 bg-amber-500 hover:bg-amber-600 text-white"
+                    onClick={() => reviewMutation.mutate()}
+                    disabled={reviewMutation.isPending || !reviewComment.trim()}
+                    data-testid={`button-submit-review-${order.id}`}
+                  >
+                    {reviewMutation.isPending ? "Submitting…" : "Submit review"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

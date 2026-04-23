@@ -22,13 +22,10 @@ export default function UserProfile() {
   }, [user, isAuthenticated, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a]">
+    <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
       <div className="flex items-center justify-center h-96">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-14 w-14 border-2 border-purple-500/30 border-t-purple-500" />
-          <div className="absolute inset-0 rounded-full blur-md bg-purple-500/20 animate-pulse" />
-        </div>
+        <div className="animate-spin rounded-full h-14 w-14 border-2 border-purple-200 border-t-purple-600" />
       </div>
     </div>
   );

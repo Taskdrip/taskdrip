@@ -8863,9 +8863,70 @@ Instructions:
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: 'Order not found' });
-      if (purchase.userId !== req.user.id && req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
       const [product] = await db.select().from(shopProducts).where(eq(shopProducts.id, purchase.productId));
-      res.json({ ...purchase, product: product || null });
+      const sellerId = product?.createdBy || null;
+      const isBuyer = purchase.userId === req.user.id;
+      const isSeller = sellerId && sellerId === req.user.id;
+      if (!isBuyer && !isSeller && req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      let seller: any = null;
+      if (sellerId) {
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq(users.id, sellerId));
+        seller = s || null;
+      }
+      res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? 'seller' : 'buyer' });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Append a shipping/tracking update (seller or admin only). Buyers fetch via GET /api/my-orders/shop/:id
+  app.post('/api/my-orders/shop/:id/tracking', isAuthenticated, async (req: any, res) => {
+    try {
+      const purchase = await storage.getPurchaseById(req.params.id);
+      if (!purchase) return res.status(404).json({ message: 'Order not found' });
+      const [product] = await db.select().from(shopProducts).where(eq(shopProducts.id, purchase.productId));
+      const sellerId = product?.createdBy || null;
+      const isSeller = sellerId && sellerId === req.user.id;
+      const isBuyer = purchase.userId === req.user.id;
+      if (!isSeller && !isBuyer && req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { status, note, location, trackingNumber, carrier, address, estimatedDelivery } = req.body || {};
+      const dd: any = { ...(purchase.deliveryDetails as any || {}) };
+      if (trackingNumber !== undefined) dd.trackingNumber = trackingNumber;
+      if (carrier !== undefined) dd.carrier = carrier;
+      if (address !== undefined) dd.address = address;
+      if (estimatedDelivery !== undefined) dd.estimatedDelivery = estimatedDelivery;
+      const updates = Array.isArray(dd.shippingUpdates) ? dd.shippingUpdates : [];
+      if (status || note || location) {
+        updates.push({
+          status: status || 'update',
+          note: note || '',
+          location: location || '',
+          ts: new Date().toISOString(),
+          byUserId: req.user.id,
+          byRole: isSeller ? 'seller' : (isBuyer ? 'buyer' : 'admin'),
+        });
+      }
+      dd.shippingUpdates = updates;
+      const updated = await storage.updatePurchase(req.params.id, { deliveryDetails: dd, ...(status && isSeller ? { status } : {}) } as any);
+      res.json(updated);
+    } catch (e: any) { console.error('tracking update err', e); res.status(500).json({ message: e.message }); }
+  });
+
+  // Submit a review for a purchased product directly from the orders page
+  app.post('/api/my-orders/shop/:id/review', isAuthenticated, async (req: any, res) => {
+    try {
+      const purchase = await storage.getPurchaseById(req.params.id);
+      if (!purchase) return res.status(404).json({ message: 'Order not found' });
+      if (purchase.userId !== req.user.id) return res.status(403).json({ message: 'Only the buyer can leave a review' });
+      const { rating, comment, title } = req.body || {};
+      if (!rating || rating < 1 || rating > 5) return res.status(400).json({ message: 'Rating must be 1-5' });
+      const review = await storage.createProductReview({
+        productId: purchase.productId,
+        userId: req.user.id,
+        rating,
+        title: title || null,
+        comment: comment || null,
+        isVerified: true,
+      } as any);
+      res.status(201).json(review);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

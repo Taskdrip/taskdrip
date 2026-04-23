@@ -749,13 +749,20 @@ export class DatabaseStorage implements IStorage {
     const rows = await db
       .select({
         purchase: purchases,
-        product: { id: shopProducts.id, title: shopProducts.title, imageUrl: shopProducts.imageUrl, category: shopProducts.category }
+        product: {
+          id: shopProducts.id,
+          title: shopProducts.title,
+          imageUrl: shopProducts.featuredImage,
+          category: shopProducts.category,
+          createdBy: shopProducts.createdBy,
+          type: shopProducts.type,
+        },
       })
       .from(purchases)
       .leftJoin(shopProducts, eq(purchases.productId, shopProducts.id))
       .where(eq(purchases.userId, userId))
       .orderBy(desc(purchases.createdAt));
-    return rows.map(r => ({ ...r.purchase, product: r.product }));
+    return rows.map(r => ({ ...r.purchase, product: r.product, sellerId: r.product?.createdBy || null }));
   }
 
   async getPurchaseById(id: string): Promise<Purchase | undefined> {
@@ -1789,11 +1796,11 @@ export class DatabaseStorage implements IStorage {
     return enrollment;
   }
 
-  async getMyEnrollments(userId: string): Promise<(CourseEnrollment & { course: Course })[]> {
+  async getMyEnrollments(userId: string): Promise<any[]> {
     const enrollments = await db.select().from(courseEnrollments).where(eq(courseEnrollments.userId, userId));
     return Promise.all(enrollments.map(async (e) => {
       const [course] = await db.select().from(courses).where(eq(courses.id, e.courseId));
-      return { ...e, course: course! };
+      return { ...e, course: course!, sellerId: course?.instructorId || null };
     }));
   }
 

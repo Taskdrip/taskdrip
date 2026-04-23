@@ -18,7 +18,7 @@ import { Footer } from '@/components/ui/footer';
 import { getTierConfig, getTierFromFollowers, formatFollowers, NICHES } from '@/lib/tiers';
 import {
   Camera, TrendingUp, Award, Link2, Plus, Trash2,
-  Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff, Wallet
+  Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff
 } from 'lucide-react';
 import { Link } from 'wouter';
 import {
@@ -707,24 +707,6 @@ export default function ProfileEdit() {
                 <p className="text-xs text-gray-400 mt-3">Leave blank if you prefer to quote on request. All rates are in USD.</p>
               </CardContent>
             )}
-          </Card>
-
-          <Card className="border-gray-100">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-emerald-600" /> Direct Support
-              </CardTitle>
-              <CardDescription>Turn on direct wallet support when you want people to send crypto tips to your saved wallets.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <div>
-                  <p className="font-semibold text-sm text-gray-900">Wallet support is {directSupportEnabled ? 'On' : 'Off'}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">When off, your profile shows that direct support is unavailable.</p>
-                </div>
-                <Switch checked={directSupportEnabled} onCheckedChange={setDirectSupportEnabled} data-testid="switch-direct-support" />
-              </div>
-            </CardContent>
           </Card>
 
           {/* Privacy & Messaging */}
