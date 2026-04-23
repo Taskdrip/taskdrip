@@ -195,7 +195,8 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
   const enrolled = enrolledIds.has(course.id);
 
   return (
-    <div className="relative rounded-3xl overflow-hidden mb-10 group cursor-pointer" onClick={() => window.location.href = `/breedskool/${course.id}`}>
+    <div className="mb-10">
+    <div className="relative rounded-3xl overflow-hidden group cursor-pointer" onClick={() => window.location.href = `/breedskool/${course.id}`}>
       <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
       <img src={course.thumbnail || fallbackImg} alt={course.title}
         className={`absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-all duration-500 group-hover:scale-105 ${fading ? "opacity-0" : ""}`}
@@ -234,27 +235,28 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
         </div>
       </div>
 
-      {total > 1 && (
-        <>
-          <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-            data-testid="btn-breedskool-spotlight-prev">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-            data-testid="btn-breedskool-spotlight-next">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {courses.map((_, i) => (
-              <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
-                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`}
-                data-testid={`btn-breedskool-spotlight-dot-${i}`} />
-            ))}
-          </div>
-        </>
-      )}
+    </div>
+    {total > 1 && (
+      <div className="flex items-center justify-center gap-3 mt-4">
+        <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
+          className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+          data-testid="btn-breedskool-spotlight-prev">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div className="flex gap-2">
+          {courses.map((_, i) => (
+            <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
+              className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`}
+              data-testid={`btn-breedskool-spotlight-dot-${i}`} />
+          ))}
+        </div>
+        <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
+          className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+          data-testid="btn-breedskool-spotlight-next">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    )}
     </div>
   );
 }

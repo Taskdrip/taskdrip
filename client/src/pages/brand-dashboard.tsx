@@ -21,7 +21,7 @@ import {
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
   Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle,
-  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X
+  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X, Wallet, Lock, Undo2, Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
@@ -934,6 +934,7 @@ export default function BrandDashboard() {
               { id: "applications", label: "Applications",  icon: Users,       badge: pendingApplicationsCount },
               { id: "submissions",  label: "Submissions",   icon: CheckCircle, badge: pendingSubmissionsCount },
               { id: "task-addons",  label: "Task Addons",   icon: ShieldCheck, badge: (taskAddonSubmissions as any[]).filter((s: any) => s.status === "pending").length },
+              { id: "escrow",       label: "Bounty Escrow", icon: Wallet,      badge: 0 },
               { id: "influencers",  label: "Influencers",   icon: Users,       badge: 0 },
               { id: "direct-hires", label: "Direct Hires",  icon: Briefcase,   badge: 0 },
             ].map((t) => (
@@ -1798,6 +1799,8 @@ export default function BrandDashboard() {
           </div>
         )}
 
+        {selectedTab === "escrow" && <BountyEscrowPanel />}
+
           </div>
         </div>
       </div>
@@ -1872,6 +1875,142 @@ export default function BrandDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function BountyEscrowPanel() {
+  const { toast } = useToast();
+  const { data: overview, isLoading } = useQuery<{
+    campaigns: any[];
+    totals: { totalEscrow: number; paidOut: number; refunded: number; available: number; refundableAmount: number };
+  }>({ queryKey: ["/api/brand/escrow-overview"] });
+
+  const refundMut = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const res = await apiRequest("POST", `/api/campaigns/${campaignId}/refund-escrow`);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      toast({ title: "Escrow refunded", description: `$${data.refundedNow?.toFixed(2)} returned to your wallet balance.` });
+      queryClient.invalidateQueries({ queryKey: ["/api/brand/escrow-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (e: any) => toast({ title: "Refund failed", description: e.message, variant: "destructive" }),
+  });
+
+  const fmt = (n: number) => `$${(n || 0).toFixed(2)}`;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => <div key={i} className="h-28 rounded-2xl bg-gray-100 animate-pulse" />)}
+      </div>
+    );
+  }
+
+  const campaigns = overview?.campaigns ?? [];
+  const totals = overview?.totals ?? { totalEscrow: 0, paidOut: 0, refunded: 0, available: 0, refundableAmount: 0 };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold flex items-center gap-2"><Wallet className="w-5 h-5 text-violet-600" /> Bounty Escrow</h2>
+        <p className="text-gray-500 text-sm mt-1">Funds you've deposited per campaign. Released to creators on approval; unused balance refundable when a campaign closes.</p>
+      </div>
+
+      {/* Totals */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm" data-testid="escrow-total-deposited">
+          <div className="text-xs uppercase text-gray-500 font-bold tracking-wider flex items-center gap-1"><Lock className="w-3 h-3" /> Total Deposited</div>
+          <div className="text-2xl font-black mt-1.5 text-gray-900">{fmt(totals.totalEscrow)}</div>
+        </div>
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 shadow-sm" data-testid="escrow-total-paid">
+          <div className="text-xs uppercase text-emerald-700 font-bold tracking-wider flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Paid to Creators</div>
+          <div className="text-2xl font-black mt-1.5 text-emerald-700">{fmt(totals.paidOut)}</div>
+        </div>
+        <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-4 shadow-sm" data-testid="escrow-total-locked">
+          <div className="text-xs uppercase text-violet-700 font-bold tracking-wider flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Currently Locked</div>
+          <div className="text-2xl font-black mt-1.5 text-violet-700">{fmt(totals.available)}</div>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm" data-testid="escrow-total-refundable">
+          <div className="text-xs uppercase text-amber-700 font-bold tracking-wider flex items-center gap-1"><Undo2 className="w-3 h-3" /> Refundable Now</div>
+          <div className="text-2xl font-black mt-1.5 text-amber-700">{fmt(totals.refundableAmount)}</div>
+        </div>
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm" data-testid="escrow-total-refunded">
+          <div className="text-xs uppercase text-gray-500 font-bold tracking-wider flex items-center gap-1"><Undo2 className="w-3 h-3" /> Already Refunded</div>
+          <div className="text-2xl font-black mt-1.5 text-gray-900">{fmt(totals.refunded)}</div>
+        </div>
+      </div>
+
+      {/* Per-campaign list */}
+      {campaigns.length === 0 ? (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-16 text-center">
+            <Wallet className="h-14 w-14 text-gray-200 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No campaigns with escrow yet</h3>
+            <p className="text-gray-500 text-sm">Once you create and fund a campaign, escrow status will appear here.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {campaigns.map((c) => {
+            const pct = c.totalEscrow > 0 ? Math.min(100, Math.round(((c.paidOut + c.refunded) / c.totalEscrow) * 100)) : 0;
+            return (
+              <Card key={c.campaignId} className={`border ${c.refundable ? "border-amber-200" : "border-gray-100"} shadow-sm`} data-testid={`escrow-row-${c.campaignId}`}>
+                <CardContent className="p-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h4 className="font-bold text-gray-900 truncate" data-testid={`escrow-title-${c.campaignId}`}>{c.title}</h4>
+                        <Badge variant="outline" className="text-[10px]">{c.status}</Badge>
+                        {c.refundable && <Badge className="bg-amber-100 text-amber-800 border-0 text-[10px]">Refund available</Badge>}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center gap-3 flex-wrap">
+                        <span><b className="text-gray-700">{c.completedCount}</b>/{c.totalSlots} paid</span>
+                        <span><b className="text-gray-700">{c.pendingCount}</b> pending</span>
+                        <span><b className="text-gray-700">{c.rejectedCount}</b> rejected</span>
+                        <span>·  Reward: <b className="text-gray-700">{fmt(c.reward)}</b></span>
+                        {c.deadline && <span>· Deadline {format(new Date(c.deadline), "MMM d")}</span>}
+                      </div>
+                      <div className="mt-3">
+                        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-emerald-500 to-violet-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1">
+                          <span>{fmt(c.paidOut)} paid + {fmt(c.refunded)} refunded</span>
+                          <span>of {fmt(c.totalEscrow)} deposited</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 lg:w-56">
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase font-bold tracking-wider text-violet-600">Locked in escrow</div>
+                        <div className="text-2xl font-black text-violet-700" data-testid={`escrow-locked-${c.campaignId}`}>{fmt(c.available)}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={!c.refundable || refundMut.isPending}
+                        onClick={() => { if (confirm(`Refund ${fmt(c.available)} of unused escrow back to your wallet?`)) refundMut.mutate(c.campaignId); }}
+                        className={c.refundable ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}
+                        variant={c.refundable ? "default" : "outline"}
+                        data-testid={`btn-refund-${c.campaignId}`}
+                      >
+                        {refundMut.isPending && refundMut.variables === c.campaignId ? (
+                          <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Refunding...</>
+                        ) : (
+                          <><Undo2 className="w-3.5 h-3.5 mr-1.5" /> {c.refundable ? "Refund unused" : "Locked until close"}</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

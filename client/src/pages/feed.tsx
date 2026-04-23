@@ -245,7 +245,8 @@ function SpotlightCarousel({ posts }: { posts: any[] }) {
   const next = () => setActive(i => (i + 1) % posts.length);
 
   return (
-    <div className="relative rounded-3xl overflow-hidden mb-6 shadow-xl" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div className="mb-6">
+    <div className="relative rounded-3xl overflow-hidden shadow-xl" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {/* Background layer */}
       {post.imageUrl ? (
         <div className="absolute inset-0">
@@ -307,24 +308,22 @@ function SpotlightCarousel({ posts }: { posts: any[] }) {
         </div>
       </div>
 
-      {/* Navigation arrows — pinned bottom-right; dots bottom-left */}
-      {posts.length > 1 && (
-        <>
-          <div className="absolute right-3 bottom-3 flex items-center gap-2">
-            <button onClick={prev} className="w-8 h-8 bg-white/15 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all" data-testid="btn-spotlight-prev">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={next} className="w-8 h-8 bg-white/15 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all" data-testid="btn-spotlight-next">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="absolute bottom-4 left-4 flex gap-1.5">
-            {posts.map((_, i) => (
-              <button key={i} onClick={() => setActive(i)} className={`h-1.5 rounded-full transition-all ${i === active ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} data-testid={`btn-spotlight-dot-${i}`} />
-            ))}
-          </div>
-        </>
-      )}
+    </div>
+    {posts.length > 1 && (
+      <div className="flex items-center justify-center gap-3 mt-4">
+        <button onClick={prev} className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all" data-testid="btn-spotlight-prev">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div className="flex gap-2">
+          {posts.map((_, i) => (
+            <button key={i} onClick={() => setActive(i)} className={`h-2 rounded-full transition-all duration-300 ${i === active ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`} data-testid={`btn-spotlight-dot-${i}`} />
+          ))}
+        </div>
+        <button onClick={next} className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all" data-testid="btn-spotlight-next">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    )}
     </div>
   );
 }

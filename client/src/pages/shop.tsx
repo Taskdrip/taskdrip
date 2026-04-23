@@ -316,30 +316,28 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
           </div>
         </div>
 
-        {total > 1 && (
-          <>
-            <div className="absolute right-3 bottom-3 z-10 flex items-center gap-2">
-              <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-                data-testid="btn-shop-spotlight-prev">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-                data-testid="btn-shop-spotlight-next">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="absolute bottom-4 left-4 flex gap-2 z-10">
-              {products.map((_, i) => (
-                <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
-                  className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`}
-                  data-testid={`btn-shop-spotlight-dot-${i}`} />
-              ))}
-            </div>
-          </>
-        )}
       </div>
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+            data-testid="btn-shop-spotlight-prev">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex gap-2">
+            {products.map((_, i) => (
+              <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`}
+                data-testid={`btn-shop-spotlight-dot-${i}`} />
+            ))}
+          </div>
+          <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+            data-testid="btn-shop-spotlight-next">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </section>
   );
 }

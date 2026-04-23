@@ -13,7 +13,8 @@ import { Link, useSearch } from "wouter";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import {
   Send, ArrowLeft, MessageCircle, Search, CheckCheck, Check,
-  Paperclip, Smile, MoreVertical, Phone, Video, Info, Zap
+  Paperclip, Smile, MoreVertical, Phone, Video, Info, Zap,
+  X, FileText, Download, Image as ImageIcon, Film, Music, File as FileIcon
 } from "lucide-react";
 
 interface Message {
@@ -62,6 +63,72 @@ function formatTimestampFull(dateStr: string) {
 
 const messageSchema = z.object({ content: z.string().min(1) });
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileIcon(mimetype: string) {
+  if (mimetype.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-purple-600" />;
+  if (mimetype.startsWith('video/')) return <Film className="w-4 h-4 text-purple-600" />;
+  if (mimetype.startsWith('audio/')) return <Music className="w-4 h-4 text-purple-600" />;
+  if (mimetype.includes('pdf') || mimetype.includes('document') || mimetype.includes('text')) return <FileText className="w-4 h-4 text-purple-600" />;
+  return <FileIcon className="w-4 h-4 text-purple-600" />;
+}
+
+function MessageAttachments({ attachments, isOwn }: { attachments?: any[]; isOwn: boolean }) {
+  if (!attachments || attachments.length === 0) return null;
+  const images = attachments.filter(a => a.mimetype?.startsWith('image/'));
+  const others = attachments.filter(a => !a.mimetype?.startsWith('image/'));
+  return (
+    <div className={`flex flex-col gap-1.5 ${images.length > 0 || others.length > 0 ? 'mb-0' : ''}`}>
+      {images.length > 0 && (
+        <div className={`grid gap-1 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} max-w-[280px]`}>
+          {images.map((img, i) => (
+            <a
+              key={i}
+              href={img.url || `/uploads/${img.path?.split('/').pop()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-2xl overflow-hidden border border-gray-200 hover:opacity-90 transition-opacity shadow-sm"
+              data-testid={`attachment-image-${i}`}
+            >
+              <img
+                src={img.url || `/uploads/${img.path?.split('/').pop()}`}
+                alt={img.filename}
+                className="w-full h-auto max-h-60 object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+      {others.map((file, i) => (
+        <a
+          key={i}
+          href={file.url || `/uploads/${file.path?.split('/').pop()}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          download={file.filename}
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl shadow-sm border max-w-[280px] hover:shadow-md transition-all group ${
+            isOwn ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'
+          }`}
+          data-testid={`attachment-file-${i}`}
+        >
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-white">{fileIcon(file.mimetype || '')}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-gray-900 truncate">{file.filename}</p>
+            <p className="text-[10px] text-gray-500">{formatFileSize(file.size || 0)}</p>
+          </div>
+          <Download className="w-4 h-4 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const { toast } = useToast();
   const searchStr = useSearch();
@@ -72,8 +139,10 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [content, setContent] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: user } = useQuery({ queryKey: ["/api/user"], retry: false });
   const isBrand = (user as any)?.userType === 'brand';
@@ -116,12 +185,13 @@ export default function ChatPage() {
   }, [conversationMessages.length]);
 
   const sendMutation = useMutation({
-    mutationFn: async (text: string) => {
+    mutationFn: async ({ text, files }: { text: string; files: File[] }) => {
       const fd = new FormData();
-      fd.append('content', text);
+      fd.append('content', text || (files.length > 0 ? `📎 ${files.length} attachment${files.length > 1 ? 's' : ''}` : ''));
       fd.append('receiverId', selectedConversation!);
       fd.append('subject', 'Chat');
       fd.append('messageType', 'chat');
+      files.forEach(f => fd.append('attachments', f));
       const res = await fetch('/api/messages', { method: 'POST', body: fd });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
@@ -129,6 +199,8 @@ export default function ChatPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       setContent('');
+      setPendingFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       inputRef.current?.focus();
     },
     onError: () => toast({ title: 'Failed to send message', variant: 'destructive' }),
@@ -136,8 +208,23 @@ export default function ChatPage() {
 
   const handleSend = () => {
     const text = content.trim();
-    if (!text || !selectedConversation) return;
-    sendMutation.mutate(text);
+    if ((!text && pendingFiles.length === 0) || !selectedConversation) return;
+    sendMutation.mutate({ text, files: pendingFiles });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const tooBig = files.find(f => f.size > 25 * 1024 * 1024);
+    if (tooBig) {
+      toast({ title: 'File too large', description: `${tooBig.name} exceeds 25MB`, variant: 'destructive' });
+      return;
+    }
+    setPendingFiles(prev => [...prev, ...files].slice(0, 6));
+  };
+
+  const removePendingFile = (idx: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -327,13 +414,16 @@ export default function ChatPage() {
                                   </div>
                                 )}
                                 <div className={`max-w-xs lg:max-w-sm xl:max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
-                                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                                    isOwn
-                                      ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-br-sm'
-                                      : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'
-                                  }`}>
-                                    {msg.content}
-                                  </div>
+                                  <MessageAttachments attachments={msg.attachments} isOwn={isOwn} />
+                                  {msg.content && (
+                                    <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-wrap break-words ${
+                                      isOwn
+                                        ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-br-sm'
+                                        : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'
+                                    } ${msg.attachments && msg.attachments.length > 0 ? 'mt-1' : ''}`}>
+                                      {msg.content}
+                                    </div>
+                                  )}
                                   <div className={`flex items-center gap-1 mt-1 px-1 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <span className="text-[10px] text-gray-400">{formatTimestampFull(msg.createdAt)}</span>
                                     {isOwn && (
@@ -356,6 +446,36 @@ export default function ChatPage() {
 
               {/* Input */}
               <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+                {pendingFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-gray-100">
+                    {pendingFiles.map((file, i) => {
+                      const isImg = file.type.startsWith('image/');
+                      const previewUrl = isImg ? URL.createObjectURL(file) : null;
+                      return (
+                        <div key={i} className="relative group flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-2.5 py-2 pr-8 max-w-[200px]" data-testid={`pending-file-${i}`}>
+                          {isImg && previewUrl ? (
+                            <img src={previewUrl} alt={file.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                              {fileIcon(file.type)}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-gray-900 truncate">{file.name}</p>
+                            <p className="text-[10px] text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                          <button
+                            onClick={() => removePendingFile(i)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-500 text-gray-500 flex items-center justify-center transition-all shadow-sm"
+                            data-testid={`btn-remove-pending-${i}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="flex items-end gap-2 bg-gray-50 rounded-2xl border border-gray-200 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 transition-all px-3 py-2">
                   <button className="text-gray-400 hover:text-purple-500 transition-colors p-1 flex-shrink-0">
                     <Smile className="w-5 h-5" />
@@ -370,20 +490,32 @@ export default function ChatPage() {
                     disabled={sendMutation.isPending}
                     data-testid="message-input"
                   />
-                  <button className="text-gray-400 hover:text-purple-500 transition-colors p-1 flex-shrink-0" onClick={() => (document.getElementById('chat-files') as HTMLInputElement)?.click()}>
+                  <button
+                    className="text-gray-400 hover:text-purple-500 transition-colors p-1 flex-shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    data-testid="btn-attach-file"
+                  >
                     <Paperclip className="w-5 h-5" />
                   </button>
                   <Button
                     onClick={handleSend}
                     size="sm"
-                    disabled={sendMutation.isPending || !content.trim()}
-                    className={`flex-shrink-0 rounded-xl px-3 py-2 transition-all ${content.trim() ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-500/25' : 'bg-gray-200 text-gray-400'}`}
+                    disabled={sendMutation.isPending || (!content.trim() && pendingFiles.length === 0)}
+                    className={`flex-shrink-0 rounded-xl px-3 py-2 transition-all ${(content.trim() || pendingFiles.length > 0) ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-500/25' : 'bg-gray-200 text-gray-400'}`}
                     data-testid="send-message-btn"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <input id="chat-files" type="file" multiple className="hidden" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                  data-testid="input-chat-files"
+                />
               </div>
             </>
           ) : (

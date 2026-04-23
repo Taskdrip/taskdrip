@@ -16,7 +16,7 @@ import { Sparkles, Plus, Trash2, RefreshCw, Wand2, ExternalLink, CheckCircle2, A
 
 type Source = { id: string; name: string; type: string; url: string | null; category: string | null; isActive: boolean; lastRunAt: string | null };
 type Job = { id: string; sourceTitle: string; sourceUrl: string | null; status: string; blogPostId: string | null; errorMessage: string | null; category: string | null; createdAt: string; completedAt: string | null };
-type Settings = { id: string; enabled: boolean; autoPublish: boolean; aiProvider: string; model: string; toneStyle: string; minWords: number; maxWords: number; imageProvider: string; includeTranscripts: boolean; embedYoutube: boolean; autopilotEnabled: boolean; autopilotIntervalMinutes: number; autopilotPerSource: number; lastAutopilotRunAt: string | null };
+type Settings = { id: string; enabled: boolean; autoPublish: boolean; aiProvider: string; model: string; toneStyle: string; minWords: number; maxWords: number; imageProvider: string; includeTranscripts: boolean; embedYoutube: boolean; autopilotEnabled: boolean; autopilotIntervalMinutes: number; autopilotPerSource: number; lastAutopilotRunAt: string | null; humanizationPasses: number; humanizationStrength: string };
 type Health = { geminiConfigured: boolean; openaiConfigured: boolean; youtubeApiConfigured: boolean };
 
 export default function AdminAutoBlogger() {
@@ -411,6 +411,40 @@ export default function AdminAutoBlogger() {
                     <div>
                       <Label className="text-xs">Max words</Label>
                       <Input type="number" defaultValue={settings.maxWords} onBlur={(e) => updateSettings.mutate({ maxWords: Number(e.target.value) })} />
+                    </div>
+                  </div>
+
+                  {/* Humanization (multi-pass) */}
+                  <div className="rounded-xl border border-violet-500/30 bg-gradient-to-br from-violet-500/5 via-fuchsia-500/5 to-cyan-500/5 p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <Label className="text-sm font-semibold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">AI Humanization (multi-pass)</Label>
+                        <p className="text-xs text-gray-500 mt-1">Run extra Gemini passes to rewrite drafts in a natural human voice and remove AI tells (delve, tapestry, ever-evolving…). Each pass adds ~5-15s per article.</p>
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Passes</Label>
+                        <Select value={String(settings.humanizationPasses ?? 0)} onValueChange={(v) => updateSettings.mutate({ humanizationPasses: Number(v) })}>
+                          <SelectTrigger data-testid="select-humanization-passes"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">Off — single-pass draft</SelectItem>
+                            <SelectItem value="1">1 — Humanize pass</SelectItem>
+                            <SelectItem value="2">2 — Humanize + Polish (best)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Rewrite strength</Label>
+                        <Select value={settings.humanizationStrength || "medium"} onValueChange={(v) => updateSettings.mutate({ humanizationStrength: v })}>
+                          <SelectTrigger data-testid="select-humanization-strength"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="light">Light — smooth tells only</SelectItem>
+                            <SelectItem value="medium">Medium — natural voice</SelectItem>
+                            <SelectItem value="heavy">Heavy — opinionated rewrite</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 

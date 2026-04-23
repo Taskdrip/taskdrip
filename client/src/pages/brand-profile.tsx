@@ -104,6 +104,7 @@ export default function BrandProfile() {
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
 
   const brandId = params.id;
@@ -159,17 +160,48 @@ export default function BrandProfile() {
 
   const reviewMutation = useMutation({
     mutationFn: async () => {
+      if (editingReviewId) {
+        const res = await apiRequest('PATCH', `/api/reviews/${editingReviewId}`, { rating: reviewRating, comment: reviewText });
+        return res.json();
+      }
       const res = await apiRequest('POST', `/api/users/${brandId}/reviews`, { rating: reviewRating, comment: reviewText });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/reviews`] });
-      toast({ title: 'Review submitted!' });
+      toast({ title: editingReviewId ? 'Review updated!' : 'Review submitted!' });
       setIsReviewDialogOpen(false);
+      setEditingReviewId(null);
       setReviewText(''); setReviewRating(5);
     },
     onError: () => toast({ title: 'Failed to submit review', variant: 'destructive' }),
   });
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: async (reviewId: string) => {
+      const res = await apiRequest('DELETE', `/api/reviews/${reviewId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${brandId}/reviews`] });
+      toast({ title: 'Review deleted' });
+    },
+    onError: () => toast({ title: 'Failed to delete review', variant: 'destructive' }),
+  });
+
+  const openEditReview = (review: any) => {
+    setEditingReviewId(review.id);
+    setReviewRating(review.rating);
+    setReviewText(review.comment || '');
+    setIsReviewDialogOpen(true);
+  };
+
+  const openCreateReview = () => {
+    setEditingReviewId(null);
+    setReviewRating(5);
+    setReviewText('');
+    setIsReviewDialogOpen(true);
+  };
 
   const shareProfile = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -544,38 +576,65 @@ export default function BrandProfile() {
                     <p className="text-slate-400 text-sm">No reviews yet</p>
                     {!isOwnProfile && (user as any)?.id && (
                       <Button variant="ghost" size="sm" className="mt-3 text-emerald-400 hover:text-emerald-300"
-                        onClick={() => setIsReviewDialogOpen(true)}>
+                        onClick={openCreateReview}>
                         Be the first to review
                       </Button>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {reviews.slice(0, 5).map((review: any) => (
-                      <div key={review.id} className="border-b border-slate-700/50 last:border-0 pb-4 last:pb-0">
+                    {reviews.slice(0, 5).map((review: any) => {
+                      const isMine = (user as any)?.id && review.reviewerId === (user as any).id;
+                      return (
+                      <div key={review.id} className="border-b border-slate-700/50 last:border-0 pb-4 last:pb-0" data-testid={`brand-review-${review.id}`}>
                         <div className="flex items-center justify-between mb-2">
                           <StarRating value={review.rating} readOnly />
                           <span className="text-slate-500 text-xs">
                             {review.createdAt ? formatDistanceToNow(new Date(review.createdAt), { addSuffix: true }) : ''}
+                            {review.updatedAt && review.createdAt && new Date(review.updatedAt).getTime() - new Date(review.createdAt).getTime() > 60000 && (
+                              <span className="ml-1 italic">(edited)</span>
+                            )}
                           </span>
                         </div>
                         {review.comment && <p className="text-slate-300 text-sm leading-relaxed">{review.comment}</p>}
-                        {review.reviewer && (
-                          <div className="flex items-center gap-2 mt-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={review.reviewer.profileImageUrl} />
-                              <AvatarFallback className="bg-emerald-800 text-emerald-200 text-xs">{review.reviewer.firstName?.[0]}</AvatarFallback>
-                            </Avatar>
-                            <p className="text-slate-500 text-xs">{review.reviewer.firstName} {review.reviewer.lastName}</p>
-                          </div>
-                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          {review.reviewer ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={review.reviewer.profileImageUrl} />
+                                <AvatarFallback className="bg-emerald-800 text-emerald-200 text-xs">{review.reviewer.firstName?.[0]}</AvatarFallback>
+                              </Avatar>
+                              <p className="text-slate-500 text-xs">{review.reviewer.firstName} {review.reviewer.lastName}</p>
+                            </div>
+                          ) : <span />}
+                          {isMine && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => openEditReview(review)}
+                                data-testid={`btn-edit-review-${review.id}`}
+                                className="text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded hover:bg-emerald-500/10 transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Delete this review?')) deleteReviewMutation.mutate(review.id);
+                                }}
+                                data-testid={`btn-delete-review-${review.id}`}
+                                className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
+                    );})}
                   </div>
                 )}
-                {!isOwnProfile && (user as any)?.id && reviews.length > 0 && (
+                {!isOwnProfile && (user as any)?.id && reviews.length > 0 && !reviews.some((r: any) => r.reviewerId === (user as any).id) && (
                   <Button variant="ghost" size="sm" className="w-full mt-4 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                    onClick={() => setIsReviewDialogOpen(true)} data-testid="leave-review-btn">
+                    onClick={openCreateReview} data-testid="leave-review-btn">
                     Leave a Review
                   </Button>
                 )}
@@ -583,10 +642,10 @@ export default function BrandProfile() {
             </div>
 
             {/* Review Dialog */}
-            <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+            <Dialog open={isReviewDialogOpen} onOpenChange={(open) => { setIsReviewDialogOpen(open); if (!open) setEditingReviewId(null); }}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Review {companyName}</DialogTitle>
+                  <DialogTitle>{editingReviewId ? 'Edit your review' : `Review ${companyName}`}</DialogTitle>
                   <DialogDescription>Share your experience working with this brand</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
@@ -604,7 +663,7 @@ export default function BrandProfile() {
                     <Button variant="outline" onClick={() => setIsReviewDialogOpen(false)}>Cancel</Button>
                     <Button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending}
                       className="bg-emerald-500 hover:bg-emerald-600" data-testid="submit-brand-review">
-                      {reviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
+                      {reviewMutation.isPending ? 'Saving...' : (editingReviewId ? 'Save Changes' : 'Submit Review')}
                     </Button>
                   </div>
                 </div>

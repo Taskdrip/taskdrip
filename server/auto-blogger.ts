@@ -253,6 +253,106 @@ async function callOpenAI(model: string, sys: string, user: string): Promise<str
   return completion.choices[0]?.message?.content || "{}";
 }
 
+// ─── Multi-pass humanization (Gemini-powered) ────────────────────────────────
+
+const AI_TELLS = [
+  "delve into", "in conclusion", "in summary", "tapestry", "moreover", "furthermore",
+  "navigate the", "in today's fast-paced", "in the realm of", "it's worth noting",
+  "ever-evolving", "game-changer", "leverage", "robust", "seamless", "myriad",
+  "synergy", "paradigm", "cutting-edge", "unleash the power", "harness the power",
+];
+
+function humanizationGuidance(strength: string) {
+  const base = `Rewrite the HTML article so it reads like a real person wrote it for a smart blog audience.
+
+HARD RULES (apply silently — do not mention them in output):
+1. Vary sentence length aggressively. Mix 4-word punches with 25-word flowing sentences.
+2. Use natural contractions (it's, don't, you'll, that's). Avoid stiff academic phrasing.
+3. Open at least one section with a short rhetorical or direct question.
+4. Drop in a couple of casual asides in parentheses (one or two — not more).
+5. Replace clichés and AI tells. NEVER use any of these: ${AI_TELLS.join(", ")}.
+6. Replace overused em-dash patterns with commas, periods, or parentheses where natural.
+7. Avoid bullet-list overload — convert at most one bullet list to flowing prose if it feels listy.
+8. Keep ALL existing HTML tags (<h2>, <p>, <figure>, <iframe>, <img>, <ul>, etc) and image/video embeds intact.
+9. Keep the same overall structure, headings, and length (within 10%).
+10. Output the rewritten article as raw HTML only — no JSON, no commentary, no code fences.`;
+  if (strength === "light") return base + "\n\nUse a LIGHT touch — preserve most original phrasing, only smooth the AI tells.";
+  if (strength === "heavy") return base + "\n\nUse a HEAVY rewrite — significantly restructure sentences and word choice; aim for an opinionated, lived-in human voice.";
+  return base + "\n\nUse a MEDIUM rewrite — natural and conversational without losing the original information.";
+}
+
+function polishGuidance() {
+  return `You are a senior editor. Polish the HTML article for a final publish:
+1. Tighten any flabby sentences without losing meaning.
+2. Make the opening paragraph hookier — start with a concrete observation, question, or contrarian beat (max 2 sentences).
+3. Ensure a single clear takeaway in the closing paragraph (without using the words "in conclusion" or "in summary").
+4. Naturally weave the focus topic into 2-3 places without keyword stuffing.
+5. Fix any broken HTML, awkward duplicates, or repeated phrases.
+6. Preserve ALL <img>, <iframe>, <figure> and structural tags exactly.
+7. Output the final article as raw HTML only — no JSON, no commentary, no code fences.`;
+}
+
+async function callGeminiText(model: string, sys: string, user: string): Promise<string> {
+  const key = geminiKey();
+  if (!key) throw new Error("GEMINI_API_KEY not configured");
+  const m = model && model.startsWith("gemini") ? model : "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`;
+  const body = {
+    systemInstruction: { parts: [{ text: sys }] },
+    contents: [{ role: "user", parts: [{ text: user }] }],
+    generationConfig: { temperature: 0.95, topP: 0.95 },
+  };
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`Gemini text error ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  const j: any = await r.json();
+  return (j?.candidates?.[0]?.content?.parts || []).map((p: any) => p?.text || "").join("");
+}
+
+async function callOpenAIText(model: string, sys: string, user: string): Promise<string> {
+  const openai = getOpenAI();
+  if (!openai) throw new Error("OPENAI_API_KEY not configured");
+  const completion = await openai.chat.completions.create({
+    model: model || "gpt-4o-mini",
+    messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+    temperature: 0.95,
+  });
+  return completion.choices[0]?.message?.content || "";
+}
+
+function stripCodeFences(s: string) {
+  return s.replace(/^```(?:html)?/i, "").replace(/```$/i, "").trim();
+}
+
+async function humanizeHtml(html: string, opts: { strength: string; model: string; aiProvider: string; topic: string }): Promise<string> {
+  const sys = humanizationGuidance(opts.strength);
+  const user = `Topic: ${opts.topic}\n\n--- ARTICLE HTML ---\n${html}\n--- END ---\n\nReturn only the rewritten HTML.`;
+  try {
+    const out = opts.aiProvider === "openai"
+      ? await callOpenAIText(opts.model, sys, user)
+      : await callGeminiText(opts.model, sys, user);
+    const cleaned = stripCodeFences(out);
+    return cleaned.length > 200 ? cleaned : html;
+  } catch (e) {
+    console.warn("[humanize] pass failed, keeping previous draft:", (e as any)?.message);
+    return html;
+  }
+}
+
+async function polishHtml(html: string, opts: { model: string; aiProvider: string; topic: string }): Promise<string> {
+  const sys = polishGuidance();
+  const user = `Topic: ${opts.topic}\n\n--- ARTICLE HTML ---\n${html}\n--- END ---\n\nReturn only the polished HTML.`;
+  try {
+    const out = opts.aiProvider === "openai"
+      ? await callOpenAIText(opts.model, sys, user)
+      : await callGeminiText(opts.model, sys, user);
+    const cleaned = stripCodeFences(out);
+    return cleaned.length > 200 ? cleaned : html;
+  } catch (e) {
+    console.warn("[polish] pass failed, keeping previous draft:", (e as any)?.message);
+    return html;
+  }
+}
+
 async function rewriteToBlog(opts: {
   sourceTitle: string;
   sourceContent: string;
@@ -265,11 +365,14 @@ async function rewriteToBlog(opts: {
   imageProvider?: string;
   aiProvider?: string;
   embedYoutube?: boolean;
+  humanizationPasses?: number;
+  humanizationStrength?: string;
 }): Promise<RewriteResult> {
   const {
     sourceTitle, sourceContent, sourceUrl = "", category = "Tech", toneStyle = "informative",
     minWords = 700, maxWords = 1400, model = "gemini-2.5-flash",
     imageProvider = "pollinations", aiProvider = "gemini", embedYoutube = true,
+    humanizationPasses = 0, humanizationStrength = "medium",
   } = opts;
 
   const { sys, user } = buildPrompt({ sourceTitle, sourceContent, sourceUrl, category, toneStyle, minWords, maxWords });
@@ -309,6 +412,16 @@ async function rewriteToBlog(opts: {
   // Embed source YouTube video at the top of the article
   if (embedYoutube && sourceUrl && youtubeIdFromUrl(sourceUrl)) {
     content = youtubeEmbedHtml(sourceUrl) + content;
+  }
+
+  // ─── Multi-pass humanization (optional) ────────────────────────────────────
+  if (humanizationPasses >= 1) {
+    console.log(`[auto-blogger] Humanization pass 1 (${humanizationStrength})...`);
+    content = await humanizeHtml(content, { strength: humanizationStrength, model, aiProvider, topic: title });
+  }
+  if (humanizationPasses >= 2) {
+    console.log(`[auto-blogger] Polish pass 2...`);
+    content = await polishHtml(content, { model, aiProvider, topic: title });
   }
 
   const wordCount = content.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
@@ -373,6 +486,8 @@ async function runSource(sourceId: string, perSource: number, createdBy: string 
         imageProvider: settings.imageProvider || "pollinations",
         aiProvider: settings.aiProvider || "gemini",
         embedYoutube: settings.embedYoutube !== false,
+        humanizationPasses: settings.humanizationPasses ?? 0,
+        humanizationStrength: settings.humanizationStrength || "medium",
       });
       const [post] = await db.insert(blogPosts).values({
         title: result.title,

@@ -2061,6 +2061,8 @@ export const autoBloggerSettings = pgTable("auto_blogger_settings", {
   autopilotPerSource: integer("autopilot_per_source").default(1),
   lastAutopilotRunAt: timestamp("last_autopilot_run_at"),
   scheduleCron: varchar("schedule_cron"),
+  humanizationPasses: integer("humanization_passes").default(0), // 0 = off, 1 = single pass, 2 = full multi-pass (humanize + polish)
+  humanizationStrength: varchar("humanization_strength").default("medium"), // light | medium | heavy
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

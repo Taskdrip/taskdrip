@@ -258,6 +258,133 @@ function CreateProfilePost({ creatorId }: { creatorId: string }) {
   );
 }
 
+function FeaturedSpotlight({ portfolio, posts, profile }: { portfolio: any[]; posts: any[]; profile: any }) {
+  const items = [
+    ...portfolio.slice(0, 4).map((p) => ({
+      kind: 'portfolio' as const,
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      imageUrl: p.imageUrl,
+      videoUrl: p.videoUrl,
+      url: p.url,
+      category: p.category,
+    })),
+    ...posts.slice(0, 3).map((p) => ({
+      kind: 'post' as const,
+      id: p.id,
+      title: p.content?.split('\n')[0]?.slice(0, 80) || 'Update',
+      description: p.content,
+      imageUrl: p.imageUrl,
+      videoUrl: p.videoUrl,
+      url: '',
+      category: 'Post',
+    })),
+  ];
+
+  const [current, setCurrent] = useState(0);
+  const total = items.length;
+
+  if (total === 0) return null;
+  const item = items[current];
+  const goTo = (i: number) => setCurrent(((i % total) + total) % total);
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-violet-500" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-violet-600">Featured Spotlight</h3>
+        </div>
+        <span className="text-xs text-gray-400">{current + 1} / {total}</span>
+      </div>
+      <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-violet-50/40">
+        <CardContent className="p-0">
+          <div className="grid md:grid-cols-2 gap-0">
+            <div className="relative aspect-[4/3] md:aspect-auto bg-gradient-to-br from-violet-100 to-purple-200 overflow-hidden">
+              {item.imageUrl ? (
+                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+              ) : item.videoUrl && extractYouTubeId(item.videoUrl) ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${extractYouTubeId(item.videoUrl)}`}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Sparkles className="w-16 h-16 text-violet-400/60" />
+                </div>
+              )}
+              <Badge className="absolute top-3 left-3 bg-white/90 text-violet-700 border-0 shadow-sm">
+                {item.kind === 'portfolio' ? <><Briefcase className="w-3 h-3 mr-1" />Portfolio</> : <><Eye className="w-3 h-3 mr-1" />Post</>}
+              </Badge>
+            </div>
+            <div className="p-6 flex flex-col justify-between">
+              <div>
+                {item.category && (
+                  <p className="text-xs font-semibold uppercase tracking-wide text-violet-500 mb-2">{item.category}</p>
+                )}
+                <h4 className="text-xl font-black text-gray-900 mb-2 leading-tight" data-testid={`spotlight-title-${item.id}`}>
+                  {item.title}
+                </h4>
+                {item.description && (
+                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-4 whitespace-pre-wrap">{item.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+                <Avatar className="h-9 w-9 ring-2 ring-violet-100">
+                  <AvatarImage src={profile.profileImageUrl} />
+                  <AvatarFallback className="bg-violet-100 text-violet-700 text-xs font-bold">{profile.firstName?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">{profile.firstName} {profile.lastName}</p>
+                  <p className="text-xs text-gray-400">@{profile.username || 'creator'}</p>
+                </div>
+                {item.url && (
+                  <a href={item.url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700"
+                    data-testid={`spotlight-link-${item.id}`}>
+                    View <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button
+            onClick={() => goTo(current - 1)}
+            data-testid="btn-spotlight-prev"
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex gap-2">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                data-testid={`btn-spotlight-dot-${i}`}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => goTo(current + 1)}
+            data-testid="btn-spotlight-next"
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CreatorProfile() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -267,6 +394,7 @@ export default function CreatorProfile() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
   const [hireDialogOpen, setHireDialogOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
@@ -312,18 +440,42 @@ export default function CreatorProfile() {
 
   const reviewMutation = useMutation({
     mutationFn: async () => {
+      if (editingReviewId) {
+        const res = await apiRequest("PATCH", `/api/reviews/${editingReviewId}`, { rating: reviewRating, comment: reviewComment });
+        return res.json();
+      }
       const res = await apiRequest("POST", `/api/users/${id}/reviews`, { rating: reviewRating, comment: reviewComment });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
-      toast({ title: "Review submitted! ⭐" });
+      toast({ title: editingReviewId ? "Review updated!" : "Review submitted! ⭐" });
       setReviewDialogOpen(false);
+      setEditingReviewId(null);
       setReviewComment("");
       setReviewRating(5);
     },
     onError: () => toast({ title: "Failed to submit review", variant: "destructive" }),
   });
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: async (reviewId: string) => {
+      const res = await apiRequest("DELETE", `/api/reviews/${reviewId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/creators/${id}/profile`] });
+      toast({ title: "Review deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete review", variant: "destructive" }),
+  });
+
+  const openEditReview = (review: any) => {
+    setEditingReviewId(review.id);
+    setReviewRating(review.rating);
+    setReviewComment(review.comment || '');
+    setReviewDialogOpen(true);
+  };
 
   const sendHireOfferMutation = useMutation({
     mutationFn: async () => {
@@ -766,6 +918,11 @@ export default function CreatorProfile() {
           ))}
         </div>
 
+        {/* ── Featured Spotlight ── */}
+        {(profile.portfolio?.length > 0 || profile.posts?.length > 0) && (
+          <FeaturedSpotlight portfolio={profile.portfolio || []} posts={profile.posts || []} profile={profile} />
+        )}
+
         {/* ── Main Tabs ── */}
         <Tabs defaultValue="social">
           <TabsList className="mb-5 w-full justify-start overflow-x-auto bg-white shadow-sm border border-gray-100 rounded-xl p-1 flex-nowrap">
@@ -1022,9 +1179,9 @@ export default function CreatorProfile() {
                     onClick={() => setReviewDialogOpen(true)} data-testid="write-review-btn">
                     <Star className="w-4 h-4 mr-2 fill-white" /> Write a Review
                   </Button>
-                  <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+                  <Dialog open={reviewDialogOpen} onOpenChange={(open) => { setReviewDialogOpen(open); if (!open) setEditingReviewId(null); }}>
                     <DialogContent>
-                      <DialogHeader><DialogTitle>Review {profile.firstName}</DialogTitle></DialogHeader>
+                      <DialogHeader><DialogTitle>{editingReviewId ? 'Edit your review' : `Review ${profile.firstName}`}</DialogTitle></DialogHeader>
                       <div className="space-y-4">
                         <div>
                           <label className="text-sm font-semibold text-gray-700 mb-2 block">Your Rating</label>
@@ -1037,7 +1194,7 @@ export default function CreatorProfile() {
                         </div>
                         <Button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending}
                           className="w-full bg-purple-600 hover:bg-purple-700" data-testid="submit-review-btn">
-                          {reviewMutation.isPending ? "Submitting..." : "Submit Review"}
+                          {reviewMutation.isPending ? "Saving..." : (editingReviewId ? "Save Changes" : "Submit Review")}
                         </Button>
                       </div>
                     </DialogContent>
@@ -1084,8 +1241,10 @@ export default function CreatorProfile() {
                   </Card>
 
                   {/* Individual reviews */}
-                  {profile.reviews.map((review: any) => (
-                    <Card key={review.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                  {profile.reviews.map((review: any) => {
+                    const isMine = (user as any)?.id && review.reviewerId === (user as any).id;
+                    return (
+                    <Card key={review.id} className="border-0 shadow-sm hover:shadow-md transition-shadow" data-testid={`review-${review.id}`}>
                       <CardContent className="p-5">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-11 w-11 ring-2 ring-gray-100 flex-shrink-0">
@@ -1100,15 +1259,36 @@ export default function CreatorProfile() {
                               </div>
                               <span className="text-xs text-gray-400">
                                 {review.createdAt ? formatDistanceToNow(new Date(review.createdAt), { addSuffix: true }) : ""}
+                                {review.updatedAt && review.createdAt && new Date(review.updatedAt).getTime() - new Date(review.createdAt).getTime() > 60000 && (
+                                  <span className="ml-1 italic">(edited)</span>
+                                )}
                               </span>
                             </div>
                             <StarRating value={review.rating} readOnly />
                             {review.comment && <p className="text-gray-600 text-sm mt-2 leading-relaxed">{review.comment}</p>}
+                            {isMine && (
+                              <div className="flex items-center gap-2 mt-3">
+                                <button
+                                  onClick={() => openEditReview(review)}
+                                  data-testid={`btn-edit-review-${review.id}`}
+                                  className="text-xs font-semibold text-purple-600 hover:text-purple-700 px-2 py-1 rounded hover:bg-purple-50 transition-colors"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => { if (confirm('Delete this review?')) deleteReviewMutation.mutate(review.id); }}
+                                  data-testid={`btn-delete-review-${review.id}`}
+                                  className="text-xs font-semibold text-red-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  );})}
                 </div>
               )}
             </div>

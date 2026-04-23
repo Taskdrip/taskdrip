@@ -256,6 +256,8 @@ export interface IStorage {
   // User reviews
   getUserReviews(userId: string): Promise<(UserReview & { reviewer: Partial<User> })[]>;
   createUserReview(review: { revieweeId: string; reviewerId: string; rating: number; comment?: string }): Promise<UserReview>;
+  updateUserReview(id: string, reviewerId: string, data: { rating?: number; comment?: string }): Promise<UserReview | undefined>;
+  deleteUserReview(id: string, reviewerId: string): Promise<boolean>;
 
   // Subscriptions
   getUserSubscription(userId: string): Promise<Subscription | undefined>;
@@ -1581,6 +1583,24 @@ export class DatabaseStorage implements IStorage {
     return newReview;
   }
 
+  async updateUserReview(id: string, reviewerId: string, data: { rating?: number; comment?: string }): Promise<UserReview | undefined> {
+    const updates: any = { updatedAt: new Date() };
+    if (data.rating !== undefined) updates.rating = data.rating;
+    if (data.comment !== undefined) updates.comment = data.comment;
+    const [updated] = await db.update(userReviews)
+      .set(updates)
+      .where(and(eq(userReviews.id, id), eq(userReviews.reviewerId, reviewerId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteUserReview(id: string, reviewerId: string): Promise<boolean> {
+    const result = await db.delete(userReviews)
+      .where(and(eq(userReviews.id, id), eq(userReviews.reviewerId, reviewerId)))
+      .returning({ id: userReviews.id });
+    return result.length > 0;
+  }
+
   // Subscriptions
   async getUserSubscription(userId: string): Promise<Subscription | undefined> {
     const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).orderBy(desc(subscriptions.createdAt)).limit(1);
@@ -2729,6 +2749,95 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
     return rows.map(r => ({ ...r.tx, user: r.user || undefined }));
+  }
+
+  // Bounty escrow methods (computed from existing data)
+  async getCampaignEscrowStatus(campaignId: string) {
+    const campaign = await this.getCampaign(campaignId);
+    if (!campaign) throw new Error('Campaign not found');
+
+    const reward = parseFloat(campaign.reward || '0');
+    const totalSlots = campaign.totalSlots || 0;
+    const totalEscrow = campaign.totalBudget
+      ? parseFloat(campaign.totalBudget)
+      : reward * totalSlots;
+
+    const parts = await this.getCampaignParticipations(campaignId);
+    const completed = parts.filter(p => p.status === 'completed' || p.status === 'approved');
+    const rejected = parts.filter(p => p.status === 'rejected');
+    const pending = parts.filter(p => p.status === 'pending' || p.status === 'submitted');
+
+    const paidOut = completed.length * reward;
+
+    const refundRows = await db
+      .select()
+      .from(transactions)
+      .where(and(
+        eq(transactions.campaignId, campaignId),
+        eq(transactions.type, 'campaign_refund')
+      ));
+    const refunded = refundRows.reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
+
+    const available = Math.max(0, totalEscrow - paidOut - refunded);
+    const now = new Date();
+    const deadlinePassed = !!campaign.deadline && new Date(campaign.deadline) < now;
+    const allResolved = pending.length === 0;
+    const refundable = (deadlinePassed || campaign.status === 'completed' || campaign.status === 'cancelled' || allResolved) && available > 0.01;
+
+    return {
+      campaignId,
+      title: campaign.title,
+      status: campaign.status,
+      reward,
+      totalSlots,
+      filledSlots: campaign.filledSlots || 0,
+      totalEscrow,
+      paidOut,
+      refunded,
+      available,
+      completedCount: completed.length,
+      rejectedCount: rejected.length,
+      pendingCount: pending.length,
+      refundable,
+      deadline: campaign.deadline,
+    };
+  }
+
+  async refundCampaignEscrow(campaignId: string, brandId: string) {
+    const status = await this.getCampaignEscrowStatus(campaignId);
+    const campaign = await this.getCampaign(campaignId);
+    if (!campaign) throw new Error('Campaign not found');
+    if (campaign.brandId !== brandId) throw new Error('Not authorized to refund this campaign');
+    if (!status.refundable) throw new Error('Escrow is not eligible for refund yet');
+    if (status.available < 0.01) throw new Error('No funds available to refund');
+
+    await this.updateUserBalance(brandId, status.available, 'add');
+    const tx = await this.createTransaction({
+      userId: brandId,
+      campaignId,
+      amount: status.available.toFixed(2),
+      type: 'campaign_refund',
+      status: 'completed',
+      description: `Refund of unused escrow for "${campaign.title}"`,
+      referenceType: 'campaign',
+      referenceId: campaignId,
+    } as any);
+
+    return { ...status, refundedNow: status.available, transactionId: tx.id };
+  }
+
+  async getBrandEscrowOverview(brandId: string) {
+    const list = await this.getCampaignsByBrand(brandId);
+    const items = await Promise.all(list.map(c => this.getCampaignEscrowStatus(c.id).catch(() => null)));
+    const valid = items.filter(Boolean) as any[];
+    const totals = valid.reduce((acc, s) => ({
+      totalEscrow: acc.totalEscrow + s.totalEscrow,
+      paidOut: acc.paidOut + s.paidOut,
+      refunded: acc.refunded + s.refunded,
+      available: acc.available + s.available,
+      refundableAmount: acc.refundableAmount + (s.refundable ? s.available : 0),
+    }), { totalEscrow: 0, paidOut: 0, refunded: 0, available: 0, refundableAmount: 0 });
+    return { campaigns: valid, totals };
   }
 }
 

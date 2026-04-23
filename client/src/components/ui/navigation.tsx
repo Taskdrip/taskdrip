@@ -210,15 +210,16 @@ export function Navigation() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-baseline space-x-1 ml-8">
+          <div className="hidden md:flex items-center gap-0.5 ml-6">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-md ${
+                data-testid={`nav-link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                className={`px-3.5 py-2 text-sm font-semibold rounded-full transition-all duration-300 ${
                   isActive(item.href)
-                    ? "text-black bg-gray-100"
-                    : "text-gray-600 hover:text-accent hover:bg-gray-50"
+                    ? "text-violet-700 bg-violet-50 shadow-[0_0_18px_rgba(139,92,246,0.45)]"
+                    : "text-gray-700 hover:text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_18px_rgba(139,92,246,0.55)] hover:-translate-y-0.5"
                 }`}
               >
                 {item.label}
@@ -228,7 +229,10 @@ export function Navigation() {
             {/* Community Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-accent hover:bg-gray-50 rounded-md flex items-center gap-1 transition-colors duration-200">
+                <button
+                  data-testid="nav-link-community"
+                  className="px-3.5 py-2 text-sm font-semibold text-gray-700 rounded-full flex items-center gap-1.5 transition-all duration-300 hover:text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_18px_rgba(139,92,246,0.55)] hover:-translate-y-0.5"
+                >
                   <Users className="h-4 w-4" />
                   Community
                   <ChevronDown className="h-3 w-3" />

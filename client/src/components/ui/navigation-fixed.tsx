@@ -305,16 +305,16 @@ export function NavigationFixed() {
 
           {/* Desktop Navigation */}
           <div className="hidden lg:block flex-1 mx-3 overflow-visible">
-            <div className="flex items-center gap-0.5 xl:gap-1">
+            <div className="flex items-center gap-1 xl:gap-1.5">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   data-testid={`link-header-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                  className={`px-2 py-2 text-xs xl:text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
+                  className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-full whitespace-nowrap transition-all duration-300 ${
                     isActive(item.href)
-                      ? "text-black border-b-2 border-black"
-                      : "text-gray-600 hover:text-black"
+                      ? "text-violet-700 bg-violet-50 shadow-[0_0_18px_rgba(139,92,246,0.45)]"
+                      : "text-gray-700 hover:text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_18px_rgba(139,92,246,0.55)] hover:-translate-y-0.5"
                   }`}
                 >
                   {item.label}
@@ -325,7 +325,7 @@ export function NavigationFixed() {
                   <DropdownMenuTrigger asChild>
                     <button
                       data-testid="button-header-more"
-                      className="ml-1 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs xl:text-sm font-medium text-gray-700 hover:text-violet-700 hover:bg-violet-50 transition-colors duration-200 whitespace-nowrap border border-transparent hover:border-violet-200"
+                      className="ml-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs xl:text-sm font-semibold text-gray-700 hover:text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_18px_rgba(139,92,246,0.55)] hover:-translate-y-0.5 transition-all duration-300 whitespace-nowrap"
                     >
                       More
                       <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>

@@ -201,19 +201,6 @@ function buildInitialWallets(user: any): P2PWallet[] {
   });
 }
 
-function WalletToggle({ active, onChange }: { active: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!active)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${active ? "bg-violet-600" : "bg-gray-200"}`}
-      data-testid="wallet-toggle"
-    >
-      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${active ? "translate-x-4" : "translate-x-1"}`} />
-    </button>
-  );
-}
-
 // ── P2P Settings Modal ────────────────────────────────────────────────────────
 function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void }) {
   const { toast } = useToast();
@@ -283,7 +270,7 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
           {/* Info */}
           <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-            <p className="text-blue-700 text-xs leading-relaxed">Your wallets are used to <strong>receive payments</strong> from buyers and for <strong>refunds</strong> in disputes. Toggle wallets on/off to control which are active for transactions.</p>
+            <p className="text-blue-700 text-xs leading-relaxed">Your wallets are used to <strong>receive payments</strong> from buyers and for <strong>refunds</strong> in disputes. Add the address you want to use for each network.</p>
           </div>
 
           {/* Country & Currency */}
@@ -309,14 +296,14 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
               <p className="font-bold text-gray-800 text-sm flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-violet-500" /> Default Wallets
               </p>
-              <span className="text-[10px] text-gray-400 font-medium">Toggle to activate/deactivate</span>
+              <span className="text-[10px] text-gray-400 font-medium">All wallets are active</span>
             </div>
             <div className="space-y-3">
               {defaultWallets.map(w => (
-                <div key={w.id} className={`rounded-xl border-2 p-3 transition-colors ${w.isActive ? "border-violet-200 bg-violet-50/30" : "border-gray-100 bg-gray-50/50 opacity-60"}`} data-testid={`wallet-card-${w.id}`}>
+                <div key={w.id} className="rounded-xl border-2 border-violet-200 bg-violet-50/30 p-3 transition-colors" data-testid={`wallet-card-${w.id}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${w.isActive ? "bg-violet-600 text-white" : "bg-gray-300 text-gray-600"}`}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] bg-violet-600 text-white">
                         {w.crypto.slice(0, 2)}
                       </div>
                       <div>
@@ -325,17 +312,12 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
                       </div>
                       <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full uppercase ml-1">Low Gas</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold ${w.isActive ? "text-violet-600" : "text-gray-400"}`}>{w.isActive ? "Active" : "Off"}</span>
-                      <WalletToggle active={w.isActive} onChange={v => updateWallet(w.id, "isActive", v)} />
-                    </div>
                   </div>
                   <Input
                     value={w.address}
                     onChange={e => updateWallet(w.id, "address", e.target.value)}
                     placeholder={w.placeholder || `Enter ${w.crypto} ${w.network} address`}
                     className="rounded-lg font-mono text-xs h-8 bg-white"
-                    disabled={!w.isActive}
                     data-testid={`input-wallet-address-${w.id}`}
                   />
                 </div>
@@ -351,10 +333,10 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
               </p>
               <div className="space-y-3">
                 {customWallets.map(w => (
-                  <div key={w.id} className={`rounded-xl border-2 p-3 transition-colors ${w.isActive ? "border-emerald-200 bg-emerald-50/30" : "border-gray-100 bg-gray-50/50 opacity-60"}`} data-testid={`wallet-card-${w.id}`}>
+                  <div key={w.id} className="rounded-xl border-2 border-emerald-200 bg-emerald-50/30 p-3 transition-colors" data-testid={`wallet-card-${w.id}`}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${w.isActive ? "bg-emerald-600 text-white" : "bg-gray-300 text-gray-600"}`}>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] bg-emerald-600 text-white">
                           {w.crypto.slice(0, 2)}
                         </div>
                         <div>
@@ -362,20 +344,15 @@ function P2PSettingsModal({ user, onClose }: { user: any; onClose: () => void })
                           <p className="text-gray-400 text-[10px]">{w.network}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold ${w.isActive ? "text-emerald-600" : "text-gray-400"}`}>{w.isActive ? "Active" : "Off"}</span>
-                        <WalletToggle active={w.isActive} onChange={v => updateWallet(w.id, "isActive", v)} />
-                        <button onClick={() => removeWallet(w.id)} className="text-red-400 hover:text-red-600 transition-colors ml-1" data-testid={`remove-wallet-${w.id}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button onClick={() => removeWallet(w.id)} className="text-red-400 hover:text-red-600 transition-colors" data-testid={`remove-wallet-${w.id}`}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <Input
                       value={w.address}
                       onChange={e => updateWallet(w.id, "address", e.target.value)}
                       placeholder={`Enter ${w.crypto} ${w.network} wallet address`}
                       className="rounded-lg font-mono text-xs h-8 bg-white"
-                      disabled={!w.isActive}
                       data-testid={`input-wallet-address-${w.id}`}
                     />
                   </div>
@@ -1039,28 +1016,28 @@ function P2PSpotlightCarousel({ listings, onAccept }: { listings: any[]; onAccep
           </div>
         </div>
 
-        {total > 1 && (
-          <>
-            <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-              data-testid="btn-p2p-spotlight-prev">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-              data-testid="btn-p2p-spotlight-next">
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-              {listings.map((_, i) => (
-                <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
-                  className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/40 hover:bg-white/60"}`}
-                  data-testid={`btn-p2p-spotlight-dot-${i}`} />
-              ))}
-            </div>
-          </>
-        )}
       </div>
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }}
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+            data-testid="btn-p2p-spotlight-prev">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex gap-2">
+            {listings.map((_, i) => (
+              <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`}
+                data-testid={`btn-p2p-spotlight-dot-${i}`} />
+            ))}
+          </div>
+          <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }}
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+            data-testid="btn-p2p-spotlight-next">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </section>
   );
 }

@@ -222,38 +222,38 @@ function BlogSpotlightCarousel({ posts, onNavigate }: { posts: any[]; onNavigate
   const post = posts[current];
 
   return (
-    <div className="relative mb-10">
+    <div className="mb-10">
       <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
         <SpotlightSlide post={post} onClick={() => onNavigate(post.slug)} />
       </div>
 
       {total > 1 && (
-        <>
+        <div className="flex items-center justify-center gap-3 mt-4">
           <button
             onClick={prev}
             data-testid="btn-blog-spotlight-prev"
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <button
-            onClick={next}
-            data-testid="btn-blog-spotlight-next"
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 border border-white/30 backdrop-blur-sm text-white flex items-center justify-center transition-all"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          <div className="flex gap-2">
             {posts.map((_, i) => (
               <button
                 key={i}
                 onClick={() => goTo(i)}
                 data-testid={`btn-blog-dot-${i}`}
-                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-7 bg-white" : "w-2 bg-white/40 hover:bg-white/70"}`}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`}
               />
             ))}
           </div>
-        </>
+          <button
+            onClick={next}
+            data-testid="btn-blog-spotlight-next"
+            className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       )}
     </div>
   );

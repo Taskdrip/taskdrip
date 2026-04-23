@@ -1009,6 +1009,48 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ===== Bounty Escrow =====
+  app.get('/api/campaigns/:id/escrow-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      if (campaign.brandId !== userId && req.user?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+      const status = await storage.getCampaignEscrowStatus(req.params.id);
+      res.json(status);
+    } catch (e: any) {
+      console.error('Error fetching escrow status:', e);
+      res.status(500).json({ message: e.message || 'Failed to fetch escrow status' });
+    }
+  });
+
+  app.post('/api/campaigns/:id/refund-escrow', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const result = await storage.refundCampaignEscrow(req.params.id, userId);
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      console.error('Error refunding escrow:', e);
+      res.status(400).json({ message: e.message || 'Failed to refund escrow' });
+    }
+  });
+
+  app.get('/api/brand/escrow-overview', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (req.user?.userType !== 'brand' && req.user?.userType !== 'admin') {
+        return res.status(403).json({ message: 'Brands only' });
+      }
+      const overview = await storage.getBrandEscrowOverview(userId);
+      res.json(overview);
+    } catch (e: any) {
+      console.error('Error fetching brand escrow overview:', e);
+      res.status(500).json({ message: e.message || 'Failed to fetch overview' });
+    }
+  });
+
   // Create new campaign with escrow payment (with optional image upload)
   app.post('/api/campaigns', upload.single('featureImage'), async (req, res) => {
     try {
@@ -1856,6 +1898,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const attachments = files ? files.map(file => ({
         filename: file.originalname,
         path: file.path,
+        url: `/uploads/${path.basename(file.path)}`,
         mimetype: file.mimetype,
         size: file.size
       })) : [];
@@ -3886,6 +3929,31 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.status(201).json(review);
     } catch (error) {
       res.status(500).json({ message: "Failed to create review" });
+    }
+  });
+
+  app.patch('/api/reviews/:reviewId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { rating, comment } = req.body;
+      if (rating !== undefined && (rating < 1 || rating > 5)) return res.status(400).json({ message: "Rating must be 1-5" });
+      const updated = await storage.updateUserReview(req.params.reviewId, req.user.id, {
+        rating: rating !== undefined ? parseInt(rating) : undefined,
+        comment,
+      });
+      if (!updated) return res.status(404).json({ message: "Review not found or not yours" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update review" });
+    }
+  });
+
+  app.delete('/api/reviews/:reviewId', isAuthenticated, async (req: any, res) => {
+    try {
+      const ok = await storage.deleteUserReview(req.params.reviewId, req.user.id);
+      if (!ok) return res.status(404).json({ message: "Review not found or not yours" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete review" });
     }
   });
 
