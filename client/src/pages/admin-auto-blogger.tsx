@@ -36,6 +36,21 @@ export default function AdminAutoBlogger() {
   const { data: sources = [] } = useQuery<Source[]>({ queryKey: ["/api/admin/auto-blogger/sources"] });
   const { data: jobs = [] } = useQuery<Job[]>({ queryKey: ["/api/admin/auto-blogger/jobs"] });
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/admin/auto-blogger/settings"] });
+  const { data: posts = [] } = useQuery<any[]>({ queryKey: ["/api/admin/blog"] });
+
+  const togglePublish = useMutation({
+    mutationFn: async ({ id, post }: { id: string; post: any }) => apiRequest("PUT", `/api/admin/blog/${id}`, {
+      title: post.title, content: post.content, isPublished: !post.isPublished, category: post.category,
+      featuredImage: post.featuredImage, excerpt: post.excerpt, tags: post.tags,
+    }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] }); queryClient.invalidateQueries({ queryKey: ["/api/blog"] }); toast({ title: "Updated" }); },
+    onError: (e: any) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deletePost = useMutation({
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/admin/blog/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] }); toast({ title: "Deleted" }); },
+  });
 
   const seedSources = useMutation({
     mutationFn: async () => apiRequest("POST", "/api/admin/auto-blogger/sources/seed", {}),
@@ -96,24 +111,32 @@ export default function AdminAutoBlogger() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/settings"] }),
   });
 
+  const aiReady = !!health?.geminiConfigured || !!health?.openaiConfigured;
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50">
       <Navigation />
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-black flex items-center gap-2"><Sparkles className="w-8 h-8 text-fuchsia-600" /> Auto Blogger</h1>
-            <p className="text-gray-600 mt-1">Pull trending topics and rewrite them into original SEO articles.</p>
+        <div className="rounded-3xl bg-gradient-to-br from-violet-600 via-fuchsia-600 to-cyan-600 p-[1px] mb-6 shadow-xl shadow-violet-200/40">
+          <div className="rounded-3xl bg-white px-6 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black flex items-center gap-2 bg-gradient-to-r from-violet-700 via-fuchsia-600 to-cyan-600 bg-clip-text text-transparent">
+                <Sparkles className="w-7 h-7 text-fuchsia-600" /> Auto Blogger
+              </h1>
+              <p className="text-gray-600 mt-1 text-sm">Free AI (Gemini) writes original, SEO-optimized articles with images & video — pulls feeds, transcripts, and runs on autopilot.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {health?.geminiConfigured ? <Badge className="bg-emerald-100 text-emerald-700 gap-1"><CheckCircle2 className="w-3 h-3" /> Gemini ready</Badge> : <Badge className="bg-amber-100 text-amber-700 gap-1"><AlertCircle className="w-3 h-3" /> Add GEMINI_API_KEY</Badge>}
+              {health?.openaiConfigured && <Badge className="bg-blue-100 text-blue-700 gap-1"><CheckCircle2 className="w-3 h-3" /> OpenAI fallback</Badge>}
+              {settings?.autopilotEnabled && <Badge className="bg-violet-100 text-violet-700 gap-1"><Wand2 className="w-3 h-3" /> Autopilot ON</Badge>}
+            </div>
           </div>
-          {!health?.openaiConfigured && (
-            <Badge className="bg-red-100 text-red-700 gap-1"><AlertCircle className="w-3 h-3" /> OPENAI_API_KEY missing</Badge>
-          )}
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid grid-cols-4 w-full max-w-3xl">
+          <TabsList className="grid grid-cols-5 w-full max-w-3xl">
             <TabsTrigger value="generate" data-testid="tab-generate">Generate</TabsTrigger>
             <TabsTrigger value="sources" data-testid="tab-sources">Sources</TabsTrigger>
+            <TabsTrigger value="articles" data-testid="tab-articles">Articles</TabsTrigger>
             <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
           </TabsList>
@@ -155,7 +178,7 @@ export default function AdminAutoBlogger() {
                     <Switch checked={autoPublishOne} onCheckedChange={setAutoPublishOne} id="pub" data-testid="switch-publish" />
                     <Label htmlFor="pub" className="text-xs">Publish immediately</Label>
                   </div>
-                  <Button disabled={!genTitle || generateOne.isPending || !health?.openaiConfigured} onClick={() => generateOne.mutate({ sourceTitle: genTitle, sourceUrl: genUrl, sourceContent: genContent, category: genCategory, includeTranscript, autoPublish: autoPublishOne })} data-testid="button-generate">
+                  <Button disabled={!genTitle || generateOne.isPending || !aiReady} onClick={() => generateOne.mutate({ sourceTitle: genTitle, sourceUrl: genUrl, sourceContent: genContent, category: genCategory, includeTranscript, autoPublish: autoPublishOne })} data-testid="button-generate" className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-600 text-white">
                     <Wand2 className="w-4 h-4 mr-1" /> {generateOne.isPending ? "Writing…" : "Generate Article"}
                   </Button>
                 </div>
@@ -199,6 +222,7 @@ export default function AdminAutoBlogger() {
                       <SelectItem value="rss">RSS feed</SelectItem>
                       <SelectItem value="reddit">Subreddit</SelectItem>
                       <SelectItem value="hackernews">HackerNews top</SelectItem>
+                      <SelectItem value="youtube">YouTube channel/playlist</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input placeholder={newSource.type === "rss" ? "https://...feed" : newSource.type === "reddit" ? "subreddit name" : ""} value={newSource.url} onChange={e => setNewSource({ ...newSource, url: e.target.value })} data-testid="input-source-url" />
@@ -229,6 +253,49 @@ export default function AdminAutoBlogger() {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          {/* ARTICLES */}
+          <TabsContent value="articles" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Generated Articles ({posts.length})</CardTitle>
+                <a href="/blog" target="_blank" className="text-xs text-violet-600 hover:underline flex items-center gap-1"><ExternalLink className="w-3 h-3" /> View public blog</a>
+              </CardHeader>
+              <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                {posts.length === 0 && <p className="text-gray-400 text-sm col-span-full text-center py-8">No articles yet. Generate one above or turn on Autopilot.</p>}
+                {posts.map((p: any) => (
+                  <div key={p.id} className="group rounded-2xl overflow-hidden border border-gray-200 bg-white hover:border-violet-300 hover:shadow-lg transition-all flex flex-col" data-testid={`article-card-${p.id}`}>
+                    {p.featuredImage && (
+                      <div className="aspect-video bg-gray-100 overflow-hidden">
+                        <img src={p.featuredImage} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                      </div>
+                    )}
+                    <div className="p-3 flex-1 flex flex-col">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-[10px]">{p.category || "General"}</Badge>
+                        <Badge className={`text-[10px] ${p.isPublished ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{p.isPublished ? "Published" : "Draft"}</Badge>
+                      </div>
+                      <p className="font-bold text-sm leading-tight line-clamp-2">{p.title}</p>
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-1 flex-1">{p.excerpt}</p>
+                      <div className="flex items-center justify-between gap-1 mt-3">
+                        <a href={`/blog/${p.slug}`} target="_blank" rel="noreferrer" className="text-xs text-violet-600 hover:underline flex items-center gap-1" data-testid={`button-view-${p.id}`}>
+                          <ExternalLink className="w-3 h-3" /> View
+                        </a>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant={p.isPublished ? "outline" : "default"} className={`h-7 text-[11px] px-2 ${p.isPublished ? "" : "bg-gradient-to-r from-violet-600 to-cyan-600 text-white"}`} disabled={togglePublish.isPending} onClick={() => togglePublish.mutate({ id: p.id, post: p })} data-testid={`button-toggle-${p.id}`}>
+                            {p.isPublished ? "Unpublish" : "Publish"}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-1.5 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => { if (confirm(`Delete "${p.title}"?`)) deletePost.mutate(p.id); }} data-testid={`button-delete-${p.id}`}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* JOBS */}

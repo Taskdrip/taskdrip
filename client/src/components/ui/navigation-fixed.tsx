@@ -172,58 +172,100 @@ export function NavigationFixed() {
 
   const unreadNotificationsCount = Array.isArray(notifications) ? notifications.filter((n: any) => !n.isRead).length : 0;
 
-  const getNavItems = () => {
-    if (isAuthenticated) {
-      if ((user as any)?.userType === 'brand') {
-        return [
+  // Returns { primary: [], grouped: { GroupName: [items] } }
+  // primary = always visible (top 5-6); grouped = goes into the smart "More" dropdown.
+  const getNavStructure = () => {
+    if (!isAuthenticated) {
+      return {
+        primary: publicMainItems.slice(0, 6),
+        grouped: {
+          "Discover": publicMainItems.slice(6),
+          "Resources": secondaryMainItems,
+        },
+      };
+    }
+    const utype = (user as any)?.userType;
+    if (utype === 'brand') {
+      return {
+        primary: [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
-          { href: "/shop", label: "Shop" },
           { href: "/influencers", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
-          { href: "/p2p-hub", label: "P2P Market" },
-          { href: "/wallet", label: "Wallet" },
-          { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
-          { href: "/short-links", label: "Short Links" },
-        ];
-      } else if ((user as any)?.userType === 'admin') {
-        return [
+        ],
+        grouped: {
+          "Marketplace": [
+            { href: "/shop", label: "Shop" },
+            { href: "/p2p-hub", label: "P2P Market" },
+            { href: "/feed", label: "Feed" },
+          ],
+          "Earn & Tools": [
+            { href: "/wallet", label: "Wallet" },
+            { href: "/short-links", label: "Short Links" },
+            { href: "/leaderboard", label: "Leaderboard" },
+            { href: "/tdrip", label: "$TDrip" },
+          ],
+          "More": secondaryMainItems,
+        },
+      };
+    }
+    if (utype === 'admin') {
+      return {
+        primary: [
           { href: "/", label: "Home" },
           { href: "/admin-dashboard", label: "Admin" },
-          { href: "/shop", label: "Shop" },
           { href: "/influencers", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
-          { href: "/p2p-hub", label: "P2P Market" },
-          { href: "/wallet", label: "Wallet" },
-          { href: "/breedskool", label: "BreedSkool" },
-          { href: "/short-links", label: "Short Links" },
-          { href: "/admin/url-shortener", label: "Shortener Admin" },
-          { href: "/admin/keyword-analytics", label: "Keyword Analytics" },
-          { href: "/admin/auto-blogger", label: "Auto Blogger" },
-        ];
-      } else {
-        return [
-          { href: "/", label: "Home" },
-          { href: "/tasks", label: "Tasks" },
+          { href: "/p2p-hub", label: "P2P" },
+        ],
+        grouped: {
+          "Marketplace": [
+            { href: "/shop", label: "Shop" },
+            { href: "/feed", label: "Feed" },
+            { href: "/breedskool", label: "BreedSkool" },
+            { href: "/wallet", label: "Wallet" },
+          ],
+          "Admin Tools": [
+            { href: "/short-links", label: "Short Links" },
+            { href: "/admin/url-shortener", label: "Shortener Admin" },
+            { href: "/admin/keyword-analytics", label: "Keyword Analytics" },
+            { href: "/admin/auto-blogger", label: "Auto Blogger" },
+            { href: "/admin/cms", label: "CMS Editor" },
+            { href: "/admin/seo", label: "SEO" },
+            { href: "/admin/email", label: "Email" },
+          ],
+          "More": secondaryMainItems,
+        },
+      };
+    }
+    return {
+      primary: [
+        { href: "/", label: "Home" },
+        { href: "/tasks", label: "Tasks" },
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/influencers", label: "Influencers" },
+        { href: "/p2p-hub", label: "P2P" },
+      ],
+      grouped: {
+        "Marketplace": [
           { href: "/shop", label: "Shop" },
           { href: "/breedskool", label: "BreedSkool" },
-          { href: "/p2p-hub", label: "P2P Market" },
-          { href: "/dashboard", label: "Dashboard" },
-          { href: "/wallet", label: "Wallet" },
           { href: "/feed", label: "Feed" },
-          { href: "/influencers", label: "Influencers" },
+        ],
+        "Earn & Tools": [
+          { href: "/wallet", label: "Wallet" },
           { href: "/leaderboard", label: "Leaderboard" },
           { href: "/short-links", label: "Short Links" },
-        ];
-      }
-    } else {
-      return publicMainItems;
-    }
+          { href: "/tdrip", label: "$TDrip" },
+        ],
+        "More": secondaryMainItems.filter((s) => !["/leaderboard", "/tdrip"].includes(s.href)),
+      },
+    };
   };
 
-  const navItems = getNavItems();
-  const moreItems = isAuthenticated ? secondaryMainItems.filter((item) => !navItems.some((navItem) => navItem.href === item.href)) : secondaryMainItems;
+  const { primary: navItems, grouped: moreGroups } = getNavStructure();
+  const moreItems = Object.values(moreGroups).flat();
 
   const isActive = (href: string) => {
     if (href === "/" && location === "/") return true;
@@ -283,22 +325,33 @@ export function NavigationFixed() {
                   <DropdownMenuTrigger asChild>
                     <button
                       data-testid="button-header-more"
-                      className="px-2 py-2 text-xs xl:text-sm font-medium text-gray-600 hover:text-black transition-colors duration-200 whitespace-nowrap"
+                      className="ml-1 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs xl:text-sm font-medium text-gray-700 hover:text-violet-700 hover:bg-violet-50 transition-colors duration-200 whitespace-nowrap border border-transparent hover:border-violet-200"
                     >
                       More
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {moreItems.map((item) => (
-                      <DropdownMenuItem key={item.href} asChild>
-                        <Link
-                          href={item.href}
-                          data-testid={`link-header-more-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                          className="w-full"
-                        >
-                          {item.label}
-                        </Link>
-                      </DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-72 p-2 max-h-[70vh] overflow-y-auto">
+                    {Object.entries(moreGroups).map(([groupName, items], gIdx) => (
+                      items.length > 0 && (
+                        <div key={groupName}>
+                          {gIdx > 0 && <DropdownMenuSeparator className="my-1" />}
+                          <p className="px-2 pt-2 pb-1 text-[10px] font-bold tracking-wider text-violet-600 uppercase">{groupName}</p>
+                          <div className="grid grid-cols-2 gap-1">
+                            {items.map((item) => (
+                              <DropdownMenuItem key={item.href} asChild className="rounded-md">
+                                <Link
+                                  href={item.href}
+                                  data-testid={`link-header-more-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                                  className="w-full text-xs font-medium"
+                                >
+                                  {item.label}
+                                </Link>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        </div>
+                      )
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>

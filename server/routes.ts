@@ -3820,14 +3820,21 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const user = await storage.getUser(req.params.id);
       if (!user) return res.status(404).json({ message: "Creator not found" });
       const { password, ...safeUser } = user;
+      // Each storage call is wrapped with a 6s timeout + safe default so a single slow query
+      // can't make the whole profile page hang forever.
+      const safe = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+        Promise.race<T>([
+          p.catch(() => fallback),
+          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), 6000)),
+        ]);
       const [posts, reviews, followers, following, participations, socialLinks, portfolio] = await Promise.all([
-        storage.getUserPosts(req.params.id),
-        storage.getUserReviews(req.params.id),
-        storage.getUserFollowers(req.params.id),
-        storage.getUserFollowing(req.params.id),
-        storage.getUserParticipations(req.params.id),
-        storage.getUserSocialLinks(req.params.id),
-        storage.getUserPortfolio(req.params.id),
+        safe(storage.getUserPosts(req.params.id), [] as any[]),
+        safe(storage.getUserReviews(req.params.id), [] as any[]),
+        safe(storage.getUserFollowers(req.params.id), [] as any[]),
+        safe(storage.getUserFollowing(req.params.id), [] as any[]),
+        safe(storage.getUserParticipations(req.params.id), [] as any[]),
+        safe(storage.getUserSocialLinks(req.params.id), [] as any[]),
+        safe(storage.getUserPortfolio(req.params.id), [] as any[]),
       ]);
       res.json({ ...safeUser, posts, reviews, followers, following, participations, socialLinks, portfolio });
     } catch (error) {
