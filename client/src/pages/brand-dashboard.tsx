@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
+import { WelcomeCampaign } from "@/components/ui/welcome-campaign";
 
 interface Campaign {
   id: string;
@@ -959,6 +960,9 @@ export default function BrandDashboard() {
         {/* Tab Content */}
         {selectedTab === "overview" && (
           <div className="space-y-8">
+            {/* Welcome Mission */}
+            <WelcomeCampaign variant="brand" />
+
             {/* Quick Actions */}
             <Card>
               <CardHeader>

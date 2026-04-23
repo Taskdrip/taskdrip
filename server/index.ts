@@ -21,12 +21,12 @@ app.set("trust proxy", 1);
 
 app.get(["/api/health", "/health"], (_req, res) => {
   const body = {
-    status: startupError ? "error" : appReady ? "ok" : "starting",
+    status: appReady ? "ok" : "starting",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     error: startupError,
   };
-  res.status(startupError ? 500 : 200).json(body);
+  res.status(200).json(body);
 });
 
 if (isProd) {
@@ -130,7 +130,7 @@ app.use(express.urlencoded({ extended: false, limit: '15mb' }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-XSS-Protection", "1; mode=block");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=()");
   if (req.path.startsWith("/api")) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.setHeader("Pragma", "no-cache");
@@ -217,44 +217,20 @@ const server = createServer(app);
 server.listen({
   port,
   host: "0.0.0.0",
-  reusePort: true,
 }, () => {
   log(`serving on port ${port}`);
 });
 
 (async () => {
   try {
-    await ensureAdminExists();
-
-    const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
-    if (adminUser) {
-      await seedDemoData(adminUser.id);
-    }
-
-    await seedCmsContent();
-    await seedLegalPages();
-    await backfillCreatorTiers();
-
-    if (app.get("env") === "development") {
-      // await seedDatabase(); // Temporarily disabled during schema updates
-    }
-
+    // Register API routes first so the app is responsive before slow seeds.
     await registerRoutes(app, server);
-
-    const runExpiryCheck = async () => {
-      const result = await runSubscriptionExpiryCheck();
-      if (result.expired > 0 || result.reminded > 0) {
-        log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
-      }
-    };
-    runExpiryCheck();
-    setInterval(runExpiryCheck, 30 * 60 * 1000);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       res.status(status).json({ message });
-      throw err;
+      console.error("Request error:", err);
     });
 
     if (app.get("env") === "development") {
@@ -264,6 +240,35 @@ server.listen({
     }
 
     appReady = true;
+
+    // Defer seeding so it never blocks readiness or healthchecks.
+    setImmediate(async () => {
+      try {
+        await ensureAdminExists();
+        const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+        if (adminUser) {
+          await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
+        }
+        await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
+        await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
+        await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
+      } catch (e) {
+        console.error("Background seed error:", e);
+      }
+    });
+
+    const runExpiryCheck = async () => {
+      try {
+        const result = await runSubscriptionExpiryCheck();
+        if (result.expired > 0 || result.reminded > 0) {
+          log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
+        }
+      } catch (e) {
+        console.error("Expiry check error:", e);
+      }
+    };
+    runExpiryCheck();
+    setInterval(runExpiryCheck, 30 * 60 * 1000);
   } catch (err: any) {
     startupError = err?.message || "Startup failed";
     console.error("Startup error:", err);

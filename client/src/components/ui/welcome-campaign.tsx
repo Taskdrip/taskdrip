@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Circle, ExternalLink, Rocket, Zap, Sparkles, Loader2 } from "lucide-react";
+import { CheckCircle, Circle, ExternalLink, Rocket, Zap, Sparkles, Loader2, Trophy } from "lucide-react";
 import { SiTelegram, SiX, SiInstagram, SiYoutube, SiWhatsapp } from "react-icons/si";
 import { Link } from "wouter";
 
@@ -29,12 +29,37 @@ const COLOR_MAP: Record<string, string> = {
   profile: "text-purple-600",
 };
 
-export function WelcomeCampaign() {
+interface WelcomeCampaignProps {
+  variant?: "creator" | "brand";
+}
+
+const MOTIVATION: Record<string, { title: string; subtitle: string; perk: string }> = {
+  creator: {
+    title: "Unlock Your First $TDRIP Boost",
+    subtitle:
+      "Every social you follow grows your reach AND your wallet. Finish all 6 tasks, stack instant $TDRIP, and climb the creator leaderboard faster.",
+    perk: "Top creators who complete this in week one earn 3x more from brand campaigns.",
+  },
+  brand: {
+    title: "Power Up Your Brand Launch",
+    subtitle:
+      "Tap into the Taskdrip community before your first campaign. Each task plugs your brand into a creator network that will amplify your launch by 5x.",
+    perk: "Brands that complete welcome tasks see faster creator applications and higher campaign ROI.",
+  },
+};
+
+export function WelcomeCampaign({ variant }: WelcomeCampaignProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   // Tracks per-task UI state: 'idle' | 'opened' (user clicked the link, now needs to confirm)
   const [opened, setOpened] = useState<Record<string, boolean>>({});
+  const pendingFocusKey = useRef<string | null>(null);
+
+  const userType = (user as any)?.userType;
+  const resolvedVariant: "creator" | "brand" =
+    variant ?? (userType === "brand" ? "brand" : "creator");
+  const motivation = MOTIVATION[resolvedVariant];
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/welcome-campaign"],
@@ -64,11 +89,27 @@ export function WelcomeCampaign() {
     onError: () => toast({ title: "Couldn't credit points", description: "Please try again.", variant: "destructive" }),
   });
 
+  // Auto-credit when the user returns to the tab after opening a link.
+  useEffect(() => {
+    const handleFocus = () => {
+      const key = pendingFocusKey.current;
+      if (!key) return;
+      pendingFocusKey.current = null;
+      const task = data?.tasks?.find((t: any) => t.key === key);
+      if (!task || task.completed) return;
+      // Small delay to let the user settle back, then credit.
+      setTimeout(() => completeMutation.mutate(key), 600);
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [data, completeMutation]);
+
   const handleOpenAction = (task: any) => {
     if (task.completed) return;
     if (task.url?.startsWith("/")) return;
     window.open(task.url, "_blank", "noopener,noreferrer");
     setOpened((prev) => ({ ...prev, [task.key]: true }));
+    pendingFocusKey.current = task.key;
   };
 
   const handleConfirm = (task: any) => {
@@ -79,22 +120,47 @@ export function WelcomeCampaign() {
   if (isLoading || !data) return null;
 
   const { tasks, earned, totalPossible, percent } = data;
+  const remaining = totalPossible - earned;
 
   return (
-    <Card className="border border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50">
+    <Card className="border border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden">
+      <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white px-5 py-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Trophy className="h-5 w-5 text-yellow-300" />
+          <span className="text-xs font-bold uppercase tracking-wider text-white/90">
+            Welcome Mission
+          </span>
+        </div>
+        <h3 className="text-lg sm:text-xl font-black leading-tight" data-testid="text-welcome-title">
+          {motivation.title}
+        </h3>
+        <p className="text-sm text-white/90 mt-1 leading-relaxed" data-testid="text-welcome-subtitle">
+          {motivation.subtitle}
+        </p>
+        <div className="mt-3 flex items-center gap-2 bg-white/15 rounded-full px-3 py-1.5 text-[11px] sm:text-xs font-semibold backdrop-blur w-fit">
+          <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
+          <span>{motivation.perk}</span>
+        </div>
+      </div>
+
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-purple-900">
             <Rocket className="h-5 w-5 text-purple-600" />
-            Welcome Campaign
+            Your Welcome Tasks
           </CardTitle>
-          <Badge className="bg-purple-600 text-white border-0">
+          <Badge className="bg-purple-600 text-white border-0" data-testid="badge-welcome-points">
             <Zap className="h-3 w-3 mr-1" /> {earned} / {totalPossible} pts earned
           </Badge>
         </div>
         <p className="text-sm text-purple-700 mt-1">
-          🚀 Open each link, do the action, then tap <span className="font-semibold">Confirm</span> to claim your $TDRIP.
+          🚀 Open a link, take the action, then come back — points are credited automatically.
         </p>
+        {remaining > 0 && (
+          <p className="text-xs text-purple-600 mt-1 font-semibold">
+            Just {remaining} $TDRIP left to unlock the full reward.
+          </p>
+        )}
         <div className="mt-2 space-y-1">
           <div className="flex justify-between text-xs text-purple-600">
             <span>Progress</span>
@@ -156,12 +222,12 @@ export function WelcomeCampaign() {
                     <>
                       <Button
                         size="sm"
-                        variant={isOpened ? "outline" : "outline"}
+                        variant="outline"
                         className={`flex-1 text-xs h-8 ${isOpened ? "border-purple-200 text-purple-600 bg-purple-50/60" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
                         onClick={() => handleOpenAction(task)}
                         data-testid={`button-welcome-open-${task.key}`}
                       >
-                        {isOpened ? "Opened — try again" : "Open link"} <ExternalLink className="h-3 w-3 ml-1" />
+                        {isOpened ? "Opened — open again" : "Open link"} <ExternalLink className="h-3 w-3 ml-1" />
                       </Button>
                       <Button
                         size="sm"
@@ -175,7 +241,7 @@ export function WelcomeCampaign() {
                         ) : (
                           <Sparkles className="h-3 w-3 mr-1" />
                         )}
-                        {isPending ? "Crediting…" : `Confirm — claim ${task.points}`}
+                        {isPending ? "Crediting…" : `Claim ${task.points} pts`}
                       </Button>
                     </>
                   )}
