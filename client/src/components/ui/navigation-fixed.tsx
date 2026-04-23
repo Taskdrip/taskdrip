@@ -35,6 +35,7 @@ const publicMainItems = [
   { href: "/shop", label: "Shop" },
   { href: "/p2p-hub", label: "P2P Market" },
   { href: "/influencers", label: "Influencers" },
+  { href: "/brands", label: "Brands" },
   { href: "/breedskool", label: "BreedSkool" },
 ];
 
@@ -77,7 +78,7 @@ function NotificationPanel({ notifications, onClose, onMarkRead, onMarkAllRead }
   };
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden" style={{ maxHeight: "480px", display: "flex", flexDirection: "column" }}>
+    <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden" style={{ width: "min(384px, calc(100vw - 1rem))", maxHeight: "calc(100svh - 80px)", display: "flex", flexDirection: "column" }}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-gray-600" />

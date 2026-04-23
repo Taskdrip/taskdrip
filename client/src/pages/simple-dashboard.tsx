@@ -16,8 +16,11 @@ import {
   Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck, Zap, Star, Crown, Medal,
   Briefcase, ChevronRight, Sparkles, LayoutDashboard, MessageSquare, Settings,
   Store, ArrowUpRight, Globe, BookOpen, Shield, Coins, Send, Bell, LogOut,
-  RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity
+  RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
 
 // ── Level helpers ──────────────────────────────────────────────────────────────
@@ -50,6 +53,107 @@ const hireStatusColors: Record<string, string> = {
   rejected: "bg-gray-100 text-gray-500", active: "bg-emerald-100 text-emerald-800",
   work_submitted: "bg-indigo-100 text-indigo-800", completed: "bg-gray-100 text-gray-700",
 };
+
+// ── SEO Settings Card ──────────────────────────────────────────────────────────
+function SeoSettingsCard({ user }: { user: any }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    seoTitle: user?.seoTitle || "",
+    seoDescription: user?.seoDescription || "",
+    seoKeywords: user?.seoKeywords || "",
+    seoOgImage: user?.seoOgImage || "",
+  });
+
+  const seoMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const res = await apiRequest("PATCH", "/api/user/seo", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "SEO settings saved!" });
+      qc.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: () => toast({ title: "Failed to save SEO settings", variant: "destructive" }),
+  });
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-5">
+      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-purple-600" />
+          <h3 className="font-bold text-gray-900">SEO & Discoverability</h3>
+        </div>
+        {open ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+      </button>
+      <p className="text-xs text-gray-400 mt-1">Control how your profile appears in search engines and social shares.</p>
+
+      {open && (
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label className="text-xs text-gray-600 font-semibold">Meta Title</Label>
+            <Input
+              value={form.seoTitle}
+              onChange={e => setForm(f => ({ ...f, seoTitle: e.target.value }))}
+              placeholder="e.g. John Doe — Fashion & Lifestyle Creator"
+              className="mt-1 text-sm"
+              data-testid="input-seo-title"
+              maxLength={70}
+            />
+            <p className="text-[10px] text-gray-400 mt-0.5">{form.seoTitle.length}/70 characters</p>
+          </div>
+
+          <div>
+            <Label className="text-xs text-gray-600 font-semibold">Meta Description</Label>
+            <Textarea
+              value={form.seoDescription}
+              onChange={e => setForm(f => ({ ...f, seoDescription: e.target.value }))}
+              placeholder="A brief description of your profile for search engines…"
+              className="mt-1 text-sm resize-none"
+              rows={3}
+              data-testid="input-seo-description"
+              maxLength={160}
+            />
+            <p className="text-[10px] text-gray-400 mt-0.5">{form.seoDescription.length}/160 characters</p>
+          </div>
+
+          <div>
+            <Label className="text-xs text-gray-600 font-semibold">Keywords (comma-separated)</Label>
+            <Input
+              value={form.seoKeywords}
+              onChange={e => setForm(f => ({ ...f, seoKeywords: e.target.value }))}
+              placeholder="influencer, fashion, lifestyle, content creator"
+              className="mt-1 text-sm"
+              data-testid="input-seo-keywords"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs text-gray-600 font-semibold">Social Share Image URL (OG Image)</Label>
+            <Input
+              value={form.seoOgImage}
+              onChange={e => setForm(f => ({ ...f, seoOgImage: e.target.value }))}
+              placeholder="https://example.com/your-og-image.jpg"
+              className="mt-1 text-sm"
+              data-testid="input-seo-og-image"
+            />
+            <p className="text-[10px] text-gray-400 mt-0.5">Recommended: 1200×630 px image for best social sharing</p>
+          </div>
+
+          <Button
+            onClick={() => seoMutation.mutate(form)}
+            disabled={seoMutation.isPending}
+            className="bg-purple-600 hover:bg-purple-700 text-white text-sm h-9"
+            data-testid="button-save-seo"
+          >
+            {seoMutation.isPending ? "Saving…" : "Save SEO Settings"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Tab definition ─────────────────────────────────────────────────────────────
 type Tab = "overview" | "campaigns" | "p2p" | "wallet" | "shop" | "profile";
@@ -828,6 +932,9 @@ export default function SimpleDashboard() {
                     </Link>
                   </div>
                 </div>
+
+                {/* SEO Settings */}
+                <SeoSettingsCard user={user} />
 
                 {/* Account settings links */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

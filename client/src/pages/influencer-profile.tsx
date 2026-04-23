@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
+import { SeoHead } from "@/components/SeoHead";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
@@ -528,8 +529,35 @@ export default function CreatorProfile() {
   const hasRates = Object.values(contentRates).some(v => v > 0);
   const tipsEarned = parseFloat(profile.tipsEarned || '0');
 
+  const seoName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+  const seoTitle = profile.seoTitle || `${seoName} — ${tierConf.name} Influencer | Taskdrip`;
+  const seoDesc = profile.seoDescription || profile.bio || `Hire ${seoName}, a ${tierConf.name}-tier creator on Taskdrip. ${formatFollowers(totalSocialFollowers || 0)} followers, ${profile.completedCampaigns || 0} campaigns completed.`;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#0f0f1a] to-gray-50">
+      <SeoHead
+        title={seoTitle}
+        description={seoDesc}
+        keywords={profile.seoKeywords || `${seoName}, influencer, ${profile.niche || ''}, creator, ${tierConf.name}`}
+        ogImage={profile.seoOgImage || profile.profileImageUrl}
+        ogType="profile"
+        canonicalUrl={`${window.location.origin}/profile/${id}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Person",
+          name: seoName,
+          url: `${window.location.origin}/profile/${id}`,
+          image: profile.profileImageUrl,
+          description: seoDesc,
+          jobTitle: `${tierConf.name} Influencer`,
+          sameAs: [
+            profile.instagramHandle && `https://instagram.com/${profile.instagramHandle}`,
+            profile.tiktokHandle && `https://tiktok.com/@${profile.tiktokHandle}`,
+            profile.youtubeHandle && `https://youtube.com/@${profile.youtubeHandle}`,
+            profile.twitterHandle && `https://twitter.com/${profile.twitterHandle}`,
+          ].filter(Boolean),
+        }}
+      />
       <NavigationFixed />
 
       {/* Follow list modals */}

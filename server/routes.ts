@@ -435,6 +435,72 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Brands discovery — grouped by brand tier
+  app.get('/api/brands/by-tier', async (req, res) => {
+    try {
+      const allUsers = await storage.getUsersByType('brand');
+      const tierOrder = ['global_brand', 'enterprise', 'established', 'growing', 'startup'];
+      const grouped: Record<string, any[]> = {
+        global_brand: [], enterprise: [], established: [], growing: [], startup: [],
+      };
+      const computeTier = (completed: number) => {
+        if (completed >= 201) return 'global_brand';
+        if (completed >= 51) return 'enterprise';
+        if (completed >= 21) return 'established';
+        if (completed >= 6) return 'growing';
+        return 'startup';
+      };
+      for (const brand of allUsers) {
+        const { password, ...safe } = brand as any;
+        const completed = safe.completedCampaigns || 0;
+        safe.brandTierComputed = computeTier(completed);
+        grouped[safe.brandTierComputed].push(safe);
+      }
+      for (const tier of tierOrder) {
+        grouped[tier].sort((a: any, b: any) => (b.completedCampaigns || 0) - (a.completedCampaigns || 0));
+      }
+      res.json(grouped);
+    } catch (error) {
+      console.error('Error fetching brands by tier:', error);
+      res.status(500).json({ message: 'Failed to fetch brands' });
+    }
+  });
+
+  // Update user location (latitude/longitude/city/state)
+  app.post('/api/user/location', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
+    try {
+      const { latitude, longitude, city, state, country } = req.body;
+      await storage.updateUser((req.user as any).id, {
+        latitude: latitude?.toString(),
+        longitude: longitude?.toString(),
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+      } as any);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update location' });
+    }
+  });
+
+  // Update user profile SEO settings
+  app.patch('/api/user/seo', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
+    try {
+      const { seoTitle, seoDescription, seoKeywords, seoOgImage } = req.body;
+      await storage.updateUser((req.user as any).id, {
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        seoKeywords: seoKeywords || null,
+        seoOgImage: seoOgImage || null,
+      } as any);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update SEO settings' });
+    }
+  });
+
   // AI Influencer Comparison endpoint
   app.post('/api/ai/compare-influencers', async (req, res) => {
     try {

@@ -100,7 +100,19 @@ export const users = pgTable("users", {
   messagePrivacy: varchar("message_privacy").default("everyone"), // 'everyone', 'followers', 'nobody'
   // Brand ranking (for brands): 'bronze', 'silver', 'gold'
   brandRank: varchar("brand_rank").default("bronze"),
+  // Brand tier system: 'startup', 'growing', 'established', 'enterprise', 'global_brand'
+  brandTier: varchar("brand_tier").default("startup"),
   totalTransactionVolume: decimal("total_transaction_volume", { precision: 12, scale: 2 }).default("0.00"),
+  // Location coordinates for proximity search (Uber-style)
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  state: varchar("state"),
+  city: varchar("city"),
+  // Profile SEO fields — indexable by search engines
+  seoTitle: varchar("seo_title"),
+  seoDescription: text("seo_description"),
+  seoKeywords: varchar("seo_keywords"),
+  seoOgImage: varchar("seo_og_image"),
   // P2P trading profile
   country: varchar("country"),
   preferredCurrency: varchar("preferred_currency").default("USD"),

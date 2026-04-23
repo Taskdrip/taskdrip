@@ -662,6 +662,31 @@ export default function Influencers() {
   const [minCampaigns, setMinCampaigns] = useState(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
 
+  // Near Me / location filter
+  const [nearMe, setNearMe] = useState(false);
+  const [userLat, setUserLat] = useState<number | null>(null);
+  const [userLng, setUserLng] = useState<number | null>(null);
+  const [locationRadius, setLocationRadius] = useState(500); // km
+  const [locLoading, setLocLoading] = useState(false);
+
+  const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const requestNearMe = () => {
+    if (nearMe) { setNearMe(false); return; }
+    if (userLat !== null) { setNearMe(true); return; }
+    setLocLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); setNearMe(true); setLocLoading(false); },
+      () => { setLocLoading(false); },
+    );
+  };
+
   // Compare
   const [compareMode, setCompareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -723,6 +748,12 @@ export default function Influencers() {
         const maxR = Math.max(...allRates);
         if (maxR < minRate) return false;
       }
+      if (nearMe && userLat !== null && userLng !== null) {
+        const cLat = parseFloat(c.latitude);
+        const cLng = parseFloat(c.longitude);
+        if (isNaN(cLat) || isNaN(cLng)) return false;
+        if (haversine(userLat, userLng, cLat, cLng) > locationRadius) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         const name = `${c.firstName} ${c.lastName}`.toLowerCase();
@@ -737,19 +768,19 @@ export default function Influencers() {
       if (sortBy === "campaigns") return (b.completedCampaigns || 0) - (a.completedCampaigns || 0);
       return 0;
     });
-  }, [activeTier, tierData, allCreators, niche, platform, sortBy, search, tierFilter, minFollowers, maxFollowers, minRating, minEngagement, minRate, maxRate, minCampaigns, verifiedOnly]);
+  }, [activeTier, tierData, allCreators, niche, platform, sortBy, search, tierFilter, minFollowers, maxFollowers, minRating, minEngagement, minRate, maxRate, minCampaigns, verifiedOnly, nearMe, userLat, userLng, locationRadius]);
 
   const activeTierConfig = activeTier ? TIER_CONFIG[activeTier] : null;
 
   const resetFilters = () => {
     setSearch(""); setNiche("all"); setPlatform("All"); setTierFilter("all");
     setMinFollowers(0); setMaxFollowers(10_000_000); setMinRating(0);
-    setMinEngagement(0); setMinRate(0); setMaxRate(50_000); setMinCampaigns(0); setVerifiedOnly(false);
+    setMinEngagement(0); setMinRate(0); setMaxRate(50_000); setMinCampaigns(0); setVerifiedOnly(false); setNearMe(false);
   };
 
   const hasFilters = search || niche !== "all" || platform !== "All" || tierFilter !== "all"
     || minFollowers > 0 || maxFollowers < 10_000_000 || minRating > 0
-    || minRate > 0 || maxRate < 50_000 || minCampaigns > 0 || verifiedOnly;
+    || minRate > 0 || maxRate < 50_000 || minCampaigns > 0 || verifiedOnly || nearMe;
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -897,6 +928,14 @@ export default function Influencers() {
               <option value="campaigns" className="bg-gray-900">↓ Most Campaigns</option>
             </select>
 
+            {/* Near Me button */}
+            <button onClick={requestNearMe} disabled={locLoading}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all h-10 ${nearMe ? "bg-emerald-600 border-emerald-500 text-white" : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"}`}
+              data-testid="button-near-me">
+              {locLoading ? <span className="animate-spin text-xs">⏳</span> : <span>📍</span>}
+              Near Me
+            </button>
+
             {/* Advanced toggle */}
             <button onClick={() => setShowAdvanced((v) => !v)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all h-10 ${showAdvanced ? "bg-violet-600 border-violet-500 text-white" : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"}`}>
@@ -1010,6 +1049,21 @@ export default function Influencers() {
                   Verified influencers only
                 </button>
               </div>
+
+              {/* Near Me radius (visible only when nearMe is on) */}
+              {nearMe && (
+                <div>
+                  <label className="text-white/60 text-xs font-semibold mb-2 block">
+                    📍 Search Radius: <span className="text-white">{locationRadius} km</span>
+                  </label>
+                  <input type="range" min={50} max={5000} step={50} value={locationRadius}
+                    onChange={(e) => setLocationRadius(Number(e.target.value))}
+                    className="w-full accent-emerald-500" />
+                  <div className="flex justify-between text-white/30 text-xs mt-1">
+                    <span>50 km</span><span>500</span><span>2500</span><span>5000 km</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

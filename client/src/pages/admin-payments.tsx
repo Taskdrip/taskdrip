@@ -15,13 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Navigation } from "@/components/ui/navigation";
+import { AdminPayoutsCenter } from "@/components/AdminPayoutsCenter";
 import {
   CreditCard, Bitcoin, Building2, Wallet, Plus, Edit, Trash2, CheckCircle2,
   ShoppingCart, Target, Crown, BookOpen, Heart, ArrowDownToLine,
   AlertCircle, Lock, Eye, EyeOff, Settings, Layers, ArrowRight,
   Shield, Zap, Globe, ArrowLeft, Search, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, DollarSign, Users, Receipt,
-  MessageSquare, ThumbsUp, ThumbsDown, X as CloseIcon
+  TrendingUp, DollarSign, Users, Receipt, BarChart2, Activity
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -388,18 +388,96 @@ export default function AdminPayments() {
           </div>
         </div>
 
-        <Tabs defaultValue="transactions" className="space-y-6">
-          <TabsList className="bg-transparent p-0 h-auto border-b border-slate-200 rounded-none w-full justify-start gap-6">
-            <TabsTrigger value="transactions" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="bg-transparent p-0 h-auto border-b border-slate-200 rounded-none w-full justify-start gap-4 overflow-x-auto flex-nowrap">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2 whitespace-nowrap">
+              <BarChart2 className="h-4 w-4" /> Overview
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2 whitespace-nowrap">
               <Receipt className="h-4 w-4" /> Transactions
             </TabsTrigger>
-            <TabsTrigger value="methods" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2">
+            <TabsTrigger value="payouts" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2 whitespace-nowrap">
+              <ArrowDownToLine className="h-4 w-4" /> Payout Requests
+            </TabsTrigger>
+            <TabsTrigger value="methods" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2 whitespace-nowrap">
               <CreditCard className="h-4 w-4" /> Payment methods
             </TabsTrigger>
-            <TabsTrigger value="toggles" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2">
+            <TabsTrigger value="toggles" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2 whitespace-nowrap">
               <Settings className="h-4 w-4" /> Feature access
             </TabsTrigger>
           </TabsList>
+
+          {/* ── OVERVIEW ─────────────────────────────────────────────────────── */}
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Total Volume", value: fmtMoney(totals.gross), icon: DollarSign, color: "from-violet-500 to-purple-600", sub: `${totals.count} payments` },
+                { label: "Settled", value: fmtMoney(totals.settled), icon: CheckCircle2, color: "from-emerald-500 to-teal-600", sub: "Released & confirmed" },
+                { label: "Pending", value: fmtMoney(totals.pending), icon: Activity, color: "from-amber-400 to-orange-500", sub: "Awaiting confirmation" },
+                { label: "Active Streams", value: Object.keys(totals.bySource || {}).length, icon: Layers, color: "from-blue-500 to-indigo-600", sub: "Payment sources" },
+              ].map(s => (
+                <div key={s.label} className="rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm">
+                  <div className={`bg-gradient-to-br ${s.color} p-4`}>
+                    <s.icon className="h-6 w-6 text-white/80 mb-2" />
+                    <p className="text-2xl font-black text-white tabular-nums">{s.value}</p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="font-semibold text-slate-700 text-sm">{s.label}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{s.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="font-bold text-slate-900 mb-4 flex items-center gap-2"><Receipt className="h-4 w-4 text-violet-600" />Revenue by Source</p>
+                {Object.entries(totals.bySource || {}).length === 0 ? (
+                  <p className="text-slate-400 text-sm text-center py-8">No transaction data yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(totals.bySource || {}).map(([src, val]: [string, any]) => (
+                      <div key={src} className="flex items-center gap-3">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${SOURCE_TONE[src] || "bg-gray-100 text-gray-700"}`}>{SOURCE_LABEL[src] || src}</span>
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full"
+                            style={{ width: `${Math.min(100, (val / (totals.gross || 1)) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 tabular-nums">{fmtMoney(val)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="font-bold text-slate-900 mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-600" />Payment Methods Active</p>
+                {(methods as any[]).length === 0 ? (
+                  <p className="text-slate-400 text-sm text-center py-8">No payment methods configured</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {(methods as any[]).map((m: any) => {
+                      const Icon = TYPE_ICONS[m.type] || CreditCard;
+                      return (
+                        <div key={m.id} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                            <Icon className="h-4 w-4 text-slate-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">{m.label}</p>
+                            <p className="text-xs text-slate-400 uppercase">{m.type}</p>
+                          </div>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${m.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                            {m.isActive ? "Live" : "Off"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
 
           {/* ── TRANSACTIONS ─────────────────────────────────────────────────── */}
           <TabsContent value="transactions" className="space-y-6 mt-6">
@@ -537,6 +615,11 @@ export default function AdminPayments() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* ── PAYOUT REQUESTS ─────────────────────────────────────────────── */}
+          <TabsContent value="payouts" className="mt-6">
+            <AdminPayoutsCenter />
           </TabsContent>
 
           {/* ── METHODS ──────────────────────────────────────────────────────── */}

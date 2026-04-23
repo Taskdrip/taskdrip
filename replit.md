@@ -2,6 +2,22 @@
 
 Taskdrip™ is a production-ready Web3 SocialFi SaaS platform that connects brands with creators/influencers globally.
 
+## Recent Changes (April 2026 — Brand Discovery, SEO, Payments Unification, Location & Mobile UX)
+- **Brand Tier System** (`client/src/lib/brandTiers.ts`): 5-tier brand classification — Startup, Growing, Established, Enterprise, Global Brand — each with icon, colour, and description.
+- **Brands Discovery Page** (`/brands`): Full-featured dark-theme page with tier cards, advanced filters (niche, industry, location, tier, budget range), Near Me geolocation filter, and animated stat counters. Accessible via `/brands` and the nav "Brands" link.
+- **API Endpoints**: `GET /api/brands/by-tier` (brands grouped by tier), `PATCH /api/user/location`, `PATCH /api/user/seo`.
+- **Near Me Filter (Influencers)**: Influencers page now has a "📍 Near Me" button using browser Geolocation API. When active, shows only creators within a configurable radius (50–5000 km) using haversine distance calculation. Radius slider appears in the Advanced Filters panel.
+- **Near Me Filter (Brands)**: Already present in `/brands` page with same geolocation pattern.
+- **SeoHead Component** (`client/src/components/SeoHead.tsx`): Lightweight hook-based component that dynamically updates `<title>`, meta description, OG tags, Twitter card tags, canonical URL, JSON-LD structured data, and robots meta — no external dependencies.
+- **SEO on Influencer Profiles**: `influencer-profile.tsx` now injects `SeoHead` with `Person` JSON-LD schema — uses `seoTitle`/`seoDescription`/`seoKeywords`/`seoOgImage` user fields, falling back to auto-generated content from profile data.
+- **SEO on Brand Profiles**: `brand-profile.tsx` injects `SeoHead` with `Organization` JSON-LD schema — same field fallback pattern.
+- **User SEO Settings (Dashboard)**: New collapsible `SeoSettingsCard` in the Profile tab of the user dashboard — lets users set their meta title, description, keywords, and OG image. Saves via `PATCH /api/user/seo`.
+- **Unified Payments Admin Page** (`/admin/payments`): Now has 5 tabs — **Overview** (revenue by source bar chart + payment methods summary with gradient KPI cards), **Transactions** (existing full transaction log), **Payout Requests** (full AdminPayoutsCenter embedded), **Payment Methods** (CRUD for all methods), **Feature Access** (per-method feature toggles).
+- **Admin SEO Page Enhanced** (`/admin/seo`): Added Google AdSense management tab (publisher ID + ad slot config) and Auto Crawler tab (simulated crawl log, scheduled crawl, submit-to-search-engines).
+- **Mobile Notification Fix**: Notification dropdown in both `navigation.tsx` and `navigation-fixed.tsx` uses `width: min(384px, calc(100vw - 1rem))` to prevent overflow on mobile.
+- **Schema Fields Added**: `users` table — `brandTier`, `latitude`, `longitude`, `state`, `city`, `seoTitle`, `seoDescription`, `seoKeywords`, `seoOgImage`.
+- **Dynamic sitemap.xml / robots.txt**: Already server-generated, sitemap includes profile pages with appropriate priorities.
+
 ## Recent Changes (April 2026 — Legal Pages, Newsletter Subscription, Admin CMS)
 - **4 Legal Pages Created** (`/terms`, `/privacy`, `/cookies`, `/disclaimer`): Full comprehensive content for each page — Terms of Service (14 sections), Privacy Policy (10 sections), Cookie Policy (5 sections with cookie tables), Disclaimer (11 sections). All pages are publicly accessible, no auth required.
 - **Legal Pages DB Table** (`legal_pages`): Stores slug, title, HTML content, and last-updated timestamp. Seeded automatically on server startup via `server/seed-legal.ts`.

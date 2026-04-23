@@ -1,4 +1,5 @@
 import { useParams, useLocation } from 'wouter';
+import { SeoHead } from '@/components/SeoHead';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -215,8 +216,27 @@ export default function BrandProfile() {
   const initials = (brand.companyName || brand.firstName || 'B')[0].toUpperCase();
   const canMessage = canMessageData?.canMessage ?? false;
 
+  const seoTitle = brand.seoTitle || `${companyName} — Brand Profile | Taskdrip`;
+  const seoDesc = brand.seoDescription || brand.bio || `Discover ${companyName} on Taskdrip. View campaigns, reviews, and connect with top influencers.`;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-gray-50">
+      <SeoHead
+        title={seoTitle}
+        description={seoDesc}
+        keywords={brand.seoKeywords || `${companyName}, brand, influencer marketing, campaigns, Taskdrip`}
+        ogImage={brand.seoOgImage || brand.profileImageUrl}
+        ogType="profile"
+        canonicalUrl={`${window.location.origin}/brand/${brandId}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: companyName,
+          url: `${window.location.origin}/brand/${brandId}`,
+          logo: brand.profileImageUrl,
+          description: seoDesc,
+        }}
+      />
       <NavigationFixed />
 
       <FollowListModal userId={brandId!} type="followers" open={followModalType === 'followers'} onClose={() => setFollowModalType(null)} />

@@ -44,6 +44,7 @@ import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import EscrowPayment from "@/pages/escrow-payment";
 import Influencers from "@/pages/influencers";
+import BrandsPage from "@/pages/brands";
 import FeedPage from "@/pages/feed";
 import CreatorProfile from "@/pages/influencer-profile";
 import Leaderboard from "@/pages/leaderboard";
@@ -128,6 +129,7 @@ function Router() {
       <Route path="/get-started" component={GetStarted} />
       <Route path="/influencers" component={Influencers} />
       <Route path="/influencers/:id" component={CreatorProfile} />
+      <Route path="/brands" component={BrandsPage} />
       <Route path="/profile/:id" component={UnifiedProfile} />
       <Route path="/brand/:id" component={BrandProfile} />
       <Route path="/feed" component={FeedPage} />
