@@ -49,3 +49,8 @@ waitForPort = 5000
 integrations = ["javascript_sendgrid:1.0.0", "javascript_auth_all_persistance:1.0.0", "javascript_websocket:1.0.0"]
 expertMode = true
 stack = "FULLSTACK_JS"
+
+[userenv]
+
+[userenv.shared]
+PORT = "5000"
