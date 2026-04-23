@@ -247,6 +247,7 @@ export function Footer() {
                   For Brands
                 </h4>
                 <ul className="space-y-3">
+                  <li><Link href="/brands" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-brands"><Users className="h-4 w-4 mr-2 flex-shrink-0" />Browse Brands</Link></li>
                   <li><Link href="/signup?type=brand" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Launch Campaign</Link></li>
                   <li><Link href="/influencers" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-influencers"><Users className="h-4 w-4 mr-2 flex-shrink-0" />Find Influencers</Link></li>
                   <li><Link href="/p2p-hub" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-p2p-market"><Store className="h-4 w-4 mr-2 flex-shrink-0" />P2P Market</Link></li>

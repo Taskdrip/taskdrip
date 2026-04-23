@@ -216,6 +216,7 @@ export function NavigationFixed() {
           { href: "/", label: "Home" },
           { href: "/admin-dashboard", label: "Admin" },
           { href: "/influencers", label: "Influencers" },
+          { href: "/brands", label: "Brands" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/p2p-hub", label: "P2P" },
         ],
