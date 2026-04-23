@@ -181,6 +181,124 @@ function SeoPageEditor({ slug, pageTitle }: { slug: string; pageTitle: string })
   );
 }
 
+function BuiltInAnalyticsDashboard() {
+  const [days, setDays] = useState(30);
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/admin/analytics/dashboard", days],
+    queryFn: async () => {
+      const r = await fetch(`/api/admin/analytics/dashboard?days=${days}`, { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+
+  const fmt = (n: number) => new Intl.NumberFormat().format(n || 0);
+  const maxDaily = Math.max(1, ...((data?.daily || []).map((d: any) => d.views)));
+
+  return (
+    <div className="rounded-2xl border border-purple-100 bg-white p-5">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <p className="font-bold text-gray-900 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-purple-600" />Built-in Site Analytics</p>
+          <p className="text-xs text-gray-500 mt-1">Privacy-friendly, no cookies. Tracks every public page view.</p>
+        </div>
+        <div className="flex gap-2">
+          {[7, 30, 90].map(d => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${days === d ? "bg-purple-600 text-white border-purple-600" : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"}`}
+              data-testid={`button-analytics-range-${d}`}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-8 text-center text-sm text-gray-500">Loading analytics…</div>
+      ) : !data ? (
+        <div className="py-8 text-center text-sm text-gray-500">No data yet. Visit some public pages to populate.</div>
+      ) : (
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
+              <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Total views</p>
+              <p className="text-2xl font-extrabold text-purple-900 mt-1" data-testid="text-analytics-total">{fmt(data.total)}</p>
+            </div>
+            <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+              <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Unique visitors</p>
+              <p className="text-2xl font-extrabold text-blue-900 mt-1" data-testid="text-analytics-unique">{fmt(data.uniqueVisitors)}</p>
+            </div>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+              <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Mobile share</p>
+              <p className="text-2xl font-extrabold text-emerald-900 mt-1">
+                {(() => {
+                  const tot = (data.devices || []).reduce((a: number, x: any) => a + x.views, 0) || 1;
+                  const m = (data.devices || []).find((x: any) => x.device === "mobile")?.views || 0;
+                  return `${Math.round((m / tot) * 100)}%`;
+                })()}
+              </p>
+            </div>
+            <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
+              <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Avg / day</p>
+              <p className="text-2xl font-extrabold text-amber-900 mt-1">{fmt(Math.round(data.total / Math.max(1, data.days)))}</p>
+            </div>
+          </div>
+
+          {data.daily?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-700 mb-2">Daily traffic</p>
+              <div className="flex items-end gap-1 h-28 bg-gray-50 rounded-xl p-2 border border-gray-100">
+                {data.daily.map((d: any) => (
+                  <div
+                    key={d.day}
+                    title={`${d.day}: ${d.views} views`}
+                    className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t"
+                    style={{ height: `${Math.max(2, (d.views / maxDaily) * 100)}%` }}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                <span>{data.daily[0]?.day}</span>
+                <span>{data.daily[data.daily.length - 1]?.day}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-700 mb-2">Top pages</p>
+              <div className="rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+                {(data.topPages || []).slice(0, 10).map((p: any) => (
+                  <div key={p.path} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50">
+                    <span className="truncate text-gray-700 font-mono text-xs">{p.path}</span>
+                    <span className="font-bold text-purple-700">{fmt(p.views)}</span>
+                  </div>
+                ))}
+                {(data.topPages || []).length === 0 && <div className="px-3 py-4 text-xs text-gray-400 text-center">No data</div>}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-700 mb-2">Top referrers</p>
+              <div className="rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+                {(data.topReferrers || []).slice(0, 10).map((p: any) => (
+                  <div key={p.referrer} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50">
+                    <span className="truncate text-gray-700 text-xs">{p.referrer === "direct" ? "Direct / none" : p.referrer}</span>
+                    <span className="font-bold text-blue-700">{fmt(p.views)}</span>
+                  </div>
+                ))}
+                {(data.topReferrers || []).length === 0 && <div className="px-3 py-4 text-xs text-gray-400 text-center">No data</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AnalyticsTab() {
   const { toast } = useToast();
   const { data: settings } = useQuery<any>({ queryKey: ["/api/pwa-settings"] });
@@ -237,6 +355,8 @@ function AnalyticsTab() {
           <p className="text-xs text-gray-500 mt-1.5">Fallback image used when a page has no specific OG image set</p>
         </div>
       </div>
+
+      <BuiltInAnalyticsDashboard />
 
       <div className="rounded-2xl bg-gray-50 border border-gray-200 p-5">
         <p className="font-semibold text-gray-800 mb-3">Quick Links</p>

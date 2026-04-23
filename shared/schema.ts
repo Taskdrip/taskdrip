@@ -1342,6 +1342,21 @@ export type PageSeoSettings = typeof pageSeoSettings.$inferSelect;
 export type InsertPageSeoSettings = z.infer<typeof insertPageSeoSettingsSchema>;
 
 // ──────────────────────────────────────────────────────────────
+// Page Views — built-in lightweight analytics
+// ──────────────────────────────────────────────────────────────
+export const pageViews = pgTable("page_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  path: varchar("path").notNull(),
+  referrer: varchar("referrer"),
+  userId: varchar("user_id"),
+  sessionId: varchar("session_id"),
+  userAgent: varchar("user_agent"),
+  country: varchar("country"),
+  device: varchar("device"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ──────────────────────────────────────────────────────────────
 // Footer Columns — admin-managed footer link columns
 // ──────────────────────────────────────────────────────────────
 export const footerColumns = pgTable("footer_columns", {

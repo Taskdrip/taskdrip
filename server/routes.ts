@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews } from "@shared/schema";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -8961,22 +8961,146 @@ Instructions:
     } catch { res.type('text/plain'); res.send('User-agent: *\nAllow: /\n'); }
   });
 
-  app.get('/sitemap.xml', async (_req, res) => {
+  app.get('/sitemap.xml', async (req, res) => {
     try {
-      const domain = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://taskdrip.online';
-      const staticPages = ['', '/tasks', '/p2p-hub', '/shop', '/influencers', '/about', '/blog', '/breedskool', '/leaderboard', '/advertise', '/contact', '/tdrip', '/signup'];
+      const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
+      const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
+      const domain = host
+        ? `${proto}://${host}`
+        : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://taskdrip.online');
+      const today = new Date().toISOString().split('T')[0];
+      const staticPages: { path: string; priority: string; changefreq: string }[] = [
+        { path: '', priority: '1.0', changefreq: 'daily' },
+        { path: '/tasks', priority: '0.9', changefreq: 'daily' },
+        { path: '/p2p-hub', priority: '0.9', changefreq: 'daily' },
+        { path: '/shop', priority: '0.9', changefreq: 'daily' },
+        { path: '/influencers', priority: '0.9', changefreq: 'daily' },
+        { path: '/brands', priority: '0.9', changefreq: 'daily' },
+        { path: '/feed', priority: '0.8', changefreq: 'hourly' },
+        { path: '/blog', priority: '0.8', changefreq: 'daily' },
+        { path: '/breedskool', priority: '0.8', changefreq: 'weekly' },
+        { path: '/leaderboard', priority: '0.7', changefreq: 'daily' },
+        { path: '/advertise', priority: '0.7', changefreq: 'monthly' },
+        { path: '/about', priority: '0.6', changefreq: 'monthly' },
+        { path: '/contact', priority: '0.6', changefreq: 'monthly' },
+        { path: '/tdrip', priority: '0.7', changefreq: 'weekly' },
+        { path: '/signup', priority: '0.7', changefreq: 'monthly' },
+        { path: '/login', priority: '0.5', changefreq: 'monthly' },
+        { path: '/terms', priority: '0.3', changefreq: 'yearly' },
+        { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
+        { path: '/cookies', priority: '0.3', changefreq: 'yearly' },
+        { path: '/disclaimer', priority: '0.3', changefreq: 'yearly' },
+      ];
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-      for (const page of staticPages) {
-        xml += `  <url><loc>${domain}${page}</loc><changefreq>weekly</changefreq><priority>${page === '' ? '1.0' : '0.8'}</priority></url>\n`;
+      for (const p of staticPages) {
+        xml += `  <url><loc>${domain}${p.path}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>\n`;
       }
-      const blogPostsList = await db.select({ slug: posts.slug }).from(posts).where(eq(posts.status, 'published')).limit(200);
-      for (const post of blogPostsList) {
-        if (post.slug) xml += `  <url><loc>${domain}/blog/${post.slug}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
-      }
+      try {
+        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq(posts.status, 'published')).limit(500);
+        for (const post of blogPostsList) {
+          if (post.slug) {
+            const lm = post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : today;
+            xml += `  <url><loc>${domain}/blog/${post.slug}</loc><lastmod>${lm}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+          }
+        }
+      } catch {}
+      try {
+        const productList = await db.select({ id: shopProducts.id }).from(shopProducts).limit(500);
+        for (const p of productList) {
+          xml += `  <url><loc>${domain}/shop/product/${p.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+        }
+      } catch {}
+      try {
+        const creatorList = await db.select({ id: users.id }).from(users).where(eq(users.userType, 'influencer')).limit(500);
+        for (const c of creatorList) {
+          xml += `  <url><loc>${domain}/influencers/${c.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+        }
+      } catch {}
+      try {
+        const brandList = await db.select({ id: users.id }).from(users).where(eq(users.userType, 'brand')).limit(500);
+        for (const b of brandList) {
+          xml += `  <url><loc>${domain}/brand/${b.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+        }
+      } catch {}
       xml += `</urlset>`;
+      res.setHeader('Cache-Control', 'public, max-age=3600');
       res.type('application/xml');
       res.send(xml);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ── Internal Page View Analytics ──────────────────────────────────────────
+  app.post('/api/analytics/track', async (req: any, res) => {
+    try {
+      const { path, referrer, sessionId } = req.body || {};
+      if (!path || typeof path !== 'string') return res.status(400).json({ message: 'path required' });
+      if (path.startsWith('/api') || path.startsWith('/admin')) return res.json({ ok: true, skipped: true });
+      const ua = (req.headers['user-agent'] || '').toString().slice(0, 255);
+      const device = /mobile|iphone|ipad|android/i.test(ua) ? 'mobile' : 'desktop';
+      await db.insert(pageViews).values({
+        path: path.slice(0, 255),
+        referrer: referrer ? String(referrer).slice(0, 255) : null,
+        userId: req.user?.id || null,
+        sessionId: sessionId ? String(sessionId).slice(0, 64) : null,
+        userAgent: ua,
+        device,
+      });
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(200).json({ ok: false, error: e.message });
+    }
+  });
+
+  app.get('/api/admin/analytics/dashboard', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const days = Math.min(90, Math.max(1, parseInt(String(req.query.days || '30'), 10)));
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const totalRows = await db.select({ c: count() }).from(pageViews).where(gte(pageViews.createdAt, since));
+      const total = Number(totalRows[0]?.c || 0);
+
+      const uniqueVisitorRows = await db.execute(sql`
+        SELECT COUNT(DISTINCT COALESCE(session_id, user_id, user_agent)) AS c
+        FROM page_views WHERE created_at >= ${since}
+      `);
+      const uniqueVisitors = Number((uniqueVisitorRows.rows?.[0] as any)?.c || 0);
+
+      const topPagesRows = await db.execute(sql`
+        SELECT path, COUNT(*)::int AS views
+        FROM page_views WHERE created_at >= ${since}
+        GROUP BY path ORDER BY views DESC LIMIT 15
+      `);
+      const topPages = (topPagesRows.rows || []) as { path: string; views: number }[];
+
+      const topReferrersRows = await db.execute(sql`
+        SELECT COALESCE(NULLIF(referrer, ''), 'direct') AS referrer, COUNT(*)::int AS views
+        FROM page_views WHERE created_at >= ${since}
+        GROUP BY referrer ORDER BY views DESC LIMIT 10
+      `);
+      const topReferrers = (topReferrersRows.rows || []) as { referrer: string; views: number }[];
+
+      const dailyRows = await db.execute(sql`
+        SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)::int AS views
+        FROM page_views WHERE created_at >= ${since}
+        GROUP BY day ORDER BY day ASC
+      `);
+      const daily = (dailyRows.rows || []).map((r: any) => ({
+        day: new Date(r.day).toISOString().split('T')[0],
+        views: Number(r.views),
+      }));
+
+      const deviceRows = await db.execute(sql`
+        SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
+        FROM page_views WHERE created_at >= ${since}
+        GROUP BY device ORDER BY views DESC
+      `);
+      const devices = (deviceRows.rows || []) as { device: string; views: number }[];
+
+      res.json({ days, total, uniqueVisitors, topPages, topReferrers, daily, devices });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   });
 
   // ── Legal Pages (public read, admin write) ────────────────────────────────

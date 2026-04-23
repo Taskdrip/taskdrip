@@ -73,7 +73,7 @@ import TDripInfoPage from "@/pages/tdrip-info";
 import AdminCMSEditor from "@/pages/admin-cms-editor";
 import AdminSEO from "@/pages/admin-seo";
 import { LegalPageTemplate } from "@/pages/legal-page";
-import { injectAnalytics, trackPageView } from "@/hooks/useSeoMeta";
+import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
 
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
@@ -258,41 +258,6 @@ function ThemeLoader() {
   return null;
 }
 
-function AnalyticsLoader() {
-  const [location] = useLocation();
-  useEffect(() => {
-    fetch("/api/pwa-settings")
-      .then(r => r.ok ? r.json() : null)
-      .then((settings: any) => {
-        if (!settings) return;
-        if (settings.gaTrackingId) injectAnalytics(settings.gaTrackingId, settings.gtmId || undefined);
-        if (settings.googleSiteVerification) {
-          let el = document.querySelector('meta[name="google-site-verification"]') as HTMLMetaElement;
-          if (!el) { el = document.createElement("meta"); el.setAttribute("name", "google-site-verification"); document.head.appendChild(el); }
-          el.setAttribute("content", settings.googleSiteVerification);
-        }
-        if (settings.bingVerification) {
-          let el = document.querySelector('meta[name="msvalidate.01"]') as HTMLMetaElement;
-          if (!el) { el = document.createElement("meta"); el.setAttribute("name", "msvalidate.01"); document.head.appendChild(el); }
-          el.setAttribute("content", settings.bingVerification);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/pwa-settings")
-      .then(r => r.ok ? r.json() : null)
-      .then((settings: any) => {
-        if (settings?.gaTrackingId && (window as any).gtag) {
-          trackPageView(location, settings.gaTrackingId);
-        }
-      })
-      .catch(() => {});
-  }, [location]);
-
-  return null;
-}
 
 function App() {
   return (
@@ -300,7 +265,8 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <ThemeLoader />
-        <AnalyticsLoader />
+        <GlobalSeo />
+        <RouteSeo />
         <ScrollToTop />
         <DailyLoginBonus />
         <Router />

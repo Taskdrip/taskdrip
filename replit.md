@@ -433,3 +433,17 @@ Design preferences: Clean, professional web app design with white background and
 - **Enhanced proof-submitted page** (`/escrow-payment`): Shows order summary, before/after charge breakdown with platform fees, payment details, and "View My Orders" button
 - **Navigation**: "My Orders" link added to user dropdown menu in navigation
 - **Dashboard links**: Quick-access buttons added in user dashboard and brand dashboard
+
+### SEO & Analytics Overhaul (Added April 2026)
+- **GlobalSeo component** (`client/src/components/GlobalSeo.tsx`):
+  - Reads admin-managed PWA settings via React Query
+  - Injects GA4 (gtag.js) and Google Tag Manager scripts when IDs are present
+  - Sets `google-site-verification` and `msvalidate.01` (Bing) meta tags
+  - Tracks SPA page views to GA + internal `/api/analytics/track`
+- **RouteSeo component** (same file): Maps URL paths → `slug` + sensible default title/description for ~17 main public pages plus dynamic patterns (`/blog/:slug`, `/influencers/:id`, `/brand/:id`, `/shop/product/:id`, `/breedskool/:id`, `/p2p/:id`, `/campaigns/:id`). Pulls per-page overrides from `/api/seo/page/:slug` (admin-editable) and falls back to defaults. Skips admin/dashboard/profile paths.
+- **Built-in analytics** (`pageViews` table):
+  - `POST /api/analytics/track` — per-pageview write (skips /admin, /api, /dashboard*)
+  - `GET /api/admin/analytics/dashboard?days=N` — aggregated metrics (total, unique by session/user/UA, top pages, top referrers, daily trend, device split)
+  - Admin SEO → Analytics tab now shows live dashboard with 7/30/90-day toggle
+- **Enhanced sitemap.xml**: Honours request host (works on Railway), includes 20 static routes + lastmod + dynamic blog posts, products, creator profiles and brand profiles (capped at 500 each).
+- **Removed**: legacy `AnalyticsLoader` in `App.tsx` (superseded by `GlobalSeo`).
