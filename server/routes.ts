@@ -30,8 +30,29 @@ import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
+import memoizee from "memoizee";
 
-const upload = multer({ dest: 'uploads/' });
+// Preserve original file extensions so static file middleware can serve them
+// with the correct Content-Type and so the extension allowlist in server/index.ts
+// doesn't block them. Also enforce a 25MB per-file limit and block dangerous types.
+const DANGEROUS_EXTS = new Set(['.exe', '.bat', '.cmd', '.sh', '.ps1', '.scr', '.vbs', '.jar', '.msi', '.com', '.dll', '.app']);
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: 'uploads/',
+    filename: (_req, file, cb) => {
+      const raw = path.extname(file.originalname || '').toLowerCase();
+      const ext = /^\.[a-z0-9]{1,6}$/.test(raw) ? raw : '';
+      if (DANGEROUS_EXTS.has(ext)) return cb(new Error('File type not allowed'), '');
+      cb(null, `${nanoid()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const raw = path.extname(file.originalname || '').toLowerCase();
+    if (DANGEROUS_EXTS.has(raw)) return cb(new Error('File type not allowed') as any, false);
+    cb(null, true);
+  },
+});
 
 const TDRIP_POINTS_PER_USD = 100;
 
@@ -400,43 +421,69 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // Creators grouped by tier - sorted highest to lowest within each tier
+  // Creators grouped by tier - sorted highest to lowest within each tier.
   // Tier is ALWAYS recomputed from the sum of social-media followers, never trusted from the stored field.
-  app.get('/api/creators/by-tier', async (req, res) => {
+  // Memoized for 60s since this is an O(N) computation over all creators and is polled by landing + influencers pages.
+  const buildCreatorsByTier = memoizee(async () => {
+    const creators = await storage.getCreators();
+    const tierOrder = ['global_titans', 'power_influencers', 'growth_engines', 'rising_sparks', 'aspiring', 'newcomer'];
+    const grouped: Record<string, any[]> = {
+      global_titans: [], power_influencers: [], growth_engines: [],
+      rising_sparks: [], aspiring: [], newcomer: [],
+    };
+    const platformKeys = [
+      'tiktokFollowers', 'youtubeFollowers', 'instagramFollowers',
+      'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers',
+    ];
+    const computeTier = (n: number) => {
+      if (n >= 10_000_000) return 'global_titans';
+      if (n >= 1_000_000) return 'power_influencers';
+      if (n >= 100_000) return 'growth_engines';
+      if (n >= 10_000) return 'rising_sparks';
+      if (n >= 1) return 'aspiring';
+      return 'newcomer';
+    };
+    for (const creator of creators) {
+      const { password, ...safe } = creator as any;
+      const reach = platformKeys.reduce((s, k) => s + (Number(safe[k]) || 0), 0);
+      safe.totalFollowers = reach;
+      safe.creatorTier = computeTier(reach);
+      grouped[safe.creatorTier].push(safe);
+    }
+    for (const tier of tierOrder) {
+      grouped[tier].sort((a: any, b: any) => (b.totalFollowers || 0) - (a.totalFollowers || 0));
+    }
+    return grouped;
+  }, { maxAge: 60_000, promise: true });
+
+  app.get('/api/creators/by-tier', async (_req, res) => {
     try {
-      const creators = await storage.getCreators();
-      const tierOrder = ['global_titans', 'power_influencers', 'growth_engines', 'rising_sparks', 'aspiring', 'newcomer'];
-      const grouped: Record<string, any[]> = {
-        global_titans: [], power_influencers: [], growth_engines: [],
-        rising_sparks: [], aspiring: [], newcomer: [],
-      };
-      const platformKeys = [
-        'tiktokFollowers', 'youtubeFollowers', 'instagramFollowers',
-        'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers',
-      ];
-      const computeTier = (n: number) => {
-        if (n >= 10_000_000) return 'global_titans';
-        if (n >= 1_000_000) return 'power_influencers';
-        if (n >= 100_000) return 'growth_engines';
-        if (n >= 10_000) return 'rising_sparks';
-        if (n >= 1) return 'aspiring';
-        return 'newcomer';
-      };
-      for (const creator of creators) {
-        const { password, ...safe } = creator as any;
-        const reach = platformKeys.reduce((s, k) => s + (Number(safe[k]) || 0), 0);
-        safe.totalFollowers = reach;
-        safe.creatorTier = computeTier(reach);
-        grouped[safe.creatorTier].push(safe);
-      }
-      for (const tier of tierOrder) {
-        grouped[tier].sort((a: any, b: any) => (b.totalFollowers || 0) - (a.totalFollowers || 0));
-      }
+      const grouped = await buildCreatorsByTier();
       res.json(grouped);
     } catch (error) {
       console.error("Error fetching creators by tier:", error);
       res.status(500).json({ message: "Failed to fetch creators by tier" });
     }
+  });
+
+  // ── Typing indicator (in-memory, short-lived) ────────────────────────────
+  // Lets the messages/chat pages show "… is typing" in near-real time via polling
+  // without pulling in a websocket dependency. Entries auto-expire after 4s.
+  const typingMap = new Map<string, number>();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, ts] of typingMap) if (now - ts > 8000) typingMap.delete(k);
+  }, 10_000).unref?.();
+
+  app.post('/api/typing', isAuthenticated, (req: any, res) => {
+    const receiverId = req.body?.receiverId;
+    if (!receiverId) return res.status(400).json({ message: 'receiverId required' });
+    typingMap.set(`${req.user.id}:${receiverId}`, Date.now());
+    res.json({ ok: true });
+  });
+  app.get('/api/typing/:senderId', isAuthenticated, (req: any, res) => {
+    const ts = typingMap.get(`${req.params.senderId}:${req.user.id}`) || 0;
+    res.json({ typing: Date.now() - ts < 4000 });
   });
 
   // Brands discovery — grouped by brand tier

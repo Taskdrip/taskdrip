@@ -34,6 +34,12 @@ interface Conversation {
   unreadCount: number;
 }
 
+interface MessageAttachment {
+  url: string;
+  name?: string;
+  type?: string;
+  size?: number;
+}
 interface ThreadMessage {
   id: string;
   campaignId: string | null;
@@ -45,6 +51,7 @@ interface ThreadMessage {
   isRead: boolean;
   createdAt: string;
   sender: Participant | null;
+  attachments?: MessageAttachment[] | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -118,18 +125,34 @@ export default function MessagesPage() {
   const { data: conversations = [], isLoading: convsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
     enabled: !!user,
-    refetchInterval: 10000,
+    refetchInterval: 4000,
+    refetchIntervalInBackground: false,
   });
 
   const selectedConv = conversations.find(c => c.id === selectedConvId) ?? null;
 
-  // Thread
+  // Thread — poll frequently while a conversation is open so new messages feel instant.
   const { data: thread = [], isLoading: threadLoading } = useQuery<ThreadMessage[]>({
     queryKey: ["/api/conversations", selectedConvId, "thread"],
     queryFn: () => apiRequest("GET", `/api/conversations/${selectedConvId}/thread`).then(r => r.json()),
     enabled: !!selectedConvId,
-    refetchInterval: 6000,
+    refetchInterval: 1800,
+    refetchIntervalInBackground: false,
   });
+
+  // Typing indicator — peer presence
+  const peerId = selectedConv ? (selectedConv.participants?.find((p: any) => p.id !== user?.id)?.id) : null;
+  const { data: peerTyping } = useQuery<{ typing: boolean }>({
+    queryKey: ['/api/typing', peerId],
+    queryFn: () => fetch(`/api/typing/${peerId}`, { credentials: 'include' }).then(r => r.json()),
+    enabled: !!peerId,
+    refetchInterval: 2000,
+    refetchIntervalInBackground: false,
+  });
+  const pingTyping = () => {
+    if (!peerId) return;
+    fetch('/api/typing', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ receiverId: peerId }) }).catch(() => {});
+  };
 
   const { data: campaigns = [] } = useQuery<any[]>({
     queryKey: isBrand ? ["/api/campaigns/brand", user?.id] : ["/api/user/campaigns"],
@@ -699,7 +722,43 @@ export default function MessagesPage() {
                                 <span className="text-[10px] font-semibold text-violet-700 uppercase tracking-wide">Admin</span>
                               </div>
                             )}
-                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                            {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                            {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                              <div className={`mt-2 flex flex-col gap-2 ${msg.content ? '' : '-m-1'}`} data-testid={`attachments-${msg.id}`}>
+                                {msg.attachments.map((att, i) => {
+                                  const isImage = /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(att.url) || att.type?.startsWith('image/');
+                                  const isPdf = /\.pdf(\?|$)/i.test(att.url) || att.type === 'application/pdf';
+                                  const isVideo = /\.(mp4|mov|webm)(\?|$)/i.test(att.url) || att.type?.startsWith('video/');
+                                  if (isImage) {
+                                    return (
+                                      <a key={i} href={att.url} target="_blank" rel="noreferrer" className="block">
+                                        <img src={att.url} alt={att.name || 'attachment'} loading="lazy"
+                                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                          className="max-h-64 max-w-full rounded-lg object-cover" />
+                                      </a>
+                                    );
+                                  }
+                                  if (isVideo) {
+                                    return <video key={i} src={att.url} controls className="max-h-64 max-w-full rounded-lg" />;
+                                  }
+                                  if (isPdf) {
+                                    return (
+                                      <a key={i} href={att.url} target="_blank" rel="noreferrer"
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isMine ? 'bg-blue-700/40 border-blue-300/40 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                                        <span className="text-xs font-medium truncate max-w-[180px]">{att.name || 'PDF document'}</span>
+                                      </a>
+                                    );
+                                  }
+                                  return (
+                                    <a key={i} href={att.url} target="_blank" rel="noreferrer"
+                                      className={`text-xs underline ${isMine ? 'text-blue-100' : 'text-blue-600'}`}>
+                                      {att.name || att.url.split('/').pop()}
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                           {!showSender && (
                             <span className="text-[10px] text-slate-400 px-1 mt-0.5">{formatTime(msg.createdAt)}</span>
@@ -708,6 +767,16 @@ export default function MessagesPage() {
                       </div>
                     );
                   })
+                )}
+                {peerTyping?.typing && (
+                  <div className="flex gap-2" data-testid="typing-indicator">
+                    <div className="w-7 flex-shrink-0" />
+                    <div className="bg-white border border-slate-200 rounded-2xl px-3 py-2 flex items-center gap-1 shadow-sm">
+                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
                 )}
                 <div ref={threadEndRef} />
               </div>
@@ -736,7 +805,7 @@ export default function MessagesPage() {
                     <div className="flex gap-2 items-end">
                       <Textarea
                         value={replyText}
-                        onChange={e => setReplyText(e.target.value)}
+                        onChange={e => { setReplyText(e.target.value); pingTyping(); }}
                         placeholder="Type a message…"
                         className="flex-1 min-h-[44px] max-h-[120px] resize-none text-sm py-2.5"
                         onKeyDown={e => {

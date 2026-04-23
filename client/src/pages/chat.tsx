@@ -158,8 +158,21 @@ export default function ChatPage() {
   const { data: allMessages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
     retry: false,
-    refetchInterval: 3000,
+    refetchInterval: 1500,
+    refetchIntervalInBackground: false,
   });
+
+  // ── Typing indicator ─────────────────────────────────────────────────────
+  const { data: peerTyping } = useQuery<{ typing: boolean }>({
+    queryKey: ['/api/typing', selectedConversation],
+    queryFn: () => fetch(`/api/typing/${selectedConversation}`, { credentials: 'include' }).then(r => r.json()),
+    enabled: !!selectedConversation,
+    refetchInterval: 2000,
+  });
+  const pingTyping = () => {
+    if (!selectedConversation) return;
+    fetch('/api/typing', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ receiverId: selectedConversation }) }).catch(() => {});
+  };
 
   // Build conversations from messages
   useEffect(() => {
@@ -474,6 +487,15 @@ export default function ChatPage() {
                     ))}
                   </div>
                 )}
+                {peerTyping?.typing && (
+                  <div className="flex items-end gap-2 px-4 pb-2" data-testid="typing-indicator">
+                    <div className="bg-gray-100 rounded-2xl px-4 py-2 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </ScrollArea>
 
@@ -516,7 +538,7 @@ export default function ChatPage() {
                   <Input
                     ref={inputRef}
                     value={content}
-                    onChange={e => setContent(e.target.value)}
+                    onChange={e => { setContent(e.target.value); pingTyping(); }}
                     onKeyDown={handleKeyDown}
                     placeholder={`Message ${activeConv.userName}...`}
                     className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-sm py-1 px-0"

@@ -139,11 +139,35 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/uploads', (req, res, next) => {
+// Legacy uploads saved without extensions still need to be served. We allow
+// empty extension (legacy) plus an explicit allowlist, and rely on nosniff +
+// magic-byte Content-Type detection below so the browser renders them correctly.
+const LEGACY_UPLOAD_MIME: Array<[Buffer, string]> = [
+  [Buffer.from([0xff, 0xd8, 0xff]), 'image/jpeg'],
+  [Buffer.from([0x89, 0x50, 0x4e, 0x47]), 'image/png'],
+  [Buffer.from([0x47, 0x49, 0x46, 0x38]), 'image/gif'],
+  [Buffer.from([0x25, 0x50, 0x44, 0x46]), 'application/pdf'],
+  [Buffer.from('RIFF'), 'image/webp'],
+];
+app.use('/uploads', async (req, res, next) => {
   const ext = path.extname(req.path).toLowerCase();
-  const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.mp4', '.mov', '.pdf'];
+  const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.mp4', '.mov', '.pdf', ''];
   if (!allowed.includes(ext)) {
     return res.status(403).json({ message: "Forbidden" });
+  }
+  // Legacy files with no extension: sniff magic bytes and set a proper Content-Type.
+  if (ext === '') {
+    try {
+      const fs = await import('fs/promises');
+      const full = path.resolve('uploads', path.basename(req.path));
+      const fh = await fs.open(full, 'r');
+      const buf = Buffer.alloc(12);
+      await fh.read(buf, 0, 12, 0);
+      await fh.close();
+      for (const [sig, mime] of LEGACY_UPLOAD_MIME) {
+        if (buf.subarray(0, sig.length).equals(sig)) { res.setHeader('Content-Type', mime); break; }
+      }
+    } catch { /* fall through to static */ }
   }
   next();
 }, express.static(path.resolve('uploads'), {

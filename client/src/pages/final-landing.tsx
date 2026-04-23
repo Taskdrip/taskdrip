@@ -27,7 +27,10 @@ import {
   BookOpen,
   ArrowUpRight,
   Coins,
+  Crown,
+  Trophy,
 } from "lucide-react";
+import { TIER_CONFIG, TIER_ORDER, formatFollowers, type CreatorTier } from "@/lib/tiers";
 
 interface Slide {
   id: string;
@@ -725,6 +728,8 @@ export default function FinalLanding() {
         </div>
       </section>
 
+      <TierShowcaseSection />
+
       {/* Direct Hire CTA */}
       <section className="py-12 sm:py-16 bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -794,5 +799,80 @@ export default function FinalLanding() {
       <AdSlot page="landing" placementType="banner_bottom" className="w-full" />
       <Footer />
     </div>
+  );
+}
+
+// ── Creator Tier showcase ─────────────────────────────────────────────────────
+// Highlights the six creator tiers on the landing page with live counts from
+// /api/creators/by-tier. The endpoint is memoized server-side so this is cheap.
+function TierShowcaseSection() {
+  const { data: byTier = {} as Record<string, any[]> } = useQuery<Record<string, any[]>>({
+    queryKey: ["/api/creators/by-tier"],
+    staleTime: 60_000,
+  });
+
+  return (
+    <section className="py-16 sm:py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10 sm:mb-14">
+          <Badge className="mb-3 bg-purple-100 text-purple-700 border-0 text-xs px-4 py-1.5">
+            <Trophy className="w-3.5 h-3.5 mr-1" /> Creator Tiers
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight">
+            Every Creator Has a Place Here
+          </h2>
+          <p className="text-gray-500 mt-4 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            From first post to global impact — brands discover influencers across six reach tiers, each optimized for the right campaigns.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {TIER_ORDER.map((tierKey) => {
+            const cfg = TIER_CONFIG[tierKey as CreatorTier];
+            const count = byTier[tierKey]?.length ?? 0;
+            return (
+              <Link key={tierKey} href={`/influencers?tier=${tierKey}`}>
+                <Card
+                  className={`group cursor-pointer overflow-hidden border ${cfg.border} ${cfg.bg} hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full`}
+                  data-testid={`card-tier-${tierKey}`}
+                >
+                  <div className={`h-1.5 bg-gradient-to-r ${cfg.gradient}`} />
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center text-xl shadow-sm`}>
+                        <span className="text-white">{cfg.icon}</span>
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] font-semibold ${cfg.badge} border-0`}>
+                        {cfg.rangeShort}
+                      </Badge>
+                    </div>
+                    <h3 className={`font-black text-sm sm:text-base ${cfg.text} mb-1 leading-tight`} data-testid={`text-tier-name-${tierKey}`}>
+                      {cfg.name}
+                    </h3>
+                    <p className="text-gray-500 text-[11px] sm:text-xs leading-relaxed line-clamp-2 mb-3">
+                      {cfg.description}
+                    </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200/60">
+                      <span className="text-[11px] text-gray-400 font-medium">Creators</span>
+                      <span className={`text-sm font-black ${cfg.text}`} data-testid={`text-tier-count-${tierKey}`}>
+                        {count.toLocaleString()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="text-center mt-10">
+          <Link href="/influencers">
+            <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-bold px-8 shadow-lg" data-testid="button-browse-all-tiers">
+              Browse All Creators <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }

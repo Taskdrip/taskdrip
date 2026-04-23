@@ -607,12 +607,11 @@ export default function CreatorProfile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a]">
+      <div className="min-h-screen bg-gray-50">
         <NavigationFixed />
         <div className="flex items-center justify-center h-96">
           <div className="relative">
-            <div className="animate-spin rounded-full h-14 w-14 border-2 border-purple-500/30 border-t-purple-500" />
-            <div className="absolute inset-0 rounded-full blur-md bg-purple-500/20 animate-pulse" />
+            <div className="animate-spin rounded-full h-14 w-14 border-2 border-purple-200 border-t-purple-600" />
           </div>
         </div>
       </div>
@@ -1064,8 +1063,25 @@ export default function CreatorProfile() {
                           />
                         </div>
                       ) : item.imageUrl ? (
-                        <div className="aspect-video overflow-hidden bg-gray-100">
-                          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <div className="aspect-video overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 relative">
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              const el = e.currentTarget as HTMLImageElement;
+                              el.style.display = 'none';
+                              const parent = el.parentElement;
+                              if (parent && !parent.querySelector('[data-fallback]')) {
+                                const fb = document.createElement('div');
+                                fb.setAttribute('data-fallback', 'true');
+                                fb.className = 'absolute inset-0 flex items-center justify-center text-purple-300';
+                                fb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>';
+                                parent.appendChild(fb);
+                              }
+                            }}
+                          />
                         </div>
                       ) : (
                         <div className="aspect-video overflow-hidden bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
