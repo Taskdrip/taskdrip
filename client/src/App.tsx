@@ -72,6 +72,8 @@ import MyOrdersPage from "@/pages/my-orders";
 import TDripInfoPage from "@/pages/tdrip-info";
 import AdminCMSEditor from "@/pages/admin-cms-editor";
 import AdminSEO from "@/pages/admin-seo";
+import AdminLeads from "@/pages/admin-leads";
+import AdminLeadDetail from "@/pages/admin-lead-detail";
 import { LegalPageTemplate } from "@/pages/legal-page";
 import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
 
@@ -110,6 +112,8 @@ function Router() {
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin/cms" component={AdminCMSEditor} />
       <Route path="/admin/seo" component={AdminSEO} />
+      <Route path="/admin/leads" component={AdminLeads} />
+      <Route path="/admin/leads/:id" component={AdminLeadDetail} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/breedskool" component={BreedSkool} />
       <Route path="/breedskool/:id" component={BreedSkoolCourse} />

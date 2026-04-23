@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages } from "@shared/schema";
+import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
 
@@ -9101,6 +9102,224 @@ Instructions:
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
+  });
+
+  // ── Lead Discovery & Outreach (admin) ─────────────────────────────────────
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+    if (req.user.userType !== "admin" && req.user.role !== "admin") return res.status(403).json({ message: "Admin only" });
+    next();
+  };
+
+  app.get('/api/admin/leads/providers', isAuthenticated, requireAdmin, (_req, res) => {
+    res.json(providerStatus());
+  });
+
+  app.get('/api/admin/leads', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const {
+        kind, niche, businessType, country, city, status,
+        search, minFollowers, hasPhone, hasWebsite, hasEmail,
+        limit = "100", offset = "0",
+      } = req.query;
+      const conds: any[] = [];
+      if (kind) conds.push(eq(leads.kind, String(kind)));
+      if (niche) conds.push(sql`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+      if (businessType) conds.push(sql`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
+      if (country) conds.push(eq(leads.country, String(country)));
+      if (city) conds.push(sql`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
+      if (status) conds.push(eq(leads.status, String(status)));
+      if (search) {
+        const s = `%${String(search).toLowerCase()}%`;
+        conds.push(sql`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+      }
+      if (minFollowers) conds.push(sql`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
+      if (hasPhone === "true") conds.push(sql`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
+      if (hasWebsite === "true") conds.push(sql`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
+      if (hasEmail === "true") conds.push(sql`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
+
+      const where = conds.length ? and(...conds) : undefined;
+      const rows = await db.select().from(leads).where(where as any).orderBy(desc(leads.createdAt))
+        .limit(Math.min(500, parseInt(String(limit), 10) || 100))
+        .offset(parseInt(String(offset), 10) || 0);
+      const totalRow = await db.select({ c: count() }).from(leads).where(where as any);
+      res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/leads/stats', isAuthenticated, requireAdmin, async (_req, res) => {
+    try {
+      const [byKind, byStatus, byCountry, byNiche, totalRow] = await Promise.all([
+        db.execute(sql`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
+        db.execute(sql`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
+        db.execute(sql`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
+        db.execute(sql`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
+        db.select({ c: count() }).from(leads),
+      ]);
+      res.json({
+        total: Number(totalRow[0]?.c || 0),
+        byKind: byKind.rows || [],
+        byStatus: byStatus.rows || [],
+        byCountry: byCountry.rows || [],
+        byNiche: byNiche.rows || [],
+      });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/admin/leads/:id', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const [lead] = await db.select().from(leads).where(eq(leads.id, req.params.id)).limit(1);
+      if (!lead) return res.status(404).json({ message: "Not found" });
+      const msgs = await db.select().from(leadMessages).where(eq(leadMessages.leadId, lead.id)).orderBy(desc(leadMessages.createdAt));
+      res.json({ lead, messages: msgs });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/leads/:id', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const allowed: any = {};
+      const fields = ["name","niche","businessType","country","city","address","phone","whatsapp","email","website","socialLinks","followers","yearsInBusiness","description","tags","status","aiSummary","aiReport"];
+      for (const f of fields) if (f in req.body) allowed[f] = (req.body as any)[f];
+      allowed.updatedAt = new Date();
+      const [updated] = await db.update(leads).set(allowed).where(eq(leads.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.delete('/api/admin/leads/:id', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      await db.delete(leadMessages).where(eq(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq(leads.id, req.params.id));
+      res.json({ ok: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/leads/manual', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const body = req.body || {};
+      if (!body.name || !body.kind) return res.status(400).json({ message: "name and kind required" });
+      const [row] = await db.insert(leads).values({ ...body, source: body.source || "manual" }).returning();
+      res.json(row);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/leads/discover/businesses', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { query, location, country, maxResults } = req.body || {};
+      if (!query) return res.status(400).json({ message: "query required" });
+      const found = await searchBusinessesGoogle({ query, location, country, maxResults });
+      const saved = await persistLeads(found);
+      res.json({ found: found.length, saved: saved.length, items: saved });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/leads/discover/influencers', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const { query, country, maxResults, includeInternal } = req.body || {};
+      const items: any[] = [];
+      if (query) {
+        try {
+          const yt = await searchInfluencersYouTube({ query, country, maxResults });
+          items.push(...yt);
+        } catch (e: any) {
+          if (!includeInternal) throw e;
+        }
+      }
+      if (includeInternal) {
+        const internal = await db.select().from(users).where(eq(users.userType, "influencer")).limit(50);
+        for (const u of internal) {
+          items.push({
+            kind: "influencer",
+            source: "internal",
+            externalId: `internal_${u.id}`,
+            name: (u as any).displayName || u.username || (u as any).firstName || "Creator",
+            niche: (u as any).primaryNiche || query || null,
+            country: (u as any).country || country || null,
+            email: (u as any).email || null,
+            followers: (u as any).totalFollowers || null,
+            socialLinks: {
+              instagram: (u as any).instagramHandle ? `https://instagram.com/${(u as any).instagramHandle}` : null,
+              tiktok: (u as any).tiktokHandle ? `https://tiktok.com/@${(u as any).tiktokHandle}` : null,
+              youtube: (u as any).youtubeHandle ? `https://youtube.com/@${(u as any).youtubeHandle}` : null,
+              x: (u as any).twitterHandle ? `https://x.com/${(u as any).twitterHandle}` : null,
+              telegram: (u as any).telegramHandle ? `https://t.me/${(u as any).telegramHandle}` : null,
+            },
+          });
+        }
+      }
+      const saved = await persistLeads(items);
+      res.json({ found: items.length, saved: saved.length, items: saved });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/leads/:id/ai-report', isAuthenticated, requireAdmin, async (req, res) => {
+    try {
+      const [lead] = await db.select().from(leads).where(eq(leads.id, req.params.id)).limit(1);
+      if (!lead) return res.status(404).json({ message: "Not found" });
+      const out = await generateAiReport(lead);
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: new Date() }).where(eq(leads.id, lead.id)).returning();
+      res.json(updated);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/leads/:id/messages', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { channel, body, provider } = req.body || {};
+      if (!channel) return res.status(400).json({ message: "channel required" });
+      const [lead] = await db.select().from(leads).where(eq(leads.id, req.params.id)).limit(1);
+      if (!lead) return res.status(404).json({ message: "Not found" });
+
+      let result: any = { status: "logged", provider: provider || "manual" };
+      if (channel === "sms" && provider === "twilio") {
+        const phone = lead.phone || lead.whatsapp;
+        if (!phone) return res.status(400).json({ message: "Lead has no phone" });
+        const out = await sendSmsTwilio(phone, body || "");
+        result = { status: out.error ? "failed" : "sent", provider: "twilio", providerId: out.sid, error: out.error };
+      } else if (channel === "whatsapp") {
+        result.provider = "wa_link";
+      } else if (channel === "call") {
+        result.provider = "tel_link";
+      }
+
+      const [msg] = await db.insert(leadMessages).values({
+        leadId: lead.id,
+        channel,
+        direction: "outbound",
+        body: body || null,
+        status: result.status,
+        provider: result.provider,
+        providerId: result.providerId || null,
+        error: result.error || null,
+        sentBy: req.user?.id || null,
+      }).returning();
+
+      if (result.status === "sent" || result.status === "logged") {
+        await db.update(leads).set({ status: "contacted", lastContactedAt: new Date() }).where(eq(leads.id, lead.id));
+      }
+      res.json({ message: msg, ...result });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.post('/api/admin/leads/bulk-sms', isAuthenticated, requireAdmin, async (req: any, res) => {
+    try {
+      const { leadIds, body, niche, country, kind } = req.body || {};
+      if (!body) return res.status(400).json({ message: "body required" });
+      let ids: string[] = Array.isArray(leadIds) ? leadIds : [];
+      if (!ids.length && (niche || country || kind)) {
+        const conds: any[] = [];
+        if (niche) conds.push(sql`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq(leads.country, String(country)));
+        if (kind) conds.push(eq(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and(...conds) as any).limit(2000);
+        ids = rows.map(r => r.id);
+      }
+      if (!ids.length) return res.status(400).json({ message: "No matching leads" });
+      const campaignId = `bulk_${Date.now()}`;
+      const results = await bulkSms({ leadIds: ids, body, sentBy: req.user?.id, campaignId });
+      const sent = results.filter(r => !r.error).length;
+      const failed = results.length - sent;
+      res.json({ campaignId, attempted: results.length, sent, failed, results });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
 
   // ── Legal Pages (public read, admin write) ────────────────────────────────

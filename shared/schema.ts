@@ -1342,6 +1342,63 @@ export type PageSeoSettings = typeof pageSeoSettings.$inferSelect;
 export type InsertPageSeoSettings = z.infer<typeof insertPageSeoSettingsSchema>;
 
 // ──────────────────────────────────────────────────────────────
+// Leads — global business + influencer discovery / outreach CRM
+// ──────────────────────────────────────────────────────────────
+export const leads = pgTable("leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  kind: varchar("kind").notNull(), // 'business' | 'influencer'
+  source: varchar("source"),        // 'google_places' | 'youtube' | 'manual' | 'internal' | 'csv'
+  externalId: varchar("external_id"),
+  name: varchar("name").notNull(),
+  niche: varchar("niche"),
+  businessType: varchar("business_type"),
+  country: varchar("country"),
+  city: varchar("city"),
+  address: text("address"),
+  latitude: varchar("latitude"),
+  longitude: varchar("longitude"),
+  phone: varchar("phone"),
+  whatsapp: varchar("whatsapp"),
+  email: varchar("email"),
+  website: varchar("website"),
+  socialLinks: jsonb("social_links").default({}),  // { instagram, tiktok, youtube, x, facebook, telegram, linkedin }
+  followers: integer("followers"),
+  yearsInBusiness: integer("years_in_business"),
+  rating: varchar("rating"),
+  reviewCount: integer("review_count"),
+  description: text("description"),
+  aiSummary: text("ai_summary"),
+  aiReport: text("ai_report"),
+  tags: text("tags").array().default([]),
+  status: varchar("status").default("new"), // new, contacted, replied, converted, archived
+  lastContactedAt: timestamp("last_contacted_at"),
+  raw: jsonb("raw"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true, updatedAt: true });
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+
+export const leadMessages = pgTable("lead_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").notNull(),
+  channel: varchar("channel").notNull(), // 'sms' | 'whatsapp' | 'call' | 'email' | 'note'
+  direction: varchar("direction").default("outbound"),
+  body: text("body"),
+  status: varchar("status").default("sent"), // sent, delivered, failed, queued, logged
+  provider: varchar("provider"),  // 'twilio' | 'manual' | 'wa_link' | 'tel_link'
+  providerId: varchar("provider_id"),
+  error: text("error"),
+  sentBy: varchar("sent_by"), // admin user id
+  campaignId: varchar("campaign_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type LeadMessage = typeof leadMessages.$inferSelect;
+export const insertLeadMessageSchema = createInsertSchema(leadMessages).omit({ id: true, createdAt: true });
+export type InsertLeadMessage = z.infer<typeof insertLeadMessageSchema>;
+
+// ──────────────────────────────────────────────────────────────
 // Page Views — built-in lightweight analytics
 // ──────────────────────────────────────────────────────────────
 export const pageViews = pgTable("page_views", {

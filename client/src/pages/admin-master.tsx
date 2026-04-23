@@ -3234,6 +3234,18 @@ export default function AdminMaster() {
                   <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-orange-400 transition-colors flex-shrink-0" />
                 </div>
               </a>
+              <a href="/admin/leads" className="group">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-purple-500/30 hover:border-purple-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-purple-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                    <Globe className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">Lead Discovery & Outreach</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Find businesses on Google & directories worldwide, find creators, AI growth reports, WhatsApp / Call / SMS hub & bulk SMS</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                </div>
+              </a>
             </div>
 
           </TabsContent>
