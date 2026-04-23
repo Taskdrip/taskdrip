@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageCircle, Send, ShieldCheck, Plus, Users, Ticket,
-  User, Search, Megaphone, ArrowLeft
+  User, Search, Megaphone, ArrowLeft, Ban, UserCheck, AlertCircle
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
@@ -101,12 +101,13 @@ export default function MessagesPage() {
   const [broadcastTarget, setBroadcastTarget] = useState<string>("all");
   const [newRecipientId, setNewRecipientId] = useState("");
   const [newCampaignId, setNewCampaignId] = useState("");
-  const [newSubject, setNewSubject] = useState("");
-  const [newContent, setNewContent] = useState("");
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketContent, setTicketContent] = useState("");
   const [ticketPriority, setTicketPriority] = useState("normal");
   const [showSidebar, setShowSidebar] = useState(true);
+  // Direct compose state (when clicking message icon on a profile)
+  const [directComposeText, setDirectComposeText] = useState("");
+  const [directComposing, setDirectComposing] = useState(false);
   const threadEndRef = useRef<HTMLDivElement>(null);
   const sendingRef = useRef(false);
 
@@ -122,7 +123,7 @@ export default function MessagesPage() {
 
   const selectedConv = conversations.find(c => c.id === selectedConvId) ?? null;
 
-  // Thread — works for both campaign AND direct conversation keys
+  // Thread
   const { data: thread = [], isLoading: threadLoading } = useQuery<ThreadMessage[]>({
     queryKey: ["/api/conversations", selectedConvId, "thread"],
     queryFn: () => apiRequest("GET", `/api/conversations/${selectedConvId}/thread`).then(r => r.json()),
@@ -137,10 +138,10 @@ export default function MessagesPage() {
 
   const { data: allUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/message-recipients"],
-    enabled: !!user,
+    enabled: !!user && isNewConvOpen,
   });
 
-  // When navigating with ?to=userId, fetch that user's info so we can show their name
+  // URL ?to= param
   const urlToId = new URLSearchParams(window.location.search).get("to") || "";
   const { data: preselectedUser } = useQuery<any>({
     queryKey: ["/api/users", urlToId, "profile"],
@@ -148,22 +149,39 @@ export default function MessagesPage() {
     enabled: !!urlToId && !!user,
   });
 
-  // Auto-select from URL param (?campaign=id or ?to=userId)
+  // Block status — for the other participant in a direct conversation
+  const otherUserId = (() => {
+    if (selectedConv && convKind(selectedConv) === "direct") {
+      return selectedConv.participants.find(p => p.id !== user?.id)?.id ?? null;
+    }
+    if (directComposing && urlToId) return urlToId;
+    return null;
+  })();
+
+  const { data: blockStatus, refetch: refetchBlockStatus } = useQuery<{ iBlockedThem: boolean; theyBlockedMe: boolean }>({
+    queryKey: ["/api/users", otherUserId, "block-status"],
+    queryFn: () => fetch(`/api/users/${otherUserId}/block-status`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!otherUserId && !!user,
+    staleTime: 10000,
+  });
+
+  // Auto-select from URL param (?to=userId)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const campaignId = params.get("campaign");
     const toUserId = params.get("to");
 
-    if (toUserId) {
-      // Direct message to a specific user — find existing direct conv or open new
+    if (toUserId && conversations !== undefined) {
       const existing = (conversations as Conversation[]).find(c =>
         !c.campaignId && c.participants.some(p => p.id === toUserId)
       );
       if (existing) {
         setSelectedConvId(existing.id);
-      } else {
-        setNewRecipientId(toUserId);
-        setIsNewConvOpen(true);
+        setDirectComposing(false);
+      } else if (!selectedConvId) {
+        // No existing conversation — show inline direct compose
+        setDirectComposing(true);
+        setSelectedConvId(null);
       }
       return;
     }
@@ -173,14 +191,13 @@ export default function MessagesPage() {
       if (match) setSelectedConvId(match.id);
       else { setIsNewConvOpen(true); setNewCampaignId(campaignId); }
     }
-  }, [conversations.length]);
+  }, [conversations.length, urlToId]);
 
   // Auto-scroll
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thread.length]);
 
-  // Campaign participants for broadcast target
   const selectedCampaignParticipants = selectedConv?.participants.filter(p => p.id !== user?.id && p.userType !== "admin") ?? [];
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -212,14 +229,14 @@ export default function MessagesPage() {
     replyMutation.mutate({ convKey: selectedConvId, content: replyText.trim(), targetUserId });
   }, [replyText, selectedConvId, isBrand, broadcastTarget, replyMutation]);
 
-  const newConvMutation = useMutation({
+  // Direct compose: send first message to a user (from profile link)
+  const directSendMutation = useMutation({
     mutationFn: async () => {
-      if (!newRecipientId || !newContent.trim()) throw new Error("Recipient and message are required");
+      if (!urlToId || !directComposeText.trim()) throw new Error("Message is required");
       const res = await apiRequest("POST", "/api/messages", {
-        receiverId: newRecipientId,
-        campaignId: newCampaignId || undefined,
-        subject: newSubject || "New Message",
-        content: newContent.trim(),
+        receiverId: urlToId,
+        subject: "Direct Message",
+        content: directComposeText.trim(),
       });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
@@ -227,8 +244,30 @@ export default function MessagesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       toast({ title: "Message sent!" });
+      setDirectComposeText("");
+      setDirectComposing(false);
+    },
+    onError: (e: Error) => toast({ title: "Failed to send", description: e.message, variant: "destructive" }),
+  });
+
+  // New conversation (generic — from "+ New" button)
+  const newConvMutation = useMutation({
+    mutationFn: async () => {
+      if (!newRecipientId) throw new Error("Recipient is required");
+      const res = await apiRequest("POST", "/api/messages", {
+        receiverId: newRecipientId,
+        campaignId: newCampaignId || undefined,
+        subject: "New Message",
+        content: "👋 Hey there!",
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ title: "Conversation started!" });
       setIsNewConvOpen(false);
-      setNewRecipientId(""); setNewCampaignId(""); setNewSubject(""); setNewContent("");
+      setNewRecipientId(""); setNewCampaignId("");
     },
     onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
@@ -253,6 +292,33 @@ export default function MessagesPage() {
     onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
 
+  // Block/Unblock mutations
+  const blockMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", `/api/users/${userId}/block`, {});
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchBlockStatus();
+      toast({ title: "User blocked", description: "You won't receive messages from this user." });
+    },
+    onError: (e: Error) => toast({ title: "Failed to block", description: e.message, variant: "destructive" }),
+  });
+
+  const unblockMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/users/${userId}/block`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchBlockStatus();
+      toast({ title: "User unblocked", description: "You can now receive messages from this user." });
+    },
+    onError: (e: Error) => toast({ title: "Failed to unblock", description: e.message, variant: "destructive" }),
+  });
+
   // ── Filtering ──────────────────────────────────────────────────────────────
   const filteredConvs = conversations.filter(conv => {
     if (!search) return true;
@@ -261,6 +327,87 @@ export default function MessagesPage() {
   });
 
   const totalUnread = conversations.reduce((s, c) => s + c.unreadCount, 0);
+
+  // ── Direct Compose Panel ────────────────────────────────────────────────────
+  const DirectComposePanel = () => {
+    const recipientName = preselectedUser
+      ? (preselectedUser.companyName || `${preselectedUser.firstName} ${preselectedUser.lastName}`)
+      : "this user";
+    const recipientAvatar = preselectedUser?.profileImageUrl;
+    const recipientInitials = preselectedUser
+      ? `${preselectedUser.firstName?.[0] || ""}${preselectedUser.lastName?.[0] || ""}`.toUpperCase()
+      : "?";
+
+    return (
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b border-slate-200 px-4 py-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setDirectComposing(false); setShowSidebar(true); }}
+              className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={recipientAvatar} />
+              <AvatarFallback className="text-xs font-bold bg-blue-100 text-blue-700">{recipientInitials}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">{recipientName}</h2>
+              <p className="text-xs text-slate-500">Send a direct message</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Compose area */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 px-6">
+          <div className="w-full max-w-lg text-center mb-6">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageCircle className="h-8 w-8 text-blue-500" />
+            </div>
+            <h3 className="text-base font-semibold text-slate-800 mb-1">Start a conversation with {recipientName}</h3>
+            <p className="text-sm text-slate-500">Your message will land directly in their inbox. They can reply, keep it, or block further messages.</p>
+          </div>
+          <div className="w-full max-w-lg space-y-3">
+            <Textarea
+              value={directComposeText}
+              onChange={e => setDirectComposeText(e.target.value)}
+              placeholder={`Write your message to ${recipientName}…`}
+              className="min-h-[120px] text-sm resize-none bg-white"
+              data-testid="input-direct-message"
+              onKeyDown={e => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (directComposeText.trim()) directSendMutation.mutate();
+                }
+              }}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setDirectComposing(false); setShowSidebar(true); }}
+                data-testid="button-cancel-direct-message"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700"
+                disabled={!directComposeText.trim() || directSendMutation.isPending}
+                onClick={() => directSendMutation.mutate()}
+                data-testid="button-send-direct-message"
+              >
+                <Send className="h-4 w-4" />
+                {directSendMutation.isPending ? "Sending…" : "Send Message"}
+              </Button>
+            </div>
+            <p className="text-[11px] text-slate-400 text-center">Enter to send · Shift+Enter for new line</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -290,7 +437,7 @@ export default function MessagesPage() {
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search conversations..."
+                placeholder="Search conversations…"
                 className="pl-8 h-9 text-sm bg-slate-50"
                 data-testid="input-search-conversations"
               />
@@ -337,7 +484,7 @@ export default function MessagesPage() {
                   return (
                     <button
                       key={conv.id}
-                      onClick={() => { setSelectedConvId(conv.id); setShowSidebar(false); setBroadcastTarget("all"); }}
+                      onClick={() => { setSelectedConvId(conv.id); setDirectComposing(false); setShowSidebar(false); setBroadcastTarget("all"); }}
                       data-testid={`conv-item-${conv.id}`}
                       className={`w-full text-left px-3 py-3 flex items-start gap-3 transition-all border-l-2 ${
                         isSelected
@@ -345,7 +492,6 @@ export default function MessagesPage() {
                           : "border-l-transparent hover:bg-slate-50"
                       }`}
                     >
-                      {/* Avatar */}
                       <div className="flex-shrink-0 mt-0.5">
                         {kind === "support" ? (
                           <div className="h-9 w-9 rounded-full bg-violet-100 flex items-center justify-center">
@@ -365,7 +511,6 @@ export default function MessagesPage() {
                         )}
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-1">
                           <span className={`text-sm font-semibold leading-tight truncate ${isSelected ? "text-blue-700" : "text-slate-900"}`}>
@@ -380,7 +525,6 @@ export default function MessagesPage() {
                         <p className="text-xs text-slate-500 mt-0.5 truncate">{preview || "No messages yet"}</p>
                       </div>
 
-                      {/* Unread */}
                       {conv.unreadCount > 0 && (
                         <Badge className="bg-blue-600 text-white text-xs h-5 min-w-5 px-1 flex-shrink-0">{conv.unreadCount}</Badge>
                       )}
@@ -392,14 +536,16 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* ── Right Panel: Thread View ──────────────────────────────────── */}
+        {/* ── Right Panel ──────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0">
-          {selectedConv ? (
+          {/* Direct compose (from clicking message icon on a profile) */}
+          {directComposing && !selectedConvId ? (
+            <DirectComposePanel />
+          ) : selectedConv ? (
             <>
               {/* Thread Header */}
               <div className="bg-white border-b border-slate-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  {/* Back button on mobile */}
                   <button onClick={() => { setSelectedConvId(null); setShowSidebar(true); }}
                     className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
                     <ArrowLeft className="h-4 w-4" />
@@ -426,7 +572,7 @@ export default function MessagesPage() {
                     </p>
                   </div>
 
-                  {/* Brand: broadcast target selector */}
+                  {/* Brand broadcast selector */}
                   {isBrand && selectedConv.campaignId && selectedCampaignParticipants.length > 0 && (
                     <div className="flex items-center gap-2">
                       <Megaphone className="h-4 w-4 text-slate-400" />
@@ -443,8 +589,51 @@ export default function MessagesPage() {
                       </select>
                     </div>
                   )}
+
+                  {/* Block/Unblock — only for direct conversations */}
+                  {convKind(selectedConv) === "direct" && otherUserId && (
+                    blockStatus?.iBlockedThem ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs h-8 border-slate-200 text-slate-600 hover:text-green-700 hover:border-green-400"
+                        onClick={() => unblockMutation.mutate(otherUserId)}
+                        disabled={unblockMutation.isPending}
+                        data-testid="button-unblock-user"
+                      >
+                        <UserCheck className="h-3.5 w-3.5" />
+                        Unblock
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs h-8 border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-300"
+                        onClick={() => blockMutation.mutate(otherUserId)}
+                        disabled={blockMutation.isPending}
+                        data-testid="button-block-user"
+                      >
+                        <Ban className="h-3.5 w-3.5" />
+                        Block
+                      </Button>
+                    )
+                  )}
                 </div>
               </div>
+
+              {/* Blocked notice banner */}
+              {blockStatus?.iBlockedThem && (
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center gap-2 text-sm text-amber-800 flex-shrink-0">
+                  <Ban className="h-4 w-4 flex-shrink-0" />
+                  <span>You have blocked this user. They cannot send you new messages. <button className="underline font-medium" onClick={() => unblockMutation.mutate(otherUserId!)}>Unblock</button> to allow messages again.</span>
+                </div>
+              )}
+              {blockStatus?.theyBlockedMe && (
+                <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center gap-2 text-sm text-red-700 flex-shrink-0">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>This user has blocked you. You cannot send them messages.</span>
+                </div>
+              )}
 
               {/* Thread Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -472,7 +661,6 @@ export default function MessagesPage() {
 
                     return (
                       <div key={msg.id} className={`flex gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
-                        {/* Avatar — show only on sender change */}
                         {showSender && !isMine ? (
                           <Avatar className="h-7 w-7 flex-shrink-0 mt-1">
                             <AvatarImage src={msg.sender?.profileImageUrl} />
@@ -526,42 +714,51 @@ export default function MessagesPage() {
 
               {/* Reply Input */}
               <div className="bg-white border-t border-slate-200 p-3 flex-shrink-0">
-                {isBrand && selectedConv.campaignId && broadcastTarget !== "all" && (
-                  <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
-                    <User className="h-3.5 w-3.5" />
-                    <span>Sending only to <strong className="text-slate-700">{displayName(selectedCampaignParticipants.find(p => p.id === broadcastTarget))}</strong></span>
+                {blockStatus?.theyBlockedMe ? (
+                  <div className="flex items-center justify-center gap-2 py-3 text-sm text-slate-400">
+                    <Ban className="h-4 w-4" />
+                    <span>You cannot send messages to this user.</span>
                   </div>
+                ) : (
+                  <>
+                    {isBrand && selectedConv.campaignId && broadcastTarget !== "all" && (
+                      <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
+                        <User className="h-3.5 w-3.5" />
+                        <span>Sending only to <strong className="text-slate-700">{displayName(selectedCampaignParticipants.find(p => p.id === broadcastTarget))}</strong></span>
+                      </div>
+                    )}
+                    {isBrand && selectedConv.campaignId && broadcastTarget === "all" && selectedCampaignParticipants.length > 0 && (
+                      <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
+                        <Megaphone className="h-3.5 w-3.5" />
+                        <span>Broadcasting to all {selectedCampaignParticipants.length} participant{selectedCampaignParticipants.length !== 1 ? "s" : ""}</span>
+                      </div>
+                    )}
+                    <div className="flex gap-2 items-end">
+                      <Textarea
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder="Type a message…"
+                        className="flex-1 min-h-[44px] max-h-[120px] resize-none text-sm py-2.5"
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendReply();
+                          }
+                        }}
+                        data-testid="input-message-reply"
+                      />
+                      <Button
+                        onClick={sendReply}
+                        disabled={!replyText.trim() || replyMutation.isPending}
+                        className="h-[44px] px-4 gap-1.5 bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                        data-testid="button-send-reply"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
+                  </>
                 )}
-                {isBrand && selectedConv.campaignId && broadcastTarget === "all" && selectedCampaignParticipants.length > 0 && (
-                  <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
-                    <Megaphone className="h-3.5 w-3.5" />
-                    <span>Broadcasting to all {selectedCampaignParticipants.length} participant{selectedCampaignParticipants.length !== 1 ? "s" : ""}</span>
-                  </div>
-                )}
-                <div className="flex gap-2 items-end">
-                  <Textarea
-                    value={replyText}
-                    onChange={e => setReplyText(e.target.value)}
-                    placeholder="Type a message…"
-                    className="flex-1 min-h-[44px] max-h-[120px] resize-none text-sm py-2.5"
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendReply();
-                      }
-                    }}
-                    data-testid="input-message-reply"
-                  />
-                  <Button
-                    onClick={sendReply}
-                    disabled={!replyText.trim() || replyMutation.isPending}
-                    className="h-[44px] px-4 gap-1.5 bg-blue-600 hover:bg-blue-700 flex-shrink-0"
-                    data-testid="button-send-reply"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1.5">Enter to send · Shift+Enter for new line</p>
               </div>
             </>
           ) : (
@@ -593,99 +790,61 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* ── New Conversation Dialog ─────────────────────────────────────── */}
+      {/* ── New Conversation Dialog (generic — from + New button) ──────── */}
       <Dialog open={isNewConvOpen} onOpenChange={setIsNewConvOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-blue-600" /> New Conversation
             </DialogTitle>
-            <DialogDescription>Send a message to any user you've interacted with</DialogDescription>
+            <DialogDescription>Choose who you want to message</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1.5 block">Recipient *</label>
-              {preselectedUser && newRecipientId === urlToId ? (
-                <div className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 flex items-center gap-2" data-testid="display-preselected-recipient">
-                  <span className="font-medium">
-                    {preselectedUser.companyName || `${preselectedUser.firstName} ${preselectedUser.lastName}`}
-                  </span>
-                  <span className="text-slate-400 text-xs">
-                    {preselectedUser.userType === "brand" ? "(Brand)" : preselectedUser.userType === "admin" ? "(Admin)" : "(Influencer)"}
-                  </span>
-                  <button
-                    className="ml-auto text-slate-400 hover:text-slate-600 text-xs underline"
-                    onClick={() => { setNewRecipientId(""); }}
-                    type="button"
-                  >
-                    Change
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={newRecipientId}
-                  onChange={e => setNewRecipientId(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-testid="select-recipient"
-                >
-                  <option value="">Select a person…</option>
-                  {(allUsers as any[]).map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.userType === "brand" ? (u.companyName || `${u.firstName} ${u.lastName}`) : `${u.firstName} ${u.lastName}`}
-                      {u.userType === "admin" ? " (Admin)" : u.userType === "brand" ? " (Brand)" : " (Influencer)"}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Campaign (optional)</label>
               <select
-                value={newCampaignId}
-                onChange={e => setNewCampaignId(e.target.value)}
+                value={newRecipientId}
+                onChange={e => setNewRecipientId(e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                data-testid="select-campaign"
+                data-testid="select-recipient"
               >
-                <option value="">No specific campaign</option>
-                {(campaigns as any[]).map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.title}</option>
+                <option value="">Select a person…</option>
+                {(allUsers as any[]).map((u: any) => (
+                  <option key={u.id} value={u.id}>
+                    {u.userType === "brand" ? (u.companyName || `${u.firstName} ${u.lastName}`) : `${u.firstName} ${u.lastName}`}
+                    {u.userType === "admin" ? " (Admin)" : u.userType === "brand" ? " (Brand)" : " (Influencer)"}
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Subject *</label>
-              <Input
-                value={newSubject}
-                onChange={e => setNewSubject(e.target.value)}
-                placeholder="What's this about?"
-                className="text-sm"
-                data-testid="input-new-subject"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Message *</label>
-              <Textarea
-                value={newContent}
-                onChange={e => setNewContent(e.target.value)}
-                placeholder="Type your message…"
-                className="min-h-[100px] text-sm resize-none"
-                data-testid="input-new-content"
-              />
-            </div>
+            {campaigns.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Campaign (optional)</label>
+                <select
+                  value={newCampaignId}
+                  onChange={e => setNewCampaignId(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="select-campaign"
+                >
+                  <option value="">No specific campaign</option>
+                  {(campaigns as any[]).map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex gap-2 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setIsNewConvOpen(false)}>Cancel</Button>
               <Button
                 className="flex-1 gap-2"
-                disabled={!newRecipientId || !newContent.trim() || newConvMutation.isPending}
+                disabled={!newRecipientId || newConvMutation.isPending}
                 onClick={() => newConvMutation.mutate()}
-                data-testid="button-send-new-message"
+                data-testid="button-start-conversation"
               >
-                <Send className="h-4 w-4" />
-                {newConvMutation.isPending ? "Sending…" : "Send Message"}
+                <MessageCircle className="h-4 w-4" />
+                {newConvMutation.isPending ? "Starting…" : "Start Chat"}
               </Button>
             </div>
           </div>
@@ -737,7 +896,7 @@ export default function MessagesPage() {
               <Textarea
                 value={ticketContent}
                 onChange={e => setTicketContent(e.target.value)}
-                placeholder="Describe the issue in detail. Include any relevant campaign or payment information…"
+                placeholder="Describe the issue in detail…"
                 className="min-h-[120px] text-sm resize-none"
                 data-testid="input-ticket-content"
               />

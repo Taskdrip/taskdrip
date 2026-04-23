@@ -7,7 +7,7 @@ import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
 import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blogger";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -4875,6 +4875,54 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.json(enriched);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch admin conversations' });
+    }
+  });
+
+  // ── Block / Unblock user ──────────────────────────────────────────
+  // POST /api/users/:id/block  — block a user (current user becomes blocker)
+  app.post('/api/users/:id/block', isAuthenticated, async (req: any, res) => {
+    try {
+      const blockerId = req.user.id;
+      const blockedId = req.params.id;
+      if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
+      const existing = await db.select().from(blockedUsers)
+        .where(and(eq(blockedUsers.blockerId, blockerId), eq(blockedUsers.blockedId, blockedId)))
+        .limit(1);
+      if (existing.length > 0) return res.json({ blocked: true }); // already blocked
+      await db.insert(blockedUsers).values({ blockerId, blockedId });
+      res.json({ blocked: true });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to block user' });
+    }
+  });
+
+  // DELETE /api/users/:id/block  — unblock a user
+  app.delete('/api/users/:id/block', isAuthenticated, async (req: any, res) => {
+    try {
+      const blockerId = req.user.id;
+      const blockedId = req.params.id;
+      await db.delete(blockedUsers)
+        .where(and(eq(blockedUsers.blockerId, blockerId), eq(blockedUsers.blockedId, blockedId)));
+      res.json({ blocked: false });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to unblock user' });
+    }
+  });
+
+  // GET /api/users/:id/block-status  — check if current user has blocked or is blocked by this user
+  app.get('/api/users/:id/block-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const myId = req.user.id;
+      const otherId = req.params.id;
+      const [iBlockedThem] = await db.select().from(blockedUsers)
+        .where(and(eq(blockedUsers.blockerId, myId), eq(blockedUsers.blockedId, otherId)))
+        .limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers)
+        .where(and(eq(blockedUsers.blockerId, otherId), eq(blockedUsers.blockedId, myId)))
+        .limit(1);
+      res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to check block status' });
     }
   });
 

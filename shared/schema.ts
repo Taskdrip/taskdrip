@@ -381,6 +381,14 @@ export const messages = pgTable("messages", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Blocked users table — lets any user block incoming messages from another
+export const blockedUsers = pgTable("blocked_users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  blockerId: varchar("blocker_id").references(() => users.id).notNull(),
+  blockedId: varchar("blocked_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Task submissions table for tracking proof of work
 export const taskSubmissions = pgTable("task_submissions", {
   id: uuid("id").primaryKey().defaultRandom(),
