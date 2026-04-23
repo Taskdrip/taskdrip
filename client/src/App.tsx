@@ -65,6 +65,8 @@ import SecuritySettings from "@/pages/security-settings";
 import ShortLinksPage from "@/pages/short-links";
 import ShortLinkAnalyticsPage from "@/pages/short-link-analytics";
 import AdminUrlShortenerPage from "@/pages/admin-url-shortener";
+import AdminKeywordAnalyticsPage from "@/pages/admin-keyword-analytics";
+import AdminAutoBloggerPage from "@/pages/admin-auto-blogger";
 import P2PHub from "@/pages/p2p-hub";
 import P2PDealRoom from "@/pages/p2p-deal-room";
 import P2PListing from "@/pages/p2p-listing";
@@ -199,6 +201,8 @@ function Router() {
           <Route path="/short-links" component={ShortLinksPage} />
           <Route path="/short-links/:id/analytics" component={ShortLinkAnalyticsPage} />
           <Route path="/admin/url-shortener" component={AdminUrlShortenerPage} />
+          <Route path="/admin/keyword-analytics" component={AdminKeywordAnalyticsPage} />
+          <Route path="/admin/auto-blogger" component={AdminAutoBloggerPage} />
         </>
       ) : (
         <>

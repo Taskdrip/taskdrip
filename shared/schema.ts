@@ -1974,3 +1974,94 @@ export type ShortLink = typeof shortLinks.$inferSelect;
 export type InsertShortLink = z.infer<typeof insertShortLinkSchema>;
 export type ShortLinkClick = typeof shortLinkClicks.$inferSelect;
 export type ShortenerSettings = typeof shortenerSettings.$inferSelect;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Keyword Analytics + Auto-Blogger
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const keywordTrackers = pgTable("keyword_trackers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  keyword: varchar("keyword").notNull(),
+  platforms: text("platforms").array().default(sql`ARRAY[]::text[]`), // google,youtube,tiktok,instagram,x,reddit,news
+  region: varchar("region").default("US"),
+  isActive: boolean("is_active").default(true),
+  lastRefreshedAt: timestamp("last_refreshed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const trackedContent = pgTable("tracked_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trackerId: varchar("tracker_id").notNull().references(() => keywordTrackers.id, { onDelete: "cascade" }),
+  platform: varchar("platform").notNull(), // youtube, reddit, news, hackernews, googletrends, tiktok, instagram, x
+  externalId: varchar("external_id"),
+  title: text("title"),
+  url: text("url"),
+  thumbnail: text("thumbnail"),
+  author: varchar("author"),
+  snippet: text("snippet"),
+  metric: integer("metric").default(0), // views, score, etc
+  publishedAt: timestamp("published_at"),
+  rawData: text("raw_data"), // JSON
+  fetchedAt: timestamp("fetched_at").defaultNow(),
+});
+
+export const trendingTopics = pgTable("trending_topics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  topic: varchar("topic").notNull(),
+  platform: varchar("platform").notNull(),
+  region: varchar("region").default("US"),
+  rank: integer("rank").default(0),
+  volume: integer("volume").default(0),
+  category: varchar("category"),
+  fetchedAt: timestamp("fetched_at").defaultNow(),
+});
+
+export const autoBlogSources = pgTable("auto_blog_sources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  type: varchar("type").notNull(), // rss, reddit, hackernews, youtube, googletrends
+  url: text("url"), // RSS URL or subreddit name like "technology"
+  category: varchar("category"), // Tech, Crypto, AI, Marketing
+  isActive: boolean("is_active").default(true),
+  lastRunAt: timestamp("last_run_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const autoBlogJobs = pgTable("auto_blog_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sourceId: varchar("source_id").references(() => autoBlogSources.id, { onDelete: "set null" }),
+  sourceTitle: text("source_title"),
+  sourceUrl: text("source_url"),
+  sourceContent: text("source_content"),
+  category: varchar("category"),
+  status: varchar("status").default("pending"), // pending, processing, completed, failed, published
+  blogPostId: varchar("blog_post_id"),
+  errorMessage: text("error_message"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const autoBloggerSettings = pgTable("auto_blogger_settings", {
+  id: varchar("id").primaryKey().default("singleton"),
+  enabled: boolean("enabled").default(false),
+  autoPublish: boolean("auto_publish").default(false),
+  model: varchar("model").default("gpt-4o-mini"),
+  toneStyle: varchar("tone_style").default("informative"),
+  minWords: integer("min_words").default(700),
+  maxWords: integer("max_words").default(1400),
+  defaultAuthorId: varchar("default_author_id"),
+  imageProvider: varchar("image_provider").default("unsplash"), // unsplash, none
+  scheduleCron: varchar("schedule_cron"), // optional cron for auto runs
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type KeywordTracker = typeof keywordTrackers.$inferSelect;
+export type TrackedContent = typeof trackedContent.$inferSelect;
+export type TrendingTopic = typeof trendingTopics.$inferSelect;
+export type AutoBlogSource = typeof autoBlogSources.$inferSelect;
+export type AutoBlogJob = typeof autoBlogJobs.$inferSelect;
+export type AutoBloggerSettings = typeof autoBloggerSettings.$inferSelect;
+export const insertKeywordTrackerSchema = createInsertSchema(keywordTrackers).omit({ id: true, createdAt: true, lastRefreshedAt: true });
+export const insertAutoBlogSourceSchema = createInsertSchema(autoBlogSources).omit({ id: true, createdAt: true, lastRunAt: true });

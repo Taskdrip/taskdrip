@@ -1,0 +1,335 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Navigation } from "@/components/ui/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Sparkles, Plus, Trash2, RefreshCw, Wand2, ExternalLink, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+
+type Source = { id: string; name: string; type: string; url: string | null; category: string | null; isActive: boolean; lastRunAt: string | null };
+type Job = { id: string; sourceTitle: string; sourceUrl: string | null; status: string; blogPostId: string | null; errorMessage: string | null; category: string | null; createdAt: string; completedAt: string | null };
+type Settings = { id: string; enabled: boolean; autoPublish: boolean; model: string; toneStyle: string; minWords: number; maxWords: number; imageProvider: string };
+
+export default function AdminAutoBlogger() {
+  const { toast } = useToast();
+  const [tab, setTab] = useState("generate");
+  const [discoverItems, setDiscoverItems] = useState<{ source: string; category?: string; items: any[] } | null>(null);
+  const [genTitle, setGenTitle] = useState("");
+  const [genUrl, setGenUrl] = useState("");
+  const [genContent, setGenContent] = useState("");
+  const [genCategory, setGenCategory] = useState("Tech");
+  const [includeTranscript, setIncludeTranscript] = useState(false);
+  const [autoPublishOne, setAutoPublishOne] = useState(false);
+
+  const [newSource, setNewSource] = useState({ name: "", type: "rss", url: "", category: "Tech" });
+
+  const { data: health } = useQuery<{ openaiConfigured: boolean; youtubeApiConfigured: boolean }>({ queryKey: ["/api/admin/auto-blogger/health"] });
+  const { data: sources = [] } = useQuery<Source[]>({ queryKey: ["/api/admin/auto-blogger/sources"] });
+  const { data: jobs = [] } = useQuery<Job[]>({ queryKey: ["/api/admin/auto-blogger/jobs"] });
+  const { data: settings } = useQuery<Settings>({ queryKey: ["/api/admin/auto-blogger/settings"] });
+
+  const seedSources = useMutation({
+    mutationFn: async () => apiRequest("POST", "/api/admin/auto-blogger/sources/seed", {}),
+    onSuccess: () => { toast({ title: "Seeded popular sources" }); queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/sources"] }); },
+  });
+
+  const addSource = useMutation({
+    mutationFn: async () => apiRequest("POST", "/api/admin/auto-blogger/sources", newSource),
+    onSuccess: () => {
+      toast({ title: "Source added" });
+      setNewSource({ name: "", type: "rss", url: "", category: "Tech" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/sources"] });
+    },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteSource = useMutation({
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/admin/auto-blogger/sources/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/sources"] }),
+  });
+
+  const discover = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/admin/auto-blogger/sources/${id}/discover`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limit: 8 }) });
+      if (!r.ok) throw new Error((await r.json()).message || "Discover failed");
+      return r.json();
+    },
+    onSuccess: (d) => { setDiscoverItems(d); toast({ title: `Found ${d.items.length} items from ${d.source}` }); },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
+  const generateOne = useMutation({
+    mutationFn: async (payload: any) => {
+      const r = await fetch("/api/admin/auto-blogger/generate", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!r.ok) throw new Error((await r.json()).message || "Generation failed");
+      return r.json();
+    },
+    onSuccess: (d) => {
+      toast({ title: "Article created", description: d.post?.title });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/jobs"] });
+      setGenTitle(""); setGenUrl(""); setGenContent("");
+    },
+    onError: (e: any) => toast({ title: "Generation failed", description: e.message, variant: "destructive" }),
+  });
+
+  const runSource = useMutation({
+    mutationFn: async ({ id, limit }: { id: string; limit: number }) => {
+      const r = await fetch(`/api/admin/auto-blogger/run-source/${id}`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limit }) });
+      if (!r.ok) throw new Error((await r.json()).message || "Run failed");
+      return r.json();
+    },
+    onSuccess: (d) => { toast({ title: `Created ${d.created.length} articles from ${d.source}` }); queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/jobs"] }); },
+    onError: (e: any) => toast({ title: "Run failed", description: e.message, variant: "destructive" }),
+  });
+
+  const updateSettings = useMutation({
+    mutationFn: async (patch: Partial<Settings>) => apiRequest("PATCH", "/api/admin/auto-blogger/settings", patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/settings"] }),
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-black flex items-center gap-2"><Sparkles className="w-8 h-8 text-fuchsia-600" /> Auto Blogger</h1>
+            <p className="text-gray-600 mt-1">Pull trending topics and rewrite them into original SEO articles.</p>
+          </div>
+          {!health?.openaiConfigured && (
+            <Badge className="bg-red-100 text-red-700 gap-1"><AlertCircle className="w-3 h-3" /> OPENAI_API_KEY missing</Badge>
+          )}
+        </div>
+
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="grid grid-cols-4 w-full max-w-3xl">
+            <TabsTrigger value="generate" data-testid="tab-generate">Generate</TabsTrigger>
+            <TabsTrigger value="sources" data-testid="tab-sources">Sources</TabsTrigger>
+            <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
+          </TabsList>
+
+          {/* GENERATE */}
+          <TabsContent value="generate" className="mt-6 space-y-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Manual generate</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Source title *</Label>
+                    <Input value={genTitle} onChange={e => setGenTitle(e.target.value)} placeholder="e.g. Why AI agents will replace SaaS" data-testid="input-gen-title" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Source URL (YouTube ok)</Label>
+                    <Input value={genUrl} onChange={e => setGenUrl(e.target.value)} placeholder="https://..." data-testid="input-gen-url" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Source content / context</Label>
+                  <Textarea value={genContent} onChange={e => setGenContent(e.target.value)} rows={6} placeholder="Paste article body, key points, or just a brief — AI will expand and rewrite." data-testid="input-gen-content" />
+                </div>
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div>
+                    <Label className="text-xs">Category</Label>
+                    <Select value={genCategory} onValueChange={setGenCategory}>
+                      <SelectTrigger className="w-40" data-testid="select-gen-category"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {["Tech","Crypto","AI","Marketing","Business","Lifestyle","News"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={includeTranscript} onCheckedChange={setIncludeTranscript} id="trans" data-testid="switch-transcript" />
+                    <Label htmlFor="trans" className="text-xs">Pull YouTube transcript (if URL is a video)</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={autoPublishOne} onCheckedChange={setAutoPublishOne} id="pub" data-testid="switch-publish" />
+                    <Label htmlFor="pub" className="text-xs">Publish immediately</Label>
+                  </div>
+                  <Button disabled={!genTitle || generateOne.isPending || !health?.openaiConfigured} onClick={() => generateOne.mutate({ sourceTitle: genTitle, sourceUrl: genUrl, sourceContent: genContent, category: genCategory, includeTranscript, autoPublish: autoPublishOne })} data-testid="button-generate">
+                    <Wand2 className="w-4 h-4 mr-1" /> {generateOne.isPending ? "Writing…" : "Generate Article"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {discoverItems && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Discovered from {discoverItems.source}</CardTitle></CardHeader>
+                <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {discoverItems.items.map((it, i) => (
+                    <div key={i} className="flex gap-2 items-start p-2 border rounded">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{it.title}</p>
+                        {it.snippet && <p className="text-xs text-gray-500 line-clamp-2">{it.snippet}</p>}
+                        {it.link && <a href={it.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600">{it.link.slice(0, 70)}…</a>}
+                      </div>
+                      <Button size="sm" variant="outline" disabled={!health?.openaiConfigured} onClick={() => generateOne.mutate({ sourceTitle: it.title, sourceUrl: it.link, sourceContent: it.snippet, category: discoverItems.category || "Tech" })}>
+                        <Wand2 className="w-3 h-3 mr-1" /> Write
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* SOURCES */}
+          <TabsContent value="sources" className="mt-6 space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Add Source</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => seedSources.mutate()}>Seed popular feeds</Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-5 gap-2">
+                  <Input placeholder="Name" value={newSource.name} onChange={e => setNewSource({ ...newSource, name: e.target.value })} data-testid="input-source-name" />
+                  <Select value={newSource.type} onValueChange={(v) => setNewSource({ ...newSource, type: v })}>
+                    <SelectTrigger data-testid="select-source-type"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rss">RSS feed</SelectItem>
+                      <SelectItem value="reddit">Subreddit</SelectItem>
+                      <SelectItem value="hackernews">HackerNews top</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input placeholder={newSource.type === "rss" ? "https://...feed" : newSource.type === "reddit" ? "subreddit name" : ""} value={newSource.url} onChange={e => setNewSource({ ...newSource, url: e.target.value })} data-testid="input-source-url" />
+                  <Input placeholder="Category" value={newSource.category} onChange={e => setNewSource({ ...newSource, category: e.target.value })} />
+                  <Button onClick={() => addSource.mutate()} disabled={!newSource.name || addSource.isPending}><Plus className="w-4 h-4 mr-1" /> Add</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid md:grid-cols-2 gap-3">
+              {sources.map(s => (
+                <Card key={s.id}>
+                  <CardContent className="p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold truncate">{s.name}</p>
+                      <div className="flex gap-1 flex-wrap mt-1">
+                        <Badge variant="outline" className="text-[10px]">{s.type}</Badge>
+                        {s.category && <Badge variant="outline" className="text-[10px]">{s.category}</Badge>}
+                        {s.lastRunAt && <span className="text-[10px] text-gray-400">last: {new Date(s.lastRunAt).toLocaleString()}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" onClick={() => discover.mutate(s.id)} disabled={discover.isPending}><RefreshCw className="w-3 h-3 mr-1" /> Discover</Button>
+                      <Button size="sm" disabled={runSource.isPending || !health?.openaiConfigured} onClick={() => runSource.mutate({ id: s.id, limit: 2 })}><Wand2 className="w-3 h-3 mr-1" /> Run x2</Button>
+                      <button onClick={() => { if (confirm("Delete?")) deleteSource.mutate(s.id); }} className="p-1 hover:bg-red-100 rounded"><Trash2 className="w-4 h-4 text-red-500" /></button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* JOBS */}
+          <TabsContent value="jobs" className="mt-6">
+            <Card>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs">
+                    <tr>
+                      <th className="text-left p-3">Source title</th>
+                      <th className="text-left p-3">Status</th>
+                      <th className="text-left p-3">Category</th>
+                      <th className="text-left p-3">Created</th>
+                      <th className="text-left p-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobs.map(j => (
+                      <tr key={j.id} className="border-t">
+                        <td className="p-3 max-w-md">
+                          <p className="font-semibold truncate">{j.sourceTitle}</p>
+                          {j.errorMessage && <p className="text-xs text-red-500 truncate">{j.errorMessage}</p>}
+                        </td>
+                        <td className="p-3">
+                          <Badge className={j.status === "published" ? "bg-green-100 text-green-700" : j.status === "failed" ? "bg-red-100 text-red-700" : j.status === "completed" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"}>
+                            {j.status === "published" || j.status === "completed" ? <CheckCircle2 className="w-3 h-3 mr-1 inline" /> : j.status === "failed" ? <AlertCircle className="w-3 h-3 mr-1 inline" /> : null}
+                            {j.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3">{j.category || "—"}</td>
+                        <td className="p-3 text-xs text-gray-500">{new Date(j.createdAt).toLocaleString()}</td>
+                        <td className="p-3">
+                          {j.blogPostId && <a href={`/blog/${j.blogPostId}`} target="_blank" className="text-blue-600 text-xs flex items-center gap-1"><FileText className="w-3 h-3" /> View</a>}
+                        </td>
+                      </tr>
+                    ))}
+                    {jobs.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-gray-400">No jobs yet</td></tr>}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* SETTINGS */}
+          <TabsContent value="settings" className="mt-6">
+            {settings && (
+              <Card>
+                <CardContent className="p-4 space-y-4 max-w-2xl">
+                  <div className="flex items-center justify-between">
+                    <Label>Auto-publish generated articles</Label>
+                    <Switch checked={settings.autoPublish} onCheckedChange={(v) => updateSettings.mutate({ autoPublish: v })} />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">AI Model</Label>
+                      <Select value={settings.model} onValueChange={(v) => updateSettings.mutate({ model: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gpt-4o-mini">gpt-4o-mini (fast/cheap)</SelectItem>
+                          <SelectItem value="gpt-4o">gpt-4o (best quality)</SelectItem>
+                          <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Tone</Label>
+                      <Select value={settings.toneStyle} onValueChange={(v) => updateSettings.mutate({ toneStyle: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="informative">Informative</SelectItem>
+                          <SelectItem value="conversational">Conversational</SelectItem>
+                          <SelectItem value="authoritative">Authoritative</SelectItem>
+                          <SelectItem value="storytelling">Storytelling</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Min words</Label>
+                      <Input type="number" defaultValue={settings.minWords} onBlur={(e) => updateSettings.mutate({ minWords: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Max words</Label>
+                      <Input type="number" defaultValue={settings.maxWords} onBlur={(e) => updateSettings.mutate({ maxWords: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Featured image</Label>
+                      <Select value={settings.imageProvider} onValueChange={(v) => updateSettings.mutate({ imageProvider: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unsplash">Unsplash (free)</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 pt-2">OpenAI API: {health?.openaiConfigured ? "✓ configured" : "✗ missing"} • YouTube API: {health?.youtubeApiConfigured ? "✓ configured" : "optional"}</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

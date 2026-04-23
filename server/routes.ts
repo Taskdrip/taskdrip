@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import { registerShortenerRoutes } from "./url-shortener";
+import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
+import { registerAutoBloggerRoutes } from "./auto-blogger";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages } from "@shared/schema";
@@ -9446,6 +9448,8 @@ Instructions:
 
   // URL Shortener routes
   registerShortenerRoutes(app);
+  registerKeywordAnalyticsRoutes(app);
+  registerAutoBloggerRoutes(app);
 
   const httpServer = existingServer ?? createServer(app);
   return httpServer;

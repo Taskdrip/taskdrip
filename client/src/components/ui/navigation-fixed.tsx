@@ -199,6 +199,8 @@ export function NavigationFixed() {
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/short-links", label: "Short Links" },
           { href: "/admin/url-shortener", label: "Shortener Admin" },
+          { href: "/admin/keyword-analytics", label: "Keyword Analytics" },
+          { href: "/admin/auto-blogger", label: "Auto Blogger" },
         ];
       } else {
         return [
