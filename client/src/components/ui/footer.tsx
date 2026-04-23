@@ -24,6 +24,7 @@ import {
   ExternalLink,
   CheckCircle,
   Loader2,
+  Link2,
 } from "lucide-react";
 import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp, SiDiscord, SiLinkedin } from "react-icons/si";
 import { SOCIALS, OFFICES } from "@/config/socials";
@@ -235,6 +236,7 @@ export function Footer() {
                   <li><Link href="/wallet" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />Wallet & Payouts</Link></li>
                   <li><Link href="/referrals" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Users className="h-4 w-4 mr-2 flex-shrink-0" />Referral Program</Link></li>
                   <li><Link href="/feed" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Newspaper className="h-4 w-4 mr-2 flex-shrink-0" />Social Feed</Link></li>
+                  <li><Link href="/short-links" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-short-links"><Link2 className="h-4 w-4 mr-2 flex-shrink-0" />URL Shortener</Link></li>
                 </ul>
               </div>
 

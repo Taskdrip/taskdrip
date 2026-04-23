@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { TrendingUp, Users, Coins, Target, ExternalLink, Smartphone, Calendar, MapPin, Briefcase, Package, Zap, ArrowRight } from "lucide-react";
+import { TrendingUp, Users, Coins, Target, ExternalLink, Smartphone, Calendar, MapPin, Briefcase, Package, Zap, ArrowRight, Link2 } from "lucide-react";
 import { Link } from "wouter";
 
 const TYPE_GRADIENTS: Record<string, string> = {
@@ -240,7 +240,7 @@ export default function Home() {
         )}
 
         {/* Quick Actions */}
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardContent className="p-6 text-center">
               <Target className="h-8 w-8 mx-auto mb-3" />
@@ -256,6 +256,16 @@ export default function Home() {
               <h3 className="font-semibold mb-2">P2P Market</h3>
               <p className="text-sm opacity-90 mb-4">Trade crypto, products &amp; services securely</p>
               <Link href="/p2p-hub"><Button variant="secondary" size="sm">Open Market</Button></Link>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden bg-gradient-to-br from-cyan-500 via-sky-500 to-violet-600 text-white border-0">
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,white,transparent_45%)] pointer-events-none" />
+            <CardContent className="p-6 text-center relative">
+              <Link2 className="h-8 w-8 mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Short Links</h3>
+              <p className="text-sm opacity-90 mb-4">Branded short URLs with real-time click analytics</p>
+              <Link href="/short-links"><Button variant="secondary" size="sm" data-testid="button-home-short-links">Create a Link</Button></Link>
             </CardContent>
           </Card>
 

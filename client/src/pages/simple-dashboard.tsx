@@ -16,7 +16,7 @@ import {
   Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck, Zap, Star, Crown, Medal,
   Briefcase, ChevronRight, Sparkles, LayoutDashboard, MessageSquare, Settings,
   Store, ArrowUpRight, Globe, BookOpen, Shield, Coins, Send, Bell, LogOut,
-  RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search
+  RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search, Link2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -484,6 +484,7 @@ export default function SimpleDashboard() {
                         { icon: Globe,     label: "P2P Market",        href: "/p2p-hub",      color: "bg-blue-600 hover:bg-blue-700 text-white" },
                         { icon: BookOpen,  label: "BreedSkool",        href: "/breedskool",   color: "bg-orange-500 hover:bg-orange-600 text-white" },
                         { icon: Store,     label: "Shop",              href: "/shop",         color: "bg-pink-600 hover:bg-pink-700 text-white" },
+                        { icon: Link2,     label: "Short Links",       href: "/short-links",  color: "bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-600 hover:to-violet-700 text-white" },
                         { icon: TrendingUp,label: "Feed",              href: "/feed",         color: "bg-gray-800 hover:bg-gray-900 text-white" },
                         { icon: Trophy,    label: "Leaderboard",       href: "/leaderboard",  color: "bg-yellow-500 hover:bg-yellow-600 text-black font-bold" },
                         { icon: Wallet,    label: "Wallets",           href: "/wallet",       color: "bg-green-600 hover:bg-green-700 text-white" },

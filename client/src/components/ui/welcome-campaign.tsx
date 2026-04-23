@@ -110,6 +110,11 @@ export function WelcomeCampaign({ variant }: WelcomeCampaignProps = {}) {
     window.open(task.url, "_blank", "noopener,noreferrer");
     setOpened((prev) => ({ ...prev, [task.key]: true }));
     pendingFocusKey.current = task.key;
+    // Auto-credit points immediately when the user opens the link.
+    // The user can also tap "Task completed" later when they return.
+    setTimeout(() => {
+      if (!completeMutation.isPending) completeMutation.mutate(task.key);
+    }, 400);
   };
 
   const handleConfirm = (task: any) => {
@@ -205,7 +210,7 @@ export function WelcomeCampaign({ variant }: WelcomeCampaignProps = {}) {
               </div>
 
               {!task.completed && (
-                <div className="px-3 pb-3 flex items-center gap-2">
+                <div className="px-3 pb-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   {isProfile ? (
                     <Link href={task.url} className="flex-1">
                       <Button
@@ -223,25 +228,26 @@ export function WelcomeCampaign({ variant }: WelcomeCampaignProps = {}) {
                       <Button
                         size="sm"
                         variant="outline"
-                        className={`flex-1 text-xs h-8 ${isOpened ? "border-purple-200 text-purple-600 bg-purple-50/60" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
+                        className={`flex-1 text-xs h-8 min-w-0 ${isOpened ? "border-purple-200 text-purple-600 bg-purple-50/60" : "border-purple-300 text-purple-700 hover:bg-purple-50"}`}
                         onClick={() => handleOpenAction(task)}
                         data-testid={`button-welcome-open-${task.key}`}
                       >
-                        {isOpened ? "Opened — open again" : "Open link"} <ExternalLink className="h-3 w-3 ml-1" />
+                        <span className="truncate">{isOpened ? "Opened" : "Open link"}</span>
+                        <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                       </Button>
                       <Button
                         size="sm"
-                        className={`flex-1 text-xs h-8 ${isOpened ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white" : "bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200"}`}
+                        className="flex-1 text-xs h-8 min-w-0 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
                         onClick={() => handleConfirm(task)}
-                        disabled={!isOpened || isPending}
+                        disabled={isPending}
                         data-testid={`button-welcome-confirm-${task.key}`}
                       >
                         {isPending ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin flex-shrink-0" />
                         ) : (
-                          <Sparkles className="h-3 w-3 mr-1" />
+                          <Sparkles className="h-3 w-3 mr-1 flex-shrink-0" />
                         )}
-                        {isPending ? "Crediting…" : `Claim ${task.points} pts`}
+                        <span className="truncate">{isPending ? "Crediting…" : `Task completed · +${task.points}`}</span>
                       </Button>
                     </>
                   )}
