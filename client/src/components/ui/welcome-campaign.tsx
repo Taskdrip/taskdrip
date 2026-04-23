@@ -109,12 +109,6 @@ export function WelcomeCampaign({ variant }: WelcomeCampaignProps = {}) {
     if (task.url?.startsWith("/")) return;
     window.open(task.url, "_blank", "noopener,noreferrer");
     setOpened((prev) => ({ ...prev, [task.key]: true }));
-    pendingFocusKey.current = task.key;
-    // Auto-credit points immediately when the user opens the link.
-    // The user can also tap "Task completed" later when they return.
-    setTimeout(() => {
-      if (!completeMutation.isPending) completeMutation.mutate(task.key);
-    }, 400);
   };
 
   const handleConfirm = (task: any) => {
@@ -237,9 +231,9 @@ export function WelcomeCampaign({ variant }: WelcomeCampaignProps = {}) {
                       </Button>
                       <Button
                         size="sm"
-                        className="flex-1 text-xs h-8 min-w-0 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+                        className={`flex-1 text-xs h-8 min-w-0 ${isOpened ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white" : "bg-gray-200 text-gray-500 hover:bg-gray-200 cursor-not-allowed"}`}
                         onClick={() => handleConfirm(task)}
-                        disabled={isPending}
+                        disabled={!isOpened || isPending}
                         data-testid={`button-welcome-confirm-${task.key}`}
                       >
                         {isPending ? (

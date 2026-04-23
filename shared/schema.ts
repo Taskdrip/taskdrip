@@ -2047,13 +2047,20 @@ export const autoBloggerSettings = pgTable("auto_blogger_settings", {
   id: varchar("id").primaryKey().default("singleton"),
   enabled: boolean("enabled").default(false),
   autoPublish: boolean("auto_publish").default(false),
-  model: varchar("model").default("gpt-4o-mini"),
+  aiProvider: varchar("ai_provider").default("gemini"), // gemini | openai
+  model: varchar("model").default("gemini-2.5-flash"),
   toneStyle: varchar("tone_style").default("informative"),
   minWords: integer("min_words").default(700),
   maxWords: integer("max_words").default(1400),
   defaultAuthorId: varchar("default_author_id"),
-  imageProvider: varchar("image_provider").default("unsplash"), // unsplash, none
-  scheduleCron: varchar("schedule_cron"), // optional cron for auto runs
+  imageProvider: varchar("image_provider").default("pollinations"), // pollinations | gemini | unsplash | none
+  includeTranscripts: boolean("include_transcripts").default(true),
+  embedYoutube: boolean("embed_youtube").default(true),
+  autopilotEnabled: boolean("autopilot_enabled").default(false),
+  autopilotIntervalMinutes: integer("autopilot_interval_minutes").default(180),
+  autopilotPerSource: integer("autopilot_per_source").default(1),
+  lastAutopilotRunAt: timestamp("last_autopilot_run_at"),
+  scheduleCron: varchar("schedule_cron"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

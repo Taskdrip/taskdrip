@@ -1,7 +1,7 @@
 import type { Express, Response, NextFunction } from "express";
 import { db } from "./db";
 import { autoBlogSources, autoBlogJobs, autoBloggerSettings, blogPosts } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import Parser from "rss-parser";
 import OpenAI from "openai";
 import { createRequire } from "module";
@@ -23,6 +23,10 @@ const isAdmin = (req: any, res: Response, next: NextFunction) => {
 function getOpenAI(): OpenAI | null {
   if (!process.env.OPENAI_API_KEY) return null;
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
+
+function geminiKey(): string | null {
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
 }
 
 function slugify(s: string) {
@@ -49,15 +53,54 @@ async function getTranscript(url: string): Promise<string> {
     const mod: any = nodeRequire("youtube-transcript");
     const YT = mod.YoutubeTranscript || mod.default || mod;
     const items: any[] = await YT.fetchTranscript(id);
-    return items.map((i: any) => i.text).join(" ").slice(0, 8000);
+    return items.map((i: any) => i.text).join(" ").slice(0, 12000);
   } catch {
     return "";
   }
 }
 
-async function unsplashImage(query: string): Promise<string | null> {
-  // Free, no-API-key Unsplash source URL
-  return `https://source.unsplash.com/1200x630/?${encodeURIComponent(query)}`;
+function youtubeEmbedHtml(url: string): string {
+  const id = youtubeIdFromUrl(url);
+  if (!id) return "";
+  return `<div class="video-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;margin:1.5rem 0;"><iframe src="https://www.youtube.com/embed/${id}" title="YouTube video" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+}
+
+// ─── Image providers (free) ──────────────────────────────────────────────────
+
+async function generateImage(query: string, provider: string): Promise<string> {
+  const q = encodeURIComponent(query.slice(0, 180) || "abstract");
+  if (provider === "none") return "";
+  if (provider === "unsplash") return `https://source.unsplash.com/1200x630/?${q}`;
+  if (provider === "gemini") {
+    const img = await geminiImage(query);
+    if (img) return img;
+    // fallback to pollinations if gemini key missing/quota
+    return `https://image.pollinations.ai/prompt/${q}?width=1200&height=630&nologo=true`;
+  }
+  // default: pollinations (free, no key)
+  return `https://image.pollinations.ai/prompt/${q}?width=1200&height=630&nologo=true`;
+}
+
+async function geminiImage(prompt: string): Promise<string | null> {
+  const key = geminiKey();
+  if (!key) return null;
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`;
+    const body = {
+      contents: [{ parts: [{ text: `High quality 1200x630 cinematic blog header image. Subject: ${prompt}` }] }],
+      generationConfig: { responseModalities: ["IMAGE"] },
+    };
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) return null;
+    const j: any = await r.json();
+    const parts = j?.candidates?.[0]?.content?.parts || [];
+    for (const p of parts) {
+      const data = p?.inlineData?.data;
+      const mime = p?.inlineData?.mimeType || "image/png";
+      if (data) return `data:${mime};base64,${data}`;
+    }
+  } catch {}
+  return null;
 }
 
 // ─── Source pullers ──────────────────────────────────────────────────────────
@@ -93,6 +136,26 @@ async function pullHackerNews(limit = 5) {
   return items.filter(i => i.title);
 }
 
+async function pullYoutube(channelOrPlaylistUrl: string, limit = 5) {
+  // Use YouTube RSS feed (no API key required) for channels and playlists
+  let feedUrl = "";
+  try {
+    const u = new URL(channelOrPlaylistUrl);
+    if (u.searchParams.get("channel_id")) feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${u.searchParams.get("channel_id")}`;
+    else if (u.pathname.includes("/channel/")) feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${u.pathname.split("/channel/")[1].split("/")[0]}`;
+    else if (u.pathname.includes("/playlist")) feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${u.searchParams.get("list")}`;
+    else feedUrl = channelOrPlaylistUrl; // assume already a feed
+  } catch {
+    feedUrl = channelOrPlaylistUrl;
+  }
+  const feed = await rssParser.parseURL(feedUrl);
+  return (feed.items || []).slice(0, limit).map((it: any) => ({
+    title: it.title || "",
+    link: it.link || "",
+    snippet: (it.contentSnippet || it.content || it["media:group"]?.["media:description"] || "").slice(0, 4000),
+  }));
+}
+
 // ─── AI rewriting ────────────────────────────────────────────────────────────
 
 interface RewriteResult {
@@ -108,6 +171,88 @@ interface RewriteResult {
   featuredImage: string;
 }
 
+function buildPrompt(opts: { sourceTitle: string; sourceContent: string; sourceUrl: string; category: string; toneStyle: string; minWords: number; maxWords: number; }) {
+  const { sourceTitle, sourceContent, sourceUrl, category, toneStyle, minWords, maxWords } = opts;
+  const sys = `You are an expert SEO content writer. You rewrite source material into 100% original, plagiarism-free, human-sounding articles that rank on Google. You follow SEO best practices: a compelling H1, an engaging intro hook, scannable H2/H3 subheadings, short paragraphs (2-3 sentences), bullet lists where useful, keyword-rich but natural prose, and a clear conclusion with a CTA. Output valid JSON only, no markdown fences.`;
+  const user = `Rewrite the following into an original blog article between ${minWords} and ${maxWords} words.
+
+CRITICAL RULES:
+- Tone: ${toneStyle}.
+- 100% original: do NOT copy phrases from the source. Paraphrase fully.
+- Sound human and natural. Use varied sentence length, contractions, and a conversational voice.
+- Use HTML formatting in "content": <h2>, <h3>, <p>, <ul>, <li>, <strong>, <blockquote>. NO <html>, <head>, or <body>.
+- Include 4-6 H2 sections plus a conclusion.
+- Add a meta description (max 160 chars), 5-10 SEO keywords, and 4-6 tags.
+- Pick a category from: Tech, Crypto, AI, Marketing, Business, Lifestyle, News.
+- Suggest TWO supporting in-body images by giving short search phrases.
+- Preferred default category: ${category}.
+
+Source title: ${sourceTitle}
+Source URL: ${sourceUrl}
+Source content / context:
+"""
+${sourceContent.slice(0, 10000)}
+"""
+
+Return JSON with exactly these keys:
+{
+  "title": "...",
+  "excerpt": "...",
+  "metaDescription": "...",
+  "seoKeywords": "kw1, kw2, kw3, ...",
+  "tags": ["tag1","tag2","tag3","tag4"],
+  "category": "Tech|Crypto|AI|Marketing|Business|Lifestyle|News",
+  "content": "<h2>...</h2><p>...</p>...",
+  "imageQuery": "2-4 word search phrase for the header image",
+  "inlineImageQueries": ["phrase 1","phrase 2"]
+}`;
+  return { sys, user };
+}
+
+function tryParseJson(raw: string): any {
+  if (!raw) return {};
+  let txt = raw.trim();
+  // strip code fences
+  txt = txt.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  try { return JSON.parse(txt); } catch {}
+  // try to find first { ... } block
+  const m = txt.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]); } catch {} }
+  return {};
+}
+
+async function callGemini(model: string, sys: string, user: string): Promise<string> {
+  const key = geminiKey();
+  if (!key) throw new Error("GEMINI_API_KEY not configured. Add it in Secrets to enable Gemini AI rewriting (free at aistudio.google.com).");
+  const m = model && model.startsWith("gemini") ? model : "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${key}`;
+  const body = {
+    systemInstruction: { parts: [{ text: sys }] },
+    contents: [{ role: "user", parts: [{ text: user }] }],
+    generationConfig: { temperature: 0.85, responseMimeType: "application/json" },
+  };
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error(`Gemini error ${r.status}: ${txt.slice(0, 400)}`);
+  }
+  const j: any = await r.json();
+  const parts = j?.candidates?.[0]?.content?.parts || [];
+  return parts.map((p: any) => p?.text || "").join("");
+}
+
+async function callOpenAI(model: string, sys: string, user: string): Promise<string> {
+  const openai = getOpenAI();
+  if (!openai) throw new Error("OPENAI_API_KEY not configured.");
+  const completion = await openai.chat.completions.create({
+    model: model || "gpt-4o-mini",
+    messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+    response_format: { type: "json_object" },
+    temperature: 0.85,
+  });
+  return completion.choices[0]?.message?.content || "{}";
+}
+
 async function rewriteToBlog(opts: {
   sourceTitle: string;
   sourceContent: string;
@@ -118,66 +263,64 @@ async function rewriteToBlog(opts: {
   maxWords?: number;
   model?: string;
   imageProvider?: string;
+  aiProvider?: string;
+  embedYoutube?: boolean;
 }): Promise<RewriteResult> {
-  const openai = getOpenAI();
-  if (!openai) throw new Error("OPENAI_API_KEY not configured. Add it in Secrets to enable AI rewriting.");
+  const {
+    sourceTitle, sourceContent, sourceUrl = "", category = "Tech", toneStyle = "informative",
+    minWords = 700, maxWords = 1400, model = "gemini-2.5-flash",
+    imageProvider = "pollinations", aiProvider = "gemini", embedYoutube = true,
+  } = opts;
 
-  const { sourceTitle, sourceContent, sourceUrl = "", category = "Tech", toneStyle = "informative", minWords = 700, maxWords = 1400, model = "gpt-4o-mini", imageProvider = "unsplash" } = opts;
+  const { sys, user } = buildPrompt({ sourceTitle, sourceContent, sourceUrl, category, toneStyle, minWords, maxWords });
 
-  const sys = `You are an expert SEO content writer. You rewrite source material into 100% original, plagiarism-free, human-sounding articles that rank on Google. You follow SEO best practices: a compelling H1, an engaging intro hook, scannable H2/H3 subheadings, short paragraphs (2-3 sentences), bullet lists where useful, keyword-rich but natural prose, and a clear conclusion with a CTA. Output valid JSON only.`;
-
-  const user = `Rewrite the following into an original blog article between ${minWords} and ${maxWords} words.
-
-CRITICAL RULES:
-- Tone: ${toneStyle}.
-- 100% original: do NOT copy phrases from the source. Paraphrase fully.
-- Sound human and natural. Use varied sentence length, contractions, and a conversational voice.
-- Use HTML formatting in "content": <h2>, <h3>, <p>, <ul>, <li>, <strong>. NO <html>, <head>, or <body>.
-- Include 4-6 H2 sections.
-- Add a meta description (max 160 chars), 5-10 SEO keywords, and 4-6 tags.
-- Pick a category from: Tech, Crypto, AI, Marketing, Business, Lifestyle, News.
-- Do not mention the original source verbatim, but you can synthesize key facts faithfully.
-
-Source title: ${sourceTitle}
-Source URL: ${sourceUrl}
-Source content / context:
-"""
-${sourceContent.slice(0, 8000)}
-"""
-
-Return JSON with keys exactly:
-{
-  "title": "...",
-  "excerpt": "...",        // 2-3 sentence summary
-  "metaDescription": "...",
-  "seoKeywords": "kw1, kw2, kw3, ...",
-  "tags": ["tag1","tag2","tag3","tag4"],
-  "category": "Tech|Crypto|AI|Marketing|Business|Lifestyle|News",
-  "content": "<h2>...</h2><p>...</p>...",
-  "imageQuery": "2-4 word search phrase for a header image"
-}`;
-
-  const completion = await openai.chat.completions.create({
-    model,
-    messages: [{ role: "system", content: sys }, { role: "user", content: user }],
-    response_format: { type: "json_object" },
-    temperature: 0.85,
-  });
-  const raw = completion.choices[0]?.message?.content || "{}";
-  const parsed = JSON.parse(raw);
+  let raw = "";
+  try {
+    raw = aiProvider === "openai" ? await callOpenAI(model, sys, user) : await callGemini(model, sys, user);
+  } catch (e: any) {
+    // graceful fallback to the other provider if available
+    if (aiProvider === "gemini" && process.env.OPENAI_API_KEY) raw = await callOpenAI("gpt-4o-mini", sys, user);
+    else if (aiProvider === "openai" && geminiKey()) raw = await callGemini("gemini-2.5-flash", sys, user);
+    else throw e;
+  }
+  const parsed = tryParseJson(raw);
 
   const title: string = parsed.title || sourceTitle;
   const slug = slugify(title) + "-" + Math.random().toString(36).slice(2, 7);
-  const wordCount = (parsed.content || "").replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
+  let content: string = parsed.content || "";
+
+  // Insert two inline images (free) into the content between paragraphs
+  const inline: string[] = Array.isArray(parsed.inlineImageQueries) ? parsed.inlineImageQueries.slice(0, 2) : [];
+  if (inline.length && imageProvider !== "none") {
+    const imgs = await Promise.all(inline.map((q) => generateImage(q, imageProvider)));
+    const splits = content.split(/(<\/h2>)/i);
+    let injected = "";
+    let imgIdx = 0;
+    for (let i = 0; i < splits.length; i++) {
+      injected += splits[i];
+      if (splits[i].toLowerCase() === "</h2>" && imgIdx < imgs.length) {
+        injected += `<figure style="margin:1.25rem 0;"><img src="${imgs[imgIdx]}" alt="${(inline[imgIdx] || title).replace(/"/g, "&quot;")}" loading="lazy" style="width:100%;border-radius:12px;" /><figcaption style="font-size:0.85rem;color:#64748b;text-align:center;margin-top:0.5rem;">${inline[imgIdx]}</figcaption></figure>`;
+        imgIdx++;
+      }
+    }
+    content = injected;
+  }
+
+  // Embed source YouTube video at the top of the article
+  if (embedYoutube && sourceUrl && youtubeIdFromUrl(sourceUrl)) {
+    content = youtubeEmbedHtml(sourceUrl) + content;
+  }
+
+  const wordCount = content.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(2, Math.round(wordCount / 200));
   const imgQuery = parsed.imageQuery || category || "abstract";
-  const featuredImage = imageProvider === "none" ? "" : (await unsplashImage(imgQuery)) || "";
+  const featuredImage = await generateImage(imgQuery, imageProvider);
 
   return {
     title,
     slug,
     excerpt: parsed.excerpt || "",
-    content: parsed.content || "",
+    content,
     metaDescription: (parsed.metaDescription || "").slice(0, 160),
     seoKeywords: parsed.seoKeywords || "",
     tags: Array.isArray(parsed.tags) ? parsed.tags : [],
@@ -194,6 +337,118 @@ async function getSettings() {
   if (s) return s;
   const [created] = await db.insert(autoBloggerSettings).values({ id: "singleton" }).returning();
   return created;
+}
+
+// ─── Core run-source logic (shared by manual and autopilot) ──────────────────
+
+async function runSource(sourceId: string, perSource: number, createdBy: string | null) {
+  const [source] = await db.select().from(autoBlogSources).where(eq(autoBlogSources.id, sourceId));
+  if (!source || !source.isActive) return [];
+  const limit = Math.max(1, Math.min(5, perSource));
+  let items: any[] = [];
+  if (source.type === "rss" && source.url) items = await pullRss(source.url, limit);
+  else if (source.type === "reddit" && source.url) items = await pullReddit(source.url, limit);
+  else if (source.type === "hackernews") items = await pullHackerNews(limit);
+  else if (source.type === "youtube" && source.url) items = await pullYoutube(source.url, limit);
+  else return [];
+
+  const settings = await getSettings();
+  const created: any[] = [];
+  for (const item of items) {
+    try {
+      let content = item.snippet || item.title;
+      if (settings.includeTranscripts && item.link) {
+        const t = await getTranscript(item.link);
+        if (t) content += `\n\n[Video transcript]\n${t}`;
+      }
+      const result = await rewriteToBlog({
+        sourceTitle: item.title,
+        sourceContent: content,
+        sourceUrl: item.link,
+        category: source.category || "Tech",
+        toneStyle: settings.toneStyle || "informative",
+        minWords: settings.minWords || 700,
+        maxWords: settings.maxWords || 1400,
+        model: settings.model || "gemini-2.5-flash",
+        imageProvider: settings.imageProvider || "pollinations",
+        aiProvider: settings.aiProvider || "gemini",
+        embedYoutube: settings.embedYoutube !== false,
+      });
+      const [post] = await db.insert(blogPosts).values({
+        title: result.title,
+        slug: result.slug,
+        content: result.content,
+        excerpt: result.excerpt,
+        featuredImage: result.featuredImage || null,
+        category: result.category,
+        tags: result.tags,
+        authorId: settings.defaultAuthorId || createdBy || "system",
+        isPublished: !!settings.autoPublish,
+        publishedAt: settings.autoPublish ? new Date() : null,
+        metaDescription: result.metaDescription,
+        seoKeywords: result.seoKeywords,
+        readingTime: result.readingTime,
+      }).returning();
+      await db.insert(autoBlogJobs).values({
+        sourceId: source.id,
+        sourceTitle: item.title,
+        sourceUrl: item.link,
+        sourceContent: item.snippet,
+        category: source.category,
+        status: settings.autoPublish ? "published" : "completed",
+        blogPostId: post.id,
+        createdBy: createdBy || "autopilot",
+        completedAt: new Date(),
+      });
+      created.push({ title: post.title, slug: post.slug, id: post.id });
+    } catch (err: any) {
+      await db.insert(autoBlogJobs).values({
+        sourceId: source.id,
+        sourceTitle: item.title,
+        sourceUrl: item.link,
+        category: source.category,
+        status: "failed",
+        errorMessage: err.message?.slice(0, 500),
+        createdBy: createdBy || "autopilot",
+        completedAt: new Date(),
+      });
+    }
+  }
+  await db.update(autoBlogSources).set({ lastRunAt: new Date() }).where(eq(autoBlogSources.id, source.id));
+  return created;
+}
+
+// ─── Autopilot scheduler ─────────────────────────────────────────────────────
+
+let autopilotTimer: NodeJS.Timeout | null = null;
+let autopilotRunning = false;
+
+async function autopilotTick() {
+  if (autopilotRunning) return;
+  autopilotRunning = true;
+  try {
+    const settings = await getSettings();
+    if (!settings.autopilotEnabled) return;
+    const last = settings.lastAutopilotRunAt ? new Date(settings.lastAutopilotRunAt).getTime() : 0;
+    const intervalMs = Math.max(15, settings.autopilotIntervalMinutes || 180) * 60 * 1000;
+    if (Date.now() - last < intervalMs) return;
+    const sources = await db.select().from(autoBlogSources).where(eq(autoBlogSources.isActive, true));
+    for (const s of sources) {
+      try { await runSource(s.id, settings.autopilotPerSource || 1, null); } catch {}
+    }
+    await db.update(autoBloggerSettings).set({ lastAutopilotRunAt: new Date() }).where(eq(autoBloggerSettings.id, "singleton"));
+  } catch (e) {
+    console.error("[autopilot] tick error", e);
+  } finally {
+    autopilotRunning = false;
+  }
+}
+
+export function startAutoBloggerAutopilot() {
+  if (autopilotTimer) return;
+  // Tick every 5 minutes; the tick itself respects the per-settings interval
+  autopilotTimer = setInterval(autopilotTick, 5 * 60 * 1000);
+  setTimeout(autopilotTick, 30 * 1000); // first run shortly after boot
 }
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
@@ -254,6 +509,7 @@ export function registerAutoBloggerRoutes(app: Express) {
       { name: "r/technology", type: "reddit", url: "technology", category: "Tech" },
       { name: "r/CryptoCurrency", type: "reddit", url: "CryptoCurrency", category: "Crypto" },
       { name: "r/artificial", type: "reddit", url: "artificial", category: "AI" },
+      { name: "YouTube — Marques Brownlee", type: "youtube", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ", category: "Tech" },
     ];
     for (const s of seeds) {
       const [exists] = await db.select().from(autoBlogSources).where(eq(autoBlogSources.name, s.name));
@@ -272,13 +528,14 @@ export function registerAutoBloggerRoutes(app: Express) {
       if (source.type === "rss" && source.url) items = await pullRss(source.url, limit);
       else if (source.type === "reddit" && source.url) items = await pullReddit(source.url, limit);
       else if (source.type === "hackernews") items = await pullHackerNews(limit);
+      else if (source.type === "youtube" && source.url) items = await pullYoutube(source.url, limit);
       else return res.status(400).json({ message: "Unsupported source type" });
       await db.update(autoBlogSources).set({ lastRunAt: new Date() }).where(eq(autoBlogSources.id, source.id));
       res.json({ source: source.name, category: source.category, items });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
-  // Generate a blog post job (rewrite via OpenAI) — accepts ad-hoc title/url/content
+  // Generate a blog post job — accepts ad-hoc title/url/content
   app.post("/api/admin/auto-blogger/generate", isAuthed, isAdmin, async (req: any, res) => {
     try {
       const { sourceTitle, sourceContent, sourceUrl, sourceId, category, autoPublish, includeTranscript } = req.body || {};
@@ -294,10 +551,10 @@ export function registerAutoBloggerRoutes(app: Express) {
         createdBy: req.user.id,
       }).returning();
 
-      // Process synchronously but with try/catch so we always return a job
       try {
         let combinedContent = sourceContent || "";
-        if (includeTranscript && sourceUrl) {
+        const wantTranscript = includeTranscript !== undefined ? !!includeTranscript : !!settings.includeTranscripts;
+        if (wantTranscript && sourceUrl) {
           const t = await getTranscript(sourceUrl);
           if (t) combinedContent = `${combinedContent}\n\n[Video transcript]\n${t}`;
         }
@@ -309,8 +566,10 @@ export function registerAutoBloggerRoutes(app: Express) {
           toneStyle: settings.toneStyle || "informative",
           minWords: settings.minWords || 700,
           maxWords: settings.maxWords || 1400,
-          model: settings.model || "gpt-4o-mini",
-          imageProvider: settings.imageProvider || "unsplash",
+          model: settings.model || "gemini-2.5-flash",
+          imageProvider: settings.imageProvider || "pollinations",
+          aiProvider: settings.aiProvider || "gemini",
+          embedYoutube: settings.embedYoutube !== false,
         });
 
         const shouldPublish = autoPublish !== undefined ? !!autoPublish : settings.autoPublish;
@@ -351,72 +610,24 @@ export function registerAutoBloggerRoutes(app: Express) {
   // Bulk-discover-and-generate from a source
   app.post("/api/admin/auto-blogger/run-source/:id", isAuthed, isAdmin, async (req: any, res) => {
     try {
-      const [source] = await db.select().from(autoBlogSources).where(eq(autoBlogSources.id, req.params.id));
-      if (!source) return res.status(404).json({ message: "Not found" });
       const limit = Math.min(5, Number(req.body?.limit) || 2);
-      let items: any[] = [];
-      if (source.type === "rss" && source.url) items = await pullRss(source.url, limit);
-      else if (source.type === "reddit" && source.url) items = await pullReddit(source.url, limit);
-      else if (source.type === "hackernews") items = await pullHackerNews(limit);
-      else return res.status(400).json({ message: "Unsupported source type" });
+      const created = await runSource(req.params.id, limit, req.user.id);
+      res.json({ created });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
 
+  // Run autopilot once now (manual trigger across all active sources)
+  app.post("/api/admin/auto-blogger/autopilot/run-now", isAuthed, isAdmin, async (req: any, res) => {
+    try {
       const settings = await getSettings();
-      const created: any[] = [];
-      for (const item of items) {
-        try {
-          const result = await rewriteToBlog({
-            sourceTitle: item.title,
-            sourceContent: item.snippet || item.title,
-            sourceUrl: item.link,
-            category: source.category || "Tech",
-            toneStyle: settings.toneStyle || "informative",
-            minWords: settings.minWords || 700,
-            maxWords: settings.maxWords || 1400,
-            model: settings.model || "gpt-4o-mini",
-            imageProvider: settings.imageProvider || "unsplash",
-          });
-          const [post] = await db.insert(blogPosts).values({
-            title: result.title,
-            slug: result.slug,
-            content: result.content,
-            excerpt: result.excerpt,
-            featuredImage: result.featuredImage || null,
-            category: result.category,
-            tags: result.tags,
-            authorId: settings.defaultAuthorId || req.user.id,
-            isPublished: settings.autoPublish || false,
-            publishedAt: settings.autoPublish ? new Date() : null,
-            metaDescription: result.metaDescription,
-            seoKeywords: result.seoKeywords,
-            readingTime: result.readingTime,
-          }).returning();
-          await db.insert(autoBlogJobs).values({
-            sourceId: source.id,
-            sourceTitle: item.title,
-            sourceUrl: item.link,
-            sourceContent: item.snippet,
-            category: source.category,
-            status: settings.autoPublish ? "published" : "completed",
-            blogPostId: post.id,
-            createdBy: req.user.id,
-            completedAt: new Date(),
-          });
-          created.push({ title: post.title, slug: post.slug, id: post.id });
-        } catch (err: any) {
-          await db.insert(autoBlogJobs).values({
-            sourceId: source.id,
-            sourceTitle: item.title,
-            sourceUrl: item.link,
-            category: source.category,
-            status: "failed",
-            errorMessage: err.message?.slice(0, 500),
-            createdBy: req.user.id,
-            completedAt: new Date(),
-          });
-        }
+      const sources = await db.select().from(autoBlogSources).where(eq(autoBlogSources.isActive, true));
+      const totals: any[] = [];
+      for (const s of sources) {
+        const created = await runSource(s.id, settings.autopilotPerSource || 1, req.user.id);
+        totals.push({ source: s.name, created: created.length });
       }
-      await db.update(autoBlogSources).set({ lastRunAt: new Date() }).where(eq(autoBlogSources.id, source.id));
-      res.json({ source: source.name, created });
+      await db.update(autoBloggerSettings).set({ lastAutopilotRunAt: new Date() }).where(eq(autoBloggerSettings.id, "singleton"));
+      res.json({ totals });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
@@ -429,8 +640,11 @@ export function registerAutoBloggerRoutes(app: Express) {
   // Quick health
   app.get("/api/admin/auto-blogger/health", isAuthed, isAdmin, async (req, res) => {
     res.json({
+      geminiConfigured: !!geminiKey(),
       openaiConfigured: !!process.env.OPENAI_API_KEY,
       youtubeApiConfigured: !!process.env.YOUTUBE_API_KEY,
+      imageProviders: ["pollinations", "gemini", "unsplash", "none"],
+      aiProviders: ["gemini", "openai"],
     });
   });
 }

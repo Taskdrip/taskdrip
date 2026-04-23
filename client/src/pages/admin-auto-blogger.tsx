@@ -16,7 +16,8 @@ import { Sparkles, Plus, Trash2, RefreshCw, Wand2, ExternalLink, CheckCircle2, A
 
 type Source = { id: string; name: string; type: string; url: string | null; category: string | null; isActive: boolean; lastRunAt: string | null };
 type Job = { id: string; sourceTitle: string; sourceUrl: string | null; status: string; blogPostId: string | null; errorMessage: string | null; category: string | null; createdAt: string; completedAt: string | null };
-type Settings = { id: string; enabled: boolean; autoPublish: boolean; model: string; toneStyle: string; minWords: number; maxWords: number; imageProvider: string };
+type Settings = { id: string; enabled: boolean; autoPublish: boolean; aiProvider: string; model: string; toneStyle: string; minWords: number; maxWords: number; imageProvider: string; includeTranscripts: boolean; embedYoutube: boolean; autopilotEnabled: boolean; autopilotIntervalMinutes: number; autopilotPerSource: number; lastAutopilotRunAt: string | null };
+type Health = { geminiConfigured: boolean; openaiConfigured: boolean; youtubeApiConfigured: boolean };
 
 export default function AdminAutoBlogger() {
   const { toast } = useToast();
@@ -31,7 +32,7 @@ export default function AdminAutoBlogger() {
 
   const [newSource, setNewSource] = useState({ name: "", type: "rss", url: "", category: "Tech" });
 
-  const { data: health } = useQuery<{ openaiConfigured: boolean; youtubeApiConfigured: boolean }>({ queryKey: ["/api/admin/auto-blogger/health"] });
+  const { data: health } = useQuery<Health>({ queryKey: ["/api/admin/auto-blogger/health"] });
   const { data: sources = [] } = useQuery<Source[]>({ queryKey: ["/api/admin/auto-blogger/sources"] });
   const { data: jobs = [] } = useQuery<Job[]>({ queryKey: ["/api/admin/auto-blogger/jobs"] });
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/admin/auto-blogger/settings"] });
@@ -282,13 +283,33 @@ export default function AdminAutoBlogger() {
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
+                      <Label className="text-xs">AI Provider</Label>
+                      <Select value={settings.aiProvider || "gemini"} onValueChange={(v) => updateSettings.mutate({ aiProvider: v, model: v === "gemini" ? "gemini-2.5-flash" : "gpt-4o-mini" })}>
+                        <SelectTrigger data-testid="select-ai-provider"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gemini">Google Gemini (free)</SelectItem>
+                          <SelectItem value="openai">OpenAI (paid)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label className="text-xs">AI Model</Label>
                       <Select value={settings.model} onValueChange={(v) => updateSettings.mutate({ model: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger data-testid="select-ai-model"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="gpt-4o-mini">gpt-4o-mini (fast/cheap)</SelectItem>
-                          <SelectItem value="gpt-4o">gpt-4o (best quality)</SelectItem>
-                          <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
+                          {(settings.aiProvider || "gemini") === "gemini" ? (
+                            <>
+                              <SelectItem value="gemini-2.5-flash">gemini-2.5-flash (fast, free)</SelectItem>
+                              <SelectItem value="gemini-2.5-pro">gemini-2.5-pro (best quality)</SelectItem>
+                              <SelectItem value="gemini-1.5-flash">gemini-1.5-flash</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
+                              <SelectItem value="gpt-4o">gpt-4o</SelectItem>
+                              <SelectItem value="gpt-4.1-mini">gpt-4.1-mini</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -305,6 +326,18 @@ export default function AdminAutoBlogger() {
                       </Select>
                     </div>
                     <div>
+                      <Label className="text-xs">Featured image</Label>
+                      <Select value={settings.imageProvider} onValueChange={(v) => updateSettings.mutate({ imageProvider: v })}>
+                        <SelectTrigger data-testid="select-image-provider"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pollinations">Pollinations AI (free, no key)</SelectItem>
+                          <SelectItem value="gemini">Google Imagen via Gemini (key required)</SelectItem>
+                          <SelectItem value="unsplash">Unsplash photo</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label className="text-xs">Min words</Label>
                       <Input type="number" defaultValue={settings.minWords} onBlur={(e) => updateSettings.mutate({ minWords: Number(e.target.value) })} />
                     </div>
@@ -312,18 +345,65 @@ export default function AdminAutoBlogger() {
                       <Label className="text-xs">Max words</Label>
                       <Input type="number" defaultValue={settings.maxWords} onBlur={(e) => updateSettings.mutate({ maxWords: Number(e.target.value) })} />
                     </div>
-                    <div>
-                      <Label className="text-xs">Featured image</Label>
-                      <Select value={settings.imageProvider} onValueChange={(v) => updateSettings.mutate({ imageProvider: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unsplash">Unsplash (free)</SelectItem>
-                          <SelectItem value="none">None</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-3 pt-2">
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <Label>Pull YouTube transcripts</Label>
+                        <p className="text-xs text-gray-500">Use video transcripts as source context.</p>
+                      </div>
+                      <Switch checked={!!settings.includeTranscripts} onCheckedChange={(v) => updateSettings.mutate({ includeTranscripts: v })} data-testid="switch-transcripts" />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <Label>Embed source video</Label>
+                        <p className="text-xs text-gray-500">If source is YouTube, embed it inline.</p>
+                      </div>
+                      <Switch checked={!!settings.embedYoutube} onCheckedChange={(v) => updateSettings.mutate({ embedYoutube: v })} data-testid="switch-embed-yt" />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 pt-2">OpenAI API: {health?.openaiConfigured ? "✓ configured" : "✗ missing"} • YouTube API: {health?.youtubeApiConfigured ? "✓ configured" : "optional"}</p>
+
+                  <div className="rounded-xl border bg-gradient-to-br from-violet-50 to-cyan-50 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">Smart Autopilot Agent</Label>
+                        <p className="text-xs text-gray-600">Pulls feeds + YouTube on a timer, writes articles, adds free images, and publishes for you.</p>
+                      </div>
+                      <Switch checked={!!settings.autopilotEnabled} onCheckedChange={(v) => updateSettings.mutate({ autopilotEnabled: v })} data-testid="switch-autopilot" />
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-xs">Run every (minutes)</Label>
+                        <Input type="number" min={15} defaultValue={settings.autopilotIntervalMinutes || 180} onBlur={(e) => updateSettings.mutate({ autopilotIntervalMinutes: Math.max(15, Number(e.target.value) || 180) })} data-testid="input-autopilot-interval" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Articles per source / run</Label>
+                        <Input type="number" min={1} max={5} defaultValue={settings.autopilotPerSource || 1} onBlur={(e) => updateSettings.mutate({ autopilotPerSource: Math.max(1, Math.min(5, Number(e.target.value) || 1)) })} data-testid="input-autopilot-per-source" />
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          className="w-full bg-gradient-to-r from-violet-600 to-cyan-600 text-white"
+                          onClick={async () => {
+                            const r = await fetch("/api/admin/auto-blogger/autopilot/run-now", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
+                            const d = await r.json();
+                            if (!r.ok) toast({ title: "Autopilot failed", description: d.message, variant: "destructive" });
+                            else { toast({ title: "Autopilot run finished", description: (d.totals || []).map((t: any) => `${t.source}: ${t.created}`).join(" • ") || "No items" }); queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-blogger/jobs"] }); }
+                          }}
+                          data-testid="button-autopilot-run-now"
+                        >
+                          <Wand2 className="w-4 h-4 mr-1" /> Run autopilot now
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500">Last autopilot run: {settings.lastAutopilotRunAt ? new Date(settings.lastAutopilotRunAt).toLocaleString() : "never"}</p>
+                  </div>
+
+                  <p className="text-xs text-gray-500 pt-2">
+                    Gemini API: {health?.geminiConfigured ? "✓ configured" : "✗ add GEMINI_API_KEY (free at aistudio.google.com)"} •
+                    OpenAI API: {health?.openaiConfigured ? "✓ configured" : "optional"} •
+                    YouTube API: {health?.youtubeApiConfigured ? "✓ configured" : "optional"}
+                  </p>
                 </CardContent>
               </Card>
             )}
