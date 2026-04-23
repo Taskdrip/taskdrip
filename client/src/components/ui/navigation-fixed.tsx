@@ -185,6 +185,7 @@ export function NavigationFixed() {
           { href: "/wallet", label: "Wallet" },
           { href: "/feed", label: "Feed" },
           { href: "/chat", label: "Messages" },
+          { href: "/short-links", label: "Short Links" },
         ];
       } else if ((user as any)?.userType === 'admin') {
         return [
@@ -196,6 +197,8 @@ export function NavigationFixed() {
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/wallet", label: "Wallet" },
           { href: "/breedskool", label: "BreedSkool" },
+          { href: "/short-links", label: "Short Links" },
+          { href: "/admin/url-shortener", label: "Shortener Admin" },
         ];
       } else {
         return [
@@ -209,6 +212,7 @@ export function NavigationFixed() {
           { href: "/feed", label: "Feed" },
           { href: "/influencers", label: "Influencers" },
           { href: "/leaderboard", label: "Leaderboard" },
+          { href: "/short-links", label: "Short Links" },
         ];
       }
     } else {

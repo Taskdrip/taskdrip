@@ -6434,9 +6434,10 @@ Instructions:
 
   app.post('/api/p2p/listings', isAuthenticated, upload.single('featuredImage'), async (req: any, res) => {
     try {
-      // ── Free user gate ────────────────────────────────────────────────────────
+      // ── Free user gate (admins bypass) ────────────────────────────────────────
       const p2pUser = await storage.getUser(req.user.id);
-      if (getSubscriptionTier(p2pUser) === 'free') {
+      const isAdminUser = req.user.userType === 'admin' || (p2pUser as any)?.role === 'admin';
+      if (!isAdminUser && getSubscriptionTier(p2pUser) === 'free') {
         return res.status(403).json({
           message: 'P2P listing requires a Premium subscription. Upgrade to Monthly or Yearly to start selling.',
           upgradeRequired: true,
