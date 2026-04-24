@@ -1886,37 +1886,26 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-      const messages = await storage.getUserMessages(userId);
-      
-      // Enrich messages with sender and receiver information
-      const enrichedMessages = await Promise.all(
-        messages.map(async (message) => {
-          const sender = await storage.getUserById(message.senderId);
-          const receiver = await storage.getUserById(message.receiverId);
-          return {
-            ...message,
-            sender: sender ? {
-              id: sender.id,
-              firstName: sender.firstName,
-              lastName: sender.lastName,
-              companyName: sender.companyName,
-              userType: sender.userType,
-              username: sender.username,
-              profileImageUrl: sender.profileImageUrl,
-            } : null,
-            receiver: receiver ? {
-              id: receiver.id,
-              firstName: receiver.firstName,
-              lastName: receiver.lastName,
-              companyName: receiver.companyName,
-              userType: receiver.userType,
-              username: receiver.username,
-              profileImageUrl: receiver.profileImageUrl,
-            } : null,
-          };
-        })
-      );
-      
+      const msgs = await storage.getUserMessages(userId);
+
+      // Batch-load all unique user IDs in ONE query instead of N*2 individual lookups
+      const uniqueIds = [...new Set(msgs.flatMap(m => [m.senderId, m.receiverId]))];
+      const userRows = uniqueIds.length
+        ? await db.select({
+            id: users.id, firstName: users.firstName, lastName: users.lastName,
+            companyName: users.companyName, userType: users.userType,
+            username: users.username, profileImageUrl: users.profileImageUrl,
+          }).from(users).where(inArray(users.id, uniqueIds))
+        : [];
+      const userMap: Record<string, any> = {};
+      for (const u of userRows) userMap[u.id] = u;
+
+      const enrichedMessages = msgs.map(msg => ({
+        ...msg,
+        sender: userMap[msg.senderId] || null,
+        receiver: userMap[msg.receiverId] || null,
+      }));
+
       res.json(enrichedMessages);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -4683,27 +4672,35 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         }
       }
 
-      // Enrich each conversation
-      const enriched = await Promise.all(Object.values(convMap).map(async (conv) => {
-        let campaign = null;
-        if (conv.campaignId) {
-          campaign = await storage.getCampaignById(conv.campaignId);
-        }
-        const participantIds = Array.from(conv.participantIds as Set<string>);
-        const participants = await Promise.all(
-          participantIds.map(async (pid: string) => {
-            const u = await storage.getUserById(pid);
-            return u ? { id: u.id, firstName: u.firstName, lastName: u.lastName, userType: u.userType, companyName: u.companyName, profileImageUrl: u.profileImageUrl } : null;
-          })
-        );
-        return {
-          id: conv.id,
-          campaignId: conv.campaignId,
-          campaign: campaign ? { id: campaign.id, title: campaign.title } : null,
-          participants: participants.filter(Boolean),
-          lastMessage: conv.lastMessage,
-          unreadCount: conv.unreadCount,
-        };
+      // Batch-load all unique participant IDs in ONE query
+      const allParticipantIds = [...new Set(
+        Object.values(convMap).flatMap((conv: any) => Array.from(conv.participantIds as Set<string>))
+      )];
+      const allCampaignIds = [...new Set(
+        Object.values(convMap).map((conv: any) => conv.campaignId).filter(Boolean)
+      )];
+      const [participantRows, campaignRows] = await Promise.all([
+        allParticipantIds.length
+          ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl })
+              .from(users).where(inArray(users.id, allParticipantIds))
+          : [],
+        allCampaignIds.length
+          ? db.select({ id: campaigns.id, title: campaigns.title })
+              .from(campaigns).where(inArray(campaigns.id, allCampaignIds))
+          : [],
+      ]);
+      const participantMap: Record<string, any> = {};
+      for (const u of participantRows) participantMap[u.id] = u;
+      const campaignMap: Record<string, any> = {};
+      for (const c of campaignRows) campaignMap[c.id] = c;
+
+      const enriched = Object.values(convMap).map((conv: any) => ({
+        id: conv.id,
+        campaignId: conv.campaignId,
+        campaign: conv.campaignId && campaignMap[conv.campaignId] ? { id: conv.campaignId, title: campaignMap[conv.campaignId].title } : null,
+        participants: Array.from(conv.participantIds as Set<string>).map(pid => participantMap[pid]).filter(Boolean),
+        lastMessage: conv.lastMessage,
+        unreadCount: conv.unreadCount,
       }));
 
       enriched.sort((a: any, b: any) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
@@ -4746,15 +4743,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         }
       }
 
-      // Enrich with sender info
-      const senderCache: Record<string, any> = {};
-      const enriched = await Promise.all(rawMessages.map(async (msg) => {
-        if (!senderCache[msg.senderId]) {
-          const sender = await storage.getUserById(msg.senderId);
-          senderCache[msg.senderId] = sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType, companyName: sender.companyName, profileImageUrl: sender.profileImageUrl } : null;
-        }
-        return { ...msg, sender: senderCache[msg.senderId] };
-      }));
+      // Batch-load all unique sender IDs in ONE query
+      const senderIds = [...new Set(rawMessages.map(m => m.senderId))];
+      const senderRows = senderIds.length
+        ? await db.select({
+            id: users.id, firstName: users.firstName, lastName: users.lastName,
+            userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl,
+          }).from(users).where(inArray(users.id, senderIds))
+        : [];
+      const senderMap: Record<string, any> = {};
+      for (const s of senderRows) senderMap[s.id] = s;
+      const enriched = rawMessages.map(msg => ({ ...msg, sender: senderMap[msg.senderId] || null }));
 
       // Deduplicate: multiple DB records created for broadcast messages (one per recipient)
       // Keep only the first occurrence of same sender+content within 10 seconds
@@ -4767,11 +4766,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return true;
       });
 
-      // Mark messages as read
-      for (const msg of rawMessages) {
-        if (msg.receiverId === userId && !msg.isRead) {
-          await storage.markMessageAsRead(msg.id);
-        }
+      // Batch mark-as-read in a single UPDATE instead of N sequential queries
+      const unreadIds = rawMessages.filter(m => m.receiverId === userId && !m.isRead).map(m => m.id);
+      if (unreadIds.length > 0) {
+        await db.update(messages).set({ isRead: true }).where(inArray(messages.id, unreadIds));
       }
 
       res.json(deduplicated);

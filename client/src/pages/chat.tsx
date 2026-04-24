@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useSearch } from "wouter";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import {
-  Send, ArrowLeft, MessageCircle, Search, CheckCheck, Check,
+  Send, ArrowLeft, MessageCircle, Search, CheckCheck, Check, Clock,
   Paperclip, Smile, MoreVertical, Phone, Video, Info, Zap,
   X, FileText, Download, Image as ImageIcon, Film, Music, File as FileIcon
 } from "lucide-react";
@@ -158,8 +158,9 @@ export default function ChatPage() {
   const { data: allMessages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
     retry: false,
-    refetchInterval: 1500,
+    refetchInterval: 3000,
     refetchIntervalInBackground: false,
+    staleTime: 1000,
   });
 
   // ── Typing indicator ─────────────────────────────────────────────────────
@@ -217,19 +218,61 @@ export default function ChatPage() {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ text, files }) => {
+      // Cancel any in-flight refetch so it doesn't overwrite optimistic state
+      await queryClient.cancelQueries({ queryKey: ['/api/messages'] });
+      const prevMessages = queryClient.getQueryData<Message[]>(['/api/messages']);
+
+      // Immediately show the message in the UI (optimistic)
+      const optimisticMsg: Message = {
+        id: `opt_${Date.now()}`,
+        senderId: (user as any)?.id ?? '',
+        receiverId: selectedConversation ?? '',
+        campaignId: '',
+        subject: 'Chat',
+        content: text || (files.length > 0 ? `📎 ${files.length} attachment${files.length > 1 ? 's' : ''}` : ''),
+        messageType: 'chat',
+        isRead: false,
+        attachments: [],
+        createdAt: new Date().toISOString(),
+        sender: {
+          id: (user as any)?.id,
+          firstName: (user as any)?.firstName,
+          lastName: (user as any)?.lastName,
+          companyName: (user as any)?.companyName,
+          userType: (user as any)?.userType,
+          profileImageUrl: (user as any)?.profileImageUrl,
+        },
+      };
+
+      queryClient.setQueryData<Message[]>(['/api/messages'], old => [optimisticMsg, ...(old ?? [])]);
+      return { prevMessages };
+    },
+    onSuccess: (serverMsg) => {
+      // Replace the optimistic message with the real one from the server
+      queryClient.setQueryData<Message[]>(['/api/messages'], old =>
+        (old ?? []).map(m => m.id.startsWith('opt_') ? { ...serverMsg, sender: m.sender } : m)
+      );
+      // Refetch in background to get fully-enriched data (read status, etc.)
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       setContent('');
       setPendingFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
       inputRef.current?.focus();
     },
-    onError: () => toast({ title: 'Failed to send message', variant: 'destructive' }),
+    onError: (_err, _vars, context) => {
+      // Roll back on error
+      if (context?.prevMessages) {
+        queryClient.setQueryData(['/api/messages'], context.prevMessages);
+      }
+      toast({ title: 'Failed to send message', variant: 'destructive' });
+    },
   });
 
   const handleSend = () => {
     const text = content.trim();
-    if ((!text && pendingFiles.length === 0) || !selectedConversation) return;
+    if ((!text && pendingFiles.length === 0) || !selectedConversation || sendMutation.isPending) return;
+    setContent('');
     sendMutation.mutate({ text, files: pendingFiles });
   };
 
@@ -445,8 +488,9 @@ export default function ChatPage() {
                             const isOwn = msg.senderId === (user as any)?.id;
                             const prevMsg = messages[idx - 1];
                             const showAvatar = !isOwn && (!prevMsg || prevMsg.senderId !== msg.senderId);
+                            const isSending = msg.id.startsWith('opt_');
                             return (
-                              <div key={msg.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                              <div key={msg.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-75' : ''}`}>
                                 {!isOwn && (
                                   <div className="w-8 flex-shrink-0">
                                     {showAvatar && (
@@ -471,11 +515,13 @@ export default function ChatPage() {
                                     </div>
                                   )}
                                   <div className={`flex items-center gap-1 mt-1 px-1 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <span className="text-[10px] text-gray-400">{formatTimestampFull(msg.createdAt)}</span>
+                                    <span className="text-[10px] text-gray-400">{isSending ? 'Sending…' : formatTimestampFull(msg.createdAt)}</span>
                                     {isOwn && (
-                                      msg.isRead
-                                        ? <CheckCheck className="w-3.5 h-3.5 text-purple-500" />
-                                        : <Check className="w-3.5 h-3.5 text-gray-400" />
+                                      isSending
+                                        ? <Clock className="w-3 h-3 text-gray-300 animate-pulse" />
+                                        : msg.isRead
+                                          ? <CheckCheck className="w-3.5 h-3.5 text-purple-500" />
+                                          : <Check className="w-3.5 h-3.5 text-gray-400" />
                                     )}
                                   </div>
                                 </div>
@@ -542,8 +588,8 @@ export default function ChatPage() {
                     onKeyDown={handleKeyDown}
                     placeholder={`Message ${activeConv.userName}...`}
                     className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-sm py-1 px-0"
-                    disabled={sendMutation.isPending}
                     data-testid="message-input"
+                    autoFocus
                   />
                   <button
                     className="text-gray-400 hover:text-purple-500 transition-colors p-1 flex-shrink-0"
@@ -555,11 +601,11 @@ export default function ChatPage() {
                   <Button
                     onClick={handleSend}
                     size="sm"
-                    disabled={sendMutation.isPending || (!content.trim() && pendingFiles.length === 0)}
+                    disabled={!content.trim() && pendingFiles.length === 0}
                     className={`flex-shrink-0 rounded-xl px-3 py-2 transition-all ${(content.trim() || pendingFiles.length > 0) ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-500/25' : 'bg-gray-200 text-gray-400'}`}
                     data-testid="send-message-btn"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send className={`w-4 h-4 ${sendMutation.isPending ? 'opacity-50' : ''}`} />
                   </Button>
                 </div>
                 <input
