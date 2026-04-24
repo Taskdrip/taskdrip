@@ -14,9 +14,19 @@ import {
   Shield, Copy, CheckCircle, AlertCircle, Package,
   ArrowLeft, Lock, Zap, ChevronRight, Upload, Star,
   PartyPopper, Download, Building2, Wallet,
-  Eye, EyeOff, LogIn, UserPlus, ShoppingBag,
+  Eye, EyeOff, LogIn, UserPlus, ShoppingBag, MessageCircle, Receipt,
 } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
+import { SOCIALS } from "@/config/socials";
 import type { ShopProduct } from "@shared/schema";
+
+type ServiceAddon = { id: string; title: string; description: string; price: number };
+
+function getYouTubeEmbed(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}
 
 type Step = "summary" | "payment" | "confirm" | "success";
 
@@ -476,6 +486,7 @@ export default function ShopCheckout() {
   const [proofUrl, setProofUrl] = useState("");
   const [proofText, setProofText] = useState("");
   const [purchaseId, setPurchaseId] = useState<string | null>(null);
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
 
   const { data: product, isLoading } = useQuery<ShopProduct>({
     queryKey: ["/api/shop/products", productId],
@@ -494,16 +505,24 @@ export default function ShopCheckout() {
     // Will be set on first render via the useEffect equivalent
   }
 
+  const productAddons: ServiceAddon[] = ((product as any)?.serviceAddons || []) as ServiceAddon[];
+  const chosenAddons = productAddons.filter((a) => selectedAddonIds.includes(a.id));
+  const addonsTotal = chosenAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+  const basePrice = product ? parseFloat(product.price) : 0;
+  const grandTotal = basePrice + addonsTotal;
+  const introVideoEmbed = getYouTubeEmbed((product as any)?.introVideoUrl || "");
+
   const purchaseMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/shop/purchase", {
         productId: product!.id,
-        amount: product!.price,
+        amount: grandTotal.toFixed(2),
         currency: selectedMethod?.currency || "USD",
         network: selectedMethod?.network || selectedMethod?.type || "manual",
         transactionHash: txHash,
         paymentProof: proofUrl || proofText,
         paymentMethod: selectedMethod?.label || "Crypto",
+        selectedAddons: chosenAddons.map((a) => ({ id: a.id, title: a.title, price: a.price })),
       });
       return res.json();
     },
@@ -518,11 +537,12 @@ export default function ShopCheckout() {
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/shop/purchase", {
         productId: product!.id,
-        amount: "0",
+        amount: addonsTotal.toFixed(2),
         currency: "USD",
-        network: "free",
-        paymentProof: "FREE_PRODUCT",
+        network: addonsTotal > 0 ? "manual" : "free",
+        paymentProof: addonsTotal > 0 ? (proofUrl || proofText || "FREE_WITH_ADDONS") : "FREE_PRODUCT",
         transactionHash: "",
+        selectedAddons: chosenAddons.map((a) => ({ id: a.id, title: a.title, price: a.price })),
       });
       return res.json();
     },
@@ -664,8 +684,79 @@ export default function ShopCheckout() {
           <div className="max-w-lg mx-auto space-y-5">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Choose Payment Method</h2>
-              <p className="text-gray-500 text-sm mt-1">Select how you'd like to pay <span className="font-semibold text-gray-800">${product.price}</span></p>
+              <p className="text-gray-500 text-sm mt-1">Select how you'd like to pay <span className="font-semibold text-gray-800">${grandTotal.toFixed(2)}</span></p>
             </div>
+
+            {/* Service Add-ons (Upsells) */}
+            {productAddons.length > 0 && (
+              <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-2xl p-5 space-y-4" data-testid="addons-picker">
+                <div>
+                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-violet-600 fill-violet-600" />
+                    Boost your order with add-ons
+                  </h3>
+                  <p className="text-xs text-gray-600 mt-0.5">Optional extras to get even more value.</p>
+                </div>
+
+                {introVideoEmbed && (
+                  <div className="rounded-xl overflow-hidden bg-black aspect-video">
+                    <iframe
+                      src={introVideoEmbed}
+                      title="Service add-ons intro"
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      data-testid="iframe-intro-video"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {productAddons.map((addon) => {
+                    const checked = selectedAddonIds.includes(addon.id);
+                    return (
+                      <label
+                        key={addon.id}
+                        className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                          checked ? "border-violet-500 bg-white shadow-sm" : "border-gray-200 bg-white/60 hover:border-violet-300"
+                        }`}
+                        data-testid={`addon-option-${addon.id}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setSelectedAddonIds((prev) =>
+                              e.target.checked ? [...prev, addon.id] : prev.filter((id) => id !== addon.id)
+                            );
+                          }}
+                          className="mt-1 h-4 w-4 accent-violet-600"
+                          data-testid={`checkbox-addon-${addon.id}`}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-gray-900 text-sm">{addon.title}</p>
+                            <span className="font-bold text-violet-700">+${Number(addon.price).toFixed(2)}</span>
+                          </div>
+                          {addon.description && (
+                            <p className="text-xs text-gray-600 mt-0.5">{addon.description}</p>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-violet-200">
+                  <span className="text-sm text-gray-700">Subtotal</span>
+                  <div className="text-right text-sm">
+                    <div className="text-gray-600">Product: ${basePrice.toFixed(2)}</div>
+                    <div className="text-gray-600">Add-ons: ${addonsTotal.toFixed(2)}</div>
+                    <div className="font-bold text-gray-900 text-base">Total: ${grandTotal.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {paymentMethods.length === 0 ? (
               <div className="text-center py-10 text-gray-500">
@@ -705,7 +796,7 @@ export default function ShopCheckout() {
               </div>
             )}
 
-            {selectedMethod && <MethodDetails method={selectedMethod} amount={product.price} />}
+            {selectedMethod && <MethodDetails method={selectedMethod} amount={grandTotal.toFixed(2)} />}
 
             <Button
               className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 shadow-lg shadow-violet-200"
@@ -730,7 +821,12 @@ export default function ShopCheckout() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">{product.title}</p>
-                  <p className="text-2xl font-extrabold text-gray-900">${product.price}</p>
+                  <p className="text-2xl font-extrabold text-gray-900">${grandTotal.toFixed(2)}</p>
+                  {chosenAddons.length > 0 && (
+                    <p className="text-xs text-violet-700 mt-1">
+                      Includes {chosenAddons.length} add-on{chosenAddons.length > 1 ? "s" : ""} (+${addonsTotal.toFixed(2)})
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">Payment via</p>
@@ -798,7 +894,24 @@ export default function ShopCheckout() {
         )}
 
         {/* Step: Success */}
-        {step === "success" && (
+        {step === "success" && (() => {
+          const buyerName = (user as any)?.firstName || (user as any)?.username || "there";
+          const orderRef = purchaseId ? purchaseId.slice(0, 8).toUpperCase() : "PENDING";
+          const addonSummary = chosenAddons.length > 0
+            ? `\n• Add-ons: ${chosenAddons.map((a) => `${a.title} ($${Number(a.price).toFixed(2)})`).join(", ")}`
+            : "";
+          const whatsappMsg = encodeURIComponent(
+            `Hi Taskdrip team! 🌟\n\n` +
+            `I just placed an order on the Taskdrip shop and wanted to follow up:\n\n` +
+            `• Order ID: ${orderRef}\n` +
+            `• Product: ${product.title}\n` +
+            `• Amount: $${grandTotal.toFixed(2)}\n` +
+            `• Payment: ${selectedMethod?.label || "Manual review"}${addonSummary}\n\n` +
+            `Please save my number and add me as "taskdrip" so we can stay in touch about my order.\n\nThanks!`
+          );
+          const whatsappUrl = `${SOCIALS.whatsapp}?text=${whatsappMsg}`;
+
+          return (
           <div className="max-w-lg mx-auto">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Success header */}
@@ -806,20 +919,53 @@ export default function ShopCheckout() {
                 <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <PartyPopper className="h-10 w-10 text-white" />
                 </div>
-                <h2 className="text-3xl font-extrabold mb-2">Thank You!</h2>
+                <h2 className="text-3xl font-extrabold mb-2" data-testid="text-thank-you">Thank You, {buyerName}! 🎉</h2>
                 <p className="text-white/80 text-sm">Your order has been placed successfully</p>
               </div>
 
               <div className="p-8 space-y-6">
+                {/* Personalized processing message */}
+                <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-xl p-4" data-testid="text-processing-message">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0">
+                      <Zap className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Hey {buyerName}, we're on it! ⚡</p>
+                      <p className="text-xs text-gray-700 mt-1">
+                        Your order for <span className="font-semibold">{product.title}</span> is now being processed by our team.
+                        {product.isFree
+                          ? " You'll get instant access shortly."
+                          : " We'll verify your payment within 24 hours and unlock your access right away."}
+                        {chosenAddons.length > 0 && ` We'll also start working on your ${chosenAddons.length} add-on${chosenAddons.length > 1 ? "s" : ""} immediately.`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Order details */}
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Order ID</span>
+                    <span className="font-mono font-medium text-gray-900" data-testid="text-order-ref">#{orderRef}</span>
+                  </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Product</span>
                     <span className="font-medium text-gray-900">{product.title}</span>
                   </div>
+                  {chosenAddons.length > 0 && (
+                    <div className="flex justify-between text-sm items-start">
+                      <span className="text-gray-500">Add-ons</span>
+                      <span className="font-medium text-gray-900 text-right">
+                        {chosenAddons.map((a) => (
+                          <div key={a.id}>{a.title} <span className="text-gray-500">+${Number(a.price).toFixed(2)}</span></div>
+                        ))}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Amount</span>
-                    <span className="font-bold text-gray-900">{product.isFree ? "FREE" : `$${product.price}`}</span>
+                    <span className="font-bold text-gray-900">{product.isFree && addonsTotal === 0 ? "FREE" : `$${grandTotal.toFixed(2)}`}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Payment via</span>
@@ -886,12 +1032,40 @@ export default function ShopCheckout() {
                   </div>
                 </div>
 
+                {/* Primary CTA: View order on dashboard */}
+                {purchaseId && (
+                  <Link href={`/orders/${purchaseId}`}>
+                    <Button className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 shadow-lg shadow-violet-200" data-testid="button-view-order">
+                      <Receipt className="h-4 w-4" />
+                      View My Order on Dashboard
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
+
+                {/* WhatsApp follow-up — pre-filled with order details */}
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                  data-testid="link-whatsapp-followup"
+                >
+                  <Button className="w-full h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white gap-2 shadow-lg shadow-green-100">
+                    <SiWhatsapp className="h-4 w-4" />
+                    Message Us on WhatsApp
+                  </Button>
+                </a>
+                <p className="text-xs text-center text-gray-500 -mt-3">
+                  💡 Save our number <span className="font-semibold text-gray-700">{SOCIALS.whatsappNumber}</span> as <span className="font-semibold text-violet-700">"taskdrip"</span> so you never miss an update.
+                </p>
+
                 <div className="flex gap-3">
                   <Link href="/shop" className="flex-1">
-                    <Button variant="outline" className="w-full">Continue Shopping</Button>
+                    <Button variant="outline" className="w-full" data-testid="button-continue-shopping">Continue Shopping</Button>
                   </Link>
-                  <Link href="/dashboard" className="flex-1">
-                    <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white">My Dashboard</Button>
+                  <Link href="/my-orders" className="flex-1">
+                    <Button variant="outline" className="w-full" data-testid="button-all-orders">All My Orders</Button>
                   </Link>
                 </div>
 
@@ -904,7 +1078,8 @@ export default function ShopCheckout() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

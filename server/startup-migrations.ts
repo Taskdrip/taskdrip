@@ -30,6 +30,17 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "users", column: "seo_keywords", definition: "varchar" },
   { table: "users", column: "seo_og_image", definition: "varchar" },
   { table: "users", column: "subscription_end_date", definition: "timestamp" },
+  // Service add-ons (upsells) on saleable items
+  { table: "shop_products", column: "intro_video_url", definition: "varchar" },
+  { table: "shop_products", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  { table: "courses", column: "intro_video_url", definition: "varchar" },
+  { table: "courses", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  { table: "campaigns", column: "intro_video_url", definition: "varchar" },
+  { table: "campaigns", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  { table: "p2p_listings", column: "intro_video_url", definition: "varchar" },
+  { table: "p2p_listings", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  { table: "purchases", column: "selected_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  { table: "purchases", column: "addons_total", definition: "decimal(10,2) DEFAULT '0.00'" },
 ];
 
 export async function runStartupMigrations(): Promise<void> {

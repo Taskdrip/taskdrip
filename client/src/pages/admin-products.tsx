@@ -28,6 +28,13 @@ const productSchema = z.object({
   type: z.string().min(1, "Type is required"),
   featuredImage: z.string().optional(),
   promoVideoUrl: z.string().optional(),
+  introVideoUrl: z.string().optional(),
+  serviceAddons: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    price: z.number(),
+  })).default([]),
   galleryImages: z.array(z.string()).default([]),
   downloadUrl: z.string().optional(),
   demoUrl: z.string().optional(),
@@ -71,6 +78,8 @@ export default function AdminProducts() {
       type: "",
       featuredImage: "",
       promoVideoUrl: "",
+      introVideoUrl: "",
+      serviceAddons: [],
       galleryImages: [],
       downloadUrl: "",
       demoUrl: "",
@@ -178,6 +187,8 @@ export default function AdminProducts() {
       type: product.type,
       featuredImage: product.featuredImage || "",
       promoVideoUrl: (product as any).promoVideoUrl || "",
+      introVideoUrl: (product as any).introVideoUrl || "",
+      serviceAddons: ((product as any).serviceAddons || []) as any,
       galleryImages: product.galleryImages || [],
       downloadUrl: product.downloadUrl || "",
       demoUrl: product.demoUrl || "",
@@ -476,6 +487,104 @@ export default function AdminProducts() {
                     </FormItem>
                   )}
                 />
+
+                {/* Service Add-ons (Upsells) */}
+                <div className="space-y-3 border rounded-lg p-4 bg-violet-50/50" data-testid="section-service-addons">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <FormLabel className="text-base">✨ Service Add-ons (Upsells)</FormLabel>
+                      <p className="text-xs text-gray-500">Optional extras buyers can pick at checkout (e.g. priority delivery, 1:1 setup call).</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const current = form.getValues("serviceAddons") || [];
+                        form.setValue("serviceAddons", [
+                          ...current,
+                          { id: `addon_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, title: "", description: "", price: 0 },
+                        ]);
+                      }}
+                      data-testid="button-add-addon"
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Add Add-on
+                    </Button>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="introVideoUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">🎥 Intro / Pitch Video URL (shown above add-ons)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://youtu.be/..." {...field} data-testid="input-intro-video" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-2">
+                    {(form.watch("serviceAddons") || []).map((addon, index) => (
+                      <div key={addon.id || index} className="bg-white rounded-md p-3 border space-y-2" data-testid={`addon-row-${index}`}>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="Add-on title (e.g. Priority Delivery)"
+                            value={addon.title}
+                            onChange={(e) => {
+                              const list = [...(form.getValues("serviceAddons") || [])];
+                              list[index] = { ...list[index], title: e.target.value };
+                              form.setValue("serviceAddons", list);
+                            }}
+                            data-testid={`input-addon-title-${index}`}
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Price"
+                            value={addon.price}
+                            onChange={(e) => {
+                              const list = [...(form.getValues("serviceAddons") || [])];
+                              list[index] = { ...list[index], price: parseFloat(e.target.value) || 0 };
+                              form.setValue("serviceAddons", list);
+                            }}
+                            className="w-28"
+                            data-testid={`input-addon-price-${index}`}
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              const list = (form.getValues("serviceAddons") || []).filter((_, i) => i !== index);
+                              form.setValue("serviceAddons", list);
+                            }}
+                            data-testid={`button-remove-addon-${index}`}
+                          >
+                            <X className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                        <Textarea
+                          placeholder="What does this add-on include?"
+                          value={addon.description}
+                          rows={2}
+                          onChange={(e) => {
+                            const list = [...(form.getValues("serviceAddons") || [])];
+                            list[index] = { ...list[index], description: e.target.value };
+                            form.setValue("serviceAddons", list);
+                          }}
+                          data-testid={`input-addon-description-${index}`}
+                        />
+                      </div>
+                    ))}
+                    {(form.watch("serviceAddons") || []).length === 0 && (
+                      <p className="text-xs text-gray-400 italic">No add-ons yet. Click "Add Add-on" to create one.</p>
+                    )}
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

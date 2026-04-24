@@ -153,6 +153,8 @@ export const campaigns = pgTable("campaigns", {
     platform?: string;
     requiredProof?: string;
   }[]>(),
+  introVideoUrl: varchar("intro_video_url"),
+  serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),
   qualificationRules: text("qualification_rules"),
   tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
   tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
@@ -314,6 +316,8 @@ export const shopProducts = pgTable("shop_products", {
   isFeatured: boolean("is_featured").default(false),
   isFree: boolean("is_free").default(false),
   tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  introVideoUrl: varchar("intro_video_url"),
+  serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -334,6 +338,8 @@ export const purchases = pgTable("purchases", {
   adminNotes: text("admin_notes"),
   paidAt: timestamp("paid_at"),
   deliveredAt: timestamp("delivered_at"),
+  selectedAddons: jsonb("selected_addons").$type<{ id: string; title: string; price: number }[]>().default(sql`'[]'::jsonb`),
+  addonsTotal: decimal("addons_total", { precision: 10, scale: 2 }).default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -539,6 +545,8 @@ export const p2pListings = pgTable("p2p_listings", {
     requiredProof?: string;
     actionLink?: string;
   }[]>(),
+  serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),
+  introVideoUrl: varchar("intro_video_url"),
   tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
   tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
   tdripEscrowValue: decimal("tdrip_escrow_value", { precision: 10, scale: 2 }).default("0.00"),
@@ -1173,6 +1181,8 @@ export const courses = pgTable("courses", {
   category: varchar("category").notNull(),
   thumbnail: varchar("thumbnail"),
   previewVideoUrl: varchar("preview_video_url"),
+  introVideoUrl: varchar("intro_video_url"),
+  serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),
   instructorId: varchar("instructor_id").notNull().references(() => users.id),
   price: decimal("price", { precision: 10, scale: 2 }).default("0.00"),
   isFree: boolean("is_free").default(false),

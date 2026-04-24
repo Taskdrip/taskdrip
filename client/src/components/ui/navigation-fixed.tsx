@@ -245,6 +245,7 @@ export function NavigationFixed() {
         { href: "/", label: "Home" },
         { href: "/tasks", label: "Tasks" },
         { href: "/dashboard", label: "Dashboard" },
+        { href: "/brands", label: "Brands" },
         { href: "/influencers", label: "Influencers" },
         { href: "/p2p-hub", label: "P2P" },
       ],

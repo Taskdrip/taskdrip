@@ -1842,10 +1842,41 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.post('/api/purchases', upload.single('paymentProof'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+
+      // Parse selectedAddons (may come as JSON string from multipart)
+      let selectedAddons: { id: string; title: string; price: number }[] = [];
+      try {
+        const raw = req.body.selectedAddons;
+        if (Array.isArray(raw)) selectedAddons = raw;
+        else if (typeof raw === 'string' && raw.trim()) selectedAddons = JSON.parse(raw);
+      } catch { selectedAddons = []; }
+
+      // Server-side recompute: validate addons against product, compute totals
+      let addonsTotal = 0;
+      let trustedAddons: { id: string; title: string; price: number }[] = [];
+      if (req.body.productId && selectedAddons.length > 0) {
+        const prod = await storage.getShopProductById(req.body.productId);
+        const available = (prod?.serviceAddons as any[]) || [];
+        for (const sel of selectedAddons) {
+          const match = available.find((a: any) => a.id === sel.id);
+          if (match) {
+            const price = Number(match.price) || 0;
+            trustedAddons.push({ id: match.id, title: match.title, price });
+            addonsTotal += price;
+          }
+        }
+      }
+
+      const basePrice = Number(req.body.totalAmount) || 0;
+      const finalTotal = (basePrice + addonsTotal).toFixed(2);
+
       const validatedData = insertPurchaseSchema.parse({
         ...req.body,
         userId,
-        paymentProof: req.file?.path
+        paymentProof: req.file?.path,
+        totalAmount: finalTotal,
+        selectedAddons: trustedAddons,
+        addonsTotal: addonsTotal.toFixed(2),
       });
 
       const purchase = await storage.createPurchase(validatedData);
@@ -3698,7 +3729,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.post('/api/shop/purchase', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const { productId, amount, currency, network, paymentProof, transactionHash } = req.body;
+      const { productId, amount, currency, network, paymentProof, transactionHash, selectedAddons: rawAddons } = req.body;
 
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
@@ -3709,26 +3740,44 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(404).json({ message: "Product not found" });
       }
 
-      // Validate payment for non-free products
-      if (!product.isFree) {
+      // Validate & price addons server-side (trust the product, not the client)
+      const incoming: any[] = Array.isArray(rawAddons) ? rawAddons : [];
+      const available = ((product as any).serviceAddons as any[]) || [];
+      const trustedAddons: { id: string; title: string; price: number }[] = [];
+      let addonsTotal = 0;
+      for (const sel of incoming) {
+        const match = available.find((a: any) => a.id === sel.id);
+        if (match) {
+          const price = Number(match.price) || 0;
+          trustedAddons.push({ id: match.id, title: match.title, price });
+          addonsTotal += price;
+        }
+      }
+
+      const expectedTotal = parseFloat(product.price) + addonsTotal;
+      const submittedTotal = parseFloat(amount);
+
+      // Validate payment for non-free products (or when addons add cost)
+      if (!product.isFree || addonsTotal > 0) {
         if (!paymentProof || !paymentProof.trim()) {
           return res.status(400).json({ message: "Payment proof is required for paid products" });
         }
-        
-        if (parseFloat(amount) !== parseFloat(product.price)) {
-          return res.status(400).json({ message: "Payment amount doesn't match product price" });
+        if (Math.abs(submittedTotal - expectedTotal) > 0.01) {
+          return res.status(400).json({ message: `Payment amount doesn't match expected total of ${expectedTotal.toFixed(2)}` });
         }
       }
 
       const purchase = await storage.createPurchase({
         userId: user.id,
         productId,
-        amount: amount || "0",
-        totalAmount: amount || "0",
+        amount: expectedTotal.toFixed(2),
+        totalAmount: expectedTotal.toFixed(2),
+        selectedAddons: trustedAddons,
+        addonsTotal: addonsTotal.toFixed(2),
 
         paymentProof: paymentProof || "FREE_PRODUCT",
         transactionHash: transactionHash || "",
-        status: product.isFree ? "approved" : "pending",
+        status: product.isFree && addonsTotal === 0 ? "approved" : "pending",
       });
 
       // Send order confirmation email + in-app notification (non-blocking)
@@ -3806,6 +3855,13 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(403).json({ message: "Store manager access required" });
       }
 
+      let serviceAddons: any[] = [];
+      try {
+        const raw = req.body.serviceAddons;
+        if (Array.isArray(raw)) serviceAddons = raw;
+        else if (typeof raw === 'string' && raw.trim()) serviceAddons = JSON.parse(raw);
+      } catch { serviceAddons = []; }
+
       const productData = {
         ...req.body,
         price: req.body.price.toString(),
@@ -3816,6 +3872,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         features: Array.isArray(req.body.features) ? req.body.features : [],
         requirements: Array.isArray(req.body.requirements) ? req.body.requirements : [],
         tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+        introVideoUrl: req.body.introVideoUrl || null,
+        serviceAddons,
       };
 
       const product = await storage.createShopProduct(productData);
@@ -3833,6 +3891,13 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(403).json({ message: "Store manager access required" });
       }
 
+      let serviceAddons: any[] = [];
+      try {
+        const raw = req.body.serviceAddons;
+        if (Array.isArray(raw)) serviceAddons = raw;
+        else if (typeof raw === 'string' && raw.trim()) serviceAddons = JSON.parse(raw);
+      } catch { serviceAddons = []; }
+
       const updateData = {
         ...req.body,
         price: req.body.price ? req.body.price.toString() : undefined,
@@ -3842,6 +3907,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         features: Array.isArray(req.body.features) ? req.body.features : [],
         requirements: Array.isArray(req.body.requirements) ? req.body.requirements : [],
         tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+        introVideoUrl: req.body.introVideoUrl || null,
+        serviceAddons,
       };
 
       const product = await storage.updateShopProduct(req.params.id, updateData);
