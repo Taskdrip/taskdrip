@@ -396,6 +396,29 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             </div>
           </div>
 
+          {/* Quick item link */}
+          {(() => {
+            const link =
+              isShop && raw?.productId ? `/shop/${raw.productId}` :
+              isCourse && raw?.courseId ? `/courses/${raw.courseId}` :
+              order.type === "p2p" && raw?.id ? `/p2p/${raw.listingId || raw.id}` :
+              order.type === "campaign" && raw?.campaignId ? `/campaigns/${raw.campaignId}` :
+              order.type === "direct_hire" && raw?.id ? `/direct-hire/${raw.id}` :
+              order.type === "ad" && raw?.id ? `/admin/ads` : null;
+            if (!link) return null;
+            return (
+              <Link href={link}>
+                <Button variant="outline" className="w-full justify-between" data-testid={`button-view-item-${order.id}`}>
+                  <span className="flex items-center gap-2">
+                    {typeIcon(order.type)}
+                    View {order.type === "shop" ? "product" : order.type === "course" ? "course" : order.type === "p2p" ? "P2P listing" : order.type === "campaign" ? "campaign" : order.type === "direct_hire" ? "project" : "item"}
+                  </span>
+                  <span className="text-xs text-gray-400">↗</span>
+                </Button>
+              </Link>
+            );
+          })()}
+
           {/* Charge Breakdown */}
           <div>
             <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">

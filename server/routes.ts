@@ -2076,12 +2076,37 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         // Approve payment and update user balance
         await storage.approvePayment(transaction.id, userId);
 
+        // Mark the participation as completed now that the work has been verified and paid
+        if (submission.participationId) {
+          try {
+            await storage.updateParticipation(submission.participationId, {
+              status: 'completed',
+              reviewedAt: new Date(),
+            } as any);
+          } catch (e) { /* non-fatal */ }
+        }
+
+        // Award $TDRIP add-on points if configured (only paid out after verified completion)
+        const tdripPoints = Number((campaign as any).tdripPointsPerParticipant || 0);
+        const tdripLimit = Number((campaign as any).tdripParticipantLimit || 0);
+        if (tdripPoints > 0 && (!tdripLimit || (campaign.filledSlots || 0) <= tdripLimit)) {
+          try {
+            await storage.awardPoints(
+              submission.userId,
+              'campaign_task_addon',
+              tdripPoints,
+              `$TDRIP add-on reward for: ${campaign.title || 'Campaign'}`,
+              campaign.id,
+            );
+          } catch (e) { /* non-fatal */ }
+        }
+
         // Notify creator of approval and payment
         await storage.createNotification({
           userId: submission.userId,
           type: 'task_approved',
           title: 'Task Approved & Payment Sent',
-          content: `Your submission for "${campaign.title}" has been approved. $${campaign.reward} has been added to your wallet.`,
+          content: `Your submission for "${campaign.title}" has been approved. $${campaign.reward} has been added to your wallet${tdripPoints > 0 ? `, plus ${tdripPoints} $TDRIP points` : ''}.`,
           actionUrl: `/wallet`,
           relatedId: submission.id,
         });
@@ -2522,69 +2547,49 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Brand approves an application/participation — this ONLY accepts the influencer
+  // into the campaign. It does NOT release funds. Payment is released only after the
+  // influencer submits proof and the brand approves the submission via
+  // PATCH /api/task-submissions/:id/approve.
   app.patch('/api/participations/:id/approve', async (req, res) => {
     try {
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-      // Get current participation to check previous status before updating
       const existing = await (storage as any).getParticipationById?.(req.params.id) || null;
-      const wasAlreadyApproved = existing?.status === 'completed' || existing?.status === 'approved';
+      if (!existing) return res.status(404).json({ message: "Application not found" });
 
-      const participation = await storage.updateParticipation(req.params.id, { 
-        status: 'completed',
-        reviewedAt: new Date() 
-      });
-
-      // Add campaign reward to creator's wallet balance
-      const campaign = await storage.getCampaignById(participation.campaignId);
-      const rewardAmount = campaign ? parseFloat(campaign.reward as any) : 0;
-
-      if (rewardAmount > 0) {
-        await storage.updateUserBalance(participation.userId, rewardAmount, 'add');
-
-        // Create a transaction record for the reward
-        await storage.createTransaction({
-          userId: participation.userId,
-          campaignId: participation.campaignId,
-          amount: rewardAmount.toString(),
-          type: 'campaign_reward',
-          status: 'approved',
-          description: `Campaign reward for: ${campaign?.title || 'Campaign'}`,
-          approvedBy: userId,
-          approvedAt: new Date(),
-        });
+      // Authorization: only the campaign's brand or an admin can accept
+      const campaign = await storage.getCampaignById(existing.campaignId);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      const userType = (req as any).user?.userType;
+      if (userType !== 'admin' && campaign.brandId !== userId) {
+        return res.status(403).json({ message: "Only the brand that owns this campaign can accept applications" });
       }
 
-      // Increment campaign filledSlots if not already approved
-      if (campaign && !wasAlreadyApproved) {
+      const wasAlreadyAccepted = existing.status === 'approved' || existing.status === 'submitted' || existing.status === 'completed';
+
+      const participation = await storage.updateParticipation(req.params.id, {
+        status: 'approved',
+        reviewedAt: new Date(),
+      });
+
+      // Reserve a slot for the accepted influencer (do NOT pay yet)
+      if (!wasAlreadyAccepted) {
         const newFilled = Math.min((campaign.filledSlots || 0) + 1, campaign.totalSlots || 999);
         await storage.updateCampaign(campaign.id, { filledSlots: newFilled } as any);
       }
 
-      const tdripPoints = campaign && !wasAlreadyApproved ? Number((campaign as any).tdripPointsPerParticipant || 0) : 0;
-      const tdripLimit = campaign ? Number((campaign as any).tdripParticipantLimit || 0) : 0;
-      if (tdripPoints > 0 && (!tdripLimit || (campaign?.filledSlots || 0) < tdripLimit)) {
-        await storage.awardPoints(
-          participation.userId,
-          'campaign_task_addon',
-          tdripPoints,
-          `$TDRIP add-on reward for: ${campaign?.title || 'Campaign'}`,
-          participation.campaignId
-        );
-      }
-
-      // Create notification for creator
       await storage.createNotification({
         userId: participation.userId,
         type: 'application_approved',
-        title: 'Work Approved — Payment Released! 🎉',
-        content: `Your work has been approved${rewardAmount > 0 ? ` and $${rewardAmount.toFixed(2)} has been added to your wallet balance` : ''}${tdripPoints > 0 ? `, plus ${tdripPoints} $TDRIP points` : ''}. Great job!`,
+        title: 'You have been accepted! 🎉',
+        content: `You've been accepted into "${campaign.title}". Submit proof of completion to receive your $${parseFloat(campaign.reward as any).toFixed(2)} payment.`,
         actionUrl: `/campaigns/${participation.campaignId}`,
         isRead: false,
       } as any);
 
-      res.json({ ...participation, rewardAmount, tdripPoints });
+      res.json({ ...participation, accepted: true, paymentReleased: false });
     } catch (error) {
       console.error("Error approving application:", error);
       res.status(500).json({ message: "Failed to approve application" });

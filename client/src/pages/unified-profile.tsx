@@ -152,37 +152,43 @@ export default function UnifiedProfile() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
 
-  const { data: user, isLoading } = useQuery<any>({
+  const { data: user, isLoading, isError } = useQuery<any>({
     queryKey: [`/api/users/${id}/profile`],
     enabled: !!id,
+    retry: false,
   });
 
+  // Synchronously redirect non-admin profiles to their canonical pages so we
+  // don't render a black intermediate screen while a useEffect waits for paint.
   useEffect(() => {
     if (!user) return;
     if (user.userType === 'brand') {
       navigate(`/brand/${id}`, { replace: true });
-    } else if (user.userType === 'creator') {
+    } else if (user.userType !== 'admin') {
+      // creators (and anything that isn't admin/brand) get the creator profile page
       navigate(`/influencers/${id}`, { replace: true });
     }
-    // admin stays here
-  }, [user, id]);
+  }, [user?.userType, id, navigate]);
 
-  if (isLoading) {
+  // While we're loading or about to redirect, render a light placeholder (never black)
+  if (isLoading || (user && user.userType !== 'admin')) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50">
         <NavigationFixed />
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-400" />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-200 border-t-purple-600" />
+        </div>
       </div>
     );
   }
 
-  if (!user) {
+  if (isError || !user) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50">
         <NavigationFixed />
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Profile Not Found</h1>
-          <p className="text-slate-400 mb-4">This profile doesn't exist.</p>
+        <div className="max-w-md mx-auto px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
+          <p className="text-gray-500 mb-4">This profile doesn't exist or has been removed.</p>
           <Button onClick={() => navigate('/')}>Go Home</Button>
         </div>
       </div>
@@ -193,10 +199,5 @@ export default function UnifiedProfile() {
     return <AdminProfileView admin={user} />;
   }
 
-  return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <NavigationFixed />
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-400" />
-    </div>
-  );
+  return null;
 }
