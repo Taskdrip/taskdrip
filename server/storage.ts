@@ -33,6 +33,9 @@ import {
   courseLikes,
   courseLessons,
   courseMessages,
+  courseLessonProgress,
+  courseCertificateTemplate,
+  courseCertificates,
   socialPlatforms,
   userSocialLinks,
   portfolioItems,
@@ -361,9 +364,21 @@ export interface IStorage {
   createLesson(data: { courseId: string; title: string; description?: string; videoUrl?: string; videoLink?: string; content?: string; order?: number; lessonFiles?: any[]; isPreview?: boolean }): Promise<any>;
   updateLesson(lessonId: string, updates: any): Promise<any>;
   deleteLesson(lessonId: string): Promise<void>;
-  // Course chat
-  getCourseMessages(courseId: string): Promise<any[]>;
-  createCourseMessage(data: { courseId: string; senderId: string; message: string }): Promise<any>;
+  // Course chat (group + private DM via recipientId)
+  getCourseMessages(courseId: string, opts?: { scope?: 'group' | 'private'; userId?: string; otherUserId?: string }): Promise<any[]>;
+  createCourseMessage(data: { courseId: string; senderId: string; message: string; recipientId?: string | null }): Promise<any>;
+  deleteCourseMessage(messageId: string): Promise<void>;
+  // Lesson progress + course completion
+  getLessonProgress(userId: string, courseId: string): Promise<string[]>;
+  markLessonComplete(userId: string, courseId: string, lessonId: string): Promise<{ completed: boolean; progressPercent: number; allDone: boolean }>;
+  unmarkLessonComplete(userId: string, courseId: string, lessonId: string): Promise<void>;
+  // Certificates
+  getCertificateTemplate(): Promise<any>;
+  updateCertificateTemplate(updates: any): Promise<any>;
+  getCertificateByUserCourse(userId: string, courseId: string): Promise<any | undefined>;
+  getCertificateByCode(code: string): Promise<any | undefined>;
+  getMyCertificates(userId: string): Promise<any[]>;
+  issueCertificate(data: { userId: string; courseId: string }): Promise<any>;
 
   // Social platforms
   getAllSocialPlatforms(): Promise<SocialPlatform[]>;
@@ -1923,8 +1938,26 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getCourseMessages(courseId: string): Promise<any[]> {
-    const msgs = await db.select().from(courseMessages).where(eq(courseMessages.courseId, courseId)).orderBy(courseMessages.createdAt);
+  async getCourseMessages(courseId: string, opts?: { scope?: 'group' | 'private'; userId?: string; otherUserId?: string }): Promise<any[]> {
+    const scope = opts?.scope || 'group';
+    let whereClause: any;
+    if (scope === 'private' && opts?.userId && opts?.otherUserId) {
+      // DMs between two users on this course (either direction)
+      whereClause = and(
+        eq(courseMessages.courseId, courseId),
+        eq(courseMessages.isDeleted, false),
+        sql`((${courseMessages.senderId} = ${opts.userId} AND ${courseMessages.recipientId} = ${opts.otherUserId})
+          OR (${courseMessages.senderId} = ${opts.otherUserId} AND ${courseMessages.recipientId} = ${opts.userId}))`
+      );
+    } else {
+      // Group chat: recipientId is null
+      whereClause = and(
+        eq(courseMessages.courseId, courseId),
+        eq(courseMessages.isDeleted, false),
+        sql`${courseMessages.recipientId} IS NULL`
+      );
+    }
+    const msgs = await db.select().from(courseMessages).where(whereClause).orderBy(courseMessages.createdAt);
     return Promise.all(msgs.map(async (m) => {
       const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType })
         .from(users).where(eq(users.id, m.senderId));
@@ -1932,9 +1965,113 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async createCourseMessage(data: { courseId: string; senderId: string; message: string }): Promise<any> {
-    const [msg] = await db.insert(courseMessages).values(data).returning();
+  async createCourseMessage(data: { courseId: string; senderId: string; message: string; recipientId?: string | null }): Promise<any> {
+    const [msg] = await db.insert(courseMessages).values({
+      courseId: data.courseId,
+      senderId: data.senderId,
+      message: data.message,
+      recipientId: data.recipientId ?? null,
+    }).returning();
     return msg;
+  }
+
+  async deleteCourseMessage(messageId: string): Promise<void> {
+    await db.update(courseMessages).set({ isDeleted: true }).where(eq(courseMessages.id, messageId));
+  }
+
+  // ─── Lesson progress ─────────────────────────────────────────────────────
+  async getLessonProgress(userId: string, courseId: string): Promise<string[]> {
+    const rows = await db.select({ lessonId: courseLessonProgress.lessonId })
+      .from(courseLessonProgress)
+      .where(and(eq(courseLessonProgress.userId, userId), eq(courseLessonProgress.courseId, courseId)));
+    return rows.map((r) => r.lessonId);
+  }
+
+  async markLessonComplete(userId: string, courseId: string, lessonId: string): Promise<{ completed: boolean; progressPercent: number; allDone: boolean }> {
+    const existing = await db.select().from(courseLessonProgress)
+      .where(and(eq(courseLessonProgress.userId, userId), eq(courseLessonProgress.lessonId, lessonId)));
+    if (existing.length === 0) {
+      await db.insert(courseLessonProgress).values({ userId, courseId, lessonId });
+    }
+    const allLessons = await db.select({ id: courseLessons.id }).from(courseLessons).where(eq(courseLessons.courseId, courseId));
+    const completed = await db.select({ id: courseLessonProgress.lessonId }).from(courseLessonProgress)
+      .where(and(eq(courseLessonProgress.userId, userId), eq(courseLessonProgress.courseId, courseId)));
+    const total = allLessons.length || 1;
+    const percent = Math.min(100, Math.round((completed.length / total) * 100));
+    // sync enrollment.progress
+    await db.update(courseEnrollments).set({ progress: percent, updatedAt: new Date() })
+      .where(and(eq(courseEnrollments.userId, userId), eq(courseEnrollments.courseId, courseId)));
+    return { completed: true, progressPercent: percent, allDone: completed.length >= allLessons.length && allLessons.length > 0 };
+  }
+
+  async unmarkLessonComplete(userId: string, courseId: string, lessonId: string): Promise<void> {
+    await db.delete(courseLessonProgress)
+      .where(and(eq(courseLessonProgress.userId, userId), eq(courseLessonProgress.lessonId, lessonId)));
+    const allLessons = await db.select({ id: courseLessons.id }).from(courseLessons).where(eq(courseLessons.courseId, courseId));
+    const completed = await db.select({ id: courseLessonProgress.lessonId }).from(courseLessonProgress)
+      .where(and(eq(courseLessonProgress.userId, userId), eq(courseLessonProgress.courseId, courseId)));
+    const total = allLessons.length || 1;
+    const percent = Math.min(100, Math.round((completed.length / total) * 100));
+    await db.update(courseEnrollments).set({ progress: percent, updatedAt: new Date() })
+      .where(and(eq(courseEnrollments.userId, userId), eq(courseEnrollments.courseId, courseId)));
+  }
+
+  // ─── Certificate template + issuance ─────────────────────────────────────
+  async getCertificateTemplate(): Promise<any> {
+    const [t] = await db.select().from(courseCertificateTemplate).where(eq(courseCertificateTemplate.id, "default"));
+    if (t) return t;
+    const [created] = await db.insert(courseCertificateTemplate).values({ id: "default" }).returning();
+    return created;
+  }
+
+  async updateCertificateTemplate(updates: any): Promise<any> {
+    await this.getCertificateTemplate(); // ensure singleton row exists
+    const safe = { ...updates };
+    delete safe.id;
+    safe.updatedAt = new Date();
+    const [updated] = await db.update(courseCertificateTemplate).set(safe).where(eq(courseCertificateTemplate.id, "default")).returning();
+    return updated;
+  }
+
+  async getCertificateByUserCourse(userId: string, courseId: string): Promise<any | undefined> {
+    const [c] = await db.select().from(courseCertificates)
+      .where(and(eq(courseCertificates.userId, userId), eq(courseCertificates.courseId, courseId)));
+    return c;
+  }
+
+  async getCertificateByCode(code: string): Promise<any | undefined> {
+    const [c] = await db.select().from(courseCertificates).where(eq(courseCertificates.certCode, code));
+    return c;
+  }
+
+  async getMyCertificates(userId: string): Promise<any[]> {
+    return db.select().from(courseCertificates).where(eq(courseCertificates.userId, userId)).orderBy(desc(courseCertificates.issuedAt));
+  }
+
+  async issueCertificate(data: { userId: string; courseId: string }): Promise<any> {
+    const existing = await this.getCertificateByUserCourse(data.userId, data.courseId);
+    if (existing) return existing;
+    const [user] = await db.select().from(users).where(eq(users.id, data.userId));
+    const [course] = await db.select().from(courses).where(eq(courses.id, data.courseId));
+    if (!course) throw new Error("Course not found");
+    const [instructor] = course.instructorId
+      ? await db.select({ firstName: users.firstName, lastName: users.lastName }).from(users).where(eq(users.id, course.instructorId))
+      : [null as any];
+    const studentName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Student";
+    const instructorName = instructor ? `${instructor.firstName || ""} ${instructor.lastName || ""}`.trim() : null;
+    // Generate readable code: BS-XXXX-XXXX (no easily confused chars)
+    const ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    const seg = (n: number) => Array.from({ length: n }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join("");
+    const certCode = `BS-${seg(4)}-${seg(4)}`;
+    const [cert] = await db.insert(courseCertificates).values({
+      certCode,
+      userId: data.userId,
+      courseId: data.courseId,
+      studentName,
+      courseTitle: course.title,
+      instructorName,
+    }).returning();
+    return cert;
   }
 
   async getAllPaymentMethods(): Promise<PaymentMethod[]> {

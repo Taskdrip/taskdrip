@@ -1255,8 +1255,48 @@ export const courseMessages = pgTable("course_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
   senderId: varchar("sender_id").notNull().references(() => users.id),
+  recipientId: varchar("recipient_id").references(() => users.id), // null = group chat, set = private DM
   message: text("message").notNull(),
+  isDeleted: boolean("is_deleted").default(false),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Per-student per-lesson completion tracking
+export const courseLessonProgress = pgTable("course_lesson_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  lessonId: varchar("lesson_id").notNull().references(() => courseLessons.id, { onDelete: 'cascade' }),
+  completedAt: timestamp("completed_at").defaultNow(),
+});
+
+// Editable certificate template (singleton; admin-managed)
+export const courseCertificateTemplate = pgTable("course_certificate_template", {
+  id: varchar("id").primaryKey().default("default"),
+  institutionName: varchar("institution_name").default("BreedSkool Academy"),
+  institutionLogoUrl: varchar("institution_logo_url"),
+  signatoryName: varchar("signatory_name").default("Director of Education"),
+  signatoryTitle: varchar("signatory_title").default("BreedSkool Director"),
+  signatureImageUrl: varchar("signature_image_url"),
+  sealImageUrl: varchar("seal_image_url"),
+  bodyTemplate: text("body_template").default("This is to certify that {{studentName}} has successfully completed the course \"{{courseTitle}}\" on {{date}}, taught by {{instructorName}}."),
+  headlineText: varchar("headline_text").default("Certificate of Completion"),
+  accentColor: varchar("accent_color").default("#7c3aed"),
+  bgColor: varchar("bg_color").default("#fdfaf6"),
+  borderStyle: varchar("border_style").default("classic"), // classic | modern | ornate
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Issued certificates
+export const courseCertificates = pgTable("course_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  certCode: varchar("cert_code").notNull().unique(), // e.g. BS-X9K2-A4M7
+  userId: varchar("user_id").notNull().references(() => users.id),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  studentName: varchar("student_name").notNull(),
+  courseTitle: varchar("course_title").notNull(),
+  instructorName: varchar("instructor_name"),
+  issuedAt: timestamp("issued_at").defaultNow(),
 });
 
 // Payment Networks — admin toggles which crypto deposit/withdrawal networks are active

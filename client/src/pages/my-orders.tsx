@@ -400,7 +400,7 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
           {(() => {
             const link =
               isShop && raw?.productId ? `/shop/${raw.productId}` :
-              isCourse && raw?.courseId ? `/courses/${raw.courseId}` :
+              isCourse && raw?.courseId ? `/breedskool/${raw.courseId}` :
               order.type === "p2p" && raw?.id ? `/p2p/${raw.listingId || raw.id}` :
               order.type === "campaign" && raw?.campaignId ? `/campaigns/${raw.campaignId}` :
               order.type === "direct_hire" && raw?.id ? `/direct-hire/${raw.id}` :

@@ -770,10 +770,23 @@ export default function BreedSkoolCourse() {
                           <p className="text-xs text-green-600">Progress: {enrollment?.progress || 0}%</p>
                         </div>
                       </div>
-                      <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white gap-2"
-                        onClick={() => document.getElementById("lessons-anchor")?.scrollIntoView({ behavior: "smooth" })}>
-                        <Play className="h-4 w-4" /> Start Learning
+                      <Button
+                        className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white gap-2 shadow-lg shadow-violet-200"
+                        onClick={() => setLocation(`/breedskool/${course.id}/learn`)}
+                        data-testid="button-start-learning"
+                      >
+                        <Play className="h-4 w-4" />
+                        {(enrollment?.progress || 0) > 0 ? "Continue Learning" : "Start Learning"}
                       </Button>
+                      {(enrollment?.progress || 0) >= 100 && (
+                        <Button
+                          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white gap-2"
+                          onClick={() => setLocation(`/breedskool/${course.id}/certificate`)}
+                          data-testid="button-view-certificate-from-course"
+                        >
+                          🏆 View Certificate
+                        </Button>
+                      )}
                     </div>
                   ) : isPending ? (
                     <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">

@@ -20,7 +20,11 @@ import { Switch } from "@/components/ui/switch";
 import {
   PlusCircle, Edit, Trash2, Users, Star, Eye, BookOpen, DollarSign,
   Upload, Image, Video, FileText, File, X, GripVertical, PlayCircle, ChevronDown, ChevronUp, CheckCircle2,
+  Award, MessageSquare, Shield, Loader2,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "wouter";
 
 const courseFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -625,7 +629,13 @@ export default function AdminCourses() {
             <h1 className="text-3xl font-bold text-gray-900">BreedSkool Management</h1>
             <p className="text-gray-500 mt-1">Create and manage courses for the learning platform</p>
           </div>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingCourse(null); setThumbnail(""); form.reset(); } }}>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/certificate-template">
+              <Button variant="outline" className="gap-2 border-violet-200 text-violet-700 hover:bg-violet-50" data-testid="button-cert-template-link">
+                <Award className="h-4 w-4" /> Certificate Template
+              </Button>
+            </Link>
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingCourse(null); setThumbnail(""); form.reset(); } }}>
             <DialogTrigger asChild>
               <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
                 <PlusCircle className="h-4 w-4" /> Add Course
@@ -712,6 +722,7 @@ export default function AdminCourses() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats */}
@@ -793,6 +804,9 @@ export default function AdminCourses() {
             </CardContent>
           </Card>
         )}
+
+        {/* Chat Moderation */}
+        <ChatModerationCard courses={courses} />
 
         {/* Courses Table */}
         <Card>
@@ -886,5 +900,112 @@ export default function AdminCourses() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// ── Chat Moderation subcomponent ────────────────────────────────────────
+function ChatModerationCard({ courses }: { courses: any[] }) {
+  const { toast } = useToast();
+  const [selectedId, setSelectedId] = useState<string>("");
+
+  const { data: messages = [], isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/courses", selectedId, "all-messages"],
+    queryFn: async () => (await apiRequest("GET", `/api/admin/courses/${selectedId}/all-messages`)).json(),
+    enabled: !!selectedId,
+  });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/courses/messages/${id}`)).json(),
+    onSuccess: () => { refetch(); toast({ title: "Message deleted" }); },
+    onError: (e: any) => toast({ title: "Failed to delete", description: e.message, variant: "destructive" }),
+  });
+
+  return (
+    <Card className="mb-8 border-violet-100">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-violet-600" /> Chat Moderation
+        </CardTitle>
+        <p className="text-xs text-gray-500">Pick a course to view every group + private message and remove anything inappropriate.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          <Select value={selectedId} onValueChange={setSelectedId}>
+            <SelectTrigger className="max-w-md" data-testid="select-moderation-course">
+              <SelectValue placeholder="Select a course to moderate…" />
+            </SelectTrigger>
+            <SelectContent>
+              {courses.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!selectedId ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            Choose a course above to see its chat history.
+          </div>
+        ) : isLoading ? (
+          <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-600 mx-auto" /></div>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 text-sm">No messages in this course yet.</div>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {messages.map((m: any) => {
+              const sender = m.sender || {};
+              const recipient = m.recipient;
+              const name = `${sender.firstName || ""} ${sender.lastName || ""}`.trim() || "User";
+              const initials = (sender.firstName?.[0] || "U") + (sender.lastName?.[0] || "");
+              return (
+                <div
+                  key={m.id}
+                  className={`p-3 border rounded-lg flex items-start gap-3 ${m.isDeleted ? "opacity-50 bg-gray-50" : "bg-white"}`}
+                  data-testid={`row-mod-message-${m.id}`}
+                >
+                  <Avatar className="h-9 w-9 flex-shrink-0">
+                    <AvatarImage src={sender.profileImageUrl} />
+                    <AvatarFallback className="text-xs bg-violet-100 text-violet-700">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className="font-semibold text-sm text-gray-900">{name}</span>
+                      {sender.userType && <Badge variant="outline" className="text-[10px] py-0">{sender.userType}</Badge>}
+                      {recipient ? (
+                        <Badge className="bg-violet-100 text-violet-700 text-[10px] py-0">
+                          DM → {recipient.firstName} {recipient.lastName}
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-cyan-100 text-cyan-700 text-[10px] py-0">Group</Badge>
+                      )}
+                      <span className="text-gray-400">
+                        {m.createdAt ? new Date(m.createdAt).toLocaleString() : ""}
+                      </span>
+                      {m.isDeleted && <Badge variant="destructive" className="text-[10px] py-0">Deleted</Badge>}
+                    </div>
+                    <p className="text-sm mt-1 text-gray-700 whitespace-pre-wrap break-words">{m.message}</p>
+                  </div>
+                  {!m.isDeleted && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => {
+                        if (confirm("Delete this message?")) deleteMessageMutation.mutate(m.id);
+                      }}
+                      disabled={deleteMessageMutation.isPending}
+                      data-testid={`button-delete-message-${m.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

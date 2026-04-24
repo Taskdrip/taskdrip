@@ -34,7 +34,11 @@ import AdminLogin from "@/pages/admin-login";
 import ForgotPassword from "@/pages/forgot-password";
 import BreedSkool from "@/pages/breedskool";
 import BreedSkoolCourse from "@/pages/breedskool-course";
+import CourseLearn from "@/pages/course-learn";
+import CourseCertificate from "@/pages/course-certificate";
+import CertificateVerify from "@/pages/certificate-verify";
 import AdminCourses from "@/pages/admin-courses";
+import AdminCertificateTemplate from "@/pages/admin-certificate-template";
 import CampaignDetail from "@/pages/campaign-detail";
 import BrandProfile from "@/pages/brand-profile";
 import WalletSettings from "@/pages/wallet-settings";
@@ -123,6 +127,7 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/breedskool" component={BreedSkool} />
       <Route path="/breedskool/:id" component={BreedSkoolCourse} />
+      <Route path="/certificates/:code" component={CertificateVerify} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/shop" component={Shop} />
@@ -184,6 +189,10 @@ function Router() {
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />
           <Route path="/admin/courses" component={AdminCourses} />
+          <Route path="/admin/certificate-template" component={AdminCertificateTemplate} />
+          <Route path="/breedskool/:id/learn" component={CourseLearn} />
+          <Route path="/breedskool/:id/learn/:lessonId" component={CourseLearn} />
+          <Route path="/breedskool/:id/certificate" component={CourseCertificate} />
           <Route path="/admin/payments" component={AdminPayments} />
           <Route path="/admin-ads" component={AdminAds} />
           <Route path="/admin/ads" component={AdminAds} />

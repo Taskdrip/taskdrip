@@ -5471,10 +5471,18 @@ Instructions:
     }
   });
 
-  // ── Course Chat ───────────────────────────────────────────────
+  // ── Course Chat (group + private DM) ──────────────────────────
+  // GET /api/courses/:id/chat?scope=group  (default)
+  // GET /api/courses/:id/chat?scope=private&with=USER_ID
   app.get('/api/courses/:id/chat', isAuthenticated, async (req: any, res) => {
     try {
-      const msgs = await storage.getCourseMessages(req.params.id);
+      const scope = (req.query.scope === 'private') ? 'private' : 'group';
+      const otherUserId = req.query.with as string | undefined;
+      const msgs = await storage.getCourseMessages(req.params.id, {
+        scope: scope as 'group' | 'private',
+        userId: req.user.id,
+        otherUserId,
+      });
       res.json(msgs);
     } catch (error: any) {
       res.status(500).json({ message: "Failed to fetch messages" });
@@ -5483,17 +5491,142 @@ Instructions:
 
   app.post('/api/courses/:id/chat', isAuthenticated, async (req: any, res) => {
     try {
+      const recipientId = req.body.recipientId || null;
       const msg = await storage.createCourseMessage({
         courseId: req.params.id,
         senderId: req.user.id,
         message: req.body.message,
+        recipientId,
       });
-      // Fetch with sender info
-      const msgs = await storage.getCourseMessages(req.params.id);
+      // Fetch with sender info — preserve scope when echoing
+      const scope = recipientId ? 'private' : 'group';
+      const msgs = await storage.getCourseMessages(req.params.id, {
+        scope, userId: req.user.id, otherUserId: recipientId || undefined,
+      });
       const full = msgs.find((m) => m.id === msg.id) || msg;
       res.status(201).json(full);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to send message" });
+    }
+  });
+
+  // ── Course progress + completion ─────────────────────────────
+  // GET /api/courses/:id/progress  → { completedLessonIds, percent, totalLessons, certificate? }
+  app.get('/api/courses/:id/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const courseId = req.params.id;
+      const completedLessonIds = await storage.getLessonProgress(req.user.id, courseId);
+      const lessons = await storage.getLessonsByCourse(courseId);
+      const total = lessons.length;
+      const percent = total > 0 ? Math.round((completedLessonIds.length / total) * 100) : 0;
+      const certificate = await storage.getCertificateByUserCourse(req.user.id, courseId);
+      res.json({ completedLessonIds, percent, totalLessons: total, completedCount: completedLessonIds.length, certificate: certificate || null });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || "Failed to fetch progress" });
+    }
+  });
+
+  // Mark lesson complete
+  app.post('/api/courses/:id/lessons/:lessonId/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await storage.markLessonComplete(req.user.id, req.params.id, req.params.lessonId);
+      let certificate: any = null;
+      if (result.allDone) {
+        certificate = await storage.issueCertificate({ userId: req.user.id, courseId: req.params.id });
+      }
+      res.json({ ...result, certificate });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || "Failed to mark complete" });
+    }
+  });
+
+  // Unmark lesson complete
+  app.delete('/api/courses/:id/lessons/:lessonId/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.unmarkLessonComplete(req.user.id, req.params.id, req.params.lessonId);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || "Failed to unmark" });
+    }
+  });
+
+  // ── Certificates ──────────────────────────────────────────────
+  // Public: fetch issued certificate by code (for verification or download page)
+  app.get('/api/certificates/:code', async (req, res) => {
+    try {
+      const cert = await storage.getCertificateByCode(req.params.code);
+      if (!cert) return res.status(404).json({ message: "Certificate not found" });
+      res.json(cert);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // List my certificates
+  app.get('/api/my-certificates', isAuthenticated, async (req: any, res) => {
+    try {
+      const list = await storage.getMyCertificates(req.user.id);
+      res.json(list);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Public: get certificate template (used to render the cert SVG on the client)
+  app.get('/api/certificate-template', async (_req, res) => {
+    try {
+      const tpl = await storage.getCertificateTemplate();
+      res.json(tpl);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: update certificate template
+  app.patch('/api/admin/certificate-template', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      if (u.userType !== 'admin' && u.role !== 'admin') return res.status(403).json({ message: "Admin only" });
+      const updated = await storage.updateCertificateTemplate(req.body || {});
+      res.json(updated);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: list every chat message in a course (group + DMs) for moderation
+  app.get('/api/admin/courses/:id/all-messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      if (u.userType !== 'admin' && u.role !== 'admin') return res.status(403).json({ message: "Admin only" });
+      const { db } = await import('./db');
+      const { courseMessages, users } = await import('@shared/schema');
+      const { eq, desc } = await import('drizzle-orm');
+      const msgs = await db.select().from(courseMessages).where(eq(courseMessages.courseId, req.params.id)).orderBy(desc(courseMessages.createdAt));
+      const enriched = await Promise.all(msgs.map(async (m: any) => {
+        const [sender] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType }).from(users).where(eq(users.id, m.senderId));
+        let recipient: any = null;
+        if (m.recipientId) {
+          const [r] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType }).from(users).where(eq(users.id, m.recipientId));
+          recipient = r || null;
+        }
+        return { ...m, sender, recipient };
+      }));
+      res.json(enriched);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: soft-delete a course chat message
+  app.delete('/api/admin/courses/messages/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      if (u.userType !== 'admin' && u.role !== 'admin') return res.status(403).json({ message: "Admin only" });
+      await storage.deleteCourseMessage(req.params.id);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
     }
   });
 
