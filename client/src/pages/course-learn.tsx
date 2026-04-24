@@ -200,14 +200,19 @@ export default function CourseLearn() {
       setGroupMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "chat", "group"] });
     },
+    onError: (e: any) => toast({ title: "Couldn't send message", description: e?.message || "Try again", variant: "destructive" }),
   });
 
   const sendTutor = useMutation({
-    mutationFn: async (msg: string) => (await apiRequest("POST", `/api/courses/${id}/chat`, { message: msg, recipientId: tutorId })).json(),
+    mutationFn: async (msg: string) => {
+      if (!tutorId) throw new Error("This course has no tutor assigned yet.");
+      return (await apiRequest("POST", `/api/courses/${id}/chat`, { message: msg, recipientId: tutorId })).json();
+    },
     onSuccess: () => {
       setTutorMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "chat", "tutor", tutorId] });
     },
+    onError: (e: any) => toast({ title: "Couldn't send message", description: e?.message || "Try again", variant: "destructive" }),
   });
 
   // ── Guards ─────────────────────────────────────────────────────────────

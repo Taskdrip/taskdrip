@@ -341,7 +341,7 @@ export default function SimpleDashboard() {
           {mobileMenuOpen && (
             <div className="sm:hidden border-b border-gray-100">
               {TABS.map(t => (
-                <button key={t.id} onClick={() => { setTab(t.id); setMobileMenuOpen(false); }}
+                <button key={t.id} onClick={() => { setMobileMenuOpen(false); if (t.id === "shop") { setLocation("/my-orders"); } else { setTab(t.id); } }}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors ${tab === t.id ? "bg-purple-50 text-purple-700 font-semibold" : "text-gray-600 hover:bg-gray-50"}`}>
                   <t.icon className="h-4 w-4" />{t.label}
                   {t.id === "campaigns" && pendingOffers > 0 && <Badge className="ml-auto bg-green-500 text-white text-[10px] border-0 h-4">{pendingOffers}</Badge>}
@@ -352,7 +352,7 @@ export default function SimpleDashboard() {
           {/* Desktop tabs */}
           <div className="hidden sm:flex overflow-x-auto border-b border-gray-100 px-2">
             {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
+              <button key={t.id} onClick={() => { if (t.id === "shop") { setLocation("/my-orders"); } else { setTab(t.id); } }}
                 className={`flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   tab === t.id ? "border-purple-600 text-purple-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
                 data-testid={`tab-${t.id}`}
