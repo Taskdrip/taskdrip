@@ -365,6 +365,16 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
     onError: (e: any) => toast({ title: "Failed", description: e?.message || "Could not update tracking", variant: "destructive" }),
   });
 
+  const confirmDeliveryMutation = useMutation({
+    mutationFn: async () => (await apiRequest("POST", `/api/my-orders/shop/${order.id}/confirm-delivery`)).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-orders/shop", order.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/my-orders"] });
+      toast({ title: "Delivery confirmed", description: "Thanks! Order is now closed — share a review below." });
+    },
+    onError: (e: any) => toast({ title: "Couldn't confirm", description: e?.message || "Try again", variant: "destructive" }),
+  });
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -653,13 +663,28 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                   </p>
                 </div>
                 {sellerIdToMessage ? (
-                  <Link href={`/chat?to=${sellerIdToMessage}`}>
+                  <Link href={`/messages?to=${sellerIdToMessage}`}>
                     <Button variant="outline" data-testid={`button-message-seller-${order.id}`}>
                       <MessageCircle className="h-4 w-4 mr-1.5" /> Message {isShop ? "seller" : "instructor"}
                     </Button>
                   </Link>
                 ) : null}
               </div>
+
+              {isShop && !["delivered", "completed", "cancelled", "refunded"].includes(order.status) && (
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-xs text-gray-500">Got your package? Confirm delivery to close out the order and unlock your review.</p>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => confirmDeliveryMutation.mutate()}
+                    disabled={confirmDeliveryMutation.isPending}
+                    data-testid={`button-confirm-delivery-${order.id}`}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                    {confirmDeliveryMutation.isPending ? "Confirming…" : "Confirm Delivery"}
+                  </Button>
+                </div>
+              )}
 
               {isShop && (
                 <div className="mt-4 pt-4 border-t border-gray-100">

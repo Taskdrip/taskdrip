@@ -191,7 +191,9 @@ export default function CourseLearn() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "progress"] });
+      toast({ title: "Lesson reset", description: "Marked as not completed." });
     },
+    onError: (e: any) => toast({ title: "Couldn't update lesson", description: e?.message || "Try again", variant: "destructive" }),
   });
 
   const sendGroup = useMutation({

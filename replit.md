@@ -451,6 +451,7 @@ Design preferences: Clean, professional web app design with white background and
   - Download as professional PDF (jspdf + jspdf-autotable) or Excel (xlsx/SheetJS)
   - Summary stats (total orders, total charged, pending, completed)
 - **Libraries added**: jspdf, jspdf-autotable, xlsx
+- **Buyer "Confirm Delivery"** (April 2026): `POST /api/my-orders/shop/:id/confirm-delivery` lets the buyer mark a shop order as delivered (status → `delivered`, sets `deliveredAt`, appends a buyer-role timeline entry). Surfaced in `/my-orders` order dialog as an emerald "Confirm Delivery" button visible to buyers when status is not yet `delivered`/`completed`/`cancelled`/`refunded`. Mirrors the P2P `confirm-received` flow.
 - **Enhanced proof-submitted page** (`/escrow-payment`): Shows order summary, before/after charge breakdown with platform fees, payment details, and "View My Orders" button
 - **Navigation**: "My Orders" link added to user dropdown menu in navigation
 - **Dashboard links**: Quick-access buttons added in user dashboard and brand dashboard

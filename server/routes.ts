@@ -9046,6 +9046,35 @@ Instructions:
     } catch (e: any) { console.error('tracking update err', e); res.status(500).json({ message: e.message }); }
   });
 
+  // Buyer confirms delivery — closes out a shop order and lets buyer review.
+  app.post('/api/my-orders/shop/:id/confirm-delivery', isAuthenticated, async (req: any, res) => {
+    try {
+      const purchase = await storage.getPurchaseById(req.params.id);
+      if (!purchase) return res.status(404).json({ message: 'Order not found' });
+      if (purchase.userId !== req.user.id) return res.status(403).json({ message: 'Only the buyer can confirm delivery' });
+      if (purchase.status === 'delivered' || purchase.status === 'completed') {
+        return res.status(409).json({ message: 'Order already confirmed' });
+      }
+      const dd: any = { ...(purchase.deliveryDetails as any || {}) };
+      const updates = Array.isArray(dd.shippingUpdates) ? dd.shippingUpdates : [];
+      updates.push({
+        status: 'delivered',
+        note: req.body?.note || 'Buyer confirmed receipt',
+        location: '',
+        ts: new Date().toISOString(),
+        byUserId: req.user.id,
+        byRole: 'buyer',
+      });
+      dd.shippingUpdates = updates;
+      const updated = await storage.updatePurchase(req.params.id, {
+        status: 'delivered',
+        deliveryDetails: dd,
+        deliveredAt: new Date(),
+      } as any);
+      res.json(updated);
+    } catch (e: any) { console.error('confirm delivery err', e); res.status(500).json({ message: e.message }); }
+  });
+
   // Submit a review for a purchased product directly from the orders page
   app.post('/api/my-orders/shop/:id/review', isAuthenticated, async (req: any, res) => {
     try {
