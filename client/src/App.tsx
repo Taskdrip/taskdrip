@@ -74,6 +74,7 @@ import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
 import AdminP2PFees from "@/pages/admin-p2p-fees";
 import AdminPlatformFees from "@/pages/admin-platform-fees";
 import MyOrdersPage from "@/pages/my-orders";
+import OrderDetailPage from "@/pages/order-detail";
 import TDripInfoPage from "@/pages/tdrip-info";
 import AdminCMSEditor from "@/pages/admin-cms-editor";
 import AdminSEO from "@/pages/admin-seo";
@@ -196,6 +197,7 @@ function Router() {
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
           <Route path="/my-orders" component={MyOrdersPage} />
+          <Route path="/orders/:id" component={OrderDetailPage} />
           <Route path="/referrals" component={ReferralsPage} />
           <Route path="/security" component={SecuritySettings} />
           <Route path="/short-links" component={ShortLinksPage} />

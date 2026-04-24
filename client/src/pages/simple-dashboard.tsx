@@ -775,39 +775,78 @@ export default function SimpleDashboard() {
 
             {/* ============ SHOP ============ */}
             {tab === "shop" && (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="font-bold text-gray-900 flex items-center gap-2"><Store className="h-4 w-4 text-pink-600" />Shop & My Orders</h2>
-                  <Link href="/shop"><Button className="bg-pink-600 hover:bg-pink-700 text-xs" size="sm">Browse Shop</Button></Link>
+                  <div className="flex items-center gap-2">
+                    <Link href="/my-orders"><Button variant="outline" size="sm" className="text-xs border-gray-200">All Orders</Button></Link>
+                    <Link href="/shop"><Button className="bg-pink-600 hover:bg-pink-700 text-xs" size="sm">Browse Shop</Button></Link>
+                  </div>
                 </div>
 
                 {(orders as any[]).length > 0 ? (
                   <div className="space-y-2">
                     {(orders as any[]).map((order: any) => {
-                      const statusCfg: Record<string, { icon: any; color: string; label: string }> = {
-                        pending:   { icon: Clock,       color: "text-yellow-600 bg-yellow-50 border-yellow-200", label: "Pending" },
-                        paid:      { icon: CheckCircle, color: "text-blue-600 bg-blue-50 border-blue-200",       label: "Confirmed" },
-                        delivered: { icon: Truck,       color: "text-green-600 bg-green-50 border-green-200",    label: "Delivered" },
-                        cancelled: { icon: AlertCircle, color: "text-red-600 bg-red-50 border-red-200",          label: "Cancelled" },
+                      const statusCfg: Record<string, { color: string; dot: string; label: string }> = {
+                        pending:   { color: "text-amber-700 bg-amber-50 border-amber-200",   dot: "bg-amber-400",  label: "Pending" },
+                        paid:      { color: "text-blue-700 bg-blue-50 border-blue-200",      dot: "bg-blue-400",   label: "Confirmed" },
+                        shipped:   { color: "text-violet-700 bg-violet-50 border-violet-200",dot: "bg-violet-400", label: "Shipped" },
+                        delivered: { color: "text-green-700 bg-green-50 border-green-200",   dot: "bg-green-400",  label: "Delivered" },
+                        cancelled: { color: "text-red-700 bg-red-50 border-red-200",         dot: "bg-red-400",    label: "Cancelled" },
                       };
                       const cfg2 = statusCfg[order.status] || statusCfg.pending;
+                      const hasDownload = !!order.deliveryDetails?.downloadUrl;
                       return (
-                        <div key={order.id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-white transition-colors" data-testid={`order-row-${order.id}`}>
-                          <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center flex-shrink-0">
-                            <Package className="h-5 w-5 text-pink-600" />
+                        <Link key={order.id} href={`/orders/${order.id}`}>
+                          <div
+                            className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-pink-200 hover:shadow-md hover:bg-pink-50/30 transition-all cursor-pointer group"
+                            data-testid={`order-row-${order.id}`}
+                          >
+                            {/* Product image or fallback */}
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-pink-100 to-purple-100 flex-shrink-0 border border-gray-100">
+                              {order.product?.imageUrl ? (
+                                <img src={order.product.imageUrl} alt={order.product.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="h-5 w-5 text-pink-400" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 truncate group-hover:text-pink-700 transition-colors">
+                                {order.product?.title || `Order #${order.id.slice(0, 8)}`}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-xs text-gray-400">
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                                </span>
+                                <span className="text-gray-300 text-xs">·</span>
+                                <span className="text-xs text-gray-400">{order.paymentMethod || "Crypto"}</span>
+                                {hasDownload && (
+                                  <>
+                                    <span className="text-gray-300 text-xs">·</span>
+                                    <span className="text-xs text-purple-600 flex items-center gap-0.5 font-medium">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block" />
+                                      Ready to Download
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                              <p className="font-bold text-gray-900 text-sm">${parseFloat(order.totalAmount || order.amount || 0).toFixed(2)}</p>
+                              <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg2.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${cfg2.dot}`} />
+                                {cfg2.label}
+                              </div>
+                            </div>
+
+                            {/* Arrow indicator */}
+                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-pink-400 transition-colors flex-shrink-0" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 truncate">{order.product?.title || `Order #${order.id.slice(0, 8)}`}</p>
-                            <p className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—"} · {order.paymentMethod || "Crypto"}</p>
-                            {order.deliveryDetails?.downloadUrl && (
-                              <a href={order.deliveryDetails.downloadUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">Download ↗</a>
-                            )}
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-bold text-gray-900">${parseFloat(order.totalAmount || order.amount || 0).toFixed(2)}</p>
-                            <Badge className={`text-xs border mt-1 ${cfg2.color}`}>{cfg2.label}</Badge>
-                          </div>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>
