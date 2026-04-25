@@ -17,14 +17,14 @@ import {
   Gift, Copy, CheckCircle, Wallet, Eye, CreditCard, Landmark, Trash2,
   Search, Filter, ChevronLeft, ChevronRight, Megaphone, Flame, Clock,
   Image as ImageIcon, Play, Star, Users, Zap, X, SlidersHorizontal,
-  BookOpen, Hash, Camera, Flag
+  BookOpen, Hash, Camera, Flag, Coins, ShoppingBag, GraduationCap, Repeat
 } from "lucide-react";
 import { ReportDialog } from "@/components/ui/report-dialog";
 import { shareItem } from "@/lib/share";
 import { getTierConfig, getTierFromFollowers, formatFollowers } from "@/lib/tiers";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import { Spotlight } from "@/components/Spotlight";
+import { DashboardSpotlight } from "@/components/DashboardSpotlight";
 
 const TDRIP_POINTS_PER_USD = 100;
 
@@ -918,9 +918,13 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {/* ── Spotlight Section (admin-curated) ───────────────────────────────── */}
+      {/* ── Spotlight Section (admin-curated + auto-featured) ───────────────── */}
       <div className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
-        <Spotlight page="feed" title="Spotlight" subtitle="Curated by Taskdrip" variant="row" />
+        <DashboardSpotlight
+          page="feed"
+          title="Spotlight & Featured"
+          subtitle="Top products, courses, campaigns & P2P deals — handpicked for you"
+        />
       </div>
 
       {/* ── Main Content ──────────────────────────────────────────────────────── */}
@@ -1141,16 +1145,51 @@ export default function FeedPage() {
               </div>
             )}
 
-            {/* Tip CTA */}
-            <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 rounded-2xl p-5 text-white overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-28 h-28 bg-white/5 rounded-full translate-x-8 -translate-y-8" />
-              <Gift className="w-7 h-7 mb-3 text-purple-200" />
-              <h3 className="font-bold text-base mb-1.5">Tip with crypto or card</h3>
-              <p className="text-white/75 text-xs mb-3 leading-relaxed">Support influencers using Taskdrip-managed checkout. Click the gift icon on any post.</p>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium">💳 Card</span>
-                <span className="bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium">₿ Crypto</span>
-                <span className="bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium">🏦 Bank</span>
+            {/* $TDRIP rewards CTA */}
+            <div className="relative bg-gradient-to-br from-violet-700 via-fuchsia-700 to-pink-600 rounded-2xl p-5 text-white overflow-hidden shadow-lg shadow-fuchsia-900/20">
+              <div className="absolute -top-10 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+              <div className="absolute -bottom-12 -left-10 w-36 h-36 bg-amber-300/20 rounded-full blur-2xl" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+                    <Coins className="w-5 h-5 text-amber-200" />
+                  </div>
+                  <Badge className="bg-amber-300 text-amber-950 border-0 font-extrabold tracking-wide text-[10px] uppercase">$TDRIP</Badge>
+                </div>
+                <h3 className="font-extrabold text-base mb-1.5">Earn & spend $TDRIP everywhere</h3>
+                <p className="text-white/80 text-xs mb-3 leading-relaxed">
+                  Like, comment and engage to earn $TDRIP points. Use them across the whole Taskdrip ecosystem.
+                </p>
+                <ul className="space-y-1.5 text-xs mb-4">
+                  <li className="flex items-center gap-2">
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-200 flex-shrink-0" />
+                    <span className="text-white/90">Shop products in the Taskdrip Store</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <GraduationCap className="w-3.5 h-3.5 text-amber-200 flex-shrink-0" />
+                    <span className="text-white/90">Unlock Breedskool courses</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Megaphone className="w-3.5 h-3.5 text-amber-200 flex-shrink-0" />
+                    <span className="text-white/90">Boost campaigns & micro-tasks</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Repeat className="w-3.5 h-3.5 text-amber-200 flex-shrink-0" />
+                    <span className="text-white/90">Trade peer-to-peer in P2P Hub</span>
+                  </li>
+                </ul>
+                <div className="flex gap-2">
+                  <Link href="/wallet-settings#tdrip-topup" className="flex-1">
+                    <Button size="sm" className="w-full bg-white text-violet-700 hover:bg-amber-50 font-bold rounded-xl text-xs h-9 shadow" data-testid="button-feed-buy-tdrip">
+                      Top up $TDRIP
+                    </Button>
+                  </Link>
+                  <Link href="/wallet-settings" className="flex-1">
+                    <Button size="sm" variant="ghost" className="w-full bg-white/10 text-white hover:bg-white/20 font-semibold rounded-xl text-xs h-9 backdrop-blur-sm" data-testid="button-feed-wallet">
+                      My wallet
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
 

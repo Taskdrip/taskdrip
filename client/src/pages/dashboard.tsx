@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail, Briefcase, Plus, Trash2, ExternalLink, Link2 } from "lucide-react";
+import { DashboardSpotlight } from "@/components/DashboardSpotlight";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -261,6 +262,11 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Spotlight & Featured */}
+        <div className="mb-8">
+          <DashboardSpotlight page="influencer_dashboard" />
         </div>
 
         {/* Main Content */}

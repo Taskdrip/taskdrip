@@ -7,8 +7,12 @@ import { Sparkles, ArrowRight, ChevronLeft, ChevronRight, Megaphone, Star, Shopp
 import type { SpotlightItem, SponsoredAd } from "@shared/schema";
 
 interface DashboardSpotlightProps {
-  page: "brand_dashboard" | "influencer_dashboard";
+  page: string; // "brand_dashboard" | "influencer_dashboard" | "feed" | etc
   className?: string;
+  /** When true, additionally surface 2 products, 2 courses, 2 campaigns, 2 p2p deals */
+  includeAutoFeatured?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
 const TYPE_DEFAULT_LINK: Record<string, (id: string) => string> = {
@@ -44,7 +48,13 @@ interface SlideItem {
   raw?: any;
 }
 
-export function DashboardSpotlight({ page, className = "" }: DashboardSpotlightProps) {
+export function DashboardSpotlight({
+  page,
+  className = "",
+  includeAutoFeatured = true,
+  title = "Spotlight & Featured",
+  subtitle = "Hand-picked products, courses, campaigns, P2P deals & ads",
+}: DashboardSpotlightProps) {
   const { data: spotlightItems = [] } = useQuery<SpotlightItem[]>({
     queryKey: ["/api/spotlight", { page }],
     queryFn: async () => {
@@ -62,6 +72,28 @@ export function DashboardSpotlight({ page, className = "" }: DashboardSpotlightP
       if (!r.ok) return [];
       return r.json();
     },
+    staleTime: 60_000,
+  });
+
+  // Auto-featured live items: 2 products, 2 courses, 2 campaigns, 2 p2p
+  const { data: autoProducts = [] } = useQuery<any[]>({
+    queryKey: ["/api/shop/products/featured"],
+    enabled: includeAutoFeatured,
+    staleTime: 60_000,
+  });
+  const { data: autoCourses = [] } = useQuery<any[]>({
+    queryKey: ["/api/courses"],
+    enabled: includeAutoFeatured,
+    staleTime: 60_000,
+  });
+  const { data: autoCampaigns = [] } = useQuery<any[]>({
+    queryKey: ["/api/campaigns"],
+    enabled: includeAutoFeatured,
+    staleTime: 60_000,
+  });
+  const { data: autoP2P = [] } = useQuery<any[]>({
+    queryKey: ["/api/p2p/listings/featured"],
+    enabled: includeAutoFeatured,
     staleTime: 60_000,
   });
 
@@ -94,15 +126,74 @@ export function DashboardSpotlight({ page, className = "" }: DashboardSpotlightP
       itemType: "ad",
       raw: ad,
     }));
-    // Interleave: spotlight then ad then spotlight
+
+    // Build auto-featured slides (2 of each type)
+    const productSlides: SlideItem[] = (autoProducts as any[]).slice(0, 2).map((p) => ({
+      id: `auto-product-${p.id}`,
+      kind: "spotlight" as const,
+      title: p.name || p.title || "Featured product",
+      description: p.shortDescription || p.description || (p.price ? `$${p.price}` : null),
+      image: p.imageUrl || p.image || (Array.isArray(p.images) ? p.images[0] : null),
+      link: `/shop/${p.id}`,
+      badge: "Featured",
+      itemType: "shop_product",
+      raw: p,
+    }));
+    const activeCampaigns = (autoCampaigns as any[]).filter((c) => c.status === "active" || c.status === "approved" || !c.status);
+    const campaignSlides: SlideItem[] = activeCampaigns.slice(0, 2).map((c) => ({
+      id: `auto-campaign-${c.id}`,
+      kind: "spotlight" as const,
+      title: c.title || "Featured campaign",
+      description: c.description || (c.reward ? `Reward: $${c.reward}` : c.brandName || null),
+      image: c.imageUrl || c.thumbnailUrl || null,
+      link: `/campaigns/${c.id}`,
+      badge: c.reward ? `$${c.reward}` : "Hot",
+      itemType: "campaign",
+      raw: c,
+    }));
+    const courseSlides: SlideItem[] = (autoCourses as any[]).slice(0, 2).map((c) => ({
+      id: `auto-course-${c.id}`,
+      kind: "spotlight" as const,
+      title: c.title || c.name || "Featured course",
+      description: c.shortDescription || c.description || c.tagline || null,
+      image: c.thumbnailUrl || c.imageUrl || c.coverImage || null,
+      link: `/breedskool/${c.id}`,
+      badge: c.priceTdrip ? `${c.priceTdrip} $TDRIP` : "Learn",
+      itemType: "course",
+      raw: c,
+    }));
+    const p2pSlides: SlideItem[] = (autoP2P as any[]).slice(0, 2).map((l) => ({
+      id: `auto-p2p-${l.id}`,
+      kind: "spotlight" as const,
+      title: l.title || `${l.type === "buy" ? "Buy" : "Sell"} ${l.asset || "$TDRIP"}`,
+      description: l.description || (l.pricePerUnit ? `$${l.pricePerUnit} / unit` : null),
+      image: l.imageUrl || null,
+      link: `/p2p-hub/listing/${l.id}`,
+      badge: l.type === "buy" ? "Buying" : "Selling",
+      itemType: "p2p",
+      raw: l,
+    }));
+
+    // Interleave for visual variety: admin-curated first, then auto, with ads sprinkled in
+    const autoMix: SlideItem[] = [];
+    const maxAuto = Math.max(productSlides.length, courseSlides.length, campaignSlides.length, p2pSlides.length);
+    for (let i = 0; i < maxAuto; i++) {
+      if (productSlides[i]) autoMix.push(productSlides[i]);
+      if (campaignSlides[i]) autoMix.push(campaignSlides[i]);
+      if (courseSlides[i]) autoMix.push(courseSlides[i]);
+      if (p2pSlides[i]) autoMix.push(p2pSlides[i]);
+    }
+
     const out: SlideItem[] = [];
     const max = Math.max(sp.length, adSlides.length);
     for (let i = 0; i < max; i++) {
       if (i < sp.length) out.push(sp[i]);
       if (i < adSlides.length) out.push(adSlides[i]);
     }
+    // Append auto-featured items after admin-curated content
+    out.push(...autoMix);
     return out;
-  }, [spotlightItems, ads]);
+  }, [spotlightItems, ads, autoProducts, autoCourses, autoCampaigns, autoP2P]);
 
   const [active, setActive] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
