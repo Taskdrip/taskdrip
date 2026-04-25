@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 # ─── Build stage ──────────────────────────────────────────────────────────────
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
@@ -11,8 +9,7 @@ RUN apt-get update \
 
 # Install all deps (including devDependencies — needed for vite + esbuild build)
 COPY package.json package-lock.json* ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --include=dev --no-audit --no-fund
+RUN npm install --include=dev --no-audit --no-fund
 
 # Copy the rest of the source and build
 COPY . .
