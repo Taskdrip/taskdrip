@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import {
   Send, ArrowLeft, MessageCircle, Search, CheckCheck, Check, Clock,
@@ -134,6 +134,13 @@ export default function ChatPage() {
   const searchStr = useSearch();
   const params = new URLSearchParams(searchStr);
   const initTo = params.get('to');
+  const [, navigate] = useLocation();
+
+  // Unify on the modern /messages inbox — preserve ?to= so the chat opens instantly.
+  useEffect(() => {
+    const target = initTo ? `/messages?to=${initTo}` : "/messages";
+    navigate(target, { replace: true });
+  }, []);
 
   const [selectedConversation, setSelectedConversation] = useState<string | null>(initTo);
   const [conversations, setConversations] = useState<Conversation[]>([]);

@@ -537,7 +537,7 @@ export default function BrandProfile() {
                           canMessage ? (
                             <Button
                               variant="outline"
-                              onClick={() => setLocation(`/chat?to=${brandId}`)}
+                              onClick={() => setLocation(`/messages?to=${brandId}`)}
                               className="gap-2 border-slate-600 text-slate-300 bg-slate-700 hover:bg-slate-600"
                               data-testid="brand-message-btn">
                               <MessageCircle className="w-4 h-4" /> Message

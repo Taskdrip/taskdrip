@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks, paymentMethods, users } from "@shared/schema";
+import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks, paymentMethods, users, p2pListings } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
@@ -47,6 +47,57 @@ export async function backfillCreatorTiers() {
 }
 
 const DEMO_COURSES = [
+  {
+    title: "Build & Monetize SaaS Web Apps with VibeCoding (Beginner Bestseller)",
+    shortDescription: "Zero to launched SaaS — Replit, GitHub, Railway, custom domain & monetization. No coding experience needed.",
+    description: "The exact step-by-step playbook to go from total beginner to launching and monetizing a real SaaS web app — using AI-assisted VibeCoding. You will build a real product on Replit, version it on GitHub, deploy it to Railway, link your own custom domain, and turn it into income through services, products, ads, subscriptions and affiliate offers. This is the bestseller masterclass thousands of non-coders use to ship their first SaaS in days, not months.\n\nWhat makes this course different: Every lesson ends with a 'Do This Now' action so you build a real, paying product alongside the lessons — not a tutorial graveyard. By the end of week one you'll have a deployed SaaS on your own domain that people can actually pay you for.",
+    category: "saas_vibecoding",
+    thumbnail: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=1200&h=675&fit=crop",
+    previewVideoUrl: "https://www.youtube.com/embed/zizonToFXDs",
+    introVideoUrl: "https://www.youtube.com/embed/zizonToFXDs",
+    price: "97.00",
+    isFree: false,
+    level: "beginner",
+    duration: "8h 45m",
+    isPublished: true,
+    isFeatured: true,
+    tags: ["saas", "vibecoding", "replit", "github", "railway", "no-code", "monetization", "bestseller"],
+    whatYouLearn: [
+      "Build a real, working SaaS app from a single prompt — zero coding background required",
+      "Use Replit as your AI-powered development studio with VibeCoding workflows",
+      "Master GitHub for version control, backups, and safely shipping updates",
+      "Deploy your app to Railway with a production database that scales",
+      "Connect your own custom domain (yourname.com) with HTTPS in under 10 minutes",
+      "Monetize through subscriptions, one-time products, services, ads & affiliate links",
+      "Add Stripe & crypto payments so you get paid the moment users sign up",
+      "Get your first 100 paying users with a launch playbook used by 6-figure founders",
+    ],
+    requirements: [
+      "A laptop or desktop with internet — that's it",
+      "No prior coding experience required",
+      "A free Replit account (we set this up together in lesson 1)",
+      "A free GitHub account",
+      "Optional: a domain name (~$10) to follow the live deployment lesson",
+    ],
+    lessons: [
+      { title: "Welcome — Why VibeCoding Changes Everything", content: "Welcome to the bestseller VibeCoding masterclass. In this opening lesson I show you the exact 3 SaaS apps my students built (and are now monetizing) using only the techniques in this course. You'll see the full workflow: prompt → app → deploy → revenue. By the end of this lesson you'll know exactly what you're going to build and why now is the perfect time to launch a SaaS as a non-coder.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 1, isPreview: true },
+      { title: "Setting Up Replit — Your AI Coding Studio", content: "We'll create your Replit account, tour the interface, enable Replit AI Agent, and configure the workspace. I'll show you the exact settings I use to vibecode 10x faster, including how to keep your secrets safe and your environment clean. Action: Create your account, install the mobile app, and bookmark the dashboard.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 2, isPreview: true },
+      { title: "VibeCoding 101 — Talking to AI to Build Anything", content: "The single most important skill of 2026: how to talk to an AI agent so it builds exactly what you want. We cover the PROMPT framework: Purpose, Result, Onboarding, Models, Pages, Tech-stack. You'll write your first proper prompt and watch a working SaaS skeleton appear in under 5 minutes.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 3, isPreview: true },
+      { title: "Pick Your SaaS Idea (Validated in 30 Minutes)", content: "Don't waste months on the wrong idea. I show you the 4-question validation grid I use to confirm an idea will sell before writing a single line of code. We brainstorm 5 SaaS ideas together and pick your winner. Action: by the end of this lesson you have ONE validated SaaS idea ready to build.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 4, isPreview: false },
+      { title: "Build the MVP — From Prompt to Working App", content: "Now we ship. Live build of a real SaaS app from your validated idea using Replit's AI Agent. You'll see how I structure prompts to get clean code, how to handle errors when the AI gets stuck, and how to add real features (auth, dashboard, payments stubs) in under 90 minutes. Includes the full 'rescue prompt' library for when AI breaks things.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 5, isPreview: false },
+      { title: "Designing for Conversions — Make It Beautiful", content: "Beauty sells. Learn the 5 design principles that make a SaaS feel premium: hero clarity, social proof placement, pricing anchor, button hierarchy, and the 'one-thing' rule. We restyle our app together using shadcn/ui and Tailwind via vibecoding prompts. No design skills required.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 6, isPreview: false },
+      { title: "GitHub for Total Beginners — Version Control Without Pain", content: "GitHub is your safety net. We create your account, learn what a 'commit', 'branch', and 'pull request' actually mean (in plain English), and connect Replit to GitHub so every change is backed up automatically. You'll never lose your work again — and you'll be able to roll back any AI mistake in one click.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 7, isPreview: false },
+      { title: "Railway Deployment — Going Live in 15 Minutes", content: "Time to go from prototype to production. We sign up for Railway, connect your GitHub repo, configure environment variables, attach a Postgres database, and watch your app go live on a public URL. Includes the 5 mistakes that crash deployments and exactly how to fix them.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 8, isPreview: false },
+      { title: "Custom Domain Setup — yourname.com with HTTPS", content: "Your-app.up.railway.app is fine, but yourname.com sells. We buy a domain (Namecheap or Cloudflare), configure DNS records (CNAME, A records explained simply), point it at Railway, and enable free auto-HTTPS via Let's Encrypt. Result: a professional URL that converts 2x better.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 9, isPreview: false },
+      { title: "Monetization Path 1 — Selling Services Through Your App", content: "The fastest path to first revenue. Turn your SaaS into a productized service offering (audits, setups, done-for-you packages). We add a Stripe payment link, a booking flow, and an automated client onboarding email. Real example: how one student made $1,200 in 7 days with this exact funnel.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 10, isPreview: false },
+      { title: "Monetization Path 2 — Digital Products & Subscriptions", content: "Recurring revenue is the holy grail. We add Stripe subscriptions for monthly/yearly plans, build a feature-gated dashboard (free vs. pro), and implement trial periods. You'll also learn how to sell one-time digital products (templates, ebooks, prompt packs) inside your SaaS.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 11, isPreview: false },
+      { title: "Monetization Path 3 — Ads, Affiliates & Sponsorships", content: "Even free users can pay your bills. We add tasteful display ads (Google AdSense, Carbon Ads), affiliate links to tools you actually recommend (with disclosure), and a sponsorship slot for relevant brands. Includes the rate card template I use to charge $500-$2,000 per sponsor slot.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 12, isPreview: false },
+      { title: "Crypto Payments — Get Paid Globally with USDT", content: "Stripe doesn't work everywhere. Learn how to accept USDT (TRC-20, BSC), BTC, and ETH using simple wallet addresses + a confirmation flow. Perfect for international audiences and the crypto-native creator economy. We integrate it into our SaaS in under an hour.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 13, isPreview: false },
+      { title: "Launch Day Playbook — Get Your First 100 Users", content: "Building is 50%. Launching is the other 50%. The exact 7-day launch sequence: Twitter/X teaser, Product Hunt prep, Reddit launch posts, indie founder communities, cold DM templates, and email launch list. Comes with the launch checklist PDF and 12 swipe-ready post templates.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 14, isPreview: false },
+      { title: "Scaling & Iteration — From $1K to $10K MRR", content: "Once revenue starts, what next? We cover analytics setup (Plausible, PostHog), customer feedback loops, when to hire your first VA, how to safely add features without breaking production, and the founder mindset shift that takes you from side-project to real business. Includes my MRR growth tracker template.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 15, isPreview: false },
+      { title: "Bonus — VibeCoding Prompt Library + Lifetime Updates", content: "Your reward for finishing: 50+ battle-tested vibecoding prompts I use weekly, organized by use-case (auth, payments, emails, dashboards, landing pages, fixes). Plus, lifetime free updates as Replit, Railway, and the AI tools evolve. Welcome to the VibeCoding Founders inner circle.", videoLink: "https://www.youtube.com/embed/zizonToFXDs", order: 16, isPreview: false },
+    ],
+  },
   {
     title: "Instagram Growth Masterclass",
     shortDescription: "Grow from 0 to 100K followers with proven strategies",
@@ -622,6 +673,51 @@ const DEFAULT_PAYMENT_METHODS_DATA = [
   },
 ];
 
+// ── Featured P2P listings (3 realistic crypto products / gadgets) ──────────
+// These are admin-owned listings shown on the homepage P2P section.
+// Admin can fully edit them via /admin/p2p-transactions (PATCH/PUT/DELETE).
+const DEMO_P2P_LISTINGS = [
+  {
+    title: "Ledger Nano X — Bluetooth Crypto Hardware Wallet (Brand New, Sealed)",
+    listingType: "product",
+    productSubtype: "physical",
+    description:
+      "Brand new, factory-sealed Ledger Nano X — the most trusted hardware wallet for storing Bitcoin, Ethereum, USDT and 5,500+ other coins offline. Bluetooth-enabled for secure mobile use via the Ledger Live app. Includes USB-C cable, recovery sheet, getting-started guide and original Ledger packaging.\n\nWhy buy from Taskdrip P2P: Every order is admin-escrow protected — your USDT is held safely until the device is delivered to your door. Worldwide shipping with tracking. Perfect for crypto investors, traders and anyone who wants real cold-storage security.",
+    price: "169.00",
+    currency: "USD",
+    paymentMethod: "USDT (TRC-20 / BSC)",
+    country: "Worldwide",
+    shippingInfo: "Worldwide tracked shipping (3–7 business days). Free shipping on orders over $200.",
+    featuredImage: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&h=800&fit=crop&q=80",
+  },
+  {
+    title: "Apple iPhone 16 Pro 256GB — Unlocked, Crypto-Friendly Pricing",
+    listingType: "product",
+    productSubtype: "physical",
+    description:
+      "Brand new, sealed Apple iPhone 16 Pro 256GB in Titanium Black. Fully unlocked and works on any carrier worldwide. Includes the original Apple box, USB-C charging cable, documentation and 1-year Apple international warranty.\n\nPay in USDT, BTC or ETH — get a real Apple flagship at a P2P-friendly price. Admin-escrow protected: your funds are only released to the seller once you confirm the phone has arrived in perfect condition. Ships worldwide with full tracking and signature on delivery.",
+    price: "1099.00",
+    currency: "USD",
+    paymentMethod: "USDT / BTC / ETH",
+    country: "Worldwide",
+    shippingInfo: "DHL Express worldwide (2–5 business days). Insured and tracked. Signature required on delivery.",
+    featuredImage: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=1200&h=800&fit=crop&q=80",
+  },
+  {
+    title: "ASIC Bitcoin Miner Starter Kit — Bitmain Antminer S19 (110 TH/s)",
+    listingType: "product",
+    productSubtype: "physical",
+    description:
+      "Get into Bitcoin mining the right way. Refurbished Bitmain Antminer S19 (110 TH/s, 3250W) — fully tested, 90-day seller warranty, ready to plug in and start hashing. Comes with PSU, power cable, network cable and a step-by-step setup guide tailored for total beginners (pool setup, wallet config, profitability calculator).\n\nIdeal for crypto-curious creators who want passive BTC income from home or a small mining setup. Pay in USDT or BTC — admin-escrow protected end-to-end. Shipping insured worldwide; arrives within 7–14 business days. Setup support included via Taskdrip Deal Room chat.",
+    price: "1850.00",
+    currency: "USD",
+    paymentMethod: "USDT / BTC",
+    country: "Worldwide",
+    shippingInfo: "Insured freight shipping worldwide (7–14 business days). Setup support via Deal Room chat.",
+    featuredImage: "https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=1200&h=800&fit=crop&q=80",
+  },
+];
+
 export async function seedDemoData(adminUserId: string) {
   try {
     // Check if demo data already exists
@@ -630,34 +726,42 @@ export async function seedDemoData(adminUserId: string) {
     const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
     const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
 
-    if (existingCourses.length === 0) {
-      console.log("[seed] Seeding demo courses...");
-      for (const courseData of DEMO_COURSES) {
-        const { lessons, ...courseFields } = courseData;
-        const [course] = await db.insert(courses).values({
-          ...courseFields,
-          instructorId: adminUserId,
-          lessonsCount: lessons.length,
-          studentsCount: Math.floor(Math.random() * 500) + 50,
-          averageRating: (3.8 + Math.random() * 1.1).toFixed(2),
-          reviewsCount: Math.floor(Math.random() * 80) + 10,
-          likesCount: Math.floor(Math.random() * 200) + 20,
-        }).returning();
+    // Idempotent course seeding: insert any DEMO_COURSES that don't already
+    // exist (matched by title). Adds the new VibeCoding masterclass to existing
+    // installs without re-creating already-seeded courses.
+    {
+      const existingTitles = new Set(
+        (await db.select({ title: courses.title }).from(courses)).map(r => r.title)
+      );
+      const toCreate = DEMO_COURSES.filter(c => !existingTitles.has(c.title));
+      if (toCreate.length > 0) {
+        console.log(`[seed] Adding ${toCreate.length} new demo course(s)...`);
+        for (const courseData of toCreate) {
+          const { lessons, ...courseFields } = courseData;
+          const [course] = await db.insert(courses).values({
+            ...courseFields,
+            instructorId: adminUserId,
+            lessonsCount: lessons.length,
+            studentsCount: Math.floor(Math.random() * 500) + 50,
+            averageRating: (3.8 + Math.random() * 1.1).toFixed(2),
+            reviewsCount: Math.floor(Math.random() * 80) + 10,
+            likesCount: Math.floor(Math.random() * 200) + 20,
+          }).returning();
 
-        // Insert lessons
-        for (const lesson of lessons) {
-          await db.insert(courseLessons).values({
-            courseId: course.id,
-            title: lesson.title,
-            content: lesson.content,
-            videoLink: lesson.videoLink,
-            order: lesson.order,
-            isPreview: lesson.isPreview,
-            lessonFiles: [],
-          });
+          for (const lesson of lessons) {
+            await db.insert(courseLessons).values({
+              courseId: course.id,
+              title: lesson.title,
+              content: lesson.content,
+              videoLink: lesson.videoLink,
+              order: lesson.order,
+              isPreview: lesson.isPreview,
+              lessonFiles: [],
+            });
+          }
         }
+        console.log(`[seed] Created ${toCreate.length} new demo course(s) with lessons.`);
       }
-      console.log(`[seed] Created ${DEMO_COURSES.length} demo courses with lessons.`);
     }
 
     if (existingProducts.length === 0) {
@@ -674,6 +778,26 @@ export async function seedDemoData(adminUserId: string) {
         });
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
+    }
+
+    // ── Demo P2P listings (admin-owned, featured on homepage) ────────────────
+    const existingP2P = await db.select({ id: p2pListings.id })
+      .from(p2pListings)
+      .where(eq(p2pListings.sellerId, adminUserId))
+      .limit(1);
+    if (existingP2P.length === 0) {
+      console.log("[seed] Seeding demo P2P listings...");
+      for (const listing of DEMO_P2P_LISTINGS) {
+        await db.insert(p2pListings).values({
+          ...listing,
+          sellerId: adminUserId,
+          status: "approved",
+          isFeatured: true,
+          approvedBy: adminUserId,
+          approvedAt: new Date(),
+        } as any);
+      }
+      console.log(`[seed] Created ${DEMO_P2P_LISTINGS.length} demo P2P listings (featured on homepage).`);
     }
 
     if (existingPosts.length === 0) {

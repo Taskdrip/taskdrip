@@ -125,7 +125,7 @@ export default function MessagesPage() {
   const { data: conversations = [], isLoading: convsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
     enabled: !!user,
-    refetchInterval: 4000,
+    refetchInterval: 2500,
     refetchIntervalInBackground: false,
   });
 
@@ -136,9 +136,24 @@ export default function MessagesPage() {
     queryKey: ["/api/conversations", selectedConvId, "thread"],
     queryFn: () => apiRequest("GET", `/api/conversations/${selectedConvId}/thread`).then(r => r.json()),
     enabled: !!selectedConvId,
-    refetchInterval: 1800,
+    refetchInterval: 1000,
     refetchIntervalInBackground: false,
   });
+
+  // Optimistic outgoing messages — show instantly while server confirms.
+  const [optimisticMsgs, setOptimisticMsgs] = useState<Record<string, ThreadMessage[]>>({});
+  const optimisticForConv = selectedConvId ? (optimisticMsgs[selectedConvId] ?? []) : [];
+  // Drop optimistic messages once server thread already contains them (matched by content + close timestamp)
+  useEffect(() => {
+    if (!selectedConvId || optimisticForConv.length === 0) return;
+    const remaining = optimisticForConv.filter(opt => {
+      return !thread.some(real => real.senderId === opt.senderId && real.content === opt.content);
+    });
+    if (remaining.length !== optimisticForConv.length) {
+      setOptimisticMsgs(prev => ({ ...prev, [selectedConvId]: remaining }));
+    }
+  }, [thread, selectedConvId]);
+  const displayThread = [...thread, ...optimisticForConv];
 
   // Typing indicator — peer presence
   const peerId = selectedConv ? (selectedConv.participants?.find((p: any) => p.id !== user?.id)?.id) : null;
@@ -146,8 +161,16 @@ export default function MessagesPage() {
     queryKey: ['/api/typing', peerId],
     queryFn: () => fetch(`/api/typing/${peerId}`, { credentials: 'include' }).then(r => r.json()),
     enabled: !!peerId,
-    refetchInterval: 2000,
+    refetchInterval: 1500,
     refetchIntervalInBackground: false,
+  });
+
+  // Quick-chat sidebar: who am I following? (brands for influencers, anyone for brands/admins)
+  const { data: following = [] } = useQuery<any[]>({
+    queryKey: ["/api/users", user?.id, "following"],
+    queryFn: () => fetch(`/api/users/${user?.id}/following`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!user?.id,
+    staleTime: 30_000,
   });
   const pingTyping = () => {
     if (!peerId) return;
@@ -248,9 +271,22 @@ export default function MessagesPage() {
   const sendReply = useCallback(() => {
     if (!replyText.trim() || !selectedConvId || replyMutation.isPending || sendingRef.current) return;
     sendingRef.current = true;
+    const content = replyText.trim();
     const targetUserId = (isBrand && broadcastTarget !== "all") ? broadcastTarget : undefined;
-    replyMutation.mutate({ convKey: selectedConvId, content: replyText.trim(), targetUserId });
-  }, [replyText, selectedConvId, isBrand, broadcastTarget, replyMutation]);
+    // Optimistic message — appears in thread instantly, replaced when server returns
+    if (user?.id) {
+      const optimistic: ThreadMessage = {
+        id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        senderId: user.id,
+        content,
+        createdAt: new Date().toISOString(),
+        sender: { id: user.id, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, userType: user.userType, companyName: user.companyName } as Participant,
+      } as ThreadMessage;
+      setOptimisticMsgs(prev => ({ ...prev, [selectedConvId]: [...(prev[selectedConvId] ?? []), optimistic] }));
+    }
+    setReplyText("");
+    replyMutation.mutate({ convKey: selectedConvId, content, targetUserId });
+  }, [replyText, selectedConvId, isBrand, broadcastTarget, replyMutation, user]);
 
   // Direct compose: send first message to a user (from profile link)
   const directSendMutation = useMutation({
@@ -481,6 +517,60 @@ export default function MessagesPage() {
             </div>
           </div>
 
+          {/* Following — Quick Chat: 1-click chat with brands/people you follow */}
+          {following.length > 0 && (
+            <div className="px-3 py-3 border-b border-slate-100 bg-gradient-to-b from-slate-50/60 to-transparent">
+              <div className="flex items-center gap-1.5 px-1 mb-2">
+                <Users className="h-3.5 w-3.5 text-blue-600" />
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Quick Chat · Following</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" data-testid="quick-chat-strip">
+                {following.slice(0, 12).map((u: any) => {
+                  const existingConv = (conversations as Conversation[]).find(c =>
+                    !c.campaignId && c.participants.some(p => p.id === u.id)
+                  );
+                  const name = u.companyName || `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || "User";
+                  const inits = `${u.firstName?.[0] ?? name[0] ?? "?"}${u.lastName?.[0] ?? ""}`.toUpperCase();
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => {
+                        if (existingConv) {
+                          setSelectedConvId(existingConv.id);
+                          setDirectComposing(false);
+                        } else {
+                          // Update URL so DirectComposePanel + preselectedUser pick it up
+                          window.history.pushState({}, "", `/messages?to=${u.id}`);
+                          setSelectedConvId(null);
+                          setDirectComposing(true);
+                        }
+                        setShowSidebar(false);
+                      }}
+                      className="flex-shrink-0 flex flex-col items-center gap-1 group focus:outline-none"
+                      title={`Chat with ${name}`}
+                      data-testid={`quick-chat-${u.id}`}
+                    >
+                      <div className="relative">
+                        <Avatar className="h-12 w-12 border-2 border-white ring-2 ring-transparent group-hover:ring-blue-400 transition-all">
+                          <AvatarImage src={u.profileImageUrl} />
+                          <AvatarFallback className={`text-xs font-bold ${u.userType === "brand" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                            {inits}
+                          </AvatarFallback>
+                        </Avatar>
+                        {u.userType === "brand" && (
+                          <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white text-[8px] font-bold rounded-full px-1 leading-tight border border-white">B</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-medium text-slate-600 group-hover:text-blue-600 truncate max-w-[60px] leading-tight">
+                        {name.split(" ")[0]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Conversation list */}
           <div className="flex-1 overflow-y-auto">
             {convsLoading ? (
@@ -667,7 +757,7 @@ export default function MessagesPage() {
                       <p className="text-sm text-slate-500">Loading messages…</p>
                     </div>
                   </div>
-                ) : thread.length === 0 ? (
+                ) : displayThread.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                       <MessageCircle className="h-12 w-12 text-slate-300 mx-auto mb-3" />
@@ -676,11 +766,12 @@ export default function MessagesPage() {
                     </div>
                   </div>
                 ) : (
-                  thread.map((msg, idx) => {
+                  displayThread.map((msg, idx) => {
                     const isMine = msg.senderId === user?.id;
                     const isSupport = msg.messageType === "support_ticket";
                     const isAdminMsg = msg.sender?.userType === "admin" || msg.messageType === "admin_group";
-                    const showSender = idx === 0 || thread[idx - 1]?.senderId !== msg.senderId;
+                    const showSender = idx === 0 || displayThread[idx - 1]?.senderId !== msg.senderId;
+                    const isOptimistic = typeof msg.id === "string" && msg.id.startsWith("optimistic-");
 
                     return (
                       <div key={msg.id} className={`flex gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
@@ -800,6 +891,16 @@ export default function MessagesPage() {
                       <div className="flex items-center gap-1.5 mb-2 text-xs text-slate-500">
                         <Megaphone className="h-3.5 w-3.5" />
                         <span>Broadcasting to all {selectedCampaignParticipants.length} participant{selectedCampaignParticipants.length !== 1 ? "s" : ""}</span>
+                      </div>
+                    )}
+                    {peerTyping?.typing && convKind(selectedConv) === "direct" && (
+                      <div className="flex items-center gap-1.5 mb-2 text-xs text-blue-600 font-medium" data-testid="typing-pill">
+                        <span className="flex items-center gap-0.5">
+                          <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                        <span>{displayName(selectedConv.participants.find(p => p.id !== user?.id))} is typing…</span>
                       </div>
                     )}
                     <div className="flex gap-2 items-end">
