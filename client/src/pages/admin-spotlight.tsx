@@ -232,7 +232,7 @@ export default function AdminSpotlight() {
 
             <div>
               <Label>Featured Image (upload from device)</Label>
-              <ImageUpload value={form.customImage} onChange={(url) => setForm({ ...form, customImage: url })} testId="spotlight-image" />
+              <ImageUpload value={form.customImage} onChange={(url) => setForm({ ...form, customImage: url })} testId="spotlight-image" variant="cover" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

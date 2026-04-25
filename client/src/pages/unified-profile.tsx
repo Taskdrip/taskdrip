@@ -156,19 +156,36 @@ export default function UnifiedProfile() {
     queryKey: [`/api/users/${id}/profile`],
     enabled: !!id,
     retry: false,
+    // Always re-check when re-mounting so a freshly-edited profile is never stale
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
-  // Synchronously redirect non-admin profiles to their canonical pages so we
-  // don't render a black intermediate screen while a useEffect waits for paint.
+  // Redirect non-admin profiles to their canonical pages. We use { replace: true }
+  // so the Back button takes the user out of this intermediate screen.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !id) return;
     if (user.userType === 'brand') {
       navigate(`/brand/${id}`, { replace: true });
     } else if (user.userType !== 'admin') {
-      // creators (and anything that isn't admin/brand) get the creator profile page
       navigate(`/influencers/${id}`, { replace: true });
     }
   }, [user?.userType, id, navigate]);
+
+  // Bail out of the spinner-forever case: if the query errored OR resolved to
+  // something with no userType, show the not-found state instead of looping.
+  if (isError || (user && !user.userType)) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <NavigationFixed />
+        <div className="max-w-md mx-auto px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
+          <p className="text-gray-500 mb-4">This profile doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/')}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
 
   // While we're loading or about to redirect, render a light placeholder (never black)
   if (isLoading || (user && user.userType !== 'admin')) {
@@ -182,20 +199,7 @@ export default function UnifiedProfile() {
     );
   }
 
-  if (isError || !user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <NavigationFixed />
-        <div className="max-w-md mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
-          <p className="text-gray-500 mb-4">This profile doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (user.userType === 'admin') {
+  if (user && user.userType === 'admin') {
     return <AdminProfileView admin={user} />;
   }
 

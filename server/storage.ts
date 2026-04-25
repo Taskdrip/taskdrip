@@ -149,6 +149,7 @@ export interface IStorage {
   // User operations for custom authentication
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserProfile(id: string, updates: Partial<User>): Promise<User>;
   deleteUser(id: string): Promise<void>;
@@ -466,6 +467,13 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const clean = String(username || '').trim().toLowerCase();
+    if (!clean) return undefined;
+    const [user] = await db.select().from(users).where(eq(users.username, clean));
     return user;
   }
 

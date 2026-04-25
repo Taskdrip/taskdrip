@@ -5695,6 +5695,7 @@ export default function AdminMaster() {
                           value={shopProductForm.watch("featuredImage")}
                           onChange={(url) => shopProductForm.setValue("featuredImage", url)}
                           testId="product-featured-image"
+                          variant="cover"
                         />
                       </div>
                       <div className="flex items-center gap-3 p-3 border rounded-lg col-span-2">

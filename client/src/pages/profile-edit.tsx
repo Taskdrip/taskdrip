@@ -20,11 +20,13 @@ import {
   Camera, TrendingUp, Award, Link2, Plus, Trash2,
   Globe, ExternalLink, DollarSign, ChevronDown, ChevronUp, Eye, EyeOff
 } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import {
   SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
   SiTelegram, SiWhatsapp, SiLinkedin
 } from 'react-icons/si';
+import { compressImage, fileToDataUrl, formatBytes, IMAGE_GUIDANCE } from '@/lib/imageCompression';
+import { Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -108,12 +110,25 @@ interface CustomChannel {
   isUserDefined: boolean;
 }
 
+function debounce<T extends (...args: any[]) => any>(fn: T, ms: number): T {
+  let t: any;
+  return ((...args: any[]) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  }) as T;
+}
+
 export default function ProfileEdit() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [imageCompressing, setImageCompressing] = useState(false);
   const [totalFollowersPreview, setTotalFollowersPreview] = useState(0);
+
+  // Live username availability state
+  const [usernameStatus, setUsernameStatus] = useState<{ checking: boolean; available: boolean | null; reason?: string; normalized?: string }>({ checking: false, available: null });
 
   // Admin custom platforms (from social_platforms table)
   const [adminCustomLinks, setAdminCustomLinks] = useState<Record<string, { url: string; followerCount: number; displayOnProfile: boolean }>>({});
@@ -143,6 +158,28 @@ export default function ProfileEdit() {
   });
 
   const watchedFollowers = watch(['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers']);
+  const watchedUsername = watch('username');
+
+  // Live username availability check (debounced)
+  useEffect(() => {
+    const original = (user as any)?.username || '';
+    const candidate = (watchedUsername || '').trim();
+    if (!candidate || candidate.toLowerCase() === original.toLowerCase()) {
+      setUsernameStatus({ checking: false, available: null });
+      return;
+    }
+    setUsernameStatus({ checking: true, available: null });
+    const run = debounce(async () => {
+      try {
+        const res = await fetch(`/api/users/check-username?username=${encodeURIComponent(candidate)}`, { credentials: 'include' });
+        const data = await res.json();
+        setUsernameStatus({ checking: false, available: !!data.available, reason: data.reason, normalized: data.normalized });
+      } catch {
+        setUsernameStatus({ checking: false, available: null });
+      }
+    }, 350);
+    run();
+  }, [watchedUsername, user]);
 
   useEffect(() => {
     const builtInTotal = watchedFollowers.reduce((sum, v) => sum + (Number(v) || 0), 0);
@@ -264,13 +301,42 @@ export default function ProfileEdit() {
     },
   });
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    const limitMB = IMAGE_GUIDANCE.avatar.maxMB;
+    if (file.size > limitMB * 1024 * 1024) {
+      toast({
+        title: "Photo too large",
+        description: `Maximum is ${limitMB} MB. Try cropping or exporting at lower quality.`,
+        variant: "destructive",
+      });
+      event.target.value = '';
+      return;
+    }
+    try {
+      setImageCompressing(true);
+      const originalSize = file.size;
+      const compressed = await compressImage(file, { maxDimension: 800, maxSizeMB: 0.5, quality: 0.85 });
+      setProfileImage(compressed);
+      const dataUrl = await fileToDataUrl(compressed);
+      setPreviewUrl(dataUrl);
+      const saved = originalSize - compressed.size;
+      if (saved > 1024) {
+        toast({
+          title: "Photo ready",
+          description: `Compressed ${formatBytes(originalSize)} → ${formatBytes(compressed.size)}.`,
+        });
+      }
+    } catch (e) {
+      // Fallback: use original
       setProfileImage(file);
       const reader = new FileReader();
       reader.onload = (e) => setPreviewUrl(e.target?.result as string);
       reader.readAsDataURL(file);
+    } finally {
+      setImageCompressing(false);
+      event.target.value = '';
     }
   };
 
@@ -294,10 +360,14 @@ export default function ProfileEdit() {
   };
 
   const onSubmit = async (data: ProfileFormData) => {
+    if (usernameStatus.available === false) {
+      toast({ title: "Pick a different username", description: "That username isn't available.", variant: "destructive" });
+      return;
+    }
     const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : [];
     const profileImageUrl = profileImage ? previewUrl : (user as any)?.profileImageUrl;
     try {
-      await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl, directSupportEnabled });
+      const updated = await updateProfileMutation.mutateAsync({ ...data, skills: skillsArray, profileImageUrl, directSupportEnabled });
       await Promise.all([
         saveLinksMutation.mutateAsync(),
         saveRatesMutation.mutateAsync(),
@@ -308,12 +378,18 @@ export default function ProfileEdit() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/profile`] });
       queryClient.invalidateQueries({ queryKey: [`/api/creators/${userId}/profile`] });
       queryClient.invalidateQueries({ queryKey: ['/api/creators'] });
       queryClient.invalidateQueries({ queryKey: ['/api/leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/points/me'] });
       toast({ title: "Profile saved! 🎉", description: "Your profile has been updated successfully." });
+
+      // Redirect to public profile (use new clean username URL when available)
+      const newUsername = (updated?.username || data.username || '').trim();
+      const target = newUsername ? `/p/${newUsername}` : `/influencers/${userId}`;
+      navigate(target);
     } catch (error: any) {
       let description = "Failed to save profile. Please try again.";
       try {
@@ -406,8 +482,28 @@ export default function ProfileEdit() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" {...register('username')} placeholder="@your_username" className="mt-1" data-testid="input-username" />
-                  <p className="text-xs text-gray-400 mt-1">Unique public profile URL</p>
+                  <div className="relative">
+                    <Input id="username" {...register('username')} placeholder="your_username" className="mt-1 pr-9" data-testid="input-username" />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 mt-0.5">
+                      {usernameStatus.checking && <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />}
+                      {!usernameStatus.checking && usernameStatus.available === true && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                      {!usernameStatus.checking && usernameStatus.available === false && <AlertCircle className="w-4 h-4 text-red-600" />}
+                    </div>
+                  </div>
+                  {usernameStatus.available === false && (
+                    <p className="text-xs text-red-600 mt-1" data-testid="text-username-error">
+                      {usernameStatus.reason === 'taken' && 'Username already taken'}
+                      {usernameStatus.reason === 'reserved' && 'This username is reserved'}
+                      {usernameStatus.reason === 'invalid' && 'Use 3–30 letters, numbers, or underscores'}
+                      {!['taken', 'reserved', 'invalid'].includes(usernameStatus.reason || '') && 'Not available'}
+                    </p>
+                  )}
+                  {usernameStatus.available === true && (
+                    <p className="text-xs text-green-600 mt-1" data-testid="text-username-available">Available — your profile will live at /p/{usernameStatus.normalized || watchedUsername?.toLowerCase()}</p>
+                  )}
+                  {!usernameStatus.checking && usernameStatus.available === null && (
+                    <p className="text-xs text-gray-400 mt-1">Lowercase letters, numbers, and underscores. Your public URL.</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="niche">Niche / Category</Label>

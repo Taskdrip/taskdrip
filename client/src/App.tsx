@@ -44,6 +44,8 @@ import BrandProfile from "@/pages/brand-profile";
 import WalletSettings from "@/pages/wallet-settings";
 import PaymentDeposit from "@/pages/payment-deposit";
 import ProfileEdit from "@/pages/profile-edit";
+import BrandProfileEdit from "@/pages/brand-profile-edit";
+import ProfileByUsername from "@/pages/profile-by-username";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import EscrowPayment from "@/pages/escrow-payment";
@@ -149,6 +151,9 @@ function Router() {
       <Route path="/influencers/:id" component={CreatorProfile} />
       <Route path="/brands" component={BrandsPage} />
       <Route path="/profile/:id" component={UnifiedProfile} />
+      {/* Clean username-based public profile URL — resolves @username → canonical id route */}
+      <Route path="/p/:username" component={ProfileByUsername} />
+      <Route path="/u/:username" component={ProfileByUsername} />
       <Route path="/brand/:id" component={BrandProfile} />
       <Route path="/feed" component={FeedPage} />
       <Route path="/leaderboard" component={Leaderboard} />
@@ -188,7 +193,10 @@ function Router() {
           <Route path="/wallet" component={WalletSettings} />
           <Route path="/ledger" component={LedgerPage} />
           <Route path="/payment-deposit" component={PaymentDeposit} />
-          <Route path="/profile-edit" component={ProfileEdit} />
+          <Route path="/profile-edit" component={() => {
+            const userType = (user as any)?.userType;
+            return userType === 'brand' ? <BrandProfileEdit /> : <ProfileEdit />;
+          }} />
           <Route path="/escrow-payment" component={EscrowPayment} />
           <Route path="/direct-hire/:id" component={DirectHirePayment} />
           <Route path="/p2p-deals" component={P2PDealRoom} />

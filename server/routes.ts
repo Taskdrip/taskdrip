@@ -1020,6 +1020,38 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Username availability check (used by profile-edit forms for live feedback)
+  app.get('/api/users/check-username', async (req: any, res) => {
+    try {
+      const raw = String(req.query.username || '').trim();
+      if (!raw) return res.json({ available: false, reason: "empty" });
+      const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, '');
+      if (normalized.length < 3 || normalized.length > 30) {
+        return res.json({ available: false, reason: "length", normalized });
+      }
+      const RESERVED = new Set(['admin','administrator','root','support','help','api','www','login','signup','about','contact','terms','privacy','brand','brands','influencer','influencers','user','users','profile','dashboard','settings','wallet','tasks','campaigns','feed','messages','blog','shop','docs','documentation','roadmap']);
+      if (RESERVED.has(normalized)) return res.json({ available: false, reason: "reserved", normalized });
+      const existing = await storage.getUserByUsername(normalized);
+      const myId = req.isAuthenticated() && req.user ? (req.user as any).id : null;
+      if (existing && existing.id !== myId) return res.json({ available: false, reason: "taken", normalized });
+      return res.json({ available: true, normalized });
+    } catch (e) {
+      res.status(500).json({ available: false, reason: "error" });
+    }
+  });
+
+  // Resolve a username to a public profile (powers the /p/:username clean URL)
+  app.get('/api/users/by-username/:username', async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const { password, twoFactorSecret, ...safeUser } = user as any;
+      res.json(safeUser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Generic user lookup by ID (for profile pages)
   app.get('/api/users/:id', async (req, res) => {
     try {
@@ -1651,9 +1683,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const userId = req.params.id;
       const updates = { ...req.body };
 
-      // Never store empty string username — convert to null to avoid unique constraint violation
-      if (updates.username !== undefined && updates.username.trim() === '') {
-        updates.username = null;
+      // Username normalization & validation
+      if (updates.username !== undefined) {
+        const raw = String(updates.username || '').trim();
+        if (raw === '') {
+          updates.username = null;
+        } else {
+          const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, '');
+          if (normalized.length < 3 || normalized.length > 30) {
+            return res.status(400).json({ message: "Username must be 3-30 characters (letters, numbers, underscore)." });
+          }
+          const RESERVED = new Set(['admin','administrator','root','support','help','api','www','login','signup','about','contact','terms','privacy','brand','brands','influencer','influencers','user','users','profile','dashboard','settings','wallet','tasks','campaigns','feed','messages','blog','shop','docs','documentation','roadmap']);
+          if (RESERVED.has(normalized)) {
+            return res.status(409).json({ message: "That username is reserved. Please choose a different one." });
+          }
+          // Pre-flight uniqueness check (case-insensitive via normalized lowercase)
+          const existing = await storage.getUserByUsername(normalized);
+          if (existing && existing.id !== userId) {
+            return res.status(409).json({ message: "That username is already taken. Please choose a different one." });
+          }
+          updates.username = normalized;
+        }
       }
 
       // Auto-calculate totalFollowers and creatorTier from platform fields
@@ -2873,40 +2923,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   // User profile update endpoint for wallet addresses
-  app.patch("/api/users/:userId/profile", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user || req.user.id !== req.params.userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const updates = { ...req.body };
-
-      // Auto-calculate totalFollowers and creatorTier
-      const followerFields = ['tiktokFollowers', 'youtubeFollowers', 'instagramFollowers', 'twitterFollowers', 'twitchFollowers', 'telegramFollowers', 'whatsappFollowers'];
-      const existingUser = await storage.getUser(req.params.userId);
-      
-      let totalFollowers = 0;
-      for (const field of followerFields) {
-        const val = updates[field] !== undefined ? parseInt(updates[field]) || 0 : (existingUser as any)?.[field] || 0;
-        totalFollowers += val;
-      }
-      
-      updates.totalFollowers = totalFollowers;
-
-      if (totalFollowers >= 10_000_000) updates.creatorTier = 'global_titans';
-      else if (totalFollowers >= 1_000_000) updates.creatorTier = 'power_influencers';
-      else if (totalFollowers >= 100_000) updates.creatorTier = 'growth_engines';
-      else if (totalFollowers >= 10_000) updates.creatorTier = 'rising_sparks';
-      else if (totalFollowers >= 1) updates.creatorTier = 'aspiring';
-      else updates.creatorTier = 'newcomer';
-
-      const updatedUser = await storage.updateUserProfile(req.params.userId, updates);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Profile update error:", error);
-      res.status(500).json({ message: "Failed to update profile" });
-    }
-  });
+  // (Duplicate PATCH /api/users/:userId/profile route removed —
+  // see PATCH /api/users/:id/profile above which is the canonical handler.)
 
   // Payment deposit routes
   app.post('/api/payment-deposits', upload.single('paymentProof'), async (req: any, res) => {
