@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -7,31 +7,45 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Coins, Copy, Check, Loader2, Wallet, Sparkles } from "lucide-react";
+import {
+  Coins, Copy, Check, Loader2, Wallet, Sparkles, Upload, X,
+} from "lucide-react";
+import { TdripTopupThanks, type TdripTopupReceipt } from "@/components/TdripTopupThanks";
 
 interface InlineTdripTopupProps {
   suggestedPoints?: number;
   onCredited?: () => void;
   testIdPrefix?: string;
+  /** Optional context line shown in the WhatsApp message (e.g. "Funding micro-task for campaign Foo"). */
+  contextLabel?: string;
 }
 
-export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "inline-topup" }: InlineTdripTopupProps) {
+export function InlineTdripTopup({
+  suggestedPoints,
+  onCredited,
+  testIdPrefix = "inline-topup",
+  contextLabel,
+}: InlineTdripTopupProps) {
   const { toast } = useToast();
   const presets = [1000, 5000, 10000, 50000];
   const initial = suggestedPoints && suggestedPoints > 0
     ? Math.max(100, Math.ceil(suggestedPoints / 100) * 100)
     : 1000;
+
   const [points, setPoints] = useState<string>(String(initial));
   const [methodId, setMethodId] = useState<string>("");
   const [checkout, setCheckout] = useState<any | null>(null);
   const [txHash, setTxHash] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [thankYou, setThankYou] = useState<TdripTopupReceipt | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (suggestedPoints && suggestedPoints > 0) {
+    if (suggestedPoints && suggestedPoints > 0 && !checkout && !thankYou) {
       setPoints(String(Math.max(100, Math.ceil(suggestedPoints / 100) * 100)));
     }
-  }, [suggestedPoints]);
+  }, [suggestedPoints, checkout, thankYou]);
 
   const { data: paymentMethods = [] } = useQuery<any[]>({
     queryKey: ["/api/payment-methods", "tdrip"],
@@ -83,6 +97,7 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
       const formData = new FormData();
       formData.append("transactionHash", txHash);
       formData.append("network", checkout.checkout?.paymentMethod?.network || selectedMethod?.network || "");
+      if (screenshot) formData.append("paymentProof", screenshot);
       const res = await fetch(`/api/tdrip/topups/${checkout.transaction.id}/submit-proof`, {
         method: "POST",
         body: formData,
@@ -95,28 +110,54 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
       queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/ledger"] });
-      toast({
-        title: data.credited ? "🎉 $TDRIP credited!" : "Reference submitted",
-        description: data.credited
-          ? `${data.points} $TDRIP added to your wallet.`
-          : "Our team will verify your payment shortly.",
+      const t = checkout?.transaction;
+      const network = checkout?.checkout?.paymentMethod?.network || selectedMethod?.network || "";
+      const address = checkout?.checkout?.paymentMethod?.address || selectedMethod?.address || "";
+      setThankYou({
+        credited: !!data.credited,
+        points: data.points || buyPoints,
+        usd: usdAmount,
+        network,
+        address,
+        txHash,
+        topupId: t?.id || "",
       });
-      if (data.credited) {
-        setCheckout(null);
-        setTxHash("");
-        onCredited?.();
-      }
+      if (data.credited) onCredited?.();
     },
     onError: (e: Error) => toast({ title: "Submission failed", description: e.message, variant: "destructive" }),
   });
 
-  const copyAddress = (val: string) => {
+  const copyToClipboard = (val: string, key: string) => {
     navigator.clipboard.writeText(val).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1500);
     });
   };
 
+  const reset = () => {
+    setCheckout(null);
+    setTxHash("");
+    setScreenshot(null);
+    setThankYou(null);
+  };
+
+  const buildWhatsappUrl = (data: NonNullable<typeof thankYou>) => {
+    const lines = [
+      "Hi Taskdrip! 👋",
+      "",
+      "I just topped up my $TDRIP wallet — please confirm:",
+      "",
+      `💎 Amount: ${data.points.toLocaleString()} $TDRIP ($${data.usd} USDT)`,
+      `💳 Network: ${(data.network || "crypto").toUpperCase()}`,
+      `🔗 Tx Hash: ${data.txHash}`,
+      `📌 Top-up ID: ${(data.topupId || "").slice(0, 8).toUpperCase()}`,
+    ];
+    if (contextLabel) lines.push(`📝 Purpose: ${contextLabel}`);
+    lines.push("", "Thanks! 🙏");
+    return `${SOCIALS.whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`;
+  };
+
+  // ── No payment methods at all ────────────────────────────────────────────
   if (cryptoMethods.length === 0) {
     return (
       <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
@@ -126,8 +167,24 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
     );
   }
 
+  // ── 3. Thank-you state ──────────────────────────────────────────────────
+  if (thankYou) {
+    return (
+      <TdripTopupThanks
+        receipt={thankYou}
+        contextLabel={contextLabel}
+        onReset={reset}
+        testIdPrefix={`${testIdPrefix}-thanks`}
+      />
+    );
+  }
+
+  // ── 1. Choose amount ─ 2. Pay & submit ─────────────────────────────────
   return (
-    <div className="rounded-xl border-2 border-violet-300 bg-gradient-to-br from-violet-50 to-purple-50 p-4 space-y-3" data-testid={`${testIdPrefix}-panel`}>
+    <div
+      className="rounded-xl border-2 border-violet-300 bg-gradient-to-br from-violet-50 to-purple-50 p-4 space-y-3"
+      data-testid={`${testIdPrefix}-panel`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center">
@@ -186,7 +243,7 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
               <SelectContent>
                 {cryptoMethods.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
-                    {m.name} {m.network ? `· ${m.network.toUpperCase()}` : ""}
+                    {m.label || m.name} {m.network ? `· ${m.network.toUpperCase()}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -212,19 +269,24 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
           <div className="rounded-lg bg-white border border-violet-200 p-3">
             <p className="text-[11px] text-violet-700 mb-1">Send exactly</p>
             <p className="text-lg font-extrabold text-violet-900">${usdAmount} USDT</p>
-            <p className="text-[11px] text-violet-700 mt-2">to this {checkout.checkout?.paymentMethod?.network?.toUpperCase() || "crypto"} address:</p>
+            <p className="text-[11px] text-violet-700 mt-2">
+              to this {checkout.checkout?.paymentMethod?.network?.toUpperCase() || "crypto"} address:
+            </p>
             <div className="flex items-center gap-2 mt-1">
-              <code className="flex-1 text-[11px] bg-gray-100 rounded px-2 py-1.5 break-all font-mono" data-testid={`${testIdPrefix}-address`}>
+              <code
+                className="flex-1 text-[11px] bg-gray-100 rounded px-2 py-1.5 break-all font-mono"
+                data-testid={`${testIdPrefix}-address`}
+              >
                 {checkout.checkout?.paymentMethod?.address || "—"}
               </code>
               <Button
                 size="sm"
                 variant="outline"
                 className="h-7 px-2"
-                onClick={() => copyAddress(checkout.checkout?.paymentMethod?.address || "")}
+                onClick={() => copyToClipboard(checkout.checkout?.paymentMethod?.address || "", "addr")}
                 data-testid={`${testIdPrefix}-copy`}
               >
-                {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                {copied === "addr" ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
           </div>
@@ -240,12 +302,45 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
             />
           </div>
 
+          <div>
+            <Label className="text-xs font-semibold text-violet-900">Payment screenshot (optional)</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+              data-testid={`${testIdPrefix}-file`}
+            />
+            {screenshot ? (
+              <div className="mt-1 flex items-center gap-2">
+                <Badge className="bg-white border border-violet-200 text-violet-800 truncate max-w-[180px]">
+                  {screenshot.name}
+                </Badge>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-500" onClick={() => setScreenshot(null)}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-1 w-full border-violet-300 text-violet-700 hover:bg-violet-100"
+                onClick={() => fileInputRef.current?.click()}
+                data-testid={`${testIdPrefix}-pick`}
+              >
+                <Upload className="w-3.5 h-3.5 mr-1.5" /> Attach screenshot
+              </Button>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <Button
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={() => { setCheckout(null); setTxHash(""); }}
+              onClick={() => { setCheckout(null); setTxHash(""); setScreenshot(null); }}
               data-testid={`${testIdPrefix}-cancel`}
             >
               Cancel
@@ -257,12 +352,16 @@ export function InlineTdripTopup({ suggestedPoints, onCredited, testIdPrefix = "
               disabled={submitProof.isPending || !txHash.trim()}
               data-testid={`${testIdPrefix}-submit`}
             >
-              {submitProof.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : "Submit & credit"}
+              {submitProof.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+              ) : (
+                "Submit & credit"
+              )}
             </Button>
           </div>
 
           <Badge className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] block text-center py-1">
-            Don't close this. Your $TDRIP will appear after admin verifies the transaction.
+            Don't close this — you'll get a confirmation screen with WhatsApp follow-up after submitting.
           </Badge>
         </div>
       )}

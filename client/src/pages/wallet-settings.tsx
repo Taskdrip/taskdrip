@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { TdripTopupThanks, type TdripTopupReceipt } from "@/components/TdripTopupThanks";
 import {
   ArrowDownLeft, ArrowUpRight, BadgeCheck, Banknote, Check,
   CheckCircle2, Clock, Coins, Copy, CreditCard, Download, Eye,
@@ -229,6 +230,9 @@ export default function WalletSettings() {
   const [selectedMethodId, setSelectedMethodId] = useState("");
   const [checkout, setCheckout] = useState<any>(null);
   const [transactionHash, setTransactionHash] = useState("");
+  const [topupReceipt, setTopupReceipt] = useState<TdripTopupReceipt | null>(null);
+  const [topupScreenshot, setTopupScreenshot] = useState<File | null>(null);
+  const topupFileRef = useRef<HTMLInputElement>(null);
   const [transferType, setTransferType] = useState<"transfer" | "tip">("tip");
   const [recipient, setRecipient] = useState("");
   const [transferPoints, setTransferPoints] = useState("100");
@@ -407,6 +411,7 @@ export default function WalletSettings() {
       const formData = new FormData();
       formData.append("transactionHash", transactionHash);
       formData.append("network", checkout.checkout?.paymentMethod?.network || selectedMethod?.network || "");
+      if (topupScreenshot) formData.append("paymentProof", topupScreenshot);
       const res = await fetch(`/api/tdrip/topups/${checkout.transaction.id}/submit-proof`, { method: "POST", body: formData, credentials: "include" });
       if (!res.ok) throw new Error((await res.json()).message || "Failed to submit");
       return res.json();
@@ -415,8 +420,20 @@ export default function WalletSettings() {
       queryClient.invalidateQueries({ queryKey: ["/api/points/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/ledger"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: data.credited ? "🎉 $TDRIP Credited!" : "Reference Submitted", description: data.credited ? `${data.points} $TDRIP added to your points wallet.` : "Our team will verify your payment shortly." });
-      if (data.credited) { setCheckout(null); setTransactionHash(""); }
+      const network = checkout?.checkout?.paymentMethod?.network || selectedMethod?.network || "";
+      const address = checkout?.checkout?.paymentMethod?.address || selectedMethod?.address || "";
+      setTopupReceipt({
+        topupId: checkout?.transaction?.id || "",
+        points: data.points || buyPoints,
+        usd: buyAmount.toFixed(2),
+        network,
+        address,
+        txHash: transactionHash,
+        credited: !!data.credited,
+      });
+      setCheckout(null);
+      setTransactionHash("");
+      setTopupScreenshot(null);
     },
     onError: (e: Error) => toast({ title: "Submission failed", description: e.message, variant: "destructive" }),
   });
@@ -882,7 +899,13 @@ export default function WalletSettings() {
                         <CardDescription>Top up your $TDRIP balance by sending crypto to a Taskdrip checkout wallet. Points will be credited after verification.</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-5">
-                        {!checkout ? (
+                        {topupReceipt ? (
+                          <TdripTopupThanks
+                            receipt={topupReceipt}
+                            onReset={() => setTopupReceipt(null)}
+                            testIdPrefix="wallet-topup-thanks"
+                          />
+                        ) : !checkout ? (
                           <>
                             <div className="rounded-xl bg-violet-50 border border-violet-200 p-4">
                               <p className="text-sm font-semibold text-violet-800 mb-1">How it works</p>
@@ -960,8 +983,31 @@ export default function WalletSettings() {
                               <Label className="text-sm font-semibold mb-1.5 block">Your transaction hash / reference</Label>
                               <Input value={transactionHash} onChange={e => setTransactionHash(e.target.value)} placeholder="Paste your transaction hash here after sending..." data-testid="input-topup-txhash" />
                             </div>
+                            <div>
+                              <Label className="text-sm font-semibold mb-1.5 block">Payment screenshot (optional)</Label>
+                              <input
+                                ref={topupFileRef}
+                                type="file"
+                                accept="image/*,application/pdf"
+                                className="hidden"
+                                onChange={e => setTopupScreenshot(e.target.files?.[0] || null)}
+                                data-testid="input-topup-screenshot"
+                              />
+                              {topupScreenshot ? (
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-violet-50 border border-violet-200 text-violet-800 truncate max-w-[200px]">{topupScreenshot.name}</Badge>
+                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-500" onClick={() => setTopupScreenshot(null)}>
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button type="button" variant="outline" className="w-full border-violet-300 text-violet-700 hover:bg-violet-50" onClick={() => topupFileRef.current?.click()} data-testid="button-pick-topup-screenshot">
+                                  Attach screenshot
+                                </Button>
+                              )}
+                            </div>
                             <div className="flex gap-3">
-                              <Button variant="outline" className="flex-1" onClick={() => { setCheckout(null); setTransactionHash(""); }} data-testid="button-cancel-topup">Cancel</Button>
+                              <Button variant="outline" className="flex-1" onClick={() => { setCheckout(null); setTransactionHash(""); setTopupScreenshot(null); }} data-testid="button-cancel-topup">Cancel</Button>
                               <Button className="flex-1 bg-violet-600 hover:bg-violet-700 text-white" onClick={() => submitProof.mutate()} disabled={submitProof.isPending || !transactionHash.trim()} data-testid="button-submit-topup-proof">
                                 {submitProof.isPending ? "Submitting..." : "Submit Payment Reference"}
                               </Button>
