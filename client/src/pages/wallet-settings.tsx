@@ -221,7 +221,11 @@ export default function WalletSettings() {
   const { toast } = useToast();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [directSupportEnabled, setDirectSupportEnabled] = useState(false);
-  const [topupPoints, setTopupPoints] = useState("1000");
+  // Read URL params on initial load: ?topup=N pre-fills the buy amount, ?tab=topup auto-switches tab
+  const initialUrlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const initialTopupParam = Number(initialUrlParams.get("topup") || 0);
+  const initialTabParam = initialUrlParams.get("tab");
+  const [topupPoints, setTopupPoints] = useState(initialTopupParam > 0 ? String(Math.max(100, Math.ceil(initialTopupParam / 100) * 100)) : "1000");
   const [selectedMethodId, setSelectedMethodId] = useState("");
   const [checkout, setCheckout] = useState<any>(null);
   const [transactionHash, setTransactionHash] = useState("");
@@ -231,7 +235,17 @@ export default function WalletSettings() {
   const [transferNote, setTransferNote] = useState("");
   const [payoutForm, setPayoutForm] = useState({ amount: "", network: "USDT-TRC20", walletAddress: "", notes: "" });
   const [activityFilter, setActivityFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialTabParam === "topup" || initialTopupParam > 0 ? "topup" : "overview");
+
+  // If redirected here with ?topup=N, scroll to the buy panel after mount
+  useEffect(() => {
+    if (initialTopupParam > 0 && typeof window !== "undefined") {
+      setTimeout(() => {
+        document.getElementById("tdrip-topup")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 250);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isBrand = (user as any)?.userType === "brand";
   const isAdmin = (user as any)?.userType === "admin";

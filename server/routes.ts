@@ -7883,34 +7883,7 @@ Instructions:
   });
 
   // ── Admin: Update campaign (admin edits any campaign, including demo brand campaigns) ──
-  app.put('/api/admin/campaigns/:id', isAuthenticated, upload.single('featuredImage'), async (req: any, res) => {
-    try {
-      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
-      const id = req.params.id;
-      let updates: any = {};
-      const body = req.body;
-      if (body.title) updates.title = body.title;
-      if (body.description) updates.description = body.description;
-      if (body.category) updates.category = body.category;
-      if (body.reward) updates.reward = body.reward;
-      if (body.totalSlots) updates.totalSlots = parseInt(body.totalSlots);
-      if (body.deadline) updates.deadline = new Date(body.deadline);
-      if (body.requirements) {
-        try { updates.requirements = JSON.parse(body.requirements); } catch { updates.requirements = body.requirements; }
-      }
-      if (body.estimatedTime) updates.estimatedTime = body.estimatedTime;
-      if (body.status) updates.status = body.status;
-      if (body.isActive !== undefined) updates.isActive = body.isActive === 'true' || body.isActive === true;
-      if (body.isFeatured !== undefined) updates.isFeatured = body.isFeatured === 'true' || body.isFeatured === true;
-      if (req.file) updates.featuredImage = `/uploads/${req.file.filename}`;
-      await storage.updateCampaign(id, updates);
-      const updated = await storage.getCampaignById(id);
-      res.json(updated);
-    } catch (error) {
-      console.error('Error updating admin campaign:', error);
-      res.status(500).json({ message: 'Failed to update campaign' });
-    }
-  });
+  // (Duplicate admin PUT /api/admin/campaigns/:id removed — using earlier handler at line ~7647 with correct featureImage field.)
 
   // ── SITE CONTENT CMS ──────────────────────────────────────────────────────
   const SITE_CONTENT_DEFAULTS = [

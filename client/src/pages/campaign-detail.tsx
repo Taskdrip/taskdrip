@@ -359,13 +359,20 @@ export default function CampaignDetail() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: 'Campaign Updated',
         description: 'Your campaign has been successfully updated.',
       });
       setIsEditDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId] });
+      setEditImageFile(null);
+      // Invalidate every cache the new image might appear in, then force a refetch
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/campaigns'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/campaigns/brand'] }),
+      ]);
+      queryClient.refetchQueries({ queryKey: ['/api/campaigns', campaignId] });
     },
     onError: (error) => {
       toast({

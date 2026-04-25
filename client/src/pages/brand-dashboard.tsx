@@ -1229,19 +1229,57 @@ export default function BrandDashboard() {
                                     Auto approve
                                   </label>
                                 </div>
-                                <div className="rounded-xl bg-white border border-violet-100 p-3 text-xs text-gray-600">
-                                  Escrow needed: <span className="font-bold text-violet-700" data-testid={`text-micro-task-escrow-${campaign.id}`}>
-                                    {(Number(microTaskDrafts[campaign.id]?.tdripReward || 0) * Number(microTaskDrafts[campaign.id]?.participantLimit || campaign.totalSlots || 1)).toLocaleString()} $TDRIP
-                                  </span>
-                                </div>
-                                <Button
-                                  className="w-full bg-violet-600 hover:bg-violet-700"
-                                  onClick={() => createMicroTaskMutation.mutate({ campaignId: campaign.id, data: microTaskDrafts[campaign.id] || {} })}
-                                  disabled={createMicroTaskMutation.isPending}
-                                  data-testid={`button-create-micro-task-${campaign.id}`}
-                                >
-                                  {createMicroTaskMutation.isPending ? "Adding..." : "Add Micro Task & Escrow $TDRIP"}
-                                </Button>
+                                {(() => {
+                                  const escrowNeeded = Number(microTaskDrafts[campaign.id]?.tdripReward || 0) * Number(microTaskDrafts[campaign.id]?.participantLimit || campaign.totalSlots || 1);
+                                  const balance = Number((user as any)?.totalPoints || 0);
+                                  const shortfall = Math.max(0, escrowNeeded - balance);
+                                  const insufficient = escrowNeeded > 0 && shortfall > 0;
+                                  return (
+                                    <>
+                                      <div className={`rounded-xl border p-3 text-xs ${insufficient ? "bg-amber-50 border-amber-200 text-amber-900" : "bg-white border-violet-100 text-gray-600"}`}>
+                                        <div className="flex items-center justify-between">
+                                          <span>Escrow needed</span>
+                                          <span className="font-bold text-violet-700" data-testid={`text-micro-task-escrow-${campaign.id}`}>
+                                            {escrowNeeded.toLocaleString()} $TDRIP
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-1">
+                                          <span>Wallet balance</span>
+                                          <span className="font-semibold">{balance.toLocaleString()} $TDRIP</span>
+                                        </div>
+                                        {insufficient && (
+                                          <div className="mt-2 pt-2 border-t border-amber-200">
+                                            <p className="font-semibold text-amber-900 mb-2">
+                                              You need <b>{shortfall.toLocaleString()} more $TDRIP</b> to escrow this task.
+                                            </p>
+                                            <Link href={`/wallet?topup=${shortfall}&tab=topup#tdrip-topup`}>
+                                              <Button
+                                                size="sm"
+                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                                                data-testid={`button-topup-from-micro-task-${campaign.id}`}
+                                              >
+                                                <Coins className="h-3.5 w-3.5 mr-1.5" />
+                                                Top up {shortfall.toLocaleString()} $TDRIP now
+                                              </Button>
+                                            </Link>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <Button
+                                        className="w-full bg-violet-600 hover:bg-violet-700"
+                                        onClick={() => createMicroTaskMutation.mutate({ campaignId: campaign.id, data: microTaskDrafts[campaign.id] || {} })}
+                                        disabled={createMicroTaskMutation.isPending || insufficient}
+                                        data-testid={`button-create-micro-task-${campaign.id}`}
+                                      >
+                                        {createMicroTaskMutation.isPending
+                                          ? "Adding..."
+                                          : insufficient
+                                            ? `Need ${shortfall.toLocaleString()} more $TDRIP`
+                                            : "Add Micro Task & Escrow $TDRIP"}
+                                      </Button>
+                                    </>
+                                  );
+                                })()}
                               </div>
                               <div className="space-y-3">
                                 <p className="text-sm font-bold text-gray-900">Existing add-ons</p>
