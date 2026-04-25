@@ -2784,6 +2784,19 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Brand: aggregated influencer network with analytics
+  app.get('/api/brand/influencer-network', async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const network = await (storage as any).getBrandInfluencerNetwork(userId);
+      res.json(network);
+    } catch (error) {
+      console.error("Error fetching brand influencer network:", error);
+      res.status(500).json({ message: "Failed to fetch influencer network" });
+    }
+  });
+
   // User profile update endpoint for wallet addresses
   app.patch("/api/users/:userId/profile", async (req, res) => {
     try {

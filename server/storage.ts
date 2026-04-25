@@ -135,6 +135,8 @@ import {
   socialQuickTasks,
   siteSocialLinks,
   userSocialTaskCompletions,
+  campaignMicroTasks,
+  microTaskSubmissions,
   type SocialQuickTask,
   type InsertSocialQuickTask,
   type SiteSocialLink,
@@ -1091,6 +1093,110 @@ export class DatabaseStorage implements IStorage {
       pendingSubmissions: pendingSubmissions[0]?.count || 0,
       averageRating: 4.8,
     };
+  }
+
+  async getBrandInfluencerNetwork(brandId: string): Promise<any[]> {
+    const brandCampaigns = await db
+      .select({ id: campaigns.id, title: campaigns.title })
+      .from(campaigns)
+      .where(eq(campaigns.brandId, brandId));
+
+    if (brandCampaigns.length === 0) return [];
+    const campaignIds = brandCampaigns.map((c) => c.id);
+    const titleById = new Map(brandCampaigns.map((c) => [c.id, c.title]));
+
+    const parts = await db
+      .select()
+      .from(campaignParticipations)
+      .where(inArray(campaignParticipations.campaignId, campaignIds));
+
+    const subs = await db
+      .select()
+      .from(taskSubmissions)
+      .where(inArray(taskSubmissions.campaignId, campaignIds));
+
+    const microSubs = await db
+      .select()
+      .from(microTaskSubmissions)
+      .where(inArray(microTaskSubmissions.campaignId, campaignIds));
+
+    const txns = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.type, 'campaign_reward'),
+          inArray(transactions.campaignId, campaignIds),
+        ),
+      );
+
+    const userIds = Array.from(
+      new Set([
+        ...parts.map((p) => p.userId),
+        ...subs.map((s) => s.userId),
+        ...microSubs.map((m) => m.userId),
+      ]),
+    );
+    if (userIds.length === 0) return [];
+
+    const userRows = await db.select().from(users).where(inArray(users.id, userIds));
+    const userById = new Map(userRows.map((u) => [u.id, u]));
+
+    const network = userIds.map((uid) => {
+      const u: any = userById.get(uid) || {};
+      const myParts = parts.filter((p) => p.userId === uid);
+      const mySubs = subs.filter((s) => s.userId === uid);
+      const myMicros = microSubs.filter((m) => m.userId === uid);
+      const myTxns = txns.filter((t) => t.userId === uid && t.status === 'approved');
+
+      const campaignsParticipated = Array.from(new Set(myParts.map((p) => p.campaignId)));
+      const approvedSubs = mySubs.filter((s) => s.status === 'approved').length;
+      const rejectedSubs = mySubs.filter((s) => s.status === 'rejected').length;
+      const approvedMicros = myMicros.filter((m) => m.status === 'approved').length;
+      const cashEarned = myTxns.reduce((sum, t) => sum + parseFloat(String(t.amount || '0')), 0);
+      const completionRate = mySubs.length === 0 ? 0 : Math.round((approvedSubs / mySubs.length) * 100);
+
+      const allDates = [
+        ...myParts.map((p) => p.createdAt),
+        ...mySubs.map((s) => s.submittedAt || s.createdAt),
+        ...myMicros.map((m) => m.submittedAt || m.createdAt),
+      ].filter(Boolean) as Date[];
+      const lastActivity = allDates.length
+        ? new Date(Math.max(...allDates.map((d) => new Date(d).getTime())))
+        : null;
+
+      return {
+        userId: uid,
+        firstName: u.firstName || null,
+        lastName: u.lastName || null,
+        email: u.email || null,
+        profileImageUrl: u.profileImageUrl || null,
+        userType: u.userType || null,
+        socialPlatforms: u.socialPlatforms || null,
+        totalFollowers: u.totalFollowers || 0,
+        rating: u.rating || null,
+        // counts
+        campaignsCount: campaignsParticipated.length,
+        applicationsCount: myParts.length,
+        approvedApplications: myParts.filter((p) => p.status === 'approved' || p.status === 'completed').length,
+        completedApplications: myParts.filter((p) => p.status === 'completed').length,
+        submissionsCount: mySubs.length,
+        approvedSubmissions: approvedSubs,
+        rejectedSubmissions: rejectedSubs,
+        microTasksCompleted: approvedMicros,
+        cashEarned: cashEarned.toFixed(2),
+        completionRate,
+        lastActivity,
+        campaignTitles: campaignsParticipated.map((cid) => titleById.get(cid)).filter(Boolean),
+      };
+    });
+
+    network.sort((a, b) => {
+      const t1 = a.lastActivity ? new Date(a.lastActivity).getTime() : 0;
+      const t2 = b.lastActivity ? new Date(b.lastActivity).getTime() : 0;
+      return t2 - t1;
+    });
+    return network;
   }
 
   async getBrandCampaignApplications(brandId: string): Promise<any[]> {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -85,7 +85,7 @@ export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires" | "task-addons">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires" | "task-addons" | "escrow">("overview");
   const [reviewingAddon, setReviewingAddon] = useState<any>(null);
   const [addonReviewNote, setAddonReviewNote] = useState("");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
@@ -350,26 +350,34 @@ export default function BrandDashboard() {
     },
   });
 
-  // Campaign editing mutation
+  // Campaign editing mutation — supports JSON or FormData (for featured image upload)
   const editCampaignMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<z.infer<typeof campaignSchema>> }) => {
+    mutationFn: async ({ id, data, file }: { id: string; data: Record<string, any>; file?: File | null }) => {
+      if (file) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([k, v]) => {
+          if (v === undefined || v === null) return;
+          formData.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
+        });
+        formData.append("featureImage", file);
+        const res = await fetch(`/api/campaigns/${id}`, { method: "PATCH", body: formData, credentials: "include" });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: "Update failed" }));
+          throw new Error(err.message || "Update failed");
+        }
+        return res.json();
+      }
       const res = await apiRequest("PATCH", `/api/campaigns/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns/brand"] });
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
-      toast({
-        title: "Campaign updated!",
-        description: "Your campaign has been successfully updated.",
-      });
+      toast({ title: "Campaign updated!", description: "Your campaign has been successfully updated." });
       setEditingCampaign(null);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Failed to update campaign",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Failed to update campaign", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1104,10 +1112,14 @@ export default function BrandDashboard() {
                           <p className="text-sm text-gray-600">Deadline</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button variant="outline" size="sm" onClick={() => window.location.href = `/campaigns/${campaign.id}`}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setEditingCampaign(campaign)} data-testid={`button-edit-campaign-${campaign.id}`}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
                         </Button>
                         <Button variant="outline" size="sm">
                           <MessageCircle className="h-4 w-4 mr-2" />
@@ -1755,21 +1767,7 @@ export default function BrandDashboard() {
         )}
 
         {selectedTab === "influencers" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Influencer Network</CardTitle>
-                <CardDescription>Influencers who have worked with your campaigns</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Influencer Management Coming Soon</h3>
-                  <p className="text-gray-500">This feature will show all influencers who have participated in your campaigns</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <InfluencerNetworkPanel />
         )}
 
         {selectedTab === "direct-hires" && (
@@ -1932,6 +1930,13 @@ export default function BrandDashboard() {
       </div>
       
       <Footer />
+
+      <EditCampaignDialog
+        campaign={editingCampaign}
+        onClose={() => setEditingCampaign(null)}
+        isSubmitting={editCampaignMutation.isPending}
+        onSubmit={(data, file) => editingCampaign && editCampaignMutation.mutate({ id: editingCampaign.id, data, file })}
+      />
 
       {reviewingAddon && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" data-testid="modal-review-addon">
@@ -2136,6 +2141,376 @@ function BountyEscrowPanel() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+// ── Edit Campaign Dialog ─────────────────────────────────────────────────────
+function EditCampaignDialog({
+  campaign,
+  onClose,
+  onSubmit,
+  isSubmitting,
+}: {
+  campaign: Campaign | null;
+  onClose: () => void;
+  onSubmit: (data: any, file?: File | null) => void;
+  isSubmitting: boolean;
+}) {
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    requirements: "",
+    estimatedTime: "",
+    deadline: "",
+    qualificationRules: "",
+  });
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (campaign) {
+      setForm({
+        title: campaign.title || "",
+        description: campaign.description || "",
+        category: campaign.category || "",
+        requirements: campaign.requirements || "",
+        estimatedTime: (campaign as any).estimatedTime || "",
+        deadline: campaign.deadline ? new Date(campaign.deadline).toISOString().slice(0, 10) : "",
+        qualificationRules: (campaign as any).qualificationRules || "",
+      });
+      setPreview((campaign as any).featureImage || null);
+      setFile(null);
+    }
+  }, [campaign]);
+
+  if (!campaign) return null;
+
+  return (
+    <Dialog open={!!campaign} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-blue-600" /> Edit Campaign</DialogTitle>
+          <DialogDescription>Update campaign details and featured image. Reward and slots can only be changed by an admin.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div>
+            <Label>Title</Label>
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} data-testid="input-edit-campaign-title" />
+          </div>
+          <div>
+            <Label>Category</Label>
+            <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} data-testid="input-edit-campaign-category" />
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="input-edit-campaign-description" />
+          </div>
+          <div>
+            <Label>Requirements</Label>
+            <Textarea rows={3} value={form.requirements} onChange={(e) => setForm({ ...form, requirements: e.target.value })} data-testid="input-edit-campaign-requirements" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Estimated Time</Label>
+              <Input value={form.estimatedTime} onChange={(e) => setForm({ ...form, estimatedTime: e.target.value })} placeholder="e.g. 30 minutes" data-testid="input-edit-campaign-time" />
+            </div>
+            <div>
+              <Label>Deadline</Label>
+              <Input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} data-testid="input-edit-campaign-deadline" />
+            </div>
+          </div>
+          <div>
+            <Label>Qualification rules</Label>
+            <Input value={form.qualificationRules} onChange={(e) => setForm({ ...form, qualificationRules: e.target.value })} data-testid="input-edit-campaign-qualification" />
+          </div>
+          <div>
+            <Label>Featured Image</Label>
+            <div className="flex gap-3 items-start mt-1">
+              {preview && (
+                <img src={preview} alt="preview" className="h-24 w-32 object-cover rounded-lg border" />
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="w-full p-2 border rounded-md text-sm"
+                  data-testid="input-edit-campaign-image"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setFile(f);
+                    if (f) setPreview(URL.createObjectURL(f));
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">JPG / PNG. Replaces the existing image.</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl bg-violet-50 border border-violet-200 p-3 text-sm text-violet-900 flex items-start gap-2">
+            <Coins className="h-4 w-4 text-violet-600 mt-0.5" />
+            <div>
+              <p className="font-semibold">Need to add micro-tasks?</p>
+              <p className="text-xs mt-0.5">Close this dialog and click <span className="font-bold">$TDRIP Add-ons</span> on the campaign card to add or pause add-on tasks. Each add-on locks $TDRIP from your wallet and is auto-distributed to creators when their proof is approved.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isSubmitting}
+              onClick={() => onSubmit(form, file)}
+              data-testid="button-save-edit-campaign"
+            >
+              {isSubmitting ? "Saving…" : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Influencer Network Panel ─────────────────────────────────────────────────
+function InfluencerNetworkPanel() {
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "campaigns" | "earned" | "rate">("recent");
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+
+  const { data: network = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/brand/influencer-network"],
+  });
+
+  const filtered = (network as any[])
+    .filter((i) => {
+      if (!search.trim()) return true;
+      const s = search.toLowerCase();
+      const name = `${i.firstName || ""} ${i.lastName || ""} ${i.email || ""}`.toLowerCase();
+      return name.includes(s);
+    })
+    .sort((a, b) => {
+      if (sortBy === "campaigns") return b.campaignsCount - a.campaignsCount;
+      if (sortBy === "earned") return parseFloat(b.cashEarned) - parseFloat(a.cashEarned);
+      if (sortBy === "rate") return b.completionRate - a.completionRate;
+      const t1 = a.lastActivity ? new Date(a.lastActivity).getTime() : 0;
+      const t2 = b.lastActivity ? new Date(b.lastActivity).getTime() : 0;
+      return t2 - t1;
+    });
+
+  const toggleCompare = (id: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) return prev; // limit to 4
+      return [...prev, id];
+    });
+  };
+
+  const compareList = (network as any[]).filter((i) => compareIds.includes(i.userId));
+
+  const totals = {
+    influencers: (network as any[]).length,
+    totalEarned: (network as any[]).reduce((s, i) => s + parseFloat(i.cashEarned || "0"), 0),
+    avgRate: (network as any[]).length
+      ? Math.round((network as any[]).reduce((s, i) => s + (i.completionRate || 0), 0) / (network as any[]).length)
+      : 0,
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-purple-600" /> Influencer Network</CardTitle>
+              <CardDescription>Everyone who applied to or worked on your campaigns, with side-by-side analytics.</CardDescription>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <div className="text-center px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-100">
+                <p className="text-[10px] uppercase font-semibold text-purple-600">Influencers</p>
+                <p className="text-lg font-bold text-purple-900">{totals.influencers}</p>
+              </div>
+              <div className="text-center px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                <p className="text-[10px] uppercase font-semibold text-emerald-600">Paid out</p>
+                <p className="text-lg font-bold text-emerald-900">${totals.totalEarned.toFixed(2)}</p>
+              </div>
+              <div className="text-center px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
+                <p className="text-[10px] uppercase font-semibold text-blue-600">Avg approval</p>
+                <p className="text-lg font-bold text-blue-900">{totals.avgRate}%</p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 flex-wrap mb-4">
+            <Input
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+              data-testid="input-network-search"
+            />
+            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+              <SelectTrigger className="w-44" data-testid="select-network-sort">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Sort: Most recent</SelectItem>
+                <SelectItem value="campaigns">Sort: Most campaigns</SelectItem>
+                <SelectItem value="earned">Sort: Highest earned</SelectItem>
+                <SelectItem value="rate">Sort: Approval rate</SelectItem>
+              </SelectContent>
+            </Select>
+            {compareIds.length >= 2 && (
+              <Button onClick={() => setShowCompare(true)} className="bg-purple-600 hover:bg-purple-700" data-testid="button-open-compare">
+                <BarChart3 className="h-4 w-4 mr-1.5" /> Compare ({compareIds.length})
+              </Button>
+            )}
+            {compareIds.length > 0 && (
+              <Button variant="ghost" onClick={() => setCompareIds([])} data-testid="button-clear-compare">
+                Clear selection
+              </Button>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin mx-auto text-purple-600" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500">{(network as any[]).length === 0 ? "No influencers yet — once creators apply or submit work to your campaigns, they'll appear here." : "No matches for your search."}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Compare</th>
+                    <th className="px-3 py-2 text-left">Influencer</th>
+                    <th className="px-3 py-2 text-center">Campaigns</th>
+                    <th className="px-3 py-2 text-center">Submissions</th>
+                    <th className="px-3 py-2 text-center">Approved</th>
+                    <th className="px-3 py-2 text-center">Rate</th>
+                    <th className="px-3 py-2 text-center">Micro tasks</th>
+                    <th className="px-3 py-2 text-right">Earned</th>
+                    <th className="px-3 py-2 text-right">Last activity</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((inf: any) => {
+                    const checked = compareIds.includes(inf.userId);
+                    return (
+                      <tr key={inf.userId} className="border-t hover:bg-gray-50" data-testid={`row-influencer-${inf.userId}`}>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCompare(inf.userId)}
+                            disabled={!checked && compareIds.length >= 4}
+                            data-testid={`checkbox-compare-${inf.userId}`}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {inf.profileImageUrl ? (
+                              <img src={inf.profileImageUrl} className="h-8 w-8 rounded-full object-cover" alt="" />
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-semibold text-xs">
+                                {(inf.firstName?.[0] || inf.email?.[0] || "?").toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 truncate">{inf.firstName || inf.email?.split("@")[0]} {inf.lastName || ""}</p>
+                              <p className="text-xs text-gray-500 truncate">{inf.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-center font-semibold">{inf.campaignsCount}</td>
+                        <td className="px-3 py-2 text-center">{inf.submissionsCount}</td>
+                        <td className="px-3 py-2 text-center text-emerald-700 font-semibold">{inf.approvedSubmissions}</td>
+                        <td className="px-3 py-2 text-center">
+                          <Badge className={inf.completionRate >= 75 ? "bg-emerald-100 text-emerald-700" : inf.completionRate >= 40 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}>
+                            {inf.completionRate}%
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2 text-center">{inf.microTasksCompleted}</td>
+                        <td className="px-3 py-2 text-right font-bold text-emerald-700">${parseFloat(inf.cashEarned).toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right text-xs text-gray-500">{inf.lastActivity ? format(new Date(inf.lastActivity), "MMM d, yyyy") : "—"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <Link href={`/profile/${inf.userId}`}>
+                            <Button size="sm" variant="ghost" data-testid={`button-view-influencer-${inf.userId}`}><ChevronRight className="h-4 w-4" /></Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Compare Dialog */}
+      <Dialog open={showCompare} onOpenChange={(o) => !o && setShowCompare(false)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-purple-600" /> Compare {compareList.length} influencers</DialogTitle>
+            <DialogDescription>Side-by-side analytics across all your campaigns.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 mt-2" style={{ gridTemplateColumns: `200px repeat(${compareList.length}, minmax(0,1fr))` }}>
+            <div></div>
+            {compareList.map((i) => (
+              <div key={i.userId} className="text-center pb-2 border-b">
+                {i.profileImageUrl ? (
+                  <img src={i.profileImageUrl} className="h-12 w-12 rounded-full object-cover mx-auto mb-1" alt="" />
+                ) : (
+                  <div className="h-12 w-12 mx-auto mb-1 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                    {(i.firstName?.[0] || i.email?.[0] || "?").toUpperCase()}
+                  </div>
+                )}
+                <p className="text-sm font-bold truncate">{i.firstName || i.email?.split("@")[0]} {i.lastName || ""}</p>
+                <p className="text-xs text-gray-500 truncate">{i.email}</p>
+              </div>
+            ))}
+
+            {[
+              { label: "Campaigns participated", key: "campaignsCount" },
+              { label: "Applications", key: "applicationsCount" },
+              { label: "Approved applications", key: "approvedApplications" },
+              { label: "Submissions", key: "submissionsCount" },
+              { label: "Approved submissions", key: "approvedSubmissions" },
+              { label: "Rejected submissions", key: "rejectedSubmissions" },
+              { label: "Approval rate", key: "completionRate", suffix: "%" },
+              { label: "Micro tasks completed", key: "microTasksCompleted" },
+              { label: "Total earned (USD)", key: "cashEarned", prefix: "$" },
+              { label: "Total followers", key: "totalFollowers" },
+            ].flatMap((row) => [
+              <div key={row.label} className="text-sm text-gray-600 font-semibold py-2 border-b">{row.label}</div>,
+              ...compareList.map((i) => {
+                const v = (i as any)[row.key];
+                const display = (row as any).prefix
+                  ? `${(row as any).prefix}${parseFloat(v || "0").toFixed(2)}`
+                  : (row as any).suffix
+                    ? `${v}${(row as any).suffix}`
+                    : (v ?? "—");
+                return (
+                  <div key={`${row.label}-${i.userId}`} className="text-center py-2 border-b font-semibold text-gray-900">{display}</div>
+                );
+              }),
+            ])}
+
+            <div className="text-sm text-gray-600 font-semibold pt-3">View profile</div>
+            {compareList.map((i) => (
+              <div key={`prof-${i.userId}`} className="pt-3 text-center">
+                <Link href={`/profile/${i.userId}`}>
+                  <Button size="sm" variant="outline">Open</Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
