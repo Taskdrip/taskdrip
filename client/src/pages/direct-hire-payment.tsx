@@ -203,23 +203,40 @@ export default function DirectHirePayment() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-xl border bg-white p-3">
-                <p className="text-xs text-gray-500">Brand pays</p>
-                <p className="font-bold text-gray-900" data-testid="text-brand-total">${money(offer.budget)}</p>
-                <p className="text-[11px] text-gray-500">Exact project budget (no brand fee)</p>
+            {/* Show ONLY the side relevant to the viewer.
+                Brand: what they pay (exact budget, no brand fee).
+                Influencer: what they earn (net of the 10% platform fee). */}
+            {isBrand && (
+              <div className="rounded-xl border bg-white p-4 max-w-md">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">You pay</p>
+                <p className="text-2xl font-black text-gray-900 mt-1" data-testid="text-brand-total">${money(offer.budget)}</p>
+                <p className="text-xs text-gray-500 mt-1">Exact project budget. Brands are never charged a platform fee.</p>
               </div>
-              <div className="rounded-xl border bg-white p-3">
-                <p className="text-xs text-gray-500">Influencer receives</p>
-                <p className="font-bold text-green-700" data-testid="text-influencer-payout">${money(offer.influencerPayout || Number(offer.budget) * 0.9)}</p>
-                <p className="text-[11px] text-gray-500">After 10% influencer fee deducted</p>
+            )}
+            {isInfluencer && (
+              <div className="rounded-xl border bg-white p-4 max-w-md">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">You earn</p>
+                <p className="text-2xl font-black text-green-700 mt-1" data-testid="text-influencer-payout">${money(offer.influencerPayout || Number(offer.budget) * 0.9)}</p>
+                <p className="text-xs text-gray-500 mt-1">Net after the 10% Taskdrip platform fee on a ${money(offer.budget)} project.</p>
               </div>
-              <div className="rounded-xl border bg-white p-3">
-                <p className="text-xs text-gray-500">Platform fee (from influencer)</p>
-                <p className="font-bold text-purple-700" data-testid="text-platform-fees">${money(Number(offer.platformFeeAmount || Number(offer.budget) * 0.1))}</p>
-                <p className="text-[11px] text-gray-500">10% deducted from influencer earnings</p>
+            )}
+            {!isBrand && !isInfluencer && (
+              // Admin / observer view — show the full split for transparency
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border bg-white p-3">
+                  <p className="text-xs text-gray-500">Brand pays</p>
+                  <p className="font-bold text-gray-900">${money(offer.budget)}</p>
+                </div>
+                <div className="rounded-xl border bg-white p-3">
+                  <p className="text-xs text-gray-500">Influencer receives</p>
+                  <p className="font-bold text-green-700">${money(offer.influencerPayout || Number(offer.budget) * 0.9)}</p>
+                </div>
+                <div className="rounded-xl border bg-white p-3">
+                  <p className="text-xs text-gray-500">Platform fee</p>
+                  <p className="font-bold text-purple-700">${money(Number(offer.platformFeeAmount || Number(offer.budget) * 0.1))}</p>
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <Label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Description</Label>
               <p className="text-gray-800 mt-1 text-sm leading-relaxed">{offer.description}</p>

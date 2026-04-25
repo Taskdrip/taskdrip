@@ -423,54 +423,29 @@ export default function EscrowPayment() {
                   )}
                 </div>
 
-                {/* Charge breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* What you're paying */}
-                  <div className="rounded-xl border border-blue-100 bg-blue-50 overflow-hidden">
-                    <div className="px-4 py-2 bg-blue-100">
-                      <p className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
-                        <ShieldCheck className="h-3.5 w-3.5" /> What You Pay
-                      </p>
-                    </div>
-                    <div className="px-4 py-3 space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Campaign budget</span>
-                        <span className="font-semibold text-blue-900">${Number(escrowPayment.amount).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Brand platform fee</span>
-                        <span className="font-semibold text-emerald-700">$0.00</span>
-                      </div>
-                      <Separator className="bg-blue-200" />
-                      <div className="flex justify-between">
-                        <span className="font-bold text-blue-900">Total charged</span>
-                        <span className="font-black text-blue-900">${Number(escrowPayment.amount).toFixed(2)}</span>
-                      </div>
-                    </div>
+                {/* Order summary — show only what the brand actually pays. Per
+                    Taskdrip's fee policy, the 10% platform fee is deducted from
+                    each influencer's payout and is never added to the brand's bill. */}
+                <div className="rounded-xl border border-blue-100 bg-blue-50 overflow-hidden max-w-md">
+                  <div className="px-4 py-2 bg-blue-100">
+                    <p className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5" /> Order Summary
+                    </p>
                   </div>
-
-                  {/* Influencer earnings */}
-                  <div className="rounded-xl border border-green-100 bg-green-50 overflow-hidden">
-                    <div className="px-4 py-2 bg-green-100">
-                      <p className="text-xs font-bold text-green-800 uppercase tracking-wide flex items-center gap-1.5">
-                        <CheckCircle className="h-3.5 w-3.5" /> Influencer Earnings
-                      </p>
+                  <div className="px-4 py-3 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Campaign budget</span>
+                      <span className="font-semibold text-blue-900">${Number(escrowPayment.amount).toFixed(2)}</span>
                     </div>
-                    <div className="px-4 py-3 space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Per-slot reward</span>
-                        <span className="font-semibold text-green-900">${campaignDetails ? Number(campaignDetails.reward).toFixed(2) : "—"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Influencer fee (10%)</span>
-                        <span className="font-semibold text-orange-700">−${campaignDetails ? (Number(campaignDetails.reward) * 0.1).toFixed(2) : "—"}</span>
-                      </div>
-                      <Separator className="bg-green-200" />
-                      <div className="flex justify-between">
-                        <span className="font-bold text-green-900">Influencer receives</span>
-                        <span className="font-black text-green-900">${campaignDetails ? (Number(campaignDetails.reward) * 0.9).toFixed(2) : "—"} per slot</span>
-                      </div>
+                    <Separator className="bg-blue-200" />
+                    <div className="flex justify-between">
+                      <span className="font-bold text-blue-900">Total to pay</span>
+                      <span className="font-black text-blue-900 text-lg" data-testid="text-escrow-total">${Number(escrowPayment.amount).toFixed(2)}</span>
                     </div>
+                    <p className="text-[11px] text-blue-700/70 pt-1 leading-relaxed">
+                      Brands are never charged a platform fee. The 10% Taskdrip fee
+                      is deducted from each influencer's payout, not added to your bill.
+                    </p>
                   </div>
                 </div>
 

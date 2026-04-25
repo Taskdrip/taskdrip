@@ -110,7 +110,7 @@ function getAIGuidance(tx: any, isBuyer: boolean, isSeller: boolean): AIGuide | 
     if (isBuyer) return {
       tone: "info",
       heading: "Step 1 — Send funds to escrow",
-      body: `Copy the escrow wallet address below and send exactly ${money(tx.totalAmount, tx.currency)} (including the platform fee). Once sent, upload your payment proof and click "Submit Payment". Your funds are held safely until ${typeLabel} is delivered.`,
+      body: `Copy the escrow wallet address below and send exactly ${money(tx.totalAmount, tx.currency)}. Once sent, upload your payment proof and click "Submit Payment". Your funds are held safely until ${typeLabel} is delivered.`,
     };
     if (isSeller) return {
       tone: "info",

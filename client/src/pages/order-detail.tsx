@@ -292,19 +292,12 @@ export default function OrderDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Product Price</span>
-                <span className="font-semibold text-gray-900">${parseFloat(product.price || totalAmount || 0).toFixed(2)}</span>
-              </div>
-              {order.platformFee > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Platform Fee</span>
-                  <span className="font-medium text-gray-700">${parseFloat(order.platformFee || 0).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="border-t border-gray-100 pt-3 flex justify-between">
+              {/* Order summary reflects only what the buyer actually paid.
+                  Platform fees are deducted from the SELLER's payout — they
+                  are never added on top of the buyer's bill. */}
+              <div className="border-t-0 pt-0 flex justify-between">
                 <span className="font-bold text-gray-900">Total Paid</span>
-                <span className="font-black text-lg text-gray-900">${totalAmount.toFixed(2)}</span>
+                <span className="font-black text-lg text-gray-900" data-testid="text-total-paid">${totalAmount.toFixed(2)}</span>
               </div>
               <div className="pt-1 space-y-2">
                 <div className="flex items-center justify-between text-xs text-gray-500">

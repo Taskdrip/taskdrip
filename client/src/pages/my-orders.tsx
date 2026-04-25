@@ -125,18 +125,18 @@ function normaliseOrders(data: any): UnifiedOrder[] {
   if (!data) return [];
   const orders: UnifiedOrder[] = [];
 
-  // Shop orders
+  // Shop orders — buyer paid exactly what's stored on the order; the 10% platform
+  // fee is deducted from the SELLER's payout and never added to the buyer's bill.
   (data.shopOrders || []).forEach((o: any) => {
-    const base = +o.amount;
-    const fee = pct(base);
+    const paid = +o.totalAmount || +o.amount;
     orders.push({
       id: o.id,
       type: "shop",
       title: o.product?.title || "Shop item",
       description: `Qty: ${o.quantity || 1} · ${o.product?.category || "Product"}`,
-      amount: base,
-      fee,
-      totalCharged: +o.totalAmount || base + fee,
+      amount: paid,
+      fee: 0,
+      totalCharged: paid,
       status: o.status,
       date: o.createdAt,
       paymentMethod: o.paymentMethod,
@@ -153,18 +153,18 @@ function normaliseOrders(data: any): UnifiedOrder[] {
     });
   });
 
-  // Course enrollments
+  // Course enrollments — student paid the listed price; the 10% platform fee is
+  // deducted from the INSTRUCTOR's payout, not added to the student's bill.
   (data.courseOrders || []).forEach((o: any) => {
-    const base = +o.amount;
-    const fee = pct(base);
+    const paid = +o.amount;
     orders.push({
       id: o.id,
       type: "course",
       title: o.course?.title || "Course",
       description: `Progress: ${o.progress || 0}%`,
-      amount: base,
-      fee,
-      totalCharged: base + fee,
+      amount: paid,
+      fee: 0,
+      totalCharged: paid,
       status: o.isPaid ? (o.status || "active") : "pending_payment",
       date: o.createdAt,
       paymentMethod: o.paymentMethod,
@@ -175,18 +175,18 @@ function normaliseOrders(data: any): UnifiedOrder[] {
     });
   });
 
-  // P2P transactions
+  // P2P transactions — buyer paid the displayed totalAmount; the platform fee
+  // is part of the SELLER's accounting, not added on top of the buyer's bill.
   (data.p2pTransactions || []).forEach((o: any) => {
-    const base = +o.amount;
-    const fee = +o.fee || 0;
+    const paid = +o.totalAmount || +o.amount;
     orders.push({
       id: o.id,
       type: "p2p",
       title: o.listing?.title || "P2P Trade",
       description: `${o.transactionType} · ${o.buyerId === o.sellerId ? "Self" : "Peer"}`,
-      amount: base,
-      fee,
-      totalCharged: +o.totalAmount || base + fee,
+      amount: paid,
+      fee: 0,
+      totalCharged: paid,
       status: o.status,
       date: o.createdAt,
       paymentMethod: "crypto",
@@ -196,18 +196,18 @@ function normaliseOrders(data: any): UnifiedOrder[] {
     });
   });
 
-  // Campaign escrow
+  // Campaign escrow — brand pays the EXACT campaign budget. The 10% platform
+  // fee is deducted from each influencer's payout, never added to the brand's bill.
   (data.escrowOrders || []).forEach((o: any) => {
-    const base = +o.amount;
-    const fee = pct(base);
+    const paid = +o.amount;
     orders.push({
       id: o.id,
       type: "campaign",
       title: o.campaign?.title ? `Campaign: ${o.campaign.title}` : "Campaign Escrow",
       description: o.transactionHash ? `Tx: ${o.transactionHash.slice(0, 16)}…` : "Awaiting proof",
-      amount: base,
-      fee,
-      totalCharged: base + fee,
+      amount: paid,
+      fee: 0,
+      totalCharged: paid,
       status: o.status,
       date: o.createdAt,
       paymentMethod: o.network,
@@ -429,27 +429,39 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             );
           })()}
 
-          {/* Charge Breakdown */}
+          {/* Charge Breakdown — show only what the user actually paid. Platform
+              fees are deducted from the recipient's payout, not added to the
+              payer's bill, so we don't surface them on the buyer/brand receipt. */}
           <div>
             <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <ReceiptText className="h-4 w-4 text-gray-500" /> Charge Breakdown
+              <ReceiptText className="h-4 w-4 text-gray-500" /> Payment Summary
             </h3>
             <div className="rounded-xl border border-gray-100 overflow-hidden">
-              <div className="flex justify-between items-center px-4 py-3 bg-white">
-                <span className="text-sm text-gray-600">Base amount</span>
-                <span className="font-semibold text-gray-900">{money(order.amount)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center px-4 py-3 bg-white">
-                <span className="text-sm text-gray-600">Platform fee (10%)</span>
-                <span className="font-semibold text-orange-600">+{money(order.fee)}</span>
-              </div>
-              <Separator />
+              {order.fee > 0 ? (
+                <>
+                  <div className="flex justify-between items-center px-4 py-3 bg-white">
+                    <span className="text-sm text-gray-600">Subtotal</span>
+                    <span className="font-semibold text-gray-900">{money(order.amount)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center px-4 py-3 bg-white">
+                    <span className="text-sm text-gray-600">Network / processing fee</span>
+                    <span className="font-semibold text-gray-700">{money(order.fee)}</span>
+                  </div>
+                  <Separator />
+                </>
+              ) : null}
               <div className="flex justify-between items-center px-4 py-3 bg-gray-50">
-                <span className="text-sm font-bold text-gray-900">Total charged</span>
-                <span className="text-lg font-black text-gray-900">{money(order.totalCharged)}</span>
+                <span className="text-sm font-bold text-gray-900">Total paid</span>
+                <span className="text-lg font-black text-gray-900" data-testid={`text-order-total-${order.id}`}>{money(order.totalCharged)}</span>
               </div>
             </div>
+            {(order.type === "campaign" || order.type === "direct_hire") && (
+              <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                Brands are never charged a platform fee. The 10% Taskdrip fee is
+                deducted from each influencer's payout, not added to your bill.
+              </p>
+            )}
           </div>
 
           {/* Payment Details */}
