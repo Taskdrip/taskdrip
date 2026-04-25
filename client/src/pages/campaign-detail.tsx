@@ -91,6 +91,19 @@ export default function CampaignDetail() {
   const hasJoined = !!myParticipation;
   const participationStatus = myParticipation?.status || null;
 
+  // Pre-flight eligibility check — runs only for non-brand viewers who haven't joined yet
+  const { data: eligibility } = useQuery<{
+    eligible: boolean;
+    minFollowers: number;
+    userFollowers: number;
+    reason: string;
+  }>({
+    queryKey: ['/api/campaigns', campaignId, 'eligibility'],
+    enabled: !!campaignId && !!user && !isBrand && !hasJoined,
+    staleTime: 30_000,
+  });
+  const isEligible = eligibility ? eligibility.eligible : true;
+
   const { data: microTasks = [] } = useQuery<any[]>({
     queryKey: ['/api/campaigns', campaignId, 'micro-tasks'],
     queryFn: async () => {
@@ -1122,14 +1135,41 @@ export default function CampaignDetail() {
 
                 /* === STEP 1: Not yet applied === */
                 ) : canJoin ? (
-                  <Button 
-                    onClick={() => joinCampaignMutation.mutate()}
-                    className="w-full bg-accent hover:bg-blue-700"
-                    disabled={joinCampaignMutation.isPending}
-                    data-testid="button-apply-campaign"
-                  >
-                    {joinCampaignMutation.isPending ? 'Applying...' : 'Apply to Join'}
-                  </Button>
+                  <div className="space-y-3">
+                    {/* Eligibility pre-flight notice */}
+                    {eligibility && eligibility.minFollowers > 0 && (
+                      isEligible ? (
+                        <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg" data-testid="notice-eligibility-pass">
+                          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <p className="font-semibold text-green-800">You meet this campaign's requirements</p>
+                            <p className="text-green-700 text-xs mt-0.5">Minimum {eligibility.minFollowers.toLocaleString()} followers required — you have {eligibility.userFollowers.toLocaleString()}.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg" data-testid="notice-eligibility-fail">
+                          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <p className="font-semibold text-amber-900">You don't meet the requirements yet</p>
+                            <p className="text-amber-800 text-xs mt-0.5">
+                              This brand requires <strong>{eligibility.minFollowers.toLocaleString()}+ total followers</strong>. Your profile shows <strong>{eligibility.userFollowers.toLocaleString()}</strong>.
+                            </p>
+                            <p className="text-amber-800 text-xs mt-1">
+                              Connect more social accounts in your <Link href="/profile" className="underline font-medium">Profile</Link> so your follower count syncs, then refresh this page.
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                    <Button
+                      onClick={() => joinCampaignMutation.mutate()}
+                      className="w-full bg-accent hover:bg-blue-700"
+                      disabled={joinCampaignMutation.isPending || !isEligible}
+                      data-testid="button-apply-campaign"
+                    >
+                      {joinCampaignMutation.isPending ? 'Applying...' : (isEligible ? 'Apply to Join' : 'Requirements not met')}
+                    </Button>
+                  </div>
 
                 /* === STEP 2: Applied — pending brand review === */
                 ) : participationStatus === 'pending' ? (

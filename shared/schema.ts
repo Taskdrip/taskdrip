@@ -159,6 +159,7 @@ export const campaigns = pgTable("campaigns", {
   introVideoUrl: varchar("intro_video_url"),
   serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),
   qualificationRules: text("qualification_rules"),
+  minFollowers: integer("min_followers").default(0),
   tdripPointsPerParticipant: integer("tdrip_points_per_participant").default(0),
   tdripParticipantLimit: integer("tdrip_participant_limit").default(0),
   tdripEscrowValue: decimal("tdrip_escrow_value", { precision: 10, scale: 2 }).default("0.00"),

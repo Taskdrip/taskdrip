@@ -78,6 +78,7 @@ const campaignSchema = z.object({
   requirements: z.string().min(1, "Requirements are required"),
   preQualificationTask: z.string().optional(),
   qualificationRules: z.string().optional(),
+  minFollowers: z.number().min(0, "Minimum followers must be 0 or more").optional(),
   tdripPointsPerParticipant: z.number().min(0).optional(),
   tdripParticipantLimit: z.number().min(0).optional(),
   estimatedTime: z.string().min(1, "Estimated time is required"),
@@ -412,6 +413,7 @@ export default function BrandDashboard() {
       estimatedTime: "",
       preQualificationTask: "",
       qualificationRules: "First 100 qualified creators with 5,000+ followers can be accepted.",
+      minFollowers: 0,
       tdripPointsPerParticipant: 0,
       tdripParticipantLimit: 0,
     },
@@ -738,6 +740,30 @@ export default function BrandDashboard() {
                                 {...field}
                               />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="minFollowers"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Minimum total followers (auto-filter)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="e.g. 5000 — leave 0 for no minimum"
+                                className="bg-white"
+                                data-testid="input-campaign-min-followers"
+                                value={field.value ?? 0}
+                                onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-gray-500">
+                              Influencers below this follower count will be blocked from applying automatically — saves you from screening unqualified applications.
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1456,6 +1482,9 @@ export default function BrandDashboard() {
                       const isExpanded = !!expandedApplications[application.id];
                       const avatarUrl = (application.user as any)?.profileImageUrl;
                       const initials = `${application.user?.firstName?.[0] || ''}${application.user?.lastName?.[0] || ''}`;
+                      const requiredFollowers = Number((application.campaign as any)?.minFollowers || 0);
+                      const applicantFollowers = Number((application.user as any)?.totalFollowers || 0);
+                      const meetsRequirement = requiredFollowers === 0 || applicantFollowers >= requiredFollowers;
                       return (
                       <Card key={application.id} className="border-l-4 border-l-blue-500">
                         <CardContent className="p-4">
@@ -1489,10 +1518,28 @@ export default function BrandDashboard() {
                                      application.status === 'completed' ? 'COMPLETED & PAID' :
                                      application.status.toUpperCase()}
                                   </Badge>
+                                  {requiredFollowers > 0 && (
+                                    meetsRequirement ? (
+                                      <Badge
+                                        className="bg-emerald-100 text-emerald-800 flex-shrink-0"
+                                        data-testid={`badge-eligible-${application.id}`}
+                                      >
+                                        ✓ Meets {requiredFollowers.toLocaleString()}+ followers
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        className="bg-amber-100 text-amber-800 flex-shrink-0"
+                                        data-testid={`badge-below-requirements-${application.id}`}
+                                      >
+                                        ⚠ Below {requiredFollowers.toLocaleString()} ({applicantFollowers.toLocaleString()})
+                                      </Badge>
+                                    )
+                                  )}
                                 </div>
                                 <p className="text-gray-600 mb-1 text-sm truncate">{application.user?.email}</p>
                                 <p className="text-sm font-medium text-blue-600 mb-2 truncate">Campaign: {application.campaign?.title}</p>
                                 <p className="text-sm text-green-600 font-medium">Reward: ${application.campaign?.reward}</p>
+                                <p className="text-xs text-gray-500 mt-1">Total followers across platforms: <span className="font-medium text-gray-700">{applicantFollowers.toLocaleString()}</span></p>
                                 {/* Show submitted work details */}
                                 {(application.submissionText || application.submissionUrl) && (
                                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
@@ -2410,6 +2457,7 @@ function EditCampaignDialog({
     estimatedTime: "",
     deadline: "",
     qualificationRules: "",
+    minFollowers: 0,
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -2424,6 +2472,7 @@ function EditCampaignDialog({
         estimatedTime: (campaign as any).estimatedTime || "",
         deadline: campaign.deadline ? new Date(campaign.deadline).toISOString().slice(0, 10) : "",
         qualificationRules: (campaign as any).qualificationRules || "",
+        minFollowers: Number((campaign as any).minFollowers || 0),
       });
       setPreview((campaign as any).featureImage || null);
       setFile(null);
@@ -2469,6 +2518,20 @@ function EditCampaignDialog({
           <div>
             <Label>Qualification rules</Label>
             <Input value={form.qualificationRules} onChange={(e) => setForm({ ...form, qualificationRules: e.target.value })} data-testid="input-edit-campaign-qualification" />
+          </div>
+          <div>
+            <Label>Minimum total followers (auto-filter)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={form.minFollowers}
+              onChange={(e) => setForm({ ...form, minFollowers: Number(e.target.value) || 0 })}
+              placeholder="e.g. 5000 — leave 0 for no minimum"
+              data-testid="input-edit-campaign-min-followers"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Influencers below this follower count will be blocked from applying automatically.
+            </p>
           </div>
           <div>
             <Label>Featured Image</Label>

@@ -1452,6 +1452,39 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   });
 
   // Campaign participation routes
+  // Helper: compute eligibility for a user against a campaign.
+  // Returns { eligible, minFollowers, userFollowers, reason }.
+  const computeCampaignEligibility = (campaign: any, user: any) => {
+    const minFollowers = Number((campaign as any)?.minFollowers || 0);
+    const userFollowers = Number((user as any)?.totalFollowers || 0);
+    if (minFollowers > 0 && userFollowers < minFollowers) {
+      const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
+      return {
+        eligible: false,
+        minFollowers,
+        userFollowers,
+        reason: `This campaign requires at least ${fmt(minFollowers)} total followers. Your profile shows ${fmt(userFollowers)}. Update your social handles in Profile so your follower count syncs, then try again.`,
+      };
+    }
+    return { eligible: true, minFollowers, userFollowers, reason: '' };
+  };
+
+  // Pre-flight eligibility for the current user on a campaign.
+  app.get('/api/campaigns/:id/eligibility', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      const campaign = await storage.getCampaignById(req.params.id);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+      const user = await storage.getUser(req.user.id);
+      res.json(computeCampaignEligibility(campaign, user));
+    } catch (error) {
+      console.error('Error computing eligibility:', error);
+      res.status(500).json({ message: 'Failed to compute eligibility' });
+    }
+  });
+
   app.post('/api/campaigns/:id/join', async (req: any, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
@@ -1466,6 +1499,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       
       if (alreadyJoined) {
         return res.status(400).json({ message: "Already joined this campaign" });
+      }
+
+      // Eligibility filter — block applicants who don't meet brand's follower requirement.
+      const campaignForEligibility = await storage.getCampaignById(campaignId);
+      if (!campaignForEligibility) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+      const userRecord = await storage.getUser(userId);
+      const eligibility = computeCampaignEligibility(campaignForEligibility, userRecord);
+      if (!eligibility.eligible) {
+        return res.status(400).json({ message: eligibility.reason, ...eligibility });
       }
 
       const participation = await storage.createParticipation({
@@ -7771,23 +7815,38 @@ Instructions:
 
       const privacy = (target as any).messagePrivacy || 'everyone';
 
-      // Check privacy
-      if (privacy === 'nobody') {
-        return res.status(403).json({ message: 'This user is not accepting direct messages.' });
-      }
-
-      if (privacy === 'followers') {
-        const viewerFollows = await storage.isFollowing(senderId, receiverId);
-        if (!viewerFollows) {
-          // Check if has participation in brand's campaigns
-          const participations = await storage.getUserParticipations(senderId);
+      // Check if sender has any participation in this brand's campaigns.
+      // Applicants (any status except rejected) get a frictionless DM channel
+      // regardless of the brand's general messagePrivacy setting — by posting
+      // a campaign, the brand consented to receive messages from applicants.
+      let hasCampaignRelation = false;
+      try {
+        const participations = await storage.getUserParticipations(senderId);
+        if (campaignId) {
+          hasCampaignRelation = participations.some(
+            (p: any) => p.campaignId === campaignId && p.status !== 'rejected'
+          );
+        }
+        if (!hasCampaignRelation) {
           const brandCampaigns = await storage.getCampaignsByBrand(receiverId);
           const brandCampaignIds = new Set(brandCampaigns.map((c: any) => c.id));
-          const hasRelation = participations.some(
-            (p: any) => brandCampaignIds.has(p.campaignId) && ['approved', 'completed', 'pending'].includes(p.status)
+          hasCampaignRelation = participations.some(
+            (p: any) => brandCampaignIds.has(p.campaignId) && p.status !== 'rejected'
           );
-          if (!hasRelation) {
-            return res.status(403).json({ message: 'Follow this brand to send them a direct message.' });
+        }
+      } catch (relErr) {
+        console.warn('campaign-dm: failed to check participation relation', relErr);
+      }
+
+      // Privacy gate — bypassed for campaign applicants.
+      if (!hasCampaignRelation) {
+        if (privacy === 'nobody') {
+          return res.status(403).json({ message: 'This brand is not accepting direct messages right now. Apply to one of their campaigns to start a conversation.' });
+        }
+        if (privacy === 'followers') {
+          const viewerFollows = await storage.isFollowing(senderId, receiverId);
+          if (!viewerFollows) {
+            return res.status(403).json({ message: 'Follow this brand or apply to one of their campaigns to send a direct message.' });
           }
         }
       }
