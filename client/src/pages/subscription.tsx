@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { WhatsAppConfirmDialog } from "@/components/ui/whatsapp-confirm-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -228,6 +229,12 @@ export default function SubscriptionPage() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [txRef, setTxRef] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [waConfirm, setWaConfirm] = useState<{ open: boolean; title: string; summary: string; lines: string[] }>({
+    open: false,
+    title: "",
+    summary: "",
+    lines: [],
+  });
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
 
   const userType = (user as any)?.userType as "influencer" | "brand" | "admin";
@@ -267,12 +274,32 @@ export default function SubscriptionPage() {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/my"] });
       toast({ title: "Subscription submitted!", description: "Our team will verify your payment within 24 hours." });
       setDialogOpen(false);
+      const submittedTxRef = txRef;
+      const submittedMethod = selectedMethod;
+      const submittedAmount = currentPrice;
+      const submittedPlan = isBrand ? "Brand Pro" : "Influencer Premium";
+      const periodLabel = period === "yearly" ? "Yearly" : period === "monthly" ? "Monthly" : period === "5day" ? "5-day" : "3-day";
       setProofFile(null);
       setTxRef("");
+      setWaConfirm({
+        open: true,
+        title: "Subscription payment submitted",
+        summary: "Forward this confirmation so admin can fast-track verification.",
+        lines: [
+          `Action: Subscription payment submitted`,
+          `Plan: ${submittedPlan} (${periodLabel})`,
+          `Amount: $${submittedAmount}`,
+          `Payment method: ${submittedMethod?.label || submittedMethod?.network || "Manual"}`,
+          `Transaction reference: ${submittedTxRef || "—"}`,
+          `Subscriber: ${(user as any)?.firstName || ""} ${(user as any)?.lastName || ""}`.trim(),
+          `Email: ${(user as any)?.email || "—"}`,
+          `User ID: ${(user as any)?.id || "—"}`,
+        ],
+      });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -636,6 +663,14 @@ export default function SubscriptionPage() {
           </CardContent>
         </Card>
       </div>
+
+      <WhatsAppConfirmDialog
+        open={waConfirm.open}
+        onOpenChange={(open) => setWaConfirm((prev) => ({ ...prev, open }))}
+        title={waConfirm.title}
+        summary={waConfirm.summary}
+        lines={waConfirm.lines}
+      />
 
       <Footer />
     </div>

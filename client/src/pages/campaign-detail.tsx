@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { SecurityWarning } from '@/components/ui/security-warning';
 import { ReportDialog } from '@/components/ui/report-dialog';
+import { WhatsAppConfirmDialog } from '@/components/ui/whatsapp-confirm-dialog';
 import { shareItem } from '@/lib/share';
 import { 
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
@@ -60,6 +61,12 @@ export default function CampaignDetail() {
   const [mediationReason, setMediationReason] = useState('');
   const [mediationSent, setMediationSent] = useState(false);
   const [microTaskProofs, setMicroTaskProofs] = useState<Record<string, { proofText?: string; proofUrl?: string; proofFile?: File | null }>>({});
+  const [waConfirm, setWaConfirm] = useState<{ open: boolean; title: string; summary: string; lines: string[] }>({
+    open: false,
+    title: '',
+    summary: '',
+    lines: [],
+  });
 
   const campaignId = params.id;
 
@@ -183,6 +190,21 @@ export default function CampaignDetail() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['/api/participations'] });
+      const c: any = campaign;
+      setWaConfirm({
+        open: true,
+        title: 'Campaign application confirmed',
+        summary: 'Forward this confirmation to admin so we can track your participation.',
+        lines: [
+          `Action: Applied to campaign`,
+          `Campaign: ${c?.title || 'Untitled'}`,
+          `Campaign ID: ${campaignId}`,
+          `Reward: $${c?.reward ?? '—'}`,
+          `Applicant: ${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim(),
+          `Email: ${(user as any)?.email || '—'}`,
+          `User ID: ${(user as any)?.id || '—'}`,
+        ],
+      });
     },
     onError: (error) => {
       toast({
@@ -226,9 +248,28 @@ export default function CampaignDetail() {
         description: 'Your work has been sent to the brand for review. You\'ll be notified when they respond.',
       });
       setIsSubmitDialogOpen(false);
+      const submittedUrl = submitUrl;
+      const submittedText = submitText;
       setSubmitUrl('');
       setSubmitText('');
       queryClient.invalidateQueries({ queryKey: ['/api/participations'] });
+      const c: any = campaign;
+      setWaConfirm({
+        open: true,
+        title: 'Work submission confirmed',
+        summary: 'Send this proof confirmation to admin so we can keep your reward on track.',
+        lines: [
+          `Action: Submitted campaign work`,
+          `Campaign: ${c?.title || 'Untitled'}`,
+          `Campaign ID: ${campaignId}`,
+          `Participation ID: ${myParticipation?.id || '—'}`,
+          `Reward: $${c?.reward ?? '—'}`,
+          `Submitter: ${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim(),
+          `User ID: ${(user as any)?.id || '—'}`,
+          submittedUrl ? `Proof URL: ${submittedUrl}` : '',
+          submittedText ? `Note: ${submittedText}` : '',
+        ],
+      });
     },
     onError: (error) => {
       toast({
@@ -254,13 +295,35 @@ export default function CampaignDetail() {
       if (!response.ok) throw new Error((await response.json()).message || 'Failed to submit micro task');
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, taskId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/campaigns', campaignId, 'micro-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/points/me'] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: data.autoApproved ? '$TDRIP earned' : 'Micro task submitted',
         description: data.autoApproved ? 'Points were added to your $TDRIP wallet.' : 'The brand will review your proof.',
+      });
+      const draft = microTaskProofs[taskId] || {};
+      const c: any = campaign;
+      const tasks: any[] = (microTasks as any[]) || [];
+      const task = tasks.find((t) => t.id === taskId);
+      setWaConfirm({
+        open: true,
+        title: data.autoApproved ? 'Add-on task auto-approved' : 'Add-on task submitted',
+        summary: data.autoApproved
+          ? '$TDRIP was credited. Forward this confirmation so admin can audit the reward.'
+          : 'Send this proof confirmation so admin can follow up if review stalls.',
+        lines: [
+          `Action: Submitted add-on micro-task`,
+          `Campaign: ${c?.title || 'Untitled'}`,
+          `Task: ${task?.title || taskId}`,
+          `Reward: ${task?.tdripReward ?? '—'} $TDRIP`,
+          `Status: ${data.autoApproved ? 'Auto-approved' : 'Pending brand review'}`,
+          `Submitter: ${(user as any)?.firstName || ''} ${(user as any)?.lastName || ''}`.trim(),
+          `User ID: ${(user as any)?.id || '—'}`,
+          draft.proofUrl ? `Proof URL: ${draft.proofUrl}` : '',
+          draft.proofText ? `Note: ${draft.proofText}` : '',
+        ],
       });
     },
     onError: (error: Error) => {
@@ -1448,6 +1511,15 @@ export default function CampaignDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <WhatsAppConfirmDialog
+        open={waConfirm.open}
+        onOpenChange={(open) => setWaConfirm((prev) => ({ ...prev, open }))}
+        title={waConfirm.title}
+        summary={waConfirm.summary}
+        lines={waConfirm.lines}
+      />
+
       <Footer />
     </div>
   );

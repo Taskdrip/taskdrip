@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, 
+  Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, ChevronDown, ChevronUp, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
   Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle,
   ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X, Wallet, Lock, Undo2, Loader2
@@ -92,6 +92,7 @@ export default function BrandDashboard() {
   const [showCampaignUpgrade, setShowCampaignUpgrade] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [microTaskDrafts, setMicroTaskDrafts] = useState<Record<string, any>>({});
+  const [expandedApplications, setExpandedApplications] = useState<Record<string, boolean>>({});
   const [campaignTasks, setCampaignTasks] = useState<{ task: string; platform: string }[]>([{ task: "", platform: "Instagram" }]);
   const addCampaignTask = () => setCampaignTasks(prev => [...prev, { task: "", platform: "Instagram" }]);
   const removeCampaignTask = (i: number) => setCampaignTasks(prev => prev.filter((_, idx) => idx !== i));
@@ -1150,14 +1151,24 @@ export default function BrandDashboard() {
                                   rows={4}
                                   data-testid={`input-micro-task-description-${campaign.id}`}
                                 />
-                                <div>
-                                  <Label className="text-xs font-medium text-violet-900">Action URL <span className="text-violet-500 font-normal">(optional — link creators open to perform the task)</span></Label>
+                                <div className="rounded-lg border-2 border-violet-300 bg-white p-3 space-y-2">
+                                  <div className="flex items-start gap-2">
+                                    <Link2 className="h-4 w-4 text-violet-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <Label className="text-sm font-bold text-violet-900 block">
+                                        Action URL <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1.5 border-violet-300 text-violet-700">RECOMMENDED</Badge>
+                                      </Label>
+                                      <p className="text-[11px] text-violet-700 mt-0.5">
+                                        Paste the link creators must open (your tweet, channel, page, etc). When auto-approve is on, they tap the link, then confirm — and $TDRIP is awarded instantly.
+                                      </p>
+                                    </div>
+                                  </div>
                                   <Input
                                     type="url"
                                     value={microTaskDrafts[campaign.id]?.actionUrl || ""}
                                     onChange={(e) => setMicroTaskDrafts((prev) => ({ ...prev, [campaign.id]: { ...prev[campaign.id], actionUrl: e.target.value } }))}
                                     placeholder="https://twitter.com/yourhandle/status/123…"
-                                    className="mt-1.5"
+                                    className="border-violet-200"
                                     data-testid={`input-micro-task-action-url-${campaign.id}`}
                                   />
                                 </div>
@@ -1296,14 +1307,30 @@ export default function BrandDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {applications.map((application) => (
+                    {applications.map((application) => {
+                      const participantSubs = (microTaskSubmissions || []).filter(
+                        (s: any) => s.userId === application.user?.id && s.campaignId === application.campaignId
+                      );
+                      const isExpanded = !!expandedApplications[application.id];
+                      const avatarUrl = (application.user as any)?.profileImageUrl;
+                      const initials = `${application.user?.firstName?.[0] || ''}${application.user?.lastName?.[0] || ''}`;
+                      return (
                       <Card key={application.id} className="border-l-4 border-l-blue-500">
                         <CardContent className="p-4">
                           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                             <div className="flex items-start gap-4 flex-1 min-w-0">
-                              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
-                                {application.user?.firstName?.[0]}{application.user?.lastName?.[0]}
-                              </div>
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={`${application.user?.firstName || ''}`}
+                                  className="h-12 w-12 rounded-full object-cover flex-shrink-0 border border-gray-200"
+                                  data-testid={`img-avatar-${application.id}`}
+                                />
+                              ) : (
+                                <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0" data-testid={`img-avatar-${application.id}`}>
+                                  {initials}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                   <Link href={`/profile/${application.user?.id}`} className="font-semibold text-lg truncate hover:text-blue-600 hover:underline transition-colors">
@@ -1410,9 +1437,20 @@ export default function BrandDashboard() {
                                 variant="outline"
                                 onClick={() => setLocation(`/messages?userId=${application.user?.id}&campaignId=${application.campaignId}`)}
                                 className="whitespace-nowrap"
+                                data-testid={`button-message-applicant-${application.id}`}
                               >
                                 <MessageCircle className="h-4 w-4 mr-1" />
                                 Message
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setLocation(`/profile/${application.user?.id}`)}
+                                className="whitespace-nowrap"
+                                data-testid={`button-view-profile-${application.id}`}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Profile
                               </Button>
                             </div>
                           </div>
@@ -1422,9 +1460,96 @@ export default function BrandDashboard() {
                               <p className="text-sm text-yellow-700 break-words">{application.adminNotes}</p>
                             </div>
                           )}
+                          <div className="mt-4 border-t pt-3">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedApplications((prev) => ({ ...prev, [application.id]: !prev[application.id] }))}
+                              className="w-full flex items-center justify-between text-left text-sm font-medium text-violet-700 hover:text-violet-900"
+                              data-testid={`button-toggle-addons-${application.id}`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <Coins className="h-4 w-4" />
+                                Add-on submissions
+                                <Badge variant="outline" className="ml-1 text-xs" data-testid={`badge-addon-count-${application.id}`}>
+                                  {participantSubs.length}
+                                </Badge>
+                              </span>
+                              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </button>
+                            {isExpanded && (
+                              <div className="mt-3 space-y-2" data-testid={`section-addon-list-${application.id}`}>
+                                {participantSubs.length === 0 ? (
+                                  <p className="text-xs text-gray-500 italic px-2 py-3 bg-gray-50 rounded">
+                                    This influencer hasn't submitted any add-on tasks for this campaign yet.
+                                  </p>
+                                ) : (
+                                  participantSubs.map((sub: any) => (
+                                    <div key={sub.id} className="border border-violet-100 bg-violet-50/50 rounded-lg p-3 space-y-2" data-testid={`row-addon-sub-${sub.id}`}>
+                                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-semibold text-violet-900 truncate">{sub.task?.title || "Add-on task"}</p>
+                                          <p className="text-xs text-violet-700">
+                                            Reward: {sub.task?.tdripReward ?? "—"} $TDRIP
+                                          </p>
+                                        </div>
+                                        <Badge className={
+                                          sub.status === "approved" ? "bg-green-100 text-green-800" :
+                                          sub.status === "rejected" ? "bg-red-100 text-red-800" :
+                                          "bg-yellow-100 text-yellow-800"
+                                        }>
+                                          {sub.status}
+                                        </Badge>
+                                      </div>
+                                      {sub.proofUrl && (
+                                        <a
+                                          href={sub.proofUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-1 text-xs text-blue-700 hover:underline break-all"
+                                          data-testid={`link-addon-proof-${sub.id}`}
+                                        >
+                                          <ExternalLink className="h-3 w-3 flex-shrink-0" /> {sub.proofUrl}
+                                        </a>
+                                      )}
+                                      {sub.proofText && (
+                                        <p className="text-xs text-gray-700 break-words bg-white rounded px-2 py-1 border">{sub.proofText}</p>
+                                      )}
+                                      {sub.proofImageUrl && (
+                                        <img src={sub.proofImageUrl} alt="proof" className="max-h-32 rounded border" data-testid={`img-addon-proof-${sub.id}`} />
+                                      )}
+                                      {sub.status === "pending" && (
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            className="bg-green-600 hover:bg-green-700 text-white text-xs h-7"
+                                            onClick={() => reviewMicroTaskSubmissionMutation.mutate({ id: sub.id, action: "approved" })}
+                                            disabled={reviewMicroTaskSubmissionMutation.isPending}
+                                            data-testid={`button-approve-addon-${sub.id}`}
+                                          >
+                                            Approve
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-red-600 border-red-300 hover:bg-red-50 text-xs h-7"
+                                            onClick={() => reviewMicroTaskSubmissionMutation.mutate({ id: sub.id, action: "rejected" })}
+                                            disabled={reviewMicroTaskSubmissionMutation.isPending}
+                                            data-testid={`button-reject-addon-${sub.id}`}
+                                          >
+                                            Reject
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

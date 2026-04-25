@@ -2497,6 +2497,34 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  app.get('/api/admin/micro-task-submissions', async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const [admin] = await db.select().from(users).where(eq(users.id, userId));
+      if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const rows = await db.select({
+        submission: microTaskSubmissions,
+        task: campaignMicroTasks,
+        campaign: campaigns,
+        user: users,
+      }).from(microTaskSubmissions)
+        .leftJoin(campaignMicroTasks, eq(microTaskSubmissions.microTaskId, campaignMicroTasks.id))
+        .leftJoin(campaigns, eq(microTaskSubmissions.campaignId, campaigns.id))
+        .leftJoin(users, eq(microTaskSubmissions.userId, users.id))
+        .orderBy(desc(microTaskSubmissions.submittedAt));
+      res.json(rows.map(({ submission, task, campaign, user }) => ({
+        ...submission,
+        task,
+        campaign: campaign ? { id: campaign.id, title: campaign.title, brandId: campaign.brandId } : null,
+        user: user ? { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, profileImageUrl: user.profileImageUrl } : null,
+      })));
+    } catch (error) {
+      console.error("Error fetching admin micro task submissions:", error);
+      res.status(500).json({ message: "Failed to fetch micro task submissions" });
+    }
+  });
+
   app.patch('/api/micro-task-submissions/:id/review', async (req: any, res) => {
     try {
       const userId = req.user?.id;
