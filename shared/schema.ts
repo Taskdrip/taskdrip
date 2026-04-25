@@ -152,6 +152,9 @@ export const campaigns = pgTable("campaigns", {
     task: string;
     platform?: string;
     requiredProof?: string;
+    actionUrl?: string;
+    autoApprove?: boolean;
+    proofRequired?: boolean;
   }[]>(),
   introVideoUrl: varchar("intro_video_url"),
   serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),

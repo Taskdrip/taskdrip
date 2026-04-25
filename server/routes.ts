@@ -1160,7 +1160,59 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       console.log("Creating campaign with data:", campaignData);
       const campaign = await storage.createCampaign(campaignData);
       console.log("Campaign created:", campaign);
-      
+
+      // Auto-create $TDRIP micro tasks from any pre-qualification tasks that
+      // include an action link, auto-approve flag, or proof requirement so the
+      // brand can review per-task proof from their dashboard. Escrow is taken
+      // from the brand's $TDRIP wallet only when balance is sufficient.
+      try {
+        const tdripPerTask = Math.floor(Number(tdripAddon.tdripPointsPerParticipant || 0));
+        const tdripLimit = Math.floor(Number(tdripAddon.tdripParticipantLimit || 0));
+        const richTasks = (Array.isArray(preQualificationTasks) ? preQualificationTasks : [])
+          .filter((t: any) => t && (t.actionUrl || t.autoApprove || t.proofRequired));
+        if (richTasks.length > 0 && tdripPerTask > 0 && tdripLimit > 0) {
+          const escrowPerTask = tdripPerTask * tdripLimit;
+          const totalNeeded = escrowPerTask * richTasks.length;
+          const brandBalance = await storage.getUserTotalPoints(user.id);
+          if (brandBalance >= totalNeeded) {
+            for (const t of richTasks) {
+              const title = String(t.task || "Pre-qualification task").slice(0, 200);
+              const platform = t.platform ? `${t.platform}: ` : "";
+              const description = `${platform}${title}`;
+              const proofRequired = !!t.proofRequired && !t.autoApprove;
+              const autoApprove = !!t.autoApprove;
+              const actionUrl = t.actionUrl ? String(t.actionUrl).trim() : null;
+              await storage.awardPoints(
+                user.id,
+                "micro_task_escrow",
+                -escrowPerTask,
+                `$TDRIP escrow for pre-qualification task: ${title}`,
+                campaign.id,
+              );
+              await db.insert(campaignMicroTasks).values({
+                campaignId: campaign.id,
+                brandId: user.id,
+                title,
+                description,
+                tdripReward: tdripPerTask,
+                participantLimit: tdripLimit,
+                escrowedPoints: escrowPerTask,
+                actionUrl,
+                proofRequired,
+                autoApprove,
+                createdBy: user.id,
+              });
+            }
+          } else {
+            console.log(
+              `[campaign ${campaign.id}] Skipping auto-create of micro tasks — brand has ${brandBalance} $TDRIP, needs ${totalNeeded}.`
+            );
+          }
+        }
+      } catch (microErr) {
+        console.error("Failed to auto-create per-task micro tasks:", microErr);
+      }
+
       // Create escrow payment session with 30-minute window
       // Brands pay the exact total campaign budget — no platform fee added to brands
       const totalReward = parseFloat(req.body.reward) * parseInt(req.body.totalSlots);

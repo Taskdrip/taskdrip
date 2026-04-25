@@ -97,10 +97,24 @@ export default function BrandDashboard() {
   const [editingMicroTask, setEditingMicroTask] = useState<any | null>(null);
   const [editMicroTaskForm, setEditMicroTaskForm] = useState<any>({});
   const [expandedApplications, setExpandedApplications] = useState<Record<string, boolean>>({});
-  const [campaignTasks, setCampaignTasks] = useState<{ task: string; platform: string }[]>([{ task: "", platform: "Instagram" }]);
-  const addCampaignTask = () => setCampaignTasks(prev => [...prev, { task: "", platform: "Instagram" }]);
+  type CampaignTaskDraft = {
+    task: string;
+    platform: string;
+    actionUrl: string;
+    autoApprove: boolean;
+    proofRequired: boolean;
+  };
+  const blankCampaignTask = (): CampaignTaskDraft => ({
+    task: "",
+    platform: "Instagram",
+    actionUrl: "",
+    autoApprove: false,
+    proofRequired: true,
+  });
+  const [campaignTasks, setCampaignTasks] = useState<CampaignTaskDraft[]>([blankCampaignTask()]);
+  const addCampaignTask = () => setCampaignTasks(prev => [...prev, blankCampaignTask()]);
   const removeCampaignTask = (i: number) => setCampaignTasks(prev => prev.filter((_, idx) => idx !== i));
-  const updateCampaignTask = (i: number, field: "task" | "platform", value: string) =>
+  const updateCampaignTask = <K extends keyof CampaignTaskDraft>(i: number, field: K, value: CampaignTaskDraft[K]) =>
     setCampaignTasks(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t));
 
   // Fetch brand campaigns
@@ -430,7 +444,14 @@ export default function BrandDashboard() {
     
     const preQualificationTasks = campaignTasks
       .filter(t => t.task.trim())
-      .map(t => ({ task: t.task.trim(), platform: t.platform, requiredProof: "Profile link or screenshot" }));
+      .map(t => ({
+        task: t.task.trim(),
+        platform: t.platform,
+        actionUrl: t.actionUrl.trim() || undefined,
+        autoApprove: !!t.autoApprove,
+        proofRequired: !!t.proofRequired,
+        requiredProof: t.proofRequired ? "Profile link or screenshot" : undefined,
+      }));
     
     createCampaignMutation.mutate({ ...data, preQualificationTasks, file } as any);
   };
@@ -631,30 +652,71 @@ export default function BrandDashboard() {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm font-semibold">Pre-qualification tasks</Label>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {campaignTasks.map((task, i) => (
-                            <div key={i} className="flex gap-2">
-                              <select
-                                value={task.platform}
-                                onChange={e => updateCampaignTask(i, "platform", e.target.value)}
-                                className="rounded-lg border border-purple-200 bg-white text-xs px-2 py-1.5 flex-shrink-0"
-                              >
-                                {["Instagram", "TikTok", "YouTube", "X (Twitter)", "Facebook", "Telegram", "Discord", "Other"].map(p => (
-                                  <option key={p} value={p}>{p}</option>
-                                ))}
-                              </select>
+                            <div key={i} className="rounded-lg border border-purple-200 bg-white p-3 space-y-2" data-testid={`card-campaign-task-${i}`}>
+                              <div className="flex gap-2">
+                                <select
+                                  value={task.platform}
+                                  onChange={e => updateCampaignTask(i, "platform", e.target.value)}
+                                  className="rounded-lg border border-purple-200 bg-white text-xs px-2 py-1.5 flex-shrink-0"
+                                  data-testid={`select-campaign-task-platform-${i}`}
+                                >
+                                  {["Instagram", "TikTok", "YouTube", "X (Twitter)", "Facebook", "Telegram", "Discord", "Website", "Other"].map(p => (
+                                    <option key={p} value={p}>{p}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  value={task.task}
+                                  onChange={e => updateCampaignTask(i, "task", e.target.value)}
+                                  placeholder={`Task ${i + 1}: e.g., Follow our page and comment...`}
+                                  className="rounded-lg border border-purple-200 bg-white text-sm px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-purple-400"
+                                  data-testid={`input-campaign-task-${i}`}
+                                />
+                                {campaignTasks.length > 1 && (
+                                  <button type="button" onClick={() => removeCampaignTask(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0" title="Remove">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
                               <input
-                                value={task.task}
-                                onChange={e => updateCampaignTask(i, "task", e.target.value)}
-                                placeholder={`Task ${i + 1}: e.g., Follow our page and comment...`}
-                                className="rounded-lg border border-purple-200 bg-white text-sm px-3 py-1.5 flex-1 min-w-0 focus:outline-none focus:border-purple-400"
-                                data-testid={`input-campaign-task-${i}`}
+                                type="url"
+                                value={task.actionUrl}
+                                onChange={e => updateCampaignTask(i, "actionUrl", e.target.value)}
+                                placeholder="Action link (https://...) — where the creator goes to perform this task"
+                                className="rounded-lg border border-purple-200 bg-white text-sm px-3 py-1.5 w-full focus:outline-none focus:border-purple-400"
+                                data-testid={`input-campaign-task-url-${i}`}
                               />
-                              {campaignTasks.length > 1 && (
-                                <button type="button" onClick={() => removeCampaignTask(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0" title="Remove">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              <div className="flex flex-wrap items-center gap-4 text-xs text-purple-900">
+                                <label className="flex items-center gap-2 cursor-pointer" data-testid={`label-campaign-task-auto-approve-${i}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={task.autoApprove}
+                                    onChange={e => {
+                                      const checked = e.target.checked;
+                                      updateCampaignTask(i, "autoApprove", checked);
+                                      if (checked) updateCampaignTask(i, "proofRequired", false);
+                                    }}
+                                    className="h-4 w-4 accent-purple-600"
+                                    data-testid={`input-campaign-task-auto-approve-${i}`}
+                                  />
+                                  <span>Auto approve (no review)</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer" data-testid={`label-campaign-task-proof-${i}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={task.proofRequired}
+                                    onChange={e => {
+                                      const checked = e.target.checked;
+                                      updateCampaignTask(i, "proofRequired", checked);
+                                      if (checked) updateCampaignTask(i, "autoApprove", false);
+                                    }}
+                                    className="h-4 w-4 accent-purple-600"
+                                    data-testid={`input-campaign-task-proof-${i}`}
+                                  />
+                                  <span>Require proof upload (you review)</span>
+                                </label>
+                              </div>
                             </div>
                           ))}
                           <button type="button" onClick={addCampaignTask} className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors" data-testid="button-add-campaign-task">
