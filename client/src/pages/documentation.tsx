@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-import RouteSeo from "@/components/GlobalSeo";
+import { RouteSeo } from "@/components/GlobalSeo";
 import {
   BookOpen, Search, Users, ShoppingBag, Megaphone, Trophy, Wallet, Coins, Zap,
   Settings, Shield, MessageCircle, Briefcase, Store, GraduationCap, Image as ImageIcon,

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
-import RouteSeo from "@/components/GlobalSeo";
+import { RouteSeo } from "@/components/GlobalSeo";
 import {
   Coins, Calendar, CheckCircle, Circle, Rocket, Target, Users, BarChart3,
   Sparkles, TrendingUp, ShieldCheck, Globe, Lock, Flame, Zap, Award, ArrowRight
