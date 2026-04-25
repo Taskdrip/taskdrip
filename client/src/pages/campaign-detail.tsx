@@ -38,7 +38,7 @@ const editCampaignSchema = z.object({
   deadline: z.string().min(1, 'Deadline is required'),
   requirements: z.string().min(10, 'Requirements must be at least 10 characters'),
   estimatedTime: z.string().min(1, 'Estimated time is required'),
-  featuredImage: z.string().optional(),
+  featureImage: z.string().optional(),
 });
 
 type EditCampaignData = z.infer<typeof editCampaignSchema>;
@@ -159,12 +159,13 @@ export default function CampaignDetail() {
       deadline: (campaign as any)?.deadline ? new Date((campaign as any).deadline).toISOString().split('T')[0] : '',
       requirements: (campaign as any)?.requirements || '',
       estimatedTime: (campaign as any)?.estimatedTime || '',
-      featuredImage: (campaign as any)?.featuredImage || '',
+      featureImage: (campaign as any)?.featureImage || (campaign as any)?.featuredImage || '',
     },
   });
 
   // Update form when campaign data is loaded
   if (campaign && editForm.getValues().title !== (campaign as any).title) {
+    const existingImage = (campaign as any).featureImage || (campaign as any).featuredImage || '';
     editForm.reset({
       title: (campaign as any).title,
       description: (campaign as any).description,
@@ -174,9 +175,9 @@ export default function CampaignDetail() {
       deadline: (campaign as any).deadline ? new Date((campaign as any).deadline).toISOString().split('T')[0] : '',
       requirements: (campaign as any).requirements,
       estimatedTime: (campaign as any).estimatedTime,
-      featuredImage: (campaign as any).featuredImage || '',
+      featureImage: existingImage,
     });
-    setEditImagePreview((campaign as any).featuredImage || null);
+    setEditImagePreview(existingImage || null);
   }
 
   const joinCampaignMutation = useMutation({
@@ -344,7 +345,7 @@ export default function CampaignDetail() {
       
       // Add image file if present
       if (editImageFile) {
-        formData.append('featuredImage', editImageFile);
+        formData.append('featureImage', editImageFile);
       }
       
       const response = await fetch(`/api/campaigns/${campaignId}`, {
@@ -650,11 +651,11 @@ export default function CampaignDetail() {
 
                             {/* Featured Image Upload */}
                             <div className="space-y-2">
-                              <Label htmlFor="featuredImage">Featured Image</Label>
+                              <Label htmlFor="featureImage">Featured Image</Label>
                               <div className="flex items-center gap-4">
                                 <div className="flex-1">
                                   <Input
-                                    id="featuredImage"
+                                    id="featureImage"
                                     type="file"
                                     accept="image/*"
                                     onChange={handleEditImageChange}

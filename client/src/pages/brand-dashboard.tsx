@@ -92,6 +92,8 @@ export default function BrandDashboard() {
   const [showCampaignUpgrade, setShowCampaignUpgrade] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [microTaskDrafts, setMicroTaskDrafts] = useState<Record<string, any>>({});
+  const [editingMicroTask, setEditingMicroTask] = useState<any | null>(null);
+  const [editMicroTaskForm, setEditMicroTaskForm] = useState<any>({});
   const [expandedApplications, setExpandedApplications] = useState<Record<string, boolean>>({});
   const [campaignTasks, setCampaignTasks] = useState<{ task: string; platform: string }[]>([{ task: "", platform: "Instagram" }]);
   const addCampaignTask = () => setCampaignTasks(prev => [...prev, { task: "", platform: "Instagram" }]);
@@ -1251,17 +1253,42 @@ export default function BrandDashboard() {
                                   microTasks.filter((task: any) => task.campaignId === campaign.id).map((task: any) => (
                                     <div key={task.id} className="rounded-2xl border bg-white p-4 space-y-3" data-testid={`card-micro-task-${task.id}`}>
                                       <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                          <p className="font-bold text-gray-900">{task.title}</p>
-                                          <p className="text-xs text-gray-500 mt-1">{task.description}</p>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="font-bold text-gray-900 truncate">{task.title}</p>
+                                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+                                          {task.actionUrl && (
+                                            <a href={task.actionUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-600 hover:underline mt-1 inline-flex items-center gap-1 truncate max-w-full">
+                                              <Link2 className="h-3 w-3" /> {task.actionUrl}
+                                            </a>
+                                          )}
                                         </div>
-                                        <Badge className="bg-violet-100 text-violet-700">{task.tdripReward} $TDRIP</Badge>
+                                        <Badge className="bg-violet-100 text-violet-700 flex-shrink-0">{task.tdripReward} $TDRIP</Badge>
                                       </div>
                                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                                         <span>Escrow: {Number(task.escrowedPoints || 0).toLocaleString()}</span>
                                         <span>Limit: {task.participantLimit || "Open"}</span>
                                       </div>
-                                      <div className="flex gap-2">
+                                      <div className="flex gap-2 flex-wrap">
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="border-violet-300 text-violet-700 hover:bg-violet-50"
+                                          onClick={() => {
+                                            setEditingMicroTask(task);
+                                            setEditMicroTaskForm({
+                                              title: task.title || "",
+                                              description: task.description || "",
+                                              actionUrl: task.actionUrl || "",
+                                              tdripReward: task.tdripReward || 0,
+                                              participantLimit: task.participantLimit || 1,
+                                              proofRequired: task.proofRequired !== false,
+                                              autoApprove: !!task.autoApprove,
+                                            });
+                                          }}
+                                          data-testid={`button-edit-micro-task-${task.id}`}
+                                        >
+                                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                                        </Button>
                                         <Button
                                           size="sm"
                                           variant={task.autoApprove ? "default" : "outline"}
@@ -1937,6 +1964,122 @@ export default function BrandDashboard() {
         isSubmitting={editCampaignMutation.isPending}
         onSubmit={(data, file) => editingCampaign && editCampaignMutation.mutate({ id: editingCampaign.id, data, file })}
       />
+
+      {/* Edit micro-task dialog */}
+      <Dialog open={!!editingMicroTask} onOpenChange={(o) => !o && setEditingMicroTask(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-edit-micro-task">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-5 w-5 text-violet-600" /> Edit micro task</DialogTitle>
+            <DialogDescription>
+              Changes to reward or limit will adjust your $TDRIP escrow automatically (debiting more or refunding the difference).
+            </DialogDescription>
+          </DialogHeader>
+          {editingMicroTask && (
+            <div className="space-y-3 pt-1">
+              <div>
+                <Label>Title</Label>
+                <Input
+                  value={editMicroTaskForm.title || ""}
+                  onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, title: e.target.value }))}
+                  data-testid="input-edit-micro-task-title"
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  rows={3}
+                  value={editMicroTaskForm.description || ""}
+                  onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, description: e.target.value }))}
+                  data-testid="input-edit-micro-task-description"
+                />
+              </div>
+              <div>
+                <Label>Action URL <span className="text-xs text-gray-500 font-normal">(optional)</span></Label>
+                <Input
+                  type="url"
+                  value={editMicroTaskForm.actionUrl || ""}
+                  onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, actionUrl: e.target.value }))}
+                  placeholder="https://…"
+                  data-testid="input-edit-micro-task-action-url"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Reward per creator ($TDRIP)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editMicroTaskForm.tdripReward || ""}
+                    onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, tdripReward: e.target.value }))}
+                    data-testid="input-edit-micro-task-reward"
+                  />
+                </div>
+                <div>
+                  <Label>Participant limit</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={editMicroTaskForm.participantLimit || ""}
+                    onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, participantLimit: e.target.value }))}
+                    data-testid="input-edit-micro-task-limit"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <label className="flex items-center gap-2 rounded-xl bg-violet-50 border border-violet-100 p-3">
+                  <input
+                    type="checkbox"
+                    checked={!!editMicroTaskForm.proofRequired}
+                    onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, proofRequired: e.target.checked }))}
+                    data-testid="checkbox-edit-micro-task-proof"
+                  />
+                  Require proof upload
+                </label>
+                <label className="flex items-center gap-2 rounded-xl bg-violet-50 border border-violet-100 p-3">
+                  <input
+                    type="checkbox"
+                    checked={!!editMicroTaskForm.autoApprove}
+                    onChange={(e) => setEditMicroTaskForm((f: any) => ({ ...f, autoApprove: e.target.checked }))}
+                    data-testid="checkbox-edit-micro-task-auto"
+                  />
+                  Auto approve
+                </label>
+              </div>
+              {(() => {
+                const newReward = Number(editMicroTaskForm.tdripReward || 0);
+                const newLimit = Number(editMicroTaskForm.participantLimit || 0);
+                const newEscrow = newReward * newLimit;
+                const oldEscrow = Number(editingMicroTask.escrowedPoints || (editingMicroTask.tdripReward * editingMicroTask.participantLimit) || 0);
+                const delta = newEscrow - oldEscrow;
+                return (
+                  <div className={`rounded-xl border p-3 text-xs ${delta > 0 ? 'border-amber-200 bg-amber-50 text-amber-900' : delta < 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
+                    New escrow: <b>{newEscrow.toLocaleString()} $TDRIP</b>
+                    {delta > 0 && <> — debit additional <b>{delta.toLocaleString()} $TDRIP</b> from your wallet on save.</>}
+                    {delta < 0 && <> — refund <b>{Math.abs(delta).toLocaleString()} $TDRIP</b> back to your wallet on save.</>}
+                    {delta === 0 && <> — no change to escrow.</>}
+                  </div>
+                );
+              })()}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditingMicroTask(null)}>Cancel</Button>
+                <Button
+                  className="bg-violet-600 hover:bg-violet-700"
+                  disabled={updateMicroTaskMutation.isPending}
+                  onClick={() => {
+                    updateMicroTaskMutation.mutate(
+                      { id: editingMicroTask.id, updates: editMicroTaskForm },
+                      { onSuccess: () => setEditingMicroTask(null) }
+                    );
+                  }}
+                  data-testid="button-save-edit-micro-task"
+                >
+                  {updateMicroTaskMutation.isPending ? "Saving…" : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {reviewingAddon && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" data-testid="modal-review-addon">

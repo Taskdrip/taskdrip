@@ -1191,8 +1191,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // Update campaign
-  app.patch('/api/campaigns/:id', isAuthenticated, upload.single('featureImage'), async (req: any, res) => {
+  // Update campaign — accepts both `featureImage` and `featuredImage` for the hero image upload
+  app.patch('/api/campaigns/:id', isAuthenticated, upload.any(), async (req: any, res) => {
     try {
       const requesterId = req.user.id;
       const requester = await storage.getUser(requesterId);
@@ -1208,16 +1208,35 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(403).json({ message: "You can only edit your own campaigns" });
       }
 
-      const updates = { ...req.body };
-      // Brands cannot change the reward/amount — only admins can
+      const updates: Record<string, any> = { ...req.body };
+
+      // Coerce numeric fields when sent as strings via multipart form
       if (!isAdmin) {
         delete updates.reward;
         delete updates.totalSlots;
       } else {
-        if (updates.reward) updates.reward = parseFloat(updates.reward);
-        if (updates.totalSlots) updates.totalSlots = parseInt(updates.totalSlots);
+        if (updates.reward !== undefined && updates.reward !== "") updates.reward = parseFloat(updates.reward);
+        if (updates.totalSlots !== undefined && updates.totalSlots !== "") updates.totalSlots = parseInt(updates.totalSlots);
       }
-      if (req.file) updates.featureImage = `/uploads/${req.file.filename}`;
+      if (updates.deadline) {
+        try { updates.deadline = new Date(updates.deadline); } catch {}
+      }
+      if (typeof updates.requirements === 'string' && updates.requirements.trim()) {
+        updates.requirements = [updates.requirements];
+      }
+
+      // Pull image from any common field name (featureImage / featuredImage / image)
+      const files = (req.files as Express.Multer.File[] | undefined) || [];
+      const imageFile = files.find((f) =>
+        ["featureImage", "featuredImage", "image", "file"].includes(f.fieldname)
+      );
+      if (imageFile) {
+        updates.featureImage = `/uploads/${imageFile.filename}`;
+      } else if (typeof updates.featuredImage === 'string' && updates.featuredImage) {
+        // Allow setting via plain URL field too
+        updates.featureImage = updates.featuredImage;
+      }
+      delete updates.featuredImage;
 
       const updatedCampaign = await storage.updateCampaign(campaignId, updates);
       res.json(updatedCampaign);
@@ -1227,14 +1246,21 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // Delete campaign
-  app.delete('/api/campaigns/:id', async (req, res) => {
+  // Delete campaign — owner or admin only
+  app.delete('/api/campaigns/:id', isAuthenticated, async (req: any, res) => {
     try {
+      const requesterId = req.user.id;
+      const requester = await storage.getUser(requesterId);
       const campaignId = req.params.id;
-      
+
       const campaign = await storage.getCampaignById(campaignId);
       if (!campaign) {
         return res.status(404).json({ message: "Campaign not found" });
+      }
+      const isAdmin = requester?.userType === 'admin';
+      const isBrandOwner = campaign.brandId === requesterId;
+      if (!isAdmin && !isBrandOwner) {
+        return res.status(403).json({ message: "You can only delete your own campaigns" });
       }
 
       await storage.deleteCampaign(campaignId);
@@ -2235,60 +2261,6 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // Campaign editing route with image upload
-  app.patch('/api/campaigns/:id', upload.single('featuredImage'), async (req, res) => {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) return res.status(401).json({ message: "Authentication required" });
-
-      const campaignId = req.params.id;
-      const updates = req.body;
-
-      // Check if user owns this campaign
-      const campaign = await storage.getCampaignById(campaignId);
-      if (!campaign || campaign.brandId !== userId) {
-        return res.status(403).json({ message: "You can only edit your own campaigns" });
-      }
-
-      // Add uploaded image to updates if present
-      if (req.file) {
-        updates.featuredImage = `/uploads/${req.file.filename}`;
-      }
-
-      // Convert string numbers back to numbers
-      if (updates.reward) updates.reward = parseFloat(updates.reward);
-      if (updates.totalSlots) updates.totalSlots = parseInt(updates.totalSlots);
-
-      const updatedCampaign = await storage.updateCampaign(campaignId, updates);
-      res.json(updatedCampaign);
-    } catch (error) {
-      console.error("Error updating campaign:", error);
-      res.status(500).json({ message: "Failed to update campaign" });
-    }
-  });
-
-  // Delete campaign route
-  app.delete('/api/campaigns/:id', async (req, res) => {
-    try {
-      const userId = (req as any).user?.id;
-      if (!userId) return res.status(401).json({ message: "Authentication required" });
-
-      const campaignId = req.params.id;
-
-      // Check if user owns this campaign
-      const campaign = await storage.getCampaignById(campaignId);
-      if (!campaign || campaign.brandId !== userId) {
-        return res.status(403).json({ message: "You can only delete your own campaigns" });
-      }
-
-      await storage.deleteCampaign(campaignId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting campaign:", error);
-      res.status(500).json({ message: "Failed to delete campaign" });
-    }
-  });
-
   app.get('/api/brand/submissions', async (req, res) => {
     try {
       const userId = (req as any).user?.id;
@@ -2411,9 +2383,60 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
       const updates: any = { updatedAt: new Date() };
+
+      // Toggle / boolean fields
       if (typeof req.body.autoApprove !== "undefined") updates.autoApprove = !!req.body.autoApprove;
       if (typeof req.body.isActive !== "undefined") updates.isActive = !!req.body.isActive;
       if (typeof req.body.proofRequired !== "undefined") updates.proofRequired = !!req.body.proofRequired;
+
+      // Editable text fields
+      if (typeof req.body.title === "string") {
+        const v = req.body.title.trim();
+        if (!v) return res.status(400).json({ message: "Title cannot be empty" });
+        updates.title = v;
+      }
+      if (typeof req.body.description === "string") {
+        const v = req.body.description.trim();
+        if (!v) return res.status(400).json({ message: "Description cannot be empty" });
+        updates.description = v;
+      }
+      if (typeof req.body.actionUrl !== "undefined") {
+        updates.actionUrl = String(req.body.actionUrl || "").trim() || null;
+      }
+
+      // Reward / participant limit may need extra escrow or refund
+      const newReward = req.body.tdripReward !== undefined ? Math.max(1, Math.floor(Number(req.body.tdripReward))) : task.tdripReward;
+      const newLimit = req.body.participantLimit !== undefined ? Math.max(1, Math.floor(Number(req.body.participantLimit))) : task.participantLimit;
+      const rewardChanged = req.body.tdripReward !== undefined && newReward !== task.tdripReward;
+      const limitChanged = req.body.participantLimit !== undefined && newLimit !== task.participantLimit;
+      if (rewardChanged || limitChanged) {
+        // Check approved submissions cannot be undercut
+        const [{ count: approvedCount }] = await db.select({ count: sql<number>`count(*)::int` }).from(microTaskSubmissions)
+          .where(and(eq(microTaskSubmissions.microTaskId, task.id), eq(microTaskSubmissions.status, "approved")));
+        if (newLimit < Number(approvedCount || 0)) {
+          return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
+        }
+        const newEscrow = newReward * newLimit;
+        const oldEscrow = task.escrowedPoints || (task.tdripReward * task.participantLimit);
+        const delta = newEscrow - oldEscrow;
+        if (delta > 0) {
+          const currentPoints = await storage.getUserTotalPoints(task.brandId);
+          if (currentPoints < delta) {
+            return res.status(400).json({
+              message: `Not enough $TDRIP. Updating this add-on needs ${delta.toLocaleString()} more $TDRIP. Top up your wallet first.`,
+              requiredPoints: delta,
+              currentPoints,
+            });
+          }
+          await storage.awardPoints(task.brandId, "micro_task_escrow", -delta, `Additional $TDRIP escrow for micro task: ${task.title}`, task.campaignId);
+        } else if (delta < 0) {
+          await storage.awardPoints(task.brandId, "micro_task_escrow_refund", -delta, `Refund of unused $TDRIP escrow for micro task: ${task.title}`, task.campaignId);
+        }
+        updates.tdripReward = newReward;
+        updates.participantLimit = newLimit;
+        updates.escrowedPoints = newEscrow;
+      }
+
       const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
