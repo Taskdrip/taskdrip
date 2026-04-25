@@ -4677,98 +4677,198 @@ export default function AdminMaster() {
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="text-2xl font-bold">Payment Management</h2>
+            {/* ── Header & summary stats ───────────────────────────────────── */}
+            <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-950 via-purple-950/40 to-gray-950 p-5 sm:p-6 shadow-xl">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-fuchsia-900/40">
+                    <DollarSign className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Payment Management</h2>
+                    <p className="text-xs sm:text-sm text-gray-400">Review proofs, approve subscriptions, fund campaign escrow.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                {[
+                  {
+                    label: "Subs pending",
+                    value: subscriptionPayments.filter((s: any) => s.status === "pending").length,
+                    icon: Crown,
+                    color: "from-violet-500 to-purple-600",
+                  },
+                  {
+                    label: "Escrow pending",
+                    value: escrowPayments.filter((e: any) => e.status === "submitted").length,
+                    icon: AlertTriangle,
+                    color: "from-amber-500 to-orange-600",
+                  },
+                  {
+                    label: "Total transactions",
+                    value: transactions.length,
+                    icon: Activity,
+                    color: "from-blue-500 to-indigo-600",
+                  },
+                  {
+                    label: "Approved subs",
+                    value: subscriptionPayments.filter((s: any) => s.status === "active").length,
+                    icon: CheckCircle,
+                    color: "from-emerald-500 to-teal-600",
+                  },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] sm:text-xs font-medium text-gray-400 uppercase tracking-wider truncate">{s.label}</p>
+                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center flex-shrink-0`}>
+                        <s.icon className="h-3.5 w-3.5 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-xl sm:text-2xl font-extrabold text-white tabular-nums">{s.value}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Subscription Payment Reviews */}
-            <Card className="border-purple-200 bg-purple-50/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-800">
-                  <Crown className="h-5 w-5" />
-                  Subscription Payment Proofs ({subscriptionPayments.filter((s: any) => s.status === 'pending').length} pending)
-                </CardTitle>
-                <CardDescription>Review brand & influencer premium subscription payments and approve to activate</CardDescription>
+            {/* ── Subscription Payment Reviews ──────────────────────────────── */}
+            <Card className="border-violet-200 dark:border-violet-900/40 overflow-hidden shadow-sm">
+              <CardHeader className="bg-gradient-to-r from-violet-50 via-fuchsia-50 to-violet-50 dark:from-violet-950/30 dark:via-fuchsia-950/30 dark:to-violet-950/30 border-b border-violet-100 dark:border-violet-900/40 py-4 sm:py-5">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-md shadow-violet-500/30 flex-shrink-0">
+                      <Crown className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base sm:text-lg font-bold text-violet-900 dark:text-violet-200">
+                        Subscription Payment Proofs
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-violet-700/80 dark:text-violet-300/70 mt-0.5">
+                        Review premium subscription payments and approve to activate.
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge className="bg-violet-600 hover:bg-violet-600 text-white text-xs font-bold whitespace-nowrap">
+                    {subscriptionPayments.filter((s: any) => s.status === "pending").length} pending
+                  </Badge>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-5">
                 {subscriptionPayments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <CheckCircle className="h-10 w-10 mx-auto mb-2" />
-                    <p className="text-sm">No subscription payments yet</p>
+                  <div className="text-center py-12 px-4">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center">
+                      <CheckCircle className="h-7 w-7 text-emerald-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">All caught up!</p>
+                    <p className="text-xs text-gray-500 mt-1">No subscription payments to review.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {subscriptionPayments.map((sp: any) => {
-                      const planLabel = (sp.plan || '').includes('brand') ? 'Brand Pro' : 'Premium';
-                      const periodLabel = sp.periodDays === 3 ? '3-day' : sp.periodDays === 5 ? '5-day' : sp.periodDays === 365 ? 'Yearly' : 'Monthly';
+                      const planLabel = (sp.plan || "").includes("brand") ? "Brand Pro" : "Premium";
+                      const periodLabel =
+                        sp.periodDays === 3 ? "3-day" :
+                        sp.periodDays === 5 ? "5-day" :
+                        sp.periodDays === 365 ? "Yearly" : "Monthly";
+                      const fullName = sp.user
+                        ? `${sp.user.firstName || ""} ${sp.user.lastName || ""}`.trim() || sp.user.email
+                        : "Unknown user";
+                      const initials = (sp.user?.firstName?.[0] || sp.user?.email?.[0] || "?").toUpperCase();
+                      const statusTone =
+                        sp.status === "active" ? "bg-emerald-100 text-emerald-700 ring-emerald-600/20" :
+                        sp.status === "rejected" ? "bg-rose-100 text-rose-700 ring-rose-600/20" :
+                        "bg-amber-100 text-amber-700 ring-amber-600/20";
                       return (
-                        <div key={sp.id} className="bg-white border rounded-xl p-4 shadow-sm" data-testid={`subscription-row-${sp.id}`}>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="font-semibold text-gray-900">
-                                  {sp.user ? `${sp.user.firstName || ''} ${sp.user.lastName || ''}`.trim() || sp.user.email : 'Unknown user'}
-                                </span>
-                                <Badge variant={sp.status === 'pending' ? 'secondary' : sp.status === 'active' ? 'default' : sp.status === 'rejected' ? 'destructive' : 'outline'}>
-                                  {sp.status}
-                                </Badge>
-                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                                  {periodLabel} {planLabel}
-                                </Badge>
-                                {sp.user?.userType && (
-                                  <Badge variant="outline" className="text-xs capitalize">{sp.user.userType}</Badge>
-                                )}
+                        <div
+                          key={sp.id}
+                          className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-700 transition-all"
+                          data-testid={`subscription-row-${sp.id}`}
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            {/* Left: identity + meta */}
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md shadow-violet-500/20">
+                                {initials}
                               </div>
-                              <p className="text-sm text-gray-500">
-                                {sp.user?.email} · ${sp.amount} · {sp.paymentMethodLabel || sp.network || 'manual'}
-                              </p>
-                              {sp.transactionHash && (
-                                <p className="text-xs font-mono text-blue-600 mt-1 break-all">TX: {sp.transactionHash}</p>
-                              )}
-                              <p className="text-xs text-gray-400">Submitted: {sp.createdAt ? new Date(sp.createdAt).toLocaleString() : '—'}</p>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate">{fullName}</p>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${statusTone}`}>
+                                    {sp.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">{sp.user?.email || "—"}</p>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <Badge variant="outline" className="bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800 text-[10px] font-semibold">
+                                    {periodLabel} {planLabel}
+                                  </Badge>
+                                  {sp.user?.userType && (
+                                    <Badge variant="outline" className="text-[10px] capitalize border-gray-200 dark:border-gray-700">
+                                      {sp.user.userType}
+                                    </Badge>
+                                  )}
+                                  <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 text-[10px] font-bold tabular-nums">
+                                    ${sp.amount}
+                                  </Badge>
+                                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-[10px]">
+                                    {sp.paymentMethodLabel || sp.network || "Manual"}
+                                  </Badge>
+                                </div>
+                                {sp.transactionHash && (
+                                  <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-mono text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-md px-2 py-1 max-w-full">
+                                    <span className="font-bold opacity-70 flex-shrink-0">TX</span>
+                                    <span className="truncate">{sp.transactionHash}</span>
+                                  </div>
+                                )}
+                                <p className="text-[11px] text-gray-400 mt-1.5">
+                                  <Clock className="inline h-3 w-3 mr-1" />
+                                  {sp.createdAt ? new Date(sp.createdAt).toLocaleString() : "—"}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex flex-col gap-2 min-w-[180px]">
+
+                            {/* Right: actions */}
+                            <div className="flex flex-row lg:flex-col gap-2 lg:min-w-[180px] flex-wrap">
                               {(sp.paymentProof || sp.transactionHash) && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                                  className="border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/40 flex-1 lg:flex-none h-9 font-semibold"
                                   onClick={() => setProofModal({
                                     open: true,
                                     url: sp.paymentProof,
                                     txHash: sp.transactionHash,
                                     network: sp.network,
                                     amount: sp.amount,
-                                    label: `${planLabel} — ${sp.user?.email || 'subscription'}`,
+                                    label: `${planLabel} — ${sp.user?.email || "subscription"}`,
                                   })}
                                   data-testid={`btn-view-subscription-${sp.id}`}
                                 >
-                                  <Eye className="h-4 w-4 mr-1" /> View Proof
+                                  <Eye className="h-4 w-4 mr-1.5" /> View Proof
                                 </Button>
                               )}
-                              {sp.status === 'pending' && (
-                                <div className="flex gap-2">
+                              {sp.status === "pending" && (
+                                <div className="flex gap-2 flex-1 lg:flex-none">
                                   <Button
                                     size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white flex-1 h-9 font-semibold shadow-sm"
                                     onClick={() => approveSubscription.mutate({ id: sp.id, plan: sp.plan })}
                                     disabled={approveSubscription.isPending}
                                     data-testid={`btn-approve-subscription-${sp.id}`}
                                   >
-                                    <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                                    <CheckCircle className="h-4 w-4 mr-1.5" /> Approve
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="border-red-200 text-red-600 hover:bg-red-50 flex-1"
+                                    className="border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex-1 h-9 font-semibold"
                                     onClick={() => {
-                                      const reason = prompt('Rejection reason (optional):') || '';
+                                      const reason = prompt("Rejection reason (optional):") || "";
                                       rejectSubscription.mutate({ id: sp.id, reason });
                                     }}
                                     disabled={rejectSubscription.isPending}
                                     data-testid={`btn-reject-subscription-${sp.id}`}
                                   >
-                                    <XCircle className="h-4 w-4 mr-1" /> Reject
+                                    <XCircle className="h-4 w-4 mr-1.5" /> Reject
                                   </Button>
                                 </div>
                               )}
@@ -4776,6 +4876,7 @@ export default function AdminMaster() {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex-1 lg:flex-none h-9"
                                   onClick={() => {
                                     const content = prompt(`Send a message to ${sp.user.email}:`);
                                     if (content && content.trim()) {
@@ -4784,7 +4885,7 @@ export default function AdminMaster() {
                                   }}
                                   data-testid={`btn-message-subscription-${sp.id}`}
                                 >
-                                  <MessageCircle className="h-4 w-4 mr-1" /> Message User
+                                  <MessageCircle className="h-4 w-4 mr-1.5" /> Message
                                 </Button>
                               )}
                             </div>
@@ -4800,86 +4901,137 @@ export default function AdminMaster() {
             {/* Order Delivery & Access — admin grants license/download/access link after payment confirmed */}
             <OrderDeliveryAccessPanel />
 
-            {/* Escrow Payment Reviews */}
-            <Card className="border-orange-200 bg-orange-50/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-800">
-                  <AlertTriangle className="h-5 w-5" />
-                  Campaign Payment Proofs — Requires Action ({escrowPayments.filter((e: any) => e.status === 'submitted').length} pending)
-                </CardTitle>
-                <CardDescription>Review payment submissions and approve to activate campaigns</CardDescription>
+            {/* ── Campaign / Escrow Payment Reviews ────────────────────────── */}
+            <Card className="border-amber-200 dark:border-amber-900/40 overflow-hidden shadow-sm">
+              <CardHeader className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950/30 dark:via-orange-950/30 dark:to-amber-950/30 border-b border-amber-100 dark:border-amber-900/40 py-4 sm:py-5">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/30 flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base sm:text-lg font-bold text-amber-900 dark:text-amber-200">
+                        Campaign Payment Proofs
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-amber-700/80 dark:text-amber-300/70 mt-0.5">
+                        Review escrow payment submissions and approve to activate campaigns.
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge className="bg-amber-600 hover:bg-amber-600 text-white text-xs font-bold whitespace-nowrap">
+                    {escrowPayments.filter((e: any) => e.status === "submitted").length} pending
+                  </Badge>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-5">
                 {escrowPayments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <CheckCircle className="h-10 w-10 mx-auto mb-2" />
-                    <p className="text-sm">No escrow payment submissions yet</p>
+                  <div className="text-center py-12 px-4">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center">
+                      <CheckCircle className="h-7 w-7 text-emerald-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No escrow submissions</p>
+                    <p className="text-xs text-gray-500 mt-1">Brand payments will appear here for review.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {escrowPayments.map((ep: any) => (
-                      <div key={ep.id} className="bg-white border rounded-xl p-4 shadow-sm">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="font-semibold text-gray-900">{ep.campaign?.title || 'Unknown Campaign'}</span>
-                              <Badge variant={ep.status === 'submitted' ? 'secondary' : ep.status === 'verified' ? 'default' : ep.status === 'rejected' ? 'destructive' : 'outline'}>
-                                {ep.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-gray-500">Brand: {ep.brandEmail} · ${ep.amount} escrow</p>
-                            {ep.transactionHash && (
-                              <p className="text-xs font-mono text-blue-600 mt-1 break-all">TX: {ep.transactionHash}</p>
-                            )}
-                            {ep.network && <p className="text-xs text-gray-400">Network: {ep.network}</p>}
-                            <p className="text-xs text-gray-400">Submitted: {ep.submittedAt ? new Date(ep.submittedAt).toLocaleString() : '—'}</p>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            {(ep.paymentScreenshot || ep.transactionHash) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
-                                onClick={() => setProofModal({
-                                  open: true,
-                                  url: ep.paymentScreenshot,
-                                  txHash: ep.transactionHash,
-                                  network: ep.network,
-                                  amount: ep.amount,
-                                  label: ep.campaign?.title || "Campaign Payment",
-                                })}
-                              >
-                                <Eye className="h-4 w-4 mr-1" /> View Proof
-                              </Button>
-                            )}
-                            {ep.status === 'submitted' && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                                  onClick={() => approveEscrow.mutate(ep.id)}
-                                  disabled={approveEscrow.isPending}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" /> Approve & Activate
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-200 text-red-600 hover:bg-red-50 flex-1"
-                                  onClick={() => {
-                                    const reason = prompt('Rejection reason (optional):') || 'Payment proof is invalid.';
-                                    rejectEscrow.mutate({ id: ep.id, reason });
-                                  }}
-                                  disabled={rejectEscrow.isPending}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" /> Reject
-                                </Button>
+                  <div className="space-y-3">
+                    {escrowPayments.map((ep: any) => {
+                      const statusTone =
+                        ep.status === "verified" ? "bg-emerald-100 text-emerald-700 ring-emerald-600/20" :
+                        ep.status === "rejected" ? "bg-rose-100 text-rose-700 ring-rose-600/20" :
+                        "bg-amber-100 text-amber-700 ring-amber-600/20";
+                      return (
+                        <div
+                          key={ep.id}
+                          className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-700 transition-all"
+                          data-testid={`escrow-row-${ep.id}`}
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white flex-shrink-0 shadow-md shadow-amber-500/20">
+                                <Target className="h-5 w-5" />
                               </div>
-                            )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate">
+                                    {ep.campaign?.title || "Unknown Campaign"}
+                                  </p>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${statusTone}`}>
+                                    {ep.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
+                                  Brand: {ep.brandEmail || "—"}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-[10px] font-bold tabular-nums">
+                                    ${ep.amount} escrow
+                                  </Badge>
+                                  {ep.network && (
+                                    <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-[10px]">
+                                      {ep.network}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {ep.transactionHash && (
+                                  <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-mono text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-md px-2 py-1 max-w-full">
+                                    <span className="font-bold opacity-70 flex-shrink-0">TX</span>
+                                    <span className="truncate">{ep.transactionHash}</span>
+                                  </div>
+                                )}
+                                <p className="text-[11px] text-gray-400 mt-1.5">
+                                  <Clock className="inline h-3 w-3 mr-1" />
+                                  {ep.submittedAt ? new Date(ep.submittedAt).toLocaleString() : "—"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-row lg:flex-col gap-2 lg:min-w-[200px] flex-wrap">
+                              {(ep.paymentScreenshot || ep.transactionHash) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex-1 lg:flex-none h-9 font-semibold"
+                                  onClick={() => setProofModal({
+                                    open: true,
+                                    url: ep.paymentScreenshot,
+                                    txHash: ep.transactionHash,
+                                    network: ep.network,
+                                    amount: ep.amount,
+                                    label: ep.campaign?.title || "Campaign Payment",
+                                  })}
+                                >
+                                  <Eye className="h-4 w-4 mr-1.5" /> View Proof
+                                </Button>
+                              )}
+                              {ep.status === "submitted" && (
+                                <div className="flex gap-2 flex-1 lg:flex-none">
+                                  <Button
+                                    size="sm"
+                                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white flex-1 h-9 font-semibold shadow-sm"
+                                    onClick={() => approveEscrow.mutate(ep.id)}
+                                    disabled={approveEscrow.isPending}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1.5" /> Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex-1 h-9 font-semibold"
+                                    onClick={() => {
+                                      const reason = prompt("Rejection reason (optional):") || "Payment proof is invalid.";
+                                      rejectEscrow.mutate({ id: ep.id, reason });
+                                    }}
+                                    disabled={rejectEscrow.isPending}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1.5" /> Reject
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
