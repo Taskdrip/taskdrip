@@ -80,6 +80,9 @@ import AdminPlatformFees from "@/pages/admin-platform-fees";
 import MyOrdersPage from "@/pages/my-orders";
 import OrderDetailPage from "@/pages/order-detail";
 import TDripInfoPage from "@/pages/tdrip-info";
+import DocumentationPage from "@/pages/documentation";
+import RoadmapPage from "@/pages/roadmap";
+import AdminSpotlight from "@/pages/admin-spotlight";
 import AdminCMSEditor from "@/pages/admin-cms-editor";
 import AdminSEO from "@/pages/admin-seo";
 import AdminLeads from "@/pages/admin-leads";
@@ -150,6 +153,11 @@ function Router() {
       <Route path="/feed" component={FeedPage} />
       <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/tdrip" component={TDripInfoPage} />
+      <Route path="/docs" component={DocumentationPage} />
+      <Route path="/documentation" component={DocumentationPage} />
+      <Route path="/roadmap" component={RoadmapPage} />
+      <Route path="/tokenomics" component={RoadmapPage} />
+      <Route path="/admin/spotlight" component={AdminSpotlight} />
       <Route path="/p2p-hub" component={P2PHub} />
       <Route path="/p2p/:id" component={P2PListing} />
       {isAuthenticated ? (

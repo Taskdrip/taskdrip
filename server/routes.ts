@@ -8872,6 +8872,65 @@ Instructions:
     }
   });
 
+  // ── Page Hero Backgrounds (public read + admin CRUD) ───────────────────────
+  app.get('/api/page-hero/:page', async (req: any, res) => {
+    try {
+      const { db } = await import('./db');
+      const { pageHeroBackgrounds } = await import('@shared/schema');
+      const { eq, and } = await import('drizzle-orm');
+      const [row] = await db.select().from(pageHeroBackgrounds)
+        .where(and(eq(pageHeroBackgrounds.page, req.params.page), eq(pageHeroBackgrounds.isActive, true)));
+      res.json(row || {});
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.get('/api/admin/page-heroes', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { db } = await import('./db');
+      const { pageHeroBackgrounds } = await import('@shared/schema');
+      const rows = await db.select().from(pageHeroBackgrounds);
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.put('/api/admin/page-hero/:page', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { db } = await import('./db');
+      const { pageHeroBackgrounds } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      const page = req.params.page;
+      const data = { ...req.body, page, updatedAt: new Date() };
+      const [existing] = await db.select().from(pageHeroBackgrounds).where(eq(pageHeroBackgrounds.page, page));
+      if (existing) {
+        const [updated] = await db.update(pageHeroBackgrounds).set(data).where(eq(pageHeroBackgrounds.page, page)).returning();
+        return res.json(updated);
+      }
+      const [created] = await db.insert(pageHeroBackgrounds).values(data).returning();
+      res.json(created);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.delete('/api/admin/page-hero/:page', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { db } = await import('./db');
+      const { pageHeroBackgrounds } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      await db.delete(pageHeroBackgrounds).where(eq(pageHeroBackgrounds.page, req.params.page));
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ── Spotlight Items (public read + admin CRUD) ──────────────────────────────
   app.get('/api/spotlight', async (req: any, res) => {
     try {

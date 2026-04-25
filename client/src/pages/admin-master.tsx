@@ -24,6 +24,7 @@ import { ContentEditorPanel } from "@/components/ContentEditorPanel";
 import { AdminPayoutsCenter } from "@/components/AdminPayoutsCenter";
 import { AdminConversationDrawer } from "@/components/AdminConversationDrawer";
 import { OrderDeliveryAccessPanel } from "@/components/admin/OrderDeliveryAccessPanel";
+import { ImageUpload } from "@/components/ImageUpload";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -106,6 +107,12 @@ const shopProductSchema = z.object({
   isFree: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  serviceAddons: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    price: z.number(),
+  })).default([]),
 });
 
 const adminCredentialsSchema = z.object({
@@ -2026,6 +2033,7 @@ export default function AdminMaster() {
       title: "", description: "", category: "software", type: "software",
       price: "0.00", featuredImage: "", demoUrl: "", downloadUrl: "",
       documentationUrl: "", features: "", requirements: "", tags: "",
+      serviceAddons: [],
     },
   });
 
@@ -3247,6 +3255,18 @@ export default function AdminMaster() {
                     <p className="text-xs text-gray-500 mt-0.5">Find businesses on Google & directories worldwide, find creators, AI growth reports, WhatsApp / Call / SMS hub & bulk SMS</p>
                   </div>
                   <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                </div>
+              </a>
+              <a href="/admin/spotlight" className="group" data-testid="link-admin-spotlight">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-amber-500/30 hover:border-amber-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-amber-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                    <Star className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">Spotlight Manager</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Curate featured products, campaigns, courses, services, P2P, and ads across the feed and top pages</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-amber-400 transition-colors flex-shrink-0" />
                 </div>
               </a>
             </div>
@@ -5515,8 +5535,12 @@ export default function AdminMaster() {
                         <Textarea {...shopProductForm.register("description")} rows={4} placeholder="Detailed product description..." />
                       </div>
                       <div className="col-span-2">
-                        <Label>Featured Image URL</Label>
-                        <Input {...shopProductForm.register("featuredImage")} placeholder="https://..." />
+                        <Label>Featured Image (upload from device)</Label>
+                        <ImageUpload
+                          value={shopProductForm.watch("featuredImage")}
+                          onChange={(url) => shopProductForm.setValue("featuredImage", url)}
+                          testId="product-featured-image"
+                        />
                       </div>
                       <div className="flex items-center gap-3 p-3 border rounded-lg col-span-2">
                         <Switch checked={shopProductForm.watch("isFree")} onCheckedChange={(v) => shopProductForm.setValue("isFree", v)} />
@@ -5567,6 +5591,97 @@ export default function AdminMaster() {
                         <Label>Active (Visible in shop)</Label>
                       </div>
                     </div>
+
+                    {/* ── Upsells / Service Addons ──────────────────────────────── */}
+                    <div className="border-2 border-dashed border-amber-300 rounded-lg p-4 bg-amber-50/50 dark:bg-amber-900/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-base font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                            <Plus className="w-4 h-4" /> Upsells & Addons
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-1">Optional extras buyers can add at checkout (e.g. priority support, extras, faster delivery).</p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const cur = shopProductForm.watch("serviceAddons") || [];
+                            shopProductForm.setValue("serviceAddons", [...cur, { id: crypto.randomUUID(), title: "", description: "", price: 0 }]);
+                          }}
+                          data-testid="button-add-addon"
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> Add Addon
+                        </Button>
+                      </div>
+
+                      {(shopProductForm.watch("serviceAddons") || []).length === 0 ? (
+                        <p className="text-xs text-center text-gray-400 py-4">No addons yet — click "Add Addon" to create upsells for this product.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(shopProductForm.watch("serviceAddons") || []).map((addon: any, idx: number) => (
+                            <div key={addon.id} className="grid grid-cols-12 gap-2 items-start p-3 bg-white dark:bg-gray-900 rounded-lg border" data-testid={`row-addon-${idx}`}>
+                              <div className="col-span-5">
+                                <Label className="text-xs">Title</Label>
+                                <Input
+                                  value={addon.title}
+                                  onChange={(e) => {
+                                    const cur = [...(shopProductForm.watch("serviceAddons") || [])];
+                                    cur[idx] = { ...cur[idx], title: e.target.value };
+                                    shopProductForm.setValue("serviceAddons", cur);
+                                  }}
+                                  placeholder="e.g. Priority Support"
+                                  data-testid={`input-addon-title-${idx}`}
+                                />
+                              </div>
+                              <div className="col-span-5">
+                                <Label className="text-xs">Description</Label>
+                                <Input
+                                  value={addon.description}
+                                  onChange={(e) => {
+                                    const cur = [...(shopProductForm.watch("serviceAddons") || [])];
+                                    cur[idx] = { ...cur[idx], description: e.target.value };
+                                    shopProductForm.setValue("serviceAddons", cur);
+                                  }}
+                                  placeholder="What's included"
+                                  data-testid={`input-addon-description-${idx}`}
+                                />
+                              </div>
+                              <div className="col-span-1">
+                                <Label className="text-xs">Price</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={addon.price}
+                                  onChange={(e) => {
+                                    const cur = [...(shopProductForm.watch("serviceAddons") || [])];
+                                    cur[idx] = { ...cur[idx], price: parseFloat(e.target.value) || 0 };
+                                    shopProductForm.setValue("serviceAddons", cur);
+                                  }}
+                                  placeholder="0.00"
+                                  data-testid={`input-addon-price-${idx}`}
+                                />
+                              </div>
+                              <div className="col-span-1 flex items-end h-full pt-5">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    const cur = [...(shopProductForm.watch("serviceAddons") || [])];
+                                    shopProductForm.setValue("serviceAddons", cur.filter((_: any, i: number) => i !== idx));
+                                  }}
+                                  data-testid={`button-remove-addon-${idx}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex gap-3 pt-2">
                       <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white flex-1" disabled={saveProductMutation.isPending}>
                         {saveProductMutation.isPending ? "Saving..." : editingProduct ? "Update Product" : "Add Product"}

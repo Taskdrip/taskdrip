@@ -268,6 +268,8 @@ export function Footer() {
                   <li><Link href="/blog" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-blog"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Blog & Updates</Link></li>
                   <li><a href="mailto:support@taskdrip.online" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Mail className="h-4 w-4 mr-2 flex-shrink-0" />support@taskdrip.online</a></li>
                   <li><a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Phone className="h-4 w-4 mr-2 flex-shrink-0" />{SOCIALS.whatsappNumber}</a></li>
+                  <li><Link href="/docs" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-docs"><BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />Documentation</Link></li>
+                  <li><Link href="/roadmap" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm font-medium text-amber-300 hover:text-amber-200" data-testid="link-footer-roadmap"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />$TDRIP Roadmap</Link></li>
                 </ul>
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">

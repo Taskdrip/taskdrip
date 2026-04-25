@@ -2132,3 +2132,17 @@ export type AutoBlogJob = typeof autoBlogJobs.$inferSelect;
 export type AutoBloggerSettings = typeof autoBloggerSettings.$inferSelect;
 export const insertKeywordTrackerSchema = createInsertSchema(keywordTrackers).omit({ id: true, createdAt: true, lastRefreshedAt: true });
 export const insertAutoBlogSourceSchema = createInsertSchema(autoBlogSources).omit({ id: true, createdAt: true, lastRunAt: true });
+
+// ── Page Hero Backgrounds (admin-controlled hero bg images per page) ───────
+export const pageHeroBackgrounds = pgTable("page_hero_backgrounds", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  page: varchar("page").notNull().unique(), // 'feed' | 'shop' | 'campaigns' | etc.
+  imageUrl: varchar("image_url").notNull(),
+  overlayOpacity: integer("overlay_opacity").default(60), // 0-100
+  isActive: boolean("is_active").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPageHeroBackgroundSchema = createInsertSchema(pageHeroBackgrounds).omit({ id: true, updatedAt: true });
+export type InsertPageHeroBackground = z.infer<typeof insertPageHeroBackgroundSchema>;
+export type PageHeroBackground = typeof pageHeroBackgrounds.$inferSelect;
