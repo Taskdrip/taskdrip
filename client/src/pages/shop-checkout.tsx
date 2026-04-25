@@ -900,14 +900,28 @@ export default function ShopCheckout() {
           const addonSummary = chosenAddons.length > 0
             ? `\n• Add-ons: ${chosenAddons.map((a) => `${a.title} ($${Number(a.price).toFixed(2)})`).join(", ")}`
             : "";
+          const productTypeMsg: Record<string, string> = {
+            service: "a service",
+            template: "a template/design pack",
+            course: "a course or training guide",
+            software: "software",
+            scripts: "an automation script",
+            plugins: "a plugin or extension",
+            tools: "a digital tool",
+            education: "a training guide",
+            physical: "a physical product",
+          };
+          const typeLabel = productTypeMsg[(product as any).type as string] ?? "a product";
+          const txHashLine = txHash.trim() ? `\n🔗 Payment Hash: ${txHash.trim()}` : "";
+          const totalLabel = product.isFree && addonsTotal === 0 ? "FREE" : `$${grandTotal.toFixed(2)}`;
           const whatsappMsg = encodeURIComponent(
-            `Hi Taskdrip team! 🌟\n\n` +
-            `I just placed an order on the Taskdrip shop and wanted to follow up:\n\n` +
-            `• Order ID: ${orderRef}\n` +
-            `• Product: ${product.title}\n` +
-            `• Amount: $${grandTotal.toFixed(2)}\n` +
-            `• Payment: ${selectedMethod?.label || "Manual review"}${addonSummary}\n\n` +
-            `Please save my number and add me as "taskdrip" so we can stay in touch about my order.\n\nThanks!`
+            `Hi Taskdrip! 👋\n\n` +
+            `I just purchased ${typeLabel} from the Taskdrip marketplace:\n\n` +
+            `📦 Order ID: #${orderRef}\n` +
+            `🛒 Item: ${product.title}${addonSummary}\n` +
+            `💰 Total: ${totalLabel}\n` +
+            `💳 Payment: ${selectedMethod?.label || "Manual review"}${txHashLine}\n\n` +
+            `Please confirm once payment is verified. Thanks! 🙏`
           );
           const whatsappUrl = `${SOCIALS.whatsapp}?text=${whatsappMsg}`;
 

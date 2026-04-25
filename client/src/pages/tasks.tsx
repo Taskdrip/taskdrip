@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
+import { Spotlight } from "@/components/Spotlight";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -752,6 +753,10 @@ export default function TasksPage() {
             ))}
           </div>
         </section>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Spotlight page="campaigns" title="Spotlight Picks" subtitle="Campaigns, products & more curated by our team" variant="row" />
       </div>
 
       <GuideBot isAuthenticated={isAuthenticated} />

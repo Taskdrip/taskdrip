@@ -393,16 +393,19 @@ function EnrollmentPaymentDialog({ enrollment, onApprove, approving }: { enrollm
 const PAGE_TARGETS = [
   { value: "all", label: "All Pages" },
   { value: "landing", label: "Landing Page" },
-  { value: "campaigns", label: "Campaigns" },
+  { value: "feed", label: "Feed" },
   { value: "shop", label: "Shop" },
-  { value: "breedskool", label: "BreedSkool (Courses)" },
-  { value: "p2p", label: "P2P Market" },
-  { value: "influencers", label: "Influencers" },
+  { value: "products", label: "Products / Brands" },
+  { value: "services", label: "Services" },
+  { value: "campaigns", label: "Campaigns / Tasks" },
+  { value: "courses", label: "Courses (BreedSkool)" },
+  { value: "ads", label: "Ads" },
+  { value: "p2p", label: "P2P Hub" },
+  { value: "blog", label: "Blog" },
+  { value: "influencers", label: "Influencer Discovery" },
   { value: "influencer-profile", label: "Influencer Profiles" },
   { value: "brand-profile", label: "Brand Profiles" },
-  { value: "tasks", label: "Tasks" },
   { value: "dashboard", label: "Dashboard" },
-  { value: "feed", label: "Feed / Blog" },
 ];
 
 const sliderFormSchema = z.object({

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
+import { Spotlight } from "@/components/Spotlight";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1223,6 +1224,10 @@ export default function Influencers() {
 
       {/* ── AI Comparison Modal ── */}
       <CompareModal open={showCompare} onClose={() => setShowCompare(false)} selectedIds={selectedIds} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Spotlight page="influencers" title="Spotlight on Taskdrip" subtitle="Campaigns, services & products you'll love" variant="row" />
+      </div>
 
       <Footer />
     </div>

@@ -394,7 +394,23 @@ export default function DirectHirePayment() {
                 >
                   <MessageCircle className="w-4 h-4" /> Message Admin
                 </button>
-                <a href="https://wa.me/12016800266" target="_blank" rel="noreferrer"
+                <a
+                  href={(() => {
+                    const txLine = offer.transactionHash ? `\n🔗 Payment Hash: ${offer.transactionHash}` : "";
+                    const influencerName = offer.influencer ? `${offer.influencer.firstName || ""} ${offer.influencer.lastName || ""}`.trim() || offer.influencer.username : "N/A";
+                    const msg = encodeURIComponent(
+                      `Hi Taskdrip! 👋\n\n` +
+                      `I just submitted payment for a direct hire project:\n\n` +
+                      `🤝 Influencer: ${influencerName}\n` +
+                      `💼 Project: ${offer.description?.slice(0, 80) || "Direct hire project"}\n` +
+                      `💰 Budget: $${Number(offer.budget || 0).toFixed(2)}\n` +
+                      `💳 Payment: USDT – Tron (TRC-20)${txLine}\n` +
+                      `📌 Offer ID: ${(offer.id || "").slice(0, 8).toUpperCase()}\n\n` +
+                      `Please verify my payment and activate the project. Thanks! 🙏`
+                    );
+                    return `https://wa.me/12016800266?text=${msg}`;
+                  })()}
+                  target="_blank" rel="noreferrer"
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-2.5 text-sm font-medium">
                   <Phone className="w-4 h-4" /> WhatsApp Support
                 </a>

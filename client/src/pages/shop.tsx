@@ -19,6 +19,7 @@ import {
   Lock, Repeat2, ArrowUpRight
 } from "lucide-react";
 import type { ShopProduct } from "@shared/schema";
+import { Spotlight } from "@/components/Spotlight";
 
 const CATEGORIES = [
   { value: "all", label: "All Products", icon: Package },
@@ -883,6 +884,10 @@ export default function Shop() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Spotlight page="shop" title="Featured on Taskdrip" subtitle="Handpicked by our team" variant="row" />
       </div>
 
       <Footer />

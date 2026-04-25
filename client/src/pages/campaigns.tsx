@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Filter } from "lucide-react";
 import { AdSlot } from "@/components/ui/ad-slot";
 import { AdPopupZone } from "@/components/ui/ad-popup";
+import { Spotlight } from "@/components/Spotlight";
 
 export default function Campaigns() {
   const { toast } = useToast();
@@ -173,6 +174,11 @@ export default function Campaigns() {
       </div>
       
       <AdSlot page="campaigns" placementType="banner_bottom" className="w-full" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Spotlight page="campaigns" title="Spotlight Opportunities" subtitle="Curated by Taskdrip" variant="row" />
+      </div>
+
       <Footer />
     </div>
   );

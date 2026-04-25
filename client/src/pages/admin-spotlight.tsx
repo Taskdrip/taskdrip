@@ -30,15 +30,17 @@ const ITEM_TYPES = [
 
 const PAGES = [
   { value: "all", label: "All Pages" },
-  { value: "landing", label: "Landing" },
+  { value: "landing", label: "Landing Page" },
   { value: "feed", label: "Feed" },
   { value: "shop", label: "Shop" },
-  { value: "products", label: "Products" },
+  { value: "products", label: "Products / Brands" },
   { value: "services", label: "Services" },
-  { value: "campaigns", label: "Campaigns" },
-  { value: "courses", label: "Courses" },
+  { value: "campaigns", label: "Campaigns / Tasks" },
+  { value: "courses", label: "Courses (BreedSkool)" },
   { value: "ads", label: "Ads" },
   { value: "p2p", label: "P2P Hub" },
+  { value: "blog", label: "Blog" },
+  { value: "influencers", label: "Influencer Discovery" },
 ];
 
 const EMPTY: any = {

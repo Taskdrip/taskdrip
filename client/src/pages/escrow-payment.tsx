@@ -534,7 +534,19 @@ export default function EscrowPayment() {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a
-                    href="https://wa.me/12016800266"
+                    href={(() => {
+                      const txLine = (escrowPayment as any).transactionHash ? `\n🔗 Payment Hash: ${(escrowPayment as any).transactionHash}` : "";
+                      const msg = encodeURIComponent(
+                        `Hi Taskdrip! 👋\n\n` +
+                        `I just funded my influencer campaign and submitted payment proof:\n\n` +
+                        `📋 Campaign: ${campaignDetails?.title || "N/A"}\n` +
+                        `💰 Amount: $${Number(escrowPayment.amount).toFixed(2)}\n` +
+                        `💳 Payment: USDT – Tron (TRC-20)${txLine}\n` +
+                        `📌 Payment ID: ${(escrowPayment as any).id?.slice(0, 8)?.toUpperCase() || "N/A"}\n\n` +
+                        `Please verify and activate my campaign. Thanks! 🙏`
+                      );
+                      return `https://wa.me/12016800266?text=${msg}`;
+                    })()}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 transition-colors font-medium"
