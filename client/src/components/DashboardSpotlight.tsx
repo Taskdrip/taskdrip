@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight, ChevronLeft, ChevronRight, Megaphone, Star, ShoppingBag, GraduationCap, Briefcase, Wallet } from "lucide-react";
+import { Sparkles, ArrowRight, ChevronLeft, ChevronRight, Megaphone, Star, ShoppingBag, GraduationCap, Briefcase, Wallet, BadgeCheck } from "lucide-react";
 import type { SpotlightItem, SponsoredAd } from "@shared/schema";
 
 interface DashboardSpotlightProps {
@@ -195,27 +195,29 @@ export function DashboardSpotlight({
     return out;
   }, [spotlightItems, ads, autoProducts, autoCourses, autoCampaigns, autoP2P]);
 
+  const [, setLocation] = useLocation();
   const [active, setActive] = useState(0);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const [fading, setFading] = useState(false);
   const pausedRef = useRef(false);
+  const total = slides.length;
+
+  const goTo = useCallback((idx: number) => {
+    if (fading || total <= 1) return;
+    setFading(true);
+    setTimeout(() => { setActive(((idx % total) + total) % total); setFading(false); }, 220);
+  }, [fading, total]);
+
+  const next = useCallback(() => goTo((active + 1) % Math.max(total, 1)), [active, total, goTo]);
+  const prev = useCallback(() => goTo((active - 1 + Math.max(total, 1)) % Math.max(total, 1)), [active, total, goTo]);
 
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (total <= 1) return;
     const t = setInterval(() => {
       if (pausedRef.current) return;
-      setActive((cur) => (cur + 1) % slides.length);
-    }, 5000);
+      next();
+    }, 5500);
     return () => clearInterval(t);
-  }, [slides.length]);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const child = track.children[active] as HTMLElement | undefined;
-    if (child) {
-      track.scrollTo({ left: child.offsetLeft - 8, behavior: "smooth" });
-    }
-  }, [active]);
+  }, [next, total]);
 
   const recordImpression = (slide: SlideItem) => {
     if (slide.kind === "ad") {
@@ -253,132 +255,166 @@ export function DashboardSpotlight({
 
   if (slides.length === 0) return null;
 
-  const next = () => setActive((c) => (c + 1) % slides.length);
-  const prev = () => setActive((c) => (c - 1 + slides.length) % slides.length);
+  const slide = slides[active];
+  const meta = TYPE_LABEL[slide.itemType] || TYPE_LABEL.custom;
+  const Icon = meta.icon;
+
+  const handlePause = () => { pausedRef.current = true; };
+  const handleResume = () => { pausedRef.current = false; };
+
+  const handleSlideClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    recordClick(slide);
+    if (slide.link) {
+      const isExternal = /^https?:\/\//.test(slide.link);
+      if (isExternal) {
+        window.open(slide.link, "_blank", "noopener,noreferrer");
+      } else {
+        setLocation(slide.link);
+      }
+    }
+  };
 
   return (
     <section
-      className={`relative ${className}`}
+      className={`relative mb-2 ${className}`}
       data-testid={`dashboard-spotlight-${page}`}
-      onMouseEnter={() => { pausedRef.current = true; }}
-      onMouseLeave={() => { pausedRef.current = false; }}
     >
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-            <Sparkles className="w-4.5 h-4.5 text-white" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white" data-testid={`spotlight-heading-${page}`}>
-              Spotlight & Featured
-            </h2>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">Hand-picked products, services, courses, P2P deals & ads</p>
-          </div>
+      <div className="flex items-center gap-2 mb-4 px-1">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+          <Sparkles className="w-5 h-5 text-white" />
         </div>
-        <div className="hidden sm:flex items-center gap-1.5">
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={prev} data-testid={`spotlight-prev-${page}`}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={next} data-testid={`spotlight-next-${page}`}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        <div className="flex-1">
+          <h2 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white" data-testid={`spotlight-heading-${page}`}>
+            {title}
+          </h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">{subtitle}</p>
         </div>
+        {total > 1 && <span className="text-xs text-gray-400">{total} featured</span>}
       </div>
 
       <div
-        ref={trackRef}
-        className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth scrollbar-hide"
-        style={{ scrollbarWidth: "none" }}
+        className="relative rounded-[2rem] overflow-hidden cursor-pointer group min-h-[280px] sm:min-h-[310px] shadow-2xl shadow-indigo-200/70 dark:shadow-black/40 select-none"
+        onClick={handleSlideClick}
+        onMouseEnter={handlePause}
+        onMouseLeave={handleResume}
+        onTouchStart={handlePause}
+        onTouchEnd={handleResume}
+        onTouchCancel={handleResume}
+        onPointerDown={handlePause}
+        onPointerUp={handleResume}
+        onPointerLeave={handleResume}
+        onPointerCancel={handleResume}
+        data-testid={`spotlight-slide-${slide.id}`}
       >
-        {slides.map((slide, i) => {
-          const meta = TYPE_LABEL[slide.itemType] || TYPE_LABEL.custom;
-          const Icon = meta.icon;
-          const isActive = i === active;
-
-          const card = (
-            <div
-              className={`relative shrink-0 snap-start w-[88%] sm:w-[58%] md:w-[44%] lg:w-[32%] rounded-2xl overflow-hidden border transition-all duration-300 cursor-pointer group ${
-                isActive
-                  ? "border-amber-400 shadow-2xl shadow-amber-500/20 scale-100"
-                  : "border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5"
-              }`}
-              data-testid={`spotlight-slide-${slide.id}`}
-              onClick={() => { recordClick(slide); }}
-            >
-              {/* Image / hero */}
-              <div className={`relative aspect-[16/9] bg-gradient-to-br ${meta.color}`}>
-                {slide.image ? (
-                  <img src={slide.image} alt={slide.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Icon className="w-16 h-16 text-white/40" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                  <Badge className="bg-white/90 text-gray-900 hover:bg-white text-[10px] font-bold uppercase tracking-wide shadow">
-                    <Icon className="w-3 h-3 mr-1" /> {meta.label}
-                  </Badge>
-                  {slide.badge && (
-                    <Badge className={`${slide.kind === "ad" ? "bg-fuchsia-500" : "bg-red-500"} text-white border-0 text-[10px] font-bold shadow`}>
-                      {slide.badge}
-                    </Badge>
-                  )}
-                </div>
-                <div className="absolute bottom-3 left-3 right-3">
-                  <h3 className="text-white text-base sm:text-lg font-extrabold line-clamp-1 drop-shadow" data-testid={`spotlight-slide-title-${slide.id}`}>
-                    {slide.title}
-                  </h3>
-                  {slide.description && (
-                    <p className="text-white/80 text-xs line-clamp-1 mt-0.5">{slide.description}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* CTA strip */}
-              <div className="bg-white dark:bg-gray-900 px-4 py-2.5 flex items-center justify-between">
-                <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                  {slide.kind === "ad" ? "Sponsored" : "Editor's pick"}
-                </div>
-                <Button size="sm" className="h-7 text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 px-3" data-testid={`spotlight-cta-${slide.id}`}>
-                  View
-                  <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </div>
-            </div>
-          );
-
-          if (slide.link) {
-            const isExternal = /^https?:\/\//.test(slide.link);
-            if (isExternal) {
-              return (
-                <a key={slide.id} href={slide.link} target="_blank" rel="noopener noreferrer" className="contents" onClick={() => recordClick(slide)}>
-                  {card}
-                </a>
-              );
-            }
-            return (
-              <Link key={slide.id} href={slide.link} className="contents" onClick={() => recordClick(slide)}>
-                {card}
-              </Link>
-            );
-          }
-          return <div key={slide.id} className="contents">{card}</div>;
-        })}
-      </div>
-
-      {/* Dots */}
-      <div className="flex items-center justify-center gap-1.5 mt-2">
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={`h-1.5 rounded-full transition-all ${i === active ? "w-6 bg-amber-500" : "w-1.5 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400"}`}
-            data-testid={`spotlight-dot-${page}-${i}`}
-            aria-label={`Slide ${i + 1}`}
+        <div className={`absolute inset-0 bg-gradient-to-br ${meta.color}`} />
+        {slide.image && (
+          <img
+            src={slide.image}
+            alt={slide.title}
+            className={`absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-65 transition-all duration-500 group-hover:scale-105 ${fading ? "opacity-0" : ""}`}
+            data-testid={`img-spotlight-${slide.id}`}
           />
-        ))}
+        )}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28),transparent_32%),linear-gradient(90deg,rgba(15,23,42,0.92),rgba(49,46,129,0.72),rgba(15,23,42,0.18))]" />
+
+        <div className={`relative p-6 md:p-10 min-h-[280px] sm:min-h-[310px] grid md:grid-cols-[1.1fr_0.9fr] gap-6 md:gap-8 items-end transition-opacity duration-300 ${fading ? "opacity-0" : "opacity-100"}`}>
+          <div>
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <Badge className="bg-yellow-400 text-yellow-950 hover:bg-yellow-400 font-bold text-xs px-3 py-1">
+                <Icon className="w-3 h-3 mr-1" /> {meta.label}
+              </Badge>
+              {slide.badge && (
+                <Badge className={`${slide.kind === "ad" ? "bg-fuchsia-500 hover:bg-fuchsia-500" : "bg-red-500 hover:bg-red-500"} text-white text-xs font-bold`}>
+                  {slide.badge}
+                </Badge>
+              )}
+              <Badge className="bg-white/20 text-white border border-white/30 text-xs hover:bg-white/20">
+                {slide.kind === "ad" ? "Sponsored" : "Editor's pick"}
+              </Badge>
+            </div>
+            <h2
+              className="text-2xl md:text-3xl font-extrabold text-white mb-2 max-w-2xl leading-tight line-clamp-2"
+              data-testid={`spotlight-slide-title-${slide.id}`}
+            >
+              {slide.title}
+            </h2>
+            {slide.description && (
+              <p className="text-white/80 text-sm max-w-xl line-clamp-2 mb-4">{slide.description}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-4 mb-5">
+              <span className="text-white/70 text-sm flex items-center gap-1">
+                <BadgeCheck className="w-4 h-4" /> Hand-picked by Taskdrip
+              </span>
+            </div>
+            {slide.link ? (
+              /^https?:\/\//.test(slide.link) ? (
+                <a
+                  href={slide.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { e.stopPropagation(); recordClick(slide); }}
+                >
+                  <Button
+                    className="bg-white text-gray-900 hover:bg-yellow-50 font-bold px-6 rounded-xl shadow-lg"
+                    data-testid={`spotlight-cta-${slide.id}`}
+                  >
+                    View {meta.label} <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </a>
+              ) : (
+                <Link href={slide.link} onClick={(e) => { e.stopPropagation(); recordClick(slide); }}>
+                  <Button
+                    className="bg-white text-gray-900 hover:bg-yellow-50 font-bold px-6 rounded-xl shadow-lg"
+                    data-testid={`spotlight-cta-${slide.id}`}
+                  >
+                    View {meta.label} <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </Link>
+              )
+            ) : null}
+          </div>
+          <div className="hidden md:block">
+            <div className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-md p-5 text-white shadow-2xl">
+              <p className="text-xs uppercase tracking-[0.25em] text-white/50 mb-3">Spotlight</p>
+              <h3 className="text-xl font-bold mb-2">Discover hand-picked drops curated by the Taskdrip team.</h3>
+              <p className="text-sm text-white/70">Tap any card to dive in — autoplay pauses while you explore.</p>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {total > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button
+            onClick={(e) => { e.stopPropagation(); prev(); }}
+            className="w-10 h-10 rounded-full bg-white dark:bg-gray-900 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+            data-testid={`spotlight-prev-${page}`}
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex gap-2">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => { e.stopPropagation(); goTo(i); }}
+                className={`h-2 rounded-full transition-all duration-300 ${i === active ? "w-6 bg-violet-600" : "w-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400"}`}
+                data-testid={`spotlight-dot-${page}-${i}`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); next(); }}
+            className="w-10 h-10 rounded-full bg-white dark:bg-gray-900 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all"
+            data-testid={`spotlight-next-${page}`}
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </section>
   );
 }
