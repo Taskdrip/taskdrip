@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
+import { DashboardSpotlight } from "@/components/DashboardSpotlight";
 
 // ── Level helpers ──────────────────────────────────────────────────────────────
 function getLevelConfig(level: string) {
@@ -304,6 +305,11 @@ export default function SimpleDashboard() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* ── Spotlight & Featured ────────────────────────────────────────── */}
+        <div className="mb-5">
+          <DashboardSpotlight page="influencer_dashboard" />
         </div>
 
         {/* ── Alerts / Urgent Actions ──────────────────────────────────────── */}

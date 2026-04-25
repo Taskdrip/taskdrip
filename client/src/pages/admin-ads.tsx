@@ -34,6 +34,8 @@ const PLACEMENTS = [
   { value: "breedskool", label: "BreedSkool", icon: BookOpen, description: "Inside the courses section" },
   { value: "campaigns", label: "Campaigns", icon: Target, description: "Inside the campaigns listing" },
   { value: "between_content", label: "Between Content", icon: Globe, description: "Injected between page sections" },
+  { value: "brand_dashboard", label: "Brand Dashboard Spotlight", icon: Monitor, description: "Slides inside the brand dashboard spotlight" },
+  { value: "influencer_dashboard", label: "Influencer Dashboard Spotlight", icon: Monitor, description: "Slides inside the influencer dashboard spotlight" },
 ];
 
 const EMPTY_AD = {

@@ -41,6 +41,8 @@ const PAGES = [
   { value: "p2p", label: "P2P Hub" },
   { value: "blog", label: "Blog" },
   { value: "influencers", label: "Influencer Discovery" },
+  { value: "brand_dashboard", label: "Brand Dashboard" },
+  { value: "influencer_dashboard", label: "Influencer Dashboard" },
 ];
 
 const EMPTY: any = {

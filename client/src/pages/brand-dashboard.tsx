@@ -26,6 +26,8 @@ import {
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
 import { WelcomeCampaign } from "@/components/ui/welcome-campaign";
+import { DashboardSpotlight } from "@/components/DashboardSpotlight";
+import { InlineTdripTopup } from "@/components/InlineTdripTopup";
 
 interface Campaign {
   id: string;
@@ -850,6 +852,11 @@ export default function BrandDashboard() {
           </div>
         </div>
 
+        {/* Spotlight & Featured */}
+        <div className="mb-5">
+          <DashboardSpotlight page="brand_dashboard" />
+        </div>
+
         {/* Alerts */}
         {urgentCount > 0 && (
           <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-4">
@@ -1252,19 +1259,15 @@ export default function BrandDashboard() {
                                             <p className="font-semibold text-amber-900 mb-2">
                                               You need <b>{shortfall.toLocaleString()} more $TDRIP</b> to escrow this task.
                                             </p>
-                                            <Link href={`/wallet?topup=${shortfall}&tab=topup#tdrip-topup`}>
-                                              <Button
-                                                size="sm"
-                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold"
-                                                data-testid={`button-topup-from-micro-task-${campaign.id}`}
-                                              >
-                                                <Coins className="h-3.5 w-3.5 mr-1.5" />
-                                                Top up {shortfall.toLocaleString()} $TDRIP now
-                                              </Button>
-                                            </Link>
                                           </div>
                                         )}
                                       </div>
+                                      {insufficient && (
+                                        <InlineTdripTopup
+                                          suggestedPoints={shortfall}
+                                          testIdPrefix={`micro-task-topup-${campaign.id}`}
+                                        />
+                                      )}
                                       <Button
                                         className="w-full bg-violet-600 hover:bg-violet-700"
                                         onClick={() => createMicroTaskMutation.mutate({ campaignId: campaign.id, data: microTaskDrafts[campaign.id] || {} })}
