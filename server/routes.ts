@@ -3000,18 +3000,18 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
 
   // Admin user management routes
-  app.get('/api/admin/users', async (req: any, res) => {
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      
+
       const user = await storage.getUser(userId);
       if (!user || user.userType !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
       const users = await storage.getAllUsers();
-      res.json(users.map(({ password: _pw, twoFactorSecret: _tfs, ...u }) => u));
+      res.json(users.map(({ password: _pw, twoFactorSecret: _tfs, ...u }: any) => u));
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
@@ -3195,32 +3195,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // Admin routes (protected)
-  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const adminUser = await storage.getUser(userId);
-      
-      if (adminUser?.userType !== 'admin') {
-        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-      }
-
-      const users = await storage.getAllUsers();
-      res.json(users);
-    } catch (error) {
-      console.error('Error fetching admin users:', error);
-      res.status(500).json({ message: 'Failed to fetch users' });
-    }
-  });
-
   // Admin: get ALL blog posts including drafts
   app.get('/api/admin/blog', isAuthenticated, async (req: any, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
       if (!canManageContent(adminUser)) return res.status(403).json({ message: 'Access denied' });
-      const allPosts = await storage.getAllBlogPostsAdmin ? (storage as any).getAllBlogPostsAdmin() : storage.getAllBlogPosts();
-      res.json(await allPosts);
+      const allPosts = typeof (storage as any).getAllBlogPostsAdmin === 'function'
+        ? await (storage as any).getAllBlogPostsAdmin()
+        : await storage.getAllBlogPosts();
+      res.json(allPosts);
     } catch (error) {
+      console.error('Error fetching admin blog posts:', error);
       res.status(500).json({ message: 'Failed to fetch blog posts' });
     }
   });

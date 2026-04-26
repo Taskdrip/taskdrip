@@ -813,7 +813,7 @@ export default function CreatorProfile() {
                           {isFollowing ? <><UserCheck className="w-4 h-4 mr-1.5" />Following</> : <><UserPlus className="w-4 h-4 mr-1.5" />Follow</>}
                         </Button>
                         {canMessage && (
-                          <Button variant="outline" onClick={() => navigate(`/chat?to=${id}`)}
+                          <Button variant="outline" onClick={() => navigate(`/messages?to=${id}`)}
                             className="border-purple-200 text-purple-600 hover:bg-purple-50" data-testid="message-btn">
                             <MessageCircle className="w-4 h-4 mr-1.5" /> Message
                           </Button>

@@ -1562,22 +1562,16 @@ export class DatabaseStorage implements IStorage {
 
   async getUserFollowers(userId: string): Promise<User[]> {
     const follows = await db.select().from(userFollows).where(eq(userFollows.followingId, userId));
-    const result: User[] = [];
-    for (const f of follows) {
-      const [u] = await db.select().from(users).where(eq(users.id, f.followerId));
-      if (u) result.push(u);
-    }
-    return result;
+    if (follows.length === 0) return [];
+    const ids = follows.map(f => f.followerId);
+    return await db.select().from(users).where(inArray(users.id, ids));
   }
 
   async getUserFollowing(userId: string): Promise<User[]> {
     const follows = await db.select().from(userFollows).where(eq(userFollows.followerId, userId));
-    const result: User[] = [];
-    for (const f of follows) {
-      const [u] = await db.select().from(users).where(eq(users.id, f.followingId));
-      if (u) result.push(u);
-    }
-    return result;
+    if (follows.length === 0) return [];
+    const ids = follows.map(f => f.followingId);
+    return await db.select().from(users).where(inArray(users.id, ids));
   }
 
   // Blog interaction implementations
@@ -1706,12 +1700,14 @@ export class DatabaseStorage implements IStorage {
   // User Reviews
   async getUserReviews(userId: string): Promise<(UserReview & { reviewer: Partial<User> })[]> {
     const reviews = await db.select().from(userReviews).where(eq(userReviews.revieweeId, userId)).orderBy(desc(userReviews.createdAt));
-    const result: (UserReview & { reviewer: Partial<User> })[] = [];
-    for (const review of reviews) {
-      const [reviewer] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq(users.id, review.reviewerId));
-      result.push({ ...review, reviewer: reviewer || {} });
-    }
-    return result;
+    if (reviews.length === 0) return [];
+    const reviewerIds = Array.from(new Set(reviews.map(r => r.reviewerId)));
+    const reviewers = await db.select({
+      id: users.id, firstName: users.firstName, lastName: users.lastName,
+      username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType,
+    }).from(users).where(inArray(users.id, reviewerIds));
+    const reviewerMap = new Map(reviewers.map(r => [r.id, r]));
+    return reviews.map(r => ({ ...r, reviewer: reviewerMap.get(r.reviewerId) || {} }));
   }
 
   async createUserReview(review: { revieweeId: string; reviewerId: string; rating: number; comment?: string }): Promise<UserReview> {

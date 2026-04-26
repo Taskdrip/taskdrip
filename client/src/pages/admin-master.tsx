@@ -1983,7 +1983,7 @@ export default function AdminMaster() {
     defaultValues: {
       title: "",
       content: "",
-      status: "draft" as const,
+      status: "published" as const,
       category: "",
       featuredImage: "",
       excerpt: "",
