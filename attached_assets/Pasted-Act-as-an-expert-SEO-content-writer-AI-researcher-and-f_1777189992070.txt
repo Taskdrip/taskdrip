@@ -1,0 +1,126 @@
+Act as an expert SEO content writer, AI researcher, and full-stack developer.
+
+Your task is to:
+
+1. Crawl and analyze the MOST RECENT (2026) news, trends, and insights about:
+- Crypto
+- Web3
+- DeFi
+- Play-to-Earn Gaming
+- AI + Blockchain
+- RWA (tokenized real-world assets)
+- SaaS building & monetization
+- Making money online in 2026
+- Cybersecurity & crypto safety
+- SocialFi & influencer economy (include Taskdrip)
+
+Use real, up-to-date insights such as:
+- Web3 shifting from hype to real utility and infrastructure :contentReference[oaicite:0]{index=0}
+- Growth of tokenized assets and stablecoin payments :contentReference[oaicite:1]{index=1}
+- Rising crypto hacks and need for security awareness :contentReference[oaicite:2]{index=2}
+
+--------------------------------------------------
+
+2. Generate 12 UNIQUE, HUMAN-LIKE, SEO-OPTIMIZED ARTICLES
+
+Each article must:
+- Be 1200–1800 words
+- Be 100% original and natural (no AI tone)
+- Include storytelling + real insights
+- Be structured with:
+  - H1 title
+  - H2 & H3 headings
+  - bullet points
+  - conclusion + CTA
+
+--------------------------------------------------
+
+3. SEO OPTIMIZATION (VERY IMPORTANT)
+
+For each article, generate:
+- SEO title (high CTR)
+- Meta description (150–160 characters)
+- URL slug
+- Keywords list
+- Internal linking suggestions
+
+--------------------------------------------------
+
+4. IMAGE & MEDIA
+
+For each article:
+- Generate a FEATURED IMAGE (for blog homepage)
+- Add 3–5 relevant images inside content
+- Add alt-text for SEO
+- Ensure clean, modern, tech-style visuals
+
+--------------------------------------------------
+
+5. ARTICLE TOPICS (GENERATE THESE EXACTLY)
+
+1. Future of Web3 in 2026: From Hype to Real Utility  
+2. How to Make Money Online in 2026 (Proven Methods)  
+3. Beginner Guide to DeFi & Passive Income  
+4. Play-to-Earn Gaming: Is It Still Profitable in 2026?  
+5. AI + Blockchain: The Next Big Revolution  
+6. RWA Tokenization: How Real Assets Are Moving On-Chain  
+7. How to Build and Monetize SaaS Apps in 2026  
+8. How to Stay Safe from Hackers in Crypto & Web3  
+9. Top Crypto Trends Dominating 2026  
+10. SocialFi Explained: The Rise of Platforms Like Taskdrip  
+11. Building Passive Income with Digital Products  
+12. The Future of Creator Economy in Web3  
+
+--------------------------------------------------
+
+6. AUTO-PUBLISH SYSTEM
+
+After generating each article:
+- Automatically save to database
+- Assign category + tags
+- Attach featured image
+- Set SEO metadata
+- Publish to /blog route
+
+--------------------------------------------------
+
+7. ADMIN CONTROL
+
+Ensure:
+- Admin can edit ANY article
+- Update images, SEO, content
+- Add/remove posts
+- Toggle publish/unpublish
+
+--------------------------------------------------
+
+8. ADSENSE COMPLIANCE
+
+Ensure all articles:
+- Are valuable, informative, and original
+- Avoid spam or keyword stuffing
+- Include proper formatting and readability
+- Link internally across posts
+- Include privacy-friendly content
+
+--------------------------------------------------
+
+9. CONTENT STYLE
+
+- Human tone (not robotic)
+- Engaging + authoritative
+- Mix storytelling + data
+- Write like a top tech blog (Forbes-level quality)
+
+--------------------------------------------------
+
+FINAL GOAL:
+
+Create and publish 12 high-quality blog posts that:
+- Rank on Google
+- Get AdSense approval
+- Drive organic traffic
+- Position the platform as a Web3 authority
+- Convert readers into users
+
+Start immediately.

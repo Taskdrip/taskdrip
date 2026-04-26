@@ -1,8 +1,79 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "AwVB5BMvyukvHrHvJNGa_"
 uri = "file://attached_assets/generated_images/generated_image.png"
 type = "image"
 title = "generated_image"
+
+[[generated]]
+id = "o6EuQubK8Kr0pD-fkVaKX"
+uri = "file://attached_assets/blog/future-of-web3-2026.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "hSgTMA_NqO7wO1LThV6l6"
+uri = "file://attached_assets/blog/make-money-online-2026.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "asvukM1qc9op2b8DkiyOI"
+uri = "file://attached_assets/blog/defi-passive-income-beginner-guide.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "g84tDvwGy30e8KPsJBjuI"
+uri = "file://attached_assets/blog/play-to-earn-gaming-2026.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "za0oYcMFBuIndehtitdu2"
+uri = "file://attached_assets/blog/ai-blockchain-revolution-2026.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "KRFwfVIGH_WASGp13wNeE"
+uri = "file://attached_assets/blog/rwa-tokenization-real-world-assets.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "eYcT9eRTUaCj3UPWFv90O"
+uri = "file://attached_assets/blog/build-monetize-saas-2026.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "SFgdYfxaMdoSBgjJjHZXi"
+uri = "file://attached_assets/blog/crypto-web3-security-guide.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "jnkjFM_H0FdWmSL3TBNRJ"
+uri = "file://attached_assets/blog/top-crypto-trends-2026.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "K9gs3tTduqK0Xn4v7FcMG"
+uri = "file://attached_assets/blog/socialfi-taskdrip-creator-economy.png"
+type = "image"
+title = "generated_image"
+
+[[outputs]]
+id = "MEuV9bEQ69gSCVYOjJCSw"
+uri = "file://attached_assets/stock_images/future_creator_economy_web3.jpg"
+type = "image"
+title = "creator influencer with camera and microphone in modern studio, neon lights, futuristic web3 vibe"
+
+[[outputs]]
+id = "rWiYaOfFFaZnu1BJ_v88T"
+uri = "file://attached_assets/stock_images/passive_income_digital_products.jpg"
+type = "image"
+title = "ebook digital download laptop home office"
