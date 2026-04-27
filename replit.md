@@ -1,5 +1,25 @@
 # Overview
 
+## Recent Changes (April 2026 — Demo Lab + $700K Platform Earnings + Realistic Demo Seed)
+
+- **Admin Demo Lab tab** (new) — `client/src/components/admin/DemoLab.tsx`, registered in admin-master.tsx as the `demo-lab` tab. Lets admins:
+  - Allocate up to **10M followers** + custom following count to any user (auto-distributes across IG/X/TikTok/YouTube).
+  - Set or top-up a user's USD balance (presets: $500–$100K).
+  - Boost any feed post or blog post views/likes/comments.
+  - Set product sales/reviews/rating/likes and seed real review rows from fake users.
+  - Enroll up to 5,000 fake students into any course (with optional review seeding).
+  - Spawn up to 500 realistic fake users per batch.
+  - Make fake users actually follow a creator or like a post (real DB rows).
+- **Backend** — `server/admin-demo-routes.ts` registered in `server/routes.ts`. Admin-only guarded.
+- **Comprehensive seed** — `scripts/seed-demo-data.ts` (idempotent):
+  - 3 demo users (Tremendouslymax / Breedskooldigital / Breedskoolgalaxy) — 2.5M followers, 50 following, $15K balance each, password `DemoPass!2026`.
+  - **Exactly $700,000 verified platform earnings** via 10 admin-created completed campaigns with verified escrow (escrow_payments status='verified').
+  - 8 realistic shop products (Web3 Creator Toolkit, DeFi tracker, pitch decks, security guide, etc.).
+  - 8 P2P listings (USDT/USDC trades, services, NFT, hardware).
+  - Inline featured-image embedding into all 12 seeded blog articles (after 1st `</p>` and 2nd `</h2>`).
+- **Blog image fix** — `scripts/fix-blog-img-ext.ts` corrected 2 articles whose featuredImage pointed at `.jpg` (Vite catch-all silently returned HTML) to the actual `.png` files in `uploads/blog/`.
+- **DB push** — added new schema column `min_followers` on campaigns via `npm run db:push --force`.
+
 ## Recent Changes (April 2026 — Campaigns Redesign + Image/Micro-task Save Fixes)
 - **Campaigns Page Redesign** (`client/src/pages/campaigns.tsx`): New cinematic hero with `attached_assets/campaigns_hero.png` background, animated gradient blobs, glassmorphism stat pills (Active / Rewards / Categories / Open spots), and quick CTAs. Spotlight section now sits **above** the campaign grid in a floating glass card. Modernized search/filter card and "All Campaigns" section header with skeleton loaders.
 - **Campaign image upload fixed** (`server/routes.ts` + `client/src/pages/campaign-detail.tsx`): Removed duplicate PATCH/DELETE `/api/campaigns/:id` route registrations that were silently overriding the canonical handler. The active PATCH route now uses `upload.any()` and accepts the file under either `featureImage` or `featuredImage`. Frontend edit dialog and form schema unified to use `featureImage` (matching the DB column). Numeric/date fields are properly coerced from multipart form strings.

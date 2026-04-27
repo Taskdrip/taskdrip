@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link as RouterLink } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import DemoLab from "@/components/admin/DemoLab";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallets } from "@/hooks/useWallets";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,7 @@ const FULL_ADMIN_TABS = [
   "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
   "settings", "pwa", "hero-sliders", "payout-center", "content-editor", "leaderboard",
   "social-tasks", "transactions", "spotlight-content", "ad-networks", "feature-limits",
+  "demo-lab",
 ];
 
 const ROLE_TABS: Record<string, string[]> = {
@@ -3003,6 +3005,7 @@ export default function AdminMaster() {
                 { value: "social-tasks", icon: <Zap className="h-3.5 w-3.5" />, label: "Social Tasks" },
                 { value: "transactions", icon: <Coins className="h-3.5 w-3.5" />, label: "Transactions" },
                 { value: "feature-limits", icon: <Shield className="h-3.5 w-3.5" />, label: "Feature Limits" },
+                { value: "demo-lab", icon: <Zap className="h-3.5 w-3.5" />, label: "Demo Lab" },
               ].filter((tab) => allowedTabs.includes(tab.value)).map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -6791,6 +6794,10 @@ export default function AdminMaster() {
           {/* ── ALL TRANSACTIONS TAB ── */}
           <TabsContent value="transactions" className="space-y-6 pb-8">
             <AllTransactionsAdminPanel />
+          </TabsContent>
+
+          <TabsContent value="demo-lab" className="space-y-6 pb-8">
+            <DemoLab />
           </TabsContent>
 
           <TabsContent value="feature-limits" className="space-y-6 pb-8">
