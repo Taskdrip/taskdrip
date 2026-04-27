@@ -81,7 +81,7 @@ const campaignSchema = z.object({
   minFollowers: z.number().min(0, "Minimum followers must be 0 or more").optional(),
   tdripPointsPerParticipant: z.number().min(0).optional(),
   tdripParticipantLimit: z.number().min(0).optional(),
-  estimatedTime: z.string().min(1, "Estimated time is required"),
+  estimatedTime: z.string().optional(),
 });
 
 export default function BrandDashboard() {
@@ -414,7 +414,7 @@ export default function BrandDashboard() {
       totalSlots: 50,
       deadline: "",
       requirements: "",
-      estimatedTime: "",
+      estimatedTime: "1-2 days",
       preQualificationTask: "",
       qualificationRules: "First 100 qualified creators with 5,000+ followers can be accepted.",
       minFollowers: 0,

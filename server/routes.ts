@@ -1174,7 +1174,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const title = String(req.body.title || "").trim();
       const description = String(req.body.description || "").trim();
       const category = String(req.body.category || "").trim();
-      const estimatedTime = String(req.body.estimatedTime || "").trim();
+      const estimatedTime = String(req.body.estimatedTime || "").trim() || "1-2 days";
       const requirementsRaw = req.body.requirements;
       const requirements = Array.isArray(requirementsRaw)
         ? requirementsRaw.filter(Boolean)
@@ -1188,7 +1188,6 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (!title) missing.push("Title");
       if (!description) missing.push("Description");
       if (!category) missing.push("Category");
-      if (!estimatedTime) missing.push("Estimated time");
       if (requirements.length === 0) missing.push("Requirements");
       if (!Number.isFinite(rewardNum) || rewardNum < 1) missing.push("Reward (at least $1)");
       if (!Number.isFinite(totalSlotsNum) || totalSlotsNum < 1) missing.push("Total slots (at least 1)");
