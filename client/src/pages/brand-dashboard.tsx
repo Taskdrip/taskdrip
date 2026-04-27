@@ -430,24 +430,30 @@ export default function BrandDashboard() {
 
   const onCreateCampaign = (data: z.infer<typeof campaignSchema>) => {
     console.log("Form submission triggered with data:", data);
-    console.log("Form errors:", form.formState.errors);
-    console.log("Form valid:", form.formState.isValid);
-    
+
+    // Coerce any optional numeric fields that may have ended up NaN if the user
+    // cleared them (Number("") === NaN — fails Zod's z.number().min(0) check).
+    const safeData: any = {
+      ...data,
+      minFollowers: Number.isFinite(data.minFollowers as any) ? data.minFollowers : 0,
+      tdripPointsPerParticipant: Number.isFinite(data.tdripPointsPerParticipant as any) ? data.tdripPointsPerParticipant : 0,
+      tdripParticipantLimit: Number.isFinite(data.tdripParticipantLimit as any) ? data.tdripParticipantLimit : 0,
+    };
+
     // Ensure all required fields are filled
-    if (!data.title || !data.description || !data.category || !data.requirements) {
-      console.error("Missing required fields");
+    if (!safeData.title || !safeData.description || !safeData.category || !safeData.requirements) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
+        title: "Missing required fields",
+        description: "Please fill in title, description, category and requirements before submitting.",
         variant: "destructive",
       });
       return;
     }
-    
+
     // Get the uploaded file
     const fileInput = document.getElementById('campaign-image') as HTMLInputElement;
     const file = fileInput?.files?.[0];
-    
+
     const preQualificationTasks = campaignTasks
       .filter(t => t.task.trim())
       .map(t => ({
@@ -458,8 +464,8 @@ export default function BrandDashboard() {
         proofRequired: !!t.proofRequired,
         requiredProof: t.proofRequired ? "Profile link or screenshot" : undefined,
       }));
-    
-    createCampaignMutation.mutate({ ...data, preQualificationTasks, file } as any);
+
+    createCampaignMutation.mutate({ ...safeData, preQualificationTasks, file } as any);
   };
 
   const getStatusIcon = (status: string) => {
@@ -891,18 +897,23 @@ export default function BrandDashboard() {
                       <Button type="button" variant="outline" onClick={() => setIsCreateCampaignOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         disabled={createCampaignMutation.isPending}
                         className="bg-blue-600 hover:bg-blue-700"
                         onClick={(e) => {
-                          console.log("Create Campaign button clicked");
-                          console.log("Form state:", form.formState);
-                          console.log("Form values:", form.getValues());
-                          
-                          // Manually trigger form validation and submission
                           e.preventDefault();
-                          form.handleSubmit(onCreateCampaign)();
+                          form.handleSubmit(onCreateCampaign, (errors) => {
+                            const firstError = Object.values(errors)[0] as any;
+                            const firstField = Object.keys(errors)[0];
+                            toast({
+                              title: "Please fix the highlighted fields",
+                              description: firstError?.message
+                                ? `${firstField}: ${firstError.message}`
+                                : "Some required fields are missing or invalid.",
+                              variant: "destructive",
+                            });
+                          })();
                         }}
                       >
                         {createCampaignMutation.isPending ? "Creating..." : "Create Campaign"}

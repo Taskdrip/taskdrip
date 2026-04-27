@@ -1230,52 +1230,69 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const campaign = await storage.createCampaign(campaignData as any);
       console.log("Campaign created:", campaign);
 
-      // Auto-create $TDRIP micro tasks from any pre-qualification tasks that
-      // include an action link, auto-approve flag, or proof requirement so the
-      // brand can review per-task proof from their dashboard. Escrow is taken
-      // from the brand's $TDRIP wallet only when balance is sufficient.
+      // Auto-create add-on micro tasks for EVERY pre-qualification task the brand
+      // entered so they always sync with the campaign and show up on the
+      // campaign detail page. $TDRIP rewards are optional — if the brand set a
+      // per-participant point reward AND has enough balance, we escrow it and
+      // create the task with that reward; otherwise we still create the task
+      // with a 0 reward so creators can complete it for tracking/eligibility.
       try {
         const tdripPerTask = Math.floor(Number(tdripAddon.tdripPointsPerParticipant || 0));
         const tdripLimit = Math.floor(Number(tdripAddon.tdripParticipantLimit || 0));
-        const richTasks = (Array.isArray(preQualificationTasks) ? preQualificationTasks : [])
-          .filter((t: any) => t && (t.actionUrl || t.autoApprove || t.proofRequired));
-        if (richTasks.length > 0 && tdripPerTask > 0 && tdripLimit > 0) {
-          const escrowPerTask = tdripPerTask * tdripLimit;
-          const totalNeeded = escrowPerTask * richTasks.length;
-          const brandBalance = await storage.getUserTotalPoints(user.id);
-          if (brandBalance >= totalNeeded) {
-            for (const t of richTasks) {
-              const title = String(t.task || "Pre-qualification task").slice(0, 200);
-              const platform = t.platform ? `${t.platform}: ` : "";
-              const description = `${platform}${title}`;
-              const proofRequired = !!t.proofRequired && !t.autoApprove;
-              const autoApprove = !!t.autoApprove;
-              const actionUrl = t.actionUrl ? String(t.actionUrl).trim() : null;
+        const allTasks = (Array.isArray(preQualificationTasks) ? preQualificationTasks : [])
+          .filter((t: any) => t && (String(t.task || "").trim() || t.actionUrl));
+
+        if (allTasks.length > 0) {
+          let escrowPerTask = 0;
+          let useTdrip = false;
+
+          if (tdripPerTask > 0 && tdripLimit > 0) {
+            escrowPerTask = tdripPerTask * tdripLimit;
+            const totalNeeded = escrowPerTask * allTasks.length;
+            const brandBalance = await storage.getUserTotalPoints(user.id);
+            if (brandBalance >= totalNeeded) {
+              useTdrip = true;
+            } else {
+              console.log(
+                `[campaign ${campaign.id}] Brand has ${brandBalance} $TDRIP, needs ${totalNeeded}. Creating add-on tasks with 0 reward.`
+              );
+              escrowPerTask = 0;
+            }
+          }
+
+          const fallbackLimit = Math.max(1, Math.floor(Number(campaign.totalSlots) || 1));
+
+          for (const t of allTasks) {
+            const taskTitle = String(t.task || "Pre-qualification task").slice(0, 200);
+            const platform = t.platform ? `${t.platform}: ` : "";
+            const description = `${platform}${taskTitle}`;
+            const proofRequired = !!t.proofRequired && !t.autoApprove;
+            const autoApprove = !!t.autoApprove;
+            const actionUrl = t.actionUrl ? String(t.actionUrl).trim() : null;
+
+            if (useTdrip && escrowPerTask > 0) {
               await storage.awardPoints(
                 user.id,
                 "micro_task_escrow",
                 -escrowPerTask,
-                `$TDRIP escrow for pre-qualification task: ${title}`,
+                `$TDRIP escrow for pre-qualification task: ${taskTitle}`,
                 campaign.id,
               );
-              await db.insert(campaignMicroTasks).values({
-                campaignId: campaign.id,
-                brandId: user.id,
-                title,
-                description,
-                tdripReward: tdripPerTask,
-                participantLimit: tdripLimit,
-                escrowedPoints: escrowPerTask,
-                actionUrl,
-                proofRequired,
-                autoApprove,
-                createdBy: user.id,
-              });
             }
-          } else {
-            console.log(
-              `[campaign ${campaign.id}] Skipping auto-create of micro tasks — brand has ${brandBalance} $TDRIP, needs ${totalNeeded}.`
-            );
+
+            await db.insert(campaignMicroTasks).values({
+              campaignId: campaign.id,
+              brandId: user.id,
+              title: taskTitle,
+              description,
+              tdripReward: useTdrip ? tdripPerTask : 0,
+              participantLimit: useTdrip ? tdripLimit : fallbackLimit,
+              escrowedPoints: useTdrip ? escrowPerTask : 0,
+              actionUrl,
+              proofRequired,
+              autoApprove,
+              createdBy: user.id,
+            });
           }
         }
       } catch (microErr) {
@@ -1593,9 +1610,12 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   app.post('/api/campaigns/:id/submit', upload.array('files'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const userId = req.user.id;
       const campaignId = req.params.id;
-      
+
       const validatedData = insertCampaignParticipationSchema.parse({
         userId,
         campaignId,
@@ -1612,9 +1632,9 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const participation = await storage.createParticipation(validatedData);
       res.json(participation);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting task:", error);
-      res.status(500).json({ message: "Failed to submit task" });
+      res.status(500).json({ message: error?.message || "Failed to submit task" });
     }
   });
 
@@ -1874,7 +1894,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // Transaction routes
   app.post('/api/transactions', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const userId = req.user.id;
       const validatedData = insertTransactionSchema.parse({
         ...req.body,
         userId
@@ -1882,9 +1905,9 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const transaction = await storage.createTransaction(validatedData);
       res.json(transaction);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating transaction:", error);
-      res.status(500).json({ message: "Failed to create transaction" });
+      res.status(500).json({ message: error?.message || "Failed to create transaction" });
     }
   });
 
@@ -2049,7 +2072,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // Purchase routes
   app.post('/api/purchases', upload.single('paymentProof'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      const userId = req.user.id;
 
       // Parse selectedAddons (may come as JSON string from multipart)
       let selectedAddons: { id: string; title: string; price: number }[] = [];
