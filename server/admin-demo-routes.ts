@@ -492,16 +492,24 @@ export function registerAdminDemoRoutes(app: Express, isAuthenticated: any) {
   });
 
   // ─── Lookups for the UI ───────────────────────────────────────────────
+  // Always pins the current admin to the top of the list — otherwise admins
+  // can't find themselves when their email doesn't match the typed query
+  // (e.g. searching "admin" never matches "demo@taskdrip.online").
   app.get("/api/admin/demo/users-lookup", isAuthenticated, async (req: any, res) => {
     if (!(await guard(req, res))) return;
     const q = String(req.query.q || "").trim().toLowerCase();
-    const rows = await db.select({
+    const adminId = req.user.id;
+    const cols = {
       id: users.id, email: users.email, firstName: users.firstName, lastName: users.lastName,
       followers: users.followers, availableBalance: users.availableBalance, userType: users.userType,
-    }).from(users).where(
-      q ? sql`(LOWER(${users.email}) LIKE ${`%${q}%`} OR LOWER(${users.username}) LIKE ${`%${q}%`} OR LOWER(${users.firstName}) LIKE ${`%${q}%`})` : sql`TRUE`
-    ).orderBy(desc(users.createdAt)).limit(40);
-    res.json(rows);
+    };
+    const [meRow, others] = await Promise.all([
+      db.select(cols).from(users).where(eq(users.id, adminId)).limit(1),
+      db.select(cols).from(users).where(
+        q ? sql`(LOWER(${users.email}) LIKE ${`%${q}%`} OR LOWER(${users.username}) LIKE ${`%${q}%`} OR LOWER(${users.firstName}) LIKE ${`%${q}%`}) AND ${users.id} <> ${adminId}` : sql`${users.id} <> ${adminId}`
+      ).orderBy(desc(users.createdAt)).limit(40),
+    ]);
+    res.json([...meRow, ...others]);
   });
 
   app.get("/api/admin/demo/posts-lookup", isAuthenticated, async (req: any, res) => {
@@ -621,6 +629,53 @@ export function registerAdminDemoRoutes(app: Express, isAuthenticated: any) {
       res.json({ ok: true, enabled, wipeResult, seedResult });
     } catch (e: any) {
       console.error("kill-switch:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ─── Google Analytics / GTM code injection ────────────────────────────
+  // Admin pastes raw <head> + <body> tracking snippets that get injected
+  // into every server-rendered HTML response. Stored in app_settings.
+  app.get("/api/admin/analytics-codes", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    try {
+      const [headCode, bodyCode, enabledStr] = await Promise.all([
+        getAppSetting("analytics_head_code"),
+        getAppSetting("analytics_body_code"),
+        getAppSetting("analytics_enabled"),
+      ]);
+      res.json({
+        headCode: headCode || "",
+        bodyCode: bodyCode || "",
+        enabled: enabledStr === null ? true : enabledStr !== "false",
+      });
+    } catch (e: any) {
+      console.error("analytics-codes get:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.post("/api/admin/analytics-codes", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    try {
+      const { headCode, bodyCode, enabled } = req.body || {};
+      const FORBIDDEN = /<\s*\/?(html|head|body)\b[^>]*>/i;
+      const hc = String(headCode || "").slice(0, 50_000);
+      const bc = String(bodyCode || "").slice(0, 50_000);
+      if (hc && FORBIDDEN.test(hc)) {
+        return res.status(400).json({ message: "Head code must not contain <html>, <head>, or <body> tags." });
+      }
+      if (bc && FORBIDDEN.test(bc)) {
+        return res.status(400).json({ message: "Body code must not contain <html>, <head>, or <body> tags." });
+      }
+      await setAppSetting("analytics_head_code", hc);
+      await setAppSetting("analytics_body_code", bc);
+      await setAppSetting("analytics_enabled", String(enabled !== false));
+      const { invalidateAnalyticsCache } = await import("./analytics-injector");
+      invalidateAnalyticsCache();
+      res.json({ ok: true, headLength: hc.length, bodyLength: bc.length, enabled: enabled !== false });
+    } catch (e: any) {
+      console.error("analytics-codes post:", e);
       res.status(500).json({ message: e.message });
     }
   });

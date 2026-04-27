@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Users, DollarSign, Eye, Heart, GraduationCap, Sparkles, BookOpen,
   ShoppingBag, MessageSquare, UserPlus, Zap, Wand2, Trash2, AlertTriangle, FileText,
-  Power, RefreshCw, Cloud, CheckCircle2, XCircle,
+  Power, RefreshCw, Cloud, CheckCircle2, XCircle, BarChart3, User as UserIcon, Save,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -31,6 +32,21 @@ export default function DemoLab() {
   const { toast } = useToast();
   const ok = (msg: string) => toast({ title: "Done", description: msg });
   const err = (e: any) => toast({ title: "Failed", description: e?.message || "Error", variant: "destructive" });
+
+  // Invalidate every cache that could be displaying stats we just changed.
+  // The admin's own balance is shown via /api/auth/user — invalidating it
+  // is the critical fix for "I added $100k but my balance still shows 0".
+  const bustCommon = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/users-lookup"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/stats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/wallet/ledger"] });
+  };
+
+  const me = useQuery<any>({ queryKey: ["/api/auth/user"] });
+  const myId = me.data?.id as string | undefined;
 
   const stats = useQuery<any>({ queryKey: ["/api/admin/demo/stats"] });
   const killSwitch = useQuery<{ enabled: boolean }>({ queryKey: ["/api/admin/demo/kill-switch"] });
@@ -95,23 +111,23 @@ export default function DemoLab() {
   const post = (url: string, body: any) => apiRequest("POST", url, body).then((r: any) => r.json());
 
   const mFollowers = useMutation({
-    mutationFn: () => post("/api/admin/demo/allocate-followers", { userId: followersUserId, followers: followersCount, following: followingCount }),
-    onSuccess: () => { ok(`Set ${fmt(followersCount)} followers`); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/users-lookup"] }); },
+    mutationFn: (override?: { userId?: string }) => post("/api/admin/demo/allocate-followers", { userId: override?.userId || followersUserId, followers: followersCount, following: followingCount }),
+    onSuccess: () => { ok(`Set ${fmt(followersCount)} followers`); bustCommon(); },
     onError: err,
   });
   const mFunds = useMutation({
-    mutationFn: () => post("/api/admin/demo/allocate-funds", { userId: fundsUserId, amount: fundsAmount, mode: fundsMode }),
-    onSuccess: () => { ok(`${fundsMode === "set" ? "Set" : "Added"} $${fmt(fundsAmount)}`); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/users-lookup"] }); },
+    mutationFn: (override?: { userId?: string }) => post("/api/admin/demo/allocate-funds", { userId: override?.userId || fundsUserId, amount: fundsAmount, mode: fundsMode }),
+    onSuccess: () => { ok(`${fundsMode === "set" ? "Set" : "Added"} $${fmt(fundsAmount)}`); bustCommon(); },
     onError: err,
   });
   const mPostStats = useMutation({
     mutationFn: () => post("/api/admin/demo/allocate-post-stats", { postId, views: postViews, likes: postLikes, comments: postComments }),
-    onSuccess: () => { ok("Post stats updated"); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/posts-lookup"] }); },
+    onSuccess: () => { ok("Post stats updated"); bustCommon(); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/posts-lookup"] }); queryClient.invalidateQueries({ queryKey: ["/api/posts"] }); queryClient.invalidateQueries({ queryKey: ["/api/feed"] }); },
     onError: err,
   });
   const mBlogStats = useMutation({
     mutationFn: () => post("/api/admin/demo/allocate-blog-stats", { blogId, views: blogViews, likes: blogLikesCount, comments: blogCommentsCount }),
-    onSuccess: () => { ok("Blog stats updated"); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/blogs-lookup"] }); },
+    onSuccess: () => { ok("Blog stats updated"); bustCommon(); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/blogs-lookup"] }); queryClient.invalidateQueries({ queryKey: ["/api/blog/posts"] }); queryClient.invalidateQueries({ queryKey: ["/api/blogs"] }); },
     onError: err,
   });
   const mProductStats = useMutation({
@@ -119,27 +135,27 @@ export default function DemoLab() {
       productId, sales: productSales, reviews: productReviews, rating: productRating, likes: productLikes,
       generateReviews: genReviewsToggle ? genReviewsCount : 0,
     }),
-    onSuccess: (data: any) => { ok(`Updated. Reviews seeded: ${data?.reviewsCreated ?? 0}`); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/products-lookup"] }); },
+    onSuccess: (data: any) => { ok(`Updated. Reviews seeded: ${data?.reviewsCreated ?? 0}`); bustCommon(); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/products-lookup"] }); queryClient.invalidateQueries({ queryKey: ["/api/products"] }); queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] }); queryClient.invalidateQueries({ queryKey: ["/api/product-reviews"] }); },
     onError: err,
   });
   const mEnroll = useMutation({
     mutationFn: () => post("/api/admin/demo/enroll-students", { courseId, count: enrollCount, addReviews: enrollAddReviews }),
-    onSuccess: (data: any) => ok(`Enrolled ${data?.enrolled ?? 0}, reviews ${data?.reviewed ?? 0}`),
+    onSuccess: (data: any) => { ok(`Enrolled ${data?.enrolled ?? 0}, reviews ${data?.reviewed ?? 0}`); bustCommon(); queryClient.invalidateQueries({ queryKey: ["/api/courses"] }); },
     onError: err,
   });
   const mFake = useMutation({
     mutationFn: () => post("/api/admin/demo/spawn-fake-users", { count: fakeUserCount }),
-    onSuccess: (data: any) => { ok(`Spawned ${data?.created ?? 0} fake users`); queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/stats"] }); },
+    onSuccess: (data: any) => { ok(`Spawned ${data?.created ?? 0} fake users`); bustCommon(); },
     onError: err,
   });
   const mFakeFollows = useMutation({
-    mutationFn: () => post("/api/admin/demo/fake-follows", { targetUserId: followTargetId, count: followCount }),
-    onSuccess: (data: any) => ok(`${data?.follows ?? 0} fake follows`),
+    mutationFn: (override?: { targetUserId?: string }) => post("/api/admin/demo/fake-follows", { targetUserId: override?.targetUserId || followTargetId, count: followCount }),
+    onSuccess: (data: any) => { ok(`${data?.follows ?? 0} fake follows`); bustCommon(); },
     onError: err,
   });
   const mFakePostLikes = useMutation({
     mutationFn: () => post("/api/admin/demo/fake-post-likes", { postId: likePostId, count: likePostCount }),
-    onSuccess: (data: any) => ok(`${data?.liked ?? 0} fake likes added`),
+    onSuccess: (data: any) => { ok(`${data?.liked ?? 0} fake likes added`); bustCommon(); queryClient.invalidateQueries({ queryKey: ["/api/posts"] }); },
     onError: err,
   });
 
@@ -401,10 +417,21 @@ export default function DemoLab() {
                 </button>
               ))}
             </div>
-            <Button disabled={!followersUserId || mFollowers.isPending} className="w-full"
-              onClick={() => mFollowers.mutate()} data-testid="button-apply-followers">
-              {mFollowers.isPending ? "Applying…" : "Apply Followers"}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                disabled={!myId || mFollowers.isPending}
+                onClick={() => mFollowers.mutate({ userId: myId })}
+                data-testid="button-apply-followers-me"
+                className="border-purple-300 hover:bg-purple-50"
+              >
+                <UserIcon className="w-4 h-4 mr-2" /> Apply to me
+              </Button>
+              <Button disabled={!followersUserId || mFollowers.isPending}
+                onClick={() => mFollowers.mutate(undefined)} data-testid="button-apply-followers">
+                {mFollowers.isPending ? "Applying…" : "Apply to picked user"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -443,10 +470,21 @@ export default function DemoLab() {
                 </button>
               ))}
             </div>
-            <Button disabled={!fundsUserId || mFunds.isPending} className="w-full"
-              onClick={() => mFunds.mutate()} data-testid="button-apply-funds">
-              {mFunds.isPending ? "Applying…" : "Apply Funds"}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                disabled={!myId || mFunds.isPending}
+                onClick={() => mFunds.mutate({ userId: myId })}
+                data-testid="button-apply-funds-me"
+                className="border-green-300 hover:bg-green-50"
+              >
+                <UserIcon className="w-4 h-4 mr-2" /> Apply to me
+              </Button>
+              <Button disabled={!fundsUserId || mFunds.isPending}
+                onClick={() => mFunds.mutate(undefined)} data-testid="button-apply-funds">
+                {mFunds.isPending ? "Applying…" : "Apply to picked user"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

@@ -6,6 +6,7 @@ import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 import { buildSeoHtml } from "./seo-meta";
+import { injectAnalytics } from "./analytics-injector";
 
 const viteLogger = createLogger();
 
@@ -61,6 +62,7 @@ export async function setupVite(app: Express, server: Server) {
       );
       let page = await vite.transformIndexHtml(url, template);
       page = await buildSeoHtml(page, req as Request);
+      page = await injectAnalytics(page);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
@@ -84,7 +86,8 @@ export function serveStatic(app: Express) {
   app.use("*", async (req, res) => {
     try {
       const html = await fs.promises.readFile(path.resolve(distPath, "index.html"), "utf-8");
-      const page = await buildSeoHtml(html, req as Request);
+      let page = await buildSeoHtml(html, req as Request);
+      page = await injectAnalytics(page);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch {
       res.sendFile(path.resolve(distPath, "index.html"));

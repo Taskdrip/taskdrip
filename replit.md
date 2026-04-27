@@ -508,3 +508,17 @@ Design preferences: Clean, professional web app design with white background and
   - Admin SEO → Analytics tab now shows live dashboard with 7/30/90-day toggle
 - **Enhanced sitemap.xml**: Honours request host (works on Railway), includes 20 static routes + lastmod + dynamic blog posts, products, creator profiles and brand profiles (capped at 500 each).
 - **Removed**: legacy `AnalyticsLoader` in `App.tsx` (superseded by `GlobalSeo`).
+
+### Demo Lab Cache Fix + Google Analytics Code Injection (April 27, 2026)
+**Demo Lab — fixed "balance didn't reflect" bug**:
+- Root cause: the user picker's substring search ("admin") never matched the admin's email (`demo@taskdrip.online`). Even when a fund was applied, the admin's own balance display (sourced from `/api/auth/user`) was never invalidated.
+- Fix 1: All Demo Lab mutations now invalidate `/api/auth/user`, `/api/users`, `/api/wallet`, `/api/wallet/ledger`, plus all post/blog/product/course list caches.
+- Fix 2: New "Apply to me" buttons in both Followers and Funds cards — uses the current admin's ID directly via `useQuery(["/api/auth/user"])`, bypassing the picker entirely.
+- Fix 3: `/api/admin/demo/users-lookup` now always pins the current admin to the top of the list (previously the search filter could exclude them).
+
+**Google Analytics / GTM code injection** — `client/src/components/admin/AnalyticsCodeInjector.tsx`, new "GA / GTM Codes" admin tab in `admin-master.tsx`:
+- New `app_settings` keys: `analytics_head_code`, `analytics_body_code`, `analytics_enabled`.
+- Server: `server/analytics-injector.ts` reads the codes (30s in-memory cache) and injects them into every server-rendered HTML response via `server/vite.ts` (both `setupVite` and `serveStatic`). Wraps each block in HTML comments (`<!-- analytics:head:start -->`).
+- Endpoints: `GET/POST /api/admin/analytics-codes` (admin-only). POST validates that snippets do NOT contain `<html>`, `<head>`, or `<body>` tags (would shadow real page structure) and caps each at 50,000 chars.
+- Failsafe: if reading from DB fails or a code triggers an exception during injection, the original HTML is returned untouched — bad codes never crash the app.
+- Supports GA4 gtag.js, Google Tag Manager, and Search Console verification meta tags out of the box.

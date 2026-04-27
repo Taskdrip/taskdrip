@@ -3,6 +3,7 @@ import { Link as RouterLink } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import DemoLab from "@/components/admin/DemoLab";
+import AnalyticsCodeInjector from "@/components/admin/AnalyticsCodeInjector";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallets } from "@/hooks/useWallets";
 import { Button } from "@/components/ui/button";
@@ -3006,6 +3007,7 @@ export default function AdminMaster() {
                 { value: "transactions", icon: <Coins className="h-3.5 w-3.5" />, label: "Transactions" },
                 { value: "feature-limits", icon: <Shield className="h-3.5 w-3.5" />, label: "Feature Limits" },
                 { value: "demo-lab", icon: <Zap className="h-3.5 w-3.5" />, label: "Demo Lab" },
+                { value: "analytics-codes", icon: <Activity className="h-3.5 w-3.5" />, label: "GA / GTM Codes" },
               ].filter((tab) => allowedTabs.includes(tab.value)).map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -6798,6 +6800,10 @@ export default function AdminMaster() {
 
           <TabsContent value="demo-lab" className="space-y-6 pb-8">
             <DemoLab />
+          </TabsContent>
+
+          <TabsContent value="analytics-codes" className="space-y-6 pb-8">
+            <AnalyticsCodeInjector />
           </TabsContent>
 
           <TabsContent value="feature-limits" className="space-y-6 pb-8">
