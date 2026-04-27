@@ -23,7 +23,8 @@ import {
   userReviews,
   transactions,
 } from "../shared/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { eq, sql, and, desc, inArray } from "drizzle-orm";
+import { DEFAULT_BLOGS } from "./blog-seed-data";
 
 const MAX_FOLLOWERS = 10_000_000;
 const MAX_VIEWS = 50_000_000;
@@ -411,5 +412,211 @@ export function registerAdminDemoRoutes(app: Express, isAuthenticated: any) {
       id: courses.id, title: courses.title,
     }).from(courses).orderBy(desc(courses.createdAt)).limit(60);
     res.json(rows);
+  });
+
+  // ─── Reset a single user (zero balance + followers) ───────────────────
+  app.post("/api/admin/demo/reset-user", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    try {
+      const { userId } = req.body || {};
+      if (!userId) return res.status(400).json({ message: "userId required" });
+      await db.update(users).set({
+        availableBalance: "0.00",
+        totalEarned: "0.00",
+        followers: 0,
+        following: 0,
+        totalFollowers: 0,
+        instagramFollowers: 0,
+        twitterFollowers: 0,
+        tiktokFollowers: 0,
+        youtubeFollowers: 0,
+      } as any).where(eq(users.id, userId));
+      res.json({ ok: true });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ─── Master wipe of all demo data ─────────────────────────────────────
+  // Body flags (all default false except where noted):
+  //   deleteFakeUsers  — remove fake_*@taskdrip.demo accounts + their data
+  //   resetAllBalances — zero availableBalance/totalEarned for ALL users
+  //   resetAllFollowers — zero follower counts for ALL users
+  //   confirm          — must equal "WIPE" (safety)
+  app.post("/api/admin/demo/wipe", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    try {
+      const {
+        deleteFakeUsers = true,
+        resetAllBalances = false,
+        resetAllFollowers = false,
+        confirm,
+      } = req.body || {};
+      if (confirm !== "WIPE") {
+        return res.status(400).json({ message: "Confirmation phrase 'WIPE' required" });
+      }
+
+      const result: any = {
+        fakeUsersDeleted: 0,
+        followsDeleted: 0,
+        likesDeleted: 0,
+        enrollmentsDeleted: 0,
+        productReviewsDeleted: 0,
+        courseReviewsDeleted: 0,
+        userReviewsDeleted: 0,
+        balancesReset: 0,
+        followersReset: 0,
+      };
+
+      if (deleteFakeUsers) {
+        const fakes = await db.select({ id: users.id })
+          .from(users)
+          .where(sql`${users.email} LIKE 'fake_%@taskdrip.demo'`);
+        const ids = fakes.map(f => f.id);
+        result.fakeUsersFound = ids.length;
+
+        if (ids.length > 0) {
+          // Decrement target counts before deleting follows so visible
+          // follower counts stay consistent.
+          const followGroups = await db.select({
+            target: userFollows.followingId,
+            n: sql<number>`count(*)::int`,
+          }).from(userFollows).where(inArray(userFollows.followerId, ids))
+            .groupBy(userFollows.followingId);
+
+          for (const g of followGroups) {
+            await db.update(users).set({
+              followers: sql`GREATEST(0, COALESCE(${users.followers}, 0) - ${g.n})`,
+              totalFollowers: sql`GREATEST(0, COALESCE(${users.totalFollowers}, 0) - ${g.n})`,
+            } as any).where(eq(users.id, g.target));
+          }
+
+          // Decrement post like counts before deleting fake post likes.
+          const likeGroups = await db.select({
+            postId: postLikes.postId,
+            n: sql<number>`count(*)::int`,
+          }).from(postLikes).where(inArray(postLikes.userId, ids))
+            .groupBy(postLikes.postId);
+          for (const g of likeGroups) {
+            await db.update(posts).set({
+              likeCount: sql`GREATEST(0, COALESCE(${posts.likeCount}, 0) - ${g.n})`,
+            } as any).where(eq(posts.id, g.postId));
+          }
+
+          const r1 = await db.delete(userFollows)
+            .where(sql`${userFollows.followerId} = ANY(${ids}) OR ${userFollows.followingId} = ANY(${ids})`);
+          result.followsDeleted = (r1 as any).rowCount ?? 0;
+
+          const r2 = await db.delete(postLikes).where(inArray(postLikes.userId, ids));
+          result.likesDeleted = (r2 as any).rowCount ?? 0;
+
+          const r3 = await db.delete(courseEnrollments).where(inArray(courseEnrollments.userId, ids));
+          result.enrollmentsDeleted = (r3 as any).rowCount ?? 0;
+
+          const r4 = await db.delete(productReviews).where(inArray(productReviews.userId, ids));
+          result.productReviewsDeleted = (r4 as any).rowCount ?? 0;
+
+          const r5 = await db.delete(courseReviews).where(inArray(courseReviews.userId, ids));
+          result.courseReviewsDeleted = (r5 as any).rowCount ?? 0;
+
+          try {
+            const r6 = await db.delete(userReviews)
+              .where(sql`${userReviews.reviewerId} = ANY(${ids}) OR ${userReviews.revieweeId} = ANY(${ids})`);
+            result.userReviewsDeleted = (r6 as any).rowCount ?? 0;
+          } catch {}
+
+          // Fake users have no campaigns/posts/products of their own (creator
+          // accounts) — but defensively delete anything they may have authored
+          // to avoid FK violations.
+          try { await db.delete(blogLikes).where(inArray(blogLikes.userId, ids)); } catch {}
+
+          const rDel = await db.delete(users).where(inArray(users.id, ids));
+          result.fakeUsersDeleted = (rDel as any).rowCount ?? ids.length;
+        }
+      }
+
+      if (resetAllBalances) {
+        const r = await db.update(users).set({
+          availableBalance: "0.00",
+          totalEarned: "0.00",
+        } as any);
+        result.balancesReset = (r as any).rowCount ?? 0;
+      }
+
+      if (resetAllFollowers) {
+        const r = await db.update(users).set({
+          followers: 0,
+          following: 0,
+          totalFollowers: 0,
+          instagramFollowers: 0,
+          twitterFollowers: 0,
+          tiktokFollowers: 0,
+          youtubeFollowers: 0,
+        } as any);
+        result.followersReset = (r as any).rowCount ?? 0;
+      }
+
+      res.json({ ok: true, ...result });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ─── Seed default blog posts (idempotent) ─────────────────────────────
+  // Used to push the curated blog set into a fresh environment such as
+  // Railway production. Skips slugs that already exist.
+  app.post("/api/admin/seed-default-blogs", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    try {
+      const existing = await db.select({ slug: blogPosts.slug }).from(blogPosts);
+      const existingSlugs = new Set(existing.map(b => b.slug));
+      let inserted = 0;
+      const skipped: string[] = [];
+      const created: string[] = [];
+      const now = new Date();
+      for (const b of DEFAULT_BLOGS) {
+        if (existingSlugs.has(b.slug)) {
+          skipped.push(b.slug);
+          continue;
+        }
+        try {
+          await db.insert(blogPosts).values({
+            title: b.title,
+            slug: b.slug,
+            content: b.content,
+            excerpt: b.excerpt,
+            featuredImage: b.featuredImage,
+            category: b.category,
+            tags: b.tags,
+            authorId: req.user.id,
+            isPublished: true,
+            publishedAt: now,
+            viewCount: b.viewCount,
+            likesCount: b.likesCount,
+            commentsCount: b.commentsCount,
+            metaDescription: b.metaDescription,
+            seoKeywords: b.seoKeywords,
+            readingTime: b.readingTime,
+          } as any);
+          created.push(b.slug);
+          inserted++;
+        } catch (err: any) {
+          console.error("seed blog failed", b.slug, err?.message);
+        }
+      }
+      res.json({
+        ok: true,
+        total: DEFAULT_BLOGS.length,
+        inserted,
+        skipped: skipped.length,
+        created,
+        skippedSlugs: skipped,
+      });
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ message: e.message });
+    }
   });
 }

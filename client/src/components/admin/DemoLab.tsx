@@ -10,8 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   Users, DollarSign, Eye, Heart, GraduationCap, Sparkles, BookOpen,
-  ShoppingBag, MessageSquare, UserPlus, Zap, Wand2,
+  ShoppingBag, MessageSquare, UserPlus, Zap, Wand2, Trash2, AlertTriangle, FileText,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const fmt = (n: number) => n.toLocaleString();
 
@@ -133,6 +138,36 @@ export default function DemoLab() {
     onError: err,
   });
 
+  // ─── Master reset + blog seed ─────────────────────────────────────────
+  const [wipeFakeUsers, setWipeFakeUsers] = useState(true);
+  const [wipeBalances, setWipeBalances] = useState(false);
+  const [wipeFollowers, setWipeFollowers] = useState(false);
+
+  const mWipe = useMutation({
+    mutationFn: () => post("/api/admin/demo/wipe", {
+      deleteFakeUsers: wipeFakeUsers,
+      resetAllBalances: wipeBalances,
+      resetAllFollowers: wipeFollowers,
+      confirm: "WIPE",
+    }),
+    onSuccess: (data: any) => {
+      ok(`Wiped — ${data.fakeUsersDeleted} fake users, ${data.followsDeleted} follows, ${data.likesDeleted} likes, ${data.balancesReset} balances, ${data.followersReset} follower counts`);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/users-lookup"] });
+    },
+    onError: err,
+  });
+
+  const mSeedBlogs = useMutation({
+    mutationFn: () => post("/api/admin/seed-default-blogs", {}),
+    onSuccess: (data: any) => {
+      ok(`Seeded ${data.inserted} blog post${data.inserted === 1 ? "" : "s"} (${data.skipped} already existed)`);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/blogs-lookup"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/stats"] });
+    },
+    onError: err,
+  });
+
   return (
     <div className="space-y-6">
       {/* ── Hero header ─────────────────────────────────────────────── */}
@@ -154,6 +189,29 @@ export default function DemoLab() {
           <Stat label="Courses" value={stats.data?.courses} icon={<GraduationCap className="w-4 h-4" />} />
         </div>
       </div>
+
+      {/* ── Seed Default Blogs (for production parity) ────────────────── */}
+      <Card className="border-amber-300/60 dark:border-amber-700/60 bg-amber-50/50 dark:bg-amber-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <FileText className="w-5 h-5" /> Seed Default Blog Posts
+          </CardTitle>
+          <CardDescription>
+            Inserts the curated set of starter blog articles. Already-existing slugs are skipped — safe to run on any environment (Replit dev, Railway production, etc.). Use this on your live site to publish the same blogs there.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => mSeedBlogs.mutate()}
+            disabled={mSeedBlogs.isPending}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+            data-testid="button-seed-default-blogs"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            {mSeedBlogs.isPending ? "Seeding…" : "Seed Default Blogs"}
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* ── Allocate Followers ──────────────────────────────────── */}
@@ -428,6 +486,81 @@ export default function DemoLab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Danger Zone — clear demo data ───────────────────────────────── */}
+      <Card className="border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+            <AlertTriangle className="w-5 h-5" /> Danger Zone — Clear All Demo Data
+          </CardTitle>
+          <CardDescription>
+            One-click cleanup of demo content. Pick what to remove, then confirm. Deletions are permanent.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-background">
+            <div>
+              <Label className="font-semibold">Delete fake users</Label>
+              <p className="text-xs text-muted-foreground">Removes every <code>fake_*@taskdrip.demo</code> account and all of their follows, likes, enrollments and reviews. Real follower counts on targeted creators are decremented.</p>
+            </div>
+            <Switch checked={wipeFakeUsers} onCheckedChange={setWipeFakeUsers} data-testid="switch-wipe-fake-users" />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-background">
+            <div>
+              <Label className="font-semibold">Reset all balances</Label>
+              <p className="text-xs text-muted-foreground"><strong className="text-red-600">Affects every user.</strong> Sets availableBalance and totalEarned to 0 for the entire user base — including real users.</p>
+            </div>
+            <Switch checked={wipeBalances} onCheckedChange={setWipeBalances} data-testid="switch-wipe-balances" />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-background">
+            <div>
+              <Label className="font-semibold">Reset all follower counts</Label>
+              <p className="text-xs text-muted-foreground"><strong className="text-red-600">Affects every user.</strong> Sets followers, totalFollowers and per-platform counts to 0 for all users.</p>
+            </div>
+            <Switch checked={wipeFollowers} onCheckedChange={setWipeFollowers} data-testid="switch-wipe-followers" />
+          </div>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                className="w-full"
+                disabled={(!wipeFakeUsers && !wipeBalances && !wipeFollowers) || mWipe.isPending}
+                data-testid="button-open-wipe-confirm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {mWipe.isPending ? "Clearing…" : "Clear Demo Data"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear demo data — are you sure?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm">
+                    <div>This will:</div>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {wipeFakeUsers && <li>Delete every fake demo user and all of their generated follows, likes, enrollments and reviews.</li>}
+                      {wipeBalances && <li className="text-red-600 font-semibold">Set every user&apos;s available balance and total earned to $0 (including real users).</li>}
+                      {wipeFollowers && <li className="text-red-600 font-semibold">Set every user&apos;s follower counts to 0 (including real users).</li>}
+                    </ul>
+                    <div className="pt-2">This cannot be undone.</div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-wipe-cancel">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => mWipe.mutate()}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  data-testid="button-wipe-confirm"
+                >
+                  Yes, clear demo data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }
