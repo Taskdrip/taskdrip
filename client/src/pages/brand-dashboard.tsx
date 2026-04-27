@@ -227,7 +227,12 @@ export default function BrandDashboard() {
         setIsCreateCampaignOpen(false);
         setShowCampaignUpgrade(true);
       } else {
-        toast({ title: "Failed to create campaign", description: error.message, variant: "destructive" });
+        toast({
+          title: "Couldn't create campaign",
+          description: error?.message || "Something went wrong. Check your fields and try again.",
+          variant: "destructive",
+          duration: 8000,
+        });
       }
     },
   });

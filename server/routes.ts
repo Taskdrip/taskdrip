@@ -1142,14 +1142,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return res.status(401).json({ message: "Please log in as a brand to create a campaign." });
       }
       
       const user = req.user as any;
 
       // Check if user is a brand
       if (user.userType !== 'brand') {
-        return res.status(403).json({ message: "Only brands can create campaigns" });
+        return res.status(403).json({ message: "Only brand accounts can create campaigns. Switch your account type from Profile → Edit." });
       }
 
       // ── Free brand campaign limit ─────────────────────────────────────────────
@@ -1170,34 +1170,64 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         }
       }
 
+      // ── Defensive validation with clear, plain-English errors ───────────────
+      const title = String(req.body.title || "").trim();
+      const description = String(req.body.description || "").trim();
+      const category = String(req.body.category || "").trim();
+      const estimatedTime = String(req.body.estimatedTime || "").trim();
+      const requirementsRaw = req.body.requirements;
+      const requirements = Array.isArray(requirementsRaw)
+        ? requirementsRaw.filter(Boolean)
+        : (requirementsRaw && String(requirementsRaw).trim() ? [String(requirementsRaw).trim()] : []);
+      const rewardNum = Number(req.body.reward);
+      const totalSlotsNum = parseInt(String(req.body.totalSlots || ""), 10);
+      const deadlineRaw = req.body.deadline;
+      const deadlineDate = deadlineRaw ? new Date(deadlineRaw) : null;
+
+      const missing: string[] = [];
+      if (!title) missing.push("Title");
+      if (!description) missing.push("Description");
+      if (!category) missing.push("Category");
+      if (!estimatedTime) missing.push("Estimated time");
+      if (requirements.length === 0) missing.push("Requirements");
+      if (!Number.isFinite(rewardNum) || rewardNum < 1) missing.push("Reward (at least $1)");
+      if (!Number.isFinite(totalSlotsNum) || totalSlotsNum < 1) missing.push("Total slots (at least 1)");
+      if (!deadlineDate || isNaN(deadlineDate.getTime())) missing.push("Deadline");
+      if (missing.length > 0) {
+        return res.status(400).json({
+          message: `Please complete: ${missing.join(", ")}.`,
+          missingFields: missing,
+        });
+      }
+
       const campaignId = `campaign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const tdripAddon = parseTdripAddon(req.body);
       const preQualificationTasks = parseJsonArrayField(req.body.preQualificationTasks);
-      
+
       const campaignData = {
         id: campaignId,
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
-        reward: req.body.reward,
-        totalSlots: parseInt(req.body.totalSlots),
-        deadline: new Date(req.body.deadline),
-        requirements: req.body.requirements ? [req.body.requirements] : [], // Convert string to array
+        title,
+        description,
+        category,
+        reward: rewardNum.toFixed(2), // decimal column accepts string
+        totalSlots: totalSlotsNum,
+        deadline: deadlineDate,
+        requirements,
         preQualificationTasks,
-        qualificationRules: req.body.qualificationRules || null,
+        qualificationRules: req.body.qualificationRules ? String(req.body.qualificationRules) : null,
         ...tdripAddon,
-        estimatedTime: req.body.estimatedTime,
+        estimatedTime,
         brandId: user.id,
-        brandName: req.body.brandName || user.companyName || `${user.firstName} ${user.lastName}`,
+        brandName: req.body.brandName || user.companyName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unnamed Brand",
         featureImage: req.file ? `/uploads/${req.file.filename}` : null,
         status: 'pending_payment',
         paymentStatus: 'pending',
         isActive: false,
         filledSlots: 0,
       };
-      
-      console.log("Creating campaign with data:", campaignData);
-      const campaign = await storage.createCampaign(campaignData);
+
+      console.log("[campaign-create:brand]", { id: campaignData.id, title: campaignData.title, brandId: user.id });
+      const campaign = await storage.createCampaign(campaignData as any);
       console.log("Campaign created:", campaign);
 
       // Auto-create $TDRIP micro tasks from any pre-qualification tasks that
@@ -1266,19 +1296,18 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         paymentWindowEnd: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
       };
       
-      console.log("Creating escrow payment with data:", escrowPaymentData);
       const escrowPayment = await storage.createEscrowPayment(escrowPaymentData);
-      console.log("Escrow payment created:", escrowPayment);
 
-      res.status(201).json({ 
+      res.status(201).json({
         success: true,
-        campaign, 
+        campaign,
         campaignId: campaign.id,
-        escrowPaymentId: escrowPayment.id 
+        escrowPaymentId: escrowPayment.id,
       });
-    } catch (error) {
-      console.error("Error creating campaign:", error);
-      res.status(500).json({ message: "Failed to create campaign", error: (error as Error).message });
+    } catch (error: any) {
+      console.error("Error creating brand campaign:", error);
+      const detail = error?.message || error?.detail || "Unknown error";
+      res.status(500).json({ message: `Could not create campaign: ${detail}` });
     }
   });
 
@@ -2521,9 +2550,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         createdBy: userId,
       }).returning();
       res.status(201).json(task);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating micro task:", error);
-      res.status(500).json({ message: "Failed to create micro task" });
+      const detail = error?.message || error?.detail || "Unknown error";
+      res.status(500).json({ message: `Could not create micro-task: ${detail}` });
     }
   });
 
@@ -7710,27 +7740,48 @@ Instructions:
   // ── Admin: Create campaign directly (no escrow required) ──────────────────
   app.post('/api/admin/campaigns', isAuthenticated, upload.single('featureImage'), async (req: any, res) => {
     try {
-      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Only admin accounts can post Taskdrip-official campaigns.' });
       const adminUser = await storage.getUser(req.user.id);
       if (!adminUser) return res.status(404).json({ message: 'Admin user not found' });
+
+      const title = String(req.body.title || "").trim();
+      const description = String(req.body.description || "").trim();
+      const category = String(req.body.category || "").trim();
+      const requirementsRaw = req.body.requirements;
+      const requirements = Array.isArray(requirementsRaw)
+        ? requirementsRaw.filter(Boolean)
+        : (requirementsRaw && String(requirementsRaw).trim() ? [String(requirementsRaw).trim()] : []);
+      const rewardNum = Number(req.body.reward);
+      const totalSlotsNum = parseInt(String(req.body.totalSlots || ""), 10) || 10;
+      const deadlineRaw = req.body.deadline;
+      const deadlineDate = deadlineRaw ? new Date(deadlineRaw) : new Date(Date.now() + 30 * 86400000);
+
+      const missing: string[] = [];
+      if (!title) missing.push("Title");
+      if (!description) missing.push("Description");
+      if (!category) missing.push("Category");
+      if (!Number.isFinite(rewardNum) || rewardNum < 1) missing.push("Reward (at least $1)");
+      if (missing.length) {
+        return res.status(400).json({ message: `Please complete: ${missing.join(", ")}.`, missingFields: missing });
+      }
 
       const featureImagePath = req.file ? `/uploads/${req.file.filename}` : req.body.featureImage || null;
       const campaignId = `campaign_${Date.now()}_${nanoid(9)}`;
 
       const campaign = await storage.createCampaign({
         id: campaignId,
-        title: req.body.title,
-        description: req.body.description,
-        category: req.body.category,
+        title,
+        description,
+        category,
         platform: req.body.platform || null,
         brandName: req.body.brandName || 'Taskdrip Official',
         brandLogo: adminUser.profileImageUrl || null,
         brandId: req.user.id,
-        reward: req.body.reward,
-        totalSlots: parseInt(req.body.totalSlots) || 10,
+        reward: rewardNum.toFixed(2),
+        totalSlots: totalSlotsNum,
         estimatedTime: req.body.estimatedTime || '30 min',
-        requirements: req.body.requirements ? [req.body.requirements] : [],
-        deadline: req.body.deadline ? new Date(req.body.deadline) : null,
+        requirements,
+        deadline: isNaN(deadlineDate.getTime()) ? new Date(Date.now() + 30 * 86400000) : deadlineDate,
         featureImage: featureImagePath,
         instructionVideoUrl: req.body.instructionVideoUrl || null,
         status: 'active',
@@ -7738,7 +7789,7 @@ Instructions:
         isActive: true,
       } as any);
 
-      await sendPushToTarget('creators', {
+      sendPushToTarget('creators', {
         title: 'New Taskdrip campaign is live',
         body: `${campaign.title} is open now. Apply before the creator slots are gone.`,
         icon: campaign.featureImage || '/icon-192.png',
@@ -7746,9 +7797,10 @@ Instructions:
       }).catch((error) => console.error("Campaign launch push failed:", error?.message || error));
 
       res.status(201).json(campaign);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating admin campaign:', error);
-      res.status(500).json({ message: 'Failed to create campaign' });
+      const detail = error?.message || error?.detail || "Unknown error";
+      res.status(500).json({ message: `Could not create campaign: ${detail}` });
     }
   });
 
