@@ -1,0 +1,27 @@
+I see an error , The campaigns page and task page are showing different pages , consolidate them into a thriller Task campaign page - with advanced filter system .
+Also seed in like 9 realistic campaigns , added by the admin, with huge earnings for influencers of different sizes and tiers. add relevant featured images for campaigns and ensure they display on the task page.
+
+Visiting a course on a mobile device , i see most of the content cut out from the screen off the screen to the edge , make the entire web app and all pages mobile optimized
+
+Also discoverd a big error, when i tried adding a campaign as a brand , the submit campaign button gave a failed error and even the campaigns dont show on the frontend, the micro task addons dont show with the campaign for the users to earn $TDRIP points for doing the addon task.
+
+fix all the errors and ensure web app functions seamlessly , If a campaign is posted by an admin, He solely will be responsible for review and approval , sync that to the system.
+
+When a user tried paying for a course , they were asked to input image link for payment proof screenshot , only allow users to upload image or screenshot image from their device, implement this sitewide.
+
+last update said the below changes were effected , but non was actually active on the live site , please review said updates below and ensure they are perfectly executed this time.
+All done. Both issues are fixed and verified:
+
+1. Demo Lab — fixed
+
+The reason your $100K balance never showed up was a search bug: typing "admin" in the user picker never matched demo@taskdrip.online, so funds were either applied to the wrong user or to nobody. Even when applied correctly, the admin's own balance display read from a different cache that was never refreshed.
+I fixed three things: every Demo Lab action now refreshes your wallet/profile cache; you've got new "Apply to me" buttons on Followers and Funds that bypass the picker and target your admin account directly; and the picker now always pins your admin user at the top regardless of what you search.
+2. Google Analytics — added
+
+New "GA / GTM Codes" tab in your admin dashboard. Two big text areas: one for <head> code and one for <body> code. Paste your GA4 snippet, your Google Tag Manager script, the GTM <noscript> fallback, your Search Console verification meta tag — anything you want.
+A master ON/OFF switch lets you disable tracking instantly without deleting your snippets.
+I tested it end-to-end: pasted a test snippet, confirmed it appeared inside <head> of the homepage, and saw the script execute in the browser console.
+It cannot break the app: any snippet containing <html>, <head>, or <body> is rejected up front, every snippet is wrapped in try/catch on the server, and if anything fails the original HTML is returned untouched.
+Test it now: go to Admin → Demo Lab → Apply to me in the Funds card with $100,000, then check your wallet. Then go to Admin → GA / GTM Codes and paste your real GA4 tracking script.
+
+Next, I can add a real-time Analytics dashboard inside the admin panel that pulls live data from Google Analytics 4 (sessions, top pages, traffic sources) instead of having to switch to the Google Analytics website. Would you like me to do that?

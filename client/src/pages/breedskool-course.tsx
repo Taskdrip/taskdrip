@@ -351,6 +351,8 @@ export default function BreedSkoolCourse() {
   const [txHash, setTxHash] = useState("");
   const [paymentProof, setPaymentProof] = useState("");
   const [proofUrl, setProofUrl] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const proofFileInputRef = useRef<HTMLInputElement>(null);
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [comment, setComment] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -411,10 +413,23 @@ export default function BreedSkoolCourse() {
 
   const enrollMutation = useMutation({
     mutationFn: async () => {
-      const payload = course?.isFree
-        ? { paymentMethod: "free" }
-        : { paymentMethod: selectedMethod?.label || paymentMethodId, transactionHash: txHash, paymentProof: proofUrl || paymentProof };
-      const res = await apiRequest("POST", `/api/courses/${id}/enroll`, payload);
+      if (course?.isFree) {
+        const res = await apiRequest("POST", `/api/courses/${id}/enroll`, { paymentMethod: "free" });
+        return res.json();
+      }
+      const fd = new FormData();
+      fd.append("paymentMethod", selectedMethod?.label || paymentMethodId);
+      fd.append("transactionHash", txHash);
+      if (proofFile) {
+        fd.append("paymentProof", proofFile);
+      } else if (proofUrl || paymentProof) {
+        fd.append("paymentProofUrl", proofUrl || paymentProof);
+      }
+      const res = await fetch(`/api/courses/${id}/enroll`, { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Enrollment failed" }));
+        throw new Error(err.message || "Enrollment failed");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -1035,9 +1050,33 @@ export default function BreedSkoolCourse() {
                     placeholder={selectedMethod?.type === 'bank' ? 'Enter reference number...' : '0x... or TXid...'} className="font-mono text-sm h-11 bg-gray-50" />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold mb-1.5 block">Payment Screenshot / Proof <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
-                  <Input value={paymentProof} onChange={(e) => setPaymentProof(e.target.value)}
-                    placeholder="Screenshot URL or proof link..." className="text-sm h-11 bg-gray-50" />
+                  <Label className="text-sm font-semibold mb-1.5 block">Payment Screenshot <span className="text-gray-400 font-normal text-xs">(optional, helps speed up review)</span></Label>
+                  <input
+                    ref={proofFileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    data-testid="input-payment-proof-file"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => proofFileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 h-11 rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 hover:border-violet-400 hover:bg-violet-50 transition-colors"
+                    data-testid="button-upload-payment-proof"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {proofFile ? proofFile.name : "Upload screenshot or PDF"}
+                  </button>
+                  {proofFile && (
+                    <button
+                      type="button"
+                      onClick={() => { setProofFile(null); if (proofFileInputRef.current) proofFileInputRef.current.value = ""; }}
+                      className="mt-1 text-xs text-red-500 hover:underline"
+                    >
+                      Remove file
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
                   <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />

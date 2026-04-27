@@ -858,16 +858,8 @@ export default function ShopCheckout() {
               </div>
 
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold text-gray-900 mb-2 block">Payment Screenshot <span className="text-gray-400 font-normal">(recommended)</span></Label>
+                <Label className="text-sm font-semibold text-gray-900 mb-2 block">Payment Screenshot <span className="text-gray-400 font-normal">(recommended — speeds up review)</span></Label>
                 <ProofUpload onUpload={(url) => setProofUrl(url)} />
-                <div className="mt-2">
-                  <Input
-                    value={proofText}
-                    onChange={(e) => setProofText(e.target.value)}
-                    placeholder="Or paste proof URL / link..."
-                    className="text-sm h-9 bg-gray-50 border-gray-200"
-                  />
-                </div>
               </div>
             </div>
 

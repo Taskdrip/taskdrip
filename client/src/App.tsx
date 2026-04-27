@@ -175,7 +175,7 @@ function Router() {
           }} />
           <Route path="/brand-dashboard" component={BrandDashboard} />
           <Route path="/admin-dashboard" component={AdminDashboard} />
-          <Route path="/campaigns" component={Campaigns} />
+          <Route path="/campaigns" component={TasksPage} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
           <Route path="/profile" component={() => {
             const userType = (user as any)?.userType;

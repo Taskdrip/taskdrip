@@ -186,28 +186,27 @@ export default function BrandDashboard() {
     mutationFn: async (data: z.infer<typeof campaignSchema> & { file?: File }) => {
       console.log("Creating campaign with data:", data);
       
-      if (data.file) {
-        const formData = new FormData();
-        Object.entries(data).forEach(([key, value]) => {
-          if (key !== 'file' && value !== undefined) {
-            formData.append(key, typeof value === "object" ? JSON.stringify(value) : value.toString());
-          }
-        });
-        formData.append('featureImage', data.file);
-        const res = await fetch('/api/campaigns', { method: 'POST', body: formData });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ message: "Failed" }));
-          throw Object.assign(new Error(errData.message || "Failed to create campaign"), { status: res.status, upgradeRequired: errData.upgradeRequired });
+      // Always use multipart/form-data so that null/object values don't crash
+      // (the previous code called value.toString() which threw on null) and so
+      // arrays like preQualificationTasks are sent as JSON strings the server
+      // already knows how to parse.
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === 'file') return;
+        if (value === undefined || value === null) return;
+        if (Array.isArray(value) || typeof value === 'object') {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, String(value));
         }
-        return res.json();
-      } else {
-        const res = await apiRequest("POST", "/api/campaigns", data);
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ message: "Failed" }));
-          throw Object.assign(new Error(errData.message || "Failed to create campaign"), { status: (res as any).status, upgradeRequired: errData.upgradeRequired });
-        }
-        return res.json();
+      });
+      if (data.file) formData.append('featureImage', data.file);
+      const res = await fetch('/api/campaigns', { method: 'POST', body: formData, credentials: 'include' });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ message: `Failed (${res.status})` }));
+        throw Object.assign(new Error(errData.message || "Failed to create campaign"), { status: res.status, upgradeRequired: errData.upgradeRequired });
       }
+      return res.json();
     },
     onSuccess: (response) => {
       console.log("Campaign creation response:", response);

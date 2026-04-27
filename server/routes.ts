@@ -716,24 +716,30 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const admin = await storage.getUser(req.user.id);
       if (admin?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
       const existing = await storage.getAllCampaigns();
-      if (existing.length > 0) return res.json({ message: 'Campaigns already exist', count: existing.length });
+      const force = req.body?.force === true || req.query?.force === 'true';
+      if (existing.length > 0 && !force) return res.json({ message: 'Campaigns already exist', count: existing.length });
+      const futureDate = (days: number) => new Date(Date.now() + days * 86400000);
       const demos = [
-        { title: "Promote Our New Gaming App — TikTok/YouTube Review", description: "Create a 60-second TikTok or YouTube review of our gaming app. Show gameplay, highlight features, and include our download link in bio. Authentic reviews preferred.", category: "gaming", platform: "TikTok", brandName: "NovaByte Gaming", brandId: admin.id, reward: "120.00", totalSlots: 50, status: "active", isActive: true, requirements: ["Minimum 5K followers", "Post must stay live for 30 days", "Include #NovaByteGaming hashtag", "Submit proof screenshot"] },
-        { title: "Instagram Reel for Premium Skincare Launch", description: "Create a 30-second Instagram Reel showcasing our new skincare product. Morning routine integration preferred. Product will be shipped to you.", category: "beauty", platform: "Instagram", brandName: "GlowLab Beauty", brandId: admin.id, reward: "85.00", totalSlots: 30, status: "active", isActive: true, requirements: ["Beauty/lifestyle niche", "Minimum 3K followers", "Tag @glowlabbeauty in post", "Reels format only"] },
-        { title: "Fitness Challenge — 7-Day Transformation Campaign", description: "Join our 7-day fitness challenge and document your journey. Post daily stories + one main feed post. Share honest results and experiences.", category: "fitness", platform: "YouTube", brandName: "PeakFit Pro", brandId: admin.id, reward: "200.00", totalSlots: 100, status: "active", isActive: true, requirements: ["Fitness/health niche", "Minimum 10K followers", "Post 7 consecutive stories", "Include affiliate link in bio"] },
-        { title: "Tech Unboxing — Latest Wireless Earbuds Review", description: "Unbox and review our premium wireless earbuds. Test sound quality, battery life, and comfort. Share your honest opinion with your audience.", category: "tech", platform: "YouTube", brandName: "SoundWave Tech", brandId: admin.id, reward: "150.00", totalSlots: 40, status: "active", isActive: true, requirements: ["Tech niche preferred", "Minimum 15K YouTube subscribers", "Video must be 5+ minutes", "Sound quality comparison included"] },
-        { title: "Travel Vlog Feature — Luxury Resort Partnership", description: "Feature our luxury resort in your next travel vlog. We cover accommodation for 3 nights + pay the campaign reward. Stunning coastal location.", category: "travel", platform: "YouTube", brandName: "Horizon Escapes", brandId: admin.id, reward: "350.00", totalSlots: 15, status: "active", isActive: true, requirements: ["Travel niche creators only", "Minimum 50K followers", "Professional video quality", "At least 8-minute vlog feature"] },
-        { title: "Food Reel Campaign — Healthy Meal Delivery App", description: "Create a food reel featuring our healthy meal delivery service. Show the ordering process, delivery, and taste test reaction. Fun and authentic content wins!", category: "food", platform: "Instagram", brandName: "FreshDrop", brandId: admin.id, reward: "75.00", totalSlots: 80, status: "active", isActive: true, requirements: ["Food/lifestyle niche", "Minimum 2K followers", "Must show app ordering process", "Include discount code in caption"] },
+        { title: "Promote Our New Gaming App — TikTok/YouTube Review", description: "Create a 60-second TikTok or YouTube review of our gaming app. Show gameplay, highlight features, and include our download link in bio. Authentic reviews preferred. Brand will repost top creators on official channels.", category: "gaming", platform: "TikTok", brandName: "NovaByte Gaming", brandId: admin.id, reward: "120.00", totalSlots: 50, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80", requirements: ["Minimum 5K followers", "Post must stay live for 30 days", "Include #NovaByteGaming hashtag", "Submit proof screenshot"], estimatedTime: "2-3 hours" },
+        { title: "Instagram Reel for Premium Skincare Launch", description: "Create a 30-second Instagram Reel showcasing our new skincare product. Morning routine integration preferred. Product will be shipped to you free of charge before recording.", category: "beauty", platform: "Instagram", brandName: "GlowLab Beauty", brandId: admin.id, reward: "85.00", totalSlots: 30, deadline: futureDate(21), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80", requirements: ["Beauty/lifestyle niche", "Minimum 3K followers", "Tag @glowlabbeauty in post", "Reels format only"], estimatedTime: "1-2 hours" },
+        { title: "Fitness Challenge — 7-Day Transformation Campaign", description: "Join our 7-day fitness challenge and document your journey. Post daily stories + one main feed post. Share honest results and experiences. Top 10 creators earn a 2x bonus payout.", category: "fitness", platform: "YouTube", brandName: "PeakFit Pro", brandId: admin.id, reward: "200.00", totalSlots: 100, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80", requirements: ["Fitness/health niche", "Minimum 10K followers", "Post 7 consecutive stories", "Include affiliate link in bio"], estimatedTime: "7 days" },
+        { title: "Tech Unboxing — Latest Wireless Earbuds Review", description: "Unbox and review our premium wireless earbuds. Test sound quality, battery life, and comfort. Share your honest opinion with your audience. Earbuds are yours to keep.", category: "tech", platform: "YouTube", brandName: "SoundWave Tech", brandId: admin.id, reward: "150.00", totalSlots: 40, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80", requirements: ["Tech niche preferred", "Minimum 15K YouTube subscribers", "Video must be 5+ minutes", "Sound quality comparison included"], estimatedTime: "3-5 hours" },
+        { title: "Travel Vlog Feature — Luxury Resort Partnership", description: "Feature our luxury resort in your next travel vlog. We cover accommodation for 3 nights + pay the campaign reward. Stunning coastal location with helicopter tour included.", category: "travel", platform: "YouTube", brandName: "Horizon Escapes", brandId: admin.id, reward: "750.00", totalSlots: 15, deadline: futureDate(60), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80", requirements: ["Travel niche creators only", "Minimum 50K followers", "Professional video quality", "At least 8-minute vlog feature"], estimatedTime: "3-5 days" },
+        { title: "Food Reel Campaign — Healthy Meal Delivery App", description: "Create a food reel featuring our healthy meal delivery service. Show the ordering process, delivery, and taste test reaction. Fun and authentic content wins!", category: "food", platform: "Instagram", brandName: "FreshDrop", brandId: admin.id, reward: "75.00", totalSlots: 80, deadline: futureDate(21), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", requirements: ["Food/lifestyle niche", "Minimum 2K followers", "Must show app ordering process", "Include discount code in caption"], estimatedTime: "1-2 hours" },
+        { title: "Crypto Education Series — Explain DeFi to Beginners", description: "Create educational content explaining DeFi concepts for newcomers. Series of 3 short videos required. Position our protocol as a beginner-friendly entry point. High-tier creators earn up to $2,500.", category: "Crypto & Web3", platform: "YouTube", brandName: "BlockNova Protocol", brandId: admin.id, reward: "500.00", totalSlots: 25, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", requirements: ["Crypto/finance niche", "Minimum 25K followers", "Educational content style", "Disclose paid promotion"], estimatedTime: "5-8 hours" },
+        { title: "Fashion Haul — Sustainable Streetwear Drop", description: "Showcase 3-5 pieces from our new sustainable streetwear collection. Style them, share what you love, and tag our brand. Free clothing worth $400 plus payout.", category: "Fashion & Beauty", platform: "TikTok", brandName: "EcoThread Co.", brandId: admin.id, reward: "180.00", totalSlots: 60, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80", requirements: ["Fashion/lifestyle niche", "Minimum 8K followers", "TikTok or Reels format", "Show all 3-5 pieces"], estimatedTime: "2-4 hours" },
+        { title: "AI Tool Showcase — Productivity Power Users Wanted", description: "Show how you use our AI productivity tool in your daily workflow. Long-form YouTube tutorial preferred. Top global creators (Power Influencer + Global Titan tiers) eligible for $5,000 bonus.", category: "Technology", platform: "YouTube", brandName: "FlowAI Labs", brandId: admin.id, reward: "1200.00", totalSlots: 10, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", requirements: ["Tech/productivity niche", "Minimum 100K followers", "Long-form YouTube only (10+ min)", "Real workflow integration"], estimatedTime: "8-12 hours" },
       ];
       const created = [];
       for (const demo of demos) {
-        const campaign = await storage.createCampaign(demo as any);
+        const id = `campaign_seed_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const campaign = await storage.createCampaign({ id, ...demo, paymentStatus: 'paid', filledSlots: 0 } as any);
         created.push(campaign);
       }
       res.json({ message: 'Demo campaigns created', count: created.length });
     } catch (e) {
       console.error(e);
-      res.status(500).json({ message: "Failed to seed demo campaigns" });
+      res.status(500).json({ message: "Failed to seed demo campaigns", error: (e as Error).message });
     }
   });
 
@@ -5500,18 +5506,21 @@ Instructions:
   });
 
   // Auth: enroll in a course
-  app.post('/api/courses/:id/enroll', isAuthenticated, async (req: any, res) => {
+  app.post('/api/courses/:id/enroll', isAuthenticated, upload.single('paymentProof'), async (req: any, res) => {
     try {
       const course = await storage.getCourseById(req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
       const existing = await storage.getCourseEnrollment(req.params.id, req.user.id);
       if (existing) return res.status(400).json({ message: "Already enrolled in this course" });
+      const proofPath = req.file
+        ? `/uploads/${req.file.filename}`
+        : (req.body.paymentProofUrl || req.body.paymentProof || null);
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
         isFree: course.isFree,
         paymentMethod: req.body.paymentMethod,
-        paymentProof: req.body.paymentProof,
+        paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
         amount: course.isFree ? "0.00" : (course.price || "0.00"),
       });
