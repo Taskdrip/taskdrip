@@ -428,30 +428,69 @@ export default function BrandDashboard() {
   const tdripEscrowUsd = (watchedTdripPoints * watchedTdripLimit) / 100;
   const cashEscrowUsd = (form.watch("reward") || 0) * (form.watch("totalSlots") || 0);
 
-  const onCreateCampaign = (data: z.infer<typeof campaignSchema>) => {
-    console.log("Form submission triggered with data:", data);
+  // Pure click-handler submission: bypasses react-hook-form's submit chain,
+  // reads values directly, coerces every numeric field, ignores HTML5 native
+  // validation, and only blocks on the truly required text fields. This is
+  // the path the "Create Campaign" button calls so nothing can silently
+  // intercept the click (browser URL validation, NaN, react-hook-form
+  // touched-state, stale errors object, etc.).
+  const submitCampaignFromClick = () => {
+    const raw = form.getValues();
+    console.log("[create-campaign] click. raw values:", raw);
 
-    // Coerce any optional numeric fields that may have ended up NaN if the user
-    // cleared them (Number("") === NaN — fails Zod's z.number().min(0) check).
-    const safeData: any = {
-      ...data,
-      minFollowers: Number.isFinite(data.minFollowers as any) ? data.minFollowers : 0,
-      tdripPointsPerParticipant: Number.isFinite(data.tdripPointsPerParticipant as any) ? data.tdripPointsPerParticipant : 0,
-      tdripParticipantLimit: Number.isFinite(data.tdripParticipantLimit as any) ? data.tdripParticipantLimit : 0,
+    const num = (v: any, fallback = 0) => {
+      const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
+      return Number.isFinite(n) ? n : fallback;
     };
 
-    // Ensure all required fields are filled
-    if (!safeData.title || !safeData.description || !safeData.category || !safeData.requirements) {
+    const title = String(raw.title || "").trim();
+    const description = String(raw.description || "").trim();
+    const category = String(raw.category || "").trim();
+    const requirements = String(raw.requirements || "").trim();
+    const deadline = String(raw.deadline || "").trim();
+    const reward = num(raw.reward, 0);
+    const totalSlots = Math.floor(num(raw.totalSlots, 0));
+
+    const missing: string[] = [];
+    if (!title) missing.push("Campaign Title");
+    if (!description) missing.push("Description");
+    if (!category) missing.push("Category");
+    if (!requirements) missing.push("Requirements & Guidelines");
+    if (!deadline) missing.push("Deadline");
+    if (reward < 1) missing.push("Reward (at least $1)");
+    if (totalSlots < 1) missing.push("Total Spots (at least 1)");
+
+    if (missing.length > 0) {
       toast({
-        title: "Missing required fields",
-        description: "Please fill in title, description, category and requirements before submitting.",
+        title: "Please fill in: " + missing.join(", "),
+        description: "These fields are required to create your campaign.",
         variant: "destructive",
+        duration: 8000,
       });
+      // Also scroll the dialog to the top so the user sees the missing fields.
+      try {
+        const dlg = document.querySelector('[role="dialog"]');
+        dlg?.scrollTo?.({ top: 0, behavior: "smooth" });
+      } catch {}
       return;
     }
 
-    // Get the uploaded file
-    const fileInput = document.getElementById('campaign-image') as HTMLInputElement;
+    const safeData: any = {
+      title,
+      description,
+      category,
+      requirements,
+      deadline,
+      reward,
+      totalSlots,
+      estimatedTime: String(raw.estimatedTime || "").trim() || "1-2 days",
+      qualificationRules: String(raw.qualificationRules || "").trim(),
+      minFollowers: Math.max(0, Math.floor(num(raw.minFollowers, 0))),
+      tdripPointsPerParticipant: Math.max(0, Math.floor(num(raw.tdripPointsPerParticipant, 0))),
+      tdripParticipantLimit: Math.max(0, Math.floor(num(raw.tdripParticipantLimit, 0))),
+    };
+
+    const fileInput = document.getElementById("campaign-image") as HTMLInputElement | null;
     const file = fileInput?.files?.[0];
 
     const preQualificationTasks = campaignTasks
@@ -465,7 +504,14 @@ export default function BrandDashboard() {
         requiredProof: t.proofRequired ? "Profile link or screenshot" : undefined,
       }));
 
+    console.log("[create-campaign] sending:", { ...safeData, preQualificationTasks, hasFile: !!file });
     createCampaignMutation.mutate({ ...safeData, preQualificationTasks, file } as any);
+  };
+
+  // Kept for the form's onSubmit wiring (Enter key etc.); delegates to the
+  // bulletproof click path so behavior is identical regardless of entry point.
+  const onCreateCampaign = (_data: z.infer<typeof campaignSchema>) => {
+    submitCampaignFromClick();
   };
 
   const getStatusIcon = (status: string) => {
@@ -692,7 +738,8 @@ export default function BrandDashboard() {
                                 )}
                               </div>
                               <input
-                                type="url"
+                                type="text"
+                                inputMode="url"
                                 value={task.actionUrl}
                                 onChange={e => updateCampaignTask(i, "actionUrl", e.target.value)}
                                 placeholder="Action link (https://...) — where the creator goes to perform this task"
@@ -898,23 +945,11 @@ export default function BrandDashboard() {
                         Cancel
                       </Button>
                       <Button
-                        type="submit"
+                        type="button"
                         disabled={createCampaignMutation.isPending}
                         className="bg-blue-600 hover:bg-blue-700"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          form.handleSubmit(onCreateCampaign, (errors) => {
-                            const firstError = Object.values(errors)[0] as any;
-                            const firstField = Object.keys(errors)[0];
-                            toast({
-                              title: "Please fix the highlighted fields",
-                              description: firstError?.message
-                                ? `${firstField}: ${firstError.message}`
-                                : "Some required fields are missing or invalid.",
-                              variant: "destructive",
-                            });
-                          })();
-                        }}
+                        onClick={() => submitCampaignFromClick()}
+                        data-testid="button-create-campaign-submit"
                       >
                         {createCampaignMutation.isPending ? "Creating..." : "Create Campaign"}
                       </Button>
