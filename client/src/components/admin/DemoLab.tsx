@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Users, DollarSign, Eye, Heart, GraduationCap, Sparkles, BookOpen,
   ShoppingBag, MessageSquare, UserPlus, Zap, Wand2, Trash2, AlertTriangle, FileText,
+  Power, RefreshCw, Cloud, CheckCircle2, XCircle,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -32,6 +33,10 @@ export default function DemoLab() {
   const err = (e: any) => toast({ title: "Failed", description: e?.message || "Error", variant: "destructive" });
 
   const stats = useQuery<any>({ queryKey: ["/api/admin/demo/stats"] });
+  const killSwitch = useQuery<{ enabled: boolean }>({ queryKey: ["/api/admin/demo/kill-switch"] });
+  const syncStatus = useQuery<{ total: number; seeded: number; missing: number; missingSlugs: string[] }>({
+    queryKey: ["/api/admin/demo/sync-status"],
+  });
 
   // ─── Lookups ──────────────────────────────────────────────────────────
   const [userQuery, setUserQuery] = useState("");
@@ -164,6 +169,19 @@ export default function DemoLab() {
       ok(`Seeded ${data.inserted} blog post${data.inserted === 1 ? "" : "s"} (${data.skipped} already existed)`);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/blogs-lookup"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/sync-status"] });
+    },
+    onError: err,
+  });
+
+  const mKillSwitch = useMutation({
+    mutationFn: (enabled: boolean) => post("/api/admin/demo/kill-switch", { enabled }),
+    onSuccess: (data: any) => {
+      ok(data.enabled ? "Demo mode ON — sample data live" : "Demo mode OFF — all demo data wiped");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/kill-switch"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/users-lookup"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/demo/sync-status"] });
     },
     onError: err,
   });
@@ -190,26 +208,164 @@ export default function DemoLab() {
         </div>
       </div>
 
-      {/* ── Seed Default Blogs (for production parity) ────────────────── */}
-      <Card className="border-amber-300/60 dark:border-amber-700/60 bg-amber-50/50 dark:bg-amber-950/20">
+      {/* ── KILL SWITCH — single button, ON/OFF toggle ─────────────────── */}
+      <Card
+        className={`border-2 ${
+          killSwitch.data?.enabled
+            ? "border-emerald-400/70 bg-emerald-50/60 dark:bg-emerald-950/30"
+            : "border-red-400/70 bg-red-50/60 dark:bg-red-950/30"
+        }`}
+      >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
-            <FileText className="w-5 h-5" /> Seed Default Blog Posts
+          <CardTitle className="flex items-center gap-2">
+            <Power
+              className={`w-5 h-5 ${
+                killSwitch.data?.enabled ? "text-emerald-600" : "text-red-600"
+              }`}
+            />
+            Demo Kill Switch
+            <span
+              className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-md ${
+                killSwitch.data?.enabled
+                  ? "bg-emerald-200 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100"
+                  : "bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100"
+              }`}
+              data-testid="badge-kill-switch-state"
+            >
+              {killSwitch.isLoading ? "…" : killSwitch.data?.enabled ? "ON" : "OFF"}
+            </span>
           </CardTitle>
           <CardDescription>
-            Inserts the curated set of starter blog articles. Already-existing slugs are skipped — safe to run on any environment (Replit dev, Railway production, etc.). Use this on your live site to publish the same blogs there.
+            One button — when <strong>OFF</strong>, every demo-added fund, follower count, fake user, fake follow, and fake like is wiped instantly across the platform. Toggle <strong>ON</strong> to re-publish the curated demo content (default blog posts).
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="lg"
+                className={`w-full font-bold h-14 text-base ${
+                  killSwitch.data?.enabled
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                } text-white`}
+                disabled={mKillSwitch.isPending || killSwitch.isLoading}
+                data-testid="button-kill-switch-toggle"
+              >
+                <Power className="w-5 h-5 mr-2" />
+                {mKillSwitch.isPending
+                  ? "Working…"
+                  : killSwitch.data?.enabled
+                  ? "Turn OFF — Wipe All Demo Data"
+                  : "Turn ON — Re-seed Demo Content"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {killSwitch.data?.enabled
+                    ? "Turn demo mode OFF?"
+                    : "Turn demo mode ON?"}
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm">
+                    {killSwitch.data?.enabled ? (
+                      <>
+                        <div>This will instantly:</div>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Delete every <code>fake_*@taskdrip.demo</code> account.</li>
+                          <li>Delete every fake follow and fake like they generated.</li>
+                          <li>Reset every user's available balance and total earned to <strong>$0</strong>.</li>
+                          <li>Reset every user's follower counts (Instagram, TikTok, YouTube, X) to <strong>0</strong>.</li>
+                        </ul>
+                        <div className="pt-2 text-red-600 font-semibold">
+                          This affects ALL users (including real ones). It cannot be undone.
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>This will:</div>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Re-publish all curated default blog posts.</li>
+                          <li>Mark demo mode as active in app settings.</li>
+                        </ul>
+                        <div className="pt-2 text-muted-foreground">
+                          Your existing real users, balances, and follower counts are not changed by turning ON.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-kill-switch-cancel">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => mKillSwitch.mutate(!killSwitch.data?.enabled)}
+                  className={
+                    killSwitch.data?.enabled
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }
+                  data-testid="button-kill-switch-confirm"
+                >
+                  Yes, {killSwitch.data?.enabled ? "wipe everything" : "turn ON"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
+
+      {/* ── Production sync status + Seed Default Blogs ───────────────── */}
+      <Card className="border-blue-300/60 dark:border-blue-700/60 bg-blue-50/50 dark:bg-blue-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+            <Cloud className="w-5 h-5" /> Production Sync — Default Content
+          </CardTitle>
+          <CardDescription>
+            <strong>Auto-seeds on every server start.</strong> Each Railway redeploy
+            inserts any missing default blog posts automatically. You can also push
+            them now manually with the button below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl bg-white dark:bg-gray-900 border p-3 text-center" data-testid="stat-default-total">
+              <div className="text-2xl font-extrabold">{syncStatus.data?.total ?? "—"}</div>
+              <div className="text-xs text-muted-foreground mt-1">Default blogs</div>
+            </div>
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-3 text-center" data-testid="stat-default-seeded">
+              <div className="flex items-center justify-center gap-1 text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="w-5 h-5" /> {syncStatus.data?.seeded ?? "—"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Live in DB</div>
+            </div>
+            <div className={`rounded-xl border p-3 text-center ${
+              (syncStatus.data?.missing ?? 0) > 0
+                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800"
+                : "bg-white dark:bg-gray-900"
+            }`} data-testid="stat-default-missing">
+              <div className={`flex items-center justify-center gap-1 text-2xl font-extrabold ${
+                (syncStatus.data?.missing ?? 0) > 0 ? "text-amber-700 dark:text-amber-300" : ""
+              }`}>
+                {(syncStatus.data?.missing ?? 0) > 0 ? <XCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+                {syncStatus.data?.missing ?? "—"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Missing</div>
+            </div>
+          </div>
           <Button
             onClick={() => mSeedBlogs.mutate()}
             disabled={mSeedBlogs.isPending}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             data-testid="button-seed-default-blogs"
           >
-            <FileText className="w-4 h-4 mr-2" />
-            {mSeedBlogs.isPending ? "Seeding…" : "Seed Default Blogs"}
+            <RefreshCw className={`w-4 h-4 mr-2 ${mSeedBlogs.isPending ? "animate-spin" : ""}`} />
+            {mSeedBlogs.isPending ? "Seeding…" : "Push Default Blogs Now"}
           </Button>
+          <p className="text-xs text-muted-foreground">
+            Run this same button on your live site (taskdrip.online → admin → Demo Lab) to publish the curated articles there. Already-existing slugs are skipped — safe to click multiple times.
+          </p>
         </CardContent>
       </Card>
 

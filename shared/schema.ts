@@ -2150,3 +2150,10 @@ export const pageHeroBackgrounds = pgTable("page_hero_backgrounds", {
 export const insertPageHeroBackgroundSchema = createInsertSchema(pageHeroBackgrounds).omit({ id: true, updatedAt: true });
 export type InsertPageHeroBackground = z.infer<typeof insertPageHeroBackgroundSchema>;
 export type PageHeroBackground = typeof pageHeroBackgrounds.$inferSelect;
+
+export const appSettings = pgTable("app_settings", {
+  key: varchar("key").primaryKey(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export type AppSetting = typeof appSettings.$inferSelect;

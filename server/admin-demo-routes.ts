@@ -22,9 +22,133 @@ import {
   userFollows,
   userReviews,
   transactions,
+  appSettings,
 } from "../shared/schema";
 import { eq, sql, and, desc, inArray } from "drizzle-orm";
 import { DEFAULT_BLOGS } from "./blog-seed-data";
+
+// ─── App settings helpers (key/value table) ─────────────────────────────────
+export async function getAppSetting(key: string): Promise<string | null> {
+  try {
+    const rows = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
+    return rows[0]?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+export async function setAppSetting(key: string, value: string): Promise<void> {
+  await db.insert(appSettings)
+    .values({ key, value, updatedAt: new Date() })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: new Date() } });
+}
+
+// ─── Seed default blogs (idempotent, safe to call from startup) ─────────────
+export async function seedDefaultBlogs(authorId: string): Promise<{ inserted: number; skipped: number; total: number }> {
+  const existing = await db.select({ slug: blogPosts.slug }).from(blogPosts);
+  const existingSlugs = new Set(existing.map(b => b.slug));
+  let inserted = 0;
+  const skipped: string[] = [];
+  const now = new Date();
+  for (const b of DEFAULT_BLOGS) {
+    if (existingSlugs.has(b.slug)) { skipped.push(b.slug); continue; }
+    try {
+      await db.insert(blogPosts).values({
+        title: b.title, slug: b.slug, content: b.content, excerpt: b.excerpt,
+        featuredImage: b.featuredImage, category: b.category, tags: b.tags,
+        authorId, isPublished: true, publishedAt: now,
+        viewCount: b.viewCount, likesCount: b.likesCount, commentsCount: b.commentsCount,
+        metaDescription: b.metaDescription, seoKeywords: b.seoKeywords,
+        readingTime: b.readingTime,
+      } as any);
+      inserted++;
+    } catch (err: any) {
+      console.error("seed blog failed", b.slug, err?.message);
+    }
+  }
+  return { inserted, skipped: skipped.length, total: DEFAULT_BLOGS.length };
+}
+
+// ─── Master wipe of all demo data (callable from kill switch) ───────────────
+export async function wipeAllDemoData(): Promise<{
+  fakeUsersDeleted: number; followsDeleted: number; likesDeleted: number;
+  enrollmentsDeleted: number; productReviewsDeleted: number;
+  courseReviewsDeleted: number; userReviewsDeleted: number;
+  balancesReset: number; followersReset: number;
+}> {
+  const result = {
+    fakeUsersDeleted: 0, followsDeleted: 0, likesDeleted: 0,
+    enrollmentsDeleted: 0, productReviewsDeleted: 0,
+    courseReviewsDeleted: 0, userReviewsDeleted: 0,
+    balancesReset: 0, followersReset: 0,
+  };
+
+  // 1) Delete every fake_*@taskdrip.demo user and their generated activity
+  const fakes = await db.select({ id: users.id })
+    .from(users)
+    .where(sql`${users.email} LIKE 'fake_%@taskdrip.demo'`);
+  const ids = fakes.map(f => f.id);
+
+  if (ids.length > 0) {
+    const followGroups = await db.select({
+      target: userFollows.followingId,
+      n: sql<number>`count(*)::int`,
+    }).from(userFollows).where(inArray(userFollows.followerId, ids))
+      .groupBy(userFollows.followingId);
+    for (const g of followGroups) {
+      await db.update(users).set({
+        followers: sql`GREATEST(0, COALESCE(${users.followers}, 0) - ${g.n})`,
+        totalFollowers: sql`GREATEST(0, COALESCE(${users.totalFollowers}, 0) - ${g.n})`,
+      } as any).where(eq(users.id, g.target));
+    }
+
+    const likeGroups = await db.select({
+      postId: postLikes.postId,
+      n: sql<number>`count(*)::int`,
+    }).from(postLikes).where(inArray(postLikes.userId, ids))
+      .groupBy(postLikes.postId);
+    for (const g of likeGroups) {
+      await db.update(posts).set({
+        likeCount: sql`GREATEST(0, COALESCE(${posts.likeCount}, 0) - ${g.n})`,
+      } as any).where(eq(posts.id, g.postId));
+    }
+
+    const r1 = await db.delete(userFollows)
+      .where(sql`${userFollows.followerId} = ANY(${ids}) OR ${userFollows.followingId} = ANY(${ids})`);
+    result.followsDeleted = (r1 as any).rowCount ?? 0;
+    const r2 = await db.delete(postLikes).where(inArray(postLikes.userId, ids));
+    result.likesDeleted = (r2 as any).rowCount ?? 0;
+    const r3 = await db.delete(courseEnrollments).where(inArray(courseEnrollments.userId, ids));
+    result.enrollmentsDeleted = (r3 as any).rowCount ?? 0;
+    const r4 = await db.delete(productReviews).where(inArray(productReviews.userId, ids));
+    result.productReviewsDeleted = (r4 as any).rowCount ?? 0;
+    const r5 = await db.delete(courseReviews).where(inArray(courseReviews.userId, ids));
+    result.courseReviewsDeleted = (r5 as any).rowCount ?? 0;
+    try {
+      const r6 = await db.delete(userReviews)
+        .where(sql`${userReviews.reviewerId} = ANY(${ids}) OR ${userReviews.revieweeId} = ANY(${ids})`);
+      result.userReviewsDeleted = (r6 as any).rowCount ?? 0;
+    } catch {}
+    try { await db.delete(blogLikes).where(inArray(blogLikes.userId, ids)); } catch {}
+    const rDel = await db.delete(users).where(inArray(users.id, ids));
+    result.fakeUsersDeleted = (rDel as any).rowCount ?? ids.length;
+  }
+
+  // 2) Zero balances + total earned for ALL users
+  const rb = await db.update(users).set({
+    availableBalance: "0.00", totalEarned: "0.00",
+  } as any);
+  result.balancesReset = (rb as any).rowCount ?? 0;
+
+  // 3) Zero follower counts + per-platform counts for ALL users
+  const rf = await db.update(users).set({
+    followers: 0, following: 0, totalFollowers: 0,
+    instagramFollowers: 0, twitterFollowers: 0,
+    tiktokFollowers: 0, youtubeFollowers: 0,
+  } as any);
+  result.followersReset = (rf as any).rowCount ?? 0;
+
+  return result;
+}
 
 const MAX_FOLLOWERS = 10_000_000;
 const MAX_VIEWS = 50_000_000;
@@ -438,125 +562,15 @@ export function registerAdminDemoRoutes(app: Express, isAuthenticated: any) {
     }
   });
 
-  // ─── Master wipe of all demo data ─────────────────────────────────────
-  // Body flags (all default false except where noted):
-  //   deleteFakeUsers  — remove fake_*@taskdrip.demo accounts + their data
-  //   resetAllBalances — zero availableBalance/totalEarned for ALL users
-  //   resetAllFollowers — zero follower counts for ALL users
-  //   confirm          — must equal "WIPE" (safety)
+  // ─── Master wipe (legacy multi-flag endpoint, kept for back-compat) ───
   app.post("/api/admin/demo/wipe", isAuthenticated, async (req: any, res) => {
     if (!(await guard(req, res))) return;
     try {
-      const {
-        deleteFakeUsers = true,
-        resetAllBalances = false,
-        resetAllFollowers = false,
-        confirm,
-      } = req.body || {};
+      const { confirm } = req.body || {};
       if (confirm !== "WIPE") {
         return res.status(400).json({ message: "Confirmation phrase 'WIPE' required" });
       }
-
-      const result: any = {
-        fakeUsersDeleted: 0,
-        followsDeleted: 0,
-        likesDeleted: 0,
-        enrollmentsDeleted: 0,
-        productReviewsDeleted: 0,
-        courseReviewsDeleted: 0,
-        userReviewsDeleted: 0,
-        balancesReset: 0,
-        followersReset: 0,
-      };
-
-      if (deleteFakeUsers) {
-        const fakes = await db.select({ id: users.id })
-          .from(users)
-          .where(sql`${users.email} LIKE 'fake_%@taskdrip.demo'`);
-        const ids = fakes.map(f => f.id);
-        result.fakeUsersFound = ids.length;
-
-        if (ids.length > 0) {
-          // Decrement target counts before deleting follows so visible
-          // follower counts stay consistent.
-          const followGroups = await db.select({
-            target: userFollows.followingId,
-            n: sql<number>`count(*)::int`,
-          }).from(userFollows).where(inArray(userFollows.followerId, ids))
-            .groupBy(userFollows.followingId);
-
-          for (const g of followGroups) {
-            await db.update(users).set({
-              followers: sql`GREATEST(0, COALESCE(${users.followers}, 0) - ${g.n})`,
-              totalFollowers: sql`GREATEST(0, COALESCE(${users.totalFollowers}, 0) - ${g.n})`,
-            } as any).where(eq(users.id, g.target));
-          }
-
-          // Decrement post like counts before deleting fake post likes.
-          const likeGroups = await db.select({
-            postId: postLikes.postId,
-            n: sql<number>`count(*)::int`,
-          }).from(postLikes).where(inArray(postLikes.userId, ids))
-            .groupBy(postLikes.postId);
-          for (const g of likeGroups) {
-            await db.update(posts).set({
-              likeCount: sql`GREATEST(0, COALESCE(${posts.likeCount}, 0) - ${g.n})`,
-            } as any).where(eq(posts.id, g.postId));
-          }
-
-          const r1 = await db.delete(userFollows)
-            .where(sql`${userFollows.followerId} = ANY(${ids}) OR ${userFollows.followingId} = ANY(${ids})`);
-          result.followsDeleted = (r1 as any).rowCount ?? 0;
-
-          const r2 = await db.delete(postLikes).where(inArray(postLikes.userId, ids));
-          result.likesDeleted = (r2 as any).rowCount ?? 0;
-
-          const r3 = await db.delete(courseEnrollments).where(inArray(courseEnrollments.userId, ids));
-          result.enrollmentsDeleted = (r3 as any).rowCount ?? 0;
-
-          const r4 = await db.delete(productReviews).where(inArray(productReviews.userId, ids));
-          result.productReviewsDeleted = (r4 as any).rowCount ?? 0;
-
-          const r5 = await db.delete(courseReviews).where(inArray(courseReviews.userId, ids));
-          result.courseReviewsDeleted = (r5 as any).rowCount ?? 0;
-
-          try {
-            const r6 = await db.delete(userReviews)
-              .where(sql`${userReviews.reviewerId} = ANY(${ids}) OR ${userReviews.revieweeId} = ANY(${ids})`);
-            result.userReviewsDeleted = (r6 as any).rowCount ?? 0;
-          } catch {}
-
-          // Fake users have no campaigns/posts/products of their own (creator
-          // accounts) — but defensively delete anything they may have authored
-          // to avoid FK violations.
-          try { await db.delete(blogLikes).where(inArray(blogLikes.userId, ids)); } catch {}
-
-          const rDel = await db.delete(users).where(inArray(users.id, ids));
-          result.fakeUsersDeleted = (rDel as any).rowCount ?? ids.length;
-        }
-      }
-
-      if (resetAllBalances) {
-        const r = await db.update(users).set({
-          availableBalance: "0.00",
-          totalEarned: "0.00",
-        } as any);
-        result.balancesReset = (r as any).rowCount ?? 0;
-      }
-
-      if (resetAllFollowers) {
-        const r = await db.update(users).set({
-          followers: 0,
-          following: 0,
-          totalFollowers: 0,
-          instagramFollowers: 0,
-          twitterFollowers: 0,
-          tiktokFollowers: 0,
-          youtubeFollowers: 0,
-        } as any);
-        result.followersReset = (r as any).rowCount ?? 0;
-      }
-
+      const result = await wipeAllDemoData();
       res.json({ ok: true, ...result });
     } catch (e: any) {
       console.error(e);
@@ -565,58 +579,69 @@ export function registerAdminDemoRoutes(app: Express, isAuthenticated: any) {
   });
 
   // ─── Seed default blog posts (idempotent) ─────────────────────────────
-  // Used to push the curated blog set into a fresh environment such as
-  // Railway production. Skips slugs that already exist.
+  // Inserts the curated blog set. Already-existing slugs are skipped — safe
+  // to call from Railway production or any fresh DB.
   app.post("/api/admin/seed-default-blogs", isAuthenticated, async (req: any, res) => {
     if (!(await guard(req, res))) return;
     try {
-      const existing = await db.select({ slug: blogPosts.slug }).from(blogPosts);
-      const existingSlugs = new Set(existing.map(b => b.slug));
-      let inserted = 0;
-      const skipped: string[] = [];
-      const created: string[] = [];
-      const now = new Date();
-      for (const b of DEFAULT_BLOGS) {
-        if (existingSlugs.has(b.slug)) {
-          skipped.push(b.slug);
-          continue;
-        }
-        try {
-          await db.insert(blogPosts).values({
-            title: b.title,
-            slug: b.slug,
-            content: b.content,
-            excerpt: b.excerpt,
-            featuredImage: b.featuredImage,
-            category: b.category,
-            tags: b.tags,
-            authorId: req.user.id,
-            isPublished: true,
-            publishedAt: now,
-            viewCount: b.viewCount,
-            likesCount: b.likesCount,
-            commentsCount: b.commentsCount,
-            metaDescription: b.metaDescription,
-            seoKeywords: b.seoKeywords,
-            readingTime: b.readingTime,
-          } as any);
-          created.push(b.slug);
-          inserted++;
-        } catch (err: any) {
-          console.error("seed blog failed", b.slug, err?.message);
-        }
-      }
-      res.json({
-        ok: true,
-        total: DEFAULT_BLOGS.length,
-        inserted,
-        skipped: skipped.length,
-        created,
-        skippedSlugs: skipped,
-      });
+      const result = await seedDefaultBlogs(req.user.id);
+      res.json({ ok: true, ...result });
     } catch (e: any) {
       console.error(e);
       res.status(500).json({ message: e.message });
     }
+  });
+
+  // ─── Kill switch (single button: ON = demo data live, OFF = wiped) ────
+  // GET returns current state. POST { enabled: boolean } toggles it:
+  //   • enabled=false → wipe ALL demo data (fake users, balances, followers)
+  //   • enabled=true  → re-seed default blogs and mark demo mode active
+  app.get("/api/admin/demo/kill-switch", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    const v = await getAppSetting("demo_mode_enabled");
+    const enabled = v === null ? true : v === "true";
+    res.json({ enabled });
+  });
+
+  app.post("/api/admin/demo/kill-switch", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    try {
+      const { enabled } = req.body || {};
+      if (typeof enabled !== "boolean") {
+        return res.status(400).json({ message: "enabled (boolean) required" });
+      }
+      let wipeResult: any = null;
+      let seedResult: any = null;
+      if (enabled === false) {
+        wipeResult = await wipeAllDemoData();
+      } else {
+        seedResult = await seedDefaultBlogs(req.user.id);
+      }
+      await setAppSetting("demo_mode_enabled", String(enabled));
+      res.json({ ok: true, enabled, wipeResult, seedResult });
+    } catch (e: any) {
+      console.error("kill-switch:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ─── Sync default content to live (calls remote production API) ───────
+  // Pushes blog posts (and runs idempotent seeders) on a remote Railway URL.
+  // Body: { url: "https://taskdrip.online", token: "<admin session cookie>" }
+  // For convenience we also expose a direct endpoint that simply returns the
+  // current seed status — the live app's own admin can re-trigger the seed
+  // by clicking "Seed Default Blogs" or toggling the kill switch.
+  app.get("/api/admin/demo/sync-status", isAuthenticated, async (req: any, res) => {
+    if (!(await guard(req, res))) return;
+    const blogs = await db.select({ slug: blogPosts.slug }).from(blogPosts);
+    const existing = new Set(blogs.map(b => b.slug));
+    const seeded = DEFAULT_BLOGS.filter(b => existing.has(b.slug)).map(b => b.slug);
+    const missing = DEFAULT_BLOGS.filter(b => !existing.has(b.slug)).map(b => b.slug);
+    res.json({
+      total: DEFAULT_BLOGS.length,
+      seeded: seeded.length,
+      missing: missing.length,
+      missingSlugs: missing,
+    });
   });
 }

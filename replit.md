@@ -1,5 +1,17 @@
 # Overview
 
+## Recent Changes (April 2026 — Demo Lab Turbo Engine: Kill Switch + 12 Blogs + Auto-Sync to Railway)
+
+- **Demo Kill Switch (one button, ON/OFF)** — `client/src/components/admin/DemoLab.tsx` + `server/admin-demo-routes.ts`. New big toggle at the top of the Demo Lab tab. Backed by a new `app_settings` key/value table (`demo_mode_enabled`).
+  - **OFF** → instantly wipes EVERY demo-added thing across the platform: deletes all `fake_*@taskdrip.demo` accounts, all of their fake follows + fake post likes (with target follower/like counts properly decremented), zeros every user's `availableBalance` / `totalEarned`, and zeros every user's followers + per-platform counts (Instagram/X/TikTok/YouTube).
+  - **ON** → re-seeds the curated default blog posts and marks demo mode active.
+  - Endpoints: `GET/POST /api/admin/demo/kill-switch`. Confirmation dialog with full impact list before firing. Live colour-coded badge (emerald=ON, red=OFF).
+- **12 default blog posts** — `server/blog-seed-data.ts` expanded from 4 → 12 articles (categories: payments, influencers, brands, creators, growth, marketplace, education). Slug-based idempotent seeding.
+- **Auto-sync Replit → Railway** — `server/index.ts` now calls `seedDefaultBlogs(adminUser.id)` on every server startup (deferred via `setImmediate`, never blocks healthchecks). This is the auto-sync hook: every Railway redeploy auto-publishes any new entries pushed into `server/blog-seed-data.ts`. Logs `[Seed] Default blogs: N new, N existing`.
+- **Production sync status panel** — new card in Demo Lab shows `total / live in DB / missing` for default blogs at a glance, with a "Push Default Blogs Now" button that hits the same idempotent endpoint. Endpoint: `GET /api/admin/demo/sync-status`.
+- **Refactored seed/wipe** — `seedDefaultBlogs()` and `wipeAllDemoData()` are now exported from `server/admin-demo-routes.ts` so the kill-switch endpoint, the legacy wipe endpoint, the seed-default-blogs endpoint, and the startup hook all share the exact same code path.
+- **Schema** — added `appSettings` table (`shared/schema.ts`, key/value/updatedAt). Pushed via `npm run db:push`.
+
 ## Recent Changes (April 2026 — Demo Lab + $700K Platform Earnings + Realistic Demo Seed)
 
 - **Admin Demo Lab tab** (new) — `client/src/components/admin/DemoLab.tsx`, registered in admin-master.tsx as the `demo-lab` tab. Lets admins:

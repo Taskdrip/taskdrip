@@ -7,6 +7,7 @@ import { registerRoutes, runSubscriptionExpiryCheck } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
+import { seedDefaultBlogs } from "./admin-demo-routes";
 import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
 import { storage } from "./storage";
@@ -277,6 +278,13 @@ server.listen({
         const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
         if (adminUser) {
           await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
+          // Auto-seed default blog posts on every startup (idempotent — only
+          // inserts missing slugs). This is the "auto-sync" hook: pushing new
+          // entries into server/blog-seed-data.ts and redeploying Railway
+          // automatically publishes them on the live site.
+          await seedDefaultBlogs(adminUser.id)
+            .then((r) => log(`[Seed] Default blogs: ${r.inserted} new, ${r.skipped} existing`))
+            .catch((e) => console.error("seedDefaultBlogs:", e));
         }
         await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
         await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
