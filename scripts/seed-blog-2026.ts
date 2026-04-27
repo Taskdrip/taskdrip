@@ -2,7 +2,7 @@ import { db } from "../server/db";
 import { blogPosts } from "../shared/schema";
 import { eq } from "drizzle-orm";
 
-const AUTHOR_ID = "admin_1777095797530_43kle06lu";
+const AUTHOR_ID = "admin_1777111541737_k4d5o8g42";
 
 type Article = {
   slug: string;
