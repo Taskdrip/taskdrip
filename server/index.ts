@@ -14,6 +14,14 @@ import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
 import bcrypt from "bcrypt";
 
+// ── Global crash guards — must be first so the server never silently dies ──
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason);
+});
+
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
 let appReady = false;

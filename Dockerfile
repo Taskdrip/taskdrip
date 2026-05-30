@@ -20,24 +20,18 @@ RUN npm run build
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production \
-    PORT=5000
+# NODE_ENV only — do NOT hardcode PORT; Railway injects its own PORT at runtime
+ENV NODE_ENV=production
 
-# tini for proper signal handling
 RUN apt-get update \
     && apt-get install -y --no-install-recommends tini ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy what runtime + pre-deploy migrations need.
-# We intentionally keep the full node_modules (incl. drizzle-kit) so the
-# Railway pre-deploy `npm run db:push --force` works without re-installing.
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json* ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
-# tsconfig.json is required by drizzle-kit to parse TypeScript config + schema
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/uploads ./uploads
 COPY --from=builder /app/attached_assets ./attached_assets

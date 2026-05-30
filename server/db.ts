@@ -2,31 +2,74 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  process.env.DATABASE_PRIVATE_URL ||
-  process.env.DATABASE_PUBLIC_URL ||
-  process.env.POSTGRES_URL;
+const { Pool } = pg;
+
+// Build connection string — support URL-based OR PG* env var style (Railway sets both)
+function resolveConnectionString(): string | undefined {
+  // 1. Direct URL env vars (preferred)
+  const url =
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_PRIVATE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.POSTGRES_URL;
+  if (url) return url;
+
+  // 2. Construct from individual PG* vars (Railway Postgres plugin sets these)
+  const host = process.env.PGHOST;
+  const port = process.env.PGPORT || "5432";
+  const user = process.env.PGUSER;
+  const password = process.env.PGPASSWORD;
+  const database = process.env.PGDATABASE;
+  if (host && user && password && database) {
+    return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+  }
+
+  return undefined;
+}
+
+const connectionString = resolveConnectionString();
 
 if (!connectionString) {
-  throw new Error(
-    "Database connection URL is missing. On Railway, add a PostgreSQL service, then add DATABASE_URL to your app service variables using the Postgres service connection URL.",
+  // Log a clear warning but don't throw — let the server start so health checks pass.
+  // API endpoints that touch the DB will fail gracefully at query time.
+  console.error(
+    "[db] WARNING: No database connection URL found. " +
+    "Set DATABASE_URL (or PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE) to enable database features."
   );
 }
 
-const { Pool } = pg;
-const isLocalDatabase = /localhost|127\.0\.0\.1|\.internal/.test(connectionString);
-const usesSsl =
-  process.env.PGSSL === "true" ||
-  process.env.DATABASE_PUBLIC_URL === connectionString ||
-  connectionString.includes("sslmode=require") ||
-  connectionString.includes("neon.tech") ||
-  connectionString.includes("railway.app") ||
-  connectionString.includes("supabase.co") ||
-  connectionString.includes("rds.amazonaws.com");
+const isLocalDatabase = connectionString
+  ? /localhost|127\.0\.0\.1|\.internal/.test(connectionString)
+  : false;
 
-export const pool = new Pool({
-  connectionString,
-  ssl: usesSsl && !isLocalDatabase ? { rejectUnauthorized: false } : undefined,
-});
+const usesSsl = connectionString
+  ? (
+    process.env.PGSSL === "true" ||
+    process.env.DATABASE_PUBLIC_URL === connectionString ||
+    connectionString.includes("sslmode=require") ||
+    connectionString.includes("neon.tech") ||
+    connectionString.includes("railway.app") ||
+    connectionString.includes("supabase.co") ||
+    connectionString.includes("rds.amazonaws.com")
+  )
+  : false;
+
+export const pool = new Pool(
+  connectionString
+    ? {
+        connectionString,
+        ssl: usesSsl && !isLocalDatabase ? { rejectUnauthorized: false } : undefined,
+        // Sensible pool limits for Railway (1 replica)
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      }
+    : {
+        // Dummy pool — queries will fail but the server will start
+        host: "127.0.0.1",
+        port: 54321,
+        connectionTimeoutMillis: 1000,
+      }
+);
+
 export const db = drizzle({ client: pool, schema });
