@@ -37,6 +37,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+# tsconfig.json is required by drizzle-kit to parse TypeScript config + schema
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/uploads ./uploads
 COPY --from=builder /app/attached_assets ./attached_assets
 COPY --from=builder /app/server ./server
