@@ -9,10 +9,11 @@ import { nanoid } from "nanoid";
 import { buildSeoHtml } from "./seo-meta";
 import { injectAnalytics } from "./analytics-injector";
 
-// import.meta.dirname is Node 22+ only; derive it from import.meta.url so this
-// works on Node 18/20 as well (which is what the Railway Dockerfile uses).
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Resolve __dirname in a way that works across Node 18/20/22 and esbuild bundles.
+// process.cwd() = project root in both Docker (/app) and local dev.
+// For dev, the client template is at <root>/client/index.html.
+// For prod, the built frontend is at <root>/dist/public (vite outDir).
+const PROJECT_ROOT = process.cwd();
 
 const viteLogger = createLogger();
 
@@ -53,12 +54,7 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
-      const clientTemplate = path.resolve(
-        __dirname,
-        "..",
-        "client",
-        "index.html",
-      );
+      const clientTemplate = path.resolve(PROJECT_ROOT, "client", "index.html");
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
@@ -78,12 +74,18 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  const distPath = path.resolve(PROJECT_ROOT, "dist", "public");
+
+  console.log(`[static] Serving frontend from: ${distPath}`);
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+    const msg = `[static] Build directory not found: ${distPath}. Run 'npm run build' first.`;
+    console.error(msg);
+    // Register a fallback so every request gets a clear error instead of "Cannot GET /"
+    app.use("*", (_req, res) => {
+      res.status(503).send(msg);
+    });
+    return;
   }
 
   app.use(express.static(distPath));
