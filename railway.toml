@@ -3,7 +3,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-preDeployCommand = "node_modules/.bin/drizzle-kit push --force"
 startCommand = "node dist/index.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
