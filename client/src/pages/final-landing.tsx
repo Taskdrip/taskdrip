@@ -744,7 +744,7 @@ export default function FinalLanding() {
                 Where Skills Become <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">Income</span>
               </h2>
               <p className="text-gray-300 mt-4 leading-relaxed text-sm sm:text-base max-w-lg">
-                BreedSkool is where <strong className="text-white">individuals become Global Digital Assets</strong>. We empower tech enthusiasts with Web3-era skills to build profitable online businesses and thrive in the digital economy.
+                BreedSkool is where <strong className="text-white">skills become income</strong> and <strong className="text-yellow-300">individuals become Global Digital Assets</strong>. We equip tech enthusiasts with real-world Web3-era skills to build profitable online businesses and thrive in the digital economy.
               </p>
               <div className="mt-6 grid grid-cols-2 gap-3">
                 {[

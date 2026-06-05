@@ -5461,11 +5461,19 @@ Instructions:
       // Create platform account if email not already taken
       let userId: string | null = null;
       let newUser: any = null;
+      let loginUser: any = null; // user to auto-login (new or existing with correct password)
+      const bcrypt = await import('bcrypt');
       const existing = await storage.getUserByEmail(email);
       if (existing) {
         userId = existing.id;
+        // Try to auto-login existing user if they provided the correct password
+        if (password && existing.password) {
+          const passwordOk = await bcrypt.compare(password, existing.password);
+          if (passwordOk) {
+            loginUser = existing;
+          }
+        }
       } else {
-        const bcrypt = await import('bcrypt');
         const hashed = await bcrypt.hash(password, 10);
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts[0];
@@ -5485,13 +5493,14 @@ Instructions:
           referralCodeBrand: genCode('BR'),
         } as any);
         userId = newUser.id;
+        loginUser = newUser;
         // Welcome points
         storage.awardPoints(userId, 'signup', 50, 'Welcome to BreedSkool!').catch(() => {});
       }
 
       const proofPath = req.file ? `/uploads/${req.file.filename}` : null;
       const isPayLater = (paymentOption || 'pay_later') === 'pay_later';
-      const deadline = isPayLater ? new Date(Date.now() + 48 * 60 * 60 * 1000) : null;
+      const deadline = null; // No deadline — pay later means free courses only
 
       const [reg] = await db.insert(breedskoolRegistrations).values({
         userId,
@@ -5513,14 +5522,22 @@ Instructions:
         notes: notes || null,
       }).returning();
 
-      // Auto-login the student (only if we created a new account)
-      if (newUser) {
+      // Auto-login the student (new users OR existing users with correct password)
+      if (loginUser) {
         await new Promise<void>((resolve, reject) => {
-          req.login(newUser, (err: any) => err ? reject(err) : resolve());
+          req.login(loginUser, (err: any) => err ? reject(err) : resolve());
         });
       }
 
-      res.status(201).json({ registration: reg, userId, loggedIn: !!newUser });
+      const isExistingAccount = !!existing;
+      const wrongPassword = isExistingAccount && !loginUser;
+      res.status(201).json({
+        registration: reg,
+        userId,
+        loggedIn: !!loginUser,
+        existingAccount: isExistingAccount,
+        wrongPassword,
+      });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
@@ -5532,6 +5549,27 @@ Instructions:
     try {
       const rows = await db.select().from(breedskoolCoursePricing);
       res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: create a new course pricing row
+  app.post('/api/admin/breedskool/pricing', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const { courseKey, title, shortDescription, regularPrice, discountPrice, duration, isActive, acceptedPayments } = req.body;
+      if (!courseKey || !title) return res.status(400).json({ message: 'courseKey and title are required.' });
+      const [row] = await db.insert(breedskoolCoursePricing).values({
+        courseKey, title, shortDescription: shortDescription || '',
+        regularPrice: parseInt(regularPrice) || 0,
+        discountPrice: parseInt(discountPrice) || 0,
+        duration: duration || '',
+        isActive: isActive !== false,
+        acceptedPayments: acceptedPayments || ['bank_transfer', 'usdt_tron', 'usdt_ton', 'usdt_bnb'],
+        updatedAt: new Date(),
+      }).returning();
+      res.status(201).json(row);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

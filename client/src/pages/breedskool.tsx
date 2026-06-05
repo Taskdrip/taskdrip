@@ -93,46 +93,46 @@ const DEFAULT_COURSES: BsCoursePricing[] = [
   {
     id: "default-webdev",
     courseKey: "webdev",
-    title: "Full-Stack Web Development",
-    shortDescription: "Build modern websites and web apps from scratch. HTML, CSS, JavaScript, React, Node.js and deployment.",
-    regularPrice: 150000,
-    discountPrice: 75000,
+    title: "Web Development & Vibe Coding",
+    shortDescription: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment.",
+    regularPrice: 220000,
+    discountPrice: 150000,
     duration: "8 Weeks",
     isActive: true,
-    acceptedPayments: [],
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
   {
     id: "default-ai_content",
     courseKey: "ai_content",
-    title: "AI Content Creation & Monetisation",
-    shortDescription: "Leverage ChatGPT, Midjourney & automation tools to create viral content and earn from multiple platforms.",
-    regularPrice: 120000,
-    discountPrice: 60000,
+    title: "AI Content Creation & Video Editing",
+    shortDescription: "Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms.",
+    regularPrice: 270000,
+    discountPrice: 179000,
     duration: "6 Weeks",
     isActive: true,
-    acceptedPayments: [],
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
   {
     id: "default-social_monetize",
     courseKey: "social_monetize",
-    title: "Social Media Monetisation",
-    shortDescription: "Grow Instagram, TikTok & YouTube to thousands of followers and unlock multiple income streams as a creator.",
-    regularPrice: 100000,
-    discountPrice: 50000,
-    duration: "4 Weeks",
+    title: "Social Media & Web Assets Monetization",
+    shortDescription: "Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams.",
+    regularPrice: 400000,
+    discountPrice: 320000,
+    duration: "6 Weeks",
     isActive: true,
-    acceptedPayments: [],
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
   {
     id: "default-trading",
     courseKey: "trading",
-    title: "Crypto & Forex Trading Fundamentals",
-    shortDescription: "Understand charts, risk management, DeFi protocols and how to build a consistent trading income.",
-    regularPrice: 180000,
-    discountPrice: 90000,
-    duration: "10 Weeks",
+    title: "Pocket Option Trading",
+    shortDescription: "Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom.",
+    regularPrice: 320000,
+    discountPrice: 279000,
+    duration: "8 Weeks",
     isActive: true,
-    acceptedPayments: [],
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
 ];
 
@@ -288,6 +288,13 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
       // Refresh auth state if auto-logged in
       if (data.loggedIn) {
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }
+      // Notify if existing account with wrong password
+      if (data.wrongPassword) {
+        toast({
+          title: "Account already exists",
+          description: "Your registration was saved! Use your existing password to log in and access your courses.",
+        });
       }
     },
     onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
@@ -466,7 +473,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                     <CreditCard className="w-6 h-6 text-emerald-600" />
                   </div>
                   <h3 className="font-bold text-gray-900">Choose how to pay</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Pay now to lock your spot, or reserve it and pay within 48 hours</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Pay now to unlock full live training, or join free to access online courses only</p>
                 </div>
 
                 {/* Order summary */}
@@ -505,15 +512,15 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                       data-testid="btn-pay-later"
                     >
                       <Timer className={`w-5 h-5 mb-1.5 ${form.paymentOption === "pay_later" ? "text-amber-500" : "text-gray-400"}`} />
-                      <p className="font-bold text-sm text-gray-900">Pay Later</p>
-                      <p className="text-xs text-gray-500">Reserve now, pay in 48 hrs</p>
+                      <p className="font-bold text-sm text-gray-900">Join Free</p>
+                      <p className="text-xs text-gray-500">Free online courses only</p>
                     </button>
                   </div>
                   {form.paymentOption === "pay_later" && (
-                    <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-800 leading-relaxed">
-                        Your spot is reserved for <strong>48 hours only</strong>. After that your registration expires and the spot may be given to someone else. You will not have access to paid course content until payment is confirmed.
+                    <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-2">
+                      <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-blue-800 leading-relaxed">
+                        You will only have access to <strong>free online courses</strong>. Live training sessions on site are exclusively for paid students. You can upgrade anytime by making payment.
                       </p>
                     </div>
                   )}
@@ -607,7 +614,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                     {registerMutation.isPending
                       ? "Creating your account…"
                       : form.paymentOption === "pay_later"
-                      ? "Reserve My Spot 🎓"
+                      ? "Join Free — Access Online Courses 🎓"
                       : "Complete Enrollment 🚀"}
                   </Button>
                 </div>
@@ -627,18 +634,18 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
               <GraduationCap className="w-10 h-10 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-gray-900">Welcome, {registeredName.split(" ")[0]}! 🎉</h2>
+              <h2 className="text-2xl font-black text-gray-900">🎉 Welcome to BreedSkool, {registeredName.split(" ")[0]}!</h2>
               <p className="text-gray-600 text-sm mt-2 leading-relaxed">
-                You're enrolled in <span className="font-bold text-violet-700">{registeredCourse}</span>. Your account has been created and you're now logged in.
+                You're officially a <span className="font-bold text-violet-700">BreedSkool student</span>! Your account is live and you're now part of an elite community turning skills into income. {payLater ? "Browse free online courses below." : `Get ready to start your journey in ${registeredCourse}!`}
               </p>
             </div>
             {payLater && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left">
                 <div className="flex items-start gap-2">
-                  <Timer className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-amber-800 text-sm">⏰ 48-Hour Payment Window</p>
-                    <p className="text-xs text-amber-700 mt-1">Your spot is reserved. Complete payment within <strong>48 hours</strong> to keep your enrollment active. After that, your spot expires.</p>
+                    <p className="font-semibold text-blue-800 text-sm">📚 Free Online Courses Access</p>
+                    <p className="text-xs text-blue-700 mt-1">You now have access to our <strong>free online courses</strong>. Note that live training sessions on site are exclusively for paid students. Upgrade anytime to unlock full live training.</p>
                   </div>
                 </div>
               </div>

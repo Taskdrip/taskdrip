@@ -10,6 +10,7 @@ import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
 import { seedDefaultBlogs } from "./admin-demo-routes";
 import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
+import { seedBreedskoolPricing } from "./seed-breedskool";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
 import bcrypt from "bcrypt";
@@ -297,6 +298,9 @@ server.listen({
         await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
         await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
         await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
+        await seedBreedskoolPricing()
+          .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
+          .catch((e) => console.error("seedBreedskoolPricing:", e));
       } catch (e) {
         console.error("Background seed error:", e);
       }
