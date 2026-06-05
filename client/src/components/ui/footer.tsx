@@ -26,7 +26,8 @@ import {
   Loader2,
   Link2,
 } from "lucide-react";
-import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp, SiDiscord, SiLinkedin } from "react-icons/si";
+import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp, SiDiscord } from "react-icons/si";
+import { FaLinkedin } from "react-icons/fa";
 import { SOCIALS, OFFICES } from "@/config/socials";
 
 const PLATFORM_ICON_MAP: Record<string, React.ReactNode> = {
@@ -37,7 +38,7 @@ const PLATFORM_ICON_MAP: Record<string, React.ReactNode> = {
   tiktok: <SiTiktok className="h-4 w-4 text-white" />,
   discord: <SiDiscord className="h-4 w-4 text-[#5865F2]" />,
   facebook: <SiFacebook className="h-4 w-4 text-[#1877F2]" />,
-  linkedin: <SiLinkedin className="h-4 w-4 text-[#0A66C2]" />,
+  linkedin: <FaLinkedin className="h-4 w-4 text-[#0A66C2]" />,
   whatsapp: <SiWhatsapp className="h-4 w-4 text-[#25D366]" />,
 };
 

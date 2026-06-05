@@ -25,8 +25,9 @@ import {
 } from 'lucide-react';
 import {
   SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
-  SiTelegram, SiWhatsapp, SiLinkedin
+  SiTelegram, SiWhatsapp,
 } from 'react-icons/si';
+import { FaLinkedin as SiLinkedin } from 'react-icons/fa';
 
 function StarRating({ value, onChange, readOnly = false }: { value: number; onChange?: (v: number) => void; readOnly?: boolean }) {
   const [hover, setHover] = useState(0);

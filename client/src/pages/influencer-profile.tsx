@@ -20,8 +20,9 @@ import { formatFollowers, getTierFromFollowers, getTierConfig } from "@/lib/tier
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import {
-  SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch, SiTelegram, SiWhatsapp, SiLinkedin
+  SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch, SiTelegram, SiWhatsapp,
 } from "react-icons/si";
+import { FaLinkedin as SiLinkedin } from "react-icons/fa";
 import {
   MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink,
   BarChart3, UserPlus, UserCheck, Globe, Briefcase, Zap, Flame, Crown,

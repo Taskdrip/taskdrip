@@ -23,8 +23,9 @@ import {
 import { Link, useLocation } from 'wouter';
 import {
   SiTiktok, SiYoutube, SiInstagram, SiX, SiTwitch,
-  SiTelegram, SiWhatsapp, SiLinkedin
+  SiTelegram, SiWhatsapp,
 } from 'react-icons/si';
+import { FaLinkedin as SiLinkedin } from 'react-icons/fa';
 import { compressImage, fileToDataUrl, formatBytes, IMAGE_GUIDANCE } from '@/lib/imageCompression';
 import { Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 

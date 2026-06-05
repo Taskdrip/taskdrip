@@ -31,7 +31,17 @@ import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
-import memoizee from "memoizee";
+function makeTtlCache<T>(fn: () => Promise<T>, maxAge: number) {
+  let cached: T | null = null;
+  let expiry = 0;
+  return async () => {
+    const now = Date.now();
+    if (cached !== null && now < expiry) return cached;
+    cached = await fn();
+    expiry = now + maxAge;
+    return cached;
+  };
+}
 
 // Preserve original file extensions so static file middleware can serve them
 // with the correct Content-Type and so the extension allowlist in server/index.ts
@@ -425,7 +435,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // Creators grouped by tier - sorted highest to lowest within each tier.
   // Tier is ALWAYS recomputed from the sum of social-media followers, never trusted from the stored field.
   // Memoized for 60s since this is an O(N) computation over all creators and is polled by landing + influencers pages.
-  const buildCreatorsByTier = memoizee(async () => {
+  const buildCreatorsByTier = makeTtlCache(async () => {
     const creators = await storage.getCreators();
     const tierOrder = ['global_titans', 'power_influencers', 'growth_engines', 'rising_sparks', 'aspiring', 'newcomer'];
     const grouped: Record<string, any[]> = {
@@ -455,7 +465,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       grouped[tier].sort((a: any, b: any) => (b.totalFollowers || 0) - (a.totalFollowers || 0));
     }
     return grouped;
-  }, { maxAge: 60_000, promise: true });
+  }, 60_000);
 
   app.get('/api/creators/by-tier', async (_req, res) => {
     try {

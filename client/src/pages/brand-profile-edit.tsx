@@ -23,8 +23,9 @@ import {
   Eye, Link2, Image as ImageIcon, CheckCircle2, AlertCircle, Loader2,
 } from 'lucide-react';
 import {
-  SiTiktok, SiYoutube, SiInstagram, SiX, SiLinkedin,
+  SiTiktok, SiYoutube, SiInstagram, SiX,
 } from 'react-icons/si';
+import { FaLinkedin as SiLinkedin } from 'react-icons/fa';
 
 const INDUSTRIES = [
   'Technology', 'E-commerce', 'Fashion & Apparel', 'Beauty & Cosmetics', 'Food & Beverage',
