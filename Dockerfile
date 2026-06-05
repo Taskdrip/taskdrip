@@ -7,10 +7,11 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install all deps (vite + esbuild + drizzle-kit are devDependencies, all needed)
-# --production=false forces devDep install regardless of NODE_ENV
+# Install all deps including devDependencies (vite, esbuild, drizzle-kit).
+# We explicitly unset NODE_ENV so Railway's injected NODE_ENV=production
+# cannot cause npm to skip devDependencies during the build stage.
 COPY package.json package-lock.json* ./
-RUN npm install --production=false --no-audit --no-fund
+RUN NODE_ENV=development npm install --no-audit --no-fund
 
 # Copy the rest of the source and build
 COPY . .

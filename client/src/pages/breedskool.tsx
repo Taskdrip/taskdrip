@@ -18,7 +18,7 @@ import {
   Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, CheckCircle2,
   Laptop, Brain, TrendingDown, GraduationCap, Globe2, ArrowRight, Sparkles, X,
   PhoneCall, MessageCircle, Send, CheckCircle, AlertCircle, CreditCard, Upload,
-  MapPin, Wifi, Eye, EyeOff, User, Mail, Lock, ShieldCheck, Timer,
+  MapPin, Eye, EyeOff, User, Mail, Lock, ShieldCheck, Timer,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -87,6 +87,54 @@ const COURSE_BADGE_COLOR: Record<string, string> = {
 const fmtNgn = (n: number) => `₦${n.toLocaleString("en-NG")}`;
 const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
 const toUsd = (ngn: number) => ngn / BLACK_MARKET_RATE;
+
+// Default courses shown when admin hasn't seeded pricing yet
+const DEFAULT_COURSES: BsCoursePricing[] = [
+  {
+    id: "default-webdev",
+    courseKey: "webdev",
+    title: "Full-Stack Web Development",
+    shortDescription: "Build modern websites and web apps from scratch. HTML, CSS, JavaScript, React, Node.js and deployment.",
+    regularPrice: 150000,
+    discountPrice: 75000,
+    duration: "8 Weeks",
+    isActive: true,
+    acceptedPayments: [],
+  },
+  {
+    id: "default-ai_content",
+    courseKey: "ai_content",
+    title: "AI Content Creation & Monetisation",
+    shortDescription: "Leverage ChatGPT, Midjourney & automation tools to create viral content and earn from multiple platforms.",
+    regularPrice: 120000,
+    discountPrice: 60000,
+    duration: "6 Weeks",
+    isActive: true,
+    acceptedPayments: [],
+  },
+  {
+    id: "default-social_monetize",
+    courseKey: "social_monetize",
+    title: "Social Media Monetisation",
+    shortDescription: "Grow Instagram, TikTok & YouTube to thousands of followers and unlock multiple income streams as a creator.",
+    regularPrice: 100000,
+    discountPrice: 50000,
+    duration: "4 Weeks",
+    isActive: true,
+    acceptedPayments: [],
+  },
+  {
+    id: "default-trading",
+    courseKey: "trading",
+    title: "Crypto & Forex Trading Fundamentals",
+    shortDescription: "Understand charts, risk management, DeFi protocols and how to build a consistent trading income.",
+    regularPrice: 180000,
+    discountPrice: 90000,
+    duration: "10 Weeks",
+    isActive: true,
+    acceptedPayments: [],
+  },
+];
 
 // ── Step Indicator ─────────────────────────────────────────────────────────────
 const STEPS = ["Personal Info", "Create Account", "Choose Course", "Payment"];
@@ -185,7 +233,9 @@ function PasswordInput({ value, onChange, placeholder, id, testId }: { value: st
 }
 
 // ── Registration Modal ─────────────────────────────────────────────────────────
-function RegistrationModal({ open, onClose, courses }: { open: boolean; onClose: () => void; courses: BsCoursePricing[] }) {
+function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boolean; onClose: () => void; courses: BsCoursePricing[] }) {
+  // Use admin-configured courses if available, otherwise fall back to defaults
+  const courses = rawCourses.length > 0 ? rawCourses : DEFAULT_COURSES;
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -832,11 +882,8 @@ export default function BreedSkool() {
           <div className="grid lg:grid-cols-2 gap-10 items-center">
             {/* Left: Text */}
             <div>
-              {/* Badges row */}
+              {/* Badge */}
               <div className="flex flex-wrap items-center gap-2 mb-5">
-                <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-                  <Wifi className="w-3.5 h-3.5 text-emerald-400" /> 100% Online
-                </span>
                 <span className="inline-flex items-center gap-1.5 bg-orange-500/20 border border-orange-400/30 backdrop-blur-sm text-orange-200 text-xs font-semibold px-3 py-1.5 rounded-full">
                   🔴 Live Training Ongoing
                 </span>
@@ -862,7 +909,6 @@ export default function BreedSkool() {
                 <div>
                   <p className="text-white text-xs font-bold">Current Live Training Venue</p>
                   <p className="text-white/70 text-xs mt-0.5">TootoOba Estate, Ijede, Ikorodu, Lagos</p>
-                  <p className="text-emerald-400 text-[11px] font-semibold mt-1">Also available 100% online — learn from anywhere</p>
                 </div>
               </div>
 
