@@ -2157,3 +2157,44 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 export type AppSetting = typeof appSettings.$inferSelect;
+
+// ── BreedSkool Tech Training ──────────────────────────────────────────────────
+export const breedskoolCoursePricing = pgTable("breedskool_course_pricing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseKey: varchar("course_key").unique().notNull(), // e.g. 'webdev', 'ai_content', 'social_monetize', 'trading'
+  title: varchar("title").notNull(),
+  shortDescription: text("short_description"),
+  regularPrice: integer("regular_price").notNull(), // NGN in kobo / whole NGN integer
+  discountPrice: integer("discount_price").notNull(),
+  duration: varchar("duration"),
+  isActive: boolean("is_active").default(true),
+  acceptedPayments: text("accepted_payments").array().default(sql`ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']`),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export type BreedskoolCoursePricing = typeof breedskoolCoursePricing.$inferSelect;
+export const insertBreedskoolCoursePricingSchema = createInsertSchema(breedskoolCoursePricing).omit({ id: true, updatedAt: true });
+export type InsertBreedskoolCoursePricing = z.infer<typeof insertBreedskoolCoursePricingSchema>;
+
+export const breedskoolRegistrations = pgTable("breedskool_registrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fullName: varchar("full_name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone").notNull(),
+  location: varchar("location"),
+  selectedCourseKey: varchar("selected_course_key").notNull(),
+  selectedCourseTitle: varchar("selected_course_title").notNull(),
+  amountNgn: integer("amount_ngn").notNull(),
+  paymentOption: varchar("payment_option").notNull().default("pay_later"), // 'pay_now' | 'pay_later'
+  paymentMethod: varchar("payment_method"), // 'bank_transfer' | 'usdt_tron' | 'usdt_ton' | 'usdt_bnb'
+  paymentStatus: varchar("payment_status").default("pending"), // 'pending' | 'paid' | 'confirmed' | 'rejected'
+  transactionRef: varchar("transaction_ref"),
+  paymentProof: varchar("payment_proof"),
+  currencyUsed: varchar("currency_used").default("NGN"), // 'NGN' | 'USD' | 'USDT'
+  amountUsd: decimal("amount_usd", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export type BreedskoolRegistration = typeof breedskoolRegistrations.$inferSelect;
+export const insertBreedskoolRegistrationSchema = createInsertSchema(breedskoolRegistrations).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertBreedskoolRegistration = z.infer<typeof insertBreedskoolRegistrationSchema>;

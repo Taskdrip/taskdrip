@@ -808,6 +808,9 @@ export default function AdminCourses() {
         {/* Chat Moderation */}
         <ChatModerationCard courses={courses} />
 
+        {/* BreedSkool Tech Training Management */}
+        <BreedSkoolManagementPanel />
+
         {/* Courses Table */}
         <Card>
           <CardHeader>
@@ -899,6 +902,214 @@ export default function AdminCourses() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ── BreedSkool Tech Training Management Panel ─────────────────────────────────
+function BreedSkoolManagementPanel() {
+  const { toast } = useToast();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+
+  const { data: pricing = [], refetch: refetchPricing } = useQuery<any[]>({
+    queryKey: ["/api/admin/breedskool/pricing"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/breedskool/pricing")).json(),
+  });
+
+  const { data: registrations = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/breedskool/registrations"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/breedskool/registrations")).json(),
+  });
+
+  const updatePricingMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) =>
+      (await apiRequest("PATCH", `/api/admin/breedskool/pricing/${id}`, data)).json(),
+    onSuccess: () => { refetchPricing(); setEditingId(null); toast({ title: "Pricing updated!" }); },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
+  const updateRegMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) =>
+      (await apiRequest("PATCH", `/api/admin/breedskool/registrations/${id}`, { paymentStatus: status })).json(),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/breedskool/registrations"] }); toast({ title: "Status updated!" }); },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
+  const pending = (registrations as any[]).filter(r => r.paymentStatus === "pending");
+
+  const PAYMENT_METHODS_OPTS = ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"];
+  const fmtNgn = (n: number) => `₦${Number(n).toLocaleString("en-NG")}`;
+
+  return (
+    <div className="space-y-6 mb-8">
+      {/* Pricing Management */}
+      <Card className="border-violet-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-violet-600" /> BreedSkool Tech Training — Course Pricing
+          </CardTitle>
+          <p className="text-xs text-gray-500">Manage prices and discounts visible on the student registration form.</p>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Course</TableHead>
+                <TableHead>Regular Price</TableHead>
+                <TableHead>Discount Price</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Payment Methods</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(pricing as any[]).map((course: any) => (
+                <TableRow key={course.id}>
+                  {editingId === course.id ? (
+                    <>
+                      <TableCell>
+                        <Input value={editForm.title || ""} onChange={e => setEditForm((f: any) => ({ ...f, title: e.target.value }))} className="text-sm" />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" value={editForm.regularPrice || ""} onChange={e => setEditForm((f: any) => ({ ...f, regularPrice: e.target.value }))} className="text-sm w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Input type="number" value={editForm.discountPrice || ""} onChange={e => setEditForm((f: any) => ({ ...f, discountPrice: e.target.value }))} className="text-sm w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Input value={editForm.duration || ""} onChange={e => setEditForm((f: any) => ({ ...f, duration: e.target.value }))} className="text-sm w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {PAYMENT_METHODS_OPTS.map(pm => (
+                            <label key={pm} className="flex items-center gap-1 text-xs cursor-pointer">
+                              <input type="checkbox" checked={(editForm.acceptedPayments || []).includes(pm)}
+                                onChange={e => setEditForm((f: any) => ({ ...f, acceptedPayments: e.target.checked ? [...(f.acceptedPayments || []), pm] : (f.acceptedPayments || []).filter((x: string) => x !== pm) }))} />
+                              {pm}
+                            </label>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <input type="checkbox" checked={editForm.isActive ?? true} onChange={e => setEditForm((f: any) => ({ ...f, isActive: e.target.checked }))} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-violet-600 text-white" onClick={() => updatePricingMutation.mutate({ id: course.id, data: editForm })} disabled={updatePricingMutation.isPending}>Save</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="font-medium text-sm">{course.title}</TableCell>
+                      <TableCell><span className="text-gray-400 line-through text-xs">{fmtNgn(course.regularPrice)}</span></TableCell>
+                      <TableCell><span className="font-bold text-green-700">{fmtNgn(course.discountPrice)}</span></TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs">{course.duration}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {(course.acceptedPayments || []).map((pm: string) => <Badge key={pm} className="text-[10px] bg-gray-100 text-gray-600 border-0">{pm}</Badge>)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={course.isActive ? "bg-green-100 text-green-700 border-0" : "bg-red-100 text-red-600 border-0"}>{course.isActive ? "Active" : "Off"}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline" onClick={() => { setEditingId(course.id); setEditForm({ title: course.title, regularPrice: course.regularPrice, discountPrice: course.discountPrice, duration: course.duration, isActive: course.isActive, acceptedPayments: course.acceptedPayments || [] }); }} data-testid={`btn-edit-pricing-${course.courseKey}`}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Registrations */}
+      <Card className="border-blue-100">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-blue-600" />
+            BreedSkool Registrations
+            <Badge className="bg-amber-100 text-amber-700 border-0 ml-2">{pending.length} pending</Badge>
+          </CardTitle>
+          <p className="text-xs text-gray-500">All student registrations. Confirm payment to grant access.</p>
+        </CardHeader>
+        <CardContent>
+          {(registrations as any[]).length === 0 ? (
+            <div className="text-center py-10 text-gray-400">
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>No registrations yet</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Course</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(registrations as any[]).map((reg: any) => (
+                  <TableRow key={reg.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-sm">{reg.fullName}</p>
+                        <p className="text-xs text-gray-400">{reg.email}</p>
+                        <p className="text-xs text-gray-400">{reg.phone}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium max-w-32 truncate">{reg.selectedCourseTitle}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-bold text-sm">{fmtNgn(reg.amountNgn)}</p>
+                        {reg.amountUsd && <p className="text-xs text-gray-400">${reg.amountUsd} USD</p>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs space-y-1">
+                        <Badge variant="outline" className="text-[10px]">{reg.paymentMethod || reg.paymentOption}</Badge>
+                        {reg.transactionRef && <p className="font-mono text-gray-500 text-[10px] truncate max-w-24" title={reg.transactionRef}>{reg.transactionRef.slice(0, 16)}</p>}
+                        {reg.paymentProof && <a href={reg.paymentProof} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-[10px] hover:underline">View Proof</a>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={
+                        reg.paymentStatus === "confirmed" ? "bg-green-100 text-green-700 border-0" :
+                        reg.paymentStatus === "pending" ? "bg-amber-100 text-amber-700 border-0" :
+                        reg.paymentStatus === "registered" ? "bg-blue-100 text-blue-700 border-0" :
+                        reg.paymentStatus === "rejected" ? "bg-red-100 text-red-600 border-0" :
+                        "bg-gray-100 text-gray-600 border-0"
+                      }>{reg.paymentStatus}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-gray-400">{new Date(reg.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {reg.paymentStatus !== "confirmed" && (
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "confirmed" })} data-testid={`btn-confirm-reg-${reg.id}`}>Confirm</Button>
+                        )}
+                        {reg.paymentStatus !== "rejected" && (
+                          <Button size="sm" variant="outline" className="text-red-500 text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "rejected" })} data-testid={`btn-reject-reg-${reg.id}`}>Reject</Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

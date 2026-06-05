@@ -730,6 +730,71 @@ export default function FinalLanding() {
 
       <TierShowcaseSection />
 
+      {/* BreedSkool Section */}
+      <section className="py-14 sm:py-20 bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-900 relative overflow-hidden" data-testid="section-breedskool">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/3 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <Badge className="mb-4 bg-yellow-400/20 text-yellow-300 border-yellow-400/30 text-xs px-4 py-1.5">🎓 BreedSkool Tech Academy</Badge>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                Where Skills Become <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">Income</span>
+              </h2>
+              <p className="text-gray-300 mt-4 leading-relaxed text-sm sm:text-base max-w-lg">
+                BreedSkool is where <strong className="text-white">individuals become Global Digital Assets</strong>. We empower tech enthusiasts with Web3-era skills to build profitable online businesses and thrive in the digital economy.
+              </p>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {[
+                  { icon: "💻", label: "Web Dev & Vibe Coding", price: "₦150K" },
+                  { icon: "🧠", label: "AI Content Creation", price: "₦179K" },
+                  { icon: "📱", label: "Social Media Monetization", price: "₦320K" },
+                  { icon: "📈", label: "Pocket Option Trading", price: "₦279K" },
+                ].map((c) => (
+                  <div key={c.label} className="bg-white/10 border border-white/15 rounded-xl p-3 flex items-center gap-2">
+                    <span className="text-xl">{c.icon}</span>
+                    <div>
+                      <p className="text-white font-semibold text-xs leading-tight">{c.label}</p>
+                      <p className="text-yellow-300 text-xs font-bold">{c.price}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 mt-7">
+                <Link href="/breedskool">
+                  <Button size="lg" className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-7 rounded-xl shadow-xl w-full sm:w-auto" data-testid="button-breedskool-enroll">
+                    <BookOpen className="w-4 h-4 mr-2" /> Enroll Now
+                  </Button>
+                </Link>
+                <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" variant="outline" className="border-white/30 text-white bg-white/10 hover:bg-white/20 font-bold px-6 rounded-xl w-full sm:w-auto" data-testid="button-breedskool-community">
+                    Join Community
+                  </Button>
+                </a>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {[
+                { icon: "🎯", title: "Goal-Oriented Programs", desc: "Each program is designed with one outcome — income. Not just a certificate on the wall." },
+                { icon: "🌐", title: "Web3 & AI Focused", desc: "Master the tools shaping the future: blockchain, AI, crypto, DeFi, and digital marketing." },
+                { icon: "💰", title: "Start Earning in Weeks", desc: "Our graduates start freelancing and monetizing skills within weeks of completing the program." },
+                { icon: "🤝", title: "Community of Learners", desc: "Join our WhatsApp & Telegram community with tutors, mentors and fellow digital entrepreneurs." },
+              ].map((item) => (
+                <div key={item.title} className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
+                  <span className="text-2xl mt-0.5">{item.icon}</span>
+                  <div>
+                    <h4 className="text-white font-bold text-sm mb-0.5">{item.title}</h4>
+                    <p className="text-gray-400 text-xs leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Direct Hire CTA */}
       <section className="py-12 sm:py-16 bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -8,7 +8,7 @@ import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blo
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -5426,6 +5426,106 @@ Instructions:
       res.json(result);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch campaigns" });
+    }
+  });
+
+  // ── BreedSkool Tech Training Registration Routes ───────────────────────────
+
+  // Public: get course pricing
+  app.get('/api/breedskool/pricing', async (req, res) => {
+    try {
+      const rows = await db.select().from(breedskoolCoursePricing).where(eq(breedskoolCoursePricing.isActive, true));
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Public: register for a course (no auth required)
+  app.post('/api/breedskool/register', upload.single('paymentProof'), async (req, res) => {
+    try {
+      const { fullName, email, phone, location, selectedCourseKey, selectedCourseTitle, amountNgn, paymentOption, paymentMethod, transactionRef, currencyUsed, amountUsd, notes } = req.body;
+      if (!fullName || !email || !phone || !selectedCourseKey) {
+        return res.status(400).json({ message: 'Full name, email, phone, and course are required.' });
+      }
+      const proofPath = req.file ? `/uploads/${req.file.filename}` : null;
+      const [reg] = await db.insert(breedskoolRegistrations).values({
+        fullName,
+        email,
+        phone,
+        location: location || null,
+        selectedCourseKey,
+        selectedCourseTitle,
+        amountNgn: parseInt(amountNgn) || 0,
+        paymentOption: paymentOption || 'pay_later',
+        paymentMethod: paymentMethod || null,
+        paymentStatus: paymentOption === 'pay_now' ? 'pending' : 'registered',
+        transactionRef: transactionRef || null,
+        paymentProof: proofPath,
+        currencyUsed: currencyUsed || 'NGN',
+        amountUsd: amountUsd ? amountUsd.toString() : null,
+        notes: notes || null,
+      }).returning();
+      res.status(201).json(reg);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: get all pricing
+  app.get('/api/admin/breedskool/pricing', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const rows = await db.select().from(breedskoolCoursePricing);
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: update a course pricing row
+  app.patch('/api/admin/breedskool/pricing/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const updates: Record<string, any> = {};
+      if (req.body.title !== undefined) updates.title = req.body.title;
+      if (req.body.shortDescription !== undefined) updates.shortDescription = req.body.shortDescription;
+      if (req.body.regularPrice !== undefined) updates.regularPrice = parseInt(req.body.regularPrice);
+      if (req.body.discountPrice !== undefined) updates.discountPrice = parseInt(req.body.discountPrice);
+      if (req.body.duration !== undefined) updates.duration = req.body.duration;
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+      if (req.body.acceptedPayments !== undefined) updates.acceptedPayments = req.body.acceptedPayments;
+      updates.updatedAt = new Date();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq(breedskoolCoursePricing.id, req.params.id)).returning();
+      res.json(row);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: get all registrations
+  app.get('/api/admin/breedskool/registrations', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc(breedskoolRegistrations.createdAt));
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: update registration status
+  app.patch('/api/admin/breedskool/registrations/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const { paymentStatus, notes } = req.body;
+      const updateData: Record<string, any> = { updatedAt: new Date() };
+      if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+      if (notes !== undefined) updateData.notes = notes;
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq(breedskoolRegistrations.id, req.params.id)).returning();
+      res.json(row);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
     }
   });
 

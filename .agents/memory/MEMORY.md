@@ -1,0 +1,1 @@
+- [BreedSkool Tech Training](breedskool-tech-training.md) — registration feature with ₦ pricing; tables in DB, routes in server/routes.ts, import pattern matters.
