@@ -2,22 +2,28 @@
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
-# Native build deps for bcrypt (and any other node-gyp packages)
+# Native build deps for bcrypt
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ALL deps including devDependencies (vite, esbuild, drizzle-kit).
-# npm ci is faster and more reliable than npm install in CI environments.
-# NODE_ENV=development ensures devDependencies are NOT skipped.
-COPY package.json package-lock.json ./
-RUN NODE_ENV=development npm ci --no-audit --no-fund
+# Accept Railway's injected NODE_ENV build arg (if any), then forcibly
+# override it to development so npm installs ALL dependencies including
+# build tools (vite, esbuild, tsx, tailwindcss, etc.).
+# These tools are also in regular "dependencies" now as a second safety net.
+ARG NODE_ENV
+ENV NODE_ENV=development
 
-# Put node_modules/.bin on PATH so vite/esbuild/tsx are found by RUN commands
-# (Docker RUN shells do NOT get npm's automatic .bin PATH injection).
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+# Verify the critical build tools are present before attempting build
+RUN test -f node_modules/.bin/vite || (echo "ERROR: vite not found in node_modules/.bin" && exit 1)
+RUN test -f node_modules/.bin/esbuild || (echo "ERROR: esbuild not found in node_modules/.bin" && exit 1)
+
+# Add node_modules/.bin to PATH for all subsequent RUN commands
 ENV PATH="/app/node_modules/.bin:$PATH"
 
-# Copy source and build
 COPY . .
 RUN vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
@@ -32,7 +38,6 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends tini ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Only copy what's needed at runtime
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
