@@ -5441,15 +5441,60 @@ Instructions:
     }
   });
 
-  // Public: register for a course (no auth required)
-  app.post('/api/breedskool/register', upload.single('paymentProof'), async (req, res) => {
+  // Public: register for a course — creates a platform account + auto-logs the student in
+  app.post('/api/breedskool/register', upload.single('paymentProof'), async (req: any, res, next) => {
     try {
-      const { fullName, email, phone, location, selectedCourseKey, selectedCourseTitle, amountNgn, paymentOption, paymentMethod, transactionRef, currencyUsed, amountUsd, notes } = req.body;
+      const {
+        fullName, email, password, phone, location,
+        selectedCourseKey, selectedCourseTitle,
+        amountNgn, paymentOption, paymentMethod,
+        transactionRef, currencyUsed, amountUsd, notes,
+      } = req.body;
+
       if (!fullName || !email || !phone || !selectedCourseKey) {
         return res.status(400).json({ message: 'Full name, email, phone, and course are required.' });
       }
+      if (!password || password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+      }
+
+      // Create platform account if email not already taken
+      let userId: string | null = null;
+      let newUser: any = null;
+      const existing = await storage.getUserByEmail(email);
+      if (existing) {
+        userId = existing.id;
+      } else {
+        const bcrypt = await import('bcrypt');
+        const hashed = await bcrypt.hash(password, 10);
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || '';
+        const genCode = (p: string) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).substr(2,5)}`.toUpperCase();
+        newUser = await storage.createUser({
+          id: `user_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
+          firstName,
+          lastName,
+          email,
+          password: hashed,
+          userType: 'creator',
+          bio: '',
+          location: location || '',
+          skills: [],
+          referralCodeCreator: genCode('CR'),
+          referralCodeBrand: genCode('BR'),
+        } as any);
+        userId = newUser.id;
+        // Welcome points
+        storage.awardPoints(userId, 'signup', 50, 'Welcome to BreedSkool!').catch(() => {});
+      }
+
       const proofPath = req.file ? `/uploads/${req.file.filename}` : null;
+      const isPayLater = (paymentOption || 'pay_later') === 'pay_later';
+      const deadline = isPayLater ? new Date(Date.now() + 48 * 60 * 60 * 1000) : null;
+
       const [reg] = await db.insert(breedskoolRegistrations).values({
+        userId,
         fullName,
         email,
         phone,
@@ -5459,14 +5504,23 @@ Instructions:
         amountNgn: parseInt(amountNgn) || 0,
         paymentOption: paymentOption || 'pay_later',
         paymentMethod: paymentMethod || null,
-        paymentStatus: paymentOption === 'pay_now' ? 'pending' : 'registered',
+        paymentStatus: isPayLater ? 'registered' : 'pending',
         transactionRef: transactionRef || null,
         paymentProof: proofPath,
         currencyUsed: currencyUsed || 'NGN',
         amountUsd: amountUsd ? amountUsd.toString() : null,
+        payLaterDeadline: deadline,
         notes: notes || null,
       }).returning();
-      res.status(201).json(reg);
+
+      // Auto-login the student (only if we created a new account)
+      if (newUser) {
+        await new Promise<void>((resolve, reject) => {
+          req.login(newUser, (err: any) => err ? reject(err) : resolve());
+        });
+      }
+
+      res.status(201).json({ registration: reg, userId, loggedIn: !!newUser });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

@@ -10,14 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   BookOpen, Users, Star, Clock, Play, Search, TrendingUp, Zap,
-  Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, Lock, CheckCircle2,
-  Laptop, Brain, TrendingDown, GraduationCap, Globe2, ArrowRight, Sparkles, Shield, X,
+  Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, CheckCircle2,
+  Laptop, Brain, TrendingDown, GraduationCap, Globe2, ArrowRight, Sparkles, X,
   PhoneCall, MessageCircle, Send, CheckCircle, AlertCircle, CreditCard, Upload,
+  MapPin, Wifi, Eye, EyeOff, User, Mail, Lock, ShieldCheck, Timer,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -35,26 +36,27 @@ interface BsCoursePricing {
 
 interface RegForm {
   fullName: string;
-  email: string;
   phone: string;
   location: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
   selectedCourseKey: string;
   selectedCourseTitle: string;
   amountNgn: number;
   paymentOption: "pay_now" | "pay_later";
   paymentMethod: string;
   transactionRef: string;
-  currencyUsed: "NGN" | "USD";
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const BLACK_MARKET_RATE = 1650; // NGN per 1 USD — admin can update via app_settings
+const BLACK_MARKET_RATE = 1650;
 
-const PAYMENT_METHODS: Record<string, { label: string; icon: string; desc: string }> = {
-  bank_transfer: { label: "Bank Transfer (NGN)", icon: "🏦", desc: "Pay in Naira via bank transfer" },
-  usdt_tron: { label: "USDT (Tron / TRC-20)", icon: "💎", desc: "Pay in USDT on Tron network" },
-  usdt_ton: { label: "USDT (TON network)", icon: "💠", desc: "Pay in USDT on TON network" },
-  usdt_bnb: { label: "USDT (BNB Chain)", icon: "🟡", desc: "Pay in USDT on BNB Smart Chain" },
+const ALL_PAYMENT_METHODS: Record<string, { label: string; icon: string; desc: string }> = {
+  bank_transfer: { label: "Bank Transfer", icon: "🏦", desc: "Pay via local bank transfer (Opay/Palmpay)" },
+  usdt_tron: { label: "USDT – TRC-20", icon: "💎", desc: "Pay with USDT on the Tron network" },
+  usdt_ton: { label: "USDT – TON", icon: "💠", desc: "Pay with USDT on the TON network" },
+  usdt_bnb: { label: "USDT – BEP-20", icon: "🟡", desc: "Pay with USDT on BNB Smart Chain" },
 };
 
 const COURSE_ICONS: Record<string, any> = {
@@ -63,21 +65,18 @@ const COURSE_ICONS: Record<string, any> = {
   social_monetize: Globe2,
   trading: TrendingDown,
 };
-
 const COURSE_GRADIENTS: Record<string, string> = {
   webdev: "from-blue-600 to-cyan-500",
   ai_content: "from-violet-600 to-purple-500",
   social_monetize: "from-emerald-600 to-teal-500",
   trading: "from-orange-600 to-amber-500",
 };
-
 const COURSE_BG: Record<string, string> = {
   webdev: "bg-blue-50 border-blue-100",
   ai_content: "bg-violet-50 border-violet-100",
   social_monetize: "bg-emerald-50 border-emerald-100",
   trading: "bg-orange-50 border-orange-100",
 };
-
 const COURSE_BADGE_COLOR: Record<string, string> = {
   webdev: "bg-blue-100 text-blue-700",
   ai_content: "bg-violet-100 text-violet-700",
@@ -85,148 +84,137 @@ const COURSE_BADGE_COLOR: Record<string, string> = {
   trading: "bg-orange-100 text-orange-700",
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtNgn = (n: number) => `₦${n.toLocaleString("en-NG")}`;
 const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
 const toUsd = (ngn: number) => ngn / BLACK_MARKET_RATE;
 
-// ── BsCoursePricing Card ──────────────────────────────────────────────────────
+// ── Step Indicator ─────────────────────────────────────────────────────────────
+const STEPS = ["Personal Info", "Create Account", "Choose Course", "Payment"];
+
+function StepIndicator({ step }: { step: number }) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      {STEPS.map((label, i) => {
+        const s = i + 1;
+        const done = step > s;
+        const active = step === s;
+        return (
+          <div key={s} className="flex items-center flex-1">
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                done ? "bg-emerald-500 text-white" : active ? "bg-violet-600 text-white ring-4 ring-violet-100" : "bg-gray-100 text-gray-400"
+              }`}>
+                {done ? <CheckCircle className="w-4 h-4" /> : s}
+              </div>
+              <span className={`text-[10px] mt-1 font-medium whitespace-nowrap ${active ? "text-violet-700" : done ? "text-emerald-600" : "text-gray-400"}`}>{label}</span>
+            </div>
+            {s < STEPS.length && <div className={`flex-1 h-0.5 mx-1 mb-4 ${step > s ? "bg-emerald-400" : "bg-gray-200"}`} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Course Selection Card ─────────────────────────────────────────────────────
 function BsCourseCard({ course, selected, onClick }: { course: BsCoursePricing; selected: boolean; onClick: () => void }) {
   const Icon = COURSE_ICONS[course.courseKey] || BookOpen;
   const gradient = COURSE_GRADIENTS[course.courseKey] || "from-gray-600 to-gray-500";
   const bg = COURSE_BG[course.courseKey] || "bg-gray-50 border-gray-100";
-  const badge = COURSE_BADGE_COLOR[course.courseKey] || "bg-gray-100 text-gray-700";
   const savings = course.regularPrice - course.discountPrice;
   const savingsPct = Math.round((savings / course.regularPrice) * 100);
 
   return (
     <div
       onClick={onClick}
-      className={`relative border-2 rounded-2xl p-5 cursor-pointer transition-all duration-200 ${
+      className={`relative border-2 rounded-2xl p-4 cursor-pointer transition-all duration-200 ${
         selected
-          ? "border-violet-500 bg-violet-50 shadow-lg shadow-violet-100"
+          ? "border-violet-500 bg-violet-50 shadow-lg shadow-violet-100 scale-[1.01]"
           : `border-transparent ${bg} hover:border-gray-300 hover:shadow-md`
       }`}
       data-testid={`card-bscourse-${course.courseKey}`}
     >
       {selected && (
         <div className="absolute top-3 right-3">
-          <CheckCircle className="w-5 h-5 text-violet-600" />
+          <div className="w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-4 h-4 text-white" />
+          </div>
         </div>
       )}
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-3 shadow-sm`}>
-        <Icon className="w-6 h-6 text-white" />
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm flex-shrink-0`}>
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <Badge className={`text-[10px] px-2 py-0.5 ${COURSE_BADGE_COLOR[course.courseKey] || "bg-gray-100 text-gray-600"} border-0`}>{course.duration}</Badge>
+            <Badge className="bg-red-100 text-red-600 text-[10px] border-0">-{savingsPct}% OFF</Badge>
+          </div>
+          <h3 className="font-bold text-gray-900 text-sm mb-0.5 leading-snug">{course.title}</h3>
+          <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.shortDescription}</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs text-gray-400 line-through">{fmtNgn(course.regularPrice)}</span>
+            <span className="text-base font-black text-gray-900">{fmtNgn(course.discountPrice)}</span>
+            <span className="text-[11px] text-gray-400">≈ {fmtUsd(toUsd(course.discountPrice))}</span>
+          </div>
+        </div>
       </div>
-      <Badge className={`text-[10px] px-2 py-0.5 mb-2 ${badge} border-0`}>{course.duration}</Badge>
-      <h3 className="font-bold text-gray-900 text-sm mb-1">{course.title}</h3>
-      <p className="text-xs text-gray-500 mb-3 line-clamp-2">{course.shortDescription}</p>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-gray-400 line-through">{fmtNgn(course.regularPrice)}</span>
-        <span className="text-base font-black text-gray-900">{fmtNgn(course.discountPrice)}</span>
-        <Badge className="bg-red-100 text-red-600 text-[10px] border-0">-{savingsPct}%</Badge>
-      </div>
-      <p className="text-[11px] text-gray-400 mt-0.5">≈ {fmtUsd(toUsd(course.discountPrice))} USD</p>
     </div>
   );
 }
 
-// ── Welcome Modal ─────────────────────────────────────────────────────────────
-function WelcomeModal({ open, onClose, name, courseTitle, payLater }: { open: boolean; onClose: () => void; name: string; courseTitle: string; payLater: boolean }) {
+// ── Password Input ─────────────────────────────────────────────────────────────
+function PasswordInput({ value, onChange, placeholder, id, testId }: { value: string; onChange: (v: string) => void; placeholder?: string; id?: string; testId?: string }) {
+  const [show, setShow] = useState(false);
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-black">🎉 Welcome to BreedSkool!</DialogTitle>
-        </DialogHeader>
-        <div className="text-center space-y-4 py-2">
-          <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl">
-            <GraduationCap className="w-10 h-10 text-white" />
-          </div>
-          <div>
-            <p className="font-bold text-gray-900 text-lg">Hi {name.split(" ")[0]}! 🙌</p>
-            <p className="text-gray-600 text-sm mt-1 leading-relaxed">
-              You've successfully registered for <span className="font-semibold text-violet-700">{courseTitle}</span>. Where skills become income and individuals become <strong>Global Digital Assets</strong>!
-            </p>
-          </div>
-          {payLater && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-800">Your spot is reserved. Complete payment within 48 hours to secure your enrollment. Contact your tutor via WhatsApp or Telegram below.</p>
-              </div>
-            </div>
-          )}
-          <div className="bg-gray-50 rounded-xl p-4 text-left space-y-3">
-            <p className="font-semibold text-gray-800 text-sm">Join our community 👇</p>
-            <a
-              href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${courseTitle} on BreedSkool. My name is ${name}.`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors"
-              data-testid="link-welcome-whatsapp"
-            >
-              <PhoneCall className="w-5 h-5" />
-              <div>
-                <p className="font-bold text-sm">Say Hi on WhatsApp</p>
-                <p className="text-[11px] text-green-100">+1 (201) 680-0266</p>
-              </div>
-            </a>
-            <a
-              href="https://t.me/taskdrip"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-4 py-3 transition-colors"
-              data-testid="link-welcome-telegram"
-            >
-              <Send className="w-5 h-5" />
-              <div>
-                <p className="font-bold text-sm">Join Telegram Community</p>
-                <p className="text-[11px] text-blue-100">t.me/taskdrip</p>
-              </div>
-            </a>
-          </div>
-          <Button onClick={onClose} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl" data-testid="btn-welcome-close">
-            Let's Get Started! 🚀
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder || "Password"}
+        className="pr-10"
+        data-testid={testId}
+      />
+      <button type="button" onClick={() => setShow(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
   );
 }
 
 // ── Registration Modal ─────────────────────────────────────────────────────────
 function RegistrationModal({ open, onClose, courses }: { open: boolean; onClose: () => void; courses: BsCoursePricing[] }) {
   const { toast } = useToast();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [, navigate] = useLocation();
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [registeredName, setRegisteredName] = useState("");
   const [registeredCourse, setRegisteredCourse] = useState("");
   const [payLater, setPayLater] = useState(false);
-  const [form, setForm] = useState<RegForm>({
-    fullName: "", email: "", phone: "", location: "",
-    selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0,
-    paymentOption: "pay_later", paymentMethod: "bank_transfer", transactionRef: "",
-    currencyUsed: "NGN",
-  });
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [form, setForm] = useState<RegForm>({
+    fullName: "", phone: "", location: "",
+    email: "", password: "", confirmPassword: "",
+    selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0,
+    paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "",
+  });
 
-  const selectedCourse = courses.find(c => c.courseKey === form.selectedCourseKey);
-  const usdAmount = selectedCourse ? toUsd(selectedCourse.discountPrice) : 0;
-
-  const setField = (field: keyof RegForm, value: any) =>
+  const set = (field: keyof RegForm, value: any) =>
     setForm(f => ({ ...f, [field]: value }));
 
-  const selectCourse = (c: BsCoursePricing) => {
-    setField("selectedCourseKey", c.courseKey);
-    setField("selectedCourseTitle", c.title);
-    setField("amountNgn", c.discountPrice);
-  };
+  const selectedCourse = courses.find(c => c.courseKey === form.selectedCourseKey);
+  const availableMethods = selectedCourse?.acceptedPayments?.length
+    ? selectedCourse.acceptedPayments
+    : Object.keys(ALL_PAYMENT_METHODS);
 
   const registerMutation = useMutation({
     mutationFn: async () => {
       const fd = new FormData();
       fd.append("fullName", form.fullName);
       fd.append("email", form.email);
+      fd.append("password", form.password);
       fd.append("phone", form.phone);
       fd.append("location", form.location);
       fd.append("selectedCourseKey", form.selectedCourseKey);
@@ -235,257 +223,410 @@ function RegistrationModal({ open, onClose, courses }: { open: boolean; onClose:
       fd.append("paymentOption", form.paymentOption);
       fd.append("paymentMethod", form.paymentMethod);
       fd.append("transactionRef", form.transactionRef);
-      fd.append("currencyUsed", form.currencyUsed);
-      if (form.currencyUsed === "USD") fd.append("amountUsd", String(usdAmount.toFixed(2)));
+      fd.append("currencyUsed", "NGN");
       if (proofFile) fd.append("paymentProof", proofFile);
       const r = await fetch("/api/breedskool/register", { method: "POST", body: fd });
       if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Registration failed"); }
       return r.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setRegisteredName(form.fullName);
       setRegisteredCourse(form.selectedCourseTitle);
       setPayLater(form.paymentOption === "pay_later");
       onClose();
-      setShowWelcome(true);
-      setStep(1);
-      setForm({ fullName: "", email: "", phone: "", location: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_later", paymentMethod: "bank_transfer", transactionRef: "", currencyUsed: "NGN" });
+      setShowSuccess(true);
+      // Refresh auth state if auto-logged in
+      if (data.loggedIn) {
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
   });
 
-  const handleNext = () => {
+  const next = () => {
     if (step === 1) {
-      if (!form.fullName || !form.email || !form.phone) return toast({ title: "Required", description: "Please fill name, email and phone.", variant: "destructive" });
+      if (!form.fullName.trim() || !form.phone.trim()) {
+        return toast({ title: "Required fields", description: "Please enter your full name and phone number.", variant: "destructive" });
+      }
       setStep(2);
     } else if (step === 2) {
-      if (!form.selectedCourseKey) return toast({ title: "Select a course", description: "Please pick a course to continue.", variant: "destructive" });
+      if (!form.email.trim()) return toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
+      if (!form.password || form.password.length < 6) return toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
+      if (form.password !== form.confirmPassword) return toast({ title: "Passwords don't match", description: "Please make sure both passwords match.", variant: "destructive" });
       setStep(3);
+    } else if (step === 3) {
+      if (!form.selectedCourseKey) return toast({ title: "Select a course", description: "Please pick a course to continue.", variant: "destructive" });
+      setStep(4);
     }
+  };
+
+  const back = () => setStep(s => Math.max(1, s - 1) as any);
+
+  const reset = () => {
+    setStep(1);
+    setShowSuccess(false);
+    setProofFile(null);
+    setForm({ fullName: "", phone: "", location: "", email: "", password: "", confirmPassword: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "" });
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-black">
-              <GraduationCap className="w-6 h-6 text-violet-600" />
-              BreedSkool Registration
-            </DialogTitle>
-          </DialogHeader>
-
-          {/* Steps indicator */}
-          <div className="flex items-center gap-2 mb-4">
-            {[1, 2, 3].map(s => (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${step >= s ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-400"}`}>{s}</div>
-                <span className={`text-xs ${step >= s ? "text-violet-700 font-semibold" : "text-gray-400"}`}>
-                  {s === 1 ? "Your Info" : s === 2 ? "Select Course" : "Payment"}
-                </span>
-                {s < 3 && <div className={`flex-1 h-0.5 ${step > s ? "bg-violet-500" : "bg-gray-200"}`} />}
+      <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); reset(); } }}>
+        <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto p-0">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 pt-6 pb-5 rounded-t-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
-            ))}
+              <div>
+                <DialogTitle className="text-white font-black text-lg">BreedSkool Registration</DialogTitle>
+                <DialogDescription className="text-violet-200 text-xs">Create your free account & enroll in a tech training program.</DialogDescription>
+              </div>
+            </div>
+            <StepIndicator step={step} />
           </div>
 
-          {/* Step 1: Personal Info */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+          <div className="px-6 py-5 space-y-5">
+
+            {/* ── Step 1: Personal Info ── */}
+            {step === 1 && (
+              <div className="space-y-4">
+                <div className="text-center pb-1">
+                  <div className="w-12 h-12 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <User className="w-6 h-6 text-violet-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900">Tell us about yourself</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Let's get to know you before you start learning</p>
+                </div>
                 <div>
                   <Label className="text-xs font-semibold text-gray-700">Full Name *</Label>
-                  <Input value={form.fullName} onChange={e => setField("fullName", e.target.value)} placeholder="John Doe" className="mt-1" data-testid="input-reg-name" />
+                  <Input value={form.fullName} onChange={e => set("fullName", e.target.value)} placeholder="e.g. Adebayo Okonkwo" className="mt-1" data-testid="input-reg-name" />
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold text-gray-700">Phone *</Label>
-                  <Input value={form.phone} onChange={e => setField("phone", e.target.value)} placeholder="+234 800 0000 000" className="mt-1" data-testid="input-reg-phone" />
+                  <Label className="text-xs font-semibold text-gray-700">Phone Number *</Label>
+                  <Input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+234 800 0000 000" className="mt-1" data-testid="input-reg-phone" />
                 </div>
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-gray-700">Email Address *</Label>
-                <Input type="email" value={form.email} onChange={e => setField("email", e.target.value)} placeholder="you@example.com" className="mt-1" data-testid="input-reg-email" />
-              </div>
-              <div>
-                <Label className="text-xs font-semibold text-gray-700">City / Location</Label>
-                <Input value={form.location} onChange={e => setField("location", e.target.value)} placeholder="Lagos, Nigeria" className="mt-1" data-testid="input-reg-location" />
-              </div>
-              <Button onClick={handleNext} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl" data-testid="btn-reg-next-1">
-                Continue <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Step 2: Course selection */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-500">Select the course you want to enroll in:</p>
-              <div className="grid grid-cols-1 gap-3">
-                {courses.map(c => (
-                  <BsCourseCard key={c.courseKey} course={c} selected={form.selectedCourseKey === c.courseKey} onClick={() => selectCourse(c)} />
-                ))}
-              </div>
-              {selectedCourse && (
-                <div className="bg-violet-50 border border-violet-200 rounded-xl p-3">
-                  <p className="text-xs text-violet-700 font-semibold">Selected: {selectedCourse.title}</p>
-                  <p className="text-sm font-black text-violet-900 mt-0.5">{fmtNgn(selectedCourse.discountPrice)} <span className="text-xs font-normal text-gray-500">≈ {fmtUsd(toUsd(selectedCourse.discountPrice))}</span></p>
+                <div>
+                  <Label className="text-xs font-semibold text-gray-700">City / Location</Label>
+                  <Input value={form.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Lagos, Nigeria" className="mt-1" data-testid="input-reg-location" />
                 </div>
-              )}
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(1)} className="flex-1 rounded-xl">Back</Button>
-                <Button onClick={handleNext} className="flex-2 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl flex-1" data-testid="btn-reg-next-2">
+                <Button onClick={next} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl h-11" data-testid="btn-reg-next-1">
                   Continue <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Step 3: Payment */}
-          {step === 3 && (
-            <div className="space-y-4">
-              {/* Payment option */}
-              <div>
-                <Label className="text-xs font-semibold text-gray-700 mb-2 block">How would you like to proceed?</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setField("paymentOption", "pay_now")}
-                    className={`border-2 rounded-xl p-3 text-left transition-all ${form.paymentOption === "pay_now" ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-gray-300"}`}
-                    data-testid="btn-pay-now"
-                  >
-                    <CreditCard className={`w-5 h-5 mb-1 ${form.paymentOption === "pay_now" ? "text-violet-600" : "text-gray-400"}`} />
-                    <p className="font-bold text-sm text-gray-900">Pay Now</p>
-                    <p className="text-xs text-gray-500">Secure your spot immediately</p>
-                  </button>
-                  <button
-                    onClick={() => setField("paymentOption", "pay_later")}
-                    className={`border-2 rounded-xl p-3 text-left transition-all ${form.paymentOption === "pay_later" ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-gray-300"}`}
-                    data-testid="btn-pay-later"
-                  >
-                    <Clock className={`w-5 h-5 mb-1 ${form.paymentOption === "pay_later" ? "text-violet-600" : "text-gray-400"}`} />
-                    <p className="font-bold text-sm text-gray-900">Register & Pay Later</p>
-                    <p className="text-xs text-gray-500">Reserve your spot now, pay in 48hrs</p>
-                  </button>
+            {/* ── Step 2: Create Account ── */}
+            {step === 2 && (
+              <div className="space-y-4">
+                <div className="text-center pb-1">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <ShieldCheck className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900">Create your login details</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Your email and password will be used to access your student dashboard</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-gray-700">Email Address *</Label>
+                  <div className="relative mt-1">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="you@example.com" className="pl-9" data-testid="input-reg-email" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-gray-700">Create Password *</Label>
+                  <div className="mt-1">
+                    <PasswordInput value={form.password} onChange={v => set("password", v)} placeholder="Min. 6 characters" testId="input-reg-password" />
+                  </div>
+                  {form.password.length > 0 && (
+                    <div className="flex gap-1 mt-1.5">
+                      {[form.password.length >= 6, /[A-Z]/.test(form.password), /[0-9]/.test(form.password)].map((ok, i) => (
+                        <div key={i} className={`h-1 flex-1 rounded-full ${ok ? "bg-emerald-400" : "bg-gray-200"}`} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-gray-700">Confirm Password *</Label>
+                  <div className="mt-1">
+                    <PasswordInput value={form.confirmPassword} onChange={v => set("confirmPassword", v)} placeholder="Repeat your password" testId="input-reg-confirm" />
+                  </div>
+                  {form.confirmPassword && (
+                    <p className={`text-xs mt-1 ${form.password === form.confirmPassword ? "text-emerald-600" : "text-red-500"}`}>
+                      {form.password === form.confirmPassword ? "✓ Passwords match" : "✗ Passwords don't match yet"}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-blue-50 rounded-xl p-3 flex gap-2">
+                  <Lock className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-700">Your account gives you access to your student dashboard, course progress, and the BreedSkool community.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={back} className="flex-1 rounded-xl">Back</Button>
+                  <Button onClick={next} className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl" data-testid="btn-reg-next-2">
+                    Continue <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
                 </div>
               </div>
+            )}
 
-              {/* Currency toggle */}
-              <div>
-                <Label className="text-xs font-semibold text-gray-700 mb-2 block">Currency</Label>
-                <div className="flex gap-2">
-                  <button onClick={() => setField("currencyUsed", "NGN")} className={`flex-1 py-2 px-3 rounded-xl text-sm font-semibold border-2 transition-all ${form.currencyUsed === "NGN" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`} data-testid="btn-currency-ngn">🇳🇬 Naira (NGN)</button>
-                  <button onClick={() => setField("currencyUsed", "USD")} className={`flex-1 py-2 px-3 rounded-xl text-sm font-semibold border-2 transition-all ${form.currencyUsed === "USD" ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`} data-testid="btn-currency-usd">🌍 USD (Intl.)</button>
+            {/* ── Step 3: Select Course ── */}
+            {step === 3 && (
+              <div className="space-y-4">
+                <div className="text-center pb-1">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <BookOpen className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900">Pick your program</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Choose the course that aligns with your goals</p>
+                </div>
+                <div className="space-y-3">
+                  {courses.map(c => (
+                    <BsCourseCard
+                      key={c.courseKey}
+                      course={c}
+                      selected={form.selectedCourseKey === c.courseKey}
+                      onClick={() => { set("selectedCourseKey", c.courseKey); set("selectedCourseTitle", c.title); set("amountNgn", c.discountPrice); }}
+                    />
+                  ))}
                 </div>
                 {selectedCourse && (
-                  <div className="mt-2 bg-gray-50 rounded-xl p-3 text-center">
-                    <p className="text-xs text-gray-500">You will pay</p>
-                    <p className="text-xl font-black text-gray-900">
-                      {form.currencyUsed === "NGN" ? fmtNgn(selectedCourse.discountPrice) : fmtUsd(toUsd(selectedCourse.discountPrice))}
-                    </p>
-                    {form.currencyUsed === "USD" && <p className="text-xs text-gray-400">Black market rate: ₦{BLACK_MARKET_RATE.toLocaleString()}/$1</p>}
+                  <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 text-center">
+                    <p className="text-xs text-violet-600 font-semibold">Selected program</p>
+                    <p className="font-black text-violet-900 mt-0.5">{selectedCourse.title}</p>
+                    <p className="text-sm font-bold text-gray-700 mt-1">{fmtNgn(selectedCourse.discountPrice)}</p>
                   </div>
                 )}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={back} className="flex-1 rounded-xl">Back</Button>
+                  <Button onClick={next} disabled={!form.selectedCourseKey} className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl" data-testid="btn-reg-next-3">
+                    Continue <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </div>
               </div>
+            )}
 
-              {/* Payment method */}
-              {form.paymentOption === "pay_now" && (
-                <div>
-                  <Label className="text-xs font-semibold text-gray-700 mb-2 block">Payment Method</Label>
-                  <div className="space-y-2">
-                    {Object.entries(PAYMENT_METHODS)
-                      .filter(([key]) => form.currencyUsed === "NGN" ? key === "bank_transfer" : key !== "bank_transfer")
-                      .map(([key, info]) => (
-                        <button
-                          key={key}
-                          onClick={() => setField("paymentMethod", key)}
-                          className={`w-full flex items-center gap-3 border-2 rounded-xl px-4 py-3 text-left transition-all ${form.paymentMethod === key ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-gray-300"}`}
-                          data-testid={`btn-pm-${key}`}
-                        >
-                          <span className="text-xl">{info.icon}</span>
-                          <div>
-                            <p className="font-semibold text-sm text-gray-900">{info.label}</p>
-                            <p className="text-xs text-gray-500">{info.desc}</p>
-                          </div>
-                          {form.paymentMethod === key && <CheckCircle className="ml-auto w-4 h-4 text-violet-600" />}
-                        </button>
-                      ))}
+            {/* ── Step 4: Payment ── */}
+            {step === 4 && (
+              <div className="space-y-4">
+                <div className="text-center pb-1">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <CreditCard className="w-6 h-6 text-emerald-600" />
                   </div>
+                  <h3 className="font-bold text-gray-900">Choose how to pay</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Pay now to lock your spot, or reserve it and pay within 48 hours</p>
+                </div>
 
-                  {/* Payment details */}
-                  {form.paymentMethod === "bank_transfer" && (
-                    <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm">
-                      <p className="font-bold text-blue-800 mb-1">Bank Transfer Details:</p>
-                      <p className="text-blue-700">Bank: <strong>Opay / Palmpay</strong></p>
-                      <p className="text-blue-700">Account: <strong>9019802376</strong></p>
-                      <p className="text-blue-700">Name: <strong>Breedskool Tech</strong></p>
-                      <p className="text-xs text-blue-500 mt-1">After payment, enter your transaction reference below and send proof.</p>
-                    </div>
-                  )}
-                  {(form.paymentMethod === "usdt_tron") && (
-                    <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3 text-sm">
-                      <p className="font-bold text-green-800 mb-1">USDT TRC-20 Address:</p>
-                      <p className="text-green-700 font-mono text-xs break-all">TRX_ADDRESS_HERE</p>
-                      <p className="text-xs text-green-500 mt-1">Send USDT on Tron network only. Enter TX hash below.</p>
-                    </div>
-                  )}
-                  {(form.paymentMethod === "usdt_ton") && (
-                    <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm">
-                      <p className="font-bold text-blue-800 mb-1">USDT TON Address:</p>
-                      <p className="text-blue-700 font-mono text-xs break-all">TON_ADDRESS_HERE</p>
-                    </div>
-                  )}
-                  {(form.paymentMethod === "usdt_bnb") && (
-                    <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm">
-                      <p className="font-bold text-yellow-800 mb-1">USDT BEP-20 Address:</p>
-                      <p className="text-yellow-700 font-mono text-xs break-all">BNB_ADDRESS_HERE</p>
-                    </div>
-                  )}
-
-                  <div className="mt-3 space-y-2">
-                    <div>
-                      <Label className="text-xs font-semibold text-gray-700">Transaction Reference / Hash</Label>
-                      <Input value={form.transactionRef} onChange={e => setField("transactionRef", e.target.value)} placeholder="Enter transaction ID or hash" className="mt-1" data-testid="input-txref" />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-gray-700">Upload Payment Proof (optional)</Label>
-                      <div className="mt-1 border-2 border-dashed border-gray-200 rounded-xl p-3 text-center cursor-pointer hover:border-violet-300 transition-colors">
-                        <input type="file" accept="image/*,application/pdf" className="hidden" id="proof-upload" onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                        <label htmlFor="proof-upload" className="cursor-pointer">
-                          {proofFile ? (
-                            <p className="text-sm font-semibold text-violet-600 flex items-center justify-center gap-2"><CheckCircle className="w-4 h-4" />{proofFile.name}</p>
-                          ) : (
-                            <div className="flex flex-col items-center gap-1">
-                              <Upload className="w-5 h-5 text-gray-400" />
-                              <p className="text-xs text-gray-500">Click to upload screenshot or PDF</p>
-                            </div>
-                          )}
-                        </label>
+                {/* Order summary */}
+                {selectedCourse && (
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-500">Enrolling in</p>
+                        <p className="font-bold text-gray-900 text-sm">{selectedCourse.title}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400 line-through">{fmtNgn(selectedCourse.regularPrice)}</p>
+                        <p className="font-black text-gray-900 text-lg">{fmtNgn(selectedCourse.discountPrice)}</p>
+                        <p className="text-[11px] text-gray-400">≈ {fmtUsd(toUsd(selectedCourse.discountPrice))}</p>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1 rounded-xl">Back</Button>
-                <Button
-                  onClick={() => registerMutation.mutate()}
-                  disabled={registerMutation.isPending}
-                  className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl"
-                  data-testid="btn-reg-submit"
-                >
-                  {registerMutation.isPending ? "Registering..." : form.paymentOption === "pay_later" ? "Register & Pay Later" : "Complete Registration"}
-                </Button>
+                {/* Payment timing */}
+                <div>
+                  <Label className="text-xs font-semibold text-gray-700 mb-2 block">When would you like to pay?</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => set("paymentOption", "pay_now")}
+                      className={`border-2 rounded-xl p-3 text-left transition-all ${form.paymentOption === "pay_now" ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-gray-300"}`}
+                      data-testid="btn-pay-now"
+                    >
+                      <CreditCard className={`w-5 h-5 mb-1.5 ${form.paymentOption === "pay_now" ? "text-violet-600" : "text-gray-400"}`} />
+                      <p className="font-bold text-sm text-gray-900">Pay Now</p>
+                      <p className="text-xs text-gray-500">Lock your spot immediately</p>
+                    </button>
+                    <button
+                      onClick={() => set("paymentOption", "pay_later")}
+                      className={`border-2 rounded-xl p-3 text-left transition-all ${form.paymentOption === "pay_later" ? "border-amber-400 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`}
+                      data-testid="btn-pay-later"
+                    >
+                      <Timer className={`w-5 h-5 mb-1.5 ${form.paymentOption === "pay_later" ? "text-amber-500" : "text-gray-400"}`} />
+                      <p className="font-bold text-sm text-gray-900">Pay Later</p>
+                      <p className="text-xs text-gray-500">Reserve now, pay in 48 hrs</p>
+                    </button>
+                  </div>
+                  {form.paymentOption === "pay_later" && (
+                    <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        Your spot is reserved for <strong>48 hours only</strong>. After that your registration expires and the spot may be given to someone else. You will not have access to paid course content until payment is confirmed.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment method (shown when pay_now) */}
+                {form.paymentOption === "pay_now" && (
+                  <div>
+                    <Label className="text-xs font-semibold text-gray-700 mb-2 block">Payment Method</Label>
+                    <div className="space-y-2">
+                      {availableMethods.map(key => {
+                        const info = ALL_PAYMENT_METHODS[key];
+                        if (!info) return null;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => set("paymentMethod", key)}
+                            className={`w-full flex items-center gap-3 border-2 rounded-xl px-4 py-3 text-left transition-all ${form.paymentMethod === key ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-gray-300"}`}
+                            data-testid={`btn-pm-${key}`}
+                          >
+                            <span className="text-xl">{info.icon}</span>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm text-gray-900">{info.label}</p>
+                              <p className="text-xs text-gray-500">{info.desc}</p>
+                            </div>
+                            {form.paymentMethod === key && <CheckCircle className="w-4 h-4 text-violet-600 flex-shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Payment details */}
+                    {form.paymentMethod === "bank_transfer" && (
+                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <p className="font-bold text-blue-800 text-sm mb-2">Bank Transfer Details</p>
+                        <div className="space-y-1 text-sm text-blue-700">
+                          <p>Bank: <strong>Opay / Palmpay</strong></p>
+                          <p>Account: <strong>9019802376</strong></p>
+                          <p>Name: <strong>Breedskool Tech</strong></p>
+                        </div>
+                        <p className="text-xs text-blue-500 mt-2">After transfer, enter your transaction reference below and optionally upload proof.</p>
+                      </div>
+                    )}
+                    {form.paymentMethod === "usdt_tron" && (
+                      <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p className="font-bold text-green-800 text-sm mb-1">USDT TRC-20 Address</p>
+                        <p className="font-mono text-xs text-green-700 break-all">Contact admin via WhatsApp for wallet address</p>
+                        <p className="text-xs text-green-500 mt-2">Send exact amount in USDT. Enter the TX hash below after sending.</p>
+                      </div>
+                    )}
+                    {(form.paymentMethod === "usdt_ton" || form.paymentMethod === "usdt_bnb") && (
+                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <p className="font-bold text-blue-800 text-sm mb-1">{form.paymentMethod === "usdt_ton" ? "USDT TON Address" : "USDT BEP-20 Address"}</p>
+                        <p className="text-xs text-blue-600">Contact admin via WhatsApp for the wallet address before sending.</p>
+                      </div>
+                    )}
+
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700">Transaction Reference / Hash</Label>
+                        <Input value={form.transactionRef} onChange={e => set("transactionRef", e.target.value)} placeholder="Enter transaction ID or hash" className="mt-1" data-testid="input-txref" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700">Upload Payment Proof <span className="text-gray-400 font-normal">(optional)</span></Label>
+                        <div className="mt-1 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-violet-300 transition-colors cursor-pointer">
+                          <input type="file" accept="image/*,application/pdf" className="hidden" id="proof-upload" onChange={e => setProofFile(e.target.files?.[0] || null)} />
+                          <label htmlFor="proof-upload" className="cursor-pointer">
+                            {proofFile ? (
+                              <p className="text-sm font-semibold text-violet-600 flex items-center justify-center gap-2"><CheckCircle className="w-4 h-4" />{proofFile.name}</p>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1">
+                                <Upload className="w-5 h-5 text-gray-400" />
+                                <p className="text-xs text-gray-500">Click to upload screenshot or PDF</p>
+                              </div>
+                            )}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" onClick={back} className="flex-1 rounded-xl">Back</Button>
+                  <Button
+                    onClick={() => registerMutation.mutate()}
+                    disabled={registerMutation.isPending}
+                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl h-11"
+                    data-testid="btn-reg-submit"
+                  >
+                    {registerMutation.isPending
+                      ? "Creating your account…"
+                      : form.paymentOption === "pay_later"
+                      ? "Reserve My Spot 🎓"
+                      : "Complete Enrollment 🚀"}
+                  </Button>
+                </div>
+
+                <p className="text-[10px] text-gray-400 text-center">By registering you agree to our Terms of Service. Your account will be created automatically.</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      <WelcomeModal open={showWelcome} onClose={() => setShowWelcome(false)} name={registeredName} courseTitle={registeredCourse} payLater={payLater} />
+      {/* ── Success Modal ── */}
+      <Dialog open={showSuccess} onOpenChange={o => { if (!o) { setShowSuccess(false); reset(); } }}>
+        <DialogContent className="max-w-md text-center" aria-describedby="success-desc">
+          <div className="py-4 space-y-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl animate-bounce">
+              <GraduationCap className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900">Welcome, {registeredName.split(" ")[0]}! 🎉</h2>
+              <p className="text-gray-600 text-sm mt-2 leading-relaxed">
+                You're enrolled in <span className="font-bold text-violet-700">{registeredCourse}</span>. Your account has been created and you're now logged in.
+              </p>
+            </div>
+            {payLater && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-2">
+                  <Timer className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-amber-800 text-sm">⏰ 48-Hour Payment Window</p>
+                    <p className="text-xs text-amber-700 mt-1">Your spot is reserved. Complete payment within <strong>48 hours</strong> to keep your enrollment active. After that, your spot expires.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-left">
+              <p className="font-semibold text-gray-800 text-sm">Connect with your tutors 👇</p>
+              <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${registeredCourse} on BreedSkool. My name is ${registeredName}.`)}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors" data-testid="link-welcome-whatsapp">
+                <PhoneCall className="w-5 h-5" />
+                <div>
+                  <p className="font-bold text-sm">WhatsApp Your Tutor</p>
+                  <p className="text-[11px] text-green-100">+1 (201) 680-0266</p>
+                </div>
+              </a>
+              <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-4 py-3 transition-colors" data-testid="link-welcome-telegram">
+                <Send className="w-5 h-5" />
+                <div>
+                  <p className="font-bold text-sm">Join the Telegram Community</p>
+                  <p className="text-[11px] text-blue-100">t.me/taskdrip</p>
+                </div>
+              </a>
+            </div>
+            <Button
+              onClick={() => { setShowSuccess(false); reset(); window.location.href = "/dashboard"; }}
+              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl"
+              data-testid="btn-welcome-dashboard"
+            >
+              Go to My Dashboard 🚀
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-// ── Existing Course helpers ───────────────────────────────────────────────────
+// ── Course Library helpers ─────────────────────────────────────────────────────
 const CATEGORIES = [
   { value: "all", label: "All Courses", icon: BookOpen },
   { value: "instagram_growth", label: "Instagram", icon: Instagram },
@@ -617,14 +758,12 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
             <Badge className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1">⭐ Spotlight Course</Badge>
             {course.isFree ? <Badge className="bg-green-500 text-white text-xs font-bold">FREE</Badge> : <Badge className="bg-white/20 text-white border border-white/30 text-xs">${course.price}</Badge>}
             {enrolled && <Badge className="bg-emerald-500 text-white text-xs font-bold">✓ Enrolled</Badge>}
-            <Badge className="bg-white/20 text-white border border-white/30 text-xs capitalize">{course.level}</Badge>
           </div>
           <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{course.title}</h2>
           {course.shortDescription && <p className="text-white/80 text-sm max-w-xl line-clamp-2 mb-4">{course.shortDescription}</p>}
           <div className="flex flex-wrap items-center gap-4">
             {course.duration && <span className="text-white/70 text-sm flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration}</span>}
             {course.lessonsCount > 0 && <span className="text-white/70 text-sm flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessonsCount} lessons</span>}
-            {parseFloat(course.averageRating || "0") > 0 && <span className="text-white/70 text-sm flex items-center gap-1"><Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />{parseFloat(course.averageRating).toFixed(1)}</span>}
             <Button onClick={e => { e.stopPropagation(); navigate(`/breedskool/${course.id}`); }} className={`ml-auto font-bold px-5 rounded-xl shadow-lg ${enrolled ? "bg-emerald-500 hover:bg-emerald-400 text-white" : "bg-white text-gray-900 hover:bg-yellow-50"}`} data-testid={`btn-spotlight-course-${course.id}`}>
               {enrolled ? <><CheckCircle2 className="w-4 h-4 mr-1.5" />Continue</> : <>View Course <ChevronRight className="w-4 h-4 ml-1" /></>}
             </Button>
@@ -633,16 +772,16 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
       </div>
       {total > 1 && (
         <div className="flex items-center justify-center gap-3 mt-4">
-          <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }} className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all" data-testid="btn-breedskool-spotlight-prev"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={e => { e.stopPropagation(); goTo((current - 1 + total) % total); }} className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 flex items-center justify-center transition-all" data-testid="btn-breedskool-spotlight-prev"><ChevronLeft className="w-5 h-5" /></button>
           <div className="flex gap-2">{courses.map((_, i) => <button key={i} onClick={e => { e.stopPropagation(); goTo(i); }} className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-violet-600" : "w-2 bg-gray-300 hover:bg-gray-400"}`} data-testid={`btn-breedskool-spotlight-dot-${i}`} />)}</div>
-          <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }} className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 hover:shadow-[0_0_15px_rgba(139,92,246,0.55)] hover:border-violet-400 flex items-center justify-center transition-all" data-testid="btn-breedskool-spotlight-next"><ChevronRight className="w-5 h-5" /></button>
+          <button onClick={e => { e.stopPropagation(); goTo((current + 1) % total); }} className="w-10 h-10 rounded-full bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 flex items-center justify-center transition-all" data-testid="btn-breedskool-spotlight-next"><ChevronRight className="w-5 h-5" /></button>
         </div>
       )}
     </div>
   );
 }
 
-// ── Main Export ──────────────────────────────────────────────────────────────
+// ── Main Export ───────────────────────────────────────────────────────────────
 export default function BreedSkool() {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -663,7 +802,6 @@ export default function BreedSkool() {
     return true;
   });
   const featured = courses.filter((c: any) => c.isFeatured);
-  const freeCourses = courses.filter((c: any) => c.isFree);
   const totalStudents = courses.reduce((sum: number, c: any) => sum + (c.studentsCount || 0), 0);
   const isPremium = (user as any)?.subscriptionStatus === "active";
   const isAdmin = (user as any)?.userType === "admin" || (user as any)?.role === "admin";
@@ -676,76 +814,138 @@ export default function BreedSkool() {
       <AdSlot page="breedskool" placementType="banner_top" className="w-full" />
 
       {/* ── Hero Section ── */}
-      <div className="relative overflow-hidden min-h-[580px] flex items-center">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&h=700&fit=crop')" }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/92 via-purple-900/88 to-indigo-900/92" />
+      <div className="relative overflow-hidden min-h-[620px] flex items-center">
+        {/* Professional background: tech training / students with laptops */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1600&h=800&fit=crop&q=80')" }}
+        />
+        {/* Strong dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-950/95 via-violet-950/90 to-indigo-950/90" />
+        {/* Decorative glows */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 right-1/6 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-10 left-1/4 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-1/4 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 py-24 w-full text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2 mb-6 shadow-lg">
-            <span className="text-2xl">🎓</span>
-            <span className="text-white text-sm font-semibold tracking-wide">BreedSkool – Tech Training Academy</span>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 leading-tight drop-shadow-xl">
-            Where Skills Become <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">Income</span>
-          </h1>
-          <p className="text-white/80 text-base md:text-xl max-w-3xl mx-auto mb-3 leading-relaxed">
-            Empowering tech enthusiasts to acquire the requisite skills in this Web3 dispensation — <strong className="text-white">build & manage profitable online businesses</strong> and become valuable digital assets in the global labour market.
-          </p>
-          <p className="text-violet-300 text-sm md:text-base mb-10 font-medium">Individuals become Global Digital Assets. 🌍</p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            <Button
-              onClick={() => setShowRegModal(true)}
-              size="lg"
-              className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-8 py-6 text-base rounded-2xl shadow-2xl shadow-orange-400/30 hover:-translate-y-0.5 transition-all"
-              data-testid="btn-hero-register"
-            >
-              🎓 Register Now — Start Learning
-            </Button>
-            <a href="#courses">
-              <Button variant="outline" size="lg" className="border-white/30 text-white bg-white/10 hover:bg-white/20 font-bold px-6 py-6 text-base rounded-2xl" data-testid="btn-hero-browse">
-                Browse All Courses <ChevronRight className="ml-2 w-4 h-4" />
-              </Button>
-            </a>
+        <div className="relative max-w-7xl mx-auto px-4 py-20 w-full">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            {/* Left: Text */}
+            <div>
+              {/* Badges row */}
+              <div className="flex flex-wrap items-center gap-2 mb-5">
+                <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" /> 100% Online
+                </span>
+                <span className="inline-flex items-center gap-1.5 bg-orange-500/20 border border-orange-400/30 backdrop-blur-sm text-orange-200 text-xs font-semibold px-3 py-1.5 rounded-full">
+                  🔴 Live Training Ongoing
+                </span>
+              </div>
+
+              <div className="inline-flex items-center gap-2 mb-4">
+                <span className="text-2xl">🎓</span>
+                <span className="text-violet-300 text-sm font-bold tracking-widest uppercase">BreedSkool Tech Training Academy</span>
+              </div>
+
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-5 leading-tight">
+                Where Skills<br />
+                Become <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">Income</span>
+              </h1>
+
+              <p className="text-white/75 text-base md:text-lg mb-4 leading-relaxed max-w-lg">
+                Equipping tech enthusiasts with <strong className="text-white">Web3-era digital skills</strong> to build profitable online businesses and become valuable global assets.
+              </p>
+
+              {/* Location & event info */}
+              <div className="flex items-start gap-2 mb-7 bg-white/5 border border-white/10 rounded-xl p-3 max-w-sm">
+                <MapPin className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white text-xs font-bold">Current Live Training Venue</p>
+                  <p className="text-white/70 text-xs mt-0.5">TootoOba Estate, Ijede, Ikorodu, Lagos</p>
+                  <p className="text-emerald-400 text-[11px] font-semibold mt-1">Also available 100% online — learn from anywhere</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start gap-3">
+                <Button
+                  onClick={() => setShowRegModal(true)}
+                  size="lg"
+                  className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-8 py-6 text-base rounded-2xl shadow-2xl shadow-orange-400/30 hover:-translate-y-0.5 transition-all"
+                  data-testid="btn-hero-register"
+                >
+                  🎓 Register & Enroll Now
+                </Button>
+                <a href="#courses">
+                  <Button variant="outline" size="lg" className="border-white/30 text-white bg-white/10 hover:bg-white/20 font-bold px-6 py-6 text-base rounded-2xl" data-testid="btn-hero-browse">
+                    Browse Courses <ChevronRight className="ml-1 w-4 h-4" />
+                  </Button>
+                </a>
+              </div>
+            </div>
+
+            {/* Right: Stats cards */}
+            <div className="hidden lg:block">
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { value: `${courses.length + 4}+`, label: "Training Programs", icon: "📚", color: "from-violet-500/20 to-indigo-500/20 border-violet-400/30" },
+                  { value: `${totalStudents.toLocaleString()}+`, label: "Students Enrolled", icon: "🎓", color: "from-orange-500/20 to-amber-500/20 border-orange-400/30" },
+                  { value: "100%", label: "Online & In-Person", icon: "🌍", color: "from-emerald-500/20 to-teal-500/20 border-emerald-400/30" },
+                  { value: "4", label: "Tech Programs", icon: "💻", color: "from-blue-500/20 to-cyan-500/20 border-blue-400/30" },
+                ].map((s) => (
+                  <div key={s.label} className={`bg-gradient-to-br ${s.color} border backdrop-blur-sm rounded-2xl p-5 text-center`}>
+                    <p className="text-3xl mb-2">{s.icon}</p>
+                    <p className="text-3xl font-extrabold text-white">{s.value}</p>
+                    <p className="text-white/60 text-xs mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Testimonial mini card */}
+              <div className="mt-4 bg-white/8 border border-white/15 rounded-2xl p-4">
+                <div className="flex items-center gap-1 mb-2">
+                  {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
+                </div>
+                <p className="text-white/80 text-xs leading-relaxed">"BreedSkool gave me the exact skills I needed to start freelancing. Within 3 months I was earning consistently online."</p>
+                <p className="text-violet-300 text-xs font-semibold mt-2">— Adeola, Web Dev Graduate · Lagos</p>
+              </div>
+            </div>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-4 md:gap-8 flex-wrap">
+          {/* Mobile stats strip */}
+          <div className="flex items-center justify-center gap-3 mt-8 lg:hidden flex-wrap">
             {[
               { value: `${courses.length + 4}+`, label: "Courses", icon: "📚" },
               { value: `${totalStudents.toLocaleString()}+`, label: "Students", icon: "🎓" },
-              { value: "4", label: "Tech Programs", icon: "💻" },
               { value: "100%", label: "Online", icon: "🌍" },
             ].map((s) => (
-              <div key={s.label} className="text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4 shadow-lg">
-                <p className="text-3xl mb-1">{s.icon}</p>
-                <p className="text-2xl font-extrabold text-white">{s.value}</p>
-                <p className="text-white/60 text-sm">{s.label}</p>
+              <div key={s.label} className="text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4">
+                <p className="text-2xl mb-1">{s.icon}</p>
+                <p className="text-xl font-extrabold text-white">{s.value}</p>
+                <p className="text-white/60 text-xs">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── Tech Training Courses Section ── */}
+      {/* ── Tech Training Programs ── */}
       {bsPricing.length > 0 && (
         <section className="py-16 bg-white" id="tech-training">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
-              <Badge className="mb-3 bg-violet-100 text-violet-700 border-0 px-4 py-1.5 text-xs">
-                <Sparkles className="w-3.5 h-3.5 mr-1 inline" /> Nigerian Naira Pricing
+              <Badge className="mb-3 bg-violet-100 text-violet-700 border-0 px-4 py-1.5 text-sm font-semibold">
+                <Sparkles className="w-3.5 h-3.5 mr-1 inline" /> Intensive Tech Programs
               </Badge>
               <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">BreedSkool Tech Training Programs</h2>
               <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">
                 Industry-focused programs designed to take you from zero to profitable in the digital economy. Taught by practitioners, not just theorists.
               </p>
+              <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-2 text-sm text-orange-700 font-medium">
+                <MapPin className="w-4 h-4" />
+                Live training at TootoOba Estate, Ijede, Ikorodu Lagos · Also fully online
+              </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
               {bsPricing.map((course) => {
                 const Icon = COURSE_ICONS[course.courseKey] || BookOpen;
                 const gradient = COURSE_GRADIENTS[course.courseKey] || "from-gray-600 to-gray-500";
@@ -758,14 +958,14 @@ export default function BreedSkool() {
                       <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-3 shadow-sm`}>
                         <Icon className="w-6 h-6 text-white" />
                       </div>
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <Badge className={`text-[10px] px-2 py-0.5 ${COURSE_BADGE_COLOR[course.courseKey] || "bg-gray-100 text-gray-600"} border-0`}>{course.duration}</Badge>
                         <Badge className="bg-red-100 text-red-600 text-[10px] border-0">-{savingsPct}% OFF</Badge>
                       </div>
                       <h3 className="font-black text-gray-900 text-sm mb-1 leading-snug">{course.title}</h3>
                       <p className="text-xs text-gray-500 mb-4 line-clamp-3">{course.shortDescription}</p>
                       <div className="border-t border-gray-100 pt-3">
-                        <div className="flex items-baseline gap-2 mb-1">
+                        <div className="flex items-baseline gap-2 mb-0.5">
                           <span className="text-xs text-gray-400 line-through">{fmtNgn(course.regularPrice)}</span>
                           <span className="text-xs text-green-600 font-semibold">Save {fmtNgn(savings)}</span>
                         </div>
@@ -781,29 +981,30 @@ export default function BreedSkool() {
               })}
             </div>
 
-            {/* Currency Converter Info */}
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-6 text-center">
-              <Globe2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-              <h3 className="font-bold text-gray-900 mb-1">International Students Welcome 🌍</h3>
-              <p className="text-sm text-gray-600 mb-3">All prices are in Nigerian Naira. International students can pay the USD equivalent using the current black market exchange rate.</p>
-              <div className="flex items-center justify-center gap-6 flex-wrap text-sm font-semibold">
-                <span className="bg-white rounded-xl px-4 py-2 border border-emerald-200 text-gray-700">Current Rate: ₦{BLACK_MARKET_RATE.toLocaleString()} / $1</span>
-                <span className="text-gray-500">Pay in:</span>
-                {Object.entries(PAYMENT_METHODS).map(([k, v]) => (
-                  <span key={k} className="bg-white rounded-xl px-3 py-1.5 border border-gray-200 text-gray-600 text-xs">{v.icon} {v.label.split(" ")[0]} {v.label.split(" ").slice(1).join(" ")}</span>
-                ))}
+            {/* Payment methods info */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 mb-1">Flexible Payment Options</h3>
+                  <p className="text-sm text-gray-600">Pay via bank transfer or cryptocurrency. International students can pay the equivalent in USD.</p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {Object.entries(ALL_PAYMENT_METHODS).map(([k, v]) => (
+                    <span key={k} className="bg-white rounded-xl px-3 py-2 border border-gray-200 text-gray-600 text-xs font-medium shadow-sm">{v.icon} {v.label}</span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* ── Why BreedSkool Section ── */}
+      {/* ── Why BreedSkool ── */}
       <section className="py-14 bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-white mb-2">Why BreedSkool?</h2>
-            <p className="text-gray-400 max-w-xl mx-auto text-sm">We don't just teach — we equip you with income-generating digital skills.</p>
+            <h2 className="text-3xl font-black text-white mb-2">Why Choose BreedSkool?</h2>
+            <p className="text-gray-400 max-w-xl mx-auto text-sm">We don't just teach — we equip you with income-generating digital skills for the real world.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
@@ -827,10 +1028,8 @@ export default function BreedSkool() {
         </div>
       </section>
 
-      {/* ── Course Library Section ── */}
+      {/* ── Course Library ── */}
       <div className="max-w-7xl mx-auto px-4 py-10" id="courses">
-
-        {/* Teach on BreedSkool CTA */}
         {isAuthenticated && canTeach && (
           <div className="mb-8 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 flex items-center justify-between text-white shadow-lg">
             <div>
@@ -845,7 +1044,7 @@ export default function BreedSkool() {
           <div className="mb-8 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-lg">
             <div>
               <h3 className="text-lg font-bold">🎓 BreedSkool Tech Training</h3>
-              <p className="text-white/80 text-sm mt-1">Register without an account — learn at your own pace, earn real skills.</p>
+              <p className="text-white/80 text-sm mt-1">Register and create your account — start learning today with BreedSkool.</p>
             </div>
             <Button className="bg-white text-violet-700 hover:bg-gray-100 font-semibold whitespace-nowrap" onClick={() => setShowRegModal(true)} data-testid="btn-enroll-banner">Enroll Now</Button>
           </div>
@@ -890,7 +1089,7 @@ export default function BreedSkool() {
           </section>
         )}
 
-        {/* All / Filtered Courses */}
+        {/* Course Grid */}
         <section>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-2xl font-bold text-gray-900">
@@ -916,25 +1115,29 @@ export default function BreedSkool() {
           )}
         </section>
 
-        {/* Teach Section */}
+        {/* Upgrade to teach */}
         {!canTeach && isAuthenticated && (
           <section className="mt-16 bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-3xl p-10 text-center">
             <div className="text-4xl mb-4">🚀</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Want to Teach on BreedSkool?</h2>
-            <p className="text-gray-500 max-w-md mx-auto mb-4">Upgrade to any Premium plan to start creating and selling your own courses, earn from students, and build your influencer brand.</p>
+            <p className="text-gray-500 max-w-md mx-auto mb-4">Upgrade to a Premium plan to start creating and selling your own courses.</p>
             <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={() => setLocation("/subscription")}>Upgrade to Premium <ChevronRight className="h-4 w-4" /></Button>
           </section>
         )}
       </div>
 
-      {/* ── CTA Bar ── */}
+      {/* ── CTA Section ── */}
       <section className="py-14 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-black text-white mb-3">Ready to Become a Global Digital Asset? 🌍</h2>
-          <p className="text-violet-200 mb-6 text-sm sm:text-base">Join hundreds of students already learning and earning with BreedSkool. No prior experience required.</p>
+          <p className="text-violet-200 mb-2 text-sm sm:text-base">Join hundreds of students learning and earning with BreedSkool. No prior experience required.</p>
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <MapPin className="w-4 h-4 text-orange-300" />
+            <span className="text-violet-200 text-sm">Live at TootoOba Estate, Ijede, Ikorodu Lagos · Also 100% Online</span>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button onClick={() => setShowRegModal(true)} size="lg" className="bg-white text-violet-700 hover:bg-gray-100 font-black px-8 rounded-xl shadow-xl" data-testid="btn-cta-register">
-              🎓 Register Now
+              🎓 Register & Create Account
             </Button>
             <a href="https://wa.me/12016800266" target="_blank" rel="noopener noreferrer">
               <Button size="lg" variant="outline" className="border-white/40 text-white bg-white/10 hover:bg-white/20 font-bold px-6 rounded-xl w-full sm:w-auto" data-testid="btn-cta-whatsapp">

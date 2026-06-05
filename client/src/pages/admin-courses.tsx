@@ -970,7 +970,8 @@ function BreedSkoolManagementPanel() {
                   {editingId === course.id ? (
                     <>
                       <TableCell>
-                        <Input value={editForm.title || ""} onChange={e => setEditForm((f: any) => ({ ...f, title: e.target.value }))} className="text-sm" />
+                        <Input value={editForm.title || ""} onChange={e => setEditForm((f: any) => ({ ...f, title: e.target.value }))} className="text-sm mb-1" placeholder="Course title" />
+                        <Input value={editForm.shortDescription || ""} onChange={e => setEditForm((f: any) => ({ ...f, shortDescription: e.target.value }))} className="text-xs text-gray-500 h-8" placeholder="Short description…" />
                       </TableCell>
                       <TableCell>
                         <Input type="number" value={editForm.regularPrice || ""} onChange={e => setEditForm((f: any) => ({ ...f, regularPrice: e.target.value }))} className="text-sm w-32" />
@@ -1017,7 +1018,7 @@ function BreedSkoolManagementPanel() {
                         <Badge className={course.isActive ? "bg-green-100 text-green-700 border-0" : "bg-red-100 text-red-600 border-0"}>{course.isActive ? "Active" : "Off"}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => { setEditingId(course.id); setEditForm({ title: course.title, regularPrice: course.regularPrice, discountPrice: course.discountPrice, duration: course.duration, isActive: course.isActive, acceptedPayments: course.acceptedPayments || [] }); }} data-testid={`btn-edit-pricing-${course.courseKey}`}>
+                        <Button size="sm" variant="outline" onClick={() => { setEditingId(course.id); setEditForm({ title: course.title, shortDescription: course.shortDescription || "", regularPrice: course.regularPrice, discountPrice: course.discountPrice, duration: course.duration, isActive: course.isActive, acceptedPayments: course.acceptedPayments || [] }); }} data-testid={`btn-edit-pricing-${course.courseKey}`}>
                           <Edit className="h-3 w-3" />
                         </Button>
                       </TableCell>

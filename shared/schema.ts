@@ -2177,6 +2177,7 @@ export type InsertBreedskoolCoursePricing = z.infer<typeof insertBreedskoolCours
 
 export const breedskoolRegistrations = pgTable("breedskool_registrations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),   // linked platform account
   fullName: varchar("full_name").notNull(),
   email: varchar("email").notNull(),
   phone: varchar("phone").notNull(),
@@ -2191,6 +2192,7 @@ export const breedskoolRegistrations = pgTable("breedskool_registrations", {
   paymentProof: varchar("payment_proof"),
   currencyUsed: varchar("currency_used").default("NGN"), // 'NGN' | 'USD' | 'USDT'
   amountUsd: decimal("amount_usd", { precision: 10, scale: 2 }),
+  payLaterDeadline: timestamp("pay_later_deadline"),       // 48-hr payment window
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

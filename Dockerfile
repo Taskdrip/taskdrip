@@ -8,8 +8,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install all deps (vite + esbuild + drizzle-kit are devDependencies, all needed)
+# --production=false forces devDep install regardless of NODE_ENV
 COPY package.json package-lock.json* ./
-RUN npm install --include=dev --no-audit --no-fund
+RUN npm install --production=false --no-audit --no-fund
 
 # Copy the rest of the source and build
 COPY . .
