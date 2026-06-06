@@ -1,3 +1,14 @@
-# This file is intentionally left minimal.
-# Railway uses the Dockerfile in this repo for all builds.
-# nixpacks is disabled.
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci --no-audit --no-fund"]
+
+[phases.build]
+cmds = [
+  "./node_modules/.bin/vite build",
+  "./node_modules/.bin/esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist"
+]
+
+[start]
+cmd = "NODE_ENV=production node dist/index.js"

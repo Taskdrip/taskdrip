@@ -712,7 +712,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resetUserPassword(id: string, newPassword: string): Promise<void> {
-    const bcrypt = await import('bcrypt');
+    const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await db.update(users)
       .set({ password: hashedPassword, updatedAt: new Date() })

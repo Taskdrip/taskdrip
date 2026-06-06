@@ -1,4 +1,5 @@
-FROM node:20-alpine AS builder
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
+FROM node:20 AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -14,7 +15,8 @@ RUN ./node_modules/.bin/vite build && \
       --format=esm \
       --outdir=dist
 
-FROM node:20-alpine AS runner
+# ── Stage 2: Production runner ────────────────────────────────────────────────
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -28,8 +30,5 @@ COPY --from=builder /app/dist ./dist
 RUN mkdir -p uploads
 
 EXPOSE 5000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:5000/api/health || exit 1
 
 CMD ["node", "dist/index.js"]

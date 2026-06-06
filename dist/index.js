@@ -2905,7 +2905,7 @@ var DatabaseStorage = class {
     await db.delete(users).where(eq(users.id, id));
   }
   async resetUserPassword(id, newPassword) {
-    const bcrypt6 = await import("bcrypt");
+    const bcrypt6 = await import("bcryptjs");
     const hashedPassword = await bcrypt6.hash(newPassword, 10);
     await db.update(users).set({ password: hashedPassword, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, id));
   }
