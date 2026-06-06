@@ -2714,6 +2714,43 @@ var init_analytics_injector = __esm({
   }
 });
 
+// vite.config.ts
+var vite_config_exports = {};
+__export(vite_config_exports, {
+  default: () => vite_config_default
+});
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path2 from "path";
+var vite_config_default;
+var init_vite_config = __esm({
+  "vite.config.ts"() {
+    "use strict";
+    vite_config_default = defineConfig({
+      plugins: [react()],
+      resolve: {
+        alias: {
+          "@": path2.resolve(import.meta.dirname, "client", "src"),
+          "@shared": path2.resolve(import.meta.dirname, "shared"),
+          "@assets": path2.resolve(import.meta.dirname, "attached_assets")
+        }
+      },
+      root: path2.resolve(import.meta.dirname, "client"),
+      build: {
+        outDir: path2.resolve(import.meta.dirname, "dist/public"),
+        emptyOutDir: true
+      },
+      server: {
+        allowedHosts: true,
+        fs: {
+          strict: true,
+          deny: ["**/.*"]
+        }
+      }
+    });
+  }
+});
+
 // server/index.ts
 import express3 from "express";
 import path4 from "path";
@@ -3400,8 +3437,8 @@ var DatabaseStorage = class {
     }
   }
   async likePost(postId, userId) {
-    const { nanoid: nanoid3 } = await import("nanoid");
-    const id = nanoid3();
+    const { nanoid: nanoid2 } = await import("nanoid");
+    const id = nanoid2();
     await db.insert(postLikes).values({ id, postId, userId });
     await db.update(posts).set({ likeCount: sql2`${posts.likeCount} + 1` }).where(eq(posts.id, postId));
   }
@@ -8296,8 +8333,8 @@ async function registerRoutes(app2, existingServer) {
           });
         }
       }
-      const { nanoid: nanoid3 } = await import("nanoid");
-      const id = `post_${nanoid3()}`;
+      const { nanoid: nanoid2 } = await import("nanoid");
+      const id = `post_${nanoid2()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       try {
@@ -8345,8 +8382,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid3 } = await import("nanoid");
-      const id = `post_${nanoid3()}`;
+      const { nanoid: nanoid2 } = await import("nanoid");
+      const id = `post_${nanoid2()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       res.status(201).json(post);
@@ -8425,8 +8462,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid3 } = await import("nanoid");
-      const id = `cmt_${nanoid3()}`;
+      const { nanoid: nanoid2 } = await import("nanoid");
+      const id = `cmt_${nanoid2()}`;
       const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim(), parentId);
       res.status(201).json(comment);
     } catch (error) {
@@ -10531,7 +10568,7 @@ async function registerRoutes(app2, existingServer) {
       if (!escrow) return res.status(404).json({ message: "Escrow payment not found" });
       await storage.updateEscrowPayment(escrow.id, { status: "verified", verifiedAt: /* @__PURE__ */ new Date(), verifiedBy: req.user.id });
       const activatedCampaign = await storage.updateCampaign(escrow.campaignId, { isActive: true, status: "active", paymentStatus: "completed" });
-      const { nanoid: nanoid3 } = await import("nanoid");
+      const { nanoid: nanoid2 } = await import("nanoid");
       await storage.createNotification({
         userId: escrow.brandId,
         type: "payment_received",
@@ -16963,37 +17000,6 @@ Sitemap: ${domain}/sitemap.xml
 import express2 from "express";
 import fs from "fs";
 import path3 from "path";
-import { createServer as createViteServer, createLogger } from "vite";
-
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path2 from "path";
-var vite_config_default = defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path2.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path2.resolve(import.meta.dirname, "shared"),
-      "@assets": path2.resolve(import.meta.dirname, "attached_assets")
-    }
-  },
-  root: path2.resolve(import.meta.dirname, "client"),
-  build: {
-    outDir: path2.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true
-  },
-  server: {
-    allowedHosts: true,
-    fs: {
-      strict: true,
-      deny: ["**/.*"]
-    }
-  }
-});
-
-// server/vite.ts
-import { nanoid as nanoid2 } from "nanoid";
 
 // server/seo-meta.ts
 init_db();
@@ -17193,7 +17199,6 @@ async function buildSeoHtml(html, req) {
 // server/vite.ts
 init_analytics_injector();
 var PROJECT_ROOT = process.cwd();
-var viteLogger = createLogger();
 function log(message, source = "express") {
   const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -17204,13 +17209,12 @@ function log(message, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 async function setupVite(app2, server2) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server: server2 },
-    allowedHosts: true
-  };
+  const { createServer: createViteServer, createLogger } = await import("vite");
+  const { default: viteConfig } = await Promise.resolve().then(() => (init_vite_config(), vite_config_exports));
+  const { nanoid: nanoid2 } = await import("nanoid");
+  const viteLogger = createLogger();
   const vite = await createViteServer({
-    ...vite_config_default,
+    ...viteConfig,
     configFile: false,
     customLogger: {
       ...viteLogger,
@@ -17219,7 +17223,11 @@ async function setupVite(app2, server2) {
         process.exit(1);
       }
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: true,
+      hmr: { server: server2 },
+      allowedHosts: true
+    },
     appType: "custom"
   });
   app2.use(vite.middlewares);
@@ -17248,9 +17256,7 @@ function serveStatic(app2) {
   if (!fs.existsSync(distPath)) {
     const msg = `[static] Build directory not found: ${distPath}. Run 'npm run build' first.`;
     console.error(msg);
-    app2.use("*", (_req, res) => {
-      res.status(503).send(msg);
-    });
+    app2.use("*", (_req, res) => res.status(503).send(msg));
     return;
   }
   app2.use(express2.static(distPath));
