@@ -1,23 +1,31 @@
 ---
 name: Railway Nixpacks Deployment
-description: Dockerfile build fails on Railway; Nixpacks is the correct approach for this project.
+description: Definitive Railway deployment config for this project — Nixpacks only, no Dockerfile.
 ---
 
 ## The Rule
-Never use a Dockerfile for Railway deployments on this project. Always use Nixpacks.
-Force Nixpacks explicitly with `builder = "NIXPACKS"` in `railway.toml` — this overrides any Dockerfile that exists.
+Use Nixpacks on Railway. Force it via `builder = "NIXPACKS"` in `railway.toml`.
+Never put `nodejs_20` (or any `nodejs_*`) in `nixpacks.toml` nixPkgs — it is an invalid Nix package name in Railway's Nixpacks version and causes an **immediate crash** in seconds.
+Node.js version is controlled via `.nvmrc` (already set to `20`).
 
-## Why
-1. The Docker multi-stage build (`node:20-slim`) fails during the Railway "Build image" step with `ERR_MODULE_NOT_FOUND`. Root cause: `node:20-slim` floating tag may resolve to older Node 20.x builds lacking `import.meta.dirname` support (requires Node >= 20.11.0), and may lack Python/make/g++ for optional native packages.
-2. `vite.config.ts` originally used `import.meta.dirname` which is Node 20.11.0+ only — replaced with `fileURLToPath(import.meta.url)` pattern which works on all Node 20+.
-3. When both Dockerfile and nixpacks.toml exist, Railway picks Dockerfile unless `builder = "NIXPACKS"` is set in `railway.toml`.
+## Root Causes Encountered (in order)
+1. Dockerfile present → Railway used Docker instead of Nixpacks → build fails due to memory/tools
+2. `nodejs_20` in nixpkgs → invalid Nix package name → setup phase crashes in seconds
+3. `import.meta.dirname` in vite.config.ts → only works on Node ≥ 20.11.0 → fixed with `fileURLToPath`
+4. No `buildCommand` in railway.toml → Railway guesses build, may skip NODE_OPTIONS memory flag
 
-## How to Apply
+## Working Configuration
 
-`railway.toml` — force Nixpacks, no `buildCommand` (nixpacks handles it):
+`.nvmrc` (already exists):
+```
+20
+```
+
+`railway.toml`:
 ```toml
 [build]
 builder = "NIXPACKS"
+buildCommand = "npm ci --no-audit --no-fund && NODE_OPTIONS='--max-old-space-size=4096' npm run build"
 
 [deploy]
 startCommand = "node dist/index.js"
@@ -27,10 +35,10 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 ```
 
-`nixpacks.toml` — add memory headroom and build tools:
+`nixpacks.toml`:
 ```toml
 [phases.setup]
-nixPkgs = ["nodejs_20", "python3", "gcc"]
+nixPkgs = ["python3", "gcc"]
 
 [phases.install]
 cmds = ["npm ci --no-audit --no-fund"]
@@ -42,13 +50,14 @@ cmds = ["NODE_OPTIONS='--max-old-space-size=4096' npm run build"]
 cmd = "node dist/index.js"
 ```
 
-`vite.config.ts` — never use `import.meta.dirname`, use this instead:
+`vite.config.ts` — use this pattern, NOT `import.meta.dirname`:
 ```ts
 import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 ```
 
 ## What NOT to Do
-- Do not add `buildCommand` to `railway.toml` (nixpacks.toml handles the build phases)
-- Do not use `node:20-slim` in a Dockerfile for this project
-- Do not use `import.meta.dirname` anywhere in the build pipeline
+- Never add `nodejs_20`, `nodejs_18`, or any `nodejs_*` to nixpkgs
+- Never use a Dockerfile (kept in repo but overridden by `builder = "NIXPACKS"`)
+- Never use `import.meta.dirname` in any build-time file (vite.config, etc.)
+- Never omit `buildCommand` from railway.toml — always set it explicitly with NODE_OPTIONS
