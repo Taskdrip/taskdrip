@@ -2194,6 +2194,11 @@ export const breedskoolRegistrations = pgTable("breedskool_registrations", {
   amountUsd: decimal("amount_usd", { precision: 10, scale: 2 }),
   payLaterDeadline: timestamp("pay_later_deadline"),       // 48-hr payment window
   notes: text("notes"),
+  deliveryMode: varchar("delivery_mode").default("online"), // 'online' | 'onsite' | 'home_lesson'
+  childName: varchar("child_name"),
+  childAge: varchar("child_age"),
+  parentName: varchar("parent_name"),
+  homeAddress: text("home_address"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

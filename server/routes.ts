@@ -5449,6 +5449,7 @@ Instructions:
         selectedCourseKey, selectedCourseTitle,
         amountNgn, paymentOption, paymentMethod,
         transactionRef, currencyUsed, amountUsd, notes,
+        deliveryMode, childName, childAge, parentName, homeAddress,
       } = req.body;
 
       if (!fullName || !email || !phone || !selectedCourseKey) {
@@ -5520,6 +5521,11 @@ Instructions:
         amountUsd: amountUsd ? amountUsd.toString() : null,
         payLaterDeadline: deadline,
         notes: notes || null,
+        deliveryMode: deliveryMode || 'online',
+        childName: childName || null,
+        childAge: childAge || null,
+        parentName: parentName || null,
+        homeAddress: homeAddress || null,
       }).returning();
 
       // Auto-login the student (new users OR existing users with correct password)

@@ -100,6 +100,20 @@ const DEFAULT_SLIDERS = [
     accentColor: "from-yellow-400 via-amber-400 to-orange-400",
     isActive: true,
   },
+  {
+    order: 7,
+    badge: "🏠 BreedSkool Home Lessons",
+    headline: "Tech Lessons Delivered to Your Home.",
+    subheadline: "Book certified tutors to teach your child coding, AI tools, and digital skills at home. Flexible scheduling, one-on-one attention, and personalised learning for ages 6–17.",
+    ctaPrimaryLabel: "Book a Home Lesson",
+    ctaPrimaryLink: "/breedskool",
+    ctaSecondaryLabel: "View All Programs",
+    ctaSecondaryLink: "/breedskool",
+    backgroundImage: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-pink-950/70 to-black/50",
+    accentColor: "from-pink-400 via-rose-400 to-orange-400",
+    isActive: true,
+  },
 ];
 
 const DEFAULT_PAGE_CONTENT = [
@@ -194,13 +208,18 @@ const DEFAULT_PAGE_CONTENT = [
 
 export async function seedCmsContent(): Promise<void> {
   try {
-    // ── Hero Sliders: seed only if table is empty (admin fully manages these) ──
-    const sliderCount = await storage.countHeroSliders();
-    if (sliderCount === 0) {
-      for (const slider of DEFAULT_SLIDERS) {
+    // ── Hero Sliders: idempotent sync — insert missing sliders by headline ──
+    const existingSliders = await storage.getHeroSliders();
+    const existingHeadlines = new Set(existingSliders.map((s: any) => s.headline));
+    let slidersAdded = 0;
+    for (const slider of DEFAULT_SLIDERS) {
+      if (!existingHeadlines.has(slider.headline)) {
         await storage.createHeroSlider(slider as any);
+        slidersAdded++;
       }
-      log(`[CMS] Seeded ${DEFAULT_SLIDERS.length} default hero sliders`);
+    }
+    if (slidersAdded > 0) {
+      log(`[CMS] Added ${slidersAdded} new hero slider(s)`);
     }
 
     // ── Page Content: smart sync on every startup ────────────────────────────

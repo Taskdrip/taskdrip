@@ -47,6 +47,28 @@ const BREEDSKOOL_COURSES = [
     isActive: true,
     acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
+  {
+    courseKey: "home_lesson",
+    title: "Tech Home Lessons for Kids",
+    shortDescription:
+      "One-on-one tech lessons delivered at your home by a certified tutor. Book flexible sessions for your child (ages 6–17) covering coding, AI tools, digital skills, and more.",
+    regularPrice: 120000,
+    discountPrice: 85000,
+    duration: "Per Session",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
+  },
+  {
+    courseKey: "onsite_training",
+    title: "Onsite Group Training",
+    shortDescription:
+      "Join our hands-on classroom sessions at TootoOba Estate, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support.",
+    regularPrice: 180000,
+    discountPrice: 130000,
+    duration: "6–8 Weeks",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
+  },
 ];
 
 export async function seedBreedskoolPricing(): Promise<{ upserted: number; skipped: number }> {

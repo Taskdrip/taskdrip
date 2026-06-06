@@ -18,7 +18,7 @@ import {
   Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, CheckCircle2,
   Laptop, Brain, TrendingDown, GraduationCap, Globe2, ArrowRight, Sparkles, X,
   PhoneCall, MessageCircle, Send, CheckCircle, AlertCircle, CreditCard, Upload,
-  MapPin, Eye, EyeOff, User, Mail, Lock, ShieldCheck, Timer,
+  MapPin, Eye, EyeOff, User, Mail, Lock, ShieldCheck, Timer, Home, MonitorPlay, School, Baby,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -47,6 +47,11 @@ interface RegForm {
   paymentOption: "pay_now" | "pay_later";
   paymentMethod: string;
   transactionRef: string;
+  deliveryMode: "online" | "onsite" | "home_lesson";
+  childName: string;
+  childAge: string;
+  parentName: string;
+  homeAddress: string;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -64,24 +69,32 @@ const COURSE_ICONS: Record<string, any> = {
   ai_content: Brain,
   social_monetize: Globe2,
   trading: TrendingDown,
+  home_lesson: Home,
+  onsite_training: School,
 };
 const COURSE_GRADIENTS: Record<string, string> = {
   webdev: "from-blue-600 to-cyan-500",
   ai_content: "from-violet-600 to-purple-500",
   social_monetize: "from-emerald-600 to-teal-500",
   trading: "from-orange-600 to-amber-500",
+  home_lesson: "from-pink-600 to-rose-500",
+  onsite_training: "from-teal-600 to-green-500",
 };
 const COURSE_BG: Record<string, string> = {
   webdev: "bg-blue-50 border-blue-100",
   ai_content: "bg-violet-50 border-violet-100",
   social_monetize: "bg-emerald-50 border-emerald-100",
   trading: "bg-orange-50 border-orange-100",
+  home_lesson: "bg-pink-50 border-pink-100",
+  onsite_training: "bg-teal-50 border-teal-100",
 };
 const COURSE_BADGE_COLOR: Record<string, string> = {
   webdev: "bg-blue-100 text-blue-700",
   ai_content: "bg-violet-100 text-violet-700",
   social_monetize: "bg-emerald-100 text-emerald-700",
   trading: "bg-orange-100 text-orange-700",
+  home_lesson: "bg-pink-100 text-pink-700",
+  onsite_training: "bg-teal-100 text-teal-700",
 };
 
 const fmtNgn = (n: number) => `₦${n.toLocaleString("en-NG")}`;
@@ -131,6 +144,28 @@ const DEFAULT_COURSES: BsCoursePricing[] = [
     regularPrice: 320000,
     discountPrice: 279000,
     duration: "8 Weeks",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
+  },
+  {
+    id: "default-home_lesson",
+    courseKey: "home_lesson",
+    title: "Tech Home Lessons for Kids",
+    shortDescription: "One-on-one tech lessons delivered at your home by a certified tutor. Book flexible sessions for your child (ages 6–17) covering coding, AI tools, digital skills, and more.",
+    regularPrice: 120000,
+    discountPrice: 85000,
+    duration: "Per Session",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
+  },
+  {
+    id: "default-onsite_training",
+    courseKey: "onsite_training",
+    title: "Onsite Group Training",
+    shortDescription: "Join our hands-on classroom sessions at TootoOba Estate, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support.",
+    regularPrice: 180000,
+    discountPrice: 130000,
+    duration: "6–8 Weeks",
     isActive: true,
     acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
@@ -249,6 +284,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
     email: "", password: "", confirmPassword: "",
     selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0,
     paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "",
+    deliveryMode: "online", childName: "", childAge: "", parentName: "", homeAddress: "",
   });
 
   const set = (field: keyof RegForm, value: any) =>
@@ -274,6 +310,11 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
       fd.append("paymentMethod", form.paymentMethod);
       fd.append("transactionRef", form.transactionRef);
       fd.append("currencyUsed", "NGN");
+      fd.append("deliveryMode", form.deliveryMode);
+      if (form.childName) fd.append("childName", form.childName);
+      if (form.childAge) fd.append("childAge", form.childAge);
+      if (form.parentName) fd.append("parentName", form.parentName);
+      if (form.homeAddress) fd.append("homeAddress", form.homeAddress);
       if (proofFile) fd.append("paymentProof", proofFile);
       const r = await fetch("/api/breedskool/register", { method: "POST", body: fd });
       if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Registration failed"); }
@@ -324,7 +365,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
     setStep(1);
     setShowSuccess(false);
     setProofFile(null);
-    setForm({ fullName: "", phone: "", location: "", email: "", password: "", confirmPassword: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "" });
+    setForm({ fullName: "", phone: "", location: "", email: "", password: "", confirmPassword: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "", deliveryMode: "online", childName: "", childAge: "", parentName: "", homeAddress: "" });
   };
 
   return (
@@ -369,6 +410,67 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                   <Label className="text-xs font-semibold text-gray-700">City / Location</Label>
                   <Input value={form.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Lagos, Nigeria" className="mt-1" data-testid="input-reg-location" />
                 </div>
+
+                {/* Delivery Mode Selector */}
+                <div>
+                  <Label className="text-xs font-semibold text-gray-700 mb-2 block">How would you like to learn? *</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: "online", label: "Online", icon: MonitorPlay, desc: "Live sessions & recorded classes" },
+                      { value: "onsite", label: "Onsite", icon: School, desc: "At our Lagos campus" },
+                      { value: "home_lesson", label: "Home Lesson", icon: Home, desc: "Tutor visits your home" },
+                    ].map(({ value, label, icon: Icon, desc }) => (
+                      <button key={value} type="button" onClick={() => set("deliveryMode", value)}
+                        className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition-all ${form.deliveryMode === value ? "border-violet-500 bg-violet-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                        <Icon className={`w-5 h-5 ${form.deliveryMode === value ? "text-violet-600" : "text-gray-500"}`} />
+                        <span className={`text-xs font-bold leading-tight ${form.deliveryMode === value ? "text-violet-700" : "text-gray-700"}`}>{label}</span>
+                        <span className="text-[9px] text-gray-400 leading-tight">{desc}</span>
+                        {form.deliveryMode === value && <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-violet-600 rounded-full flex items-center justify-center"><CheckCircle className="w-2.5 h-2.5 text-white" /></div>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Child details — shown only when Home Lesson is selected */}
+                {form.deliveryMode === "home_lesson" && (
+                  <div className="space-y-3 bg-pink-50 border border-pink-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Baby className="w-4 h-4 text-pink-500" />
+                      <p className="text-xs font-bold text-pink-700">Child's Details (for home lesson booking)</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700">Child's Full Name *</Label>
+                      <Input value={form.childName} onChange={e => set("childName", e.target.value)} placeholder="e.g. Tomiwa Okafor" className="mt-1" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700">Child's Age *</Label>
+                        <Input value={form.childAge} onChange={e => set("childAge", e.target.value)} placeholder="e.g. 10" className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700">Your Name (Parent)</Label>
+                        <Input value={form.parentName} onChange={e => set("parentName", e.target.value)} placeholder="Parent / Guardian" className="mt-1" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-gray-700">Home Address for Tutor Visit *</Label>
+                      <Input value={form.homeAddress} onChange={e => set("homeAddress", e.target.value)} placeholder="Full address where lessons will hold" className="mt-1" />
+                    </div>
+                    <p className="text-[10px] text-pink-600">Our tutor will be assigned and contact you to confirm the schedule.</p>
+                  </div>
+                )}
+
+                {/* Onsite details — shown only when Onsite is selected */}
+                {form.deliveryMode === "onsite" && (
+                  <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex gap-2">
+                    <MapPin className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-teal-700">Onsite Location</p>
+                      <p className="text-xs text-teal-600 mt-0.5">TootoOba Estate, Ijede, Ikorodu, Lagos. Training runs weekdays and weekends — we will confirm your schedule by WhatsApp.</p>
+                    </div>
+                  </div>
+                )}
+
                 <Button onClick={next} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl h-11" data-testid="btn-reg-next-1">
                   Continue <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
@@ -980,9 +1082,86 @@ export default function BreedSkool() {
         </div>
       </div>
 
+      {/* ── Teaching Modes ── */}
+      <section className="py-14 bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <Badge className="mb-3 bg-violet-100 text-violet-700 border-0 px-4 py-1.5 text-sm font-semibold">
+              <Sparkles className="w-3.5 h-3.5 mr-1 inline" /> 3 Ways to Learn
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Choose How You Learn</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">
+              Whether you prefer learning online, in a classroom, or from the comfort of your home — BreedSkool meets you where you are.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-6 mb-8">
+            {/* Online Classes */}
+            <div className="relative group bg-gradient-to-br from-indigo-50 to-violet-50 border border-violet-100 rounded-3xl p-7 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="w-14 h-14 bg-gradient-to-br from-violet-600 to-indigo-500 rounded-2xl flex items-center justify-center mb-5 shadow-lg">
+                <MonitorPlay className="w-7 h-7 text-white" />
+              </div>
+              <Badge className="bg-violet-100 text-violet-700 border-0 text-xs mb-3">Live + Recorded</Badge>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Online Classes</h3>
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed">Join live Zoom sessions and access recorded lessons anytime. Learn from anywhere in the world with a full interactive curriculum.</p>
+              <ul className="space-y-1.5 mb-5">
+                {["Live Zoom sessions with tutors", "Recorded lessons on demand", "Group chat & community", "Digital certificate on completion"].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-xs text-gray-700"><CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />{f}</li>
+                ))}
+              </ul>
+              <Button onClick={() => setShowRegModal(true)} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl text-sm">
+                Enroll Online <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Onsite Training */}
+            <div className="relative group bg-gradient-to-br from-teal-50 to-green-50 border border-teal-100 rounded-3xl p-7 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="w-14 h-14 bg-gradient-to-br from-teal-600 to-green-500 rounded-2xl flex items-center justify-center mb-5 shadow-lg">
+                <School className="w-7 h-7 text-white" />
+              </div>
+              <Badge className="bg-teal-100 text-teal-700 border-0 text-xs mb-3">Lagos Campus</Badge>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Onsite Training</h3>
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed">Attend physical classes at our TootoOba Estate campus in Ikorodu, Lagos. Work hands-on with equipment and fellow students daily.</p>
+              <ul className="space-y-1.5 mb-5">
+                {["Physical classroom environment", "Hands-on practical sessions", "Direct tutor interaction daily", "Weekday & weekend batches"].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-xs text-gray-700"><CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />{f}</li>
+                ))}
+              </ul>
+              <div className="bg-teal-50 border border-teal-200 rounded-xl p-2.5 flex items-start gap-2 mb-4">
+                <MapPin className="w-3.5 h-3.5 text-teal-600 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-teal-700 font-medium">TootoOba Estate, Ijede, Ikorodu, Lagos</p>
+              </div>
+              <Button onClick={() => setShowRegModal(true)} className="w-full bg-gradient-to-r from-teal-600 to-green-600 text-white font-bold rounded-xl text-sm">
+                Book Onsite Spot <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Home Lessons */}
+            <div className="relative group bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-100 rounded-3xl p-7 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-4 right-4">
+                <Badge className="bg-orange-500 text-white border-0 text-[10px] font-bold px-2 py-0.5 animate-pulse">🔥 NEW</Badge>
+              </div>
+              <div className="w-14 h-14 bg-gradient-to-br from-pink-600 to-rose-500 rounded-2xl flex items-center justify-center mb-5 shadow-lg">
+                <Home className="w-7 h-7 text-white" />
+              </div>
+              <Badge className="bg-pink-100 text-pink-700 border-0 text-xs mb-3">For Parents & Kids</Badge>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Home Lessons</h3>
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed">Book a certified BreedSkool tutor to teach your child at home. One-on-one personalised sessions tailored for ages 6–17.</p>
+              <ul className="space-y-1.5 mb-5">
+                {["Tutor visits your home", "Personalised 1-on-1 sessions", "Kids ages 6–17 welcome", "Coding, AI tools & digital skills", "Flexible scheduling"].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-xs text-gray-700"><CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />{f}</li>
+                ))}
+              </ul>
+              <Button onClick={() => setShowRegModal(true)} className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold rounded-xl text-sm">
+                Book Home Lesson <Home className="ml-2 w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Tech Training Programs ── */}
       {bsPricing.length > 0 && (
-        <section className="py-16 bg-white" id="tech-training">
+        <section className="py-16 bg-gray-50" id="tech-training">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
               <Badge className="mb-3 bg-violet-100 text-violet-700 border-0 px-4 py-1.5 text-sm font-semibold">
@@ -994,7 +1173,7 @@ export default function BreedSkool() {
               </p>
               <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-2 text-sm text-orange-700 font-medium">
                 <MapPin className="w-4 h-4" />
-                Live training at TootoOba Estate, Ijede, Ikorodu Lagos · Also fully online
+                Live training at TootoOba Estate, Ijede, Ikorodu Lagos · Also fully online · Home Lessons available
               </div>
             </div>
 
@@ -1184,9 +1363,10 @@ export default function BreedSkool() {
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-black text-white mb-3">Ready to Become a Global Digital Asset? 🌍</h2>
           <p className="text-violet-200 mb-2 text-sm sm:text-base">Join hundreds of students learning and earning with BreedSkool. No prior experience required.</p>
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <MapPin className="w-4 h-4 text-orange-300" />
-            <span className="text-violet-200 text-sm">Live at TootoOba Estate, Ijede, Ikorodu Lagos · Also 100% Online</span>
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+            <span className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-white/80 text-xs"><MonitorPlay className="w-3.5 h-3.5 text-violet-300" /> Online Classes</span>
+            <span className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-white/80 text-xs"><School className="w-3.5 h-3.5 text-teal-300" /> Onsite Training · Ikorodu Lagos</span>
+            <span className="flex items-center gap-1.5 bg-white/10 border border-orange-400/40 rounded-full px-3 py-1.5 text-white/80 text-xs bg-orange-500/20"><Home className="w-3.5 h-3.5 text-pink-300" /> 🔥 Home Lessons for Kids</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button onClick={() => setShowRegModal(true)} size="lg" className="bg-white text-violet-700 hover:bg-gray-100 font-black px-8 rounded-xl shadow-xl" data-testid="btn-cta-register">
