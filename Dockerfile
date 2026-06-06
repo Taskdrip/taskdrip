@@ -2,13 +2,16 @@
 FROM node:20 AS builder
 WORKDIR /app
 
+# Expose installed bin scripts on PATH so vite/esbuild are found after npm install
+ENV PATH=/app/node_modules/.bin:$PATH
+
 COPY package.json package-lock.json ./
 RUN npm install --no-audit --no-fund
 
 COPY . .
 
-RUN ./node_modules/.bin/vite build && \
-    ./node_modules/.bin/esbuild server/index.ts \
+RUN vite build && \
+    esbuild server/index.ts \
       --platform=node \
       --packages=external \
       --bundle \
