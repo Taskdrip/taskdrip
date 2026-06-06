@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm install --omit=dev --no-audit --no-fund"
+buildCommand = "npm install --no-audit --no-fund && npm run build"
 
 [deploy]
 startCommand = "NODE_ENV=production node dist/index.js"

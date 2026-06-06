@@ -731,10 +731,21 @@ export default function FinalLanding() {
       <TierShowcaseSection />
 
       {/* BreedSkool Section */}
-      <section className="py-14 sm:py-20 bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-900 relative overflow-hidden" data-testid="section-breedskool">
+      <section
+        className="py-14 sm:py-20 relative overflow-hidden"
+        style={{
+          backgroundImage: "url('/breedskool-bg.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+        data-testid="section-breedskool"
+      >
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/92 via-purple-900/88 to-indigo-900/92 pointer-events-none" />
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/3 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/3 w-80 h-80 bg-violet-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid lg:grid-cols-2 gap-10 items-center">
