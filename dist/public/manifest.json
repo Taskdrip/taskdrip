@@ -1,0 +1,32 @@
+{
+  "name": "Taskdrip - Web3 Influencer Marketplace",
+  "short_name": "Taskdrip",
+  "description": "The leading Web3 influencer marketplace connecting global brands with verified influencers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/taskdrip-logo.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["social", "finance", "business"],
+  "screenshots": []
+}
