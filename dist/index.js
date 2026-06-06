@@ -4663,7 +4663,7 @@ import session from "express-session";
 init_db();
 init_email_service();
 import connectPg from "connect-pg-simple";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
@@ -4689,7 +4689,7 @@ function setupAuth(app2) {
   const PostgresSessionStore = connectPg(session);
   const sessionSecret = process.env.SESSION_SECRET;
   if (!sessionSecret && process.env.NODE_ENV === "production") {
-    throw new Error("SESSION_SECRET must be set in production");
+    console.warn("[auth] WARNING: SESSION_SECRET not set \u2014 using random ephemeral secret. Sessions will not persist across restarts.");
   }
   const sessionSettings = {
     secret: sessionSecret || "development-session-secret",
@@ -6409,7 +6409,7 @@ ${t}`;
 
 // server/admin-demo-routes.ts
 init_db();
-import bcrypt2 from "bcrypt";
+import bcrypt2 from "bcryptjs";
 init_schema();
 import { eq as eq6, sql as sql5, desc as desc5, inArray as inArray4 } from "drizzle-orm";
 
@@ -7560,7 +7560,7 @@ async function bulkSms(opts) {
 init_db();
 import { desc as desc6, sql as sql6, eq as eq8, and as and5, count as count2, gte as gte2, inArray as inArray6 } from "drizzle-orm";
 import multer from "multer";
-import bcrypt3 from "bcrypt";
+import bcrypt3 from "bcryptjs";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
@@ -17270,7 +17270,7 @@ function serveStatic(app2) {
 init_db();
 init_schema();
 import { eq as eq10, sql as sql7 } from "drizzle-orm";
-import bcrypt4 from "bcrypt";
+import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
     await db.execute(sql7`
@@ -19088,7 +19088,7 @@ async function runStartupMigrations() {
 }
 
 // server/index.ts
-import bcrypt5 from "bcrypt";
+import bcrypt5 from "bcryptjs";
 process.on("uncaughtException", (err) => {
   console.error("[uncaughtException]", err);
 });

@@ -27,7 +27,7 @@ const POST_LIMITS: Record<string, number> = { free: 3, monthly: 12, yearly: Infi
 const CAMPAIGN_LIMITS: Record<string, number> = { free: 3, monthly: Infinity, yearly: Infinity };
 import { z } from "zod";
 import multer from "multer";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";

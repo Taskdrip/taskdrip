@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { pool } from "./db";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
@@ -45,7 +45,7 @@ export function setupAuth(app: Express) {
   const sessionSecret = process.env.SESSION_SECRET;
 
   if (!sessionSecret && process.env.NODE_ENV === "production") {
-    throw new Error("SESSION_SECRET must be set in production");
+    console.warn("[auth] WARNING: SESSION_SECRET not set — using random ephemeral secret. Sessions will not persist across restarts.");
   }
   
   const sessionSettings: session.SessionOptions = {

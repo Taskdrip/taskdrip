@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { courses, shopProducts, courseLessons, posts, blogPosts, campaigns, paymentNetworks, paymentMethods, users, p2pListings } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 
 const ADMIN_ID = "demo-admin-seed-id";

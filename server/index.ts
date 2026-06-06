@@ -13,7 +13,7 @@ import { seedLegalPages } from "./seed-legal";
 import { seedBreedskoolPricing } from "./seed-breedskool";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 // ── Global crash guards — must be first so the server never silently dies ──
 process.on("uncaughtException", (err) => {

@@ -5,7 +5,7 @@
  * All routes require an authenticated admin user.
  */
 import type { Express, Request, Response } from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { storage } from "./storage";
 import {
