@@ -5,4 +5,4 @@ nixPkgs = ["nodejs_20", "python3", "gnumake", "gcc"]
 cmds = ["npm install --omit=dev --no-audit --no-fund"]
 
 [start]
-cmd = "node dist/index.js"
+cmd = "NODE_ENV=production node dist/index.js"
