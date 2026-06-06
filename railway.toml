@@ -1,6 +1,5 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci --include=dev --no-audit --no-fund && NODE_OPTIONS='--max-old-space-size=4096' npm run build"
 
 [deploy]
 startCommand = "node dist/index.js"
