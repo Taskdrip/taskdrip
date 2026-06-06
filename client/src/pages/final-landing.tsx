@@ -101,14 +101,14 @@ const DEFAULT_SLIDES: Slide[] = [
   },
   {
     id: "s5",
-    badge: "BreedSkool Academy",
-    headline: "New to Influencing? Learn from the Best.",
-    subheadline: "BreedSkool gives influencers practical courses, masterclasses, and mentorship for Instagram, TikTok, YouTube, and content monetization. Taught by top earners on the platform.",
-    ctaPrimaryLabel: "Explore Courses",
+    badge: "🎓 BreedSkool — Online Training",
+    headline: "Learn Anywhere. Earn Everywhere.",
+    subheadline: "Master influencer marketing, AI content creation, Web3 monetization, and social media growth — all from your phone or laptop. Live sessions, recorded videos, and mentorship from top earners. Study at your own pace, anytime.",
+    ctaPrimaryLabel: "Enroll Online",
     ctaPrimaryLink: "/breedskool",
-    ctaSecondaryLabel: "Become an Instructor",
-    ctaSecondaryLink: "/signup?type=creator",
-    backgroundImage: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=1800&q=85&auto=format&fit=crop",
+    ctaSecondaryLabel: "View All Courses",
+    ctaSecondaryLink: "/breedskool",
+    backgroundImage: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-indigo-900/60 to-black/50",
     accentColor: "from-indigo-400 via-blue-400 to-cyan-400",
   },
@@ -127,14 +127,27 @@ const DEFAULT_SLIDES: Slide[] = [
   },
   {
     id: "s8",
-    badge: "🏠 BreedSkool Home Lessons",
-    headline: "Tech Lessons Delivered to Your Home.",
-    subheadline: "Book certified tutors to teach your child coding, AI tools, and digital skills at home. Flexible scheduling, one-on-one attention, and personalised learning for ages 6–17.",
-    ctaPrimaryLabel: "Book a Home Lesson",
+    badge: "🏫 BreedSkool — Onsite Training",
+    headline: "Train in Class. Get Results in Weeks.",
+    subheadline: "Join hands-on group sessions at our campus in Ikorodu, Lagos. Structured daily classes, live tutor support, and peer-driven learning for influencers and digital entrepreneurs who want to go all-in. Real skills. Real income.",
+    ctaPrimaryLabel: "Book Onsite Seat",
     ctaPrimaryLink: "/breedskool",
-    ctaSecondaryLabel: "View All Programs",
+    ctaSecondaryLabel: "View Programs",
     ctaSecondaryLink: "/breedskool",
-    backgroundImage: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=1800&q=85&auto=format&fit=crop",
+    backgroundImage: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-teal-950/70 to-black/50",
+    accentColor: "from-teal-400 via-emerald-400 to-green-400",
+  },
+  {
+    id: "s9",
+    badge: "🏠 BreedSkool — Home Lessons",
+    headline: "Expert Tutors. Delivered to Your Door.",
+    subheadline: "Book certified digital skills tutors for one-on-one sessions at your home. Perfect for influencers, professionals, and kids (ages 6–17) who want personalised coaching in coding, AI tools, and content creation.",
+    ctaPrimaryLabel: "Book a Home Session",
+    ctaPrimaryLink: "/breedskool",
+    ctaSecondaryLabel: "All Delivery Modes",
+    ctaSecondaryLink: "/breedskool",
+    backgroundImage: "https://images.unsplash.com/photo-1588072432836-e10032774350?w=1800&q=85&auto=format&fit=crop",
     overlayColor: "from-black/90 via-pink-950/70 to-black/50",
     accentColor: "from-pink-400 via-rose-400 to-orange-400",
   },
@@ -745,7 +758,7 @@ export default function FinalLanding() {
 
       {/* BreedSkool Section */}
       <section
-        className="py-14 sm:py-20 relative overflow-hidden"
+        className="py-16 sm:py-24 relative overflow-hidden"
         style={{
           backgroundImage: "url('/breedskool-bg.jpg')",
           backgroundSize: "cover",
@@ -754,40 +767,138 @@ export default function FinalLanding() {
         }}
         data-testid="section-breedskool"
       >
-        {/* Dark overlay — deep purple tint so text is crisp over the photo */}
-        <div className="absolute inset-0 bg-[#0d0620]/85 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-purple-900/40 to-indigo-900/60 pointer-events-none" />
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/3 w-80 h-80 bg-violet-500/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl" />
+        {/* Layered dark overlays */}
+        <div className="absolute inset-0 bg-[#080418]/90 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/50 via-purple-900/30 to-indigo-950/70 pointer-events-none" />
+        {/* Decorative glows */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-10 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl" />
         </div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-yellow-400/20 text-yellow-300 border-yellow-400/30 px-5 py-2 text-sm font-semibold">🎓 BreedSkool Tech Academy</Badge>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
+              Where Skills Become{" "}
+              <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">Income</span>
+            </h2>
+            <p className="text-gray-300 mt-4 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+              BreedSkool equips influencers, creators, and tech enthusiasts with real-world Web3-era skills — through online classes, hands-on onsite training, and one-on-one home lessons.
+            </p>
+          </div>
+
+          {/* Delivery Mode Cards */}
+          <div className="grid md:grid-cols-3 gap-5 mb-12">
+            {[
+              {
+                icon: "🌐",
+                mode: "Online Training",
+                tag: "Most Popular",
+                tagColor: "bg-indigo-500/30 text-indigo-300 border-indigo-500/40",
+                color: "from-indigo-500/20 to-blue-500/10 border-indigo-500/30",
+                glow: "shadow-indigo-500/20",
+                desc: "Study from anywhere — live Zoom classes, pre-recorded videos, WhatsApp support, and lifetime access. Perfect for influencers on the go.",
+                features: ["Live online sessions", "Self-paced videos", "WhatsApp mentorship", "Certificate on completion"],
+                cta: "Enroll Online",
+                accentLine: "bg-indigo-400",
+              },
+              {
+                icon: "🏫",
+                mode: "Onsite Training",
+                tag: "Immersive",
+                tagColor: "bg-teal-500/30 text-teal-300 border-teal-500/40",
+                color: "from-teal-500/20 to-emerald-500/10 border-teal-500/30",
+                glow: "shadow-teal-500/20",
+                desc: "Join structured daily classes at our campus in Ikorodu, Lagos. Hands-on environment, peer learning, and direct tutor access.",
+                features: ["Daily classroom sessions", "Peer collaboration", "Hands-on practicals", "Ikorodu Lagos campus"],
+                cta: "Reserve a Seat",
+                accentLine: "bg-teal-400",
+              },
+              {
+                icon: "🏠",
+                mode: "Home Lessons",
+                tag: "1-on-1",
+                tagColor: "bg-pink-500/30 text-pink-300 border-pink-500/40",
+                color: "from-pink-500/20 to-rose-500/10 border-pink-500/30",
+                glow: "shadow-pink-500/20",
+                desc: "Book certified tutors to come to your home. Flexible scheduling, personalised lessons for influencers, professionals, and kids aged 6–17.",
+                features: ["Certified tutors at your door", "Flexible schedule", "Personalised curriculum", "Kids & adults welcome"],
+                cta: "Book Home Lesson",
+                accentLine: "bg-pink-400",
+              },
+            ].map((item) => (
+              <div
+                key={item.mode}
+                className={`relative bg-gradient-to-br ${item.color} border rounded-2xl p-6 flex flex-col gap-4 hover:scale-[1.02] transition-transform duration-300 shadow-xl ${item.glow}`}
+              >
+                <div className={`absolute top-0 left-6 right-6 h-0.5 rounded-full ${item.accentLine} opacity-60`} />
+                <div className="flex items-start justify-between">
+                  <span className="text-4xl">{item.icon}</span>
+                  <Badge className={`text-[11px] border ${item.tagColor} px-2.5 py-1`}>{item.tag}</Badge>
+                </div>
+                <div>
+                  <h3 className="text-white font-black text-xl mb-2">{item.mode}</h3>
+                  <p className="text-gray-300 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+                <ul className="space-y-1.5 flex-1">
+                  {item.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-gray-300 text-xs">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/breedskool">
+                  <Button size="sm" className="w-full bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl font-semibold backdrop-blur-sm" data-testid={`button-breedskool-${item.mode.toLowerCase().replace(/\s+/g, "-")}`}>
+                    {item.cta} <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {/* Course grid + CTA row */}
           <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <Badge className="mb-4 bg-yellow-400/20 text-yellow-300 border-yellow-400/30 text-xs px-4 py-1.5">🎓 BreedSkool Tech Academy</Badge>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                Where Skills Become <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">Income</span>
-              </h2>
-              <p className="text-gray-300 mt-4 leading-relaxed text-sm sm:text-base max-w-lg">
-                BreedSkool is where <strong className="text-white">skills become income</strong> and <strong className="text-yellow-300">individuals become Global Digital Assets</strong>. We equip tech enthusiasts with real-world Web3-era skills to build profitable online businesses and thrive in the digital economy.
-              </p>
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                {[
-                  { icon: "💻", label: "Web Dev & Vibe Coding", price: "₦150K" },
-                  { icon: "🧠", label: "AI Content Creation", price: "₦179K" },
-                  { icon: "📱", label: "Social Media Monetization", price: "₦320K" },
-                  { icon: "📈", label: "Pocket Option Trading", price: "₦279K" },
-                ].map((c) => (
-                  <div key={c.label} className="bg-white/10 border border-white/15 rounded-xl p-3 flex items-center gap-2">
-                    <span className="text-xl">{c.icon}</span>
-                    <div>
-                      <p className="text-white font-semibold text-xs leading-tight">{c.label}</p>
-                      <p className="text-yellow-300 text-xs font-bold">{c.price}</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: "💻", label: "Web Dev & Vibe Coding", price: "₦150K", tag: "8 Weeks" },
+                { icon: "🧠", label: "AI Content Creation", price: "₦179K", tag: "6 Weeks" },
+                { icon: "📱", label: "Social Media Monetization", price: "₦320K", tag: "6 Weeks" },
+                { icon: "📈", label: "Pocket Option Trading", price: "₦279K", tag: "8 Weeks" },
+              ].map((c) => (
+                <div key={c.label} className="bg-white/8 border border-white/10 rounded-xl p-3.5 flex items-center gap-3 hover:bg-white/12 transition-colors">
+                  <span className="text-2xl">{c.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold text-xs leading-tight mb-0.5 truncate">{c.label}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-yellow-300 text-xs font-black">{c.price}</span>
+                      <span className="text-gray-500 text-[10px]">• {c.tag}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 mt-7">
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              {[
+                { icon: "🎯", title: "Income-First Curriculum", desc: "Every program is built around one goal — real income. Not just theory and certificates." },
+                { icon: "🌍", title: "Web3 & AI Skills", desc: "Learn blockchain, AI tools, crypto trading, and digital marketing — the skills that pay in 2025 and beyond." },
+                { icon: "⚡", title: "Start Earning in Weeks", desc: "Our graduates launch freelance careers and monetize their skills within weeks of finishing." },
+                { icon: "🤝", title: "Thriving Community", desc: "Access a live WhatsApp & Telegram community of tutors, mentors, and fellow digital entrepreneurs." },
+              ].map((item) => (
+                <div key={item.title} className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/8 transition-colors">
+                  <span className="text-2xl mt-0.5">{item.icon}</span>
+                  <div>
+                    <h4 className="text-white font-bold text-sm mb-0.5">{item.title}</h4>
+                    <p className="text-gray-400 text-xs leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-2">
                 <Link href="/breedskool">
                   <Button size="lg" className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-7 rounded-xl shadow-xl w-full sm:w-auto" data-testid="button-breedskool-enroll">
                     <BookOpen className="w-4 h-4 mr-2" /> Enroll Now
@@ -799,22 +910,6 @@ export default function FinalLanding() {
                   </Button>
                 </a>
               </div>
-            </div>
-            <div className="space-y-3">
-              {[
-                { icon: "🎯", title: "Goal-Oriented Programs", desc: "Each program is designed with one outcome — income. Not just a certificate on the wall." },
-                { icon: "🌐", title: "Web3 & AI Focused", desc: "Master the tools shaping the future: blockchain, AI, crypto, DeFi, and digital marketing." },
-                { icon: "💰", title: "Start Earning in Weeks", desc: "Our graduates start freelancing and monetizing skills within weeks of completing the program." },
-                { icon: "🤝", title: "Community of Learners", desc: "Join our WhatsApp & Telegram community with tutors, mentors and fellow digital entrepreneurs." },
-              ].map((item) => (
-                <div key={item.title} className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
-                  <span className="text-2xl mt-0.5">{item.icon}</span>
-                  <div>
-                    <h4 className="text-white font-bold text-sm mb-0.5">{item.title}</h4>
-                    <p className="text-gray-400 text-xs leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>

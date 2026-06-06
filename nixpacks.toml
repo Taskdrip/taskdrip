@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20", "python3", "gcc"]
 cmds = ["npm ci --no-audit --no-fund"]
 
 [phases.build]
-cmds = ["NODE_OPTIONS='--max-old-space-size=2048' npm run build"]
+cmds = ["NODE_OPTIONS='--max-old-space-size=4096' npm run build"]
 
 [start]
 cmd = "node dist/index.js"
