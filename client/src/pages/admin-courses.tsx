@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   PlusCircle, Edit, Trash2, Users, Star, Eye, BookOpen, DollarSign,
   Upload, Image, Video, FileText, File, X, GripVertical, PlayCircle, ChevronDown, ChevronUp, CheckCircle2,
-  Award, MessageSquare, Shield, Loader2,
+  Award, MessageSquare, Shield, Loader2, Home, School, MonitorPlay, Baby, MapPin, Plus, Filter,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -907,10 +907,34 @@ export default function AdminCourses() {
 }
 
 // ── BreedSkool Tech Training Management Panel ─────────────────────────────────
+const DELIVERY_MODE_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+  online:       { label: "Online",       icon: MonitorPlay, color: "text-violet-700", bg: "bg-violet-100" },
+  onsite:       { label: "Onsite",       icon: School,      color: "text-teal-700",   bg: "bg-teal-100" },
+  home_lesson:  { label: "Home Lesson",  icon: Home,        color: "text-pink-700",   bg: "bg-pink-100" },
+};
+
+function DeliveryBadge({ mode }: { mode?: string }) {
+  const m = DELIVERY_MODE_META[mode || "online"] || DELIVERY_MODE_META.online;
+  const Icon = m.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${m.bg} ${m.color}`}>
+      <Icon className="w-2.5 h-2.5" />
+      {m.label}
+    </span>
+  );
+}
+
 function BreedSkoolManagementPanel() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [modeFilter, setModeFilter] = useState<string>("all");
+  const [showAddPricing, setShowAddPricing] = useState(false);
+  const [newPricingForm, setNewPricingForm] = useState<any>({
+    courseKey: "webdev", title: "", shortDescription: "", regularPrice: 0, discountPrice: 0,
+    duration: "", isActive: true, acceptedPayments: ["bank_transfer"],
+  });
+  const [expandedReg, setExpandedReg] = useState<string | null>(null);
 
   const { data: pricing = [], refetch: refetchPricing } = useQuery<any[]>({
     queryKey: ["/api/admin/breedskool/pricing"],
@@ -929,28 +953,97 @@ function BreedSkoolManagementPanel() {
     onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
 
+  const addPricingMutation = useMutation({
+    mutationFn: async (data: any) =>
+      (await apiRequest("POST", "/api/admin/breedskool/pricing", data)).json(),
+    onSuccess: () => {
+      refetchPricing(); setShowAddPricing(false);
+      setNewPricingForm({ courseKey: "webdev", title: "", shortDescription: "", regularPrice: 0, discountPrice: 0, duration: "", isActive: true, acceptedPayments: ["bank_transfer"] });
+      toast({ title: "Pricing entry added!" });
+    },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
   const updateRegMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) =>
-      (await apiRequest("PATCH", `/api/admin/breedskool/registrations/${id}`, { paymentStatus: status })).json(),
+    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) =>
+      (await apiRequest("PATCH", `/api/admin/breedskool/registrations/${id}`, { paymentStatus: status, notes })).json(),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/breedskool/registrations"] }); toast({ title: "Status updated!" }); },
     onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
 
   const pending = (registrations as any[]).filter(r => r.paymentStatus === "pending");
+  const filteredRegs = modeFilter === "all" ? (registrations as any[]) : (registrations as any[]).filter(r => (r.deliveryMode || "online") === modeFilter);
 
   const PAYMENT_METHODS_OPTS = ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"];
   const fmtNgn = (n: number) => `₦${Number(n).toLocaleString("en-NG")}`;
+  const COURSE_KEY_OPTS = ["webdev", "ai_content", "social_monetize", "trading", "home_lesson", "onsite_training"];
 
   return (
     <div className="space-y-6 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total Registrations", value: (registrations as any[]).length, color: "text-violet-600", bg: "bg-violet-50" },
+          { label: "Pending Payment", value: pending.length, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "Home Lessons", value: (registrations as any[]).filter(r => r.deliveryMode === "home_lesson").length, color: "text-pink-600", bg: "bg-pink-50" },
+          { label: "Onsite Training", value: (registrations as any[]).filter(r => r.deliveryMode === "onsite").length, color: "text-teal-600", bg: "bg-teal-50" },
+        ].map(s => (
+          <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
+            <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+            <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Pricing Management */}
       <Card className="border-violet-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-violet-600" /> BreedSkool Tech Training — Course Pricing
-          </CardTitle>
-          <p className="text-xs text-gray-500">Manage prices and discounts visible on the student registration form.</p>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-violet-600" /> Course Pricing Management
+            </CardTitle>
+            <p className="text-xs text-gray-500 mt-1">Manage prices and discounts visible on the student registration form.</p>
+          </div>
+          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" onClick={() => setShowAddPricing(v => !v)}>
+            <Plus className="h-3.5 w-3.5" /> Add Entry
+          </Button>
         </CardHeader>
+
+        {showAddPricing && (
+          <div className="mx-6 mb-4 p-4 border border-violet-200 rounded-xl bg-violet-50 space-y-3">
+            <p className="text-sm font-bold text-violet-700">Add New Pricing Entry</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Course Key</Label>
+                <Select value={newPricingForm.courseKey} onValueChange={v => setNewPricingForm((f: any) => ({ ...f, courseKey: v }))}>
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{COURSE_KEY_OPTS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Duration</Label>
+                <Input value={newPricingForm.duration} onChange={e => setNewPricingForm((f: any) => ({ ...f, duration: e.target.value }))} className="h-8 text-xs mt-1" placeholder="e.g. 8 Weeks" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Title</Label>
+                <Input value={newPricingForm.title} onChange={e => setNewPricingForm((f: any) => ({ ...f, title: e.target.value }))} className="h-8 text-xs mt-1" placeholder="Course title" />
+              </div>
+              <div>
+                <Label className="text-xs">Regular Price (₦)</Label>
+                <Input type="number" value={newPricingForm.regularPrice} onChange={e => setNewPricingForm((f: any) => ({ ...f, regularPrice: +e.target.value }))} className="h-8 text-xs mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Discount Price (₦)</Label>
+                <Input type="number" value={newPricingForm.discountPrice} onChange={e => setNewPricingForm((f: any) => ({ ...f, discountPrice: +e.target.value }))} className="h-8 text-xs mt-1" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="bg-violet-600 text-white" onClick={() => addPricingMutation.mutate(newPricingForm)} disabled={addPricingMutation.isPending}>Save Entry</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowAddPricing(false)}>Cancel</Button>
+            </div>
+          </div>
+        )}
+
         <CardContent>
           <Table>
             <TableHeader>
@@ -1033,81 +1126,99 @@ function BreedSkoolManagementPanel() {
 
       {/* Registrations */}
       <Card className="border-blue-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-600" />
-            BreedSkool Registrations
-            <Badge className="bg-amber-100 text-amber-700 border-0 ml-2">{pending.length} pending</Badge>
-          </CardTitle>
-          <p className="text-xs text-gray-500">All student registrations. Confirm payment to grant access.</p>
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              BreedSkool Registrations
+              <Badge className="bg-amber-100 text-amber-700 border-0 ml-2">{pending.length} pending</Badge>
+            </CardTitle>
+            <p className="text-xs text-gray-500 mt-1">All student registrations. Confirm payment to grant access.</p>
+          </div>
+          {/* Mode filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="h-3.5 w-3.5 text-gray-400" />
+            {["all", "online", "onsite", "home_lesson"].map(m => (
+              <button key={m} onClick={() => setModeFilter(m)}
+                className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${modeFilter === m ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"}`}>
+                {m === "all" ? "All" : m === "online" ? "🖥 Online" : m === "onsite" ? "🏫 Onsite" : "🏠 Home Lesson"}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
-          {(registrations as any[]).length === 0 ? (
+          {filteredRegs.length === 0 ? (
             <div className="text-center py-10 text-gray-400">
               <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No registrations yet</p>
+              <p>No registrations {modeFilter !== "all" ? `for "${modeFilter}" mode` : "yet"}</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(registrations as any[]).map((reg: any) => (
-                  <TableRow key={reg.id}>
-                    <TableCell>
+            <div className="space-y-3">
+              {filteredRegs.map((reg: any) => (
+                <div key={reg.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                  {/* Row */}
+                  <div className="flex items-center gap-3 p-3 bg-white">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm text-gray-900">{reg.fullName}</p>
+                        <DeliveryBadge mode={reg.deliveryMode} />
+                        <Badge className={
+                          reg.paymentStatus === "confirmed" ? "bg-green-100 text-green-700 border-0 text-[10px]" :
+                          reg.paymentStatus === "pending" ? "bg-amber-100 text-amber-700 border-0 text-[10px]" :
+                          reg.paymentStatus === "rejected" ? "bg-red-100 text-red-600 border-0 text-[10px]" :
+                          "bg-gray-100 text-gray-600 border-0 text-[10px]"
+                        }>{reg.paymentStatus}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-500">{reg.email} · {reg.phone}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{reg.selectedCourseTitle} · <span className="font-bold text-gray-800">{fmtNgn(reg.amountNgn)}</span></p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-gray-400">{new Date(reg.createdAt).toLocaleDateString()}</span>
+                      {reg.paymentStatus !== "confirmed" && (
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "confirmed" })}>✓ Confirm</Button>
+                      )}
+                      {reg.paymentStatus !== "rejected" && (
+                        <Button size="sm" variant="outline" className="text-red-500 text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "rejected" })}>✗</Button>
+                      )}
+                      <button onClick={() => setExpandedReg(expandedReg === reg.id ? null : reg.id)} className="text-gray-400 hover:text-gray-700 p-1">
+                        {expandedReg === reg.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  {/* Expanded details */}
+                  {expandedReg === reg.id && (
+                    <div className="bg-gray-50 border-t border-gray-100 p-4 grid sm:grid-cols-2 gap-4 text-xs">
                       <div>
-                        <p className="font-medium text-sm">{reg.fullName}</p>
-                        <p className="text-xs text-gray-400">{reg.email}</p>
-                        <p className="text-xs text-gray-400">{reg.phone}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium max-w-32 truncate">{reg.selectedCourseTitle}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-bold text-sm">{fmtNgn(reg.amountNgn)}</p>
-                        {reg.amountUsd && <p className="text-xs text-gray-400">${reg.amountUsd} USD</p>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs space-y-1">
-                        <Badge variant="outline" className="text-[10px]">{reg.paymentMethod || reg.paymentOption}</Badge>
-                        {reg.transactionRef && <p className="font-mono text-gray-500 text-[10px] truncate max-w-24" title={reg.transactionRef}>{reg.transactionRef.slice(0, 16)}</p>}
-                        {reg.paymentProof && <a href={reg.paymentProof} target="_blank" rel="noopener noreferrer" className="text-blue-500 text-[10px] hover:underline">View Proof</a>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={
-                        reg.paymentStatus === "confirmed" ? "bg-green-100 text-green-700 border-0" :
-                        reg.paymentStatus === "pending" ? "bg-amber-100 text-amber-700 border-0" :
-                        reg.paymentStatus === "registered" ? "bg-blue-100 text-blue-700 border-0" :
-                        reg.paymentStatus === "rejected" ? "bg-red-100 text-red-600 border-0" :
-                        "bg-gray-100 text-gray-600 border-0"
-                      }>{reg.paymentStatus}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-gray-400">{new Date(reg.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {reg.paymentStatus !== "confirmed" && (
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "confirmed" })} data-testid={`btn-confirm-reg-${reg.id}`}>Confirm</Button>
+                        <p className="font-bold text-gray-700 mb-2">Student Info</p>
+                        <p><span className="text-gray-400">Location:</span> {reg.location || "—"}</p>
+                        <p><span className="text-gray-400">Payment Method:</span> {reg.paymentMethod || reg.paymentOption || "—"}</p>
+                        <p><span className="text-gray-400">Transaction Ref:</span> <span className="font-mono">{reg.transactionRef || "—"}</span></p>
+                        {reg.paymentProof && (
+                          <a href={reg.paymentProof} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline block mt-1">📎 View Payment Proof</a>
                         )}
-                        {reg.paymentStatus !== "rejected" && (
-                          <Button size="sm" variant="outline" className="text-red-500 text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "rejected" })} data-testid={`btn-reject-reg-${reg.id}`}>Reject</Button>
-                        )}
+                        {reg.notes && <p className="mt-1"><span className="text-gray-400">Notes:</span> {reg.notes}</p>}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      {(reg.deliveryMode === "home_lesson" || reg.childName) && (
+                        <div className="bg-pink-50 border border-pink-100 rounded-lg p-3">
+                          <p className="font-bold text-pink-700 mb-2 flex items-center gap-1"><Baby className="w-3.5 h-3.5" /> Home Lesson Details</p>
+                          <p><span className="text-gray-400">Child Name:</span> <span className="font-medium">{reg.childName || "—"}</span></p>
+                          <p><span className="text-gray-400">Child Age:</span> {reg.childAge || "—"}</p>
+                          <p><span className="text-gray-400">Parent/Guardian:</span> {reg.parentName || reg.fullName}</p>
+                          <p><span className="text-gray-400">Home Address:</span> <span className="font-medium">{reg.homeAddress || "—"}</span></p>
+                        </div>
+                      )}
+                      {reg.deliveryMode === "onsite" && (
+                        <div className="bg-teal-50 border border-teal-100 rounded-lg p-3">
+                          <p className="font-bold text-teal-700 mb-2 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Onsite Details</p>
+                          <p className="text-gray-600">Venue: TootoOba Estate, Ijede, Ikorodu, Lagos</p>
+                          <p className="text-gray-400 mt-1">Contact student via WhatsApp to confirm session schedule.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

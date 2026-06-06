@@ -2111,6 +2111,12 @@ var init_schema = __esm({
       payLaterDeadline: timestamp("pay_later_deadline"),
       // 48-hr payment window
       notes: text("notes"),
+      deliveryMode: varchar("delivery_mode").default("online"),
+      // 'online' | 'onsite' | 'home_lesson'
+      childName: varchar("child_name"),
+      childAge: varchar("child_age"),
+      parentName: varchar("parent_name"),
+      homeAddress: text("home_address"),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
@@ -12323,7 +12329,12 @@ Instructions:
         transactionRef,
         currencyUsed,
         amountUsd,
-        notes
+        notes,
+        deliveryMode,
+        childName,
+        childAge,
+        parentName,
+        homeAddress
       } = req.body;
       if (!fullName || !email || !phone || !selectedCourseKey) {
         return res.status(400).json({ message: "Full name, email, phone, and course are required." });
@@ -12388,7 +12399,12 @@ Instructions:
         currencyUsed: currencyUsed || "NGN",
         amountUsd: amountUsd ? amountUsd.toString() : null,
         payLaterDeadline: deadline,
-        notes: notes || null
+        notes: notes || null,
+        deliveryMode: deliveryMode || "online",
+        childName: childName || null,
+        childAge: childAge || null,
+        parentName: parentName || null,
+        homeAddress: homeAddress || null
       }).returning();
       if (loginUser) {
         await new Promise((resolve, reject) => {
@@ -12474,6 +12490,14 @@ Instructions:
       if (notes !== void 0) updateData.notes = notes;
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq8(breedskoolRegistrations.id, req.params.id)).returning();
       res.json(row);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
+    try {
+      const rows = await db.select().from(breedskoolRegistrations).where(eq8(breedskoolRegistrations.userId, req.user.id)).orderBy(desc6(breedskoolRegistrations.createdAt));
+      res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
@@ -18269,6 +18293,20 @@ var DEFAULT_SLIDERS = [
     overlayColor: "from-black/90 via-yellow-950/60 to-black/50",
     accentColor: "from-yellow-400 via-amber-400 to-orange-400",
     isActive: true
+  },
+  {
+    order: 7,
+    badge: "\u{1F3E0} BreedSkool Home Lessons",
+    headline: "Tech Lessons Delivered to Your Home.",
+    subheadline: "Book certified tutors to teach your child coding, AI tools, and digital skills at home. Flexible scheduling, one-on-one attention, and personalised learning for ages 6\u201317.",
+    ctaPrimaryLabel: "Book a Home Lesson",
+    ctaPrimaryLink: "/breedskool",
+    ctaSecondaryLabel: "View All Programs",
+    ctaSecondaryLink: "/breedskool",
+    backgroundImage: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/90 via-pink-950/70 to-black/50",
+    accentColor: "from-pink-400 via-rose-400 to-orange-400",
+    isActive: true
   }
 ];
 var DEFAULT_PAGE_CONTENT = [
@@ -18350,12 +18388,17 @@ var DEFAULT_PAGE_CONTENT = [
 ];
 async function seedCmsContent() {
   try {
-    const sliderCount = await storage.countHeroSliders();
-    if (sliderCount === 0) {
-      for (const slider of DEFAULT_SLIDERS) {
+    const existingSliders = await storage.getHeroSliders();
+    const existingHeadlines = new Set(existingSliders.map((s) => s.headline));
+    let slidersAdded = 0;
+    for (const slider of DEFAULT_SLIDERS) {
+      if (!existingHeadlines.has(slider.headline)) {
         await storage.createHeroSlider(slider);
+        slidersAdded++;
       }
-      log(`[CMS] Seeded ${DEFAULT_SLIDERS.length} default hero sliders`);
+    }
+    if (slidersAdded > 0) {
+      log(`[CMS] Added ${slidersAdded} new hero slider(s)`);
     }
     const { inserted, updated } = await storage.syncDefaultPageContent(
       DEFAULT_PAGE_CONTENT.map((item) => ({
@@ -18800,6 +18843,26 @@ var BREEDSKOOL_COURSES = [
     regularPrice: 32e4,
     discountPrice: 279e3,
     duration: "8 Weeks",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+  },
+  {
+    courseKey: "home_lesson",
+    title: "Tech Home Lessons for Kids",
+    shortDescription: "One-on-one tech lessons delivered at your home by a certified tutor. Book flexible sessions for your child (ages 6\u201317) covering coding, AI tools, digital skills, and more.",
+    regularPrice: 12e4,
+    discountPrice: 85e3,
+    duration: "Per Session",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+  },
+  {
+    courseKey: "onsite_training",
+    title: "Onsite Group Training",
+    shortDescription: "Join our hands-on classroom sessions at TootoOba Estate, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support.",
+    regularPrice: 18e4,
+    discountPrice: 13e4,
+    duration: "6\u20138 Weeks",
     isActive: true,
     acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
   }

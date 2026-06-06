@@ -21,7 +21,7 @@ import {
   Download, Eye, FileText, Package, Clock, CheckCircle2,
   XCircle, AlertCircle, Truck, ReceiptText, FileSpreadsheet,
   CalendarRange, Filter, TrendingUp, DollarSign,
-  Megaphone, Trophy,
+  Megaphone, Trophy, Home, School, MonitorPlay, Baby, MapPin, GraduationCap,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -896,6 +896,102 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
   );
 }
 
+// ── BreedSkool Training Tracker ───────────────────────────────────────────────
+function BreedSkoolTrainingCard() {
+  const { data: regs = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/my/breedskool-registrations"],
+    queryFn: async () => {
+      const res = await fetch("/api/my/breedskool-registrations", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  if (isLoading) return null;
+  if (!regs.length) return null;
+
+  const modeIcon: Record<string, any> = { online: MonitorPlay, onsite: School, home_lesson: Home };
+  const modeLabel: Record<string, string> = { online: "Online Classes", onsite: "Onsite Training", home_lesson: "Home Lesson" };
+  const modeColor: Record<string, string> = { online: "from-violet-600 to-indigo-600", onsite: "from-teal-600 to-green-500", home_lesson: "from-pink-600 to-rose-500" };
+  const modeBg: Record<string, string> = { online: "bg-violet-50 border-violet-100", onsite: "bg-teal-50 border-teal-100", home_lesson: "bg-pink-50 border-pink-100" };
+  const fmtNgn = (n: number) => `₦${Number(n).toLocaleString("en-NG")}`;
+
+  return (
+    <Card className="border-0 shadow-sm mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <GraduationCap className="h-5 w-5 text-violet-600" />
+          My BreedSkool Training
+        </CardTitle>
+        <p className="text-xs text-gray-400 mt-0.5">{regs.length} registration{regs.length !== 1 ? "s" : ""}</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {regs.map((reg: any) => {
+          const mode = reg.deliveryMode || "online";
+          const Icon = modeIcon[mode] || MonitorPlay;
+          const statusOk = reg.paymentStatus === "confirmed";
+          const statusPending = reg.paymentStatus === "pending";
+          return (
+            <div key={reg.id} className={`border rounded-2xl p-4 ${modeBg[mode] || "bg-gray-50 border-gray-100"}`} data-testid={`card-bs-reg-${reg.id}`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${modeColor[mode] || "from-gray-600 to-gray-500"} flex items-center justify-center shrink-0 shadow`}>
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-bold text-sm text-gray-900">{reg.selectedCourseTitle || "BreedSkool Training"}</span>
+                    <Badge className={statusOk ? "bg-emerald-100 text-emerald-700 border-0 text-[10px]" : statusPending ? "bg-amber-100 text-amber-700 border-0 text-[10px]" : "bg-red-100 text-red-600 border-0 text-[10px]"}>
+                      {statusOk ? "✓ Confirmed" : statusPending ? "⏳ Pending" : reg.paymentStatus}
+                    </Badge>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/60 text-gray-600 border border-gray-200">
+                      {modeLabel[mode] || mode}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {fmtNgn(reg.amountNgn)} · {reg.paymentMethod || reg.paymentOption} · Registered {new Date(reg.createdAt).toLocaleDateString()}
+                  </p>
+                  {reg.location && <p className="text-xs text-gray-400 mt-0.5">📍 {reg.location}</p>}
+
+                  {/* Home lesson child details */}
+                  {mode === "home_lesson" && reg.childName && (
+                    <div className="mt-3 p-3 bg-white/70 rounded-xl border border-pink-200 text-xs space-y-1">
+                      <p className="font-bold text-pink-700 flex items-center gap-1"><Baby className="w-3.5 h-3.5" /> Child Details</p>
+                      <p><span className="text-gray-400">Name:</span> {reg.childName}</p>
+                      {reg.childAge && <p><span className="text-gray-400">Age:</span> {reg.childAge}</p>}
+                      {reg.homeAddress && <p><span className="text-gray-400">Address:</span> {reg.homeAddress}</p>}
+                      <p className="text-pink-600 mt-1">Our tutor will contact you to schedule sessions.</p>
+                    </div>
+                  )}
+
+                  {/* Onsite detail */}
+                  {mode === "onsite" && (
+                    <div className="mt-2 flex items-start gap-1.5 text-xs text-teal-700">
+                      <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+                      <span>TootoOba Estate, Ijede, Ikorodu, Lagos</span>
+                    </div>
+                  )}
+
+                  {/* Status guidance */}
+                  {statusPending && (
+                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                      ⏳ Payment under review. We'll confirm within 24 hours. Keep your transaction reference ready.
+                    </div>
+                  )}
+                  {statusOk && (
+                    <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                      ✅ You're enrolled! {mode === "online" ? "Check your email for class access details." : mode === "home_lesson" ? "Our tutor will contact you to schedule." : "Report to the campus on your start date."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function MyOrdersPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -1214,6 +1310,9 @@ export default function MyOrdersPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* BreedSkool Training Registrations */}
+        <BreedSkoolTrainingCard />
 
         {/* Fee Info Footer */}
         <div className="mt-6 p-4 rounded-2xl bg-blue-50 border border-blue-100">

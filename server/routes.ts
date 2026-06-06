@@ -5627,6 +5627,18 @@ Instructions:
     }
   });
 
+  // User: get own BreedSkool registrations
+  app.get('/api/my/breedskool-registrations', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = await db.select().from(breedskoolRegistrations)
+        .where(eq(breedskoolRegistrations.userId, req.user.id))
+        .orderBy(desc(breedskoolRegistrations.createdAt));
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ── BreedSkool Course Routes ──────────────────────────────────────────────
 
   // Public: list all published courses
