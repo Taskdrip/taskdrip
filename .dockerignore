@@ -4,35 +4,21 @@ npm-debug.log*
 .gitignore
 .env
 .env.*
-!.env.example
 .DS_Store
 .local
 .replit
 .upm
 .cache
 .vite
-.next
-.turbo
-.pnpm-store
-
-# Build / test artifacts
 dist
 build
 coverage
 *.log
-
-# IDE / editor
 .vscode
 .idea
 *.swp
-
-# Local-only files
 attached_assets/Pasted-*.txt
 attached_assets/Screenshot*.png
 attached_assets/Screenshot*.jpg
 tmp
 temp
-
-# Docker self
-Dockerfile*
-.dockerignore
