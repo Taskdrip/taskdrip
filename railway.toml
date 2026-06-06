@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm install --no-audit --no-fund && npm run build"
+buildCommand = "npm install --no-audit --no-fund && ./node_modules/.bin/vite build && ./node_modules/.bin/esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist"
 
 [deploy]
 startCommand = "NODE_ENV=production node dist/index.js"

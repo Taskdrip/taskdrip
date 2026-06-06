@@ -734,15 +734,16 @@ export default function FinalLanding() {
       <section
         className="py-14 sm:py-20 relative overflow-hidden"
         style={{
-          backgroundImage: "url('/breedskool-bg.png')",
+          backgroundImage: "url('/breedskool-bg.jpg')",
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: "center top",
           backgroundRepeat: "no-repeat",
         }}
         data-testid="section-breedskool"
       >
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/92 via-purple-900/88 to-indigo-900/92 pointer-events-none" />
+        {/* Dark overlay — deep purple tint so text is crisp over the photo */}
+        <div className="absolute inset-0 bg-[#0d0620]/85 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-purple-900/40 to-indigo-900/60 pointer-events-none" />
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/3 w-80 h-80 bg-violet-500/20 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl" />
