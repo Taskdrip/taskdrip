@@ -2,13 +2,14 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# Copy .npmrc FIRST so npm reads production=false before installing
+COPY .npmrc package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 RUN NODE_OPTIONS='--max-old-space-size=4096' npm run build
 
-# ── Stage 2: Production ────────────────────────────────────────────────────────
+# ── Stage 2: Production runtime ────────────────────────────────────────────────
 FROM node:20-slim
 WORKDIR /app
 

@@ -1,60 +1,51 @@
 ---
-name: Railway Nixpacks Deployment
-description: Definitive Railway deployment config for this project — Nixpacks only, no Dockerfile.
+name: Railway Deployment — Definitive Working Config
+description: What actually works for Railway deployment — use Dockerfile, not Nixpacks.
 ---
 
-## The Rule
-Use Nixpacks on Railway. Force it via `builder = "NIXPACKS"` in `railway.toml`.
+## FINAL WORKING APPROACH: Use Dockerfile (not Nixpacks)
+
+Railway has too many Nixpacks quirks (version mismatches, [variables] section not supported,
+auto-install overriding custom phases). The reliable approach is the explicit Dockerfile.
+
+Remove `builder = "NIXPACKS"` from railway.toml — Railway auto-detects and uses the Dockerfile.
 
 ## Root Causes Encountered (in order)
-1. Dockerfile present → Railway used Docker instead of Nixpacks → OOM build failure
-2. `nodejs_20` in nixPkgs → invalid Nix package name → setup phase crashes in seconds
-3. `import.meta.dirname` in vite.config.ts → only works on Node ≥ 20.11.0 → fixed with `fileURLToPath`
-4. `buildCommand` in railway.toml conflicts with nixpacks.toml install phase → removed buildCommand
-5. **Railway sets `NODE_ENV=production` at build time** → npm silently skips devDependencies → `vite: not found`
+1. `nodejs_20` in nixpkgs → invalid Nix package name → instant crash
+2. `import.meta.dirname` in vite.config.ts → needs Node ≥ 20.11.0 → fixed with fileURLToPath
+3. `npm ci` without devDeps → Railway sets NODE_ENV=production → vite not found
+4. `[variables]` section in nixpacks.toml → may be invalid in Railway's nixpkgs version → file ignored
+5. `.npmrc` not copied into Docker builder stage → npm never saw production=false
+6. `builder = "NIXPACKS"` in railway.toml → Nixpacks had too many edge cases → removed
 
-## THE GOLDEN RULE — vite not found
-Railway always sets `NODE_ENV=production` during builds. This makes npm skip devDependencies (including
-`vite`, `esbuild`). Fix with THREE layers of redundancy (all must be present):
+## Working Dockerfile (multi-stage)
+```dockerfile
+# Stage 1: Build
+FROM node:20-slim AS builder
+WORKDIR /app
 
-### Layer 1 — `.npmrc` (MOST IMPORTANT, cannot be bypassed)
+# CRITICAL: copy .npmrc FIRST so npm reads production=false
+COPY .npmrc package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
+
+COPY . .
+RUN NODE_OPTIONS='--max-old-space-size=4096' npm run build
+
+# Stage 2: Production runtime
+FROM node:20-slim
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=5000
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
+COPY --from=builder /app/dist ./dist
+RUN mkdir -p uploads
+EXPOSE 5000
+CMD ["node", "dist/index.js"]
 ```
-production=false
-```
 
-### Layer 2 — nixpacks.toml `[variables]`
+## Working railway.toml (NO builder override)
 ```toml
-NPM_CONFIG_PRODUCTION = "false"
-NODE_ENV = "development"
-```
-
-### Layer 3 — nixpacks.toml install uses `npm install` (not `npm ci`)
-```toml
-cmds = ["npm install --no-audit --no-fund"]
-```
-
-Note: Build phase explicitly resets `NODE_ENV=production` so the running app is in production mode:
-```toml
-cmds = ["NODE_ENV=production NODE_OPTIONS='--max-old-space-size=4096' npm run build"]
-```
-
-## Working Configuration (all 4 files)
-
-`.nvmrc`:
-```
-20
-```
-
-`.npmrc` (NEW — the critical fix):
-```
-production=false
-```
-
-`railway.toml`:
-```toml
-[build]
-builder = "NIXPACKS"
-
 [deploy]
 startCommand = "node dist/index.js"
 healthcheckPath = "/api/health"
@@ -62,42 +53,21 @@ healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 ```
-**No `buildCommand` in railway.toml** — this conflicts with nixpacks.toml install phase.
 
-`nixpacks.toml`:
-```toml
-[variables]
-NPM_CONFIG_PRODUCTION = "false"
-NODE_ENV = "development"
-
-[phases.setup]
-nixPkgs = ["python3", "gcc"]
-
-[phases.install]
-cmds = ["npm install --no-audit --no-fund"]
-
-[phases.build]
-cmds = ["NODE_ENV=production NODE_OPTIONS='--max-old-space-size=4096' npm run build"]
-
-[start]
-cmd = "node dist/index.js"
+## Working .npmrc
+```
+production=false
 ```
 
-`vite.config.ts` — use fileURLToPath, NOT import.meta.dirname:
+## Working vite.config.ts pattern
 ```ts
 import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 ```
 
 ## What NOT to Do
-- Never use plain `npm ci` without `--include=dev` AND without `NPM_CONFIG_PRODUCTION=false`
-- Never add `nodejs_20` or any `nodejs_*` to nixpkgs — Railway auto-detects from .nvmrc
-- Never use a Dockerfile (kept in repo but overridden by `builder = "NIXPACKS"`)
-- Never put `buildCommand` in railway.toml — it conflicts with the nixpacks install phase
-- Never omit the `.npmrc` file — it is the most reliable layer of the devDep fix
-
-## Railway Dashboard Backup (if still failing)
-Go to Railway → Service → Variables and add:
-```
-NPM_CONFIG_PRODUCTION = false
-```
+- Never omit `.npmrc` copy from Dockerfile builder stage
+- Never use `builder = "NIXPACKS"` — Nixpacks is unreliable for this project
+- Never use `[variables]` section in nixpacks.toml — may not be supported
+- Never add `nodejs_20` to nixpkgs
+- Never use `import.meta.dirname` in vite.config.ts
