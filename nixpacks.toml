@@ -2,7 +2,7 @@
 nixPkgs = ["python3", "gcc"]
 
 [phases.install]
-cmds = ["npm ci --no-audit --no-fund"]
+cmds = ["npm ci --include=dev --no-audit --no-fund"]
 
 [phases.build]
 cmds = ["NODE_OPTIONS='--max-old-space-size=4096' npm run build"]
