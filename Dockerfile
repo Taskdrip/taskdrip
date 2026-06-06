@@ -2,9 +2,12 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Copy .npmrc FIRST so npm reads production=false before installing
-COPY .npmrc package.json package-lock.json ./
-RUN npm ci --include=dev --no-audit --no-fund
+# Force development mode so ALL deps (vite, esbuild) are installed
+# ENV in Dockerfile overrides any external NODE_ENV Railway injects
+ENV NODE_ENV=development
+
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 COPY . .
 RUN NODE_OPTIONS='--max-old-space-size=4096' npm run build
