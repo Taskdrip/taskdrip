@@ -2728,22 +2728,24 @@ __export(vite_config_exports, {
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path2 from "path";
-var vite_config_default;
+import { fileURLToPath } from "url";
+var __dirname, vite_config_default;
 var init_vite_config = __esm({
   "vite.config.ts"() {
     "use strict";
+    __dirname = path2.dirname(fileURLToPath(import.meta.url));
     vite_config_default = defineConfig({
       plugins: [react()],
       resolve: {
         alias: {
-          "@": path2.resolve(import.meta.dirname, "client", "src"),
-          "@shared": path2.resolve(import.meta.dirname, "shared"),
-          "@assets": path2.resolve(import.meta.dirname, "attached_assets")
+          "@": path2.resolve(__dirname, "client", "src"),
+          "@shared": path2.resolve(__dirname, "shared"),
+          "@assets": path2.resolve(__dirname, "attached_assets")
         }
       },
-      root: path2.resolve(import.meta.dirname, "client"),
+      root: path2.resolve(__dirname, "client"),
       build: {
-        outDir: path2.resolve(import.meta.dirname, "dist/public"),
+        outDir: path2.resolve(__dirname, "dist/public"),
         emptyOutDir: true
       },
       server: {
