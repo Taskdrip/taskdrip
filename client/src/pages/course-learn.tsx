@@ -84,6 +84,9 @@ export default function CourseLearn() {
   const [assignFile, setAssignFile] = useState<File | null>(null);
   const [assignFiles, setAssignFiles] = useState<File[]>([]);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+  const [communityPost, setCommunityPost] = useState("");
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const communityRef = useRef<HTMLDivElement>(null);
   const groupChatRef = useRef<HTMLDivElement>(null);
   const tutorChatRef = useRef<HTMLDivElement>(null);
 
@@ -165,7 +168,7 @@ export default function CourseLearn() {
     queryKey: ["/api/courses", id, "chat", "group"],
     queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/chat?scope=group`)).json(),
     enabled: !!id && isAuthenticated && !!isApproved,
-    refetchInterval: activeTab === "group" ? 5000 : false,
+    refetchInterval: (activeTab === "group" || activeTab === "community") ? 5000 : false,
   });
 
   const { data: tutorChat = [] } = useQuery<any[]>({
@@ -182,6 +185,9 @@ export default function CourseLearn() {
   useEffect(() => {
     if (activeTab === "tutor" && tutorChatRef.current) tutorChatRef.current.scrollTop = tutorChatRef.current.scrollHeight;
   }, [tutorChat, activeTab]);
+  useEffect(() => {
+    if (activeTab === "community" && communityRef.current) communityRef.current.scrollTop = communityRef.current.scrollHeight;
+  }, [groupChat, activeTab]);
 
   // ── Mutations ──────────────────────────────────────────────────────────
   const completeMutation = useMutation({
@@ -725,6 +731,100 @@ export default function CourseLearn() {
             </TabsContent>
             {/* Community tab */}
             <TabsContent value="community" className="mt-4">
+              {/* Community Post Board */}
+              <div className="bg-white border rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b bg-gradient-to-r from-cyan-50 to-violet-50 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-cyan-600" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Community Board</h3>
+                    <p className="text-xs text-gray-500">Share updates, questions & resources with classmates</p>
+                  </div>
+                </div>
+
+                {/* Post feed */}
+                <div ref={communityRef} className="max-h-[360px] overflow-y-auto divide-y">
+                  {groupChat.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400 text-sm px-5">
+                      <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-25" />
+                      <p>No posts yet. Be the first to share something!</p>
+                    </div>
+                  ) : (
+                    [...groupChat].reverse().map((msg: any) => {
+                      const name = `${msg.firstName || msg.sender?.firstName || ""}${msg.lastName || msg.sender?.lastName ? " " + (msg.lastName || msg.sender?.lastName) : ""}`.trim() || "Student";
+                      const initials = name.slice(0, 2).toUpperCase();
+                      const liked = likedPosts.has(msg.id);
+                      const ts = msg.createdAt ? new Date(msg.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+                      return (
+                        <div key={msg.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex gap-3">
+                            <Avatar className="h-9 w-9 flex-shrink-0">
+                              <AvatarImage src={msg.profileImageUrl || msg.sender?.profileImageUrl} />
+                              <AvatarFallback className="text-xs bg-violet-100 text-violet-700">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-semibold text-sm text-gray-900">{name}</span>
+                                {msg.userId === myId && <span className="text-xs text-violet-500">you</span>}
+                                <span className="text-xs text-gray-400 ml-auto">{ts}</span>
+                              </div>
+                              <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words">{msg.message}</p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <button
+                                  className={`flex items-center gap-1 text-xs transition-colors ${liked ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
+                                  onClick={() => setLikedPosts(prev => { const n = new Set(prev); liked ? n.delete(msg.id) : n.add(msg.id); return n; })}
+                                  data-testid={`button-like-post-${msg.id}`}
+                                >
+                                  {liked ? "♥" : "♡"} {liked ? "Liked" : "Like"}
+                                </button>
+                                <button
+                                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500 transition-colors"
+                                  onClick={() => { setReplyTo({ id: msg.id, name, message: msg.message }); setCommunityPost(`@${name} `); }}
+                                  data-testid={`button-reply-post-${msg.id}`}
+                                >
+                                  <Reply className="h-3 w-3" /> Reply
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Post compose box */}
+                {isApproved && (
+                  <div className="p-4 border-t bg-gray-50">
+                    {replyTo && (
+                      <div className="mb-2 flex items-center gap-2 text-xs text-violet-600 bg-violet-50 rounded-lg px-3 py-1.5">
+                        <Reply className="h-3 w-3" /> Replying to <span className="font-semibold">{replyTo.name}</span>
+                        <button className="ml-auto" onClick={() => { setReplyTo(null); setCommunityPost(""); }}><X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" /></button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Textarea
+                        value={communityPost}
+                        onChange={e => setCommunityPost(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && communityPost.trim()) { e.preventDefault(); sendGroup.mutate(communityPost.trim()); setCommunityPost(""); setReplyTo(null); } }}
+                        placeholder="Share something with your classmates… (Enter to post)"
+                        className="flex-1 min-h-[60px] max-h-[120px] text-sm resize-none rounded-xl"
+                        data-testid="input-community-post"
+                      />
+                      <Button
+                        size="sm"
+                        className="self-end h-9 px-3 bg-cyan-600 hover:bg-cyan-700"
+                        disabled={!communityPost.trim() || sendGroup.isPending}
+                        onClick={() => { sendGroup.mutate(communityPost.trim()); setCommunityPost(""); setReplyTo(null); }}
+                        data-testid="button-submit-community-post"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Classmates list */}
               <div className="bg-white border rounded-2xl p-5 space-y-4">
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-cyan-600" />

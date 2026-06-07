@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Clock, Users, Phone, Calendar, ChevronRight,
   BookOpen, Wifi, Home, GraduationCap, Star, CheckCircle2,
+  CheckCircle, Loader2,
 } from "lucide-react";
 
 const SCHEDULE = [
@@ -29,6 +34,17 @@ const FEATURES = [
 
 export default function BreedSkoolOnsite() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    program: SCHEDULE[0].program,
+    location: "",
+    referral: "",
+  });
 
   const { data: pricing = [] } = useQuery<any[]>({
     queryKey: ["/api/breedskool/pricing"],
@@ -37,6 +53,46 @@ export default function BreedSkoolOnsite() {
   const onsitePricing = pricing.find((p: any) =>
     p.courseKey === "onsite_training" || p.label?.toLowerCase().includes("onsite") || p.deliveryMode === "onsite"
   );
+
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/breedskool/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          fullName: form.fullName.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          selectedCourseKey: "onsite_training",
+          selectedCourseTitle: form.program,
+          location: form.location.trim(),
+          notes: form.referral.trim() ? `Referral: ${form.referral.trim()}` : undefined,
+          deliveryMode: "onsite",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Registration failed");
+      return data;
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      toast({ title: "Registration submitted!", description: "We'll contact you within 24 hours to confirm your spot." });
+    },
+    onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
+  });
+
+  const handleChange = (field: string, value: string) =>
+    setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.fullName.trim() || !form.email.trim() || !form.phone.trim()) {
+      toast({ title: "Missing details", description: "Please fill in your name, email and phone number.", variant: "destructive" });
+      return;
+    }
+    registerMutation.mutate();
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -59,7 +115,7 @@ export default function BreedSkoolOnsite() {
             <Button
               size="lg"
               className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold gap-2 shadow-lg"
-              onClick={() => navigate("/breedskool?mode=onsite")}
+              onClick={() => setShowForm(true)}
               data-testid="button-register-onsite-hero"
             >
               <GraduationCap className="h-5 w-5" /> Register for Onsite Training
@@ -98,6 +154,120 @@ export default function BreedSkoolOnsite() {
 
       <div className="max-w-5xl mx-auto px-4 py-16 space-y-16">
 
+        {/* Inline Registration Form */}
+        <section id="register" className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-3xl p-8 border border-violet-100">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <GraduationCap className="h-10 w-10 text-violet-600 mx-auto mb-3" />
+              <h2 className="text-2xl font-bold text-gray-900">Reserve Your Spot</h2>
+              <p className="text-gray-500 mt-1">Fill in your details below — no account needed. We'll confirm your place within 24 hours.</p>
+            </div>
+
+            {submitted ? (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-8 w-8 text-emerald-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">You're registered!</h3>
+                <p className="text-gray-500 mb-6">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot and share payment details.</p>
+                <Button variant="outline" className="gap-2" onClick={() => { setSubmitted(false); setForm({ fullName: "", email: "", phone: "", program: SCHEDULE[0].program, location: "", referral: "" }); }}>
+                  Register another person
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5" data-testid="form-onsite-registration">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fullName">Full Name <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="fullName"
+                      value={form.fullName}
+                      onChange={e => handleChange("fullName", e.target.value)}
+                      placeholder="e.g. Chidi Okafor"
+                      required
+                      data-testid="input-onsite-fullname"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone">Phone / WhatsApp <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="phone"
+                      value={form.phone}
+                      onChange={e => handleChange("phone", e.target.value)}
+                      placeholder="+234 800 000 0000"
+                      required
+                      data-testid="input-onsite-phone"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={e => handleChange("email", e.target.value)}
+                    placeholder="you@email.com"
+                    required
+                    data-testid="input-onsite-email"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="program">Which programme interests you?</Label>
+                  <select
+                    id="program"
+                    value={form.program}
+                    onChange={e => handleChange("program", e.target.value)}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    data-testid="select-onsite-program"
+                  >
+                    {SCHEDULE.map((s, i) => (
+                      <option key={i} value={s.program}>{s.program} — {s.day} · {s.time}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="location">Your location / area (optional)</Label>
+                  <Input
+                    id="location"
+                    value={form.location}
+                    onChange={e => handleChange("location", e.target.value)}
+                    placeholder="e.g. Ikorodu, Gbagada, Lekki…"
+                    data-testid="input-onsite-location"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="referral">How did you hear about us? (optional)</Label>
+                  <Input
+                    id="referral"
+                    value={form.referral}
+                    onChange={e => handleChange("referral", e.target.value)}
+                    placeholder="Social media, friend, Google…"
+                    data-testid="input-onsite-referral"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white text-base font-semibold gap-2 shadow-lg shadow-violet-200"
+                  disabled={registerMutation.isPending}
+                  data-testid="button-submit-onsite-registration"
+                >
+                  {registerMutation.isPending
+                    ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
+                    : <><GraduationCap className="h-5 w-5" /> Reserve My Spot</>
+                  }
+                </Button>
+                <p className="text-center text-xs text-gray-400">No payment required now. We'll send you details after confirmation.</p>
+              </form>
+            )}
+          </div>
+        </section>
+
         {/* Pricing */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Onsite Training Fees</h2>
@@ -118,7 +288,7 @@ export default function BreedSkoolOnsite() {
                   </div>
                   <Button
                     className="w-full bg-violet-600 hover:bg-violet-700 text-white"
-                    onClick={() => navigate("/breedskool?mode=onsite")}
+                    onClick={() => setShowForm(true)}
                     data-testid="button-register-onsite-pricing"
                   >
                     Register Now <ChevronRight className="h-4 w-4 ml-1" />
@@ -134,7 +304,7 @@ export default function BreedSkoolOnsite() {
                     <div className="text-3xl font-extrabold text-violet-700 mb-4">₦35,000</div>
                     <Button
                       className="w-full bg-violet-600 hover:bg-violet-700 text-white"
-                      onClick={() => navigate("/breedskool?mode=onsite")}
+                      onClick={() => setShowForm(true)}
                       data-testid="button-register-onsite-standard"
                     >
                       Register Now <ChevronRight className="h-4 w-4 ml-1" />
@@ -148,7 +318,7 @@ export default function BreedSkoolOnsite() {
                     <div className="text-3xl font-extrabold text-yellow-700 mb-4">₦25,000</div>
                     <Button
                       className="w-full bg-yellow-500 hover:bg-yellow-400 text-white"
-                      onClick={() => navigate("/breedskool?mode=onsite")}
+                      onClick={() => setShowForm(true)}
                       data-testid="button-register-onsite-weekend"
                     >
                       Register Now <ChevronRight className="h-4 w-4 ml-1" />
@@ -238,7 +408,7 @@ export default function BreedSkoolOnsite() {
           <Button
             size="lg"
             className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold gap-2"
-            onClick={() => navigate("/breedskool?mode=onsite")}
+            onClick={() => setShowForm(true)}
             data-testid="button-register-onsite-cta"
           >
             <GraduationCap className="h-5 w-5" /> Register for Onsite Training
@@ -246,6 +416,62 @@ export default function BreedSkoolOnsite() {
         </section>
 
       </div>
+
+      {/* Modal registration form (for CTA buttons) */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-violet-600" />
+              Register for Onsite Training
+            </DialogTitle>
+          </DialogHeader>
+
+          {submitted ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">You're registered!</h3>
+              <p className="text-gray-500 text-sm mb-4">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
+              <Button onClick={() => setShowForm(false)}>Close</Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2" data-testid="form-onsite-registration-modal">
+              <div className="space-y-1.5">
+                <Label htmlFor="m-fullName">Full Name <span className="text-red-500">*</span></Label>
+                <Input id="m-fullName" value={form.fullName} onChange={e => handleChange("fullName", e.target.value)} placeholder="Your full name" required data-testid="input-modal-onsite-fullname" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="m-email">Email <span className="text-red-500">*</span></Label>
+                  <Input id="m-email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} placeholder="you@email.com" required data-testid="input-modal-onsite-email" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="m-phone">Phone <span className="text-red-500">*</span></Label>
+                  <Input id="m-phone" value={form.phone} onChange={e => handleChange("phone", e.target.value)} placeholder="+234 …" required data-testid="input-modal-onsite-phone" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="m-program">Programme</Label>
+                <select id="m-program" value={form.program} onChange={e => handleChange("program", e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  data-testid="select-modal-onsite-program">
+                  {SCHEDULE.map((s, i) => <option key={i} value={s.program}>{s.program}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="m-location">Your area (optional)</Label>
+                <Input id="m-location" value={form.location} onChange={e => handleChange("location", e.target.value)} placeholder="e.g. Ikorodu, Lekki…" data-testid="input-modal-onsite-location" />
+              </div>
+              <Button type="submit" className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-semibold gap-2" disabled={registerMutation.isPending} data-testid="button-submit-modal-onsite">
+                {registerMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</> : <><GraduationCap className="h-4 w-4" /> Reserve My Spot</>}
+              </Button>
+              <p className="text-center text-xs text-gray-400">No payment needed now. We'll confirm and send payment details.</p>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

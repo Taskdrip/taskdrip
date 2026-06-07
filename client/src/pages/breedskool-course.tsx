@@ -948,6 +948,26 @@ export default function BreedSkoolCourse() {
                   onClick={() => setEnrollStep("pay")}>
                   Continue <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
+                <button
+                  className="w-full text-sm text-gray-500 hover:text-violet-600 underline underline-offset-2 py-1 transition-colors"
+                  onClick={() => {
+                    const fd = new FormData();
+                    fd.append("payLater", "true");
+                    fd.append("paymentMethod", selectedMethod?.label || "Pay Later");
+                    fetch(`/api/courses/${id}/enroll`, { method: "POST", body: fd, credentials: "include" })
+                      .then(r => r.json())
+                      .then(() => {
+                        queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "enrollment"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
+                        setEnrollStep("done");
+                        toast({ title: "Enrolled (Pay Later)", description: "You now have access. Complete payment to unlock all features." });
+                      })
+                      .catch(() => toast({ title: "Error", variant: "destructive" }));
+                  }}
+                  data-testid="button-enroll-pay-later"
+                >
+                  Pay Later — Get access now, pay within 48 hours
+                </button>
               </div>
             )}
 

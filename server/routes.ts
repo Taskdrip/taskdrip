@@ -572,18 +572,30 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (u.userType === 'creator' || u.userType === 'admin') {
         return res.json({ message: 'Already a creator', user: u });
       }
-      // Prefill niche from first active enrollment's course category
-      let niche: string | null = null;
+      // Server-side eligibility: must have at least one enrollment with >= 50% progress
+      let enrolledCourse: any = null;
       try {
         const enrollments = await storage.getMyEnrollments(userId);
-        const activeEnrollment = enrollments.find((e: any) => e.status === 'active' || e.status === 'completed');
-        if (activeEnrollment?.courseId) {
-          const course = await storage.getCourseById(activeEnrollment.courseId);
+        enrolledCourse = enrollments.find((e: any) =>
+          (e.status === 'active' || e.status === 'completed') && (e.progress || 0) >= 50
+        );
+        if (!enrolledCourse) {
+          return res.status(403).json({ message: 'You must complete at least 50% of a BreedSkool course to upgrade to Creator.' });
+        }
+      } catch (_) {}
+      // Prefill niche and bio from enrolled course metadata
+      let niche: string | null = null;
+      let bio: string | null = null;
+      try {
+        if (enrolledCourse?.courseId) {
+          const course = await storage.getCourseById(enrolledCourse.courseId);
           if (course?.category) niche = course.category;
+          if (course?.title) bio = `BreedSkool graduate — ${course.title}. Passionate about creating impactful content and building an online income.`;
         }
       } catch (_) {}
       const updatePayload: any = { userType: 'creator' };
       if (niche && !u.niche) updatePayload.niche = niche;
+      if (bio && !u.bio) updatePayload.bio = bio;
       const updated = await storage.updateUserProfile(userId, updatePayload);
       // Award upgrade bonus points
       storage.awardPoints(userId, 'become_creator', 100, 'Upgraded to Creator account!').catch(() => {});
@@ -5492,14 +5504,19 @@ Instructions:
         deliveryMode, childName, childAge, parentName, homeAddress,
       } = req.body;
 
-      if (!fullName || !email || !phone || !selectedCourseKey) {
-        return res.status(400).json({ message: 'Full name, email, phone, and course are required.' });
+      // For onsite registrations, only name/email/phone are required (no account creation needed)
+      const isOnsiteContactOnly = (deliveryMode === 'onsite') && !password;
+      if (!fullName || !email || !phone) {
+        return res.status(400).json({ message: 'Full name, email, and phone are required.' });
       }
-      if (!password || password.length < 6) {
+      if (!selectedCourseKey && !isOnsiteContactOnly) {
+        return res.status(400).json({ message: 'Course selection is required.' });
+      }
+      if (!isOnsiteContactOnly && (!password || password.length < 6)) {
         return res.status(400).json({ message: 'Password must be at least 6 characters.' });
       }
 
-      // Create platform account if email not already taken
+      // Create platform account if email not already taken (skip for onsite contact-only registrations)
       let userId: string | null = null;
       let newUser: any = null;
       let loginUser: any = null; // user to auto-login (new or existing with correct password)
@@ -5514,7 +5531,7 @@ Instructions:
             loginUser = existing;
           }
         }
-      } else {
+      } else if (!isOnsiteContactOnly) {
         const hashed = await bcrypt.hash(password, 10);
         const nameParts = fullName.trim().split(' ');
         const firstName = nameParts[0];
@@ -5920,8 +5937,23 @@ Instructions:
   });
 
   // Auth: get enrolled classmates for a course (Community tab)
+  // Requires: requester must be enrolled in the course, be the instructor, or be admin
   app.get('/api/courses/:id/community', isAuthenticated, async (req: any, res) => {
     try {
+      const u = req.user as any;
+      const courseId = req.params.id;
+      // Authorization: must be admin, instructor of this course, or active enrollee
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      if (!isAdmin) {
+        const course = await storage.getCourseById(courseId);
+        const isInstructor = course && (course as any).instructorId === u.id;
+        if (!isInstructor) {
+          const enrollment = await storage.getCourseEnrollment(courseId, u.id);
+          if (!enrollment || enrollment.status !== 'active') {
+            return res.status(403).json({ message: 'You must be enrolled in this course to view the community.' });
+          }
+        }
+      }
       const rows = await db.select({
         userId: courseEnrollments.userId,
         status: courseEnrollments.status,
@@ -5934,7 +5966,7 @@ Instructions:
         .from(courseEnrollments)
         .leftJoin(users, eq(courseEnrollments.userId, users.id))
         .where(and(
-          eq(courseEnrollments.courseId, req.params.id),
+          eq(courseEnrollments.courseId, courseId),
           eq(courseEnrollments.status, 'active')
         ))
         .limit(100);
