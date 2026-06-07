@@ -268,7 +268,12 @@ function PasswordInput({ value, onChange, placeholder, id, testId }: { value: st
 }
 
 // ── Registration Modal ─────────────────────────────────────────────────────────
-function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boolean; onClose: () => void; courses: BsCoursePricing[] }) {
+function RegistrationModal({ open, onClose, courses: rawCourses, initialDeliveryMode = "online" }: {
+  open: boolean;
+  onClose: () => void;
+  courses: BsCoursePricing[];
+  initialDeliveryMode?: "online" | "onsite" | "home_lesson";
+}) {
   // Use admin-configured courses if available, otherwise fall back to defaults
   const courses = rawCourses.length > 0 ? rawCourses : DEFAULT_COURSES;
   const { toast } = useToast();
@@ -286,8 +291,19 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
     email: "", password: "", confirmPassword: "",
     selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0,
     paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "",
-    deliveryMode: "online", childName: "", childAge: "", parentName: "", homeAddress: "",
+    deliveryMode: initialDeliveryMode, childName: "", childAge: "", parentName: "", homeAddress: "",
   });
+
+  // Fetch payment settings directly inside the modal (fixes missing bsPaySettings reference)
+  const { data: bsPaySettings = {} } = useQuery<Record<string, string>>({ queryKey: ["/api/breedskool/payment-settings"] });
+
+  // Pre-select delivery mode whenever the modal opens with a different mode
+  useEffect(() => {
+    if (open) {
+      setForm(f => ({ ...f, deliveryMode: initialDeliveryMode }));
+      setStep(1);
+    }
+  }, [open, initialDeliveryMode]);
 
   const set = (field: keyof RegForm, value: any) =>
     setForm(f => ({ ...f, [field]: value }));
@@ -344,6 +360,10 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
       if (!form.fullName.trim() || !form.phone.trim()) {
         return toast({ title: "Required fields", description: "Please enter your full name and phone number.", variant: "destructive" });
       }
+      if (form.deliveryMode === "home_lesson") {
+        if (!form.childName.trim()) return toast({ title: "Child's name required", description: "Please enter the child's full name.", variant: "destructive" });
+        if (!form.homeAddress.trim()) return toast({ title: "Home address required", description: "Please enter your home address for the tutor visit.", variant: "destructive" });
+      }
       setStep(2);
     } else if (step === 2) {
       if (!form.email.trim()) return toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" });
@@ -363,7 +383,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
     setStep(1);
     setShowSuccess(false);
     setProofFile(null);
-    setForm({ fullName: "", phone: "", location: "", email: "", password: "", confirmPassword: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "", deliveryMode: "online", childName: "", childAge: "", parentName: "", homeAddress: "" });
+    setForm({ fullName: "", phone: "", location: "", email: "", password: "", confirmPassword: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "", deliveryMode: initialDeliveryMode, childName: "", childAge: "", parentName: "", homeAddress: "" });
   };
 
   return (
@@ -1014,6 +1034,13 @@ export default function BreedSkool() {
   const { data: bsPricing = [] } = useQuery<BsCoursePricing[]>({ queryKey: ["/api/breedskool/pricing"] });
   const { data: bsPaySettings = {} } = useQuery<Record<string, string>>({ queryKey: ["/api/breedskool/payment-settings"] });
 
+  const [regModalMode, setRegModalMode] = useState<"online" | "onsite" | "home_lesson">("online");
+
+  const openRegModal = (mode: "online" | "onsite" | "home_lesson" = "online") => {
+    setRegModalMode(mode);
+    setShowRegModal(true);
+  };
+
   const enrolledCourseIds = new Set((myEnrollments as any[]).map((e: any) => e.courseId));
   const filtered = courses.filter((c: any) => {
     if (activeCategory !== "all" && c.category !== activeCategory) return false;
@@ -1084,7 +1111,7 @@ export default function BreedSkool() {
 
               <div className="flex flex-col sm:flex-row items-start gap-3">
                 <Button
-                  onClick={() => setShowRegModal(true)}
+                  onClick={() => openRegModal("online")}
                   size="lg"
                   className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-8 py-6 text-base rounded-2xl shadow-2xl shadow-orange-400/30 hover:-translate-y-0.5 transition-all"
                   data-testid="btn-hero-register"
@@ -1169,7 +1196,7 @@ export default function BreedSkool() {
                   <li key={f} className="flex items-start gap-2 text-xs text-gray-700"><CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />{f}</li>
                 ))}
               </ul>
-              <Button onClick={() => setShowRegModal(true)} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl text-sm">
+              <Button onClick={() => openRegModal("online")} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl text-sm">
                 Enroll Online <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -1191,7 +1218,7 @@ export default function BreedSkool() {
                 <MapPin className="w-3.5 h-3.5 text-teal-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-teal-700 font-medium">TootoOba Estate, Ijede, Ikorodu, Lagos</p>
               </div>
-              <Button onClick={() => setShowRegModal(true)} className="w-full bg-gradient-to-r from-teal-600 to-green-600 text-white font-bold rounded-xl text-sm">
+              <Button onClick={() => openRegModal("onsite")} className="w-full bg-gradient-to-r from-teal-600 to-green-600 text-white font-bold rounded-xl text-sm">
                 Book Onsite Spot <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -1212,7 +1239,7 @@ export default function BreedSkool() {
                   <li key={f} className="flex items-start gap-2 text-xs text-gray-700"><CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />{f}</li>
                 ))}
               </ul>
-              <Button onClick={() => setShowRegModal(true)} className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold rounded-xl text-sm">
+              <Button onClick={() => openRegModal("home_lesson")} className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold rounded-xl text-sm">
                 Book Home Lesson <Home className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -1265,7 +1292,7 @@ export default function BreedSkool() {
                         <p className="text-xl font-black text-gray-900">{fmtNgn(course.discountPrice)}</p>
                         <p className="text-xs text-gray-400">≈ {fmtUsd(toUsd(course.discountPrice))} for international students</p>
                       </div>
-                      <Button onClick={() => setShowRegModal(true)} className={`w-full mt-4 bg-gradient-to-r ${gradient} hover:opacity-90 text-white font-bold rounded-xl text-sm`} data-testid={`btn-enroll-${course.courseKey}`}>
+                      <Button onClick={() => openRegModal("online")} className={`w-full mt-4 bg-gradient-to-r ${gradient} hover:opacity-90 text-white font-bold rounded-xl text-sm`} data-testid={`btn-enroll-${course.courseKey}`}>
                         Enroll Now <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
@@ -1314,7 +1341,7 @@ export default function BreedSkool() {
             ))}
           </div>
           <div className="text-center mt-10">
-            <Button onClick={() => setShowRegModal(true)} size="lg" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl px-8 shadow-xl" data-testid="btn-why-register">
+            <Button onClick={() => openRegModal("online")} size="lg" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl px-8 shadow-xl" data-testid="btn-why-register">
               Register for a Course <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
@@ -1339,7 +1366,7 @@ export default function BreedSkool() {
               <h3 className="text-lg font-bold">🎓 BreedSkool Tech Training</h3>
               <p className="text-white/80 text-sm mt-1">Register and create your account — start learning today with BreedSkool.</p>
             </div>
-            <Button className="bg-white text-violet-700 hover:bg-gray-100 font-semibold whitespace-nowrap" onClick={() => setShowRegModal(true)} data-testid="btn-enroll-banner">Enroll Now</Button>
+            <Button className="bg-white text-violet-700 hover:bg-gray-100 font-semibold whitespace-nowrap" onClick={() => openRegModal("online")} data-testid="btn-enroll-banner">Enroll Now</Button>
           </div>
         )}
 
@@ -1430,7 +1457,7 @@ export default function BreedSkool() {
             <span className="flex items-center gap-1.5 bg-white/10 border border-orange-400/40 rounded-full px-3 py-1.5 text-white/80 text-xs bg-orange-500/20"><Home className="w-3.5 h-3.5 text-pink-300" /> 🔥 Home Lessons for Kids</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button onClick={() => setShowRegModal(true)} size="lg" className="bg-white text-violet-700 hover:bg-gray-100 font-black px-8 rounded-xl shadow-xl" data-testid="btn-cta-register">
+            <Button onClick={() => openRegModal("online")} size="lg" className="bg-white text-violet-700 hover:bg-gray-100 font-black px-8 rounded-xl shadow-xl" data-testid="btn-cta-register">
               🎓 Register & Create Account
             </Button>
             <a href="https://wa.me/12016800266" target="_blank" rel="noopener noreferrer">
@@ -1445,7 +1472,7 @@ export default function BreedSkool() {
       <AdSlot page="breedskool" placementType="banner_bottom" className="w-full" />
       <Footer />
 
-      <RegistrationModal open={showRegModal} onClose={() => setShowRegModal(false)} courses={bsPricing} />
+      <RegistrationModal open={showRegModal} onClose={() => setShowRegModal(false)} courses={bsPricing} initialDeliveryMode={regModalMode} />
     </div>
   );
 }
