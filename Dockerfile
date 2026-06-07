@@ -2,20 +2,27 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Override ALL possible npm production-mode triggers Railway may inject.
-# NPM_CONFIG_PRODUCTION=false and NPM_CONFIG_OMIT="" take precedence over
-# any externally-set NODE_ENV or NPM_CONFIG_* variables at build time.
+# Neutralise every production-mode signal Railway can inject at build time.
 ENV NODE_ENV=development
 ENV NPM_CONFIG_PRODUCTION=false
 ENV NPM_CONFIG_OMIT=""
+ENV CI=false
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+
+# Use `npm install --include=dev` (NOT `npm ci`) because:
+#   • npm ci silently honours NPM_CONFIG_PRODUCTION even with ENV overrides
+#   • npm install --include=dev is a documented, explicit flag that forces
+#     devDependencies to be installed regardless of any env variable.
+RUN npm install --include=dev --no-audit --no-fund
+
+# Fail fast with a clear message if vite is somehow still missing.
+RUN test -f node_modules/.bin/vite || (echo "ERROR: vite binary not found after npm install" && exit 1)
 
 COPY . .
 
-# Call vite and esbuild via their direct binary paths to bypass any shell
-# PATH resolution issues that can occur in Railway's Docker environment.
+# Invoke binaries directly — avoids npm script runner PATH resolution
+# issues that occur in Railway's sh/dash Docker shell.
 RUN NODE_OPTIONS='--max-old-space-size=4096' \
     node_modules/.bin/vite build && \
     node_modules/.bin/esbuild server/index.ts \
