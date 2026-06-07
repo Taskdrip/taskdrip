@@ -340,18 +340,35 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
       return r.json();
     },
     onSuccess: (data) => {
-      setRegisteredName(form.fullName);
-      setRegisteredCourse(form.selectedCourseTitle);
-      setRegisteredCourseId(data.linkedCourseId || null);
-      setPayLater(form.paymentOption === "pay_later");
-      setRegWrongPassword(!!data.wrongPassword);
-      setRegAutoLoggedIn(!!data.loggedIn);
-      onClose();
-      setShowSuccess(true);
       if (data.loggedIn && data.user) {
         queryClient.setQueryData(["/api/user"], data.user);
         queryClient.invalidateQueries({ queryKey: ["/api/my/breedskool-registrations"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my/enrollments"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
+      }
+      onClose();
+      if (data.wrongPassword) {
+        setRegisteredName(form.fullName);
+        setRegisteredCourse(form.selectedCourseTitle);
+        setRegisteredCourseId(data.linkedCourseId || null);
+        setRegWrongPassword(true);
+        setRegAutoLoggedIn(false);
+        setPayLater(form.paymentOption === "pay_later");
+        setShowSuccess(true);
+      } else if (data.linkedCourseId) {
+        toast({
+          title: `🎉 You're enrolled, ${form.fullName.split(" ")[0]}!`,
+          description: `Taking you to ${form.selectedCourseTitle} now. Start chatting with your tutor!`,
+        });
+        navigate(`/breedskool/${data.linkedCourseId}`);
+      } else {
+        setRegisteredName(form.fullName);
+        setRegisteredCourse(form.selectedCourseTitle);
+        setRegisteredCourseId(null);
+        setRegWrongPassword(false);
+        setRegAutoLoggedIn(!!data.loggedIn);
+        setPayLater(form.paymentOption === "pay_later");
+        setShowSuccess(true);
       }
     },
     onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
@@ -366,20 +383,46 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
         if (!form.childName.trim()) return toast({ title: "Child's name required", description: "Please enter the child's full name.", variant: "destructive" });
         if (!form.homeAddress.trim()) return toast({ title: "Home address required", description: "Please enter your home address for the tutor visit.", variant: "destructive" });
       }
+      // Auto-select course for onsite / home_lesson (only one option each)
+      if (form.deliveryMode !== "online") {
+        const targetKey = form.deliveryMode === "onsite" ? "onsite_training" : "home_lesson";
+        const c = courses.find(c => c.courseKey === targetKey);
+        if (c) setForm(f => ({ ...f, selectedCourseKey: c.courseKey, selectedCourseTitle: c.title, amountNgn: c.discountPrice }));
+      }
       setStep(2);
     } else if (step === 2) {
       if (!form.email.trim()) return toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" });
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
       if (!form.password || form.password.length < 6) return toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
       if (form.password !== form.confirmPassword) return toast({ title: "Passwords don't match", description: "Please make sure both passwords match.", variant: "destructive" });
-      setStep(3);
+      // Skip step 3 for onsite/home_lesson — course already auto-selected in step 1
+      if (form.deliveryMode !== "online") {
+        setStep(4);
+      } else {
+        setStep(3);
+      }
     } else if (step === 3) {
       if (!form.selectedCourseKey) return toast({ title: "Select a course", description: "Please pick a course to continue.", variant: "destructive" });
       setStep(4);
     }
   };
 
-  const back = () => setStep(s => Math.max(1, s - 1) as any);
+  const back = () => {
+    // Skip step 3 when going back from step 4 for onsite/home_lesson (step 3 is skipped)
+    if (step === 4 && form.deliveryMode !== "online") {
+      setStep(2);
+    } else {
+      setStep(s => Math.max(1, s - 1) as any);
+    }
+  };
+
+  // Filter courses shown in step 3 based on delivery mode
+  const onlineCourseKeys = new Set(["webdev", "ai_content", "social_monetize", "trading"]);
+  const coursesForStep3 = courses.filter(c => {
+    if (form.deliveryMode === "home_lesson") return c.courseKey === "home_lesson";
+    if (form.deliveryMode === "onsite") return c.courseKey === "onsite_training";
+    return onlineCourseKeys.has(c.courseKey);
+  });
 
   const reset = () => {
     setStep(1);
@@ -562,7 +605,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
                   <p className="text-xs text-gray-500 mt-0.5">Choose the course that aligns with your goals</p>
                 </div>
                 <div className="space-y-3">
-                  {courses.map(c => (
+                  {coursesForStep3.map(c => (
                     <BsCourseCard
                       key={c.courseKey}
                       course={c}
@@ -1304,7 +1347,7 @@ export default function BreedSkool() {
                         <p className="text-xl font-black text-gray-900">{fmtNgn(course.discountPrice)}</p>
                         <p className="text-xs text-gray-400">≈ {fmtUsd(toUsd(course.discountPrice))} for international students</p>
                       </div>
-                      <Button onClick={() => openRegModal("online")} className={`w-full mt-4 bg-gradient-to-r ${gradient} hover:opacity-90 text-white font-bold rounded-xl text-sm`} data-testid={`btn-enroll-${course.courseKey}`}>
+                      <Button onClick={() => openRegModal(course.courseKey === "onsite_training" ? "onsite" : course.courseKey === "home_lesson" ? "home_lesson" : "online")} className={`w-full mt-4 bg-gradient-to-r ${gradient} hover:opacity-90 text-white font-bold rounded-xl text-sm`} data-testid={`btn-enroll-${course.courseKey}`}>
                         Enroll Now <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
