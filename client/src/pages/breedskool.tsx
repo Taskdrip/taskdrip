@@ -764,7 +764,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                   <p className="text-xs text-amber-800 font-medium">⚠️ Your registration password didn't match your existing account. Log in below with your <strong>original Taskdrip password</strong> to see your training.</p>
                 </div>
                 <Button
-                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/login?redirect=/dashboard"; }}
+                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/login?redirect=" + encodeURIComponent("/dashboard?tab=training"); }}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl"
                   data-testid="btn-welcome-login"
                 >
@@ -829,7 +829,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                 </div>
 
                 <Button
-                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/dashboard"; }}
+                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/dashboard?tab=training"; }}
                   className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl"
                   data-testid="btn-welcome-dashboard"
                 >

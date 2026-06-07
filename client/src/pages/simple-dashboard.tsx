@@ -17,7 +17,7 @@ import {
   Briefcase, ChevronRight, Sparkles, LayoutDashboard, MessageSquare, Settings,
   Store, ArrowUpRight, Globe, BookOpen, Shield, Coins, Send, Bell, LogOut,
   RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search, Link2,
-  GraduationCap, PlayCircle
+  GraduationCap, PlayCircle, PhoneCall
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -158,9 +158,10 @@ function SeoSettingsCard({ user }: { user: any }) {
 }
 
 // ── Tab definition ─────────────────────────────────────────────────────────────
-type Tab = "overview" | "campaigns" | "p2p" | "wallet" | "shop" | "profile";
+type Tab = "overview" | "training" | "campaigns" | "p2p" | "wallet" | "shop" | "profile";
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: "overview",   label: "Overview",        icon: LayoutDashboard },
+  { id: "training",   label: "My Training",     icon: GraduationCap },
   { id: "campaigns",  label: "Campaigns",        icon: Target },
   { id: "p2p",        label: "P2P & Escrow",     icon: Shield },
   { id: "wallet",     label: "Wallet & Payouts", icon: Wallet },
@@ -174,8 +175,22 @@ export default function SimpleDashboard() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<Tab>("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Read ?tab= from URL to support deep-linking (e.g. /dashboard?tab=training)
+  const urlTab = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(
+    urlTab && TABS.some(t => t.id === urlTab) ? urlTab : "overview"
+  );
+
+  // Clear the ?tab= param from the URL after we've read it (keeps the URL clean)
+  useEffect(() => {
+    if (urlTab) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("tab");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   const uid = (user as any)?.id;
 
@@ -318,8 +333,18 @@ export default function SimpleDashboard() {
         </div>
 
         {/* ── Alerts / Urgent Actions ──────────────────────────────────────── */}
-        {(pendingOffers > 0 || !hasWallet) && (
+        {(pendingOffers > 0 || !hasWallet || (bsRegistrations as any[]).length > 0) && (
           <div className="space-y-2 mb-5">
+            {/* BreedSkool training alert — shown prominently for new students */}
+            {(bsRegistrations as any[]).length > 0 && tab !== "training" && (
+              <div className="flex items-center gap-3 bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
+                <GraduationCap className="h-4 w-4 text-violet-600 flex-shrink-0" />
+                <p className="text-sm text-violet-900 flex-1 font-medium">
+                  You have <strong>{(bsRegistrations as any[]).length}</strong> BreedSkool course{(bsRegistrations as any[]).length > 1 ? "s" : ""} enrolled. Access your training anytime.
+                </p>
+                <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-xs" onClick={() => setTab("training")}>My Training →</Button>
+              </div>
+            )}
             {pendingOffers > 0 && (
               <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
                 <Sparkles className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -355,6 +380,7 @@ export default function SimpleDashboard() {
                 <button key={t.id} onClick={() => { setMobileMenuOpen(false); if (t.id === "shop") { setLocation("/my-orders"); } else { setTab(t.id); } }}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors ${tab === t.id ? "bg-purple-50 text-purple-700 font-semibold" : "text-gray-600 hover:bg-gray-50"}`}>
                   <t.icon className="h-4 w-4" />{t.label}
+                  {t.id === "training" && (bsRegistrations as any[]).length > 0 && <Badge className="ml-auto bg-violet-500 text-white text-[10px] border-0 h-4">{(bsRegistrations as any[]).length}</Badge>}
                   {t.id === "campaigns" && pendingOffers > 0 && <Badge className="ml-auto bg-green-500 text-white text-[10px] border-0 h-4">{pendingOffers}</Badge>}
                 </button>
               ))}
@@ -369,6 +395,7 @@ export default function SimpleDashboard() {
                 data-testid={`tab-${t.id}`}
               >
                 <t.icon className="h-4 w-4" />{t.label}
+                {t.id === "training" && (bsRegistrations as any[]).length > 0 && <Badge className="ml-1 bg-violet-500 text-white text-[10px] border-0 px-1.5 h-4">{(bsRegistrations as any[]).length}</Badge>}
                 {t.id === "campaigns" && pendingOffers > 0 && <Badge className="ml-1 bg-green-500 text-white text-[10px] border-0 px-1.5 h-4">{pendingOffers}</Badge>}
               </button>
             ))}
@@ -645,6 +672,151 @@ export default function SimpleDashboard() {
                     🚀 Starter Campaign <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">Earn 130 pts</Badge>
                   </h2>
                   <WelcomeCampaign />
+                </div>
+              </div>
+            )}
+
+            {/* ============ TRAINING (BreedSkool) ============ */}
+            {tab === "training" && (
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                      <GraduationCap className="h-5 w-5 text-violet-600" /> My BreedSkool Training
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">Manage your tech training courses and track your progress</p>
+                  </div>
+                  <Link href="/breedskool">
+                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white text-xs gap-1">
+                      <BookOpen className="h-3.5 w-3.5" /> Browse Courses
+                    </Button>
+                  </Link>
+                </div>
+
+                {(bsRegistrations as any[]).length === 0 ? (
+                  /* Empty state */
+                  <div className="text-center py-14 rounded-2xl border border-dashed border-violet-200 bg-violet-50/40">
+                    <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <GraduationCap className="h-8 w-8 text-violet-500" />
+                    </div>
+                    <h3 className="font-bold text-gray-800 mb-1">No courses enrolled yet</h3>
+                    <p className="text-sm text-gray-500 max-w-xs mx-auto mb-4">
+                      Join a BreedSkool tech training course to start building your skills and earning potential.
+                    </p>
+                    <Link href="/breedskool">
+                      <Button className="bg-violet-600 hover:bg-violet-700 text-white">Explore Courses →</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  /* Course cards */
+                  <div className="space-y-4">
+                    {(bsRegistrations as any[]).map((reg: any) => {
+                      const statusConfig: Record<string, { color: string; label: string; icon: string; desc: string }> = {
+                        pending:    { color: "bg-yellow-100 text-yellow-700 border-yellow-200", label: "Payment Pending",          icon: "⏳", desc: "Upload your payment proof to confirm enrollment." },
+                        registered: { color: "bg-blue-100 text-blue-700 border-blue-200",       label: "Registered – Free Access", icon: "📚", desc: "You have access to free online lessons." },
+                        paid:       { color: "bg-purple-100 text-purple-700 border-purple-200", label: "Payment Received",         icon: "💳", desc: "Payment confirmed — awaiting admin approval." },
+                        confirmed:  { color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Enrollment Confirmed",  icon: "🎓", desc: "You're fully enrolled. Start learning now!" },
+                        rejected:   { color: "bg-red-100 text-red-700 border-red-200",           label: "Payment Rejected",       icon: "❌", desc: "Contact support to resolve your payment." },
+                      };
+                      const courseGradients: Record<string, string> = {
+                        webdev: "from-blue-500 to-cyan-500",
+                        ai_content: "from-violet-500 to-purple-600",
+                        social_monetize: "from-emerald-500 to-teal-500",
+                        trading: "from-orange-500 to-amber-500",
+                        home_lesson: "from-pink-500 to-rose-500",
+                        onsite_training: "from-teal-500 to-green-500",
+                      };
+                      const sc = statusConfig[reg.paymentStatus] || statusConfig.registered;
+                      const grad = courseGradients[reg.selectedCourseKey] || "from-violet-500 to-indigo-600";
+                      const canLearn = reg.paymentStatus === "confirmed" || reg.paymentStatus === "registered";
+                      return (
+                        <div key={reg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid={`training-card-${reg.id}`}>
+                          <div className={`h-2 bg-gradient-to-r ${grad}`} />
+                          <div className="p-5">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${grad} bg-opacity-10 flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                                <GraduationCap className="h-7 w-7 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-gray-900 text-base">{reg.selectedCourseTitle}</h3>
+                                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                  <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${sc.color}`}>{sc.icon} {sc.label}</span>
+                                  <span className="text-xs text-gray-400 capitalize bg-gray-50 px-2 py-0.5 rounded-full">{reg.deliveryMode?.replace("_", " ")}</span>
+                                  {reg.amountNgn > 0 && <span className="text-xs font-bold text-gray-700">₦{Number(reg.amountNgn).toLocaleString()}</span>}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">{sc.desc}</p>
+                                {reg.paymentStatus === "pending" && reg.transactionRef && (
+                                  <div className="mt-2 bg-gray-50 rounded-lg px-3 py-1.5 inline-block">
+                                    <p className="text-xs text-gray-500 font-mono">Ref: {reg.transactionRef}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-50">
+                              {canLearn ? (
+                                <Link href="/breedskool">
+                                  <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 text-sm">
+                                    <PlayCircle className="h-4 w-4" /> Start Learning
+                                  </Button>
+                                </Link>
+                              ) : reg.paymentStatus === "pending" ? (
+                                <a
+                                  href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just paid for ${reg.selectedCourseTitle} on BreedSkool. My name is ${reg.fullName}. My transaction ref is: ${reg.transactionRef || "N/A"}.`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                >
+                                  <Button variant="outline" className="gap-2 text-sm border-green-300 text-green-700 hover:bg-green-50">
+                                    📲 Send Payment Proof via WhatsApp
+                                  </Button>
+                                </a>
+                              ) : (
+                                <a
+                                  href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I need help with my BreedSkool enrollment for ${reg.selectedCourseTitle}. My name is ${reg.fullName}.`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                >
+                                  <Button variant="outline" className="gap-2 text-sm">📞 Contact Support</Button>
+                                </a>
+                              )}
+                              <a
+                                href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I'm a BreedSkool student enrolled in ${reg.selectedCourseTitle}. My name is ${reg.fullName}.`)}`}
+                                target="_blank" rel="noopener noreferrer"
+                              >
+                                <Button variant="ghost" size="sm" className="text-green-700 hover:bg-green-50 gap-1 text-xs">
+                                  <PhoneCall className="h-3.5 w-3.5" /> WhatsApp Tutor
+                                </Button>
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Influencer account CTA */}
+                <div className="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <DollarSign className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-base">You also have an Influencer Account!</h3>
+                      <p className="text-sm text-emerald-100 mt-1">Your BreedSkool account is linked to Taskdrip. Earn from brand campaigns, P2P trading, and referrals — all in one place.</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Link href="/campaigns">
+                          <Button size="sm" className="bg-white text-emerald-700 hover:bg-emerald-50 text-xs font-bold gap-1">
+                            <Target className="h-3.5 w-3.5" /> Browse Campaigns
+                          </Button>
+                        </Link>
+                        <Link href="/wallet">
+                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20 text-xs gap-1">
+                            <Wallet className="h-3.5 w-3.5" /> Set Up Wallet
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
