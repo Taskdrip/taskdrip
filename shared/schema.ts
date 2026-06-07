@@ -2169,6 +2169,7 @@ export const breedskoolCoursePricing = pgTable("breedskool_course_pricing", {
   duration: varchar("duration"),
   isActive: boolean("is_active").default(true),
   acceptedPayments: text("accepted_payments").array().default(sql`ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']`),
+  linkedCourseId: varchar("linked_course_id").references(() => courses.id), // linked platform course for enrollment
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 export type BreedskoolCoursePricing = typeof breedskoolCoursePricing.$inferSelect;

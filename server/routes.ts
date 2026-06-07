@@ -5528,6 +5528,40 @@ Instructions:
         homeAddress: homeAddress || null,
       }).returning();
 
+      // Auto-enroll student in the linked platform course
+      let linkedCourseId: string | null = null;
+      try {
+        const pricingRows = await db.select().from(breedskoolCoursePricing)
+          .where(eq(breedskoolCoursePricing.courseKey, selectedCourseKey))
+          .limit(1);
+        const pricing = pricingRows[0];
+        if (pricing?.linkedCourseId) {
+          linkedCourseId = pricing.linkedCourseId;
+          // Check not already enrolled
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id })
+            .from(courseEnrollments)
+            .where(and(
+              eq(courseEnrollments.courseId, linkedCourseId),
+              eq(courseEnrollments.userId, userId!)
+            ))
+            .limit(1);
+          if (!alreadyEnrolled.length) {
+            await db.insert(courseEnrollments).values({
+              courseId: linkedCourseId,
+              userId: userId!,
+              status: 'active',
+              isPaid: !isPayLater,
+              paymentMethod: paymentMethod || null,
+              amount: String(parseInt(amountNgn) || 0),
+            } as any);
+            // Award points for enrollment
+            storage.awardPoints(userId!, 'course_enroll', 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {});
+          }
+        }
+      } catch (enrollErr: any) {
+        console.error('[breedskool-register] enrollment error (non-fatal):', enrollErr?.message);
+      }
+
       // Auto-login the student (new users OR existing users with correct password)
       if (loginUser) {
         await new Promise<void>((resolve, reject) => {
@@ -5550,6 +5584,7 @@ Instructions:
         existingAccount: isExistingAccount,
         wrongPassword,
         user: safeUser,
+        linkedCourseId,
       });
     } catch (e: any) {
       res.status(500).json({ message: e.message });

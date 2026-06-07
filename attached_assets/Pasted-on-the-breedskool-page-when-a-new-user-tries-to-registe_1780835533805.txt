@@ -1,0 +1,53 @@
+on the breedskool page when a new user tries to register either online training, onsite training , Home lessons, whether the student checkouts and makes payment or decides to pay later - add them to course or training based on the training they select, Pick your program
+Choose the course that aligns with your goals
+
+8 Weeks
+-32% OFF
+Web Development & Vibe Coding
+Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment.
+
+₦220,000
+₦150,000
+≈ $90.91
+6 Weeks
+-34% OFF
+AI Content Creation & Video Editing
+Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms.
+
+₦270,000
+₦179,000
+≈ $108.48
+6 Weeks
+-20% OFF
+Social Media & Web Assets Monetization
+Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams.
+
+₦400,000
+₦320,000
+≈ $193.94
+8 Weeks
+-13% OFF
+Pocket Option Trading
+Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom.
+
+₦320,000
+₦279,000
+≈ $169.09
+Per Session
+-29% OFF
+Tech Home Lessons for Kids
+One-on-one tech lessons delivered at your home by a certified tutor. Book flexible sessions for your child (ages 6–17) covering coding, AI tools, digital skills, and more.
+
+₦120,000
+₦85,000
+≈ $51.52
+6–8 Weeks
+-28% OFF
+Onsite Group Training
+Join our hands-on classroom sessions at TootoOba Estate, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support.
+
+₦180,000
+₦130,000
+≈ $78.79
+
+Create this different trainings as course that is already existing on the platform , that it automatically takes the user to the course the registered page with details of the course, allow participants to follow each other, chat and comment on the course , allow all home lessons students to be added to a home lesson course where they can chat with tutor and other others, like a group chat and private chat to the tutor from all students, and all , improve this system and integrate this feature to the web app and make it work seamlessly

@@ -282,6 +282,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
   const [showSuccess, setShowSuccess] = useState(false);
   const [registeredName, setRegisteredName] = useState("");
   const [registeredCourse, setRegisteredCourse] = useState("");
+  const [registeredCourseId, setRegisteredCourseId] = useState<string | null>(null);
   const [payLater, setPayLater] = useState(false);
   const [regWrongPassword, setRegWrongPassword] = useState(false);
   const [regAutoLoggedIn, setRegAutoLoggedIn] = useState(false);
@@ -341,15 +342,16 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
     onSuccess: (data) => {
       setRegisteredName(form.fullName);
       setRegisteredCourse(form.selectedCourseTitle);
+      setRegisteredCourseId(data.linkedCourseId || null);
       setPayLater(form.paymentOption === "pay_later");
       setRegWrongPassword(!!data.wrongPassword);
       setRegAutoLoggedIn(!!data.loggedIn);
       onClose();
       setShowSuccess(true);
       if (data.loggedIn && data.user) {
-        // Immediately seed auth state so the dashboard renders without a blank flash
         queryClient.setQueryData(["/api/user"], data.user);
         queryClient.invalidateQueries({ queryKey: ["/api/my/breedskool-registrations"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/my/enrollments"] });
       }
     },
     onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
@@ -849,9 +851,19 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
                   </a>
                 </div>
 
+                {registeredCourseId && (
+                  <Button
+                    onClick={() => { setShowSuccess(false); reset(); navigate(`/breedskool/${registeredCourseId}`); }}
+                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl h-12 text-base"
+                    data-testid="btn-welcome-go-course"
+                  >
+                    🎓 Go to My Course →
+                  </Button>
+                )}
                 <Button
+                  variant={registeredCourseId ? "outline" : undefined}
                   onClick={() => { setShowSuccess(false); reset(); navigate("/dashboard?tab=training"); }}
-                  className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl"
+                  className={`w-full font-bold rounded-xl ${registeredCourseId ? "" : "bg-gradient-to-r from-violet-600 to-indigo-600 text-white"}`}
                   data-testid="btn-welcome-dashboard"
                 >
                   Go to My Dashboard 🚀
