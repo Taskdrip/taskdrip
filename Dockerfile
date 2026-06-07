@@ -10,14 +10,14 @@ ENV CI=false
 
 COPY package.json package-lock.json ./
 
-# Use `npm install --include=dev` (NOT `npm ci`) because:
-#   • npm ci silently honours NPM_CONFIG_PRODUCTION even with ENV overrides
-#   • npm install --include=dev is a documented, explicit flag that forces
-#     devDependencies to be installed regardless of any env variable.
-RUN npm install --include=dev --no-audit --no-fund
+# Force public npm registry — package-lock.json may contain Replit-internal
+# registry URLs (package-firewall.replit.local) which are unreachable externally.
+RUN npm install --include=dev --no-audit --no-fund \
+      --registry https://registry.npmjs.org/
 
 # Fail fast with a clear message if vite is somehow still missing.
-RUN test -f node_modules/.bin/vite || (echo "ERROR: vite binary not found after npm install" && exit 1)
+RUN test -f node_modules/.bin/vite || \
+      (echo "ERROR: vite binary not found after npm install" && exit 1)
 
 COPY . .
 
@@ -40,7 +40,8 @@ ENV NODE_ENV=production
 ENV PORT=5000
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm ci --omit=dev --no-audit --no-fund \
+      --registry https://registry.npmjs.org/
 
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p uploads
