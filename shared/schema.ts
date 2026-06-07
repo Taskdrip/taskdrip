@@ -1332,6 +1332,30 @@ export const courseCertificates = pgTable("course_certificates", {
   issuedAt: timestamp("issued_at").defaultNow(),
 });
 
+// Community board posts (per-course threaded discussion board, separate from chat)
+export const courseCommunityPosts = pgTable("course_community_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  replyToId: varchar("reply_to_id"), // nullable — set for replies, references another post id
+  likeCount: integer("like_count").default(0),
+  isDeleted: boolean("is_deleted").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tracks who liked which community post (for toggle/unique enforcement)
+export const courseCommunityLikes = pgTable("course_community_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => courseCommunityPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type CourseCommunityPost = typeof courseCommunityPosts.$inferSelect;
+export type CourseCommunityLike = typeof courseCommunityLikes.$inferSelect;
+export const insertCourseCommunityPostSchema = createInsertSchema(courseCommunityPosts).omit({ id: true, createdAt: true, likeCount: true });
+
 // Payment Networks — admin toggles which crypto deposit/withdrawal networks are active
 export const paymentNetworks = pgTable("payment_networks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

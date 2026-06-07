@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Clock, Users, Phone, Calendar, ChevronRight,
   BookOpen, Wifi, Home, GraduationCap, Star, CheckCircle2,
-  CheckCircle, Loader2,
+  CheckCircle, Loader2, UploadCloud,
 } from "lucide-react";
 
 const SCHEDULE = [
@@ -37,6 +37,8 @@ export default function BreedSkoolOnsite() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -44,33 +46,39 @@ export default function BreedSkoolOnsite() {
     program: SCHEDULE[0].program,
     location: "",
     referral: "",
+    paymentMethodId: "",
   });
 
   const { data: pricing = [] } = useQuery<any[]>({
     queryKey: ["/api/breedskool/pricing"],
   });
 
+  const { data: paymentMethods = [] } = useQuery<any[]>({
+    queryKey: ["/api/payment-methods"],
+  });
+
   const onsitePricing = pricing.find((p: any) =>
     p.courseKey === "onsite_training" || p.label?.toLowerCase().includes("onsite") || p.deliveryMode === "onsite"
   );
 
+  const activeMethods = (paymentMethods as any[]).filter((m: any) => m.isActive);
+
   const registerMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/breedskool/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          fullName: form.fullName.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
-          selectedCourseKey: "onsite_training",
-          selectedCourseTitle: form.program,
-          location: form.location.trim(),
-          notes: form.referral.trim() ? `Referral: ${form.referral.trim()}` : undefined,
-          deliveryMode: "onsite",
-        }),
-      });
+      const selectedMethod = activeMethods.find((m: any) => m.id === form.paymentMethodId) || activeMethods[0];
+      const fd = new FormData();
+      fd.append("fullName", form.fullName.trim());
+      fd.append("email", form.email.trim());
+      fd.append("phone", form.phone.trim());
+      fd.append("selectedCourseKey", "onsite_training");
+      fd.append("selectedCourseTitle", form.program);
+      fd.append("location", form.location.trim());
+      fd.append("deliveryMode", "onsite");
+      fd.append("paymentOption", proofFile ? "paid" : "pay_later");
+      if (selectedMethod) fd.append("paymentMethod", selectedMethod.label || selectedMethod.type);
+      if (proofFile) fd.append("paymentProof", proofFile);
+      if (form.referral.trim()) fd.append("notes", `Referral: ${form.referral.trim()}`);
+      const res = await fetch("/api/breedskool/register", { method: "POST", body: fd, credentials: "include" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Registration failed");
       return data;
@@ -92,6 +100,12 @@ export default function BreedSkoolOnsite() {
       return;
     }
     registerMutation.mutate();
+  };
+
+  const resetForm = () => {
+    setSubmitted(false);
+    setProofFile(null);
+    setForm({ fullName: "", email: "", phone: "", program: SCHEDULE[0].program, location: "", referral: "", paymentMethodId: "" });
   };
 
   return (
@@ -169,8 +183,8 @@ export default function BreedSkoolOnsite() {
                   <CheckCircle className="h-8 w-8 text-emerald-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">You're registered!</h3>
-                <p className="text-gray-500 mb-6">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot and share payment details.</p>
-                <Button variant="outline" className="gap-2" onClick={() => { setSubmitted(false); setForm({ fullName: "", email: "", phone: "", program: SCHEDULE[0].program, location: "", referral: "" }); }}>
+                <p className="text-gray-500 mb-6">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
+                <Button variant="outline" className="gap-2" onClick={resetForm}>
                   Register another person
                 </Button>
               </div>
@@ -179,90 +193,86 @@ export default function BreedSkoolOnsite() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <Label htmlFor="fullName">Full Name <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="fullName"
-                      value={form.fullName}
-                      onChange={e => handleChange("fullName", e.target.value)}
-                      placeholder="e.g. Chidi Okafor"
-                      required
-                      data-testid="input-onsite-fullname"
-                    />
+                    <Input id="fullName" value={form.fullName} onChange={e => handleChange("fullName", e.target.value)}
+                      placeholder="e.g. Chidi Okafor" required data-testid="input-onsite-fullname" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="phone">Phone / WhatsApp <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="phone"
-                      value={form.phone}
-                      onChange={e => handleChange("phone", e.target.value)}
-                      placeholder="+234 800 000 0000"
-                      required
-                      data-testid="input-onsite-phone"
-                    />
+                    <Input id="phone" value={form.phone} onChange={e => handleChange("phone", e.target.value)}
+                      placeholder="+234 800 000 0000" required data-testid="input-onsite-phone" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={form.email}
-                    onChange={e => handleChange("email", e.target.value)}
-                    placeholder="you@email.com"
-                    required
-                    data-testid="input-onsite-email"
-                  />
+                  <Input id="email" type="email" value={form.email} onChange={e => handleChange("email", e.target.value)}
+                    placeholder="you@email.com" required data-testid="input-onsite-email" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="program">Which programme interests you?</Label>
-                  <select
-                    id="program"
-                    value={form.program}
-                    onChange={e => handleChange("program", e.target.value)}
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    data-testid="select-onsite-program"
-                  >
-                    {SCHEDULE.map((s, i) => (
-                      <option key={i} value={s.program}>{s.program} — {s.day} · {s.time}</option>
-                    ))}
+                  <Label htmlFor="program">Programme <span className="text-red-500">*</span></Label>
+                  <select id="program" value={form.program} onChange={e => handleChange("program", e.target.value)}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    data-testid="select-onsite-program">
+                    {SCHEDULE.map((s, i) => <option key={i} value={s.program}>{s.program} — {s.day} · {s.time}</option>)}
                   </select>
+                </div>
+
+                {activeMethods.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Payment Method (optional — or pay on arrival)</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {activeMethods.slice(0, 6).map((m: any) => (
+                        <button key={m.id} type="button"
+                          onClick={() => handleChange("paymentMethodId", form.paymentMethodId === m.id ? "" : m.id)}
+                          className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left text-sm transition-all ${form.paymentMethodId === m.id ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-violet-200"}`}
+                          data-testid={`button-payment-method-${m.id}`}>
+                          <span className="text-base">{m.type === "crypto" ? "🪙" : m.type === "bank" ? "🏦" : "💳"}</span>
+                          <span className="font-medium text-gray-800 truncate">{m.label}</span>
+                          {form.paymentMethodId === m.id && <CheckCircle2 className="h-4 w-4 text-violet-600 ml-auto flex-shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label>Payment Proof (optional — upload if you've already paid)</Label>
+                  <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
+                    onChange={e => setProofFile(e.target.files?.[0] || null)}
+                    data-testid="input-onsite-proof" />
+                  <button type="button" onClick={() => fileRef.current?.click()}
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 border-dashed transition-colors text-sm ${proofFile ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-gray-300 hover:border-violet-300 text-gray-500"}`}
+                    data-testid="button-upload-proof">
+                    <UploadCloud className="h-5 w-5 flex-shrink-0" />
+                    {proofFile ? <>✓ {proofFile.name}</> : "Click to upload payment receipt / screenshot"}
+                  </button>
+                  {proofFile && <button type="button" className="text-xs text-gray-400 hover:text-red-500"
+                    onClick={() => { setProofFile(null); if (fileRef.current) fileRef.current.value = ""; }}>Remove file</button>}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="location">Your location / area (optional)</Label>
-                  <Input
-                    id="location"
-                    value={form.location}
-                    onChange={e => handleChange("location", e.target.value)}
-                    placeholder="e.g. Ikorodu, Gbagada, Lekki…"
-                    data-testid="input-onsite-location"
-                  />
+                  <Input id="location" value={form.location} onChange={e => handleChange("location", e.target.value)}
+                    placeholder="e.g. Ikorodu, Gbagada, Lekki…" data-testid="input-onsite-location" />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="referral">How did you hear about us? (optional)</Label>
-                  <Input
-                    id="referral"
-                    value={form.referral}
-                    onChange={e => handleChange("referral", e.target.value)}
-                    placeholder="Social media, friend, Google…"
-                    data-testid="input-onsite-referral"
-                  />
+                  <Input id="referral" value={form.referral} onChange={e => handleChange("referral", e.target.value)}
+                    placeholder="Social media, friend, Google…" data-testid="input-onsite-referral" />
                 </div>
 
-                <Button
-                  type="submit"
+                <Button type="submit"
                   className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white text-base font-semibold gap-2 shadow-lg shadow-violet-200"
-                  disabled={registerMutation.isPending}
-                  data-testid="button-submit-onsite-registration"
-                >
+                  disabled={registerMutation.isPending} data-testid="button-submit-onsite-registration">
                   {registerMutation.isPending
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</>
-                    : <><GraduationCap className="h-5 w-5" /> Reserve My Spot</>
-                  }
+                    : <><GraduationCap className="h-5 w-5" /> Reserve My Spot</>}
                 </Button>
-                <p className="text-center text-xs text-gray-400">No payment required now. We'll send you details after confirmation.</p>
+                <p className="text-center text-xs text-gray-400">
+                  {proofFile ? "Payment proof will be reviewed by our team." : "No payment required now — you can pay on arrival or upload proof above."}
+                </p>
               </form>
             )}
           </div>
@@ -434,7 +444,7 @@ export default function BreedSkoolOnsite() {
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">You're registered!</h3>
               <p className="text-gray-500 text-sm mb-4">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
-              <Button onClick={() => setShowForm(false)}>Close</Button>
+              <Button onClick={() => { setShowForm(false); resetForm(); }}>Close</Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 mt-2" data-testid="form-onsite-registration-modal">
@@ -460,6 +470,30 @@ export default function BreedSkoolOnsite() {
                   {SCHEDULE.map((s, i) => <option key={i} value={s.program}>{s.program}</option>)}
                 </select>
               </div>
+              {activeMethods.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Payment Method (optional)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {activeMethods.slice(0, 4).map((m: any) => (
+                      <button key={m.id} type="button"
+                        onClick={() => handleChange("paymentMethodId", form.paymentMethodId === m.id ? "" : m.id)}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left text-xs transition-all ${form.paymentMethodId === m.id ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-violet-200"}`}>
+                        <span>{m.type === "crypto" ? "🪙" : m.type === "bank" ? "🏦" : "💳"}</span>
+                        <span className="font-medium truncate">{m.label}</span>
+                        {form.paymentMethodId === m.id && <CheckCircle2 className="h-3.5 w-3.5 text-violet-600 ml-auto flex-shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label>Payment Proof (optional)</Label>
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className={`w-full flex items-center gap-2 p-3 rounded-lg border-2 border-dashed text-sm transition-colors ${proofFile ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-gray-300 hover:border-violet-300 text-gray-500"}`}>
+                  <UploadCloud className="h-4 w-4 flex-shrink-0" />
+                  {proofFile ? `✓ ${proofFile.name}` : "Upload payment receipt / screenshot"}
+                </button>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="m-location">Your area (optional)</Label>
                 <Input id="m-location" value={form.location} onChange={e => handleChange("location", e.target.value)} placeholder="e.g. Ikorodu, Lekki…" data-testid="input-modal-onsite-location" />
@@ -467,7 +501,9 @@ export default function BreedSkoolOnsite() {
               <Button type="submit" className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white font-semibold gap-2" disabled={registerMutation.isPending} data-testid="button-submit-modal-onsite">
                 {registerMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</> : <><GraduationCap className="h-4 w-4" /> Reserve My Spot</>}
               </Button>
-              <p className="text-center text-xs text-gray-400">No payment needed now. We'll confirm and send payment details.</p>
+              <p className="text-center text-xs text-gray-400">
+                {proofFile ? "Proof will be reviewed after submission." : "You can pay on arrival or upload proof above."}
+              </p>
             </form>
           )}
         </DialogContent>

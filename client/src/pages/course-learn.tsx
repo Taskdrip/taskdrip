@@ -164,11 +164,19 @@ export default function CourseLearn() {
     enabled: !!id && isAuthenticated && !!isApproved,
   });
 
+  // Community posts (dedicated threaded board)
+  const { data: communityPosts = [], refetch: refetchPosts } = useQuery<any[]>({
+    queryKey: ["/api/courses", id, "community", "posts"],
+    queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/community/posts`)).json(),
+    enabled: !!id && isAuthenticated && !!isApproved,
+    refetchInterval: activeTab === "community" ? 5000 : false,
+  });
+
   const { data: groupChat = [] } = useQuery<any[]>({
     queryKey: ["/api/courses", id, "chat", "group"],
     queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/chat?scope=group`)).json(),
     enabled: !!id && isAuthenticated && !!isApproved,
-    refetchInterval: (activeTab === "group" || activeTab === "community") ? 5000 : false,
+    refetchInterval: activeTab === "group" ? 5000 : false,
   });
 
   const { data: tutorChat = [] } = useQuery<any[]>({
@@ -187,7 +195,7 @@ export default function CourseLearn() {
   }, [tutorChat, activeTab]);
   useEffect(() => {
     if (activeTab === "community" && communityRef.current) communityRef.current.scrollTop = communityRef.current.scrollHeight;
-  }, [groupChat, activeTab]);
+  }, [communityPosts, activeTab]);
 
   // ── Mutations ──────────────────────────────────────────────────────────
   const completeMutation = useMutation({
@@ -258,6 +266,29 @@ export default function CourseLearn() {
       });
     },
     onError: (e: any) => toast({ title: "Couldn't follow user", description: e?.message, variant: "destructive" }),
+  });
+
+  const createPost = useMutation({
+    mutationFn: async ({ message, replyToId }: { message: string; replyToId?: string | null }) =>
+      (await apiRequest("POST", `/api/courses/${id}/community/posts`, { message, replyToId: replyToId || null })).json(),
+    onSuccess: () => {
+      setCommunityPost(""); setReplyTo(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "community", "posts"] });
+    },
+    onError: (e: any) => toast({ title: "Post failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const likePost = useMutation({
+    mutationFn: async (postId: string) =>
+      (await apiRequest("POST", `/api/courses/${id}/community/posts/${postId}/like`)).json(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "community", "posts"] }),
+  });
+
+  const deletePost = useMutation({
+    mutationFn: async (postId: string) =>
+      (await apiRequest("DELETE", `/api/courses/${id}/community/posts/${postId}`)).json(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "community", "posts"] }),
+    onError: (e: any) => toast({ title: "Delete failed", description: e?.message, variant: "destructive" }),
   });
 
   const sendGroup = useMutation({
@@ -731,93 +762,156 @@ export default function CourseLearn() {
             </TabsContent>
             {/* Community tab */}
             <TabsContent value="community" className="mt-4">
-              {/* Community Post Board */}
+              {/* Community Post Board — real threaded posts with persistent likes */}
               <div className="bg-white border rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 border-b bg-gradient-to-r from-cyan-50 to-violet-50 flex items-center gap-2">
                   <MessageSquare className="h-5 w-5 text-cyan-600" />
                   <div>
                     <h3 className="font-semibold text-gray-900">Community Board</h3>
-                    <p className="text-xs text-gray-500">Share updates, questions & resources with classmates</p>
+                    <p className="text-xs text-gray-500">
+                      {communityPosts.filter((p: any) => !p.replyToId).length} post{communityPosts.filter((p: any) => !p.replyToId).length !== 1 ? "s" : ""} · updates every 5s
+                    </p>
                   </div>
                 </div>
 
-                {/* Post feed */}
-                <div ref={communityRef} className="max-h-[360px] overflow-y-auto divide-y">
-                  {groupChat.length === 0 ? (
+                {/* Post feed — top-level posts with nested replies */}
+                <div ref={communityRef} className="max-h-[420px] overflow-y-auto">
+                  {communityPosts.filter((p: any) => !p.replyToId).length === 0 ? (
                     <div className="text-center py-12 text-gray-400 text-sm px-5">
                       <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-25" />
                       <p>No posts yet. Be the first to share something!</p>
                     </div>
                   ) : (
-                    [...groupChat].reverse().map((msg: any) => {
-                      const name = `${msg.firstName || msg.sender?.firstName || ""}${msg.lastName || msg.sender?.lastName ? " " + (msg.lastName || msg.sender?.lastName) : ""}`.trim() || "Student";
+                    communityPosts.filter((p: any) => !p.replyToId).map((post: any) => {
+                      const replies = communityPosts.filter((r: any) => r.replyToId === post.id);
+                      const name = `${post.firstName || ""}${post.lastName ? " " + post.lastName : ""}`.trim() || "Student";
                       const initials = name.slice(0, 2).toUpperCase();
-                      const liked = likedPosts.has(msg.id);
-                      const ts = msg.createdAt ? new Date(msg.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+                      const ts = post.createdAt ? new Date(post.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
                       return (
-                        <div key={msg.id} className="p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex gap-3">
-                            <Avatar className="h-9 w-9 flex-shrink-0">
-                              <AvatarImage src={msg.profileImageUrl || msg.sender?.profileImageUrl} />
-                              <AvatarFallback className="text-xs bg-violet-100 text-violet-700">{initials}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-baseline gap-2">
-                                <span className="font-semibold text-sm text-gray-900">{name}</span>
-                                {msg.userId === myId && <span className="text-xs text-violet-500">you</span>}
-                                <span className="text-xs text-gray-400 ml-auto">{ts}</span>
-                              </div>
-                              <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words">{msg.message}</p>
-                              <div className="flex items-center gap-3 mt-2">
-                                <button
-                                  className={`flex items-center gap-1 text-xs transition-colors ${liked ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
-                                  onClick={() => setLikedPosts(prev => { const n = new Set(prev); liked ? n.delete(msg.id) : n.add(msg.id); return n; })}
-                                  data-testid={`button-like-post-${msg.id}`}
-                                >
-                                  {liked ? "♥" : "♡"} {liked ? "Liked" : "Like"}
-                                </button>
-                                <button
-                                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500 transition-colors"
-                                  onClick={() => { setReplyTo({ id: msg.id, name, message: msg.message }); setCommunityPost(`@${name} `); }}
-                                  data-testid={`button-reply-post-${msg.id}`}
-                                >
-                                  <Reply className="h-3 w-3" /> Reply
-                                </button>
+                        <div key={post.id} className="border-b last:border-0">
+                          {/* Top-level post */}
+                          <div className="p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex gap-3">
+                              <Avatar className="h-9 w-9 flex-shrink-0">
+                                <AvatarImage src={post.profileImageUrl} />
+                                <AvatarFallback className="text-xs bg-violet-100 text-violet-700">{initials}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-baseline gap-2 flex-wrap">
+                                  <span className="font-semibold text-sm text-gray-900">{name}</span>
+                                  {post.userId === myId && <span className="text-xs text-violet-500">(you)</span>}
+                                  {(post.userType === "admin" || post.userId === tutorId) && (
+                                    <Badge className="text-[10px] h-4 bg-violet-100 text-violet-700 px-1">Instructor</Badge>
+                                  )}
+                                  <span className="text-xs text-gray-400 ml-auto">{ts}</span>
+                                </div>
+                                <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap break-words">{post.message}</p>
+                                <div className="flex items-center gap-3 mt-2">
+                                  <button
+                                    className={`flex items-center gap-1 text-xs transition-colors ${post.likedByMe ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
+                                    onClick={() => likePost.mutate(post.id)}
+                                    data-testid={`button-like-post-${post.id}`}
+                                  >
+                                    {post.likedByMe ? "♥" : "♡"} {post.likeCount || 0}
+                                  </button>
+                                  <button
+                                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-500 transition-colors"
+                                    onClick={() => { setReplyTo({ id: post.id, name, message: post.message }); setCommunityPost(""); document.querySelector<HTMLTextAreaElement>('[data-testid="input-community-post"]')?.focus(); }}
+                                    data-testid={`button-reply-post-${post.id}`}
+                                  >
+                                    <Reply className="h-3 w-3" /> Reply {replies.length > 0 && `(${replies.length})`}
+                                  </button>
+                                  {post.userId === myId && (
+                                    <button
+                                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors ml-auto"
+                                      onClick={() => deletePost.mutate(post.id)}
+                                      data-testid={`button-delete-post-${post.id}`}
+                                    >
+                                      <X className="h-3 w-3" /> Delete
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
+                          {/* Nested replies */}
+                          {replies.map((reply: any) => {
+                            const rName = `${reply.firstName || ""}${reply.lastName ? " " + reply.lastName : ""}`.trim() || "Student";
+                            const rInitials = rName.slice(0, 2).toUpperCase();
+                            const rTs = reply.createdAt ? new Date(reply.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+                            return (
+                              <div key={reply.id} className="pl-12 pr-4 py-3 bg-gray-50 border-t border-dashed border-gray-200 hover:bg-violet-50/30 transition-colors">
+                                <div className="flex gap-2.5">
+                                  <Avatar className="h-7 w-7 flex-shrink-0">
+                                    <AvatarImage src={reply.profileImageUrl} />
+                                    <AvatarFallback className="text-[10px] bg-cyan-100 text-cyan-700">{rInitials}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="font-semibold text-xs text-gray-800">{rName}</span>
+                                      {reply.userId === myId && <span className="text-[10px] text-violet-400">(you)</span>}
+                                      <span className="text-[10px] text-gray-400 ml-auto">{rTs}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words">{reply.message}</p>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                      <button
+                                        className={`flex items-center gap-1 text-xs transition-colors ${reply.likedByMe ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
+                                        onClick={() => likePost.mutate(reply.id)}
+                                      >
+                                        {reply.likedByMe ? "♥" : "♡"} {reply.likeCount || 0}
+                                      </button>
+                                      {reply.userId === myId && (
+                                        <button className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-auto flex items-center gap-1"
+                                          onClick={() => deletePost.mutate(reply.id)}>
+                                          <X className="h-3 w-3" /> Delete
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })
                   )}
                 </div>
 
-                {/* Post compose box */}
+                {/* Compose box */}
                 {isApproved && (
                   <div className="p-4 border-t bg-gray-50">
                     {replyTo && (
-                      <div className="mb-2 flex items-center gap-2 text-xs text-violet-600 bg-violet-50 rounded-lg px-3 py-1.5">
+                      <div className="mb-2 flex items-center gap-2 text-xs text-violet-600 bg-violet-50 border border-violet-200 rounded-lg px-3 py-1.5">
                         <Reply className="h-3 w-3" /> Replying to <span className="font-semibold">{replyTo.name}</span>
-                        <button className="ml-auto" onClick={() => { setReplyTo(null); setCommunityPost(""); }}><X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" /></button>
+                        <span className="text-gray-400 truncate max-w-[200px]">"{replyTo.message.slice(0, 40)}{replyTo.message.length > 40 ? "…" : ""}"</span>
+                        <button className="ml-auto" onClick={() => { setReplyTo(null); setCommunityPost(""); }}>
+                          <X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" />
+                        </button>
                       </div>
                     )}
                     <div className="flex gap-2">
                       <Textarea
                         value={communityPost}
                         onChange={e => setCommunityPost(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && communityPost.trim()) { e.preventDefault(); sendGroup.mutate(communityPost.trim()); setCommunityPost(""); setReplyTo(null); } }}
-                        placeholder="Share something with your classmates… (Enter to post)"
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey && communityPost.trim()) {
+                            e.preventDefault();
+                            createPost.mutate({ message: communityPost.trim(), replyToId: replyTo?.id });
+                          }
+                        }}
+                        placeholder={replyTo ? `Reply to ${replyTo.name}…` : "Share something with your classmates… (Enter to post)"}
                         className="flex-1 min-h-[60px] max-h-[120px] text-sm resize-none rounded-xl"
                         data-testid="input-community-post"
                       />
                       <Button
                         size="sm"
                         className="self-end h-9 px-3 bg-cyan-600 hover:bg-cyan-700"
-                        disabled={!communityPost.trim() || sendGroup.isPending}
-                        onClick={() => { sendGroup.mutate(communityPost.trim()); setCommunityPost(""); setReplyTo(null); }}
+                        disabled={!communityPost.trim() || createPost.isPending}
+                        onClick={() => createPost.mutate({ message: communityPost.trim(), replyToId: replyTo?.id })}
                         data-testid="button-submit-community-post"
                       >
-                        <Send className="h-4 w-4" />
+                        {createPost.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>

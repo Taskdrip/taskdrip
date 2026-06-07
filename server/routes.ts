@@ -8,7 +8,7 @@ import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blo
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -573,26 +573,22 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.json({ message: 'Already a creator', user: u });
       }
       // Server-side eligibility: must have at least one enrollment with >= 50% progress
-      let enrolledCourse: any = null;
-      try {
-        const enrollments = await storage.getMyEnrollments(userId);
-        enrolledCourse = enrollments.find((e: any) =>
-          (e.status === 'active' || e.status === 'completed') && (e.progress || 0) >= 50
-        );
-        if (!enrolledCourse) {
-          return res.status(403).json({ message: 'You must complete at least 50% of a BreedSkool course to upgrade to Creator.' });
-        }
-      } catch (_) {}
+      // Fail closed: any error propagates rather than silently granting upgrade
+      const enrollments = await storage.getMyEnrollments(userId);
+      const enrolledCourse = enrollments.find((e: any) =>
+        (e.status === 'active' || e.status === 'completed') && (e.progress || 0) >= 50
+      );
+      if (!enrolledCourse) {
+        return res.status(403).json({ message: 'You must complete at least 50% of a BreedSkool course to upgrade to Creator.' });
+      }
       // Prefill niche and bio from enrolled course metadata
       let niche: string | null = null;
       let bio: string | null = null;
-      try {
-        if (enrolledCourse?.courseId) {
-          const course = await storage.getCourseById(enrolledCourse.courseId);
-          if (course?.category) niche = course.category;
-          if (course?.title) bio = `BreedSkool graduate — ${course.title}. Passionate about creating impactful content and building an online income.`;
-        }
-      } catch (_) {}
+      const enrolledCourseData = enrolledCourse?.courseId
+        ? await storage.getCourseById(enrolledCourse.courseId)
+        : null;
+      if (enrolledCourseData?.category) niche = enrolledCourseData.category;
+      if (enrolledCourseData?.title) bio = `BreedSkool graduate — ${enrolledCourseData.title}. Passionate about creating impactful content and building an online income.`;
       const updatePayload: any = { userType: 'creator' };
       if (niche && !u.niche) updatePayload.niche = niche;
       if (bio && !u.bio) updatePayload.bio = bio;
@@ -5973,6 +5969,136 @@ Instructions:
       res.json(rows);
     } catch (e: any) {
       res.status(500).json({ message: e.message || 'Failed to fetch community' });
+    }
+  });
+
+  // ── Community Posts (threaded discussion board, separate from chat) ──────────────
+  // GET: list top-level posts + replies, with current user's like status
+  app.get('/api/courses/:id/community/posts', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const courseId = req.params.id;
+      // Authorization: must be enrolled, instructor, or admin
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      if (!isAdmin) {
+        const course = await storage.getCourseById(courseId);
+        const isInstructor = course && (course as any).instructorId === u.id;
+        if (!isInstructor) {
+          const enrollment = await storage.getCourseEnrollment(courseId, u.id);
+          if (!enrollment || enrollment.status !== 'active') {
+            return res.status(403).json({ message: 'You must be enrolled to view the community.' });
+          }
+        }
+      }
+      const posts = await db.select({
+        id: courseCommunityPosts.id,
+        courseId: courseCommunityPosts.courseId,
+        userId: courseCommunityPosts.userId,
+        message: courseCommunityPosts.message,
+        replyToId: courseCommunityPosts.replyToId,
+        likeCount: courseCommunityPosts.likeCount,
+        isDeleted: courseCommunityPosts.isDeleted,
+        createdAt: courseCommunityPosts.createdAt,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        username: users.username,
+        userType: users.userType,
+      })
+        .from(courseCommunityPosts)
+        .leftJoin(users, eq(courseCommunityPosts.userId, users.id))
+        .where(and(
+          eq(courseCommunityPosts.courseId, courseId),
+          eq(courseCommunityPosts.isDeleted, false)
+        ))
+        .orderBy(courseCommunityPosts.createdAt)
+        .limit(200);
+      // Get current user's likes
+      const likes = await db.select().from(courseCommunityLikes)
+        .where(eq(courseCommunityLikes.userId, u.id));
+      const likedSet = new Set(likes.map((l: any) => l.postId));
+      const result = posts.map((p: any) => ({ ...p, likedByMe: likedSet.has(p.id) }));
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to fetch posts' });
+    }
+  });
+
+  // POST: create a new community post (or reply)
+  app.post('/api/courses/:id/community/posts', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const courseId = req.params.id;
+      const { message, replyToId } = req.body;
+      if (!message?.trim()) return res.status(400).json({ message: 'Message is required.' });
+      // Auth: must be enrolled, instructor, or admin
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      if (!isAdmin) {
+        const course = await storage.getCourseById(courseId);
+        const isInstructor = course && (course as any).instructorId === u.id;
+        if (!isInstructor) {
+          const enrollment = await storage.getCourseEnrollment(courseId, u.id);
+          if (!enrollment || enrollment.status !== 'active') {
+            return res.status(403).json({ message: 'You must be enrolled to post in the community.' });
+          }
+        }
+      }
+      const [post] = await db.insert(courseCommunityPosts).values({
+        courseId,
+        userId: u.id,
+        message: message.trim(),
+        replyToId: replyToId || null,
+      } as any).returning();
+      res.json(post);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to create post' });
+    }
+  });
+
+  // POST: toggle like on a community post
+  app.post('/api/courses/:id/community/posts/:postId/like', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const { postId } = req.params;
+      // Check if already liked
+      const existing = await db.select().from(courseCommunityLikes)
+        .where(and(eq(courseCommunityLikes.postId, postId), eq(courseCommunityLikes.userId, u.id)))
+        .limit(1);
+      if (existing.length > 0) {
+        // Unlike
+        await db.delete(courseCommunityLikes).where(and(
+          eq(courseCommunityLikes.postId, postId), eq(courseCommunityLikes.userId, u.id)
+        ));
+        await db.update(courseCommunityPosts).set({ likeCount: sql`GREATEST(like_count - 1, 0)` })
+          .where(eq(courseCommunityPosts.id, postId));
+        res.json({ liked: false });
+      } else {
+        // Like
+        await db.insert(courseCommunityLikes).values({ postId, userId: u.id } as any);
+        await db.update(courseCommunityPosts).set({ likeCount: sql`like_count + 1` })
+          .where(eq(courseCommunityPosts.id, postId));
+        res.json({ liked: true });
+      }
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to toggle like' });
+    }
+  });
+
+  // DELETE: soft-delete a community post (own posts or admin)
+  app.delete('/api/courses/:id/community/posts/:postId', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const { postId } = req.params;
+      const [post] = await db.select().from(courseCommunityPosts)
+        .where(eq(courseCommunityPosts.id, postId)).limit(1);
+      if (!post) return res.status(404).json({ message: 'Post not found.' });
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      if (!isAdmin && post.userId !== u.id) return res.status(403).json({ message: 'Not your post.' });
+      await db.update(courseCommunityPosts).set({ isDeleted: true })
+        .where(eq(courseCommunityPosts.id, postId));
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to delete post' });
     }
   });
 
