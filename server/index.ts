@@ -32,12 +32,13 @@ app.set("trust proxy", 1);
 
 app.get(["/api/health", "/health"], (_req, res) => {
   const body = {
-    status: appReady ? "ok" : "starting",
+    status: appReady ? "ok" : startupError ? "error" : "starting",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     error: startupError,
   };
-  res.status(200).json(body);
+  // Return 503 on fatal startup error so Railway knows the container is unhealthy.
+  res.status(startupError ? 503 : 200).json(body);
 });
 
 if (isProd) {
@@ -257,69 +258,78 @@ server.listen({
 });
 
 (async () => {
+  // ── Phase 1: DB migrations (non-fatal — a missing column must not kill the UI) ──
   try {
-    // Self-heal database schema before serving traffic so missing columns
-    // from recent schema changes never cause runtime errors in production.
     await runStartupMigrations();
+  } catch (err: any) {
+    console.error("[startup] Migration error (non-fatal):", err);
+  }
 
-    // Register API routes first so the app is responsive before slow seeds.
+  // ── Phase 2: API routes ────────────────────────────────────────────────────────
+  try {
     await registerRoutes(app, server);
+  } catch (err: any) {
+    startupError = err?.message || "Route registration failed";
+    console.error("[startup] Routes error:", err);
+  }
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-      console.error("Request error:", err);
-    });
+  // Global error handler must be registered after routes.
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+    console.error("Request error:", err);
+  });
 
+  // ── Phase 3: Static frontend — ALWAYS runs so "/" never returns "Cannot GET /" ─
+  try {
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
-
-    appReady = true;
-
-    // Defer seeding so it never blocks readiness or healthchecks.
-    setImmediate(async () => {
-      try {
-        await ensureAdminExists();
-        const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
-        if (adminUser) {
-          await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
-          // Auto-seed default blog posts on every startup (idempotent — only
-          // inserts missing slugs). This is the "auto-sync" hook: pushing new
-          // entries into server/blog-seed-data.ts and redeploying Railway
-          // automatically publishes them on the live site.
-          await seedDefaultBlogs(adminUser.id)
-            .then((r) => log(`[Seed] Default blogs: ${r.inserted} new, ${r.skipped} existing`))
-            .catch((e) => console.error("seedDefaultBlogs:", e));
-        }
-        await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
-        await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
-        await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
-        await seedBreedskoolPricing()
-          .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
-          .catch((e) => console.error("seedBreedskoolPricing:", e));
-      } catch (e) {
-        console.error("Background seed error:", e);
-      }
-    });
-
-    const runExpiryCheck = async () => {
-      try {
-        const result = await runSubscriptionExpiryCheck();
-        if (result.expired > 0 || result.reminded > 0) {
-          log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
-        }
-      } catch (e) {
-        console.error("Expiry check error:", e);
-      }
-    };
-    runExpiryCheck();
-    setInterval(runExpiryCheck, 30 * 60 * 1000);
   } catch (err: any) {
-    startupError = err?.message || "Startup failed";
-    console.error("Startup error:", err);
+    console.error("[startup] Static serving setup error:", err);
   }
+
+  if (!startupError) appReady = true;
+
+  // ── Phase 4: Background seeds (deferred, never block readiness) ───────────────
+  setImmediate(async () => {
+    try {
+      await ensureAdminExists();
+      const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+      if (adminUser) {
+        await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
+        // Auto-seed default blog posts on every startup (idempotent — only
+        // inserts missing slugs). This is the "auto-sync" hook: pushing new
+        // entries into server/blog-seed-data.ts and redeploying Railway
+        // automatically publishes them on the live site.
+        await seedDefaultBlogs(adminUser.id)
+          .then((r) => log(`[Seed] Default blogs: ${r.inserted} new, ${r.skipped} existing`))
+          .catch((e) => console.error("seedDefaultBlogs:", e));
+      }
+      await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
+      await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
+      await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
+      await seedBreedskoolPricing()
+        .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
+        .catch((e) => console.error("seedBreedskoolPricing:", e));
+    } catch (e) {
+      console.error("Background seed error:", e);
+    }
+  });
+
+  const runExpiryCheck = async () => {
+    try {
+      const result = await runSubscriptionExpiryCheck();
+      if (result.expired > 0 || result.reminded > 0) {
+        log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
+      }
+    } catch (e) {
+      console.error("Expiry check error:", e);
+    }
+  };
+  runExpiryCheck();
+  setInterval(runExpiryCheck, 30 * 60 * 1000);
 })();
