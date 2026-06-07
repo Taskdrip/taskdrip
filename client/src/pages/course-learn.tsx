@@ -82,6 +82,7 @@ export default function CourseLearn() {
   const [assignTitle, setAssignTitle] = useState("");
   const [assignDesc, setAssignDesc] = useState("");
   const [assignFile, setAssignFile] = useState<File | null>(null);
+  const [assignFiles, setAssignFiles] = useState<File[]>([]);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
   const groupChatRef = useRef<HTMLDivElement>(null);
   const tutorChatRef = useRef<HTMLDivElement>(null);
@@ -142,7 +143,7 @@ export default function CourseLearn() {
   }, [lessonId, sortedLessons, id, setLocation]);
 
   // ── Chat queries ───────────────────────────────────────────────────────
-  const tutorId: string | null = course?.instructorId || null;
+  const tutorId: string | null = (course?.instructorId || (course as any)?.instructor?.id) || null;
   const u = user as any;
   const myId: string | undefined = u?.id;
   const isUserTutorOrAdmin = !!u && (myId === tutorId || u.userType === "admin");
@@ -217,7 +218,9 @@ export default function CourseLearn() {
       fd.append("title", assignTitle.trim());
       if (assignDesc.trim()) fd.append("description", assignDesc.trim());
       if (current) fd.append("lessonId", current.id);
-      if (assignFile) fd.append("file", assignFile);
+      // Support multi-file: append all selected files
+      const filesToUpload = assignFiles.length > 0 ? assignFiles : (assignFile ? [assignFile] : []);
+      filesToUpload.forEach(f => fd.append("files", f));
       const r = await fetch(`/api/courses/${id}/assignments`, {
         method: "POST", body: fd, credentials: "include",
       });
@@ -225,7 +228,7 @@ export default function CourseLearn() {
       return r.json();
     },
     onSuccess: () => {
-      setAssignTitle(""); setAssignDesc(""); setAssignFile(null);
+      setAssignTitle(""); setAssignDesc(""); setAssignFile(null); setAssignFiles([]);
       refetchAssignments();
       toast({ title: "Assignment submitted! ✅", description: "Your tutor will review it shortly." });
     },
@@ -588,27 +591,49 @@ export default function CourseLearn() {
                     data-testid="input-assignment-desc"
                   />
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Attach file (PDF, image, Word doc — optional)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Attach files (PDF, image, Word doc, ZIP — up to 5 files)</label>
                     <label
                       className="flex items-center gap-2 border-2 border-dashed border-violet-200 rounded-xl p-3 cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-colors"
                       htmlFor="assign-file-input"
                     >
                       <UploadCloud className="h-5 w-5 text-violet-500 flex-shrink-0" />
                       <span className="text-sm text-gray-500 truncate">
-                        {assignFile ? assignFile.name : "Click to choose a file"}
+                        {assignFiles.length > 0
+                          ? `${assignFiles.length} file${assignFiles.length > 1 ? "s" : ""} selected`
+                          : assignFile ? assignFile.name : "Click to choose files"}
                       </span>
                     </label>
                     <input
                       id="assign-file-input"
                       type="file"
                       className="hidden"
+                      multiple
                       accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.zip"
-                      onChange={e => setAssignFile(e.target.files?.[0] || null)}
+                      onChange={e => {
+                        const files = Array.from(e.target.files || []);
+                        setAssignFiles(files);
+                        setAssignFile(files[0] || null);
+                      }}
                     />
-                    {assignFile && (
-                      <button onClick={() => setAssignFile(null)} className="text-xs text-red-500 mt-1 hover:underline flex items-center gap-1">
-                        <X className="h-3 w-3" /> Remove file
-                      </button>
+                    {assignFiles.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {assignFiles.map((f, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
+                            <span className="truncate flex-1">{f.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = assignFiles.filter((_, j) => j !== i);
+                                setAssignFiles(next);
+                                setAssignFile(next[0] || null);
+                              }}
+                              className="text-red-500 hover:text-red-700 shrink-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                   <Button

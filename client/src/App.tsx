@@ -91,6 +91,7 @@ import AdminLeads from "@/pages/admin-leads";
 import AdminLeadDetail from "@/pages/admin-lead-detail";
 import { LegalPageTemplate } from "@/pages/legal-page";
 import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
+import MyTraining from "@/pages/my-training";
 
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
@@ -222,6 +223,7 @@ function Router() {
           <Route path="/payout-requests" component={PayoutRequestsPage} />
           <Route path="/my-campaigns" component={MyCampaignsPage} />
           <Route path="/my-orders" component={MyOrdersPage} />
+          <Route path="/my-training" component={MyTraining} />
           <Route path="/orders/:id" component={OrderDetailPage} />
           <Route path="/referrals" component={ReferralsPage} />
           <Route path="/security" component={SecuritySettings} />

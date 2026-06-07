@@ -563,6 +563,36 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Become Creator (student upgrade path) ─────────────────────────────────
+  app.patch('/api/user/become-creator', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const u = await storage.getUser(userId);
+      if (!u) return res.status(404).json({ message: 'User not found' });
+      if (u.userType === 'creator' || u.userType === 'admin') {
+        return res.json({ message: 'Already a creator', user: u });
+      }
+      const updated = await storage.updateUserProfile(userId, {
+        userType: 'creator',
+      } as any);
+      // Award upgrade bonus points
+      storage.awardPoints(userId, 'become_creator', 100, 'Upgraded to Creator account!').catch(() => {});
+      storage.createNotification({
+        userId,
+        type: 'account_upgrade',
+        title: '🎉 Creator Account Activated!',
+        content: 'Your account has been upgraded to Creator. You can now apply for brand campaigns and earn crypto rewards!',
+        actionUrl: '/dashboard',
+        isRead: false,
+      } as any).catch(() => {});
+      // Strip password from response
+      const { password: _p, twoFactorSecret: _t, ...safeUser } = updated as any;
+      res.json({ success: true, user: safeUser });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to upgrade account' });
+    }
+  });
+
   // AI Influencer Comparison endpoint
   app.post('/api/ai/compare-influencers', async (req, res) => {
     try {
@@ -5725,6 +5755,18 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // User: get all assignment submissions across all their courses
+  app.get('/api/my/assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = await db.select().from(courseAssignments)
+        .where(eq(courseAssignments.userId, req.user.id))
+        .orderBy(desc(courseAssignments.submittedAt));
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // User: get own BreedSkool registrations
   app.get('/api/my/breedskool-registrations', isAuthenticated, async (req: any, res) => {
     try {
@@ -5888,10 +5930,12 @@ Instructions:
       const proofPath = req.file
         ? `/uploads/${req.file.filename}`
         : (req.body.paymentProofUrl || req.body.paymentProof || null);
+      // Pay-later students get active access immediately so they can start learning
+      const isPayLater = req.body.payLater === 'true' || req.body.payLater === true;
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
-        isFree: course.isFree,
+        isFree: course.isFree || isPayLater,
         paymentMethod: req.body.paymentMethod,
         paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
@@ -6179,21 +6223,27 @@ Instructions:
     }
   });
 
-  // POST: submit an assignment (with optional file upload)
-  app.post('/api/courses/:id/assignments', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  // POST: submit an assignment (with optional multi-file upload — up to 5 files)
+  app.post('/api/courses/:id/assignments', isAuthenticated, upload.array('files', 5), async (req: any, res) => {
     try {
       const { title, description, lessonId } = req.body;
       if (!title?.trim()) return res.status(400).json({ message: "Title is required" });
-      const file = req.file;
+      const files: Express.Multer.File[] = (req.files as Express.Multer.File[]) || [];
+      const primaryFile = files[0] || null;
+      // Store primary file in the main columns; store all paths as JSON in fileUrl when multiple
+      const allFilePaths = files.map(f => `/uploads/${f.filename}`);
+      const fileUrlValue = allFilePaths.length > 1
+        ? JSON.stringify(allFilePaths)
+        : (primaryFile ? `/uploads/${primaryFile.filename}` : null);
       const [assignment] = await db.insert(courseAssignments).values({
         courseId: req.params.id,
         userId: req.user.id,
         lessonId: lessonId || null,
         title: title.trim(),
         description: description?.trim() || null,
-        fileUrl: file ? `/uploads/${file.filename}` : null,
-        fileName: file ? (file.originalname || file.filename) : null,
-        fileType: file ? file.mimetype : null,
+        fileUrl: fileUrlValue,
+        fileName: primaryFile ? (primaryFile.originalname || primaryFile.filename) : (files.length > 1 ? `${files.length} files` : null),
+        fileType: primaryFile ? primaryFile.mimetype : null,
         status: 'submitted',
       } as any).returning();
       res.status(201).json(assignment);
