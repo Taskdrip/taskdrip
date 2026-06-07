@@ -417,11 +417,12 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
   };
 
   // Filter courses shown in step 3 based on delivery mode
-  const onlineCourseKeys = new Set(["webdev", "ai_content", "social_monetize", "trading"]);
   const coursesForStep3 = courses.filter(c => {
+    if (!c.isActive) return false;
     if (form.deliveryMode === "home_lesson") return c.courseKey === "home_lesson";
     if (form.deliveryMode === "onsite") return c.courseKey === "onsite_training";
-    return onlineCourseKeys.has(c.courseKey);
+    // For online mode: show all courses except onsite/home_lesson physical-only ones
+    return c.courseKey !== "onsite_training" && c.courseKey !== "home_lesson";
   });
 
   const reset = () => {
@@ -789,13 +790,23 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
                 <div className="flex gap-2 pt-1">
                   <Button variant="outline" onClick={back} className="flex-1 rounded-xl">Back</Button>
                   <Button
-                    onClick={() => registerMutation.mutate()}
+                    onClick={() => {
+                      // Client-side validation before submitting
+                      if (!form.fullName.trim()) return toast({ title: "Name required", description: "Please enter your full name.", variant: "destructive" });
+                      if (!form.email.trim()) return toast({ title: "Email required", description: "Please enter your email.", variant: "destructive" });
+                      if (!form.phone.trim()) return toast({ title: "Phone required", description: "Please enter your phone number.", variant: "destructive" });
+                      if (!form.selectedCourseKey) return toast({ title: "No course selected", description: "Please go back to step 3 and select a course.", variant: "destructive" });
+                      if (form.paymentOption === "pay_now" && !form.transactionRef.trim() && !proofFile) {
+                        return toast({ title: "Payment details needed", description: "Please enter your transaction reference or upload your payment proof.", variant: "destructive" });
+                      }
+                      registerMutation.mutate();
+                    }}
                     disabled={registerMutation.isPending}
                     className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold rounded-xl h-11"
                     data-testid="btn-reg-submit"
                   >
                     {registerMutation.isPending
-                      ? "Creating your account…"
+                      ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Creating your account…</span>
                       : form.paymentOption === "pay_later"
                       ? "Join Free — Access Online Courses 🎓"
                       : "Complete Enrollment 🚀"}

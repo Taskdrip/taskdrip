@@ -17,7 +17,7 @@ import {
   Briefcase, ChevronRight, Sparkles, LayoutDashboard, MessageSquare, Settings,
   Store, ArrowUpRight, Globe, BookOpen, Shield, Coins, Send, Bell, LogOut,
   RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search, Link2,
-  GraduationCap, PlayCircle, PhoneCall
+  GraduationCap, PlayCircle, PhoneCall, MapPin
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -678,14 +678,14 @@ export default function SimpleDashboard() {
 
             {/* ============ TRAINING (BreedSkool) ============ */}
             {tab === "training" && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
                       <GraduationCap className="h-5 w-5 text-violet-600" /> My BreedSkool Training
                     </h2>
-                    <p className="text-xs text-gray-500 mt-0.5">Manage your tech training courses and track your progress</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Your tech training hub — online courses, onsite sessions, tutor chat & community</p>
                   </div>
                   <Link href="/breedskool">
                     <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white text-xs gap-1">
@@ -702,7 +702,7 @@ export default function SimpleDashboard() {
                     </div>
                     <h3 className="font-bold text-gray-800 mb-1">No courses enrolled yet</h3>
                     <p className="text-sm text-gray-500 max-w-xs mx-auto mb-4">
-                      Join a BreedSkool tech training course to start building your skills and earning potential.
+                      Join a BreedSkool tech training course to build skills and start earning from global brands.
                     </p>
                     <Link href="/breedskool">
                       <Button className="bg-violet-600 hover:bg-violet-700 text-white">Explore Courses →</Button>
@@ -713,11 +713,11 @@ export default function SimpleDashboard() {
                   <div className="space-y-4">
                     {(bsRegistrations as any[]).map((reg: any) => {
                       const statusConfig: Record<string, { color: string; label: string; icon: string; desc: string }> = {
-                        pending:    { color: "bg-yellow-100 text-yellow-700 border-yellow-200", label: "Payment Pending",          icon: "⏳", desc: "Upload your payment proof to confirm enrollment." },
-                        registered: { color: "bg-blue-100 text-blue-700 border-blue-200",       label: "Registered – Free Access", icon: "📚", desc: "You have access to free online lessons." },
+                        pending:    { color: "bg-yellow-100 text-yellow-700 border-yellow-200", label: "Payment Pending",          icon: "⏳", desc: "Send your payment proof to confirm enrollment and unlock full access." },
+                        registered: { color: "bg-blue-100 text-blue-700 border-blue-200",       label: "Registered – Free Access", icon: "📚", desc: "You have access to free online lessons. Pay to unlock live training." },
                         paid:       { color: "bg-purple-100 text-purple-700 border-purple-200", label: "Payment Received",         icon: "💳", desc: "Payment confirmed — awaiting admin approval." },
-                        confirmed:  { color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Enrollment Confirmed",  icon: "🎓", desc: "You're fully enrolled. Start learning now!" },
-                        rejected:   { color: "bg-red-100 text-red-700 border-red-200",           label: "Payment Rejected",       icon: "❌", desc: "Contact support to resolve your payment." },
+                        confirmed:  { color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Fully Enrolled",        icon: "🎓", desc: "You're fully enrolled. Access all lessons, chats & resources!" },
+                        rejected:   { color: "bg-red-100 text-red-700 border-red-200",           label: "Payment Rejected",       icon: "❌", desc: "Contact your tutor to resolve your payment." },
                       };
                       const courseGradients: Record<string, string> = {
                         webdev: "from-blue-500 to-cyan-500",
@@ -730,62 +730,116 @@ export default function SimpleDashboard() {
                       const sc = statusConfig[reg.paymentStatus] || statusConfig.registered;
                       const grad = courseGradients[reg.selectedCourseKey] || "from-violet-500 to-indigo-600";
                       const canLearn = reg.paymentStatus === "confirmed" || reg.paymentStatus === "registered";
+                      const hasLinkedCourse = !!reg.linkedCourseId;
+                      const isOnsite = reg.deliveryMode === "onsite" || reg.deliveryMode === "home_lesson";
+                      const whatsappMsg = encodeURIComponent(`Hi! I'm ${reg.fullName}, a BreedSkool student enrolled in ${reg.selectedCourseTitle}. My transaction ref is: ${reg.transactionRef || "N/A"}.`);
                       return (
                         <div key={reg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid={`training-card-${reg.id}`}>
-                          <div className={`h-2 bg-gradient-to-r ${grad}`} />
+                          <div className={`h-1.5 bg-gradient-to-r ${grad}`} />
                           <div className="p-5">
                             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${grad} bg-opacity-10 flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center flex-shrink-0 shadow-sm`}>
                                 <GraduationCap className="h-7 w-7 text-white" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-bold text-gray-900 text-base">{reg.selectedCourseTitle}</h3>
+                                <h3 className="font-bold text-gray-900 text-base leading-tight">{reg.selectedCourseTitle}</h3>
                                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                   <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${sc.color}`}>{sc.icon} {sc.label}</span>
-                                  <span className="text-xs text-gray-400 capitalize bg-gray-50 px-2 py-0.5 rounded-full">{reg.deliveryMode?.replace("_", " ")}</span>
-                                  {reg.amountNgn > 0 && <span className="text-xs font-bold text-gray-700">₦{Number(reg.amountNgn).toLocaleString()}</span>}
+                                  <span className="text-xs text-gray-400 capitalize bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                    {isOnsite ? "🏫 " : "💻 "}{reg.deliveryMode?.replace(/_/g, " ")}
+                                  </span>
+                                  {reg.amountNgn > 0 && (
+                                    <span className="text-xs font-bold text-gray-700 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                      ₦{Number(reg.amountNgn).toLocaleString()}
+                                    </span>
+                                  )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">{sc.desc}</p>
+                                <p className="text-xs text-gray-500 mt-2 leading-relaxed">{sc.desc}</p>
                                 {reg.paymentStatus === "pending" && reg.transactionRef && (
-                                  <div className="mt-2 bg-gray-50 rounded-lg px-3 py-1.5 inline-block">
+                                  <div className="mt-2 bg-gray-50 rounded-lg px-3 py-1.5 inline-block border border-gray-100">
                                     <p className="text-xs text-gray-500 font-mono">Ref: {reg.transactionRef}</p>
                                   </div>
                                 )}
                               </div>
                             </div>
 
+                            {/* Feature Quick Links (shown when enrolled/registered) */}
+                            {(canLearn && hasLinkedCourse) && (
+                              <div className="mt-4 grid grid-cols-3 gap-2">
+                                <Link href={`/breedskool/${reg.linkedCourseId}/learn`}>
+                                  <button className="w-full flex flex-col items-center gap-1 p-2.5 rounded-xl bg-violet-50 border border-violet-100 hover:bg-violet-100 transition-colors" data-testid={`btn-learn-${reg.id}`}>
+                                    <PlayCircle className="h-5 w-5 text-violet-600" />
+                                    <span className="text-[10px] font-semibold text-violet-700">My Lessons</span>
+                                  </button>
+                                </Link>
+                                <Link href={`/breedskool/${reg.linkedCourseId}/learn`} onClick={() => localStorage.setItem("bs-default-tab", "group")}>
+                                  <button className="w-full flex flex-col items-center gap-1 p-2.5 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors" data-testid={`btn-community-${reg.id}`}>
+                                    <Users className="h-5 w-5 text-blue-600" />
+                                    <span className="text-[10px] font-semibold text-blue-700">Community</span>
+                                  </button>
+                                </Link>
+                                <Link href={`/breedskool/${reg.linkedCourseId}/learn`} onClick={() => localStorage.setItem("bs-default-tab", "tutor")}>
+                                  <button className="w-full flex flex-col items-center gap-1 p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors" data-testid={`btn-tutor-${reg.id}`}>
+                                    <MessageSquare className="h-5 w-5 text-emerald-600" />
+                                    <span className="text-[10px] font-semibold text-emerald-700">Tutor Chat</span>
+                                  </button>
+                                </Link>
+                              </div>
+                            )}
+
+                            {/* Onsite resources for physical attendees */}
+                            {isOnsite && canLearn && (
+                              <div className="mt-3 bg-teal-50 border border-teal-100 rounded-xl p-3 flex items-start gap-2">
+                                <MapPin className="h-4 w-4 text-teal-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-xs font-semibold text-teal-800">Onsite Training Venue</p>
+                                  <p className="text-xs text-teal-700">TotoOba Estate, Ipole, Ikorodu, Lagos</p>
+                                  <a href="https://maps.google.com/?q=Ikorodu+Lagos" target="_blank" rel="noopener noreferrer"
+                                    className="text-xs text-teal-600 hover:underline font-medium mt-0.5 inline-block">
+                                    Get Directions →
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-50">
                               {canLearn ? (
-                                <Link href={reg.linkedCourseId ? `/breedskool/${reg.linkedCourseId}/learn` : "/breedskool"}>
-                                  <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 text-sm">
-                                    <PlayCircle className="h-4 w-4" /> {reg.linkedCourseId ? "Continue Learning →" : "Start Learning"}
-                                  </Button>
-                                </Link>
+                                hasLinkedCourse ? (
+                                  <Link href={`/breedskool/${reg.linkedCourseId}/learn`}>
+                                    <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 text-sm" data-testid={`btn-start-learning-${reg.id}`}>
+                                      <PlayCircle className="h-4 w-4" /> Continue Learning →
+                                    </Button>
+                                  </Link>
+                                ) : (
+                                  <Link href="/breedskool">
+                                    <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 text-sm">
+                                      <PlayCircle className="h-4 w-4" /> Go to Training →
+                                    </Button>
+                                  </Link>
+                                )
                               ) : reg.paymentStatus === "pending" ? (
-                                <a
-                                  href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just paid for ${reg.selectedCourseTitle} on BreedSkool. My name is ${reg.fullName}. My transaction ref is: ${reg.transactionRef || "N/A"}.`)}`}
-                                  target="_blank" rel="noopener noreferrer"
-                                >
+                                <a href={`https://wa.me/12016800266?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer">
                                   <Button variant="outline" className="gap-2 text-sm border-green-300 text-green-700 hover:bg-green-50">
                                     📲 Send Payment Proof via WhatsApp
                                   </Button>
                                 </a>
                               ) : (
-                                <a
-                                  href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I need help with my BreedSkool enrollment for ${reg.selectedCourseTitle}. My name is ${reg.fullName}.`)}`}
-                                  target="_blank" rel="noopener noreferrer"
-                                >
+                                <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I need help with my BreedSkool enrollment for ${reg.selectedCourseTitle}. My name is ${reg.fullName}.`)}`} target="_blank" rel="noopener noreferrer">
                                   <Button variant="outline" className="gap-2 text-sm">📞 Contact Support</Button>
                                 </a>
                               )}
-                              <a
-                                href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I'm a BreedSkool student enrolled in ${reg.selectedCourseTitle}. My name is ${reg.fullName}.`)}`}
-                                target="_blank" rel="noopener noreferrer"
-                              >
+                              <a href={`https://wa.me/12016800266?text=${whatsappMsg}`} target="_blank" rel="noopener noreferrer">
                                 <Button variant="ghost" size="sm" className="text-green-700 hover:bg-green-50 gap-1 text-xs">
                                   <PhoneCall className="h-3.5 w-3.5" /> WhatsApp Tutor
                                 </Button>
                               </a>
+                              {hasLinkedCourse && (
+                                <Link href={`/breedskool/${reg.linkedCourseId}/learn`}>
+                                  <Button variant="ghost" size="sm" className="text-violet-600 hover:bg-violet-50 gap-1 text-xs">
+                                    <FileText className="h-3.5 w-3.5" /> Assignments
+                                  </Button>
+                                </Link>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -794,27 +848,71 @@ export default function SimpleDashboard() {
                   </div>
                 )}
 
-                {/* Influencer account CTA */}
-                <div className="rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <DollarSign className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-base">You also have an Influencer Account!</h3>
-                      <p className="text-sm text-emerald-100 mt-1">Your BreedSkool account is linked to Taskdrip. Earn from brand campaigns, P2P trading, and referrals — all in one place.</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <Link href="/campaigns">
-                          <Button size="sm" className="bg-white text-emerald-700 hover:bg-emerald-50 text-xs font-bold gap-1">
-                            <Target className="h-3.5 w-3.5" /> Browse Campaigns
-                          </Button>
-                        </Link>
-                        <Link href="/wallet">
-                          <Button size="sm" variant="ghost" className="text-white hover:bg-white/20 text-xs gap-1">
-                            <Wallet className="h-3.5 w-3.5" /> Set Up Wallet
-                          </Button>
-                        </Link>
+                {/* ─── Student Resources Panel ─── */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-5">
+                  <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-violet-600" /> Student Resources
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { icon: "📚", label: "Course Library", desc: "All your lessons", href: "/breedskool" },
+                      { icon: "💬", label: "Community Chat", desc: "Chat with classmates", href: "/breedskool#community" },
+                      { icon: "📋", label: "Assignments", desc: "Submit your work", href: "/breedskool#assignments" },
+                      { icon: "🎓", label: "My Certificates", desc: "Download certificates", href: "/my-certificates" },
+                    ].map(r => (
+                      <Link key={r.label} href={r.href}>
+                        <div className="p-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-colors text-center cursor-pointer group">
+                          <div className="text-2xl mb-1">{r.icon}</div>
+                          <p className="text-xs font-bold text-gray-800 group-hover:text-violet-700">{r.label}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{r.desc}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ─── Influencer Earnings Bridge ─── */}
+                <div className="rounded-2xl overflow-hidden border border-emerald-100">
+                  <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="h-5 w-5 text-white" />
                       </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-base">🚀 Start Earning as an Influencer</h3>
+                        <p className="text-sm text-emerald-100 mt-1 leading-relaxed">
+                          Your BreedSkool account is linked to Taskdrip. Apply the skills you learn to work with global brands and earn in USDT from anywhere in the world.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { icon: <Target className="h-4 w-4 text-purple-600" />, label: "Browse Campaigns", href: "/campaigns", color: "bg-purple-50 hover:bg-purple-100 border-purple-100" },
+                      { icon: <Globe className="h-4 w-4 text-blue-600" />, label: "Find Brands", href: "/brands", color: "bg-blue-50 hover:bg-blue-100 border-blue-100" },
+                      { icon: <Wallet className="h-4 w-4 text-emerald-600" />, label: "Set Up Wallet", href: "/wallet", color: "bg-emerald-50 hover:bg-emerald-100 border-emerald-100" },
+                      { icon: <Share2 className="h-4 w-4 text-orange-600" />, label: "Refer & Earn", href: "/dashboard?tab=referrals", color: "bg-orange-50 hover:bg-orange-100 border-orange-100" },
+                    ].map(item => (
+                      <Link key={item.label} href={item.href}>
+                        <button className={`w-full flex flex-col items-center gap-1.5 p-3 rounded-xl border ${item.color} transition-colors`}>
+                          {item.icon}
+                          <span className="text-xs font-semibold text-gray-700">{item.label}</span>
+                        </button>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-4 pb-4">
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      {[
+                        { val: "$700K+", label: "Paid to Creators" },
+                        { val: "1,600+", label: "Students Enrolled" },
+                        { val: "Global", label: "Earn Worldwide" },
+                      ].map(s => (
+                        <div key={s.label} className="bg-white rounded-xl py-2 px-1 border border-emerald-100">
+                          <p className="font-black text-sm text-emerald-700">{s.val}</p>
+                          <p className="text-[10px] text-gray-500">{s.label}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

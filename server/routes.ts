@@ -348,8 +348,8 @@ export async function runSubscriptionExpiryCheck() {
 export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
   setupAuth(app);
 
-  const SCAN_SKIP_PATHS = ['/api/health', '/api/login', '/api/register', '/api/uploads'];
-  const SCAN_SKIP_FIELDS = ['password', 'confirmPassword', 'transactionHash', 'paymentProof'];
+  const SCAN_SKIP_PATHS = ['/api/health', '/api/login', '/api/register', '/api/uploads', '/api/breedskool'];
+  const SCAN_SKIP_FIELDS = ['password', 'confirmPassword', 'transactionHash', 'transactionRef', 'paymentProof', 'proofNote'];
 
   app.use((req: any, res: any, next: any) => {
     if (!['POST', 'PUT', 'PATCH'].includes(req.method)) return next();
@@ -5503,7 +5503,7 @@ Instructions:
       const isPayLater = (paymentOption || 'pay_later') === 'pay_later';
       const deadline = null; // No deadline — pay later means free courses only
 
-      const [reg] = await db.insert(breedskoolRegistrations).values({
+      const insertValues: Record<string, any> = {
         userId,
         fullName,
         email,
@@ -5526,8 +5526,9 @@ Instructions:
         childAge: childAge || null,
         parentName: parentName || null,
         homeAddress: homeAddress || null,
-        linkedCourseId: null,
-      }).returning();
+      };
+
+      const [reg] = await db.insert(breedskoolRegistrations).values(insertValues as any).returning();
 
       // Auto-enroll student in the linked platform course
       let linkedCourseId: string | null = null;
