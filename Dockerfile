@@ -2,12 +2,11 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Force development mode so ALL deps (vite, esbuild) are installed
-# ENV in Dockerfile overrides any external NODE_ENV Railway injects
-ENV NODE_ENV=development
-
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+
+# --include=dev ensures build tools (vite, esbuild, tailwind, etc.) are always
+# installed regardless of any NODE_ENV value Railway injects at build time.
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 RUN NODE_OPTIONS='--max-old-space-size=4096' npm run build
