@@ -6077,7 +6077,7 @@ Instructions:
           const [enrollment] = await db.select().from(courseEnrollments)
             .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, u.id)))
             .limit(1);
-          if (!enrollment || enrollment.status !== 'approved') {
+          if (!enrollment || (enrollment.status !== 'active' && enrollment.status !== 'completed')) {
             return res.status(403).json({ message: 'You must be enrolled to like posts.' });
           }
         }
