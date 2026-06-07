@@ -5537,12 +5537,19 @@ Instructions:
 
       const isExistingAccount = !!existing;
       const wrongPassword = isExistingAccount && !loginUser;
+
+      // Strip sensitive fields before sending user to client
+      const safeUser = loginUser
+        ? (({ password: _p, twoFactorSecret: _t, ...rest }) => rest)(loginUser as any)
+        : null;
+
       res.status(201).json({
         registration: reg,
         userId,
         loggedIn: !!loginUser,
         existingAccount: isExistingAccount,
         wrongPassword,
+        user: safeUser,
       });
     } catch (e: any) {
       res.status(500).json({ message: e.message });

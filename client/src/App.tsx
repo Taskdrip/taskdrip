@@ -233,7 +233,7 @@ function Router() {
         </>
       ) : (
         <>
-          <Route path="/dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/dashboard')}`; return null; }} />
+          <Route path="/dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
           <Route path="/admin-dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-dashboard')}`; return null; }} />
           <Route path="/campaigns" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/campaigns')}`; return null; }} />
           <Route path="/campaigns/:id" component={CampaignDetail} />

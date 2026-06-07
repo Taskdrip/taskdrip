@@ -318,7 +318,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
       if (form.parentName) fd.append("parentName", form.parentName);
       if (form.homeAddress) fd.append("homeAddress", form.homeAddress);
       if (proofFile) fd.append("paymentProof", proofFile);
-      const r = await fetch("/api/breedskool/register", { method: "POST", body: fd });
+      const r = await fetch("/api/breedskool/register", { method: "POST", body: fd, credentials: "include" });
       if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Registration failed"); }
       return r.json();
     },
@@ -330,8 +330,9 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
       setRegAutoLoggedIn(!!data.loggedIn);
       onClose();
       setShowSuccess(true);
-      if (data.loggedIn) {
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      if (data.loggedIn && data.user) {
+        // Immediately seed auth state so the dashboard renders without a blank flash
+        queryClient.setQueryData(["/api/user"], data.user);
         queryClient.invalidateQueries({ queryKey: ["/api/my/breedskool-registrations"] });
       }
     },
@@ -764,7 +765,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                   <p className="text-xs text-amber-800 font-medium">⚠️ Your registration password didn't match your existing account. Log in below with your <strong>original Taskdrip password</strong> to see your training.</p>
                 </div>
                 <Button
-                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/login?redirect=" + encodeURIComponent("/dashboard?tab=training"); }}
+                  onClick={() => { setShowSuccess(false); reset(); navigate("/login?redirect=" + encodeURIComponent("/dashboard?tab=training")); }}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl"
                   data-testid="btn-welcome-login"
                 >
@@ -829,7 +830,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                 </div>
 
                 <Button
-                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/dashboard?tab=training"; }}
+                  onClick={() => { setShowSuccess(false); reset(); navigate("/dashboard?tab=training"); }}
                   className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl"
                   data-testid="btn-welcome-dashboard"
                 >
