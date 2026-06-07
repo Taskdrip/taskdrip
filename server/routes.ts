@@ -8,7 +8,7 @@ import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blo
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -5463,7 +5463,7 @@ Instructions:
       let userId: string | null = null;
       let newUser: any = null;
       let loginUser: any = null; // user to auto-login (new or existing with correct password)
-      const bcrypt = await import('bcrypt');
+      const bcrypt = await import('bcryptjs');
       const existing = await storage.getUserByEmail(email);
       if (existing) {
         userId = existing.id;
@@ -5625,6 +5625,56 @@ Instructions:
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
+  });
+
+  // Public: get BreedSkool payment settings (bank + crypto info for registration form)
+  app.get('/api/breedskool/payment-settings', async (_req, res) => {
+    try {
+      const keys = [
+        'breedskool_bank_name', 'breedskool_bank_account_number', 'breedskool_bank_account_name',
+        'breedskool_bank_country', 'breedskool_usdt_tron_address', 'breedskool_usdt_ton_address',
+        'breedskool_usdt_bnb_address', 'breedskool_payment_instructions',
+      ];
+      const rows = await db.select().from(appSettings).where(inArray(appSettings.key, keys));
+      const settings: Record<string, string> = {};
+      for (const r of rows) settings[r.key] = r.value || '';
+      res.json(settings);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: get BreedSkool payment settings (bank + crypto wallets)
+  app.get('/api/admin/breedskool/payment-settings', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const keys = [
+        'breedskool_bank_name', 'breedskool_bank_account_number', 'breedskool_bank_account_name',
+        'breedskool_bank_country', 'breedskool_usdt_tron_address', 'breedskool_usdt_ton_address',
+        'breedskool_usdt_bnb_address', 'breedskool_payment_instructions',
+      ];
+      const rows = await db.select().from(appSettings).where(inArray(appSettings.key, keys));
+      const settings: Record<string, string> = {};
+      for (const r of rows) settings[r.key] = r.value || '';
+      res.json(settings);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: update BreedSkool payment settings
+  app.put('/api/admin/breedskool/payment-settings', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const allowed = [
+        'breedskool_bank_name', 'breedskool_bank_account_number', 'breedskool_bank_account_name',
+        'breedskool_bank_country', 'breedskool_usdt_tron_address', 'breedskool_usdt_ton_address',
+        'breedskool_usdt_bnb_address', 'breedskool_payment_instructions',
+      ];
+      for (const [key, value] of Object.entries(req.body)) {
+        if (!allowed.includes(key)) continue;
+        await db.insert(appSettings)
+          .values({ key, value: String(value), updatedAt: new Date() })
+          .onConflictDoUpdate({ target: appSettings.key, set: { value: String(value), updatedAt: new Date() } });
+      }
+      res.json({ message: 'Payment settings updated' });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   // User: get own BreedSkool registrations
@@ -6227,7 +6277,7 @@ Instructions:
         return res.status(403).json({ message: "Admin only" });
       }
       const { newEmail, newPassword, currentPassword } = req.body;
-      const bcrypt = await import('bcrypt');
+      const bcrypt = await import('bcryptjs');
       const valid = await bcrypt.compare(currentPassword, req.user.password);
       if (!valid) {
         return res.status(400).json({ message: "Current password is incorrect" });

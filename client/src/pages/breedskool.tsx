@@ -659,24 +659,42 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
                       <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
                         <p className="font-bold text-blue-800 text-sm mb-2">Bank Transfer Details</p>
                         <div className="space-y-1 text-sm text-blue-700">
-                          <p>Bank: <strong>Opay / Palmpay</strong></p>
-                          <p>Account: <strong>9019802376</strong></p>
-                          <p>Name: <strong>Breedskool Tech</strong></p>
+                          {bsPaySettings.breedskool_bank_name && <p>Bank: <strong>{bsPaySettings.breedskool_bank_name}</strong></p>}
+                          {bsPaySettings.breedskool_bank_account_number && <p>Account: <strong className="font-mono">{bsPaySettings.breedskool_bank_account_number}</strong></p>}
+                          {bsPaySettings.breedskool_bank_account_name && <p>Name: <strong>{bsPaySettings.breedskool_bank_account_name}</strong></p>}
+                          {bsPaySettings.breedskool_bank_country && <p>Country: <strong>{bsPaySettings.breedskool_bank_country}</strong></p>}
                         </div>
-                        <p className="text-xs text-blue-500 mt-2">After transfer, enter your transaction reference below and optionally upload proof.</p>
+                        <p className="text-xs text-blue-500 mt-2">{bsPaySettings.breedskool_payment_instructions || "After transfer, enter your transaction reference below and optionally upload proof."}</p>
                       </div>
                     )}
                     {form.paymentMethod === "usdt_tron" && (
                       <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-4">
                         <p className="font-bold text-green-800 text-sm mb-1">USDT TRC-20 Address</p>
-                        <p className="font-mono text-xs text-green-700 break-all">Contact admin via WhatsApp for wallet address</p>
+                        {bsPaySettings.breedskool_usdt_tron_address
+                          ? <p className="font-mono text-xs text-green-700 break-all select-all bg-white/60 rounded px-2 py-1">{bsPaySettings.breedskool_usdt_tron_address}</p>
+                          : <p className="font-mono text-xs text-green-700">Contact admin via WhatsApp for wallet address</p>
+                        }
                         <p className="text-xs text-green-500 mt-2">Send exact amount in USDT. Enter the TX hash below after sending.</p>
                       </div>
                     )}
-                    {(form.paymentMethod === "usdt_ton" || form.paymentMethod === "usdt_bnb") && (
+                    {form.paymentMethod === "usdt_ton" && (
                       <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <p className="font-bold text-blue-800 text-sm mb-1">{form.paymentMethod === "usdt_ton" ? "USDT TON Address" : "USDT BEP-20 Address"}</p>
-                        <p className="text-xs text-blue-600">Contact admin via WhatsApp for the wallet address before sending.</p>
+                        <p className="font-bold text-blue-800 text-sm mb-1">USDT TON Network Address</p>
+                        {bsPaySettings.breedskool_usdt_ton_address
+                          ? <p className="font-mono text-xs text-blue-700 break-all select-all bg-white/60 rounded px-2 py-1">{bsPaySettings.breedskool_usdt_ton_address}</p>
+                          : <p className="text-xs text-blue-600">Contact admin via WhatsApp for the wallet address before sending.</p>
+                        }
+                        <p className="text-xs text-blue-500 mt-2">Send exact amount in USDT. Enter the TX hash below after sending.</p>
+                      </div>
+                    )}
+                    {form.paymentMethod === "usdt_bnb" && (
+                      <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                        <p className="font-bold text-yellow-800 text-sm mb-1">USDT BEP-20 (BNB Smart Chain) Address</p>
+                        {bsPaySettings.breedskool_usdt_bnb_address
+                          ? <p className="font-mono text-xs text-yellow-700 break-all select-all bg-white/60 rounded px-2 py-1">{bsPaySettings.breedskool_usdt_bnb_address}</p>
+                          : <p className="text-xs text-yellow-600">Contact admin via WhatsApp for the wallet address before sending.</p>
+                        }
+                        <p className="text-xs text-yellow-500 mt-2">Send exact amount in USDT. Enter the TX hash below after sending.</p>
                       </div>
                     )}
 
@@ -952,6 +970,7 @@ export default function BreedSkool() {
   const { data: courses = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/courses"] });
   const { data: myEnrollments = [] } = useQuery<any[]>({ queryKey: ["/api/courses/my-enrollments"], enabled: isAuthenticated });
   const { data: bsPricing = [] } = useQuery<BsCoursePricing[]>({ queryKey: ["/api/breedskool/pricing"] });
+  const { data: bsPaySettings = {} } = useQuery<Record<string, string>>({ queryKey: ["/api/breedskool/payment-settings"] });
 
   const enrolledCourseIds = new Set((myEnrollments as any[]).map((e: any) => e.courseId));
   const filtered = courses.filter((c: any) => {

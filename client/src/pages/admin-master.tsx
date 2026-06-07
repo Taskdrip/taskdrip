@@ -1949,6 +1949,30 @@ export default function AdminMaster() {
   const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
 
+  // BreedSkool registrations state
+  const [bsSearch, setBsSearch] = useState("");
+  const [bsStatusFilter, setBsStatusFilter] = useState("all");
+  const [bsViewReg, setBsViewReg] = useState<any>(null);
+  const [bsPayNote, setBsPayNote] = useState("");
+  const [bsSettings, setBsSettings] = useState<Record<string, string>>({});
+  const [bsSettingsDirty, setBsSettingsDirty] = useState(false);
+
+  const updateRegMutation = useMutation({
+    mutationFn: async ({ id, paymentStatus, notes }: { id: string; paymentStatus: string; notes?: string }) =>
+      apiRequest("PATCH", `/api/admin/breedskool/registrations/${id}`, { paymentStatus, notes }),
+    onSuccess: () => { refetchBsRegs(); setBsViewReg(null); toast({ title: "Registration updated" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const savePaySettingsMutation = useMutation({
+    mutationFn: async () => apiRequest("PUT", "/api/admin/breedskool/payment-settings", bsSettings),
+    onSuccess: () => { refetchBsPaySettings(); setBsSettingsDirty(false); toast({ title: "Payment settings saved!" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const setBsField = (key: string, val: string) => { setBsSettings(p => ({ ...p, [key]: val })); setBsSettingsDirty(true); };
+  const bsEffectiveSettings = { ...bsPaymentSettings, ...bsSettings };
+
   // Shop management state
   const [isShopProductDialogOpen, setIsShopProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -2093,6 +2117,18 @@ export default function AdminMaster() {
 
   const { data: courseEnrollments = [] } = useQuery<any[]>({
     queryKey: ["/api/courses/admin/enrollments"],
+    enabled: isFullAdmin,
+    retry: false,
+  });
+
+  const { data: bsRegistrations = [], refetch: refetchBsRegs } = useQuery<any[]>({
+    queryKey: ["/api/admin/breedskool/registrations"],
+    enabled: isFullAdmin,
+    retry: false,
+  });
+
+  const { data: bsPaymentSettings = {}, refetch: refetchBsPaySettings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/admin/breedskool/payment-settings"],
     enabled: isFullAdmin,
     retry: false,
   });
@@ -5637,6 +5673,255 @@ export default function AdminMaster() {
                     </TableBody>
                   </Table>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* ── BreedSkool Registrations ── */}
+            {(() => {
+              const bsFiltered = bsRegistrations.filter((r: any) => {
+                const matchSearch = !bsSearch || r.fullName?.toLowerCase().includes(bsSearch.toLowerCase()) || r.email?.toLowerCase().includes(bsSearch.toLowerCase()) || r.phone?.includes(bsSearch);
+                const matchStatus = bsStatusFilter === "all" || r.paymentStatus === bsStatusFilter;
+                return matchSearch && matchStatus;
+              });
+              const bsStatusColor: Record<string, string> = {
+                pending: "bg-yellow-100 text-yellow-700",
+                registered: "bg-blue-100 text-blue-700",
+                paid: "bg-green-100 text-green-700",
+                confirmed: "bg-emerald-100 text-emerald-700",
+                rejected: "bg-red-100 text-red-700",
+              };
+              return (
+                <>
+                  <Card className="border-violet-200">
+                    <CardHeader>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-violet-600" /> BreedSkool Registrations
+                          <Badge className="bg-violet-100 text-violet-700 ml-1">{bsRegistrations.length}</Badge>
+                        </CardTitle>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Search name / email / phone..."
+                            value={bsSearch}
+                            onChange={e => setBsSearch(e.target.value)}
+                            className="w-56 h-8 text-sm"
+                          />
+                          <Select value={bsStatusFilter} onValueChange={setBsStatusFilter}>
+                            <SelectTrigger className="w-36 h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {["all","pending","registered","paid","confirmed","rejected"].map(s => (
+                                <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {bsFiltered.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400">
+                          <GraduationCap className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                          <p>No registrations found</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Student</TableHead>
+                                <TableHead>Course</TableHead>
+                                <TableHead>Mode</TableHead>
+                                <TableHead>Payment</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {bsFiltered.map((r: any) => (
+                                <TableRow key={r.id}>
+                                  <TableCell>
+                                    <div>
+                                      <p className="font-medium text-sm">{r.fullName}</p>
+                                      <p className="text-xs text-gray-500">{r.email}</p>
+                                      <p className="text-xs text-gray-400">{r.phone}</p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <p className="text-xs font-medium max-w-32 truncate">{r.selectedCourseTitle}</p>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs capitalize">{r.deliveryMode?.replace("_"," ")}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <p className="text-xs">{r.paymentMethod?.replace(/_/g," ") || "—"}</p>
+                                    {r.transactionRef && <p className="text-xs font-mono text-gray-400 truncate max-w-24">{r.transactionRef}</p>}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div>
+                                      {r.amountNgn > 0 && <p className="text-xs font-semibold">₦{r.amountNgn.toLocaleString()}</p>}
+                                      {r.amountUsd && <p className="text-xs text-gray-500">${r.amountUsd}</p>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge className={`text-xs ${bsStatusColor[r.paymentStatus] || "bg-gray-100 text-gray-700"}`}>
+                                      {r.paymentStatus}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs text-gray-500">
+                                    {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setBsViewReg(r); setBsPayNote(r.notes || ""); }}>
+                                      <Eye className="h-3 w-3" /> View
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Registration Detail Dialog */}
+                  <Dialog open={!!bsViewReg} onOpenChange={(v) => !v && setBsViewReg(null)}>
+                    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Registration Details</DialogTitle>
+                        <DialogDescription>{bsViewReg?.fullName} — {bsViewReg?.selectedCourseTitle}</DialogDescription>
+                      </DialogHeader>
+                      {bsViewReg && (
+                        <div className="space-y-4 text-sm">
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              ["Full Name", bsViewReg.fullName],
+                              ["Email", bsViewReg.email],
+                              ["Phone", bsViewReg.phone],
+                              ["Location", bsViewReg.location || "—"],
+                              ["Course", bsViewReg.selectedCourseTitle],
+                              ["Delivery Mode", bsViewReg.deliveryMode?.replace("_"," ")],
+                              ["Payment Method", bsViewReg.paymentMethod?.replace(/_/g," ") || "—"],
+                              ["Currency", bsViewReg.currencyUsed || "NGN"],
+                              ["Amount NGN", bsViewReg.amountNgn > 0 ? `₦${Number(bsViewReg.amountNgn).toLocaleString()}` : "—"],
+                              ["Amount USD", bsViewReg.amountUsd ? `$${bsViewReg.amountUsd}` : "—"],
+                              ["Transaction Ref", bsViewReg.transactionRef || "—"],
+                            ].map(([label, value]) => (
+                              <div key={label}>
+                                <p className="text-xs text-gray-500 font-medium">{label}</p>
+                                <p className="font-semibold break-all">{value}</p>
+                              </div>
+                            ))}
+                            {bsViewReg.childName && <div><p className="text-xs text-gray-500 font-medium">Child's Name</p><p className="font-semibold">{bsViewReg.childName}</p></div>}
+                            {bsViewReg.childAge && <div><p className="text-xs text-gray-500 font-medium">Child's Age</p><p className="font-semibold">{bsViewReg.childAge}</p></div>}
+                            {bsViewReg.parentName && <div><p className="text-xs text-gray-500 font-medium">Parent</p><p className="font-semibold">{bsViewReg.parentName}</p></div>}
+                            {bsViewReg.homeAddress && <div className="col-span-2"><p className="text-xs text-gray-500 font-medium">Home Address</p><p className="font-semibold">{bsViewReg.homeAddress}</p></div>}
+                          </div>
+                          {bsViewReg.paymentProof && (
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium mb-1">Payment Proof</p>
+                              <a href={bsViewReg.paymentProof} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline text-xs flex items-center gap-1">
+                                <ExternalLink className="h-3 w-3" /> View payment proof
+                              </a>
+                            </div>
+                          )}
+                          <div>
+                            <Label className="text-xs font-semibold mb-1 block">Admin Notes</Label>
+                            <Textarea value={bsPayNote} onChange={e => setBsPayNote(e.target.value)} rows={2} placeholder="Add notes..." className="text-sm" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-semibold mb-2 block">Update Payment Status</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {["pending","registered","paid","confirmed","rejected"].map(s => (
+                                <Button
+                                  key={s}
+                                  size="sm"
+                                  variant={bsViewReg.paymentStatus === s ? "default" : "outline"}
+                                  className={`text-xs capitalize ${bsViewReg.paymentStatus === s ? "bg-violet-600 text-white" : ""}`}
+                                  disabled={updateRegMutation.isPending}
+                                  onClick={() => updateRegMutation.mutate({ id: bsViewReg.id, paymentStatus: s, notes: bsPayNote })}
+                                >
+                                  {s}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </>
+              );
+            })()}
+
+            {/* ── BreedSkool Payment Settings ── */}
+            <Card className="border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Landmark className="h-5 w-5 text-blue-600" /> BreedSkool Payment Settings
+                </CardTitle>
+                <CardDescription>Set your bank transfer details and crypto wallet addresses used on the BreedSkool registration form</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Bank Transfer */}
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-700 mb-3 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-blue-500" /> Bank Transfer Details
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Bank Name</Label>
+                      <Input value={bsEffectiveSettings.breedskool_bank_name || ""} onChange={e => setBsField("breedskool_bank_name", e.target.value)} placeholder="e.g. Opay / GTBank" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Account Number</Label>
+                      <Input value={bsEffectiveSettings.breedskool_bank_account_number || ""} onChange={e => setBsField("breedskool_bank_account_number", e.target.value)} placeholder="e.g. 9019802376" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Account Name</Label>
+                      <Input value={bsEffectiveSettings.breedskool_bank_account_name || ""} onChange={e => setBsField("breedskool_bank_account_name", e.target.value)} placeholder="e.g. Breedskool Tech" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Country</Label>
+                      <Input value={bsEffectiveSettings.breedskool_bank_country || ""} onChange={e => setBsField("breedskool_bank_country", e.target.value)} placeholder="e.g. Nigeria" className="mt-1" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Crypto Wallets */}
+                <div>
+                  <h3 className="font-semibold text-sm text-gray-700 mb-3 flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-orange-500" /> Crypto Wallet Addresses
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      { key: "breedskool_usdt_tron_address", label: "USDT – TRC-20 (Tron)", placeholder: "TXxxxxxxxxxx..." },
+                      { key: "breedskool_usdt_ton_address", label: "USDT – TON Network", placeholder: "UQxxxxxxxxxx..." },
+                      { key: "breedskool_usdt_bnb_address", label: "USDT – BEP-20 (BNB Smart Chain)", placeholder: "0xxxxxxxxxxx..." },
+                    ].map(({ key, label, placeholder }) => (
+                      <div key={key}>
+                        <Label className="text-xs">{label}</Label>
+                        <Input value={bsEffectiveSettings[key] || ""} onChange={e => setBsField(key, e.target.value)} placeholder={placeholder} className="mt-1 font-mono text-sm" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Extra Instructions */}
+                <div>
+                  <Label className="text-xs font-semibold">Payment Instructions (shown to students)</Label>
+                  <Textarea value={bsEffectiveSettings.breedskool_payment_instructions || ""} onChange={e => setBsField("breedskool_payment_instructions", e.target.value)} rows={3} placeholder="After transfer, enter your transaction reference below..." className="mt-1 text-sm" />
+                </div>
+
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                  onClick={() => savePaySettingsMutation.mutate()}
+                  disabled={savePaySettingsMutation.isPending || !bsSettingsDirty}
+                >
+                  {savePaySettingsMutation.isPending ? <><div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full" /> Saving...</> : <><CheckCircle className="h-4 w-4" /> Save Payment Settings</>}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
