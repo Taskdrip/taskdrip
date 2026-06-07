@@ -278,6 +278,8 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
   const [registeredName, setRegisteredName] = useState("");
   const [registeredCourse, setRegisteredCourse] = useState("");
   const [payLater, setPayLater] = useState(false);
+  const [regWrongPassword, setRegWrongPassword] = useState(false);
+  const [regAutoLoggedIn, setRegAutoLoggedIn] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [form, setForm] = useState<RegForm>({
     fullName: "", phone: "", location: "",
@@ -324,18 +326,13 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
       setRegisteredName(form.fullName);
       setRegisteredCourse(form.selectedCourseTitle);
       setPayLater(form.paymentOption === "pay_later");
+      setRegWrongPassword(!!data.wrongPassword);
+      setRegAutoLoggedIn(!!data.loggedIn);
       onClose();
       setShowSuccess(true);
-      // Refresh auth state if auto-logged in
       if (data.loggedIn) {
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      }
-      // Notify if existing account with wrong password
-      if (data.wrongPassword) {
-        toast({
-          title: "Account already exists",
-          description: "Your registration was saved! Use your existing password to log in and access your courses.",
-        });
+        queryClient.invalidateQueries({ queryKey: ["/api/my/breedskool-registrations"] });
       }
     },
     onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
@@ -748,54 +745,98 @@ function RegistrationModal({ open, onClose, courses: rawCourses }: { open: boole
 
       {/* ── Success Modal ── */}
       <Dialog open={showSuccess} onOpenChange={o => { if (!o) { setShowSuccess(false); reset(); } }}>
-        <DialogContent className="max-w-md text-center" aria-describedby="success-desc">
+        <DialogContent className="max-w-md" aria-describedby="success-desc">
           <div className="py-4 space-y-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl animate-bounce">
-              <GraduationCap className="w-10 h-10 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-gray-900">🎉 Welcome to BreedSkool, {registeredName.split(" ")[0]}!</h2>
-              <p className="text-gray-600 text-sm mt-2 leading-relaxed">
-                You're officially a <span className="font-bold text-violet-700">BreedSkool student</span>! Your account is live and you're now part of an elite community turning skills into income. {payLater ? "Browse free online courses below." : `Get ready to start your journey in ${registeredCourse}!`}
-              </p>
-            </div>
-            {payLater && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left">
-                <div className="flex items-start gap-2">
-                  <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-blue-800 text-sm">📚 Free Online Courses Access</p>
-                    <p className="text-xs text-blue-700 mt-1">You now have access to our <strong>free online courses</strong>. Note that live training sessions on site are exclusively for paid students. Upgrade anytime to unlock full live training.</p>
+
+            {/* Wrong password — existing account scenario */}
+            {regWrongPassword ? (
+              <>
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl">
+                  <CheckCircle className="w-10 h-10 text-white" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-xl font-black text-gray-900">✅ Registration Saved, {registeredName.split(" ")[0]}!</h2>
+                  <p className="text-gray-600 text-sm mt-2 leading-relaxed">
+                    You already have a Taskdrip account with this email. Your <strong className="text-violet-700">{registeredCourse}</strong> enrollment is saved — just log in to access your dashboard.
+                  </p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
+                  <p className="text-xs text-amber-800 font-medium">⚠️ Your registration password didn't match your existing account. Log in below with your <strong>original Taskdrip password</strong> to see your training.</p>
+                </div>
+                <Button
+                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/login?redirect=/dashboard"; }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl"
+                  data-testid="btn-welcome-login"
+                >
+                  Log In to My Account →
+                </Button>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-left">
+                  <p className="font-semibold text-gray-800 text-sm">Need help? Contact your tutor 👇</p>
+                  <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${registeredCourse} on BreedSkool. My name is ${registeredName}. I need help accessing my account.`)}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors text-sm font-bold" data-testid="link-welcome-whatsapp-existing">
+                    <PhoneCall className="w-4 h-4" /> WhatsApp Tutor — +1 (201) 680-0266
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* New registration success */}
+                <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl animate-bounce">
+                  <GraduationCap className="w-10 h-10 text-white" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-2xl font-black text-gray-900">🎉 Welcome, {registeredName.split(" ")[0]}!</h2>
+                  <p className="text-gray-600 text-sm mt-2 leading-relaxed">
+                    You're officially a <span className="font-bold text-violet-700">BreedSkool student</span>! Your account is live and you're now part of an elite community turning skills into income.{" "}
+                    {payLater ? "Browse free online courses below." : `Get ready to start your journey in ${registeredCourse}!`}
+                  </p>
+                </div>
+
+                {payLater && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left">
+                    <div className="flex items-start gap-2">
+                      <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold text-blue-800 text-sm">📚 Free Online Courses Access</p>
+                        <p className="text-xs text-blue-700 mt-1">You now have access to our <strong>free online courses</strong>. Note that live training sessions are exclusively for paid students. Upgrade anytime to unlock full live training.</p>
+                      </div>
+                    </div>
                   </div>
+                )}
+
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-left">
+                  <p className="text-xs text-emerald-800">✅ Your Taskdrip influencer account has been created alongside your BreedSkool enrollment. You can earn from brand campaigns, P2P trading and more — all from your dashboard!</p>
                 </div>
-              </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-left">
+                  <p className="font-semibold text-gray-800 text-sm">Connect with your tutors 👇</p>
+                  <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${registeredCourse} on BreedSkool. My name is ${registeredName}.`)}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors" data-testid="link-welcome-whatsapp">
+                    <PhoneCall className="w-5 h-5" />
+                    <div>
+                      <p className="font-bold text-sm">WhatsApp Your Tutor</p>
+                      <p className="text-[11px] text-green-100">+1 (201) 680-0266</p>
+                    </div>
+                  </a>
+                  <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-4 py-3 transition-colors" data-testid="link-welcome-telegram">
+                    <Send className="w-5 h-5" />
+                    <div>
+                      <p className="font-bold text-sm">Join the Telegram Community</p>
+                      <p className="text-[11px] text-blue-100">t.me/taskdrip</p>
+                    </div>
+                  </a>
+                </div>
+
+                <Button
+                  onClick={() => { setShowSuccess(false); reset(); window.location.href = "/dashboard"; }}
+                  className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl"
+                  data-testid="btn-welcome-dashboard"
+                >
+                  Go to My Dashboard 🚀
+                </Button>
+              </>
             )}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-left">
-              <p className="font-semibold text-gray-800 text-sm">Connect with your tutors 👇</p>
-              <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${registeredCourse} on BreedSkool. My name is ${registeredName}.`)}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors" data-testid="link-welcome-whatsapp">
-                <PhoneCall className="w-5 h-5" />
-                <div>
-                  <p className="font-bold text-sm">WhatsApp Your Tutor</p>
-                  <p className="text-[11px] text-green-100">+1 (201) 680-0266</p>
-                </div>
-              </a>
-              <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-4 py-3 transition-colors" data-testid="link-welcome-telegram">
-                <Send className="w-5 h-5" />
-                <div>
-                  <p className="font-bold text-sm">Join the Telegram Community</p>
-                  <p className="text-[11px] text-blue-100">t.me/taskdrip</p>
-                </div>
-              </a>
-            </div>
-            <Button
-              onClick={() => { setShowSuccess(false); reset(); window.location.href = "/dashboard"; }}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl"
-              data-testid="btn-welcome-dashboard"
-            >
-              Go to My Dashboard 🚀
-            </Button>
           </div>
         </DialogContent>
       </Dialog>

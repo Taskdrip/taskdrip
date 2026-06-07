@@ -16,7 +16,8 @@ import {
   Users, ShoppingBag, Package, CheckCircle, AlertCircle, Truck, Zap, Star, Crown, Medal,
   Briefcase, ChevronRight, Sparkles, LayoutDashboard, MessageSquare, Settings,
   Store, ArrowUpRight, Globe, BookOpen, Shield, Coins, Send, Bell, LogOut,
-  RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search, Link2
+  RefreshCw, FileText, ChevronDown, ChevronUp, ExternalLink, Layers, Activity, Search, Link2,
+  GraduationCap, PlayCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -200,6 +201,10 @@ export default function SimpleDashboard() {
   });
   const { data: p2pDeals = [] } = useQuery<any[]>({
     queryKey: ["/api/p2p/my-deals"],
+    enabled: !!uid,
+  });
+  const { data: bsRegistrations = [] } = useQuery<any[]>({
+    queryKey: ["/api/my/breedskool-registrations"],
     enabled: !!uid,
   });
   const { data: leaderboard = [] } = useQuery<any[]>({
@@ -475,6 +480,81 @@ export default function SimpleDashboard() {
                           See all {(hireOffers as any[]).length} offers →
                         </button>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* BreedSkool Training Section */}
+                {(bsRegistrations as any[]).length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="font-bold text-gray-900 flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 text-violet-600" /> My BreedSkool Training
+                      </h2>
+                      <Link href="/breedskool"><button className="text-xs text-violet-600 hover:underline">Browse more →</button></Link>
+                    </div>
+                    <div className="space-y-3">
+                      {(bsRegistrations as any[]).map((reg: any) => {
+                        const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
+                          pending:    { color: "bg-yellow-100 text-yellow-700 border-yellow-200", label: "Payment Pending", icon: "⏳" },
+                          registered: { color: "bg-blue-100 text-blue-700 border-blue-200",       label: "Registered – Free Access", icon: "📚" },
+                          paid:       { color: "bg-purple-100 text-purple-700 border-purple-200", label: "Payment Received", icon: "💳" },
+                          confirmed:  { color: "bg-emerald-100 text-emerald-700 border-emerald-200", label: "Enrollment Confirmed ✓", icon: "🎓" },
+                          rejected:   { color: "bg-red-100 text-red-700 border-red-200",           label: "Payment Rejected", icon: "❌" },
+                        };
+                        const sc = statusConfig[reg.paymentStatus] || statusConfig.registered;
+                        const courseGradients: Record<string, string> = {
+                          webdev: "from-blue-500 to-cyan-500",
+                          ai_content: "from-violet-500 to-purple-600",
+                          social_monetize: "from-emerald-500 to-teal-500",
+                          trading: "from-orange-500 to-amber-500",
+                          home_lesson: "from-pink-500 to-rose-500",
+                          onsite_training: "from-teal-500 to-green-500",
+                        };
+                        const grad = courseGradients[reg.selectedCourseKey] || "from-violet-500 to-indigo-600";
+                        return (
+                          <div key={reg.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className={`h-2 bg-gradient-to-r ${grad}`} />
+                            <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <GraduationCap className="h-6 w-6 text-violet-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-gray-900 text-sm truncate">{reg.selectedCourseTitle}</p>
+                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${sc.color}`}>{sc.icon} {sc.label}</span>
+                                  <span className="text-xs text-gray-400 capitalize">{reg.deliveryMode?.replace("_", " ")}</span>
+                                  {reg.amountNgn > 0 && <span className="text-xs font-semibold text-gray-600">₦{Number(reg.amountNgn).toLocaleString()}</span>}
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                {(reg.paymentStatus === "confirmed" || reg.paymentStatus === "registered") ? (
+                                  <Link href="/breedskool">
+                                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white text-xs gap-1 h-8">
+                                      <PlayCircle className="h-3.5 w-3.5" /> Start Learning
+                                    </Button>
+                                  </Link>
+                                ) : reg.paymentStatus === "pending" ? (
+                                  <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just paid for ${reg.selectedCourseTitle} on BreedSkool. My name is ${reg.fullName}. My transaction ref is: ${reg.transactionRef || "N/A"}.`)}`} target="_blank" rel="noopener noreferrer">
+                                    <Button size="sm" variant="outline" className="text-xs gap-1 h-8 border-green-300 text-green-700 hover:bg-green-50">
+                                      📲 Send Proof
+                                    </Button>
+                                  </a>
+                                ) : (
+                                  <Link href="/breedskool">
+                                    <Button size="sm" variant="outline" className="text-xs h-8">View Details</Button>
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                            {reg.paymentStatus === "pending" && reg.transactionRef && (
+                              <div className="px-4 pb-3">
+                                <p className="text-xs text-gray-400 font-mono bg-gray-50 rounded-lg px-2 py-1">Ref: {reg.transactionRef}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
