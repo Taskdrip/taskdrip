@@ -2,14 +2,28 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+# Override ALL possible npm production-mode triggers Railway may inject.
+# NPM_CONFIG_PRODUCTION=false and NPM_CONFIG_OMIT="" take precedence over
+# any externally-set NODE_ENV or NPM_CONFIG_* variables at build time.
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
+ENV NPM_CONFIG_OMIT=""
 
-# --include=dev ensures build tools (vite, esbuild, tailwind, etc.) are always
-# installed regardless of any NODE_ENV value Railway injects at build time.
-RUN npm ci --include=dev --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 COPY . .
-RUN NODE_OPTIONS='--max-old-space-size=4096' npm run build
+
+# Call vite and esbuild via their direct binary paths to bypass any shell
+# PATH resolution issues that can occur in Railway's Docker environment.
+RUN NODE_OPTIONS='--max-old-space-size=4096' \
+    node_modules/.bin/vite build && \
+    node_modules/.bin/esbuild server/index.ts \
+      --platform=node \
+      --packages=external \
+      --bundle \
+      --format=esm \
+      --outdir=dist
 
 # ── Stage 2: Production runtime ────────────────────────────────────────────────
 FROM node:20-slim
