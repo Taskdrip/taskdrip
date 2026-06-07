@@ -4,15 +4,33 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-// Build connection string — support URL-based OR PG* env var style (Railway sets both)
+// Validate that a string is a parseable postgresql:// or postgres:// URL.
+function isValidPgUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "postgresql:" || parsed.protocol === "postgres:";
+  } catch {
+    return false;
+  }
+}
+
+// Build connection string — support URL-based OR PG* env var style (Railway sets both).
+// Always validate URL strings before using them so a malformed DATABASE_URL doesn't
+// crash the pool while valid PG* individual variables are present.
 function resolveConnectionString(): string | undefined {
-  // 1. Direct URL env vars (preferred)
-  const url =
-    process.env.DATABASE_URL ||
-    process.env.DATABASE_PRIVATE_URL ||
-    process.env.DATABASE_PUBLIC_URL ||
-    process.env.POSTGRES_URL;
-  if (url) return url;
+  // 1. Direct URL env vars — validate each before trusting it
+  const candidates = [
+    process.env.DATABASE_URL,
+    process.env.DATABASE_PRIVATE_URL,
+    process.env.DATABASE_PUBLIC_URL,
+    process.env.POSTGRES_URL,
+  ];
+  for (const url of candidates) {
+    if (url) {
+      if (isValidPgUrl(url)) return url;
+      console.warn(`[db] Ignoring malformed database URL (${url.slice(0, 30)}…) — falling back to PG* vars`);
+    }
+  }
 
   // 2. Construct from individual PG* vars (Railway Postgres plugin sets these)
   const host = process.env.PGHOST;

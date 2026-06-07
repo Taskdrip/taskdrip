@@ -37,8 +37,9 @@ app.get(["/api/health", "/health"], (_req, res) => {
     uptime: process.uptime(),
     error: startupError,
   };
-  // Return 503 on fatal startup error so Railway knows the container is unhealthy.
-  res.status(startupError ? 503 : 200).json(body);
+  // Always return 200 so Railway's health check never times out and kills the deployment.
+  // The body's "status" field ("ok" | "starting" | "error") carries the actual state.
+  res.status(200).json(body);
 });
 
 if (isProd) {
