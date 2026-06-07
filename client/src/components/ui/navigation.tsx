@@ -115,6 +115,7 @@ function NotificationPanel({ notifications, onClose, onMarkRead, onMarkAllRead }
 const communityLinks = [
   { href: "/feed", label: "Social Feed", icon: Users, color: "text-pink-500", internal: true },
   { href: "/leaderboard", label: "Leaderboard", icon: Star, color: "text-yellow-500", internal: true },
+  { href: "/p2p-hub", label: "P2P Market", icon: AlertCircle, color: "text-violet-500", internal: true },
   { href: SOCIALS.telegram, label: "Telegram Community", icon: SiTelegram, color: "text-[#229ED9]" },
   { href: SOCIALS.x, label: "Follow on X", icon: SiX, color: "text-gray-800" },
   { href: SOCIALS.instagram, label: "Instagram", icon: SiInstagram, color: "text-[#E1306C]" },
@@ -174,7 +175,6 @@ export function Navigation() {
     { href: "/", label: "Home" },
     { href: "/tasks", label: "Earn Rewards" },
     { href: "/influencers", label: "Influencers" },
-    { href: "/p2p-hub", label: "P2P Market" },
     { href: "/shop", label: "Shop" },
     { href: "/breedskool", label: "BreedSkool" },
     { href: "/blog", label: "Blog" },

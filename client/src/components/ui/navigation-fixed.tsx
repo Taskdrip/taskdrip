@@ -33,7 +33,6 @@ const publicMainItems = [
   { href: "/", label: "Home" },
   { href: "/tasks", label: "Tasks" },
   { href: "/shop", label: "Shop" },
-  { href: "/p2p-hub", label: "P2P Market" },
   { href: "/influencers", label: "Influencers" },
   { href: "/brands", label: "Brands" },
   { href: "/breedskool", label: "BreedSkool" },
@@ -177,9 +176,11 @@ export function NavigationFixed() {
   const getNavStructure = () => {
     if (!isAuthenticated) {
       return {
-        primary: publicMainItems.slice(0, 6),
+        primary: publicMainItems, // all 6 items including BreedSkool
         grouped: {
-          "Discover": publicMainItems.slice(6),
+          "Marketplace": [
+            { href: "/p2p-hub", label: "P2P Market" },
+          ],
           "Resources": secondaryMainItems,
         },
       };
@@ -192,6 +193,7 @@ export function NavigationFixed() {
           { href: "/brand-dashboard", label: "Dashboard" },
           { href: "/influencers", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
+          { href: "/breedskool", label: "BreedSkool" },
           { href: "/chat", label: "Messages" },
         ],
         grouped: {
@@ -218,13 +220,13 @@ export function NavigationFixed() {
           { href: "/influencers", label: "Influencers" },
           { href: "/brands", label: "Brands" },
           { href: "/campaigns", label: "Campaigns" },
-          { href: "/p2p-hub", label: "P2P" },
+          { href: "/breedskool", label: "BreedSkool" },
         ],
         grouped: {
           "Marketplace": [
             { href: "/shop", label: "Shop" },
+            { href: "/p2p-hub", label: "P2P Market" },
             { href: "/feed", label: "Feed" },
-            { href: "/breedskool", label: "BreedSkool" },
             { href: "/wallet", label: "Wallet" },
           ],
           "Admin Tools": [
@@ -247,12 +249,12 @@ export function NavigationFixed() {
         { href: "/dashboard", label: "Dashboard" },
         { href: "/brands", label: "Brands" },
         { href: "/influencers", label: "Influencers" },
-        { href: "/p2p-hub", label: "P2P" },
+        { href: "/breedskool", label: "BreedSkool" },
       ],
       grouped: {
         "Marketplace": [
           { href: "/shop", label: "Shop" },
-          { href: "/breedskool", label: "BreedSkool" },
+          { href: "/p2p-hub", label: "P2P Market" },
           { href: "/feed", label: "Feed" },
         ],
         "Earn & Tools": [

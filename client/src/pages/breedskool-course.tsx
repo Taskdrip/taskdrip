@@ -435,8 +435,7 @@ export default function BreedSkoolCourse() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "enrollment"] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
-      setShowEnrollModal(false);
-      toast({ title: course?.isFree ? "Enrolled successfully!" : "Payment submitted for review!" });
+      setEnrollStep("done");
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1095,20 +1094,41 @@ export default function BreedSkoolCourse() {
             {/* Step: Done / Thank you */}
             {enrollStep === "done" && (
               <div className="text-center py-4">
-                <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <PartyPopper className="h-10 w-10 text-violet-600" />
                 </div>
                 <h3 className="text-2xl font-extrabold text-gray-900 mb-2">
                   {course?.isFree ? "You're In! 🎉" : "Payment Submitted! 🎉"}
                 </h3>
-                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                  {course?.isFree
-                    ? "Welcome to the course! You now have full access to all lessons, chat, and materials."
-                    : "Thank you for enrolling! Our team will verify your payment within 24 hours and activate your access."}
+                <p className="text-gray-600 text-sm mb-1 leading-relaxed font-medium">
+                  Welcome{(user as any)?.firstName ? `, ${(user as any).firstName}` : ""}! 👋
                 </p>
-                <div className="space-y-2 mb-6">
+                <p className="text-gray-500 text-sm mb-4 leading-relaxed">
+                  {course?.isFree
+                    ? "You now have full access to all lessons, course chat, and materials."
+                    : "Our team will verify your payment within 24 hours and activate your access."}
+                </p>
+
+                {/* Telegram community invite */}
+                <a
+                  href="https://t.me/taskdrip"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 w-full bg-[#229ED9]/10 border border-[#229ED9]/30 rounded-xl px-4 py-3 mb-4 hover:bg-[#229ED9]/20 transition-colors group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#229ED9] flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                  </div>
+                  <div className="text-left flex-1">
+                    <p className="text-sm font-bold text-gray-900 group-hover:text-[#229ED9] transition-colors">Join our Telegram Community</p>
+                    <p className="text-xs text-gray-500">Connect with fellow learners, get support & updates</p>
+                  </div>
+                  <svg className="h-4 w-4 text-gray-400 group-hover:text-[#229ED9] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </a>
+
+                <div className="space-y-2 mb-5">
                   {(course?.isFree
-                    ? ["Instant access to all lessons", "Join the course chat", "Download materials", "Earn certificate"]
+                    ? ["Instant access to all lessons", "Join the course chat", "Download materials", "Earn a certificate"]
                     : ["Payment received & queued", "Verification in < 24 hours", "Email notification on approval", "Full access unlocked"]
                   ).map((step, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 rounded-lg px-4 py-2">
@@ -1116,9 +1136,19 @@ export default function BreedSkoolCourse() {
                     </div>
                   ))}
                 </div>
-                <Button className="w-full bg-violet-600 hover:bg-violet-700 text-white h-12"
-                  onClick={() => { setShowEnrollModal(false); setEnrollStep("choose"); }}>
-                  {course?.isFree ? "Start Learning →" : "Back to Course"}
+                <Button
+                  className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white h-12 font-semibold"
+                  onClick={() => {
+                    setShowEnrollModal(false);
+                    setEnrollStep("choose");
+                    if (course?.isFree) {
+                      setLocation(`/breedskool/${id}/learn`);
+                    } else {
+                      setLocation("/dashboard");
+                    }
+                  }}
+                >
+                  {course?.isFree ? "Start Learning →" : "Go to My Dashboard →"}
                 </Button>
               </div>
             )}
