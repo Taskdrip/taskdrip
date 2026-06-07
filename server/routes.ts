@@ -572,9 +572,19 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (u.userType === 'creator' || u.userType === 'admin') {
         return res.json({ message: 'Already a creator', user: u });
       }
-      const updated = await storage.updateUserProfile(userId, {
-        userType: 'creator',
-      } as any);
+      // Prefill niche from first active enrollment's course category
+      let niche: string | null = null;
+      try {
+        const enrollments = await storage.getMyEnrollments(userId);
+        const activeEnrollment = enrollments.find((e: any) => e.status === 'active' || e.status === 'completed');
+        if (activeEnrollment?.courseId) {
+          const course = await storage.getCourseById(activeEnrollment.courseId);
+          if (course?.category) niche = course.category;
+        }
+      } catch (_) {}
+      const updatePayload: any = { userType: 'creator' };
+      if (niche && !u.niche) updatePayload.niche = niche;
+      const updated = await storage.updateUserProfile(userId, updatePayload);
       // Award upgrade bonus points
       storage.awardPoints(userId, 'become_creator', 100, 'Upgraded to Creator account!').catch(() => {});
       storage.createNotification({
@@ -582,7 +592,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         type: 'account_upgrade',
         title: '🎉 Creator Account Activated!',
         content: 'Your account has been upgraded to Creator. You can now apply for brand campaigns and earn crypto rewards!',
-        actionUrl: '/dashboard',
+        actionUrl: '/dashboard?tab=campaigns',
         isRead: false,
       } as any).catch(() => {});
       // Strip password from response
@@ -5909,6 +5919,31 @@ Instructions:
     }
   });
 
+  // Auth: get enrolled classmates for a course (Community tab)
+  app.get('/api/courses/:id/community', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = await db.select({
+        userId: courseEnrollments.userId,
+        status: courseEnrollments.status,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        userType: users.userType,
+        username: users.username,
+      })
+        .from(courseEnrollments)
+        .leftJoin(users, eq(courseEnrollments.userId, users.id))
+        .where(and(
+          eq(courseEnrollments.courseId, req.params.id),
+          eq(courseEnrollments.status, 'active')
+        ))
+        .limit(100);
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to fetch community' });
+    }
+  });
+
   // Auth: get current user enrollment for a course
   app.get('/api/courses/:id/enrollment', isAuthenticated, async (req: any, res) => {
     try {
@@ -6249,6 +6284,55 @@ Instructions:
       res.status(201).json(assignment);
     } catch (e: any) {
       res.status(500).json({ message: e.message || "Failed to submit assignment" });
+    }
+  });
+
+  // Admin: list all assignment submissions across courses
+  app.get('/api/admin/courses/assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      if (u.userType !== 'admin' && u.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+      const rows = await db.select({
+        id: courseAssignments.id,
+        courseId: courseAssignments.courseId,
+        lessonId: courseAssignments.lessonId,
+        userId: courseAssignments.userId,
+        title: courseAssignments.title,
+        description: courseAssignments.description,
+        fileUrl: courseAssignments.fileUrl,
+        fileName: courseAssignments.fileName,
+        fileType: courseAssignments.fileType,
+        status: courseAssignments.status,
+        tutorFeedback: courseAssignments.tutorFeedback,
+        submittedAt: courseAssignments.submittedAt,
+        studentFirstName: users.firstName,
+        studentLastName: users.lastName,
+        studentEmail: users.email,
+      })
+        .from(courseAssignments)
+        .leftJoin(users, eq(courseAssignments.userId, users.id))
+        .orderBy(desc(courseAssignments.submittedAt));
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to fetch assignments' });
+    }
+  });
+
+  // Admin: review (approve/reject) an assignment submission
+  app.patch('/api/admin/assignments/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      if (u.userType !== 'admin' && u.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+      const { status, tutorFeedback } = req.body;
+      if (!['approved', 'rejected', 'reviewed'].includes(status)) return res.status(400).json({ message: 'Invalid status' });
+      const [updated] = await db.update(courseAssignments)
+        .set({ status, tutorFeedback: tutorFeedback || null })
+        .where(eq(courseAssignments.id, req.params.id))
+        .returning();
+      if (!updated) return res.status(404).json({ message: 'Assignment not found' });
+      res.json(updated);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || 'Failed to review assignment' });
     }
   });
 

@@ -117,7 +117,7 @@ export default function MyTraining() {
         title: "🎉 You're now a Creator!",
         description: "Your account has been upgraded. Start applying to brand campaigns and earning!",
       });
-      setTimeout(() => setLocation("/dashboard"), 1500);
+      setTimeout(() => setLocation("/dashboard?tab=campaigns"), 1500);
     },
     onError: (e: any) => {
       toast({ title: "Upgrade failed", description: e.message, variant: "destructive" });
@@ -193,7 +193,7 @@ export default function MyTraining() {
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Upgrade CTA */}
-        {!isCreator && (hasCompletedCourse || activeEnrollments.length > 0) && (
+        {!isCreator && enrollments.some(e => (e.progress || 0) >= 50) && (
           <div className="mb-6 bg-gradient-to-r from-violet-600 to-purple-600 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-4">
             <div className="flex-1 text-white">
               <div className="flex items-center gap-2 mb-1">

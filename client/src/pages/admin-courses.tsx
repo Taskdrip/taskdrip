@@ -805,6 +805,9 @@ export default function AdminCourses() {
           </Card>
         )}
 
+        {/* Assignment Review */}
+        <AssignmentReviewCard courses={courses} />
+
         {/* Chat Moderation */}
         <ChatModerationCard courses={courses} />
 
@@ -1223,6 +1226,152 @@ function BreedSkoolManagementPanel() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ── Assignment Review subcomponent ──────────────────────────────────────
+function AssignmentReviewCard({ courses }: { courses: any[] }) {
+  const { toast } = useToast();
+  const [filterCourse, setFilterCourse] = useState<string>("all");
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
+
+  const { data: assignments = [], isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/courses/assignments"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/courses/assignments")).json(),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ id, status, tutorFeedback }: { id: string; status: string; tutorFeedback?: string }) => {
+      const r = await apiRequest("PATCH", `/api/admin/assignments/${id}`, { status, tutorFeedback });
+      return r.json();
+    },
+    onSuccess: () => { refetch(); toast({ title: "Assignment reviewed!" }); },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
+  const courseMap: Record<string, string> = {};
+  courses.forEach((c: any) => { courseMap[c.id] = c.title; });
+
+  const filtered = filterCourse === "all"
+    ? assignments
+    : assignments.filter((a: any) => a.courseId === filterCourse);
+
+  const pending = assignments.filter((a: any) => a.status === "submitted").length;
+
+  return (
+    <Card className="mb-8 border-violet-100">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-violet-600" /> Assignment Review
+          {pending > 0 && <Badge className="bg-amber-100 text-amber-700 ml-1">{pending} pending</Badge>}
+        </CardTitle>
+        <p className="text-xs text-gray-500">Review, approve, or reject student assignment submissions across all courses.</p>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          <Select value={filterCourse} onValueChange={setFilterCourse}>
+            <SelectTrigger className="max-w-md" data-testid="select-filter-assignment-course">
+              <SelectValue placeholder="Filter by course…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Courses</SelectItem>
+              {courses.map((c: any) => (
+                <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-600 mx-auto" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            No assignment submissions yet.
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+            {filtered.map((a: any) => {
+              const studentName = `${a.studentFirstName || ""} ${a.studentLastName || ""}`.trim() || "Student";
+              const initials = (a.studentFirstName?.[0] || "S") + (a.studentLastName?.[0] || "");
+              const statusColor = a.status === "approved" ? "bg-green-100 text-green-700"
+                : a.status === "rejected" ? "bg-red-100 text-red-700"
+                : a.status === "reviewed" ? "bg-blue-100 text-blue-700"
+                : "bg-amber-100 text-amber-700";
+
+              let fileLinks: { url: string; name: string }[] = [];
+              if (a.fileUrl) {
+                try {
+                  const parsed = JSON.parse(a.fileUrl);
+                  if (Array.isArray(parsed)) fileLinks = parsed.map((url: string, i: number) => ({ url, name: a.fileName || `File ${i + 1}` }));
+                } catch { fileLinks = [{ url: a.fileUrl, name: a.fileName || "Download" }]; }
+              }
+
+              return (
+                <div key={a.id} className="border rounded-xl p-4 bg-white space-y-3" data-testid={`card-assignment-${a.id}`}>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-9 w-9 flex-shrink-0">
+                      <AvatarFallback className="text-xs bg-violet-100 text-violet-700">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-gray-900">{studentName}</span>
+                        <Badge variant="outline" className="text-[10px] py-0">{courseMap[a.courseId] || a.courseId}</Badge>
+                        <Badge className={`text-[10px] py-0 ${statusColor}`}>{a.status}</Badge>
+                      </div>
+                      <p className="font-medium text-sm text-gray-800 mt-0.5">{a.title}</p>
+                      {a.description && <p className="text-xs text-gray-500 mt-0.5">{a.description}</p>}
+                      {fileLinks.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {fileLinks.map((f, i) => (
+                            <a key={i} href={f.url} target="_blank" rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-violet-600 hover:underline">
+                              <FileText className="h-3 w-3" /> {f.name}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">{new Date(a.submittedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  {a.status !== "approved" && (
+                    <div className="flex flex-col gap-2 pt-2 border-t">
+                      <input
+                        type="text"
+                        placeholder="Optional feedback for student…"
+                        value={feedbackMap[a.id] || ""}
+                        onChange={e => setFeedbackMap(prev => ({ ...prev, [a.id]: e.target.value }))}
+                        className="text-xs border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-violet-300"
+                        data-testid={`input-feedback-${a.id}`}
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1 flex-1"
+                          onClick={() => reviewMutation.mutate({ id: a.id, status: "approved", tutorFeedback: feedbackMap[a.id] })}
+                          disabled={reviewMutation.isPending}
+                          data-testid={`button-approve-assignment-${a.id}`}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 gap-1 flex-1"
+                          onClick={() => reviewMutation.mutate({ id: a.id, status: "rejected", tutorFeedback: feedbackMap[a.id] })}
+                          disabled={reviewMutation.isPending}
+                          data-testid={`button-reject-assignment-${a.id}`}>
+                          <Trash2 className="h-3.5 w-3.5" /> Reject
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {a.tutorFeedback && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-800">
+                      <span className="font-semibold">Feedback given:</span> {a.tutorFeedback}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

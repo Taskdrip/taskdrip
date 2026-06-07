@@ -33,6 +33,7 @@ import Login from "@/pages/login";
 import AdminLogin from "@/pages/admin-login";
 import ForgotPassword from "@/pages/forgot-password";
 import BreedSkool from "@/pages/breedskool";
+import BreedSkoolOnsite from "@/pages/breedskool-onsite";
 import BreedSkoolCourse from "@/pages/breedskool-course";
 import CourseLearn from "@/pages/course-learn";
 import CourseCertificate from "@/pages/course-certificate";
@@ -132,6 +133,7 @@ function Router() {
       <Route path="/admin/leads/:id" component={AdminLeadDetail} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/breedskool" component={BreedSkool} />
+      <Route path="/breedskool/onsite" component={BreedSkoolOnsite} />
       <Route path="/breedskool/:id" component={BreedSkoolCourse} />
       <Route path="/certificates/:code" component={CertificateVerify} />
       <Route path="/blog" component={Blog} />

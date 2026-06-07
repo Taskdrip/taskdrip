@@ -154,6 +154,13 @@ export default function CourseLearn() {
     enabled: !!id && isAuthenticated && !!isApproved,
   });
 
+  // Community: enrolled classmates
+  const { data: classmates = [] } = useQuery<any[]>({
+    queryKey: ["/api/courses", id, "community"],
+    queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/community`)).json(),
+    enabled: !!id && isAuthenticated && !!isApproved,
+  });
+
   const { data: groupChat = [] } = useQuery<any[]>({
     queryKey: ["/api/courses", id, "chat", "group"],
     queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/chat?scope=group`)).json(),
@@ -423,6 +430,9 @@ export default function CourseLearn() {
               <TabsTrigger value="assignments" data-testid="tab-assignments">
                 <ClipboardList className="h-4 w-4 mr-1" /> Assignments
               </TabsTrigger>
+              <TabsTrigger value="community" data-testid="tab-community">
+                <Users className="h-4 w-4 mr-1" /> Community
+              </TabsTrigger>
             </TabsList>
 
             {/* Lesson tab */}
@@ -679,18 +689,84 @@ export default function CourseLearn() {
                             </span>
                           </div>
                           {a.description && <p className="text-xs text-gray-500">{a.description}</p>}
-                          {a.fileUrl && (
-                            <a href={a.fileUrl} target="_blank" rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs text-violet-600 hover:underline">
-                              <FileIcon className="h-3.5 w-3.5" /> {a.fileName || "Download file"}
-                            </a>
-                          )}
+                          {a.fileUrl && (() => {
+                            let files: { url: string; name: string }[] = [];
+                            try {
+                              const parsed = JSON.parse(a.fileUrl);
+                              if (Array.isArray(parsed)) {
+                                files = parsed.map((url: string, i: number) => ({ url, name: a.fileName || `File ${i + 1}` }));
+                              }
+                            } catch {
+                              files = [{ url: a.fileUrl, name: a.fileName || "Download file" }];
+                            }
+                            return (
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {files.map((f, i) => (
+                                  <a key={i} href={f.url} target="_blank" rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-xs text-violet-600 hover:underline">
+                                    <FileIcon className="h-3.5 w-3.5" /> {f.name}
+                                  </a>
+                                ))}
+                              </div>
+                            );
+                          })()}
                           {a.tutorFeedback && (
                             <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-800">
                               <span className="font-semibold">Tutor feedback:</span> {a.tutorFeedback}
                             </div>
                           )}
                           <p className="text-xs text-gray-400">Submitted {new Date(a.submittedAt).toLocaleDateString()}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            {/* Community tab */}
+            <TabsContent value="community" className="mt-4">
+              <div className="bg-white border rounded-2xl p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-cyan-600" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Your Classmates</h3>
+                    <p className="text-xs text-gray-500">{classmates.length} active student{classmates.length !== 1 ? "s" : ""} enrolled in this course</p>
+                  </div>
+                </div>
+                {classmates.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400 text-sm">
+                    <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p>No other classmates yet. Be the first to invite friends!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {classmates.map((c: any) => {
+                      const name = `${c.firstName || ""} ${c.lastName || ""}`.trim() || "Student";
+                      const initials = (c.firstName?.[0] || "S") + (c.lastName?.[0] || "");
+                      const isMe = c.userId === myId;
+                      const isFollowed = followedUsers.has(c.userId);
+                      return (
+                        <div key={c.userId} className="flex items-center gap-3 p-3 border rounded-xl bg-gray-50 hover:bg-violet-50 transition-colors">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={c.profileImageUrl} />
+                            <AvatarFallback className="text-sm bg-violet-100 text-violet-700">{initials}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-gray-900 truncate">{name} {isMe && <span className="text-xs text-violet-600">(you)</span>}</p>
+                            {c.username && <p className="text-xs text-gray-400">@{c.username}</p>}
+                          </div>
+                          {!isMe && (
+                            <Button
+                              size="sm"
+                              variant={isFollowed ? "outline" : "default"}
+                              className={isFollowed ? "h-8 gap-1.5 text-xs border-violet-200 text-violet-700" : "h-8 gap-1.5 text-xs bg-violet-600 hover:bg-violet-700"}
+                              onClick={() => followUser.mutate(c.userId)}
+                              disabled={followUser.isPending}
+                              data-testid={`button-follow-classmate-${c.userId}`}
+                            >
+                              {isFollowed ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
