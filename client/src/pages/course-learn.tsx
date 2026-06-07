@@ -709,16 +709,17 @@ export default function CourseLearn() {
                 ) : (
                   <div className="space-y-3">
                     {assignments.map((a: any) => {
+                      const isRejected = a.status === "rejected";
                       const statusIcon = a.status === "approved" ? <CheckCircle className="h-4 w-4 text-green-500" />
-                        : a.status === "rejected" ? <AlertCircle className="h-4 w-4 text-red-500" />
+                        : isRejected ? <AlertCircle className="h-4 w-4 text-red-500" />
                         : a.status === "reviewed" ? <CheckCircle2 className="h-4 w-4 text-blue-500" />
                         : <Clock className="h-4 w-4 text-yellow-500" />;
                       const statusColor = a.status === "approved" ? "bg-green-100 text-green-700"
-                        : a.status === "rejected" ? "bg-red-100 text-red-700"
+                        : isRejected ? "bg-red-100 text-red-700"
                         : a.status === "reviewed" ? "bg-blue-100 text-blue-700"
                         : "bg-yellow-100 text-yellow-700";
                       return (
-                        <div key={a.id} className="border rounded-xl p-4 space-y-1.5">
+                        <div key={a.id} className={`border rounded-xl p-4 space-y-1.5 ${isRejected ? "border-red-200 bg-red-50/30" : ""}`}>
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-medium text-gray-900 text-sm">{a.title}</p>
                             <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${statusColor}`}>
@@ -752,7 +753,27 @@ export default function CourseLearn() {
                               <span className="font-semibold">Tutor feedback:</span> {a.tutorFeedback}
                             </div>
                           )}
-                          <p className="text-xs text-gray-400">Submitted {new Date(a.submittedAt).toLocaleDateString()}</p>
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <p className="text-xs text-gray-400">Submitted {new Date(a.submittedAt).toLocaleDateString()}</p>
+                            {isRejected && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 border-red-300 text-red-600 hover:bg-red-50"
+                                onClick={() => {
+                                  setAssignTitle(a.title + " (revised)");
+                                  setAssignDesc(a.description || "");
+                                  setAssignFiles([]);
+                                  setAssignFile(null);
+                                  document.getElementById("assign-file-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  document.querySelector<HTMLInputElement>('[data-testid="input-assignment-title"]')?.focus();
+                                }}
+                                data-testid={`button-resubmit-assignment-${a.id}`}
+                              >
+                                <UploadCloud className="h-3 w-3" /> Resubmit
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

@@ -5482,7 +5482,13 @@ Instructions:
   // Public: get course pricing
   app.get('/api/breedskool/pricing', async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolCoursePricing).where(eq(breedskoolCoursePricing.isActive, true));
+      const { mode } = req.query as { mode?: string };
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq(breedskoolCoursePricing.isActive, true));
+      if (mode) {
+        rows = rows.filter((r: any) => (r.deliveryMode || '').toLowerCase() === mode.toLowerCase()
+          || (r.courseKey || '').toLowerCase().includes(mode.toLowerCase())
+          || (r.label || '').toLowerCase().includes(mode.toLowerCase()));
+      }
       res.json(rows);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
@@ -6059,13 +6065,33 @@ Instructions:
   app.post('/api/courses/:id/community/posts/:postId/like', isAuthenticated, async (req: any, res) => {
     try {
       const u = req.user as any;
-      const { postId } = req.params;
-      // Check if already liked
+      const courseId = req.params.id;
+      const postId = req.params.postId;
+      // Authorization: caller must be enrolled, instructor, or admin
+      const isAdmin = u.userType === 'admin' || u.role === 'admin';
+      if (!isAdmin) {
+        const [course] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+        if (!course) return res.status(404).json({ message: 'Course not found.' });
+        const isInstructor = course.instructorId === u.id;
+        if (!isInstructor) {
+          const [enrollment] = await db.select().from(courseEnrollments)
+            .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, u.id)))
+            .limit(1);
+          if (!enrollment || enrollment.status !== 'approved') {
+            return res.status(403).json({ message: 'You must be enrolled to like posts.' });
+          }
+        }
+      }
+      // Integrity: verify postId belongs to this course and is not deleted
+      const [post] = await db.select().from(courseCommunityPosts)
+        .where(and(eq(courseCommunityPosts.id, postId), eq(courseCommunityPosts.courseId, courseId), eq(courseCommunityPosts.isDeleted, false)))
+        .limit(1);
+      if (!post) return res.status(404).json({ message: 'Post not found in this course.' });
+      // Toggle like
       const existing = await db.select().from(courseCommunityLikes)
         .where(and(eq(courseCommunityLikes.postId, postId), eq(courseCommunityLikes.userId, u.id)))
         .limit(1);
       if (existing.length > 0) {
-        // Unlike
         await db.delete(courseCommunityLikes).where(and(
           eq(courseCommunityLikes.postId, postId), eq(courseCommunityLikes.userId, u.id)
         ));
@@ -6073,7 +6099,6 @@ Instructions:
           .where(eq(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
-        // Like
         await db.insert(courseCommunityLikes).values({ postId, userId: u.id } as any);
         await db.update(courseCommunityPosts).set({ likeCount: sql`like_count + 1` })
           .where(eq(courseCommunityPosts.id, postId));
@@ -6084,16 +6109,23 @@ Instructions:
     }
   });
 
-  // DELETE: soft-delete a community post (own posts or admin)
+  // DELETE: soft-delete a community post (own posts, instructor, or admin)
   app.delete('/api/courses/:id/community/posts/:postId', isAuthenticated, async (req: any, res) => {
     try {
       const u = req.user as any;
-      const { postId } = req.params;
+      const courseId = req.params.id;
+      const postId = req.params.postId;
+      // Integrity: verify postId belongs to this course
       const [post] = await db.select().from(courseCommunityPosts)
-        .where(eq(courseCommunityPosts.id, postId)).limit(1);
-      if (!post) return res.status(404).json({ message: 'Post not found.' });
+        .where(and(eq(courseCommunityPosts.id, postId), eq(courseCommunityPosts.courseId, courseId)))
+        .limit(1);
+      if (!post) return res.status(404).json({ message: 'Post not found in this course.' });
       const isAdmin = u.userType === 'admin' || u.role === 'admin';
-      if (!isAdmin && post.userId !== u.id) return res.status(403).json({ message: 'Not your post.' });
+      if (!isAdmin && post.userId !== u.id) {
+        const [course] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+        const isInstructor = course?.instructorId === u.id;
+        if (!isInstructor) return res.status(403).json({ message: 'Not your post.' });
+      }
       await db.update(courseCommunityPosts).set({ isDeleted: true })
         .where(eq(courseCommunityPosts.id, postId));
       res.json({ ok: true });

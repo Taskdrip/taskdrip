@@ -48,18 +48,33 @@ export default function BreedSkoolOnsite() {
     referral: "",
     paymentMethodId: "",
   });
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
 
-  const { data: pricing = [] } = useQuery<any[]>({
+  const { data: allPricing = [] } = useQuery<any[]>({
     queryKey: ["/api/breedskool/pricing"],
+  });
+
+  const { data: onsiteCourses = [] } = useQuery<any[]>({
+    queryKey: ["/api/breedskool/pricing", "onsite"],
+    queryFn: async () => {
+      const res = await fetch("/api/breedskool/pricing?mode=onsite");
+      return res.json();
+    },
   });
 
   const { data: paymentMethods = [] } = useQuery<any[]>({
     queryKey: ["/api/payment-methods"],
   });
 
-  const onsitePricing = pricing.find((p: any) =>
+  const onsitePricing = (allPricing as any[]).find((p: any) =>
     p.courseKey === "onsite_training" || p.label?.toLowerCase().includes("onsite") || p.deliveryMode === "onsite"
   );
+
+  // Merge API onsite courses with fallback SCHEDULE
+  const programOptions: { label: string; courseKey?: string; day?: string; time?: string; slots?: number }[] =
+    (onsiteCourses as any[]).length > 0
+      ? (onsiteCourses as any[]).map((c: any) => ({ label: c.label || c.title || c.courseKey, courseKey: c.courseKey }))
+      : SCHEDULE.map(s => ({ label: s.program, day: s.day, time: s.time, slots: s.slots }));
 
   const activeMethods = (paymentMethods as any[]).filter((m: any) => m.isActive);
 
@@ -83,8 +98,9 @@ export default function BreedSkoolOnsite() {
       if (!res.ok) throw new Error(data.message || "Registration failed");
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setSubmitted(true);
+      if (data?.registrationId || data?.id) setRegistrationId(data?.registrationId || data?.id);
       toast({ title: "Registration submitted!", description: "We'll contact you within 24 hours to confirm your spot." });
     },
     onError: (e: any) => toast({ title: "Registration failed", description: e.message, variant: "destructive" }),
@@ -105,7 +121,8 @@ export default function BreedSkoolOnsite() {
   const resetForm = () => {
     setSubmitted(false);
     setProofFile(null);
-    setForm({ fullName: "", email: "", phone: "", program: SCHEDULE[0].program, location: "", referral: "", paymentMethodId: "" });
+    setRegistrationId(null);
+    setForm({ fullName: "", email: "", phone: "", program: programOptions[0]?.label || SCHEDULE[0].program, location: "", referral: "", paymentMethodId: "" });
   };
 
   return (
@@ -183,7 +200,15 @@ export default function BreedSkoolOnsite() {
                   <CheckCircle className="h-8 w-8 text-emerald-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">You're registered!</h3>
-                <p className="text-gray-500 mb-6">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
+                <p className="text-gray-500 mb-2">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
+                {registrationId && (
+                  <p className="text-xs text-violet-600 font-mono bg-violet-50 rounded-lg px-3 py-1.5 inline-block mb-3">
+                    Registration ID: <strong>{registrationId}</strong>
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mb-5">
+                  Need help? WhatsApp us at <a href="https://wa.me/2348000000000" className="text-violet-600 hover:underline">+234 800 000 0000</a> or email <a href="mailto:support@breedskool.com" className="text-violet-600 hover:underline">support@breedskool.com</a>
+                </p>
                 <Button variant="outline" className="gap-2" onClick={resetForm}>
                   Register another person
                 </Button>
@@ -214,7 +239,11 @@ export default function BreedSkoolOnsite() {
                   <select id="program" value={form.program} onChange={e => handleChange("program", e.target.value)}
                     className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     data-testid="select-onsite-program">
-                    {SCHEDULE.map((s, i) => <option key={i} value={s.program}>{s.program} — {s.day} · {s.time}</option>)}
+                    {programOptions.map((p, i) => (
+                      <option key={i} value={p.label}>
+                        {p.label}{p.day ? ` — ${p.day}` : ""}{p.time ? ` · ${p.time}` : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -443,7 +472,15 @@ export default function BreedSkoolOnsite() {
                 <CheckCircle className="h-8 w-8 text-emerald-600" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">You're registered!</h3>
-              <p className="text-gray-500 text-sm mb-4">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
+              <p className="text-gray-500 text-sm mb-2">We'll contact you at <strong>{form.email}</strong> within 24 hours to confirm your spot.</p>
+              {registrationId && (
+                <p className="text-xs text-violet-600 font-mono bg-violet-50 rounded px-2 py-1 inline-block mb-2">
+                  ID: <strong>{registrationId}</strong>
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mb-4">
+                Support: <a href="https://wa.me/2348000000000" className="text-violet-600 hover:underline">WhatsApp</a> · <a href="mailto:support@breedskool.com" className="text-violet-600 hover:underline">Email</a>
+              </p>
               <Button onClick={() => { setShowForm(false); resetForm(); }}>Close</Button>
             </div>
           ) : (
@@ -467,7 +504,7 @@ export default function BreedSkoolOnsite() {
                 <select id="m-program" value={form.program} onChange={e => handleChange("program", e.target.value)}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   data-testid="select-modal-onsite-program">
-                  {SCHEDULE.map((s, i) => <option key={i} value={s.program}>{s.program}</option>)}
+                  {programOptions.map((p, i) => <option key={i} value={p.label}>{p.label}</option>)}
                 </select>
               </div>
               {activeMethods.length > 0 && (
