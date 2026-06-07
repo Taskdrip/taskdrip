@@ -8,7 +8,7 @@ import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blo
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -5526,6 +5526,7 @@ Instructions:
         childAge: childAge || null,
         parentName: parentName || null,
         homeAddress: homeAddress || null,
+        linkedCourseId: null,
       }).returning();
 
       // Auto-enroll student in the linked platform course
@@ -5557,6 +5558,10 @@ Instructions:
             // Award points for enrollment
             storage.awardPoints(userId!, 'course_enroll', 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {});
           }
+          // Save linkedCourseId back to the registration row
+          await db.update(breedskoolRegistrations)
+            .set({ linkedCourseId })
+            .where(eq(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr: any) {
         console.error('[breedskool-register] enrollment error (non-fatal):', enrollErr?.message);
@@ -6154,6 +6159,45 @@ Instructions:
       res.json({ ok: true });
     } catch (e: any) {
       res.status(500).json({ message: e.message || "Failed to unmark" });
+    }
+  });
+
+  // ── Course Assignments ────────────────────────────────────────
+  // GET: fetch my assignments for a course
+  app.get('/api/courses/:id/assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = await db.select().from(courseAssignments)
+        .where(and(
+          eq(courseAssignments.courseId, req.params.id),
+          eq(courseAssignments.userId, req.user.id)
+        ))
+        .orderBy(desc(courseAssignments.submittedAt));
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || "Failed to fetch assignments" });
+    }
+  });
+
+  // POST: submit an assignment (with optional file upload)
+  app.post('/api/courses/:id/assignments', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const { title, description, lessonId } = req.body;
+      if (!title?.trim()) return res.status(400).json({ message: "Title is required" });
+      const file = req.file;
+      const [assignment] = await db.insert(courseAssignments).values({
+        courseId: req.params.id,
+        userId: req.user.id,
+        lessonId: lessonId || null,
+        title: title.trim(),
+        description: description?.trim() || null,
+        fileUrl: file ? `/uploads/${file.filename}` : null,
+        fileName: file ? (file.originalname || file.filename) : null,
+        fileType: file ? file.mimetype : null,
+        status: 'submitted',
+      } as any).returning();
+      res.status(201).json(assignment);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || "Failed to submit assignment" });
     }
   });
 

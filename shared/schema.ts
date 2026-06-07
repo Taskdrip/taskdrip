@@ -1301,6 +1301,25 @@ export const courseCertificateTemplate = pgTable("course_certificate_template", 
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Student assignment submissions per lesson
+export const courseAssignments = pgTable("course_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  lessonId: varchar("lesson_id").references(() => courseLessons.id, { onDelete: 'set null' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  fileUrl: varchar("file_url"),
+  fileName: varchar("file_name"),
+  fileType: varchar("file_type"),
+  status: varchar("status").default("submitted"), // submitted | reviewed | approved | rejected
+  tutorFeedback: text("tutor_feedback"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+});
+export type CourseAssignment = typeof courseAssignments.$inferSelect;
+export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments).omit({ id: true, submittedAt: true });
+export type InsertCourseAssignment = z.infer<typeof insertCourseAssignmentSchema>;
+
 // Issued certificates
 export const courseCertificates = pgTable("course_certificates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -2200,6 +2219,7 @@ export const breedskoolRegistrations = pgTable("breedskool_registrations", {
   childAge: varchar("child_age"),
   parentName: varchar("parent_name"),
   homeAddress: text("home_address"),
+  linkedCourseId: varchar("linked_course_id"), // platform course ID auto-enrolled into
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

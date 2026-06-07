@@ -556,7 +556,7 @@ export default function SimpleDashboard() {
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
                                 {(reg.paymentStatus === "confirmed" || reg.paymentStatus === "registered") ? (
-                                  <Link href="/breedskool">
+                                  <Link href={reg.linkedCourseId ? `/breedskool/${reg.linkedCourseId}/learn` : "/breedskool"}>
                                     <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white text-xs gap-1 h-8">
                                       <PlayCircle className="h-3.5 w-3.5" /> Start Learning
                                     </Button>
@@ -756,9 +756,9 @@ export default function SimpleDashboard() {
 
                             <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-50">
                               {canLearn ? (
-                                <Link href="/breedskool">
+                                <Link href={reg.linkedCourseId ? `/breedskool/${reg.linkedCourseId}/learn` : "/breedskool"}>
                                   <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 text-sm">
-                                    <PlayCircle className="h-4 w-4" /> Start Learning
+                                    <PlayCircle className="h-4 w-4" /> {reg.linkedCourseId ? "Continue Learning →" : "Start Learning"}
                                   </Button>
                                 </Link>
                               ) : reg.paymentStatus === "pending" ? (

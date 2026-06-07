@@ -12,10 +12,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   PlayCircle, CheckCircle2, ChevronLeft, ChevronRight, ArrowLeft, Users,
   Lock, Send, MessageSquare, MessagesSquare, Trophy, FileText, Download,
   Sparkles, PartyPopper, Award, Loader2, File as FileIcon,
+  UploadCloud, UserPlus, UserCheck, Reply, X, ClipboardList, CheckCircle,
+  Clock, AlertCircle,
 } from "lucide-react";
 
 type Lesson = {
@@ -75,6 +78,11 @@ export default function CourseLearn() {
   const [tutorMessage, setTutorMessage] = useState("");
   const [confetti, setConfetti] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string; message: string } | null>(null);
+  const [assignTitle, setAssignTitle] = useState("");
+  const [assignDesc, setAssignDesc] = useState("");
+  const [assignFile, setAssignFile] = useState<File | null>(null);
+  const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
   const groupChatRef = useRef<HTMLDivElement>(null);
   const tutorChatRef = useRef<HTMLDivElement>(null);
 
@@ -139,6 +147,12 @@ export default function CourseLearn() {
   const myId: string | undefined = u?.id;
   const isUserTutorOrAdmin = !!u && (myId === tutorId || u.userType === "admin");
 
+  const { data: assignments = [], refetch: refetchAssignments } = useQuery<any[]>({
+    queryKey: ["/api/courses", id, "assignments"],
+    queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/assignments`)).json(),
+    enabled: !!id && isAuthenticated && !!isApproved,
+  });
+
   const { data: groupChat = [] } = useQuery<any[]>({
     queryKey: ["/api/courses", id, "chat", "group"],
     queryFn: async () => (await apiRequest("GET", `/api/courses/${id}/chat?scope=group`)).json(),
@@ -196,10 +210,44 @@ export default function CourseLearn() {
     onError: (e: any) => toast({ title: "Couldn't update lesson", description: e?.message || "Try again", variant: "destructive" }),
   });
 
+  const submitAssignment = useMutation({
+    mutationFn: async () => {
+      if (!assignTitle.trim()) throw new Error("Please enter a title for your assignment");
+      const fd = new FormData();
+      fd.append("title", assignTitle.trim());
+      if (assignDesc.trim()) fd.append("description", assignDesc.trim());
+      if (current) fd.append("lessonId", current.id);
+      if (assignFile) fd.append("file", assignFile);
+      const r = await fetch(`/api/courses/${id}/assignments`, {
+        method: "POST", body: fd, credentials: "include",
+      });
+      if (!r.ok) throw new Error((await r.json()).message || "Upload failed");
+      return r.json();
+    },
+    onSuccess: () => {
+      setAssignTitle(""); setAssignDesc(""); setAssignFile(null);
+      refetchAssignments();
+      toast({ title: "Assignment submitted! ✅", description: "Your tutor will review it shortly." });
+    },
+    onError: (e: any) => toast({ title: "Submission failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const followUser = useMutation({
+    mutationFn: async (userId: string) => (await apiRequest("POST", `/api/users/${userId}/follow`)).json(),
+    onSuccess: (_data, userId) => {
+      setFollowedUsers(prev => {
+        const next = new Set(prev);
+        if (next.has(userId)) next.delete(userId); else next.add(userId);
+        return next;
+      });
+    },
+    onError: (e: any) => toast({ title: "Couldn't follow user", description: e?.message, variant: "destructive" }),
+  });
+
   const sendGroup = useMutation({
     mutationFn: async (msg: string) => (await apiRequest("POST", `/api/courses/${id}/chat`, { message: msg })).json(),
     onSuccess: () => {
-      setGroupMessage("");
+      setGroupMessage(""); setReplyTo(null);
       queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "chat", "group"] });
     },
     onError: (e: any) => toast({ title: "Couldn't send message", description: e?.message || "Try again", variant: "destructive" }),
@@ -369,6 +417,9 @@ export default function CourseLearn() {
                   <MessageSquare className="h-4 w-4 mr-1" /> Message Tutor
                 </TabsTrigger>
               )}
+              <TabsTrigger value="assignments" data-testid="tab-assignments">
+                <ClipboardList className="h-4 w-4 mr-1" /> Assignments
+              </TabsTrigger>
             </TabsList>
 
             {/* Lesson tab */}
@@ -476,7 +527,18 @@ export default function CourseLearn() {
                 myId={myId}
                 inputValue={groupMessage}
                 onChange={setGroupMessage}
-                onSend={() => groupMessage.trim() && sendGroup.mutate(groupMessage.trim())}
+                replyTo={replyTo}
+                onClearReply={() => setReplyTo(null)}
+                onReply={(msg) => setReplyTo(msg)}
+                onFollow={(uid) => uid !== myId && followUser.mutate(uid)}
+                followedUsers={followedUsers}
+                onSend={() => {
+                  if (!groupMessage.trim()) return;
+                  const fullMsg = replyTo
+                    ? `↩ @${replyTo.name}: "${replyTo.message.slice(0, 40)}${replyTo.message.length > 40 ? "…" : ""}"\n${groupMessage.trim()}`
+                    : groupMessage.trim();
+                  sendGroup.mutate(fullMsg);
+                }}
                 sending={sendGroup.isPending}
                 scrollRef={groupChatRef}
               />
@@ -499,6 +561,118 @@ export default function CourseLearn() {
                 />
               </TabsContent>
             )}
+
+            {/* Assignments tab */}
+            <TabsContent value="assignments" className="mt-4 space-y-4">
+              {/* Submit new assignment */}
+              <div className="bg-white border rounded-2xl p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <UploadCloud className="h-5 w-5 text-violet-600" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Submit Assignment</h3>
+                    <p className="text-xs text-gray-500">For: {current ? `Lesson ${currentIdx + 1} — ${current.title}` : "Current lesson"}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Assignment title (e.g. Week 1 Project)"
+                    value={assignTitle}
+                    onChange={e => setAssignTitle(e.target.value)}
+                    data-testid="input-assignment-title"
+                  />
+                  <Textarea
+                    placeholder="Description or notes for your tutor (optional)"
+                    value={assignDesc}
+                    onChange={e => setAssignDesc(e.target.value)}
+                    rows={3}
+                    data-testid="input-assignment-desc"
+                  />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Attach file (PDF, image, Word doc — optional)</label>
+                    <label
+                      className="flex items-center gap-2 border-2 border-dashed border-violet-200 rounded-xl p-3 cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-colors"
+                      htmlFor="assign-file-input"
+                    >
+                      <UploadCloud className="h-5 w-5 text-violet-500 flex-shrink-0" />
+                      <span className="text-sm text-gray-500 truncate">
+                        {assignFile ? assignFile.name : "Click to choose a file"}
+                      </span>
+                    </label>
+                    <input
+                      id="assign-file-input"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.zip"
+                      onChange={e => setAssignFile(e.target.files?.[0] || null)}
+                    />
+                    {assignFile && (
+                      <button onClick={() => setAssignFile(null)} className="text-xs text-red-500 mt-1 hover:underline flex items-center gap-1">
+                        <X className="h-3 w-3" /> Remove file
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white gap-2"
+                    onClick={() => submitAssignment.mutate()}
+                    disabled={submitAssignment.isPending || !assignTitle.trim()}
+                    data-testid="button-submit-assignment"
+                  >
+                    {submitAssignment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                    Submit Assignment
+                  </Button>
+                </div>
+              </div>
+
+              {/* Past submissions */}
+              <div className="bg-white border rounded-2xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-violet-600" /> My Submissions ({assignments.length})
+                </h3>
+                {assignments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No assignments submitted yet.</p>
+                    <p className="text-xs mt-1">Use the form above to submit your first assignment.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {assignments.map((a: any) => {
+                      const statusIcon = a.status === "approved" ? <CheckCircle className="h-4 w-4 text-green-500" />
+                        : a.status === "rejected" ? <AlertCircle className="h-4 w-4 text-red-500" />
+                        : a.status === "reviewed" ? <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                        : <Clock className="h-4 w-4 text-yellow-500" />;
+                      const statusColor = a.status === "approved" ? "bg-green-100 text-green-700"
+                        : a.status === "rejected" ? "bg-red-100 text-red-700"
+                        : a.status === "reviewed" ? "bg-blue-100 text-blue-700"
+                        : "bg-yellow-100 text-yellow-700";
+                      return (
+                        <div key={a.id} className="border rounded-xl p-4 space-y-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium text-gray-900 text-sm">{a.title}</p>
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${statusColor}`}>
+                              {statusIcon} {a.status}
+                            </span>
+                          </div>
+                          {a.description && <p className="text-xs text-gray-500">{a.description}</p>}
+                          {a.fileUrl && (
+                            <a href={a.fileUrl} target="_blank" rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-violet-600 hover:underline">
+                              <FileIcon className="h-3.5 w-3.5" /> {a.fileName || "Download file"}
+                            </a>
+                          )}
+                          {a.tutorFeedback && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-800">
+                              <span className="font-semibold">Tutor feedback:</span> {a.tutorFeedback}
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-400">Submitted {new Date(a.submittedAt).toLocaleDateString()}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
           </Tabs>
         </main>
       </div>
@@ -538,10 +712,16 @@ export default function CourseLearn() {
 // ── Chat panel subcomponent ─────────────────────────────────────────────
 function ChatPanel({
   title, subtitle, icon, messages, myId, inputValue, onChange, onSend, sending, scrollRef,
+  replyTo, onClearReply, onReply, onFollow, followedUsers,
 }: {
   title: string; subtitle: string; icon: React.ReactNode; messages: any[]; myId?: string;
   inputValue: string; onChange: (v: string) => void; onSend: () => void; sending: boolean;
   scrollRef: React.RefObject<HTMLDivElement>;
+  replyTo?: { id: string; name: string; message: string } | null;
+  onClearReply?: () => void;
+  onReply?: (msg: { id: string; name: string; message: string }) => void;
+  onFollow?: (userId: string) => void;
+  followedUsers?: Set<string>;
 }) {
   return (
     <div className="bg-white border rounded-2xl flex flex-col h-[60vh] overflow-hidden">
@@ -564,8 +744,9 @@ function ChatPanel({
           const sender = m.sender || {};
           const name = `${sender.firstName || ""} ${sender.lastName || ""}`.trim() || "User";
           const initials = (sender.firstName?.[0] || "U") + (sender.lastName?.[0] || "");
+          const isFollowed = followedUsers?.has(m.senderId);
           return (
-            <div key={m.id} className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+            <div key={m.id} className={`flex gap-2 group ${mine ? "flex-row-reverse" : ""}`}>
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src={sender.profileImageUrl} />
                 <AvatarFallback className="text-xs bg-violet-100 text-violet-700">{initials}</AvatarFallback>
@@ -579,6 +760,29 @@ function ChatPanel({
                   {!mine && <p className="text-xs font-semibold mb-0.5 text-violet-700">{name} {sender.userType === "admin" && <Badge className="ml-1 bg-amber-100 text-amber-700 text-[10px] py-0">Admin</Badge>}</p>}
                   <p className="whitespace-pre-wrap break-words">{m.message}</p>
                 </div>
+                {!mine && (onReply || onFollow) && (
+                  <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onReply && (
+                      <button
+                        onClick={() => onReply({ id: m.id, name, message: m.message })}
+                        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-violet-600 px-1.5 py-0.5 rounded hover:bg-violet-50"
+                      >
+                        <Reply className="h-3 w-3" /> Reply
+                      </button>
+                    )}
+                    {onFollow && m.senderId !== myId && (
+                      <button
+                        onClick={() => onFollow(m.senderId)}
+                        className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded transition-colors ${
+                          isFollowed ? "text-green-600 hover:text-red-500 hover:bg-red-50" : "text-gray-400 hover:text-cyan-600 hover:bg-cyan-50"
+                        }`}
+                      >
+                        {isFollowed ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                        {isFollowed ? "Following" : "Follow"}
+                      </button>
+                    )}
+                  </div>
+                )}
                 <p className="text-[10px] text-gray-400 mt-0.5 px-1">
                   {m.createdAt ? new Date(m.createdAt).toLocaleString([], { hour: "2-digit", minute: "2-digit" }) : ""}
                 </p>
@@ -587,17 +791,26 @@ function ChatPanel({
           );
         })}
       </div>
-      <div className="p-3 border-t flex gap-2">
-        <Input
-          value={inputValue}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Type a message…"
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
-          data-testid="input-chat-message"
-        />
-        <Button onClick={onSend} disabled={sending || !inputValue.trim()} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="button-send-chat">
-          <Send className="h-4 w-4" />
-        </Button>
+      <div className="border-t">
+        {replyTo && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-violet-50 border-b text-xs text-violet-700">
+            <Reply className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="flex-1 truncate">Replying to <strong>{replyTo.name}</strong>: "{replyTo.message.slice(0, 50)}{replyTo.message.length > 50 ? "…" : ""}"</span>
+            <button onClick={onClearReply} className="hover:text-red-500 flex-shrink-0"><X className="h-3.5 w-3.5" /></button>
+          </div>
+        )}
+        <div className="p-3 flex gap-2">
+          <Input
+            value={inputValue}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={replyTo ? `Reply to ${replyTo.name}…` : "Type a message…"}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+            data-testid="input-chat-message"
+          />
+          <Button onClick={onSend} disabled={sending || !inputValue.trim()} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="button-send-chat">
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

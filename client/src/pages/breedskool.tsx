@@ -360,7 +360,7 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
           title: `🎉 You're enrolled, ${form.fullName.split(" ")[0]}!`,
           description: `Taking you to ${form.selectedCourseTitle} now. Start chatting with your tutor!`,
         });
-        navigate(`/breedskool/${data.linkedCourseId}`);
+        navigate(`/breedskool/${data.linkedCourseId}/learn`);
       } else {
         setRegisteredName(form.fullName);
         setRegisteredCourse(form.selectedCourseTitle);
