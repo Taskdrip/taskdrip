@@ -140,7 +140,7 @@ const FULL_ADMIN_TABS = [
   "feed", "blog", "courses", "shop", "social-channels", "push-notifications", "analytics",
   "settings", "pwa", "hero-sliders", "payout-center", "content-editor", "leaderboard",
   "social-tasks", "transactions", "spotlight-content", "ad-networks", "feature-limits",
-  "demo-lab",
+  "demo-lab", "analytics-codes",
 ];
 
 const ROLE_TABS: Record<string, string[]> = {

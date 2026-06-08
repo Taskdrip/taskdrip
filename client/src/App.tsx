@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Component } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -94,6 +94,39 @@ import { LegalPageTemplate } from "@/pages/legal-page";
 import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
 import MyTraining from "@/pages/my-training";
 
+class AdminErrorBoundary extends Component<{ children: any }, { hasError: boolean; error: string }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: "" };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: error?.message || String(error) };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center p-8">
+          <div className="max-w-lg w-full bg-gray-900 border border-red-500/30 rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Admin Dashboard Error</h2>
+            <p className="text-gray-400 text-sm mb-4">A rendering error occurred. Please refresh the page. If the problem persists, check the browser console for details.</p>
+            <pre className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-xs text-red-300 text-left overflow-auto max-h-40 mb-6 whitespace-pre-wrap break-all">{this.state.error}</pre>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: "" }); window.location.reload(); }}
+              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
+            >
+              Reload Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function hasAdminDashboardAccess(user: any) {
   return user?.userType === "admin" || ["admin", "content_editor", "moderator", "store_manager"].includes(user?.role);
 }
@@ -120,7 +153,7 @@ function Router() {
     <Switch location={cleanLocation}>
       <Route path="/" component={isAuthenticated ? (() => {
         const userType = (user as any)?.userType;
-        if (hasAdminDashboardAccess(user)) return <AdminDashboard />;
+        if (hasAdminDashboardAccess(user)) return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
         if (userType === 'brand') return <BrandDashboard />;
         return <SimpleDashboard />;
       }) : FinalLanding} />
@@ -172,18 +205,18 @@ function Router() {
         <>
           <Route path="/dashboard" component={() => {
             const userType = (user as any)?.userType;
-            if (hasAdminDashboardAccess(user)) return <AdminDashboard />;
+            if (hasAdminDashboardAccess(user)) return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
             if (userType === 'brand') return <BrandDashboard />;
             return <SimpleDashboard />;
           }} />
           <Route path="/brand-dashboard" component={BrandDashboard} />
-          <Route path="/admin-dashboard" component={AdminDashboard} />
+          <Route path="/admin-dashboard" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
           <Route path="/campaigns" component={TasksPage} />
           <Route path="/campaigns/:id" component={CampaignDetail} />
           <Route path="/profile" component={() => {
             const userType = (user as any)?.userType;
             if (hasAdminDashboardAccess(user)) {
-              return <AdminDashboard />;
+              return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
             } else if (userType === 'brand') {
               return <BrandDashboard />;
             } else {
@@ -204,7 +237,7 @@ function Router() {
           <Route path="/direct-hire/:id" component={DirectHirePayment} />
           <Route path="/p2p-deals" component={P2PDealRoom} />
           <Route path="/p2p-deals/:id" component={P2PDealRoom} />
-          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
           <Route path="/admin/users" component={AdminUserManagement} />
           <Route path="/admin/products" component={AdminProducts} />
           <Route path="/admin/courses" component={AdminCourses} />
