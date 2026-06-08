@@ -54,6 +54,20 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "advertise_applications", column: "platforms", definition: "varchar" },
   { table: "advertise_applications", column: "giveaway_type", definition: "text" },
   { table: "advertise_applications", column: "tdrip_budget", definition: "text" },
+  // Auto-blogger settings — columns added in later schema revisions
+  { table: "auto_blogger_settings", column: "ai_provider", definition: "varchar DEFAULT 'gemini'" },
+  { table: "auto_blogger_settings", column: "image_provider", definition: "varchar DEFAULT 'pollinations'" },
+  { table: "auto_blogger_settings", column: "include_transcripts", definition: "boolean DEFAULT true" },
+  { table: "auto_blogger_settings", column: "embed_youtube", definition: "boolean DEFAULT true" },
+  { table: "auto_blogger_settings", column: "autopilot_enabled", definition: "boolean DEFAULT false" },
+  { table: "auto_blogger_settings", column: "autopilot_interval_minutes", definition: "integer DEFAULT 180" },
+  { table: "auto_blogger_settings", column: "autopilot_per_source", definition: "integer DEFAULT 1" },
+  { table: "auto_blogger_settings", column: "last_autopilot_run_at", definition: "timestamp" },
+  { table: "auto_blogger_settings", column: "schedule_cron", definition: "varchar" },
+  { table: "auto_blogger_settings", column: "humanization_passes", definition: "integer DEFAULT 0" },
+  { table: "auto_blogger_settings", column: "humanization_strength", definition: "varchar DEFAULT 'medium'" },
+  // BreedSkool course pricing — columns added in later schema revisions
+  { table: "breedskool_course_pricing", column: "linked_course_id", definition: "varchar" },
 ];
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot
@@ -281,6 +295,45 @@ const REQUIRED_TABLES: string[] = [
     "is_active" boolean NOT NULL DEFAULT true,
     "sort_order" integer DEFAULT 0,
     "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+
+  // BreedSkool course pricing (admin-managed pricing cards for the /breedskool page)
+  `CREATE TABLE IF NOT EXISTS "breedskool_course_pricing" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_key" varchar NOT NULL UNIQUE,
+    "title" varchar NOT NULL,
+    "short_description" text,
+    "regular_price" integer NOT NULL DEFAULT 0,
+    "discount_price" integer NOT NULL DEFAULT 0,
+    "duration" varchar,
+    "is_active" boolean DEFAULT true,
+    "accepted_payments" text[] DEFAULT ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb'],
+    "linked_course_id" varchar,
+    "updated_at" timestamp DEFAULT now()
+  )`,
+
+  // Auto-blogger settings singleton row (holds ai_provider, model, tone, etc.)
+  `CREATE TABLE IF NOT EXISTS "auto_blogger_settings" (
+    "id" varchar PRIMARY KEY DEFAULT 'singleton',
+    "enabled" boolean DEFAULT false,
+    "auto_publish" boolean DEFAULT false,
+    "ai_provider" varchar DEFAULT 'gemini',
+    "model" varchar DEFAULT 'gemini-2.5-flash',
+    "tone_style" varchar DEFAULT 'informative',
+    "min_words" integer DEFAULT 700,
+    "max_words" integer DEFAULT 1400,
+    "default_author_id" varchar,
+    "image_provider" varchar DEFAULT 'pollinations',
+    "include_transcripts" boolean DEFAULT true,
+    "embed_youtube" boolean DEFAULT true,
+    "autopilot_enabled" boolean DEFAULT false,
+    "autopilot_interval_minutes" integer DEFAULT 180,
+    "autopilot_per_source" integer DEFAULT 1,
+    "last_autopilot_run_at" timestamp,
+    "schedule_cron" varchar,
+    "humanization_passes" integer DEFAULT 0,
+    "humanization_strength" varchar DEFAULT 'medium',
     "updated_at" timestamp DEFAULT now()
   )`,
 ];
