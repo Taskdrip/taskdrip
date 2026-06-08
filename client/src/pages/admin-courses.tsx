@@ -615,16 +615,32 @@ export default function AdminCourses() {
     setOpen(true);
   };
 
+  const [adminTab, setAdminTab] = useState("courses");
+  const [studentCourseFilter, setStudentCourseFilter] = useState("all");
+  const [studentSearch, setStudentSearch] = useState("");
+
   const pendingEnrollments = enrollments.filter((e: any) => e.status === "pending_payment");
   const totalStudents = courses.reduce((sum: number, c: any) => sum + (c.studentsCount || 0), 0);
   const totalRevenue = enrollments
     .filter((e: any) => e.isPaid)
     .reduce((sum: number, e: any) => sum + parseFloat(e.amount || "0"), 0);
 
+  // Students tab data
+  const activeEnrollments = enrollments.filter((e: any) => e.status === "active");
+  const filteredStudents = activeEnrollments.filter((e: any) => {
+    if (studentCourseFilter !== "all" && e.courseId !== studentCourseFilter) return false;
+    if (studentSearch) {
+      const q = studentSearch.toLowerCase();
+      const name = `${e.user?.firstName || ""} ${e.user?.lastName || ""}`.toLowerCase();
+      return name.includes(q) || (e.user?.email || "").toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">BreedSkool Management</h1>
             <p className="text-gray-500 mt-1">Create and manage courses for the learning platform</p>
@@ -726,16 +742,18 @@ export default function AdminCourses() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Total Courses", value: courses.length, icon: BookOpen, color: "text-violet-600" },
-            { label: "Total Students", value: totalStudents, icon: Users, color: "text-blue-600" },
-            { label: "Pending Approvals", value: pendingEnrollments.length, icon: Eye, color: "text-amber-600" },
-            { label: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-600" },
+            { label: "Total Courses", value: courses.length, icon: BookOpen, color: "text-violet-600", bg: "bg-violet-50" },
+            { label: "Total Students", value: totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Pending Approvals", value: pendingEnrollments.length, icon: Eye, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-600", bg: "bg-green-50" },
           ].map((s) => (
-            <Card key={s.label}>
+            <Card key={s.label} className="border-0 shadow-sm">
               <CardContent className="p-4 flex items-center gap-3">
-                <s.icon className={`h-8 w-8 ${s.color}`} />
+                <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}>
+                  <s.icon className={`h-5 w-5 ${s.color}`} />
+                </div>
                 <div>
                   <p className="text-2xl font-bold">{s.value}</p>
                   <p className="text-xs text-gray-500">{s.label}</p>
@@ -745,165 +763,315 @@ export default function AdminCourses() {
           ))}
         </div>
 
-        {/* Pending Enrollments */}
-        {pendingEnrollments.length > 0 && (
-          <Card className="mb-8 border-amber-200">
-            <CardHeader>
-              <CardTitle className="text-amber-700 flex items-center gap-2">
-                <Eye className="h-5 w-5" /> Pending Payment Approvals ({pendingEnrollments.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Course</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingEnrollments.map((e: any) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="font-medium text-sm">{e.course?.title || e.courseId}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-sm">{e.user?.firstName} {e.user?.lastName}</p>
-                          <p className="text-xs text-gray-400">{e.user?.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell><span className="font-semibold">${e.amount}</span> <span className="text-xs text-gray-400">USDT</span></TableCell>
-                      <TableCell>
-                        <div className="text-xs space-y-1">
-                          <Badge variant="outline" className="text-xs">{e.paymentMethod || "N/A"}</Badge>
-                          {e.transactionHash && (
-                            <p className="font-mono text-gray-500 truncate max-w-32" title={e.transactionHash}>{e.transactionHash.slice(0, 12)}...</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <PaymentDetailDialog
-                            enrollment={e}
-                            onApprove={() => approveEnrollmentMutation.mutate(e.id)}
-                            approving={approveEnrollmentMutation.isPending}
-                          />
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1"
-                            onClick={() => approveEnrollmentMutation.mutate(e.id)}
-                            disabled={approveEnrollmentMutation.isPending}>
-                            <CheckCircle2 className="h-3 w-3" /> Approve
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+        {/* Tabs */}
+        <Tabs value={adminTab} onValueChange={setAdminTab}>
+          <TabsList className="mb-6 bg-white border shadow-sm flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="courses" data-testid="admin-tab-courses">
+              <BookOpen className="h-4 w-4 mr-1.5" /> Courses
+              <Badge className="ml-1.5 bg-violet-100 text-violet-700 text-xs px-1.5">{courses.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="students" data-testid="admin-tab-students">
+              <Users className="h-4 w-4 mr-1.5" /> Students
+              <Badge className="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5">{activeEnrollments.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" data-testid="admin-tab-pending">
+              <Eye className="h-4 w-4 mr-1.5" /> Approvals
+              {pendingEnrollments.length > 0 && <Badge className="ml-1.5 bg-amber-100 text-amber-700 text-xs px-1.5">{pendingEnrollments.length}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="assignments" data-testid="admin-tab-assignments">
+              <FileText className="h-4 w-4 mr-1.5" /> Assignments
+            </TabsTrigger>
+            <TabsTrigger value="chat" data-testid="admin-tab-chat">
+              <MessageSquare className="h-4 w-4 mr-1.5" /> Chat
+            </TabsTrigger>
+            <TabsTrigger value="tech-training" data-testid="admin-tab-tech">
+              <School className="h-4 w-4 mr-1.5" /> Tech Training
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Assignment Review */}
-        <AssignmentReviewCard courses={courses} />
-
-        {/* Chat Moderation */}
-        <ChatModerationCard courses={courses} />
-
-        {/* BreedSkool Tech Training Management */}
-        <BreedSkoolManagementPanel />
-
-        {/* Courses Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>All Courses ({courses.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8 text-gray-400">Loading...</div>
-            ) : courses.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p>No courses yet. Create your first course!</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Students</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {courses.map((course: any) => (
-                    <TableRow key={course.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {course.thumbnail ? (
-                            <img src={course.thumbnail} alt="" className="w-14 h-9 object-cover rounded-lg border" />
-                          ) : (
-                            <div className="w-14 h-9 rounded-lg bg-violet-100 flex items-center justify-center">
-                              <Image className="h-4 w-4 text-violet-400" />
+          {/* ── Courses Tab ── */}
+          <TabsContent value="courses">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Courses ({courses.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading...</div>
+                ) : courses.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>No courses yet. Create your first course!</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Students</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {courses.map((course: any) => (
+                        <TableRow key={course.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {course.thumbnail ? (
+                                <img src={course.thumbnail} alt="" className="w-14 h-9 object-cover rounded-lg border" />
+                              ) : (
+                                <div className="w-14 h-9 rounded-lg bg-violet-100 flex items-center justify-center">
+                                  <Image className="h-4 w-4 text-violet-400" />
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-sm">{course.title}</p>
+                                <p className="text-xs text-gray-400">{course.level} • {course.lessonsCount || 0} lessons</p>
+                              </div>
                             </div>
-                          )}
-                          <div>
-                            <p className="font-medium text-sm">{course.title}</p>
-                            <p className="text-xs text-gray-400">{course.level} • {course.lessonsCount || 0} lessons</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {CATEGORIES.find(c => c.value === course.category)?.label || course.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {course.isFree ? (
-                          <Badge className="bg-green-100 text-green-700">Free</Badge>
-                        ) : (
-                          <span className="font-semibold">${course.price}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{course.studentsCount || 0}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm">{parseFloat(course.averageRating || "0").toFixed(1)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-col">
-                          <Badge className={course.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}>
-                            {course.isPublished ? "Published" : "Draft"}
-                          </Badge>
-                          {course.isFeatured && <Badge className="bg-violet-100 text-violet-700">Featured</Badge>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2 flex-wrap">
-                          <LessonManageDialog course={course} />
-                          <Button size="sm" variant="outline" onClick={() => openEdit(course)}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-red-500 hover:text-red-700"
-                            onClick={() => { if (confirm("Delete this course?")) deleteMutation.mutate(course.id); }}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {CATEGORIES.find(c => c.value === course.category)?.label || course.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {course.isFree ? (
+                              <Badge className="bg-green-100 text-green-700">Free</Badge>
+                            ) : (
+                              <span className="font-semibold">${course.price}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{course.studentsCount || 0}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              <span className="text-sm">{parseFloat(course.averageRating || "0").toFixed(1)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 flex-col">
+                              <Badge className={course.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}>
+                                {course.isPublished ? "Published" : "Draft"}
+                              </Badge>
+                              {course.isFeatured && <Badge className="bg-violet-100 text-violet-700">Featured</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2 flex-wrap">
+                              <LessonManageDialog course={course} />
+                              <Button size="sm" variant="outline" onClick={() => openEdit(course)}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-red-500 hover:text-red-700"
+                                onClick={() => { if (confirm("Delete this course?")) deleteMutation.mutate(course.id); }}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Students Tab ── */}
+          <TabsContent value="students">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" /> Enrolled Students ({filteredStudents.length})
+                  </CardTitle>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      placeholder="Search name or email…"
+                      value={studentSearch}
+                      onChange={e => setStudentSearch(e.target.value)}
+                      className="w-52 text-sm"
+                      data-testid="input-student-search"
+                    />
+                    <Select value={studentCourseFilter} onValueChange={setStudentCourseFilter}>
+                      <SelectTrigger className="w-48" data-testid="select-student-course-filter">
+                        <SelectValue placeholder="Filter by course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Courses</SelectItem>
+                        {courses.map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredStudents.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p>No students match the filter.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead>Enrolled</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredStudents.map((e: any) => {
+                        const initials = ((e.user?.firstName?.[0] || "") + (e.user?.lastName?.[0] || "")).toUpperCase() || "S";
+                        return (
+                          <TableRow key={e.id} data-testid={`row-student-${e.id}`}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={e.user?.profileImageUrl} />
+                                  <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">{initials}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium text-sm">{e.user?.firstName} {e.user?.lastName}</p>
+                                  <p className="text-xs text-gray-400">{e.user?.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm max-w-[160px]">
+                              <p className="truncate font-medium">{e.course?.title || e.courseId}</p>
+                              <p className="text-xs text-gray-400">{e.course?.category}</p>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-violet-500 rounded-full" style={{ width: `${e.progress || 0}%` }} />
+                                </div>
+                                <span className="text-xs font-semibold text-violet-600">{e.progress || 0}%</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {e.isPaid ? (
+                                <Badge className="bg-emerald-100 text-emerald-700 text-xs">Paid</Badge>
+                              ) : e.course?.isFree ? (
+                                <Badge className="bg-blue-100 text-blue-700 text-xs">Free</Badge>
+                              ) : (
+                                <Badge className="bg-amber-100 text-amber-700 text-xs">Unpaid</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-gray-500">
+                              {e.createdAt ? new Date(e.createdAt).toLocaleDateString() : "—"}
+                            </TableCell>
+                            <TableCell>
+                              <Link href={`/breedskool/${e.courseId}`} target="_blank">
+                                <Button size="sm" variant="outline" className="gap-1 text-xs" data-testid={`btn-view-course-${e.id}`}>
+                                  <Eye className="h-3 w-3" /> View
+                                </Button>
+                              </Link>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Pending Approvals Tab ── */}
+          <TabsContent value="pending">
+            {pendingEnrollments.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12 text-gray-400">
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-3 opacity-30 text-emerald-500" />
+                  <p className="font-medium">All caught up! No pending payment approvals.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-amber-200">
+                <CardHeader>
+                  <CardTitle className="text-amber-700 flex items-center gap-2">
+                    <Eye className="h-5 w-5" /> Pending Payment Approvals ({pendingEnrollments.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingEnrollments.map((e: any) => (
+                        <TableRow key={e.id}>
+                          <TableCell className="font-medium text-sm">{e.course?.title || e.courseId}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{e.user?.firstName} {e.user?.lastName}</p>
+                              <p className="text-xs text-gray-400">{e.user?.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell><span className="font-semibold">${e.amount}</span> <span className="text-xs text-gray-400">USDT</span></TableCell>
+                          <TableCell>
+                            <div className="text-xs space-y-1">
+                              <Badge variant="outline" className="text-xs">{e.paymentMethod || "N/A"}</Badge>
+                              {e.transactionHash && (
+                                <p className="font-mono text-gray-500 truncate max-w-32" title={e.transactionHash}>{e.transactionHash.slice(0, 12)}...</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <PaymentDetailDialog
+                                enrollment={e}
+                                onApprove={() => approveEnrollmentMutation.mutate(e.id)}
+                                approving={approveEnrollmentMutation.isPending}
+                              />
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1"
+                                onClick={() => approveEnrollmentMutation.mutate(e.id)}
+                                disabled={approveEnrollmentMutation.isPending}>
+                                <CheckCircle2 className="h-3 w-3" /> Approve
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+          </TabsContent>
+
+          {/* ── Assignments Tab ── */}
+          <TabsContent value="assignments">
+            <AssignmentReviewCard courses={courses} />
+          </TabsContent>
+
+          {/* ── Chat Tab ── */}
+          <TabsContent value="chat">
+            <ChatModerationCard courses={courses} />
+          </TabsContent>
+
+          {/* ── Tech Training Tab ── */}
+          <TabsContent value="tech-training">
+            <BreedSkoolManagementPanel />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

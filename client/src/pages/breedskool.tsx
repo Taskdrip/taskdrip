@@ -924,11 +924,11 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
 
                 {registeredCourseId && (
                   <Button
-                    onClick={() => { setShowSuccess(false); reset(); navigate(`/breedskool/${registeredCourseId}`); }}
-                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl h-12 text-base"
+                    onClick={() => { setShowSuccess(false); reset(); navigate(`/breedskool/${registeredCourseId}/learn`); }}
+                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl h-12 text-base shadow-lg"
                     data-testid="btn-welcome-go-course"
                   >
-                    🎓 Go to My Course →
+                    🎓 Start Learning Now →
                   </Button>
                 )}
                 <Button

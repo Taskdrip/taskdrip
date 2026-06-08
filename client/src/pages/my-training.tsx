@@ -7,15 +7,15 @@ import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   BookOpen, Award, FileText, GraduationCap, Play, CheckCircle2, Clock, Star,
-  TrendingUp, Zap, ArrowRight, Download, Eye, RefreshCw, Sparkles, Users,
-  Upload, ChevronRight, ExternalLink, ShieldCheck, AlertCircle,
+  TrendingUp, Zap, ArrowRight, Download, Eye, Sparkles, Users,
+  ChevronRight, ShieldCheck, Plus, LayoutGrid, List,
 } from "lucide-react";
 
 interface Enrollment {
@@ -30,10 +30,13 @@ interface Enrollment {
     title: string;
     description: string;
     featuredImage?: string;
+    thumbnail?: string;
     instructor?: { firstName: string; lastName: string };
     isFree: boolean;
     price?: string;
     category?: string;
+    lessonsCount?: number;
+    duration?: string;
   };
 }
 
@@ -45,7 +48,6 @@ interface Assignment {
   description?: string;
   fileUrl?: string;
   fileName?: string;
-  fileType?: string;
   status: string;
   tutorFeedback?: string;
   submittedAt: string;
@@ -59,6 +61,25 @@ interface Certificate {
   instructorName?: string;
   issuedAt: string;
 }
+
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  instagram_growth: "from-pink-500 to-purple-600",
+  tiktok_mastery: "from-gray-900 to-gray-700",
+  youtube: "from-red-500 to-red-700",
+  monetization: "from-yellow-500 to-orange-500",
+  content_creation: "from-blue-500 to-cyan-500",
+  branding: "from-violet-500 to-indigo-600",
+  general: "from-teal-500 to-green-600",
+};
+const FALLBACK_IMG: Record<string, string> = {
+  instagram_growth: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=400&h=220&fit=crop",
+  tiktok_mastery: "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=400&h=220&fit=crop",
+  youtube: "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=400&h=220&fit=crop",
+  monetization: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=400&h=220&fit=crop",
+  content_creation: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=400&h=220&fit=crop",
+  branding: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=220&fit=crop",
+  general: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=220&fit=crop",
+};
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   active: { label: "Active", color: "bg-emerald-100 text-emerald-700" },
@@ -75,6 +96,8 @@ export default function MyTraining() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const u = user as any;
 
   const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery<Enrollment[]>({
@@ -104,24 +127,16 @@ export default function MyTraining() {
   const becomeCreator = useMutation({
     mutationFn: async () => {
       const r = await apiRequest("PATCH", "/api/user/become-creator");
-      if (!r.ok) {
-        const err = await r.json();
-        throw new Error(err.message || "Failed to upgrade");
-      }
+      if (!r.ok) { const err = await r.json(); throw new Error(err.message || "Failed"); }
       return r.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setShowUpgradeDialog(false);
-      toast({
-        title: "🎉 You're now a Creator!",
-        description: "Your account has been upgraded. Start applying to brand campaigns and earning!",
-      });
+      toast({ title: "🎉 You're now a Creator!", description: "Start applying for brand campaigns and earning!" });
       setTimeout(() => setLocation("/dashboard?tab=campaigns"), 1500);
     },
-    onError: (e: any) => {
-      toast({ title: "Upgrade failed", description: e.message, variant: "destructive" });
-    },
+    onError: (e: any) => toast({ title: "Upgrade failed", description: e.message, variant: "destructive" }),
   });
 
   if (authLoading) {
@@ -135,10 +150,15 @@ export default function MyTraining() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <GraduationCap className="h-12 w-12 text-violet-500 mx-auto" />
-          <h2 className="text-xl font-bold">Login to view your training</h2>
-          <Button onClick={() => setLocation("/login?redirect=/my-training")}>Login</Button>
+        <div className="text-center space-y-4 p-8">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto shadow-xl">
+            <GraduationCap className="h-10 w-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Your Training Dashboard</h2>
+          <p className="text-gray-500">Log in to access your courses, certificates, and progress.</p>
+          <Button onClick={() => setLocation("/login?redirect=/my-training")} className="bg-violet-600 hover:bg-violet-700 text-white px-8">
+            Log In to Continue
+          </Button>
         </div>
       </div>
     );
@@ -146,42 +166,63 @@ export default function MyTraining() {
 
   const activeEnrollments = enrollments.filter(e => e.status === "active");
   const isCreator = u?.userType === "creator" || u?.userType === "admin";
-  const hasCompletedCourse = certificates.length > 0;
 
-  const statsCards = [
-    { label: "Courses Enrolled", value: enrollments.length, icon: BookOpen, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Active Courses", value: activeEnrollments.length, icon: Play, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Assignments", value: assignments.length, icon: FileText, color: "text-violet-600", bg: "bg-violet-50" },
-    { label: "Certificates", value: certificates.length, icon: Award, color: "text-amber-600", bg: "bg-amber-50" },
-  ];
+  // Most recent active course to resume
+  const lastActive = [...enrollments].filter(e => e.status === "active").sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0];
+
+  const filteredEnrollments = selectedCourseId
+    ? enrollments.filter(e => e.courseId === selectedCourseId)
+    : enrollments;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <NavigationFixed />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-violet-700 via-purple-700 to-indigo-800 pt-24 pb-12 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <GraduationCap className="h-8 w-8 text-white/80" />
-            <span className="text-white/70 text-sm font-medium uppercase tracking-wider">BreedSkool</span>
+      {/* ── Hero ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-violet-700 via-purple-700 to-indigo-800 pt-24 pb-0">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4">
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 pb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-white/60 text-sm font-medium uppercase tracking-widest">BreedSkool</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">
+                Welcome back, {u?.firstName || "Student"} 👋
+              </h1>
+              <p className="text-white/70 max-w-lg">
+                {activeEnrollments.length > 0
+                  ? `You have ${activeEnrollments.length} active course${activeEnrollments.length > 1 ? "s" : ""}. Keep the momentum going!`
+                  : "Enroll in a course to start your learning journey."}
+              </p>
+            </div>
+            <Link href="/breedskool">
+              <Button className="bg-white text-violet-700 hover:bg-violet-50 font-bold gap-2 shadow-lg shrink-0" data-testid="btn-browse-more-courses">
+                <Plus className="h-4 w-4" />
+                Enroll in Another Course
+              </Button>
+            </Link>
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">
-            My Training Dashboard
-          </h1>
-          <p className="text-white/70 max-w-lg">
-            Track your courses, assignments, and certificates. Keep learning and growing!
-          </p>
 
           {/* Stats strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
-            {statsCards.map(s => (
-              <div key={s.label} className="bg-white/10 backdrop-blur rounded-xl p-4 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center`}>
-                  <s.icon className={`h-5 w-5 ${s.color}`} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-6">
+            {[
+              { label: "Enrolled", value: enrollments.length, icon: BookOpen, color: "bg-blue-400/20 text-blue-200" },
+              { label: "Active", value: activeEnrollments.length, icon: Play, color: "bg-emerald-400/20 text-emerald-200" },
+              { label: "Assignments", value: assignments.length, icon: FileText, color: "bg-violet-400/20 text-violet-200" },
+              { label: "Certificates", value: certificates.length, icon: Award, color: "bg-amber-400/20 text-amber-200" },
+            ].map(s => (
+              <div key={s.label} className="bg-white/10 backdrop-blur rounded-2xl p-4 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center`}>
+                  <s.icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-white">{s.value}</div>
+                  <div className="text-2xl font-black text-white">{s.value}</div>
                   <div className="text-xs text-white/60">{s.label}</div>
                 </div>
               </div>
@@ -190,135 +231,177 @@ export default function MyTraining() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Upgrade CTA */}
+      {/* ── Continue Where You Left Off ── */}
+      {lastActive && (
+        <div className="max-w-7xl mx-auto px-4 -mt-3">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="flex flex-col md:flex-row items-center gap-0 md:gap-6">
+              <div className="relative w-full md:w-52 h-36 md:h-full shrink-0">
+                <img
+                  src={lastActive.course.thumbnail || FALLBACK_IMG[lastActive.course.category || "general"] || FALLBACK_IMG.general}
+                  alt={lastActive.course.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className={`absolute inset-0 bg-gradient-to-r ${CATEGORY_GRADIENTS[lastActive.course.category || "general"] || CATEGORY_GRADIENTS.general} opacity-40`} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
+                    <Play className="h-5 w-5 text-white fill-white ml-0.5" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 p-5 md:p-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">Continue Learning</span>
+                </div>
+                <h3 className="font-black text-gray-900 text-lg mb-1 leading-snug">{lastActive.course.title}</h3>
+                {lastActive.course.instructor && (
+                  <p className="text-sm text-gray-500 mb-3">
+                    by {lastActive.course.instructor.firstName} {lastActive.course.instructor.lastName}
+                  </p>
+                )}
+                <div className="flex items-center gap-3 mb-4">
+                  <Progress value={lastActive.progress || 0} className="h-2 flex-1 max-w-xs" />
+                  <span className="text-sm font-bold text-violet-600">{lastActive.progress || 0}%</span>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Link href={`/breedskool/${lastActive.courseId}/learn`}>
+                    <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-2 shadow-md" data-testid="btn-continue-learning">
+                      <Play className="h-4 w-4" />
+                      Resume Course
+                    </Button>
+                  </Link>
+                  <Link href={`/breedskool/${lastActive.courseId}`}>
+                    <Button variant="outline" className="gap-2 text-gray-600" data-testid="btn-view-course-detail">
+                      <Eye className="h-4 w-4" />
+                      Course Details
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Content ── */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+
+        {/* Become Creator CTA */}
         {!isCreator && enrollments.some(e => (e.progress || 0) >= 50) && (
-          <div className="mb-6 bg-gradient-to-r from-violet-600 to-purple-600 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-4">
+          <div className="mb-6 bg-gradient-to-r from-violet-600 to-purple-600 rounded-2xl p-5 flex flex-col md:flex-row items-center gap-4 shadow-lg">
             <div className="flex-1 text-white">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="h-5 w-5 text-yellow-300" />
-                <span className="font-bold text-lg">Ready to become an Influencer?</span>
+                <span className="font-bold text-lg">Ready to monetize your skills?</span>
               </div>
-              <p className="text-white/80 text-sm">
-                Upgrade your account to start applying for brand campaigns and earning real crypto rewards.
-              </p>
+              <p className="text-white/80 text-sm">Upgrade your account to apply for brand campaigns and earn real crypto rewards.</p>
             </div>
-            <Button
-              onClick={() => setShowUpgradeDialog(true)}
-              className="bg-white text-violet-700 hover:bg-violet-50 font-bold shrink-0"
-              data-testid="btn-become-creator"
-            >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Become a Creator
+            <Button onClick={() => setShowUpgradeDialog(true)} className="bg-white text-violet-700 hover:bg-violet-50 font-bold shrink-0" data-testid="btn-become-creator">
+              <TrendingUp className="h-4 w-4 mr-2" /> Become a Creator
             </Button>
           </div>
         )}
 
         <Tabs defaultValue="courses">
-          <TabsList className="mb-6 bg-white border shadow-sm">
-            <TabsTrigger value="courses" data-testid="tab-my-courses">
-              <BookOpen className="h-4 w-4 mr-1.5" />
-              My Courses
-            </TabsTrigger>
-            <TabsTrigger value="assignments" data-testid="tab-my-assignments">
-              <FileText className="h-4 w-4 mr-1.5" />
-              Assignments
-              {assignments.filter(a => a.status === "submitted").length > 0 && (
-                <Badge className="ml-1.5 bg-amber-100 text-amber-700 text-xs px-1.5">
-                  {assignments.filter(a => a.status === "submitted").length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="certificates" data-testid="tab-my-certs">
-              <Award className="h-4 w-4 mr-1.5" />
-              Certificates
-            </TabsTrigger>
-            <TabsTrigger value="registrations" data-testid="tab-my-regs">
-              <FileText className="h-4 w-4 mr-1.5" />
-              Registrations
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <TabsList className="bg-white border shadow-sm">
+              <TabsTrigger value="courses" data-testid="tab-my-courses">
+                <BookOpen className="h-4 w-4 mr-1.5" /> My Courses
+                {enrollments.length > 0 && <Badge className="ml-1.5 bg-violet-100 text-violet-700 text-xs px-1.5">{enrollments.length}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="assignments" data-testid="tab-my-assignments">
+                <FileText className="h-4 w-4 mr-1.5" /> Assignments
+                {assignments.filter(a => a.status === "submitted").length > 0 && (
+                  <Badge className="ml-1.5 bg-amber-100 text-amber-700 text-xs px-1.5">
+                    {assignments.filter(a => a.status === "submitted").length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="certificates" data-testid="tab-my-certs">
+                <Award className="h-4 w-4 mr-1.5" /> Certificates
+              </TabsTrigger>
+              <TabsTrigger value="registrations" data-testid="tab-my-regs">
+                <ShieldCheck className="h-4 w-4 mr-1.5" /> Registrations
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ── Courses Tab ── */}
           <TabsContent value="courses">
+            {enrollments.length > 1 && (
+              <div className="mb-5 flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-gray-500 mr-1">Filter:</span>
+                <button
+                  onClick={() => setSelectedCourseId(null)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${!selectedCourseId ? "bg-violet-600 text-white shadow" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                  data-testid="btn-filter-all-courses"
+                >
+                  All Courses ({enrollments.length})
+                </button>
+                {enrollments.map(e => (
+                  <button
+                    key={e.id}
+                    onClick={() => setSelectedCourseId(selectedCourseId === e.courseId ? null : e.courseId)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all max-w-[180px] truncate ${selectedCourseId === e.courseId ? "bg-violet-600 text-white shadow" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                    data-testid={`btn-filter-course-${e.courseId}`}
+                    title={e.course.title}
+                  >
+                    {e.course.title.length > 22 ? e.course.title.slice(0, 22) + "…" : e.course.title}
+                  </button>
+                ))}
+                <div className="ml-auto flex gap-1">
+                  <button onClick={() => setViewMode("grid")} className={`p-2 rounded-lg border ${viewMode === "grid" ? "bg-violet-50 border-violet-200 text-violet-600" : "bg-white border-gray-200 text-gray-400"}`} data-testid="btn-view-grid"><LayoutGrid className="h-4 w-4" /></button>
+                  <button onClick={() => setViewMode("list")} className={`p-2 rounded-lg border ${viewMode === "list" ? "bg-violet-50 border-violet-200 text-violet-600" : "bg-white border-gray-200 text-gray-400"}`} data-testid="btn-view-list"><List className="h-4 w-4" /></button>
+                </div>
+              </div>
+            )}
+
             {enrollmentsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "space-y-3"}>
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-white rounded-2xl p-5 h-44 animate-pulse border" />
+                  <div key={i} className="bg-white rounded-2xl h-64 animate-pulse border" />
                 ))}
               </div>
-            ) : enrollments.length === 0 ? (
-              <div className="text-center py-16">
-                <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-bold text-gray-700 mb-1">No courses yet</h3>
-                <p className="text-gray-500 text-sm mb-4">Enroll in a BreedSkool course to get started.</p>
+            ) : filteredEnrollments.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                <div className="w-20 h-20 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="h-10 w-10 text-violet-300" />
+                </div>
+                <h3 className="font-bold text-gray-700 text-lg mb-2">No courses enrolled yet</h3>
+                <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">Browse our catalog and enroll in a course to start building income-ready skills.</p>
                 <Link href="/breedskool">
-                  <Button className="bg-violet-600 hover:bg-violet-700 text-white">
-                    Browse Courses
+                  <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-2 px-6" data-testid="btn-browse-courses-empty">
+                    <Plus className="h-4 w-4" /> Browse Courses
                   </Button>
                 </Link>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {enrollments.map(e => {
-                  const statusInfo = STATUS_BADGE[e.status] || { label: e.status, color: "bg-gray-100 text-gray-600" };
-                  return (
-                    <div
-                      key={e.id}
-                      data-testid={`card-course-enrollment-${e.id}`}
-                      className="bg-white rounded-2xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      {e.course.featuredImage && (
-                        <div className="h-32 w-full overflow-hidden">
-                          <img
-                            src={e.course.featuredImage}
-                            alt={e.course.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="p-5">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="font-bold text-gray-900 leading-snug">{e.course.title}</h3>
-                          <Badge className={`text-xs shrink-0 ${statusInfo.color}`}>{statusInfo.label}</Badge>
-                        </div>
-                        {e.course.instructor && (
-                          <p className="text-sm text-gray-500 mb-3">
-                            by {e.course.instructor.firstName} {e.course.instructor.lastName}
-                          </p>
-                        )}
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-gray-500">Progress</span>
-                            <span className="text-xs font-semibold text-violet-600">{e.progress || 0}%</span>
-                          </div>
-                          <Progress value={e.progress || 0} className="h-2" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {e.status === "active" ? (
-                            <Link href={`/breedskool/${e.courseId}/learn`}>
-                              <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white">
-                                <Play className="h-3.5 w-3.5 mr-1" />
-                                Continue Learning
-                              </Button>
-                            </Link>
-                          ) : e.status === "pending_payment" ? (
-                            <div className="flex items-center gap-1.5 text-amber-600 text-sm">
-                              <Clock className="h-4 w-4" />
-                              Awaiting payment approval
-                            </div>
-                          ) : null}
-                          <Link href={`/breedskool/${e.courseId}`}>
-                            <Button size="sm" variant="outline" className="text-gray-600">
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredEnrollments.map(e => <CourseCard key={e.id} enrollment={e} />)}
+                {/* Add more course card */}
+                <Link href="/breedskool">
+                  <div className="group bg-white rounded-2xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center min-h-[260px] gap-3 p-6" data-testid="card-add-course">
+                    <div className="w-14 h-14 bg-violet-100 group-hover:bg-violet-200 rounded-2xl flex items-center justify-center transition-colors">
+                      <Plus className="h-7 w-7 text-violet-500" />
                     </div>
-                  );
-                })}
+                    <div className="text-center">
+                      <p className="font-bold text-violet-600 text-sm">Add Another Course</p>
+                      <p className="text-xs text-gray-400 mt-1">Browse our full course catalog</p>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredEnrollments.map(e => <CourseListItem key={e.id} enrollment={e} />)}
+                <Link href="/breedskool">
+                  <div className="bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50 transition-all p-4 flex items-center gap-3 cursor-pointer group" data-testid="list-add-course">
+                    <div className="w-10 h-10 bg-violet-100 group-hover:bg-violet-200 rounded-xl flex items-center justify-center transition-colors">
+                      <Plus className="h-5 w-5 text-violet-500" />
+                    </div>
+                    <span className="font-semibold text-violet-600 text-sm">Enroll in another course →</span>
+                  </div>
+                </Link>
               </div>
             )}
           </TabsContent>
@@ -326,13 +409,9 @@ export default function MyTraining() {
           {/* ── Assignments Tab ── */}
           <TabsContent value="assignments">
             {assignmentsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-white rounded-xl p-5 h-24 animate-pulse border" />
-                ))}
-              </div>
+              <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="bg-white rounded-xl p-5 h-24 animate-pulse border" />)}</div>
             ) : assignments.length === 0 ? (
-              <div className="text-center py-16">
+              <div className="text-center py-16 bg-white rounded-2xl border">
                 <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="font-bold text-gray-700 mb-1">No assignments yet</h3>
                 <p className="text-gray-500 text-sm">Submit assignments from your course lessons.</p>
@@ -342,36 +421,27 @@ export default function MyTraining() {
                 {assignments.map(a => {
                   const statusInfo = STATUS_BADGE[a.status] || { label: a.status, color: "bg-gray-100 text-gray-600" };
                   return (
-                    <div
-                      key={a.id}
-                      data-testid={`card-assignment-${a.id}`}
-                      className="bg-white rounded-xl border shadow-sm p-5 flex flex-col md:flex-row gap-4"
-                    >
+                    <div key={a.id} data-testid={`card-assignment-${a.id}`} className="bg-white rounded-xl border shadow-sm p-5 flex flex-col md:flex-row gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <FileText className="h-4 w-4 text-violet-500" />
                           <span className="font-semibold text-gray-900">{a.title}</span>
                           <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
                         </div>
-                        {a.description && (
-                          <p className="text-sm text-gray-500 mb-2">{a.description}</p>
-                        )}
+                        {a.description && <p className="text-sm text-gray-500 mb-2">{a.description}</p>}
                         {a.tutorFeedback && (
                           <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 mt-2">
                             <p className="text-xs font-semibold text-violet-700 mb-1">Tutor Feedback:</p>
                             <p className="text-sm text-violet-800">{a.tutorFeedback}</p>
                           </div>
                         )}
-                        <p className="text-xs text-gray-400 mt-2">
-                          Submitted {new Date(a.submittedAt).toLocaleDateString()}
-                        </p>
+                        <p className="text-xs text-gray-400 mt-2">Submitted {new Date(a.submittedAt).toLocaleDateString()}</p>
                       </div>
                       {a.fileUrl && (
                         <div className="shrink-0">
                           <a href={a.fileUrl} target="_blank" rel="noopener noreferrer">
                             <Button size="sm" variant="outline" data-testid={`btn-download-assignment-${a.id}`}>
-                              <Download className="h-4 w-4 mr-1" />
-                              {a.fileName || "Download"}
+                              <Download className="h-4 w-4 mr-1" /> {a.fileName || "Download"}
                             </Button>
                           </a>
                         </div>
@@ -386,13 +456,9 @@ export default function MyTraining() {
           {/* ── Certificates Tab ── */}
           <TabsContent value="certificates">
             {certsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2].map(i => (
-                  <div key={i} className="bg-white rounded-2xl p-6 h-40 animate-pulse border" />
-                ))}
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1, 2].map(i => <div key={i} className="bg-white rounded-2xl p-6 h-40 animate-pulse border" />)}</div>
             ) : certificates.length === 0 ? (
-              <div className="text-center py-16">
+              <div className="text-center py-16 bg-white rounded-2xl border">
                 <Award className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="font-bold text-gray-700 mb-1">No certificates yet</h3>
                 <p className="text-gray-500 text-sm">Complete all lessons in a course to earn your certificate.</p>
@@ -400,32 +466,23 @@ export default function MyTraining() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {certificates.map(cert => (
-                  <div
-                    key={cert.id}
-                    data-testid={`card-certificate-${cert.id}`}
-                    className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6"
-                  >
+                  <div key={cert.id} data-testid={`card-certificate-${cert.id}`} className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                        <Award className="h-6 w-6 text-amber-600" />
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-lg">
+                        <Award className="h-7 w-7 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 mb-1">{cert.courseTitle}</h3>
-                        <p className="text-sm text-gray-500 mb-1">{cert.studentName}</p>
-                        {cert.instructorName && (
-                          <p className="text-xs text-gray-400">Instructor: {cert.instructorName}</p>
-                        )}
-                        <p className="text-xs text-gray-400">
-                          Issued {new Date(cert.issuedAt).toLocaleDateString()}
-                        </p>
+                        <h3 className="font-black text-gray-900 mb-1">{cert.courseTitle}</h3>
+                        <p className="text-sm text-gray-600 mb-0.5">{cert.studentName}</p>
+                        {cert.instructorName && <p className="text-xs text-gray-400">Instructor: {cert.instructorName}</p>}
+                        <p className="text-xs text-gray-400 mt-1">Issued {new Date(cert.issuedAt).toLocaleDateString()}</p>
                         <div className="flex items-center gap-2 mt-3">
                           <Link href={`/certificates/${cert.certCode}`}>
-                            <Button size="sm" variant="outline" className="text-amber-700 border-amber-300" data-testid={`btn-view-cert-${cert.id}`}>
-                              <Eye className="h-3.5 w-3.5 mr-1" />
-                              View
+                            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white gap-1" data-testid={`btn-view-cert-${cert.id}`}>
+                              <Eye className="h-3.5 w-3.5" /> View & Download
                             </Button>
                           </Link>
-                          <Badge className="bg-amber-100 text-amber-700 text-xs font-mono">{cert.certCode}</Badge>
+                          <code className="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-mono">{cert.certCode}</code>
                         </div>
                       </div>
                     </div>
@@ -437,17 +494,21 @@ export default function MyTraining() {
 
           {/* ── Registrations Tab ── */}
           <TabsContent value="registrations">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900">BreedSkool Tech Training Registrations</h3>
+              <Link href="/breedskool">
+                <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-1" data-testid="btn-new-registration">
+                  <Plus className="h-3.5 w-3.5" /> Register for a Course
+                </Button>
+              </Link>
+            </div>
             {breedskoolRegs.length === 0 ? (
-              <div className="text-center py-16">
-                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-bold text-gray-700 mb-1">No registrations</h3>
-                <p className="text-gray-500 text-sm">
-                  Register for a BreedSkool tech training course.
-                </p>
+              <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-violet-200">
+                <GraduationCap className="h-12 w-12 text-violet-300 mx-auto mb-3" />
+                <h3 className="font-bold text-gray-700 mb-1">No registrations yet</h3>
+                <p className="text-gray-500 text-sm mb-4">Register for BreedSkool tech training to unlock structured learning.</p>
                 <Link href="/breedskool">
-                  <Button className="mt-4 bg-violet-600 hover:bg-violet-700 text-white">
-                    Register Now
-                  </Button>
+                  <Button className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="btn-register-from-regs">Register Now</Button>
                 </Link>
               </div>
             ) : (
@@ -461,32 +522,30 @@ export default function MyTraining() {
                     rejected: "bg-red-100 text-red-700",
                   };
                   return (
-                    <div
-                      key={reg.id}
-                      data-testid={`card-breedskool-reg-${reg.id}`}
-                      className="bg-white rounded-xl border shadow-sm p-5"
-                    >
+                    <div key={reg.id} data-testid={`card-breedskool-reg-${reg.id}`} className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-gray-900">{reg.selectedCourseTitle}</div>
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-900">{reg.selectedCourseTitle}</p>
                           <p className="text-sm text-gray-500 mt-0.5">
-                            Mode: {reg.deliveryMode?.replace(/_/g, " ")}
+                            {reg.deliveryMode?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
                             {reg.amountNgn ? ` · ₦${Number(reg.amountNgn).toLocaleString("en-NG")}` : ""}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Registered {new Date(reg.createdAt).toLocaleDateString()}
-                          </p>
+                          <p className="text-xs text-gray-400 mt-1">Registered {new Date(reg.createdAt).toLocaleDateString()}</p>
                         </div>
                         <Badge className={`text-xs shrink-0 ${statusColors[status] || "bg-gray-100 text-gray-600"}`}>
                           {status.charAt(0).toUpperCase() + status.slice(1)}
                         </Badge>
                       </div>
                       {reg.linkedCourseId && (
-                        <div className="mt-3 flex items-center gap-2">
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
                           <Link href={`/breedskool/${reg.linkedCourseId}/learn`}>
-                            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white text-xs">
-                              <Play className="h-3 w-3 mr-1" />
-                              Go to Course
+                            <Button size="sm" className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs gap-1" data-testid={`btn-go-course-${reg.id}`}>
+                              <Play className="h-3 w-3" /> Go to Course Training
+                            </Button>
+                          </Link>
+                          <Link href={`/breedskool/${reg.linkedCourseId}`}>
+                            <Button size="sm" variant="outline" className="text-xs" data-testid={`btn-view-course-${reg.id}`}>
+                              Course Details
                             </Button>
                           </Link>
                         </div>
@@ -500,67 +559,130 @@ export default function MyTraining() {
         </Tabs>
       </div>
 
-      {/* Become Creator Dialog */}
+      <Footer />
+
+      {/* Upgrade Dialog */}
       <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="upgrade-desc">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-violet-600" />
-              Upgrade to Creator
-            </DialogTitle>
-            <DialogDescription>
-              Unlock the full Taskdrip platform as a content creator.
-            </DialogDescription>
+            <DialogTitle>Become a Creator</DialogTitle>
+            <DialogDescription id="upgrade-desc">Upgrade your account to start earning from brand campaigns.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-3">
+          <div className="space-y-4 py-2">
+            <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl p-5 space-y-3">
               {[
-                { icon: Zap, text: "Apply for brand campaigns and earn crypto rewards" },
-                { icon: Users, text: "Get discovered by brands looking for creators like you" },
-                { icon: Award, text: "Build your creator profile and earn $TDRIP points" },
-                { icon: ShieldCheck, text: "Access the P2P marketplace and direct hire features" },
-              ].map(item => (
-                <div key={item.text} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                    <item.icon className="h-4 w-4 text-violet-600" />
-                  </div>
-                  <p className="text-sm text-gray-700 pt-1">{item.text}</p>
+                "Apply to paid brand campaigns",
+                "Earn USDT directly to your wallet",
+                "Access the full influencer marketplace",
+                "Build your verified creator profile",
+              ].map(f => (
+                <div key={f} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span className="text-sm text-gray-700">{f}</span>
                 </div>
               ))}
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
-              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">
-                Your student account will be upgraded to a creator account. Your training progress and certificates will be preserved.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowUpgradeDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
-                onClick={() => becomeCreator.mutate()}
-                disabled={becomeCreator.isPending}
-                data-testid="btn-confirm-become-creator"
-              >
-                {becomeCreator.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-1" />
-                )}
-                Upgrade Now
-              </Button>
-            </div>
+            <Button onClick={() => becomeCreator.mutate()} className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold" disabled={becomeCreator.isPending}>
+              {becomeCreator.isPending ? "Upgrading…" : "Upgrade to Creator"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
 
-      <Footer />
+// ── Course Grid Card ──────────────────────────────────────────────────────────
+function CourseCard({ enrollment: e }: { enrollment: Enrollment }) {
+  const statusInfo = STATUS_BADGE[e.status] || { label: e.status, color: "bg-gray-100 text-gray-600" };
+  const imgSrc = e.course.thumbnail || FALLBACK_IMG[e.course.category || "general"] || FALLBACK_IMG.general;
+  const gradient = CATEGORY_GRADIENTS[e.course.category || "general"] || CATEGORY_GRADIENTS.general;
+
+  return (
+    <div data-testid={`card-course-enrollment-${e.id}`} className="bg-white rounded-2xl border shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col group">
+      <div className="relative h-40 overflow-hidden">
+        <img src={imgSrc} alt={e.course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(ev) => { (ev.target as HTMLImageElement).src = FALLBACK_IMG.general; }} />
+        <div className={`absolute inset-0 bg-gradient-to-t ${gradient} opacity-30`} />
+        <div className="absolute top-3 left-3 flex gap-2">
+          <Badge className={`text-[10px] ${statusInfo.color} border-0`}>{statusInfo.label}</Badge>
+        </div>
+        {e.status === "active" && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="bg-black/50 rounded-full p-3">
+              <Play className="h-6 w-6 text-white fill-white" />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="p-5 flex-1 flex flex-col">
+        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 line-clamp-2 group-hover:text-violet-600 transition-colors">{e.course.title}</h3>
+        {e.course.instructor && (
+          <p className="text-xs text-gray-400 mb-3">by {e.course.instructor.firstName} {e.course.instructor.lastName}</p>
+        )}
+        <div className="mt-auto">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-gray-500">Progress</span>
+            <span className="text-xs font-bold text-violet-600">{e.progress || 0}%</span>
+          </div>
+          <Progress value={e.progress || 0} className="h-1.5 mb-4" />
+          <div className="flex gap-2">
+            {e.status === "active" ? (
+              <Link href={`/breedskool/${e.courseId}/learn`} className="flex-1">
+                <Button size="sm" className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs gap-1" data-testid={`btn-continue-${e.id}`}>
+                  <Play className="h-3 w-3" /> Continue
+                </Button>
+              </Link>
+            ) : e.status === "pending_payment" ? (
+              <div className="flex items-center gap-1 text-amber-600 text-xs flex-1">
+                <Clock className="h-3.5 w-3.5" /> Awaiting payment approval
+              </div>
+            ) : null}
+            <Link href={`/breedskool/${e.courseId}`}>
+              <Button size="sm" variant="outline" className="text-gray-500 px-2.5" data-testid={`btn-view-${e.id}`}>
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Course List Item ──────────────────────────────────────────────────────────
+function CourseListItem({ enrollment: e }: { enrollment: Enrollment }) {
+  const statusInfo = STATUS_BADGE[e.status] || { label: e.status, color: "bg-gray-100 text-gray-600" };
+  const imgSrc = e.course.thumbnail || FALLBACK_IMG[e.course.category || "general"] || FALLBACK_IMG.general;
+
+  return (
+    <div data-testid={`list-course-enrollment-${e.id}`} className="bg-white rounded-xl border shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+      <div className="w-20 h-14 rounded-xl overflow-hidden shrink-0">
+        <img src={imgSrc} alt={e.course.title} className="w-full h-full object-cover" onError={(ev) => { (ev.target as HTMLImageElement).src = FALLBACK_IMG.general; }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+          <h3 className="font-bold text-gray-900 text-sm truncate">{e.course.title}</h3>
+          <Badge className={`text-[10px] shrink-0 ${statusInfo.color} border-0`}>{statusInfo.label}</Badge>
+        </div>
+        <div className="flex items-center gap-2 mt-1.5">
+          <Progress value={e.progress || 0} className="h-1.5 w-28" />
+          <span className="text-xs text-violet-600 font-bold">{e.progress || 0}%</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {e.status === "active" && (
+          <Link href={`/breedskool/${e.courseId}/learn`}>
+            <Button size="sm" className="bg-violet-600 text-white text-xs gap-1" data-testid={`btn-list-continue-${e.id}`}>
+              <Play className="h-3 w-3" /> Resume
+            </Button>
+          </Link>
+        )}
+        <Link href={`/breedskool/${e.courseId}`}>
+          <Button size="sm" variant="outline" className="text-gray-500 px-2.5" data-testid={`btn-list-view-${e.id}`}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
