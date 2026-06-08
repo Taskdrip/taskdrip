@@ -21,13 +21,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (
-            id.includes("@tiptap") ||
-            id.includes("prosemirror") ||
-            id.includes("RichTextEditor")
-          ) {
-            return "editor";
-          }
           if (id.includes("jspdf") || id.includes("html2canvas")) {
             return "pdf";
           }
@@ -43,17 +36,6 @@ export default defineConfig({
         },
       },
     },
-  },
-  optimizeDeps: {
-    include: [
-      "@tiptap/react",
-      "@tiptap/starter-kit",
-      "@tiptap/extension-underline",
-      "@tiptap/extension-text-align",
-      "@tiptap/extension-highlight",
-      "@tiptap/extension-link",
-      "@tiptap/extension-placeholder",
-    ],
   },
   server: {
     allowedHosts: true,

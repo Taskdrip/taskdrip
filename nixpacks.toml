@@ -11,4 +11,4 @@ cmds = [
 cmds = ["NODE_OPTIONS='--max-old-space-size=4096' npm run build"]
 
 [start]
-cmd = "node dist/index.js"
+cmd = "npm run db:push --force && node dist/index.js"
