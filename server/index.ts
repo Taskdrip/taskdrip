@@ -10,7 +10,7 @@ import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
 import { seedDefaultBlogs } from "./admin-demo-routes";
 import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
-import { seedBreedskoolPricing } from "./seed-breedskool";
+import { seedBreedskoolPricing, seedBreedskoolPaymentSettings } from "./seed-breedskool";
 import { seedBreedskoolCourses } from "./seed-breedskool-courses";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
@@ -317,6 +317,8 @@ server.listen({
       await seedBreedskoolPricing()
         .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
         .catch((e) => console.error("seedBreedskoolPricing:", e));
+      await seedBreedskoolPaymentSettings()
+        .catch((e) => console.error("seedBreedskoolPaymentSettings:", e));
       if (adminUser) {
         await seedBreedskoolCourses(adminUser.id)
           .then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`))

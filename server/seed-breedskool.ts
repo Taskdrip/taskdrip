@@ -1,6 +1,28 @@
 import { db } from "./db";
-import { breedskoolCoursePricing } from "@shared/schema";
+import { breedskoolCoursePricing, appSettings } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+
+// GTBank payment details — seeded on every startup (only inserts if missing)
+const BREEDSKOOL_PAYMENT_DEFAULTS: Array<{ key: string; value: string }> = [
+  { key: "breedskool_bank_name",           value: "GTBank" },
+  { key: "breedskool_bank_account_number", value: "0273575556" },
+  { key: "breedskool_bank_account_name",   value: "BREEDSKOOL GALAXY LTD" },
+  { key: "breedskool_bank_country",        value: "Nigeria (Naira Account)" },
+  { key: "breedskool_payment_instructions",value: "After transfer, enter your transaction reference number below and optionally upload your payment screenshot as proof." },
+];
+
+export async function seedBreedskoolPaymentSettings(): Promise<void> {
+  for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
+    try {
+      const existing = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(appSettings).values({ key, value, updatedAt: new Date() });
+      }
+    } catch (e: any) {
+      console.error(`[seedBreedskoolPaymentSettings] Error for ${key}:`, e?.message);
+    }
+  }
+}
 
 const BREEDSKOOL_COURSES = [
   {
