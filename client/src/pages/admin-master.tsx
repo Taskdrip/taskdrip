@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { Link as RouterLink } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -6,10 +6,7 @@ import DemoLab from "@/components/admin/DemoLab";
 import AnalyticsCodeInjector from "@/components/admin/AnalyticsCodeInjector";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallets } from "@/hooks/useWallets";
-
-const RichTextEditorLazy = lazy(() =>
-  import("@/components/RichTextEditor").then((m) => ({ default: m.RichTextEditor }))
-);
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -3824,13 +3821,11 @@ export default function AdminMaster() {
                                 </div>
                                 
                                 {/* Rich Text Editor */}
-                                <Suspense fallback={<div className="min-h-[320px] border rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 text-sm">Loading editor...</div>}>
-                                  <RichTextEditorLazy
+                                <RichTextEditor
                                     value={field.value || ""}
                                     onChange={field.onChange}
                                     placeholder="Start writing your engaging blog post here..."
                                   />
-                                </Suspense>
                               </div>
                             </FormControl>
                             <FormMessage />
