@@ -18,6 +18,31 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes("@tiptap") ||
+            id.includes("prosemirror") ||
+            id.includes("RichTextEditor")
+          ) {
+            return "editor";
+          }
+          if (id.includes("jspdf") || id.includes("html2canvas")) {
+            return "pdf";
+          }
+          if (id.includes("recharts") || id.includes("d3-")) {
+            return "charts";
+          }
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/")
+          ) {
+            return "react-vendor";
+          }
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: [
