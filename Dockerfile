@@ -40,12 +40,14 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=5000
-ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 
-# Only package.json — same reason as Stage 1.
-COPY package.json ./
+# Copy the already-resolved node_modules from the builder stage,
+# then prune devDependencies in-place. This avoids a fresh npm install
+# (which would trigger new dependency resolution and esbuild version conflicts).
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-RUN npm install --omit=dev --no-audit --no-fund
+RUN npm prune --omit=dev --no-audit
 
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p uploads
