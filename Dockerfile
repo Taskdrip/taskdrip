@@ -43,7 +43,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5000
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
+RUN sed -i 's|http://package-firewall.replit.local/npm|https://registry.npmjs.org|g' package-lock.json
 RUN npm ci --omit=dev --no-audit --no-fund \
       --registry https://registry.npmjs.org/
 
