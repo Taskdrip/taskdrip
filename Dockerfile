@@ -10,6 +10,10 @@ ENV CI=false
 
 COPY package.json package-lock.json ./
 
+# Strip Replit-internal registry URLs baked into package-lock.json's "resolved"
+# fields — those URLs are unreachable from Railway's build servers.
+RUN sed -i 's|http://package-firewall.replit.local/npm|https://registry.npmjs.org|g' package-lock.json
+
 # Force public npm registry — package-lock.json may contain Replit-internal
 # registry URLs (package-firewall.replit.local) which are unreachable externally.
 RUN npm install --include=dev --no-audit --no-fund \

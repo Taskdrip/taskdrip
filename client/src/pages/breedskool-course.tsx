@@ -347,6 +347,7 @@ export default function BreedSkoolCourse() {
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStep, setEnrollStep] = useState<"choose" | "pay" | "confirm" | "done">("choose");
+  const [redirectCountdown, setRedirectCountdown] = useState(3);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [txHash, setTxHash] = useState("");
   const [paymentProof, setPaymentProof] = useState("");
@@ -432,10 +433,24 @@ export default function BreedSkoolCourse() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "enrollment"] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
       setEnrollStep("done");
+      setRedirectCountdown(3);
+      if (course?.isFree || data?.status === "active") {
+        let count = 3;
+        const timer = setInterval(() => {
+          count -= 1;
+          setRedirectCountdown(count);
+          if (count <= 0) {
+            clearInterval(timer);
+            setShowEnrollModal(false);
+            setEnrollStep("choose");
+            setLocation(`/breedskool/${id}/learn`);
+          }
+        }, 1000);
+      }
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -1158,17 +1173,20 @@ export default function BreedSkoolCourse() {
                 </div>
                 <Button
                   className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white h-12 font-semibold"
+                  data-testid="button-start-learning"
                   onClick={() => {
                     setShowEnrollModal(false);
                     setEnrollStep("choose");
                     if (course?.isFree) {
                       setLocation(`/breedskool/${id}/learn`);
                     } else {
-                      setLocation("/dashboard");
+                      setLocation("/my-training");
                     }
                   }}
                 >
-                  {course?.isFree ? "Start Learning →" : "Go to My Dashboard →"}
+                  {course?.isFree
+                    ? `Taking you to your training in ${redirectCountdown}s…`
+                    : "Go to My Training →"}
                 </Button>
               </div>
             )}
