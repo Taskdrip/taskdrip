@@ -32,16 +32,19 @@ __export(schema_exports, {
   campaignParticipations: () => campaignParticipations,
   campaigns: () => campaigns,
   contentReports: () => contentReports,
+  courseAssignments: () => courseAssignments,
   courseCertificateTemplate: () => courseCertificateTemplate,
   courseCertificates: () => courseCertificates,
   courseComments: () => courseComments,
+  courseCommunityLikes: () => courseCommunityLikes,
+  courseCommunityPosts: () => courseCommunityPosts,
   courseEnrollments: () => courseEnrollments,
   courseLessonProgress: () => courseLessonProgress,
   courseLessons: () => courseLessons,
   courseLikes: () => courseLikes,
   courseMessages: () => courseMessages,
   courseReviews: () => courseReviews,
-  courses: () => courses,
+  courses: () => courses2,
   directHireOffers: () => directHireOffers,
   emailAutoResponders: () => emailAutoResponders,
   emailCampaigns: () => emailCampaigns,
@@ -64,7 +67,9 @@ __export(schema_exports, {
   insertCampaignMicroTaskSchema: () => insertCampaignMicroTaskSchema,
   insertCampaignParticipationSchema: () => insertCampaignParticipationSchema,
   insertCampaignSchema: () => insertCampaignSchema,
+  insertCourseAssignmentSchema: () => insertCourseAssignmentSchema,
   insertCourseCommentSchema: () => insertCourseCommentSchema,
+  insertCourseCommunityPostSchema: () => insertCourseCommunityPostSchema,
   insertCourseEnrollmentSchema: () => insertCourseEnrollmentSchema,
   insertCourseLessonSchema: () => insertCourseLessonSchema,
   insertCourseMessageSchema: () => insertCourseMessageSchema,
@@ -201,7 +206,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, productLikes, messages, blockedUsers, taskSubmissions, notifications, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseCertificates, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, productLikes, messages, blockedUsers, taskSubmissions, notifications, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses2, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -1229,7 +1234,7 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
-    courses = pgTable("courses", {
+    courses2 = pgTable("courses", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       title: varchar("title").notNull(),
       description: text("description").notNull(),
@@ -1262,7 +1267,7 @@ var init_schema = __esm({
     });
     courseEnrollments = pgTable("course_enrollments", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       status: varchar("status").default("active"),
       progress: integer("progress").default(0),
@@ -1278,7 +1283,7 @@ var init_schema = __esm({
     });
     courseReviews = pgTable("course_reviews", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       rating: integer("rating").notNull(),
       comment: text("comment"),
@@ -1286,7 +1291,7 @@ var init_schema = __esm({
     });
     courseComments = pgTable("course_comments", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       content: text("content").notNull(),
       parentId: varchar("parent_id"),
@@ -1294,13 +1299,13 @@ var init_schema = __esm({
     });
     courseLikes = pgTable("course_likes", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       createdAt: timestamp("created_at").defaultNow()
     });
     courseLessons = pgTable("course_lessons", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       title: varchar("title").notNull(),
       description: text("description"),
       videoUrl: varchar("video_url"),
@@ -1313,7 +1318,7 @@ var init_schema = __esm({
     });
     courseMessages = pgTable("course_messages", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       senderId: varchar("sender_id").notNull().references(() => users.id),
       recipientId: varchar("recipient_id").references(() => users.id),
       // null = group chat, set = private DM
@@ -1324,7 +1329,7 @@ var init_schema = __esm({
     courseLessonProgress = pgTable("course_lesson_progress", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       lessonId: varchar("lesson_id").notNull().references(() => courseLessons.id, { onDelete: "cascade" }),
       completedAt: timestamp("completed_at").defaultNow()
     });
@@ -1344,17 +1349,51 @@ var init_schema = __esm({
       // classic | modern | ornate
       updatedAt: timestamp("updated_at").defaultNow()
     });
+    courseAssignments = pgTable("course_assignments", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      lessonId: varchar("lesson_id").references(() => courseLessons.id, { onDelete: "set null" }),
+      userId: varchar("user_id").notNull().references(() => users.id),
+      title: varchar("title").notNull(),
+      description: text("description"),
+      fileUrl: varchar("file_url"),
+      fileName: varchar("file_name"),
+      fileType: varchar("file_type"),
+      status: varchar("status").default("submitted"),
+      // submitted | reviewed | approved | rejected
+      tutorFeedback: text("tutor_feedback"),
+      submittedAt: timestamp("submitted_at").defaultNow()
+    });
+    insertCourseAssignmentSchema = createInsertSchema(courseAssignments).omit({ id: true, submittedAt: true });
     courseCertificates = pgTable("course_certificates", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       certCode: varchar("cert_code").notNull().unique(),
       // e.g. BS-X9K2-A4M7
       userId: varchar("user_id").notNull().references(() => users.id),
-      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
       studentName: varchar("student_name").notNull(),
       courseTitle: varchar("course_title").notNull(),
       instructorName: varchar("instructor_name"),
       issuedAt: timestamp("issued_at").defaultNow()
     });
+    courseCommunityPosts = pgTable("course_community_posts", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      userId: varchar("user_id").notNull().references(() => users.id),
+      message: text("message").notNull(),
+      replyToId: varchar("reply_to_id"),
+      // nullable — set for replies, references another post id
+      likeCount: integer("like_count").default(0),
+      isDeleted: boolean("is_deleted").default(false),
+      createdAt: timestamp("created_at").defaultNow()
+    });
+    courseCommunityLikes = pgTable("course_community_likes", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      postId: varchar("post_id").notNull().references(() => courseCommunityPosts.id, { onDelete: "cascade" }),
+      userId: varchar("user_id").notNull().references(() => users.id),
+      createdAt: timestamp("created_at").defaultNow()
+    });
+    insertCourseCommunityPostSchema = createInsertSchema(courseCommunityPosts).omit({ id: true, createdAt: true, likeCount: true });
     paymentNetworks = pgTable("payment_networks", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       networkKey: varchar("network_key", { length: 50 }).notNull().unique(),
@@ -1506,7 +1545,7 @@ var init_schema = __esm({
       isActive: boolean("is_active").default(true)
     });
     insertFooterColumnSchema = createInsertSchema(footerColumns).omit({ id: true });
-    insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
+    insertCourseSchema = createInsertSchema(courses2).omit({ id: true, createdAt: true, updatedAt: true });
     insertCourseEnrollmentSchema = createInsertSchema(courseEnrollments).omit({ id: true, createdAt: true, updatedAt: true });
     insertCourseReviewSchema = createInsertSchema(courseReviews).omit({ id: true, createdAt: true });
     insertCourseCommentSchema = createInsertSchema(courseComments).omit({ id: true, createdAt: true });
@@ -2083,6 +2122,8 @@ var init_schema = __esm({
       duration: varchar("duration"),
       isActive: boolean("is_active").default(true),
       acceptedPayments: text("accepted_payments").array().default(sql`ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']`),
+      linkedCourseId: varchar("linked_course_id").references(() => courses2.id),
+      // linked platform course for enrollment
       updatedAt: timestamp("updated_at").defaultNow()
     });
     insertBreedskoolCoursePricingSchema = createInsertSchema(breedskoolCoursePricing).omit({ id: true, updatedAt: true });
@@ -2117,6 +2158,8 @@ var init_schema = __esm({
       childAge: varchar("child_age"),
       parentName: varchar("parent_name"),
       homeAddress: text("home_address"),
+      linkedCourseId: varchar("linked_course_id"),
+      // platform course ID auto-enrolled into
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
@@ -2132,9 +2175,27 @@ __export(db_exports, {
 });
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+function isValidPgUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "postgresql:" || parsed.protocol === "postgres:";
+  } catch {
+    return false;
+  }
+}
 function resolveConnectionString() {
-  const url = process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL || process.env.DATABASE_PUBLIC_URL || process.env.POSTGRES_URL;
-  if (url) return url;
+  const candidates = [
+    process.env.DATABASE_URL,
+    process.env.DATABASE_PRIVATE_URL,
+    process.env.DATABASE_PUBLIC_URL,
+    process.env.POSTGRES_URL
+  ];
+  for (const url of candidates) {
+    if (url) {
+      if (isValidPgUrl(url)) return url;
+      console.warn(`[db] Ignoring malformed database URL (${url.slice(0, 30)}\u2026) \u2014 falling back to PG* vars`);
+    }
+  }
   const host = process.env.PGHOST;
   const port2 = process.env.PGPORT || "5432";
   const user = process.env.PGUSER;
@@ -2747,6 +2808,17 @@ var init_vite_config = __esm({
       build: {
         outDir: path2.resolve(__dirname, "dist/public"),
         emptyOutDir: true
+      },
+      optimizeDeps: {
+        include: [
+          "@tiptap/react",
+          "@tiptap/starter-kit",
+          "@tiptap/extension-underline",
+          "@tiptap/extension-text-align",
+          "@tiptap/extension-highlight",
+          "@tiptap/extension-link",
+          "@tiptap/extension-placeholder"
+        ]
       },
       server: {
         allowedHosts: true,
@@ -3762,7 +3834,7 @@ var DatabaseStorage = class {
   }
   // ── BreedSkool ────────────────────────────────────────────────
   async getAllCourses(publishedOnly = false) {
-    const rows = await db.select().from(courses).orderBy(desc(courses.createdAt));
+    const rows = await db.select().from(courses2).orderBy(desc(courses2.createdAt));
     const filtered = publishedOnly ? rows.filter((c) => c.isPublished) : rows;
     const result = await Promise.all(filtered.map(async (c) => {
       const [instructor] = await db.select({
@@ -3778,7 +3850,7 @@ var DatabaseStorage = class {
     return result;
   }
   async getCourseById(id) {
-    const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    const [course] = await db.select().from(courses2).where(eq(courses2.id, id));
     if (!course) return void 0;
     const [instructor] = await db.select({
       id: users.id,
@@ -3791,15 +3863,15 @@ var DatabaseStorage = class {
     return { ...course, instructor: instructor || {} };
   }
   async createCourse(course) {
-    const [created] = await db.insert(courses).values(course).returning();
+    const [created] = await db.insert(courses2).values(course).returning();
     return created;
   }
   async updateCourse(id, updates) {
-    const [updated] = await db.update(courses).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq(courses.id, id)).returning();
+    const [updated] = await db.update(courses2).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq(courses2.id, id)).returning();
     return updated;
   }
   async deleteCourse(id) {
-    await db.delete(courses).where(eq(courses.id, id));
+    await db.delete(courses2).where(eq(courses2.id, id));
   }
   async getCourseEnrollment(courseId, userId) {
     const [enrollment] = await db.select().from(courseEnrollments).where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, userId)));
@@ -3808,14 +3880,14 @@ var DatabaseStorage = class {
   async getMyEnrollments(userId) {
     const enrollments = await db.select().from(courseEnrollments).where(eq(courseEnrollments.userId, userId));
     return Promise.all(enrollments.map(async (e) => {
-      const [course] = await db.select().from(courses).where(eq(courses.id, e.courseId));
+      const [course] = await db.select().from(courses2).where(eq(courses2.id, e.courseId));
       return { ...e, course, sellerId: course?.instructorId || null };
     }));
   }
   async getAllEnrollments() {
     const enrollments = await db.select().from(courseEnrollments).orderBy(desc(courseEnrollments.createdAt));
     return Promise.all(enrollments.map(async (e) => {
-      const [course] = await db.select({ id: courses.id, title: courses.title }).from(courses).where(eq(courses.id, e.courseId));
+      const [course] = await db.select({ id: courses2.id, title: courses2.title }).from(courses2).where(eq(courses2.id, e.courseId));
       const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email }).from(users).where(eq(users.id, e.userId));
       return { ...e, course: course || {}, user: user || {} };
     }));
@@ -3834,7 +3906,7 @@ var DatabaseStorage = class {
       amount: data.amount || "0.00"
     }).returning();
     if (data.isFree) {
-      await db.update(courses).set({ studentsCount: sql2`${courses.studentsCount} + 1` }).where(eq(courses.id, data.courseId));
+      await db.update(courses2).set({ studentsCount: sql2`${courses2.studentsCount} + 1` }).where(eq(courses2.id, data.courseId));
     }
     return enrollment;
   }
@@ -3848,7 +3920,7 @@ var DatabaseStorage = class {
       updatedAt: /* @__PURE__ */ new Date()
     }).where(eq(courseEnrollments.id, id)).returning();
     if (existing && existing.status !== "active") {
-      await db.update(courses).set({ studentsCount: sql2`${courses.studentsCount} + 1` }).where(eq(courses.id, existing.courseId));
+      await db.update(courses2).set({ studentsCount: sql2`${courses2.studentsCount} + 1` }).where(eq(courses2.id, existing.courseId));
     }
     return updated;
   }
@@ -3863,7 +3935,7 @@ var DatabaseStorage = class {
     const [review] = await db.insert(courseReviews).values(data).returning();
     const allReviews = await db.select().from(courseReviews).where(eq(courseReviews.courseId, data.courseId));
     const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
-    await db.update(courses).set({ reviewsCount: allReviews.length, averageRating: avg.toFixed(2) }).where(eq(courses.id, data.courseId));
+    await db.update(courses2).set({ reviewsCount: allReviews.length, averageRating: avg.toFixed(2) }).where(eq(courses2.id, data.courseId));
     return review;
   }
   async getCourseComments(courseId) {
@@ -3875,7 +3947,7 @@ var DatabaseStorage = class {
   }
   async createCourseComment(data) {
     const [comment] = await db.insert(courseComments).values(data).returning();
-    await db.update(courses).set({ commentsCount: sql2`${courses.commentsCount} + 1` }).where(eq(courses.id, data.courseId));
+    await db.update(courses2).set({ commentsCount: sql2`${courses2.commentsCount} + 1` }).where(eq(courses2.id, data.courseId));
     return comment;
   }
   async getCourseLike(courseId, userId) {
@@ -3886,11 +3958,11 @@ var DatabaseStorage = class {
     const existing = await this.getCourseLike(courseId, userId);
     if (existing) {
       await db.delete(courseLikes).where(and(eq(courseLikes.courseId, courseId), eq(courseLikes.userId, userId)));
-      await db.update(courses).set({ likesCount: sql2`GREATEST(${courses.likesCount} - 1, 0)` }).where(eq(courses.id, courseId));
+      await db.update(courses2).set({ likesCount: sql2`GREATEST(${courses2.likesCount} - 1, 0)` }).where(eq(courses2.id, courseId));
       return false;
     } else {
       await db.insert(courseLikes).values({ courseId, userId });
-      await db.update(courses).set({ likesCount: sql2`${courses.likesCount} + 1` }).where(eq(courses.id, courseId));
+      await db.update(courses2).set({ likesCount: sql2`${courses2.likesCount} + 1` }).where(eq(courses2.id, courseId));
       return true;
     }
   }
@@ -3909,7 +3981,7 @@ var DatabaseStorage = class {
       lessonFiles: data.lessonFiles ?? [],
       isPreview: data.isPreview ?? false
     }).returning();
-    await db.update(courses).set({ lessonsCount: sql2`${courses.lessonsCount} + 1` }).where(eq(courses.id, data.courseId));
+    await db.update(courses2).set({ lessonsCount: sql2`${courses2.lessonsCount} + 1` }).where(eq(courses2.id, data.courseId));
     return lesson;
   }
   async updateLesson(lessonId, updates) {
@@ -3920,7 +3992,7 @@ var DatabaseStorage = class {
     const [lesson] = await db.select().from(courseLessons).where(eq(courseLessons.id, lessonId));
     if (lesson) {
       await db.delete(courseLessons).where(eq(courseLessons.id, lessonId));
-      await db.update(courses).set({ lessonsCount: sql2`GREATEST(${courses.lessonsCount} - 1, 0)` }).where(eq(courses.id, lesson.courseId));
+      await db.update(courses2).set({ lessonsCount: sql2`GREATEST(${courses2.lessonsCount} - 1, 0)` }).where(eq(courses2.id, lesson.courseId));
     }
   }
   async getCourseMessages(courseId, opts) {
@@ -4013,7 +4085,7 @@ var DatabaseStorage = class {
     const existing = await this.getCertificateByUserCourse(data.userId, data.courseId);
     if (existing) return existing;
     const [user] = await db.select().from(users).where(eq(users.id, data.userId));
-    const [course] = await db.select().from(courses).where(eq(courses.id, data.courseId));
+    const [course] = await db.select().from(courses2).where(eq(courses2.id, data.courseId));
     if (!course) throw new Error("Course not found");
     const [instructor] = course.instructorId ? await db.select({ firstName: users.firstName, lastName: users.lastName }).from(users).where(eq(users.id, course.instructorId)) : [null];
     const studentName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Student";
@@ -6805,7 +6877,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       db.select({ c: sql5`count(*)::int` }).from(posts),
       db.select({ c: sql5`count(*)::int` }).from(blogPosts),
       db.select({ c: sql5`count(*)::int` }).from(shopProducts),
-      db.select({ c: sql5`count(*)::int` }).from(courses)
+      db.select({ c: sql5`count(*)::int` }).from(courses2)
     ]);
     res.json({
       users: u[0]?.c ?? 0,
@@ -7137,9 +7209,9 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
   app2.get("/api/admin/demo/courses-lookup", isAuthenticated2, async (req, res) => {
     if (!await guard(req, res)) return;
     const rows = await db.select({
-      id: courses.id,
-      title: courses.title
-    }).from(courses).orderBy(desc5(courses.createdAt)).limit(60);
+      id: courses2.id,
+      title: courses2.title
+    }).from(courses2).orderBy(desc5(courses2.createdAt)).limit(60);
     res.json(rows);
   });
   app2.post("/api/admin/demo/reset-user", isAuthenticated2, async (req, res) => {
@@ -7905,8 +7977,8 @@ async function runSubscriptionExpiryCheck() {
 }
 async function registerRoutes(app2, existingServer) {
   setupAuth(app2);
-  const SCAN_SKIP_PATHS = ["/api/health", "/api/login", "/api/register", "/api/uploads"];
-  const SCAN_SKIP_FIELDS = ["password", "confirmPassword", "transactionHash", "paymentProof"];
+  const SCAN_SKIP_PATHS = ["/api/health", "/api/login", "/api/register", "/api/uploads", "/api/breedskool"];
+  const SCAN_SKIP_FIELDS = ["password", "confirmPassword", "transactionHash", "transactionRef", "paymentProof", "proofNote"];
   app2.use((req, res, next) => {
     if (!["POST", "PUT", "PATCH"].includes(req.method)) return next();
     if (SCAN_SKIP_PATHS.some((p) => req.path.startsWith(p))) return next();
@@ -8102,6 +8174,47 @@ async function registerRoutes(app2, existingServer) {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to update SEO settings" });
+    }
+  });
+  app2.patch("/api/user/become-creator", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const u = await storage.getUser(userId);
+      if (!u) return res.status(404).json({ message: "User not found" });
+      if (u.userType === "creator" || u.userType === "admin") {
+        return res.json({ message: "Already a creator", user: u });
+      }
+      const enrollments = await storage.getMyEnrollments(userId);
+      const enrolledCourse = enrollments.find(
+        (e) => (e.status === "active" || e.status === "completed") && (e.progress || 0) >= 50
+      );
+      if (!enrolledCourse) {
+        return res.status(403).json({ message: "You must complete at least 50% of a BreedSkool course to upgrade to Creator." });
+      }
+      let niche = null;
+      let bio = null;
+      const enrolledCourseData = enrolledCourse?.courseId ? await storage.getCourseById(enrolledCourse.courseId) : null;
+      if (enrolledCourseData?.category) niche = enrolledCourseData.category;
+      if (enrolledCourseData?.title) bio = `BreedSkool graduate \u2014 ${enrolledCourseData.title}. Passionate about creating impactful content and building an online income.`;
+      const updatePayload = { userType: "creator" };
+      if (niche && !u.niche) updatePayload.niche = niche;
+      if (bio && !u.bio) updatePayload.bio = bio;
+      const updated = await storage.updateUserProfile(userId, updatePayload);
+      storage.awardPoints(userId, "become_creator", 100, "Upgraded to Creator account!").catch(() => {
+      });
+      storage.createNotification({
+        userId,
+        type: "account_upgrade",
+        title: "\u{1F389} Creator Account Activated!",
+        content: "Your account has been upgraded to Creator. You can now apply for brand campaigns and earn crypto rewards!",
+        actionUrl: "/dashboard?tab=campaigns",
+        isRead: false
+      }).catch(() => {
+      });
+      const { password: _p, twoFactorSecret: _t, ...safeUser } = updated;
+      res.json({ success: true, user: safeUser });
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to upgrade account" });
     }
   });
   app2.post("/api/ai/compare-influencers", async (req, res) => {
@@ -10487,8 +10600,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq13 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq13(transactions3.id, id));
+            const { eq: eq14 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq14(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -12309,7 +12422,11 @@ Instructions:
   });
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolCoursePricing).where(eq8(breedskoolCoursePricing.isActive, true));
+      const { mode } = req.query;
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq8(breedskoolCoursePricing.isActive, true));
+      if (mode) {
+        rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
+      }
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -12338,16 +12455,20 @@ Instructions:
         parentName,
         homeAddress
       } = req.body;
-      if (!fullName || !email || !phone || !selectedCourseKey) {
-        return res.status(400).json({ message: "Full name, email, phone, and course are required." });
+      const isOnsiteContactOnly = deliveryMode === "onsite" && !password;
+      if (!fullName || !email || !phone) {
+        return res.status(400).json({ message: "Full name, email, and phone are required." });
       }
-      if (!password || password.length < 6) {
+      if (!selectedCourseKey && !isOnsiteContactOnly) {
+        return res.status(400).json({ message: "Course selection is required." });
+      }
+      if (!isOnsiteContactOnly && (!password || password.length < 6)) {
         return res.status(400).json({ message: "Password must be at least 6 characters." });
       }
       let userId = null;
       let newUser = null;
       let loginUser = null;
-      const bcrypt6 = await import("bcrypt");
+      const bcrypt6 = await import("bcryptjs");
       const existing = await storage.getUserByEmail(email);
       if (existing) {
         userId = existing.id;
@@ -12357,7 +12478,7 @@ Instructions:
             loginUser = existing;
           }
         }
-      } else {
+      } else if (!isOnsiteContactOnly) {
         const hashed = await bcrypt6.hash(password, 10);
         const nameParts = fullName.trim().split(" ");
         const firstName = nameParts[0];
@@ -12384,7 +12505,7 @@ Instructions:
       const proofPath = req.file ? `/uploads/${req.file.filename}` : null;
       const isPayLater = (paymentOption || "pay_later") === "pay_later";
       const deadline = null;
-      const [reg] = await db.insert(breedskoolRegistrations).values({
+      const insertValues = {
         userId,
         fullName,
         email,
@@ -12407,7 +12528,35 @@ Instructions:
         childAge: childAge || null,
         parentName: parentName || null,
         homeAddress: homeAddress || null
-      }).returning();
+      };
+      const [reg] = await db.insert(breedskoolRegistrations).values(insertValues).returning();
+      let linkedCourseId = null;
+      try {
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq8(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricing = pricingRows[0];
+        if (pricing?.linkedCourseId) {
+          linkedCourseId = pricing.linkedCourseId;
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and5(
+            eq8(courseEnrollments.courseId, linkedCourseId),
+            eq8(courseEnrollments.userId, userId)
+          )).limit(1);
+          if (!alreadyEnrolled.length) {
+            await db.insert(courseEnrollments).values({
+              courseId: linkedCourseId,
+              userId,
+              status: "active",
+              isPaid: !isPayLater,
+              paymentMethod: paymentMethod || null,
+              amount: String(parseInt(amountNgn) || 0)
+            });
+            storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
+            });
+          }
+          await db.update(breedskoolRegistrations).set({ linkedCourseId }).where(eq8(breedskoolRegistrations.id, reg.id));
+        }
+      } catch (enrollErr) {
+        console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
+      }
       if (loginUser) {
         await new Promise((resolve, reject) => {
           req.login(loginUser, (err) => err ? reject(err) : resolve());
@@ -12415,12 +12564,15 @@ Instructions:
       }
       const isExistingAccount = !!existing;
       const wrongPassword = isExistingAccount && !loginUser;
+      const safeUser = loginUser ? (({ password: _p, twoFactorSecret: _t, ...rest }) => rest)(loginUser) : null;
       res.status(201).json({
         registration: reg,
         userId,
         loggedIn: !!loginUser,
         existingAccount: isExistingAccount,
-        wrongPassword
+        wrongPassword,
+        user: safeUser,
+        linkedCourseId
       });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -12496,6 +12648,77 @@ Instructions:
       res.status(500).json({ message: e.message });
     }
   });
+  app2.get("/api/breedskool/payment-settings", async (_req, res) => {
+    try {
+      const keys = [
+        "breedskool_bank_name",
+        "breedskool_bank_account_number",
+        "breedskool_bank_account_name",
+        "breedskool_bank_country",
+        "breedskool_usdt_tron_address",
+        "breedskool_usdt_ton_address",
+        "breedskool_usdt_bnb_address",
+        "breedskool_payment_instructions"
+      ];
+      const rows = await db.select().from(appSettings).where(inArray6(appSettings.key, keys));
+      const settings = {};
+      for (const r of rows) settings[r.key] = r.value || "";
+      res.json(settings);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/admin/breedskool/payment-settings", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+    try {
+      const keys = [
+        "breedskool_bank_name",
+        "breedskool_bank_account_number",
+        "breedskool_bank_account_name",
+        "breedskool_bank_country",
+        "breedskool_usdt_tron_address",
+        "breedskool_usdt_ton_address",
+        "breedskool_usdt_bnb_address",
+        "breedskool_payment_instructions"
+      ];
+      const rows = await db.select().from(appSettings).where(inArray6(appSettings.key, keys));
+      const settings = {};
+      for (const r of rows) settings[r.key] = r.value || "";
+      res.json(settings);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.put("/api/admin/breedskool/payment-settings", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+    try {
+      const allowed = [
+        "breedskool_bank_name",
+        "breedskool_bank_account_number",
+        "breedskool_bank_account_name",
+        "breedskool_bank_country",
+        "breedskool_usdt_tron_address",
+        "breedskool_usdt_ton_address",
+        "breedskool_usdt_bnb_address",
+        "breedskool_payment_instructions"
+      ];
+      for (const [key, value] of Object.entries(req.body)) {
+        if (!allowed.includes(key)) continue;
+        await db.insert(appSettings).values({ key, value: String(value), updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: String(value), updatedAt: /* @__PURE__ */ new Date() } });
+      }
+      res.json({ message: "Payment settings updated" });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
+    try {
+      const rows = await db.select().from(courseAssignments).where(eq8(courseAssignments.userId, req.user.id)).orderBy(desc6(courseAssignments.submittedAt));
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
       const rows = await db.select().from(breedskoolRegistrations).where(eq8(breedskoolRegistrations.userId, req.user.id)).orderBy(desc6(breedskoolRegistrations.createdAt));
@@ -12506,8 +12729,8 @@ Instructions:
   });
   app2.get("/api/courses", async (req, res) => {
     try {
-      const courses2 = await storage.getAllCourses(true);
-      res.json(courses2);
+      const courses3 = await storage.getAllCourses(true);
+      res.json(courses3);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch courses" });
     }
@@ -12517,8 +12740,8 @@ Instructions:
       if (req.user.userType !== "admin" && req.user.role !== "admin") {
         return res.status(403).json({ message: "Unauthorized" });
       }
-      const courses2 = await storage.getAllCourses(false);
-      res.json(courses2);
+      const courses3 = await storage.getAllCourses(false);
+      res.json(courses3);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch courses" });
     }
@@ -12632,6 +12855,214 @@ Instructions:
       res.status(500).json({ message: error.message || "Failed to delete course" });
     }
   });
+  app2.get("/api/courses/:id/community", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const courseId = req.params.id;
+      const isAdmin4 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin4) {
+        const course = await storage.getCourseById(courseId);
+        const isInstructor = course && course.instructorId === u.id;
+        if (!isInstructor) {
+          const enrollment = await storage.getCourseEnrollment(courseId, u.id);
+          if (!enrollment || enrollment.status !== "active") {
+            return res.status(403).json({ message: "You must be enrolled in this course to view the community." });
+          }
+        }
+      }
+      const rows = await db.select({
+        userId: courseEnrollments.userId,
+        status: courseEnrollments.status,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        userType: users.userType,
+        username: users.username
+      }).from(courseEnrollments).leftJoin(users, eq8(courseEnrollments.userId, users.id)).where(and5(
+        eq8(courseEnrollments.courseId, courseId),
+        eq8(courseEnrollments.status, "active")
+      )).limit(100);
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to fetch community" });
+    }
+  });
+  app2.get("/api/courses/:id/community/posts", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const courseId = req.params.id;
+      const isAdmin4 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin4) {
+        const course = await storage.getCourseById(courseId);
+        const isInstructor = course && course.instructorId === u.id;
+        if (!isInstructor) {
+          const enrollment = await storage.getCourseEnrollment(courseId, u.id);
+          if (!enrollment || enrollment.status !== "active") {
+            return res.status(403).json({ message: "You must be enrolled to view the community." });
+          }
+        }
+      }
+      const posts2 = await db.select({
+        id: courseCommunityPosts.id,
+        courseId: courseCommunityPosts.courseId,
+        userId: courseCommunityPosts.userId,
+        message: courseCommunityPosts.message,
+        replyToId: courseCommunityPosts.replyToId,
+        likeCount: courseCommunityPosts.likeCount,
+        isDeleted: courseCommunityPosts.isDeleted,
+        createdAt: courseCommunityPosts.createdAt,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        username: users.username,
+        userType: users.userType
+      }).from(courseCommunityPosts).leftJoin(users, eq8(courseCommunityPosts.userId, users.id)).where(and5(
+        eq8(courseCommunityPosts.courseId, courseId),
+        eq8(courseCommunityPosts.isDeleted, false)
+      )).orderBy(courseCommunityPosts.createdAt).limit(200);
+      const likes = await db.select().from(courseCommunityLikes).where(eq8(courseCommunityLikes.userId, u.id));
+      const likedSet = new Set(likes.map((l) => l.postId));
+      const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to fetch posts" });
+    }
+  });
+  app2.post("/api/courses/:id/community/posts", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const courseId = req.params.id;
+      const { message, replyToId } = req.body;
+      if (!message?.trim()) return res.status(400).json({ message: "Message is required." });
+      const isAdmin4 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin4) {
+        const course = await storage.getCourseById(courseId);
+        const isInstructor = course && course.instructorId === u.id;
+        if (!isInstructor) {
+          const enrollment = await storage.getCourseEnrollment(courseId, u.id);
+          if (!enrollment || enrollment.status !== "active") {
+            return res.status(403).json({ message: "You must be enrolled to post in the community." });
+          }
+        }
+      }
+      const [post] = await db.insert(courseCommunityPosts).values({
+        courseId,
+        userId: u.id,
+        message: message.trim(),
+        replyToId: replyToId || null
+      }).returning();
+      res.json(post);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to create post" });
+    }
+  });
+  app2.post("/api/courses/:id/community/posts/:postId/like", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const courseId = req.params.id;
+      const postId = req.params.postId;
+      const isAdmin4 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin4) {
+        const [course] = await db.select().from(courses).where(eq8(courses.id, courseId)).limit(1);
+        if (!course) return res.status(404).json({ message: "Course not found." });
+        const isInstructor = course.instructorId === u.id;
+        if (!isInstructor) {
+          const [enrollment] = await db.select().from(courseEnrollments).where(and5(eq8(courseEnrollments.courseId, courseId), eq8(courseEnrollments.userId, u.id))).limit(1);
+          if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
+            return res.status(403).json({ message: "You must be enrolled to like posts." });
+          }
+        }
+      }
+      const [post] = await db.select().from(courseCommunityPosts).where(and5(eq8(courseCommunityPosts.id, postId), eq8(courseCommunityPosts.courseId, courseId), eq8(courseCommunityPosts.isDeleted, false))).limit(1);
+      if (!post) return res.status(404).json({ message: "Post not found in this course." });
+      const existing = await db.select().from(courseCommunityLikes).where(and5(eq8(courseCommunityLikes.postId, postId), eq8(courseCommunityLikes.userId, u.id))).limit(1);
+      if (existing.length > 0) {
+        await db.delete(courseCommunityLikes).where(and5(
+          eq8(courseCommunityLikes.postId, postId),
+          eq8(courseCommunityLikes.userId, u.id)
+        ));
+        await db.update(courseCommunityPosts).set({ likeCount: sql6`GREATEST(like_count - 1, 0)` }).where(eq8(courseCommunityPosts.id, postId));
+        res.json({ liked: false });
+      } else {
+        await db.insert(courseCommunityLikes).values({ postId, userId: u.id });
+        await db.update(courseCommunityPosts).set({ likeCount: sql6`like_count + 1` }).where(eq8(courseCommunityPosts.id, postId));
+        res.json({ liked: true });
+      }
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to toggle like" });
+    }
+  });
+  app2.delete("/api/courses/:id/community/posts/:postId", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const courseId = req.params.id;
+      const postId = req.params.postId;
+      const [post] = await db.select().from(courseCommunityPosts).where(and5(eq8(courseCommunityPosts.id, postId), eq8(courseCommunityPosts.courseId, courseId))).limit(1);
+      if (!post) return res.status(404).json({ message: "Post not found in this course." });
+      const isAdmin4 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin4 && post.userId !== u.id) {
+        const [course] = await db.select().from(courses).where(eq8(courses.id, courseId)).limit(1);
+        const isInstructor = course?.instructorId === u.id;
+        if (!isInstructor) return res.status(403).json({ message: "Not your post." });
+      }
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq8(courseCommunityPosts.id, postId));
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to delete post" });
+    }
+  });
+  app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq8(courseEnrollments.userId, u.id));
+      if (!myEnrollments.length) return res.json([]);
+      const courseIds = myEnrollments.map((e) => e.courseId);
+      const rows = await db.select({
+        id: courseCommunityPosts.id,
+        courseId: courseCommunityPosts.courseId,
+        userId: courseCommunityPosts.userId,
+        message: courseCommunityPosts.message,
+        replyToId: courseCommunityPosts.replyToId,
+        likeCount: courseCommunityPosts.likeCount,
+        createdAt: courseCommunityPosts.createdAt,
+        authorFirstName: users.firstName,
+        authorLastName: users.lastName,
+        authorAvatar: users.profileImageUrl,
+        authorType: users.userType
+      }).from(courseCommunityPosts).leftJoin(users, eq8(courseCommunityPosts.userId, users.id)).where(and5(inArray6(courseCommunityPosts.courseId, courseIds), eq8(courseCommunityPosts.isDeleted, false))).orderBy(desc6(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq8(courseCommunityLikes.userId, u.id));
+      const likedSet = new Set(likes.map((l) => l.postId));
+      res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq8(courseEnrollments.userId, u.id));
+      if (!myEnrollments.length) return res.json([]);
+      const courseIds = myEnrollments.map((e) => e.courseId);
+      const rows = await db.select({
+        userId: courseEnrollments.userId,
+        courseId: courseEnrollments.courseId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        userType: users.userType,
+        creatorTier: users.creatorTier
+      }).from(courseEnrollments).leftJoin(users, eq8(courseEnrollments.userId, users.id)).where(and5(inArray6(courseEnrollments.courseId, courseIds), sql6`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      const seen = /* @__PURE__ */ new Set();
+      const unique = rows.filter((r) => {
+        if (seen.has(r.userId)) return false;
+        seen.add(r.userId);
+        return true;
+      });
+      res.json(unique);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
   app2.get("/api/courses/:id/enrollment", isAuthenticated, async (req, res) => {
     try {
       const enrollment = await storage.getCourseEnrollment(req.params.id, req.user.id);
@@ -12648,10 +13079,11 @@ Instructions:
       const existing = await storage.getCourseEnrollment(req.params.id, req.user.id);
       if (existing) return res.status(400).json({ message: "Already enrolled in this course" });
       const proofPath = req.file ? `/uploads/${req.file.filename}` : req.body.paymentProofUrl || req.body.paymentProof || null;
+      const isPayLater = req.body.payLater === "true" || req.body.payLater === true;
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
-        isFree: course.isFree,
+        isFree: course.isFree || isPayLater,
         paymentMethod: req.body.paymentMethod,
         paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
@@ -12885,6 +13317,80 @@ Instructions:
       res.status(500).json({ message: e.message || "Failed to unmark" });
     }
   });
+  app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
+    try {
+      const rows = await db.select().from(courseAssignments).where(and5(
+        eq8(courseAssignments.courseId, req.params.id),
+        eq8(courseAssignments.userId, req.user.id)
+      )).orderBy(desc6(courseAssignments.submittedAt));
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to fetch assignments" });
+    }
+  });
+  app2.post("/api/courses/:id/assignments", isAuthenticated, upload.array("files", 5), async (req, res) => {
+    try {
+      const { title, description, lessonId } = req.body;
+      if (!title?.trim()) return res.status(400).json({ message: "Title is required" });
+      const files = req.files || [];
+      const primaryFile = files[0] || null;
+      const allFilePaths = files.map((f) => `/uploads/${f.filename}`);
+      const fileUrlValue = allFilePaths.length > 1 ? JSON.stringify(allFilePaths) : primaryFile ? `/uploads/${primaryFile.filename}` : null;
+      const [assignment] = await db.insert(courseAssignments).values({
+        courseId: req.params.id,
+        userId: req.user.id,
+        lessonId: lessonId || null,
+        title: title.trim(),
+        description: description?.trim() || null,
+        fileUrl: fileUrlValue,
+        fileName: primaryFile ? primaryFile.originalname || primaryFile.filename : files.length > 1 ? `${files.length} files` : null,
+        fileType: primaryFile ? primaryFile.mimetype : null,
+        status: "submitted"
+      }).returning();
+      res.status(201).json(assignment);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to submit assignment" });
+    }
+  });
+  app2.get("/api/admin/courses/assignments", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+      const rows = await db.select({
+        id: courseAssignments.id,
+        courseId: courseAssignments.courseId,
+        lessonId: courseAssignments.lessonId,
+        userId: courseAssignments.userId,
+        title: courseAssignments.title,
+        description: courseAssignments.description,
+        fileUrl: courseAssignments.fileUrl,
+        fileName: courseAssignments.fileName,
+        fileType: courseAssignments.fileType,
+        status: courseAssignments.status,
+        tutorFeedback: courseAssignments.tutorFeedback,
+        submittedAt: courseAssignments.submittedAt,
+        studentFirstName: users.firstName,
+        studentLastName: users.lastName,
+        studentEmail: users.email
+      }).from(courseAssignments).leftJoin(users, eq8(courseAssignments.userId, users.id)).orderBy(desc6(courseAssignments.submittedAt));
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to fetch assignments" });
+    }
+  });
+  app2.patch("/api/admin/assignments/:id", isAuthenticated, async (req, res) => {
+    try {
+      const u = req.user;
+      if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+      const { status, tutorFeedback } = req.body;
+      if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq8(courseAssignments.id, req.params.id)).returning();
+      if (!updated) return res.status(404).json({ message: "Assignment not found" });
+      res.json(updated);
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Failed to review assignment" });
+    }
+  });
   app2.get("/api/certificates/:code", async (req, res) => {
     try {
       const cert = await storage.getCertificateByCode(req.params.code);
@@ -12926,13 +13432,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq13, desc: desc7 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq13(courseMessages2.courseId, req.params.id)).orderBy(desc7(courseMessages2.createdAt));
+      const { eq: eq14, desc: desc7 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq14(courseMessages2.courseId, req.params.id)).orderBy(desc7(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq13(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq14(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq13(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq14(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -12965,8 +13471,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq13, and: and6 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and6(eq13(productLikes2.productId, req.params.id), eq13(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq14, and: and6 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and6(eq14(productLikes2.productId, req.params.id), eq14(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -12976,26 +13482,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq13, and: and6, sql: sql10 } = await import("drizzle-orm");
+      const { eq: eq14, and: and6, sql: sql11 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and6(eq13(productLikes2.productId, req.params.id), eq13(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and6(eq14(productLikes2.productId, req.params.id), eq14(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq13(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq14(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            [type === "like" ? "likesCount" : "dislikesCount"]: sql10`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq13(shopProducts2.id, req.params.id));
+            [type === "like" ? "likesCount" : "dislikesCount"]: sql11`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
+          }).where(eq14(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq13(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq14(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            likesCount: sql10`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
-            dislikesCount: sql10`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq13(shopProducts2.id, req.params.id));
+            likesCount: sql11`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
+            dislikesCount: sql11`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
+          }).where(eq14(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -13005,8 +13511,8 @@ Instructions:
           type
         });
         await db2.update(shopProducts2).set({
-          [type === "like" ? "likesCount" : "dislikesCount"]: sql10`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq13(shopProducts2.id, req.params.id));
+          [type === "like" ? "likesCount" : "dislikesCount"]: sql11`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
+        }).where(eq14(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -13019,7 +13525,7 @@ Instructions:
         return res.status(403).json({ message: "Admin only" });
       }
       const { newEmail, newPassword, currentPassword } = req.body;
-      const bcrypt6 = await import("bcrypt");
+      const bcrypt6 = await import("bcryptjs");
       const valid = await bcrypt6.compare(currentPassword, req.user.password);
       if (!valid) {
         return res.status(400).json({ message: "Current password is incorrect" });
@@ -15954,8 +16460,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq13, and: and6 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and6(eq13(pageHeroBackgrounds2.page, req.params.page), eq13(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq14, and: and6 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and6(eq14(pageHeroBackgrounds2.page, req.params.page), eq14(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -15977,12 +16483,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq13 } = await import("drizzle-orm");
+      const { eq: eq14 } = await import("drizzle-orm");
       const page = req.params.page;
       const data = { ...req.body, page, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq13(pageHeroBackgrounds2.page, page));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq14(pageHeroBackgrounds2.page, page));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq13(pageHeroBackgrounds2.page, page)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq14(pageHeroBackgrounds2.page, page)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -15996,8 +16502,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq13 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq13(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq14 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq14(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17996,20 +18502,20 @@ var DEMO_P2P_LISTINGS = [
 ];
 async function seedDemoData(adminUserId) {
   try {
-    const existingCourses = await db.select({ id: courses.id }).from(courses).limit(1);
+    const existingCourses = await db.select({ id: courses2.id }).from(courses2).limit(1);
     const existingProducts = await db.select({ id: shopProducts.id }).from(shopProducts).limit(1);
     const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
     const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
     {
       const existingTitles = new Set(
-        (await db.select({ title: courses.title }).from(courses)).map((r) => r.title)
+        (await db.select({ title: courses2.title }).from(courses2)).map((r) => r.title)
       );
       const toCreate = DEMO_COURSES.filter((c) => !existingTitles.has(c.title));
       if (toCreate.length > 0) {
         console.log(`[seed] Adding ${toCreate.length} new demo course(s)...`);
         for (const courseData of toCreate) {
           const { lessons, ...courseFields } = courseData;
-          const [course] = await db.insert(courses).values({
+          const [course] = await db.insert(courses2).values({
             ...courseFields,
             instructorId: adminUserId,
             lessonsCount: lessons.length,
@@ -18807,6 +19313,25 @@ async function seedLegalPages() {
 init_db();
 init_schema();
 import { eq as eq12 } from "drizzle-orm";
+var BREEDSKOOL_PAYMENT_DEFAULTS = [
+  { key: "breedskool_bank_name", value: "GTBank" },
+  { key: "breedskool_bank_account_number", value: "0273575556" },
+  { key: "breedskool_bank_account_name", value: "BREEDSKOOL GALAXY LTD" },
+  { key: "breedskool_bank_country", value: "Nigeria (Naira Account)" },
+  { key: "breedskool_payment_instructions", value: "After transfer, enter your transaction reference number below and optionally upload your payment screenshot as proof." }
+];
+async function seedBreedskoolPaymentSettings() {
+  for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
+    try {
+      const existing = await db.select().from(appSettings).where(eq12(appSettings.key, key)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
+      }
+    } catch (e) {
+      console.error(`[seedBreedskoolPaymentSettings] Error for ${key}:`, e?.message);
+    }
+  }
+}
 var BREEDSKOOL_COURSES = [
   {
     courseKey: "webdev",
@@ -18901,9 +19426,241 @@ async function seedBreedskoolPricing() {
   return { upserted, skipped };
 }
 
+// server/seed-breedskool-courses.ts
+init_db();
+init_schema();
+import { eq as eq13, sql as sql9 } from "drizzle-orm";
+var BREEDSKOOL_PLATFORM_COURSES = [
+  {
+    courseKey: "webdev",
+    title: "Web Development & Vibe Coding",
+    description: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment in this 8-week intensive bootcamp. Collaborate with fellow students in group chat and get private support from your tutor.",
+    shortDescription: "Build modern websites, web apps, and vibe-coded digital products from scratch.",
+    category: "branding",
+    level: "beginner",
+    duration: "8 Weeks",
+    price: "90.91",
+    tags: ["breedskool_webdev", "web development", "javascript", "react", "breedskool"],
+    whatYouLearn: ["HTML, CSS & JavaScript fundamentals", "React & Node.js", "Deployment & hosting", "Vibe coding with AI tools"],
+    requirements: ["Basic computer skills", "Stable internet connection", "Laptop or desktop computer"],
+    syllabus: [
+      { week: "Week 1\u20132", topic: "HTML, CSS & Git" },
+      { week: "Week 3\u20134", topic: "JavaScript & DOM" },
+      { week: "Week 5\u20136", topic: "React & Component Architecture" },
+      { week: "Week 7", topic: "Node.js & APIs" },
+      { week: "Week 8", topic: "Deployment & Portfolio Projects" }
+    ],
+    lessons: [
+      { title: "Welcome to Web Development & Vibe Coding", content: "Welcome to the course! In this orientation lesson you'll meet your tutor, understand the course structure, and set up your development environment (VS Code, Node.js, Git).\n\nAfter this lesson you will:\n\u2022 Have VS Code installed and configured\n\u2022 Understand what we'll build together\n\u2022 Be connected to the group chat\n\nUse the Group Chat tab to introduce yourself to your fellow students!", isPreview: true, order: 1 },
+      { title: "HTML Foundations \u2014 Structure of the Web", content: "HTML is the skeleton of every webpage. In this lesson we cover:\n\u2022 Document structure (html, head, body)\n\u2022 Headings, paragraphs, links, images\n\u2022 Lists and tables\n\u2022 Semantic HTML5 elements (nav, main, section, article, footer)\n\nPractice: Build a personal bio page with your name, photo, and a short introduction.", isPreview: false, order: 2 },
+      { title: "CSS Styling \u2014 Make It Look Good", content: "CSS is how we make websites beautiful. Topics:\n\u2022 Selectors, properties, and values\n\u2022 Box model (margin, padding, border)\n\u2022 Flexbox layout\n\u2022 Colors, fonts, and Google Fonts\n\u2022 Responsive design basics with media queries\n\nPractice: Style your bio page from lesson 2 to look professional.", isPreview: false, order: 3 },
+      { title: "JavaScript Basics \u2014 Making Pages Interactive", content: "JavaScript brings your pages to life. We cover:\n\u2022 Variables (let, const), data types, functions\n\u2022 DOM manipulation \u2014 changing page content with JS\n\u2022 Event listeners (click, submit, keyup)\n\u2022 Fetch API \u2014 loading data from the internet\n\nPractice: Build a to-do list app that saves items in the browser.", isPreview: false, order: 4 },
+      { title: "React \u2014 Modern Frontend Development", content: "React is the world's most popular frontend library. In this lesson:\n\u2022 What is a component?\n\u2022 JSX syntax\n\u2022 Props and state with useState\n\u2022 useEffect hook\n\u2022 Building a weather app with a public API\n\nBy the end you will have built a real React app!", isPreview: false, order: 5 },
+      { title: "Node.js & Express \u2014 Your First Backend", content: "The backend is where your data lives. Topics:\n\u2022 What is Node.js?\n\u2022 Setting up an Express server\n\u2022 Routes (GET, POST, PUT, DELETE)\n\u2022 Connecting to a database (PostgreSQL basics)\n\u2022 Deploying your server to Railway\n\nPractice: Build a simple REST API for your portfolio.", isPreview: false, order: 6 },
+      { title: "Vibe Coding with AI Tools", content: "Modern developers use AI to move 10x faster. This lesson covers:\n\u2022 Using ChatGPT & GitHub Copilot for coding\n\u2022 Debugging with AI assistance\n\u2022 Building an entire app with Cursor / Replit AI\n\u2022 When to use AI and when to code manually\n\nChallenge: Build a mini SaaS product idea using AI tools in 2 hours!", isPreview: false, order: 7 },
+      { title: "Deployment & Portfolio Building", content: "Congratulations \u2014 you're almost done! In this final lesson:\n\u2022 Deploying frontend apps to Vercel / Netlify\n\u2022 Deploying backend to Railway\n\u2022 Custom domain setup\n\u2022 Building your developer portfolio website\n\u2022 How to get your first freelance client\n\nSubmit your portfolio link in the group chat for feedback from your tutor!", isPreview: false, order: 8 }
+    ]
+  },
+  {
+    courseKey: "ai_content",
+    title: "AI Content Creation & Video Editing",
+    description: "Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms in this 6-week program. Connect with your cohort and get real-time tutor support.",
+    shortDescription: "Use AI tools to create viral content and earn from multiple platforms.",
+    category: "content_creation",
+    level: "beginner",
+    duration: "6 Weeks",
+    price: "108.48",
+    tags: ["breedskool_ai_content", "ai", "content creation", "video editing", "breedskool"],
+    whatYouLearn: ["ChatGPT & Prompt Engineering", "Midjourney & AI image generation", "AI video tools (Runway, Sora)", "Multi-platform monetization strategies"],
+    requirements: ["Basic smartphone or laptop", "Active social media account"],
+    syllabus: [
+      { week: "Week 1", topic: "AI Tools Overview & ChatGPT Mastery" },
+      { week: "Week 2", topic: "Midjourney & AI Image Generation" },
+      { week: "Week 3", topic: "AI Video Production" },
+      { week: "Week 4", topic: "Content Strategy & Scheduling" },
+      { week: "Week 5", topic: "Platform Monetization Setup" },
+      { week: "Week 6", topic: "Final Projects & Launch" }
+    ],
+    lessons: [
+      { title: "Welcome & Your AI Content Toolkit", content: "Welcome to AI Content Creation! In this orientation:\n\u2022 Meet your tutor and fellow students\n\u2022 Overview of all the AI tools you'll master\n\u2022 Setting up your accounts (ChatGPT, Midjourney, CapCut)\n\u2022 The creator economy in 2025 \u2014 income opportunities\n\nJoin the group chat and share what type of content you want to create!", isPreview: true, order: 1 },
+      { title: "ChatGPT Mastery \u2014 Content & Prompting", content: "ChatGPT is your AI writing assistant. This lesson covers:\n\u2022 What makes a great prompt (context, tone, format)\n\u2022 Writing viral hooks and captions\n\u2022 Generating content calendars for 30 days\n\u2022 Repurposing one idea into 10 pieces of content\n\u2022 Using GPT-4 for research, scripts, and email sequences\n\nPractice: Create a 30-day content calendar for your niche using ChatGPT.", isPreview: false, order: 2 },
+      { title: "Midjourney \u2014 AI Image Generation for Creators", content: "Create stunning visuals without design skills. Topics:\n\u2022 Setting up Midjourney on Discord\n\u2022 Prompt engineering for images\n\u2022 Creating consistent character art\n\u2022 Thumbnails that get clicks\n\u2022 Selling AI art and illustrations\n\nChallenge: Design 5 professional thumbnails for your niche.", isPreview: false, order: 3 },
+      { title: "AI Video Production \u2014 Runway, CapCut & More", content: "Video is king. Learn to create with AI:\n\u2022 CapCut AI features (auto-captions, templates, effects)\n\u2022 Runway ML for AI video generation\n\u2022 HeyGen for AI avatar videos (no face required!)\n\u2022 ElevenLabs for AI voiceovers\n\u2022 Editing a viral short-form video from scratch\n\nPractice: Create a 60-second product review video using only AI tools.", isPreview: false, order: 4 },
+      { title: "Content Strategy \u2014 Go Viral Consistently", content: "Posting randomly doesn't work. This lesson:\n\u2022 The algorithm explained (TikTok, Instagram, YouTube)\n\u2022 Hook \u2192 story \u2192 CTA framework\n\u2022 Best posting times and frequencies\n\u2022 Cross-platform repurposing system\n\u2022 Using analytics to double down on what works\n\nAction: Post your first AI-generated piece of content this week!", isPreview: false, order: 5 },
+      { title: "Monetization \u2014 Turning Followers into Income", content: "This is what it's all about. Income streams covered:\n\u2022 Brand deals and sponsorships ($100\u2013$10,000+ per post)\n\u2022 Digital products (ebooks, presets, templates)\n\u2022 Paid communities and memberships\n\u2022 UGC (User Generated Content) for brands\n\u2022 Affiliate marketing setup\n\nAction: Apply for your first brand deal or UGC gig this week!", isPreview: false, order: 6 }
+    ]
+  },
+  {
+    courseKey: "social_monetize",
+    title: "Social Media & Web Assets Monetization",
+    description: "Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams in this 6-week program. Share wins and get feedback from peers and your tutor.",
+    shortDescription: "Monetize your social media and digital assets for multiple income streams.",
+    category: "monetization",
+    level: "intermediate",
+    duration: "6 Weeks",
+    price: "193.94",
+    tags: ["breedskool_social_monetize", "social media", "monetization", "instagram", "tiktok", "breedskool"],
+    whatYouLearn: ["Instagram growth strategies", "TikTok & YouTube monetization", "Website & digital asset income", "Brand deals & sponsorships"],
+    requirements: ["Active social media presence", "Smartphone with good camera"],
+    syllabus: [
+      { week: "Week 1", topic: "Platform Selection & Strategy" },
+      { week: "Week 2", topic: "Content & Growth Hacks" },
+      { week: "Week 3", topic: "Monetization Setup" },
+      { week: "Week 4", topic: "Brand Partnerships & Deals" },
+      { week: "Week 5", topic: "Digital Assets & Passive Income" },
+      { week: "Week 6", topic: "Scaling Your Income" }
+    ],
+    lessons: [
+      { title: "Welcome \u2014 Your Social Monetization Blueprint", content: "Welcome! This course is for people ready to turn their online presence into real income. In this orientation:\n\u2022 Your tutor's income story (proof this works)\n\u2022 Platform selection: which is right for you?\n\u2022 Your monetization goal \u2014 set your 6-week income target\n\u2022 Join the group chat and post your goal!\n\nHomework: Write down your niche, your target audience, and your income goal.", isPreview: true, order: 1 },
+      { title: "Instagram Growth \u2014 0 to 10K Strategy", content: "Instagram still pays massive dividends in 2025. Topics:\n\u2022 Niche selection and profile optimization\n\u2022 Content pillars (educational, entertainment, personal)\n\u2022 Reels vs. carousels vs. stories \u2014 what works when\n\u2022 Hashtag strategy and SEO in captions\n\u2022 How to grow 1,000 followers in 30 days organically\n\nAction: Optimize your Instagram profile using the checklist provided.", isPreview: false, order: 2 },
+      { title: "TikTok & YouTube Shorts \u2014 Viral Short-Form", content: "Short-form video is the fastest path to growth. This lesson:\n\u2022 TikTok algorithm secrets for 2025\n\u2022 YouTube Shorts monetization requirements\n\u2022 The 3-second hook formula\n\u2022 Trending audio and effect strategies\n\u2022 Turning viral videos into paying customers\n\nChallenge: Post 3 short-form videos this week and report back in the group chat.", isPreview: false, order: 3 },
+      { title: "Turning Followers into Cash \u2014 Monetization Basics", content: "A big following means nothing without monetization. Learn:\n\u2022 The 1,000 True Fans model\n\u2022 Setting up your first digital product (Gumroad/Selar)\n\u2022 Affiliate marketing accounts to join (Amazon, ShareASale, Impact)\n\u2022 Instagram Shopping and link-in-bio tools\n\u2022 How to pitch to brands even with 1,000 followers\n\nAction: Set up your first affiliate link or digital product today.", isPreview: false, order: 4 },
+      { title: "Brand Deals \u2014 How to Get Sponsored", content: "Brand deals are where the big money is. Topics covered:\n\u2022 How to write a media kit (template provided)\n\u2022 Finding and reaching out to brands (email script included)\n\u2022 Negotiating rates \u2014 what to charge at each follower level\n\u2022 UGC (User Generated Content) \u2014 earn without a big following\n\u2022 Platforms: AspireIQ, Creator.co, Collabs, Taskdrip\n\nAction: Send 5 brand partnership pitches this week!", isPreview: false, order: 5 },
+      { title: "Web Assets & Passive Income \u2014 Scale to $5K/month", content: "Build assets that earn while you sleep:\n\u2022 Niche websites and Google AdSense income\n\u2022 Newsletter monetization (Substack, Beehiiv)\n\u2022 Digital product funnels\n\u2022 Paid communities (Telegram, Discord, WhatsApp)\n\u2022 YouTube AdSense (monetization requirements & strategy)\n\nFinal Project: Present your multi-stream income plan in the group chat for feedback!", isPreview: false, order: 6 }
+    ]
+  },
+  {
+    courseKey: "trading",
+    title: "Pocket Option Trading",
+    description: "Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom in this 8-week program. Discuss trades and strategies with your group and get private coaching from your tutor.",
+    shortDescription: "Master binary trading, chart analysis, and consistent income strategies.",
+    category: "general",
+    level: "beginner",
+    duration: "8 Weeks",
+    price: "169.09",
+    tags: ["breedskool_trading", "trading", "binary options", "pocket option", "breedskool"],
+    whatYouLearn: ["Binary options basics on Pocket Option", "Chart reading & technical analysis", "Risk management strategies", "Building consistent trading systems"],
+    requirements: ["Stable internet connection", "Practice account capital ($10 minimum)"],
+    syllabus: [
+      { week: "Week 1\u20132", topic: "Platform Setup & Trading Basics" },
+      { week: "Week 3\u20134", topic: "Chart Analysis & Indicators" },
+      { week: "Week 5\u20136", topic: "Strategy Development & Backtesting" },
+      { week: "Week 7", topic: "Risk Management & Psychology" },
+      { week: "Week 8", topic: "Live Trading Practice & Review" }
+    ],
+    lessons: [
+      { title: "Welcome to Pocket Option Trading", content: "Welcome, future trader! Before we start risking any money, let's build a solid foundation:\n\u2022 What is binary options trading and how does Pocket Option work?\n\u2022 Creating your Pocket Option demo account (free \u2014 trade with $10,000 virtual money)\n\u2022 Understanding the trading interface\n\u2022 Why most traders fail (and how to be in the 5% who succeed)\n\u2022 Course rules: NO live trading until Week 5!\n\nJoin the group chat and introduce yourself \u2014 share your trading experience level.", isPreview: true, order: 1 },
+      { title: "How Binary Options Work \u2014 The Mechanics", content: "Understanding exactly what you're trading is critical. This lesson:\n\u2022 Call vs. Put options \u2014 how you profit\n\u2022 Expiry times (1 min, 5 min, 15 min, 1 hour)\n\u2022 Payout percentages and what they mean\n\u2022 Asset types: currencies, stocks, commodities, indices\n\u2022 How the broker makes money (and why it matters)\n\nPractice: Place 20 demo trades and record the results in your trading journal.", isPreview: false, order: 2 },
+      { title: "Reading Candlestick Charts \u2014 The Language of Markets", content: "Every chart tells a story. Learn to read it:\n\u2022 What a candlestick shows (open, high, low, close)\n\u2022 Key candlestick patterns: Doji, Engulfing, Hammer, Shooting Star\n\u2022 Support and resistance levels\n\u2022 Trend lines and how to draw them\n\u2022 The 4 phases of a market: accumulation, markup, distribution, decline\n\nPractice: Identify 5 key patterns on historical charts (screenshots shared in group chat).", isPreview: false, order: 3 },
+      { title: "Technical Indicators \u2014 RSI, MACD, Bollinger Bands", content: "Indicators confirm what the chart is telling you:\n\u2022 RSI (Relative Strength Index) \u2014 overbought and oversold\n\u2022 MACD \u2014 trend direction and momentum\n\u2022 Bollinger Bands \u2014 volatility and breakouts\n\u2022 Moving Averages (SMA & EMA)\n\u2022 How to combine 2 indicators for a high-probability signal\n\nPractice: Demo trade ONLY when you see 2 indicators align. Record 30 trades.", isPreview: false, order: 4 },
+      { title: "Your Trading Strategy \u2014 Build It & Backtest It", content: "A strategy with no edge is just gambling. This lesson:\n\u2022 The components of a profitable strategy\n\u2022 Our BreedSkool base strategy (taught live)\n\u2022 How to backtest on historical data\n\u2022 Win rate calculation and expected value\n\u2022 When to trade and when to walk away\n\nHomework: Backtest your strategy on 100 historical trades and share your results.", isPreview: false, order: 5 },
+      { title: "Risk Management \u2014 Protect Your Capital", content: "The difference between a trader and a gambler is risk management:\n\u2022 The 1\u20132% rule (never risk more than 2% per trade)\n\u2022 Martingale strategy \u2014 why it destroys accounts\n\u2022 Daily loss limits \u2014 mandatory stop for the day\n\u2022 Profit target rules \u2014 when to stop after a win\n\u2022 Emotional trading and how to stop it\n\nThis is the most important lesson in the course. Reread it twice.", isPreview: false, order: 6 },
+      { title: "Live Trading \u2014 Going Live Safely", content: "It's time to trade with real money (minimum $10). Rules:\n\u2022 Start with your minimum deposit only\n\u2022 Maximum trade size: $1 per trade (until you hit 60% win rate consistently)\n\u2022 Use the same strategy you backtested \u2014 no improvising\n\u2022 Keep your trading journal updated daily\n\u2022 Post your daily P&L in the group chat for accountability\n\nPost your first live trade result in the group chat!", isPreview: false, order: 7 },
+      { title: "Scaling Up & Long-Term Trading Career", content: "Congratulations on completing the course! Next steps:\n\u2022 When and how to increase your trade size\n\u2022 Withdrawing profits regularly\n\u2022 Reinvesting in your trading account\n\u2022 Advanced strategies to explore next (Forex, Crypto)\n\u2022 Building a trading routine (morning analysis, session timing)\n\nFinal action: Share your 8-week trading journey summary in the group chat!", isPreview: false, order: 8 }
+    ]
+  },
+  {
+    courseKey: "home_lesson",
+    title: "Tech Home Lessons for Kids",
+    description: "One-on-one tech lessons delivered at your home by a certified tutor. Covering coding, AI tools, and digital skills for ages 6\u201317. This course hub connects all home lesson students with their assigned tutor for group discussion, session updates, and private tutor chat.",
+    shortDescription: "One-on-one tech lessons for kids (ages 6\u201317) delivered at your home.",
+    category: "general",
+    level: "beginner",
+    duration: "Per Session",
+    price: "51.52",
+    tags: ["breedskool_home_lesson", "kids", "home lesson", "coding for kids", "breedskool"],
+    whatYouLearn: ["Scratch & block coding", "Basic Python & HTML", "AI tools for kids", "Digital skills & online safety"],
+    requirements: ["Ages 6\u201317", "Laptop or tablet at home", "Parent/guardian available during sessions"],
+    syllabus: [
+      { week: "Session 1\u20134", topic: "Intro to Computers & Digital Safety" },
+      { week: "Session 5\u20138", topic: "Scratch & Block Coding" },
+      { week: "Session 9\u201312", topic: "Basic Python / HTML" },
+      { week: "Session 13+", topic: "AI Tools for Kids & Personal Projects" }
+    ],
+    lessons: [
+      { title: "Welcome \u2014 Getting Started with Your Tutor", content: "Welcome to BreedSkool Home Lessons! This is your student hub where:\n\u2022 Your tutor will post session updates and homework\n\u2022 You can message your tutor privately (use 'Message Tutor' tab)\n\u2022 You can connect with other home lesson students\n\n\u{1F4C5} Your tutor will contact you within 24 hours to schedule your first session.\n\nParents: Use the group chat to ask questions about the program. Your tutor will respond here!", isPreview: true, order: 1 },
+      { title: "Session 1\u20132: Computers, the Internet & Digital Safety", content: "What we cover in the first sessions:\n\u2022 What is a computer and how does it work?\n\u2022 Understanding files, folders, and the desktop\n\u2022 Safe internet use \u2014 what to share and what to keep private\n\u2022 Creating strong passwords\n\u2022 Fun keyboard shortcuts to work faster\n\n\u{1F3AE} Fun activity: Type a short story about your favourite animal using the keyboard!", isPreview: false, order: 2 },
+      { title: "Session 3\u20134: Introduction to Scratch \u2014 Block Coding", content: "Scratch (scratch.mit.edu) is where most programmers start!\n\u2022 Creating a free Scratch account\n\u2022 Understanding sprites, costumes, and backgrounds\n\u2022 Moving characters with blocks\n\u2022 Using 'if' blocks to make decisions\n\u2022 Loops \u2014 making things repeat\n\n\u{1F3AE} Project: Build a simple game where a cat chases a ball!", isPreview: false, order: 3 },
+      { title: "Session 5\u20138: Python Basics for Kids", content: "Python is the #1 beginner programming language in the world!\n\u2022 Installing Python and IDLE\n\u2022 print() and input() commands\n\u2022 Variables \u2014 storing information\n\u2022 if / else \u2014 making decisions\n\u2022 Loops \u2014 for and while\n\u2022 Drawing shapes with the turtle module\n\n\u{1F40D} Project: Build a quiz game that asks 5 questions and gives a score!", isPreview: false, order: 4 },
+      { title: "Session 9+: AI Tools for Kids & Personal Projects", content: "AI is the future \u2014 let's learn it early!\n\u2022 What is Artificial Intelligence? (Kid-friendly explanation)\n\u2022 Using ChatGPT to help with homework and creative writing\n\u2022 Canva AI for making posters and art\n\u2022 Building your own simple chatbot with Python\n\u2022 Planning and building a personal project of your choice\n\n\u{1F680} Graduation project: Build something YOU are proud of and present it to the group!", isPreview: false, order: 5 }
+    ]
+  },
+  {
+    courseKey: "onsite_training",
+    title: "Onsite Group Training \u2014 Ikorodu Lagos",
+    description: "Join our hands-on classroom sessions at TootoOba Estate, Ijede, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support. This course hub connects all onsite students for group discussions, announcements, and private tutor messaging.",
+    shortDescription: "Hands-on classroom training at our Ikorodu Lagos campus.",
+    category: "general",
+    level: "beginner",
+    duration: "6\u20138 Weeks",
+    price: "78.79",
+    tags: ["breedskool_onsite_training", "onsite", "classroom", "lagos", "ikorodu", "breedskool"],
+    whatYouLearn: ["Hands-on practical skills with tutor guidance", "Peer collaboration & networking", "Daily structured learning environment", "Portfolio projects to show employers"],
+    requirements: ["Lagos or nearby location", "Laptop optional (provided in class)", "Commitment to attend sessions"],
+    syllabus: [
+      { week: "Week 1\u20132", topic: "Foundations & Environment Setup" },
+      { week: "Week 3\u20134", topic: "Core Skills Training" },
+      { week: "Week 5\u20136", topic: "Projects & Peer Collaboration" },
+      { week: "Week 7\u20138", topic: "Portfolio Building & Graduation" }
+    ],
+    lessons: [
+      { title: "Welcome to Onsite Training \u2014 Your Student Hub", content: "Welcome to BreedSkool Onsite Training! \u{1F389}\n\nThis is your online hub for the physical classroom program at:\n\u{1F4CD} TootoOba Estate, Ijede, Ikorodu, Lagos\n\nHow to use this hub:\n\u2022 Check here daily for class announcements, schedule updates, and homework\n\u2022 Use the Group Chat to connect with your classmates between sessions\n\u2022 Use 'Message Tutor' privately if you have personal questions\n\u2022 Resources and materials from class will be posted here after each session\n\n\u{1F4C5} Your first class is on the date your tutor will confirm via WhatsApp. Please arrive 10 minutes early!", isPreview: true, order: 1 },
+      { title: "Week 1 \u2014 Environment Setup & Foundations", content: "In your first week at the campus, we cover:\n\u2022 Setting up your laptop (or using the lab computers)\n\u2022 Installing VS Code, Node.js, Git, and Chrome DevTools\n\u2022 Introduction to the command line / terminal\n\u2022 Your first HTML page\n\u2022 Git basics \u2014 saving your work online (GitHub setup)\n\n\u{1F4DD} Homework: Complete the HTML bio page exercise from class and push it to GitHub.", isPreview: false, order: 2 },
+      { title: "Week 2\u20133 \u2014 Core Skills Intensive", content: "Classroom sessions this week focus on:\n\u2022 CSS layouts with Flexbox and Grid\n\u2022 JavaScript fundamentals\n\u2022 Debugging techniques\n\u2022 Peer code reviews \u2014 learn from each other\n\u2022 Mini hackathon: build a landing page in 2 hours!\n\n\u{1F4DD} Weekly project: Submit your mini landing page to the group chat for feedback from the tutor.", isPreview: false, order: 3 },
+      { title: "Week 4\u20135 \u2014 Group Projects & Collaboration", content: "You'll be assigned to project teams this week!\n\u2022 Teams of 2\u20133 students build a real web application together\n\u2022 Daily standups in class (just like a real tech company)\n\u2022 Tutor mentorship sessions (30 mins per team)\n\u2022 Version control workflow (branches, pull requests, reviews)\n\n\u{1F91D} Use the group chat to coordinate with your teammates outside class hours!", isPreview: false, order: 4 },
+      { title: "Week 6\u20138 \u2014 Portfolio Building & Graduation", content: "Final stretch \u2014 get job/client ready:\n\u2022 Build your personal portfolio website\n\u2022 Write your developer bio and case studies\n\u2022 LinkedIn and GitHub profile optimization\n\u2022 Job search / freelancing strategies for Nigerian developers\n\u2022 Graduation ceremony \u2014 present your project to the class!\n\n\u{1F393} After graduation you receive your BreedSkool certificate and lifelong access to this course hub and the alumni group chat.", isPreview: false, order: 5 }
+    ]
+  }
+];
+async function seedBreedskoolCourses(adminId) {
+  let created = 0;
+  let linked = 0;
+  for (const course of BREEDSKOOL_PLATFORM_COURSES) {
+    try {
+      const tagToFind = `breedskool_${course.courseKey}`;
+      const existing = await db.select({ id: courses2.id }).from(courses2).where(sql9`${courses2.tags} @> ARRAY[${tagToFind}]::text[]`).limit(1);
+      let courseId;
+      if (existing.length > 0) {
+        courseId = existing[0].id;
+      } else {
+        const [newCourse] = await db.insert(courses2).values({
+          title: course.title,
+          description: course.description,
+          shortDescription: course.shortDescription,
+          category: course.category,
+          instructorId: adminId,
+          price: course.price,
+          isFree: false,
+          level: course.level,
+          duration: course.duration,
+          status: "published",
+          isPublished: true,
+          isFeatured: false,
+          tags: course.tags,
+          whatYouLearn: course.whatYouLearn,
+          requirements: course.requirements,
+          syllabus: course.syllabus
+        }).returning({ id: courses2.id });
+        courseId = newCourse.id;
+        created++;
+      }
+      const existingLessons = await db.select({ id: courseLessons.id }).from(courseLessons).where(eq13(courseLessons.courseId, courseId)).limit(1);
+      if (existingLessons.length === 0 && course.lessons?.length) {
+        for (const lesson of course.lessons) {
+          await db.insert(courseLessons).values({
+            courseId,
+            title: lesson.title,
+            content: lesson.content,
+            isPreview: lesson.isPreview,
+            order: lesson.order
+          });
+        }
+        await db.execute(
+          sql9`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
+        );
+      }
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey));
+      linked++;
+    } catch (e) {
+      console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
+    }
+  }
+  return { created, linked };
+}
+
 // server/startup-migrations.ts
 init_db();
-import { sql as sql9 } from "drizzle-orm";
+import { sql as sql10 } from "drizzle-orm";
 var REQUIRED_COLUMNS = [
   { table: "users", column: "brand_tier", definition: "varchar DEFAULT 'startup'" },
   { table: "users", column: "brand_rank", definition: "varchar DEFAULT 'bronze'" },
@@ -19119,6 +19876,35 @@ var REQUIRED_TABLES = [
     "created_at" timestamp DEFAULT now(),
     "completed_at" timestamp
   )`,
+  // BreedSkool course registrations
+  `CREATE TABLE IF NOT EXISTS "breedskool_registrations" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "full_name" varchar NOT NULL,
+    "email" varchar NOT NULL,
+    "phone" varchar NOT NULL,
+    "location" varchar,
+    "selected_course_key" varchar NOT NULL DEFAULT '',
+    "selected_course_title" varchar NOT NULL DEFAULT '',
+    "amount_ngn" integer NOT NULL DEFAULT 0,
+    "payment_option" varchar NOT NULL DEFAULT 'pay_later',
+    "payment_method" varchar,
+    "payment_status" varchar DEFAULT 'pending',
+    "transaction_ref" varchar,
+    "payment_proof" varchar,
+    "currency_used" varchar DEFAULT 'NGN',
+    "amount_usd" decimal(10,2),
+    "pay_later_deadline" timestamp,
+    "notes" text,
+    "delivery_mode" varchar DEFAULT 'online',
+    "child_name" varchar,
+    "child_age" varchar,
+    "parent_name" varchar,
+    "home_address" text,
+    "linked_course_id" varchar,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
   // Payment networks (crypto deposit networks)
   `CREATE TABLE IF NOT EXISTS "payment_networks" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -19138,7 +19924,7 @@ var REQUIRED_TABLES = [
 async function runStartupMigrations() {
   for (const ddl of REQUIRED_TABLES) {
     try {
-      await db.execute(sql9.raw(ddl));
+      await db.execute(sql10.raw(ddl));
     } catch (err) {
       console.error(`[startup-migration] Table creation error: ${err?.message}`);
     }
@@ -19146,7 +19932,7 @@ async function runStartupMigrations() {
   for (const fix of REQUIRED_COLUMNS) {
     try {
       await db.execute(
-        sql9.raw(
+        sql10.raw(
           `ALTER TABLE IF EXISTS "${fix.table}" ADD COLUMN IF NOT EXISTS "${fix.column}" ${fix.definition};`
         )
       );
@@ -19173,7 +19959,7 @@ var startupError = null;
 app.set("trust proxy", 1);
 app.get(["/api/health", "/health"], (_req, res) => {
   const body = {
-    status: appReady ? "ok" : "starting",
+    status: appReady ? "ok" : startupError ? "error" : "starting",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     uptime: process.uptime(),
     error: startupError
@@ -19374,49 +20160,61 @@ server.listen({
 (async () => {
   try {
     await runStartupMigrations();
+  } catch (err) {
+    console.error("[startup] Migration error (non-fatal):", err);
+  }
+  try {
     await registerRoutes(app, server);
-    app.use((err, _req, res, _next) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-      console.error("Request error:", err);
-    });
+  } catch (err) {
+    startupError = err?.message || "Route registration failed";
+    console.error("[startup] Routes error:", err);
+  }
+  app.use((err, _req, res, _next) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+    console.error("Request error:", err);
+  });
+  try {
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
-    appReady = true;
-    setImmediate(async () => {
-      try {
-        await ensureAdminExists();
-        const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
-        if (adminUser) {
-          await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
-          await seedDefaultBlogs(adminUser.id).then((r) => log(`[Seed] Default blogs: ${r.inserted} new, ${r.skipped} existing`)).catch((e) => console.error("seedDefaultBlogs:", e));
-        }
-        await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
-        await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
-        await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
-        await seedBreedskoolPricing().then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`)).catch((e) => console.error("seedBreedskoolPricing:", e));
-      } catch (e) {
-        console.error("Background seed error:", e);
-      }
-    });
-    const runExpiryCheck = async () => {
-      try {
-        const result = await runSubscriptionExpiryCheck();
-        if (result.expired > 0 || result.reminded > 0) {
-          log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
-        }
-      } catch (e) {
-        console.error("Expiry check error:", e);
-      }
-    };
-    runExpiryCheck();
-    setInterval(runExpiryCheck, 30 * 60 * 1e3);
   } catch (err) {
-    startupError = err?.message || "Startup failed";
-    console.error("Startup error:", err);
+    console.error("[startup] Static serving setup error:", err);
   }
+  if (!startupError) appReady = true;
+  setImmediate(async () => {
+    try {
+      await ensureAdminExists();
+      const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+      if (adminUser) {
+        await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
+        await seedDefaultBlogs(adminUser.id).then((r) => log(`[Seed] Default blogs: ${r.inserted} new, ${r.skipped} existing`)).catch((e) => console.error("seedDefaultBlogs:", e));
+      }
+      await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
+      await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
+      await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
+      await seedBreedskoolPricing().then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`)).catch((e) => console.error("seedBreedskoolPricing:", e));
+      await seedBreedskoolPaymentSettings().catch((e) => console.error("seedBreedskoolPaymentSettings:", e));
+      if (adminUser) {
+        await seedBreedskoolCourses(adminUser.id).then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`)).catch((e) => console.error("seedBreedskoolCourses:", e));
+      }
+    } catch (e) {
+      console.error("Background seed error:", e);
+    }
+  });
+  const runExpiryCheck = async () => {
+    try {
+      const result = await runSubscriptionExpiryCheck();
+      if (result.expired > 0 || result.reminded > 0) {
+        log(`[Subscription] Expired: ${result.expired}, Reminded: ${result.reminded}`);
+      }
+    } catch (e) {
+      console.error("Expiry check error:", e);
+    }
+  };
+  runExpiryCheck();
+  setInterval(runExpiryCheck, 30 * 60 * 1e3);
 })();
