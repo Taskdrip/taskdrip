@@ -19,6 +19,17 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    include: [
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+      "@tiptap/extension-underline",
+      "@tiptap/extension-text-align",
+      "@tiptap/extension-highlight",
+      "@tiptap/extension-link",
+      "@tiptap/extension-placeholder",
+    ],
+  },
   server: {
     allowedHosts: true,
     fs: {
