@@ -2,31 +2,29 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Neutralise every production-mode signal Railway can inject at build time.
-ENV NODE_ENV=development
+# Force public npm registry for ALL operations in this container.
+# This overrides any resolved URLs baked into package-lock.json.
+ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 ENV NPM_CONFIG_PRODUCTION=false
 ENV NPM_CONFIG_OMIT=""
+ENV NODE_ENV=development
 ENV CI=false
 
-COPY package.json package-lock.json ./
+# Copy only package.json — intentionally omit package-lock.json so npm
+# generates a fresh lockfile using the public registry, bypassing any
+# Replit-internal registry URLs (package-firewall.replit.local) that may
+# have been embedded in the lockfile by Replit's npm proxy.
+COPY package.json ./
 
-# Strip Replit-internal registry URLs baked into package-lock.json's "resolved"
-# fields — those URLs are unreachable from Railway's build servers.
-RUN sed -i 's|http://package-firewall.replit.local/npm|https://registry.npmjs.org|g' package-lock.json
+RUN npm install --include=dev --no-audit --no-fund
 
-# Force public npm registry — package-lock.json may contain Replit-internal
-# registry URLs (package-firewall.replit.local) which are unreachable externally.
-RUN npm install --include=dev --no-audit --no-fund \
-      --registry https://registry.npmjs.org/
-
-# Fail fast with a clear message if vite is somehow still missing.
+# Fail fast if vite binary is missing after install.
 RUN test -f node_modules/.bin/vite || \
       (echo "ERROR: vite binary not found after npm install" && exit 1)
 
 COPY . .
 
-# Invoke binaries directly — avoids npm script runner PATH resolution
-# issues that occur in Railway's sh/dash Docker shell.
+# Build frontend + backend.
 RUN NODE_OPTIONS='--max-old-space-size=4096' \
     node_modules/.bin/vite build && \
     node_modules/.bin/esbuild server/index.ts \
@@ -42,11 +40,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 
-COPY package.json package-lock.json .npmrc ./
-RUN sed -i 's|http://package-firewall.replit.local/npm|https://registry.npmjs.org|g' package-lock.json
-RUN npm ci --omit=dev --no-audit --no-fund \
-      --registry https://registry.npmjs.org/
+# Only package.json — same reason as Stage 1.
+COPY package.json ./
+
+RUN npm install --omit=dev --no-audit --no-fund
 
 COPY --from=builder /app/dist ./dist
 RUN mkdir -p uploads
