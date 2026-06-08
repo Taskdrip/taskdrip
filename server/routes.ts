@@ -6134,6 +6134,71 @@ Instructions:
     }
   });
 
+  // Global training community feed — posts from all courses the user is enrolled in
+  app.get('/api/my/training/community', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId })
+        .from(courseEnrollments)
+        .where(eq(courseEnrollments.userId, u.id));
+      if (!myEnrollments.length) return res.json([]);
+      const courseIds = myEnrollments.map((e: any) => e.courseId);
+      const rows = await db.select({
+        id: courseCommunityPosts.id,
+        courseId: courseCommunityPosts.courseId,
+        userId: courseCommunityPosts.userId,
+        message: courseCommunityPosts.message,
+        replyToId: courseCommunityPosts.replyToId,
+        likeCount: courseCommunityPosts.likeCount,
+        createdAt: courseCommunityPosts.createdAt,
+        authorFirstName: users.firstName,
+        authorLastName: users.lastName,
+        authorAvatar: users.profileImageUrl,
+        authorType: users.userType,
+      })
+      .from(courseCommunityPosts)
+      .leftJoin(users, eq(courseCommunityPosts.userId, users.id))
+      .where(and(inArray(courseCommunityPosts.courseId, courseIds), eq(courseCommunityPosts.isDeleted, false)))
+      .orderBy(desc(courseCommunityPosts.createdAt))
+      .limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq(courseCommunityLikes.userId, u.id));
+      const likedSet = new Set(likes.map((l: any) => l.postId));
+      res.json(rows.map((r: any) => ({ ...r, liked: likedSet.has(r.id) })));
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Get classmates across all enrolled courses (merged, deduplicated)
+  app.get('/api/my/training/classmates', isAuthenticated, async (req: any, res) => {
+    try {
+      const u = req.user as any;
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId })
+        .from(courseEnrollments).where(eq(courseEnrollments.userId, u.id));
+      if (!myEnrollments.length) return res.json([]);
+      const courseIds = myEnrollments.map((e: any) => e.courseId);
+      const rows = await db.select({
+        userId: courseEnrollments.userId,
+        courseId: courseEnrollments.courseId,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        userType: users.userType,
+        creatorTier: users.creatorTier,
+      })
+      .from(courseEnrollments)
+      .leftJoin(users, eq(courseEnrollments.userId, users.id))
+      .where(and(inArray(courseEnrollments.courseId, courseIds), sql`${courseEnrollments.userId} != ${u.id}`))
+      .limit(60);
+      // Deduplicate by userId
+      const seen = new Set<string>();
+      const unique = rows.filter((r: any) => { if (seen.has(r.userId)) return false; seen.add(r.userId); return true; });
+      res.json(unique);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // Auth: get current user enrollment for a course
   app.get('/api/courses/:id/enrollment', isAuthenticated, async (req: any, res) => {
     try {
