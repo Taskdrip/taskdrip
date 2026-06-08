@@ -238,6 +238,36 @@ const REQUIRED_TABLES: string[] = [
     "completed_at" timestamp
   )`,
 
+  // BreedSkool course registrations
+  `CREATE TABLE IF NOT EXISTS "breedskool_registrations" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "full_name" varchar NOT NULL,
+    "email" varchar NOT NULL,
+    "phone" varchar NOT NULL,
+    "location" varchar,
+    "selected_course_key" varchar NOT NULL DEFAULT '',
+    "selected_course_title" varchar NOT NULL DEFAULT '',
+    "amount_ngn" integer NOT NULL DEFAULT 0,
+    "payment_option" varchar NOT NULL DEFAULT 'pay_later',
+    "payment_method" varchar,
+    "payment_status" varchar DEFAULT 'pending',
+    "transaction_ref" varchar,
+    "payment_proof" varchar,
+    "currency_used" varchar DEFAULT 'NGN',
+    "amount_usd" decimal(10,2),
+    "pay_later_deadline" timestamp,
+    "notes" text,
+    "delivery_mode" varchar DEFAULT 'online',
+    "child_name" varchar,
+    "child_age" varchar,
+    "parent_name" varchar,
+    "home_address" text,
+    "linked_course_id" varchar,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+
   // Payment networks (crypto deposit networks)
   `CREATE TABLE IF NOT EXISTS "payment_networks" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
