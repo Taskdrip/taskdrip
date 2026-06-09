@@ -181,6 +181,34 @@ const SHOP_TYPES = [
   { value: "saas_tool", label: "SaaS Tool" },
 ];
 
+const PLATFORM_OPTIONS = [
+  { value: "twitter", label: "Twitter / X", emoji: "🐦" },
+  { value: "instagram", label: "Instagram", emoji: "📸" },
+  { value: "telegram", label: "Telegram", emoji: "✈️" },
+  { value: "youtube", label: "YouTube", emoji: "▶️" },
+  { value: "tiktok", label: "TikTok", emoji: "🎵" },
+  { value: "discord", label: "Discord", emoji: "🎮" },
+  { value: "facebook", label: "Facebook", emoji: "👍" },
+  { value: "linkedin", label: "LinkedIn", emoji: "💼" },
+  { value: "whatsapp", label: "WhatsApp", emoji: "💬" },
+  { value: "other", label: "Other", emoji: "🔗" },
+];
+
+const PLATFORM_QUICK_PRESETS = [
+  { name: 'Facebook', slug: 'facebook', emoji: '📘', bgColor: '#1877f2', urlPrefix: 'https://facebook.com/' },
+  { name: 'Snapchat', slug: 'snapchat', emoji: '👻', bgColor: '#fffc00', urlPrefix: 'https://snapchat.com/add/' },
+  { name: 'Pinterest', slug: 'pinterest', emoji: '📌', bgColor: '#e60023', urlPrefix: 'https://pinterest.com/' },
+  { name: 'Discord', slug: 'discord', emoji: '💬', bgColor: '#5865f2', urlPrefix: 'https://discord.gg/' },
+  { name: 'LinkedIn', slug: 'linkedin', emoji: '💼', bgColor: '#0a66c2', urlPrefix: 'https://linkedin.com/in/' },
+  { name: 'SoundCloud', slug: 'soundcloud', emoji: '🎵', bgColor: '#ff5500', urlPrefix: 'https://soundcloud.com/' },
+  { name: 'Spotify', slug: 'spotify', emoji: '🎧', bgColor: '#1db954', urlPrefix: 'https://open.spotify.com/' },
+  { name: 'Threads', slug: 'threads', emoji: '🧵', bgColor: '#000000', urlPrefix: 'https://threads.net/' },
+  { name: 'BeReal', slug: 'bereal', emoji: '📸', bgColor: '#1a1a1a', urlPrefix: '' },
+  { name: 'Reddit', slug: 'reddit', emoji: '🤖', bgColor: '#ff4500', urlPrefix: 'https://reddit.com/u/' },
+  { name: 'Patreon', slug: 'patreon', emoji: '🎁', bgColor: '#ff424d', urlPrefix: 'https://patreon.com/' },
+  { name: 'Kick', slug: 'kick', emoji: '🎮', bgColor: '#53fc18', urlPrefix: 'https://kick.com/' },
+];
+
 function LessonManageButton({ course }: { course: any }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -7930,19 +7958,6 @@ export default function AdminMaster() {
 // ═══════════════════════════════════════════════════
 // SOCIAL TASKS + SITE SOCIAL LINKS ADMIN PANEL
 // ═══════════════════════════════════════════════════
-const PLATFORM_OPTIONS = [
-  { value: "twitter", label: "Twitter / X", emoji: "🐦" },
-  { value: "instagram", label: "Instagram", emoji: "📸" },
-  { value: "telegram", label: "Telegram", emoji: "✈️" },
-  { value: "youtube", label: "YouTube", emoji: "▶️" },
-  { value: "tiktok", label: "TikTok", emoji: "🎵" },
-  { value: "discord", label: "Discord", emoji: "🎮" },
-  { value: "facebook", label: "Facebook", emoji: "👍" },
-  { value: "linkedin", label: "LinkedIn", emoji: "💼" },
-  { value: "whatsapp", label: "WhatsApp", emoji: "💬" },
-  { value: "other", label: "Other", emoji: "🔗" },
-];
-
 function SocialTasksAdminPanel() {
   const { toast } = useToast();
   const [taskOpen, setTaskOpen] = useState(false);
@@ -8562,21 +8577,6 @@ function AdminPaymentNetworksPanel() {
 // ═══════════════════════════════════════════════════
 // ADMIN SOCIAL CHANNELS PANEL
 // ═══════════════════════════════════════════════════
-const PLATFORM_QUICK_PRESETS = [
-  { name: 'Facebook', slug: 'facebook', emoji: '📘', bgColor: '#1877f2', urlPrefix: 'https://facebook.com/' },
-  { name: 'Snapchat', slug: 'snapchat', emoji: '👻', bgColor: '#fffc00', urlPrefix: 'https://snapchat.com/add/' },
-  { name: 'Pinterest', slug: 'pinterest', emoji: '📌', bgColor: '#e60023', urlPrefix: 'https://pinterest.com/' },
-  { name: 'Discord', slug: 'discord', emoji: '💬', bgColor: '#5865f2', urlPrefix: 'https://discord.gg/' },
-  { name: 'LinkedIn', slug: 'linkedin', emoji: '💼', bgColor: '#0a66c2', urlPrefix: 'https://linkedin.com/in/' },
-  { name: 'SoundCloud', slug: 'soundcloud', emoji: '🎵', bgColor: '#ff5500', urlPrefix: 'https://soundcloud.com/' },
-  { name: 'Spotify', slug: 'spotify', emoji: '🎧', bgColor: '#1db954', urlPrefix: 'https://open.spotify.com/' },
-  { name: 'Threads', slug: 'threads', emoji: '🧵', bgColor: '#000000', urlPrefix: 'https://threads.net/' },
-  { name: 'BeReal', slug: 'bereal', emoji: '📸', bgColor: '#1a1a1a', urlPrefix: '' },
-  { name: 'Reddit', slug: 'reddit', emoji: '🤖', bgColor: '#ff4500', urlPrefix: 'https://reddit.com/u/' },
-  { name: 'Patreon', slug: 'patreon', emoji: '🎁', bgColor: '#ff424d', urlPrefix: 'https://patreon.com/' },
-  { name: 'Kick', slug: 'kick', emoji: '🎮', bgColor: '#53fc18', urlPrefix: 'https://kick.com/' },
-];
-
 function AdminSocialChannelsPanel() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
