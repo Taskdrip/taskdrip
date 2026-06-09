@@ -10,7 +10,7 @@ import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
 import { seedDefaultBlogs } from "./admin-demo-routes";
 import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
-import { seedBreedskoolPricing, seedBreedskoolPaymentSettings } from "./seed-breedskool";
+import { seedBreedskoolPricing, seedBreedskoolPaymentSettings, fixVerifiedBreedskoolEnrollments } from "./seed-breedskool";
 import { seedBreedskoolCourses } from "./seed-breedskool-courses";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
@@ -324,6 +324,11 @@ server.listen({
           .then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`))
           .catch((e) => console.error("seedBreedskoolCourses:", e));
       }
+      // Retroactively activate enrollments for students whose payment was verified
+      // before the course seed linked onsite/home_lesson to platform courses
+      await fixVerifiedBreedskoolEnrollments()
+        .then((r) => log(`[BreedSkool] Enrollment fix: ${r.fixed} activated, ${r.skipped} already active, ${r.noLink} with no course link`))
+        .catch((e) => console.error("fixVerifiedBreedskoolEnrollments:", e));
     } catch (e) {
       console.error("Background seed error:", e);
     }

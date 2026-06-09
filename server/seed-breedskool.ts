@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { breedskoolCoursePricing, appSettings } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { breedskoolCoursePricing, appSettings, breedskoolRegistrations, courseEnrollments } from "@shared/schema";
+import { eq, sql, inArray, and } from "drizzle-orm";
 
 // GTBank payment details — seeded on every startup (only inserts if missing)
 const BREEDSKOOL_PAYMENT_DEFAULTS: Array<{ key: string; value: string }> = [
@@ -133,4 +133,78 @@ export async function seedBreedskoolPricing(): Promise<{ upserted: number; skipp
   }
 
   return { upserted, skipped };
+}
+
+// ── Retroactive enrollment fix ──────────────────────────────────────────────
+// Runs on every startup. Finds verified/confirmed breedskool registrations that
+// have no active course_enrollment and creates one. Fixes students whose
+// payment was verified before the course seed linked onsite/home_lesson courses.
+export async function fixVerifiedBreedskoolEnrollments(): Promise<{ fixed: number; skipped: number; noLink: number }> {
+  let fixed = 0, skipped = 0, noLink = 0;
+  try {
+    // Covers all statuses that indicate payment was received by admin
+    const verified = await db
+      .select()
+      .from(breedskoolRegistrations)
+      .where(inArray(breedskoolRegistrations.paymentStatus, ['verified', 'confirmed', 'paid', 'approved']));
+
+    for (const reg of verified) {
+      if (!reg.userId) { noLink++; continue; }
+
+      // Resolve course ID from the registration or from pricing table
+      let courseId = reg.linkedCourseId;
+      if (!courseId && reg.selectedCourseKey) {
+        const [pricing] = await db
+          .select()
+          .from(breedskoolCoursePricing)
+          .where(eq(breedskoolCoursePricing.courseKey, reg.selectedCourseKey))
+          .limit(1);
+        courseId = (pricing as any)?.linkedCourseId || null;
+      }
+      if (!courseId) { noLink++; continue; }
+
+      // Check for existing enrollment
+      const [existing] = await db
+        .select({ id: courseEnrollments.id, status: courseEnrollments.status })
+        .from(courseEnrollments)
+        .where(and(
+          eq(courseEnrollments.courseId, courseId),
+          eq(courseEnrollments.userId, reg.userId)
+        ))
+        .limit(1);
+
+      if (existing) {
+        if ((existing as any).status !== 'active') {
+          // Activate existing pending enrollment
+          await db.update(courseEnrollments)
+            .set({ status: 'active', isPaid: true } as any)
+            .where(eq(courseEnrollments.id, existing.id));
+          fixed++;
+        } else {
+          skipped++;
+        }
+      } else {
+        // Create a fresh active enrollment
+        await db.insert(courseEnrollments).values({
+          courseId,
+          userId: reg.userId,
+          status: 'active',
+          isPaid: true,
+          paymentMethod: reg.paymentMethod || null,
+          amount: String(reg.amountNgn || 0),
+        } as any);
+        fixed++;
+      }
+
+      // Backfill linkedCourseId on the registration row if missing
+      if (!reg.linkedCourseId && courseId) {
+        await db.update(breedskoolRegistrations)
+          .set({ linkedCourseId: courseId } as any)
+          .where(eq(breedskoolRegistrations.id, reg.id));
+      }
+    }
+  } catch (e: any) {
+    console.error('[fixVerifiedBreedskoolEnrollments]', e?.message);
+  }
+  return { fixed, skipped, noLink };
 }

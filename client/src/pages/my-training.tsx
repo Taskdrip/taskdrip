@@ -529,18 +529,32 @@ export default function MyTraining() {
                 {[1, 2, 3].map(i => <div key={i} className="bg-white rounded-2xl h-64 animate-pulse border" />)}
               </div>
             ) : filteredEnrollments.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-                <div className="w-20 h-20 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="h-10 w-10 text-violet-300" />
+              breedskoolRegs.length > 0 ? (
+                /* Has BreedSkool registration but no active enrollment yet */
+                <div className="text-center py-20 bg-amber-50 rounded-3xl border border-amber-200">
+                  <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-10 w-10 text-amber-400" />
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-lg mb-2">Enrollment Pending Activation</h3>
+                  <p className="text-gray-600 text-sm mb-2 max-w-sm mx-auto">
+                    Your BreedSkool registration has been received. An admin will activate your course access once your payment is confirmed.
+                  </p>
+                  <p className="text-amber-700 text-xs max-w-xs mx-auto">Already paid? Reach out to us and we'll activate your access right away.</p>
                 </div>
-                <h3 className="font-bold text-gray-700 text-lg mb-2">No courses enrolled yet</h3>
-                <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">Browse our catalog and enroll in a course to start building income-ready skills.</p>
-                <Link href="/breedskool">
-                  <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-2 px-6" data-testid="btn-browse-courses-empty">
-                    <Plus className="h-4 w-4" /> Browse Courses
-                  </Button>
-                </Link>
-              </div>
+              ) : (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                  <div className="w-20 h-20 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="h-10 w-10 text-violet-300" />
+                  </div>
+                  <h3 className="font-bold text-gray-700 text-lg mb-2">No courses enrolled yet</h3>
+                  <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">Browse our catalog and enroll in a course to start building income-ready skills.</p>
+                  <Link href="/breedskool">
+                    <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-2 px-6" data-testid="btn-browse-courses-empty">
+                      <Plus className="h-4 w-4" /> Browse Courses
+                    </Button>
+                  </Link>
+                </div>
+              )
             ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredEnrollments.map(e => <CourseCard key={e.id} enrollment={e} />)}
@@ -598,6 +612,22 @@ export default function MyTraining() {
                 </div>
               </div>
             </div>
+
+            {/* No active enrollment + has BreedSkool registration → pending access banner */}
+            {enrollments.filter(e => e.status === "active").length === 0 && breedskoolRegs.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-5 flex gap-4 items-start">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-amber-800 mb-1">Community Access Pending</p>
+                  <p className="text-sm text-amber-700">
+                    Your BreedSkool registration is received. Once your payment is confirmed by an admin, your course enrollment will be activated automatically and you'll get full access to discussion boards, group chat, and private tutor messaging.
+                  </p>
+                  <p className="text-xs text-amber-600 mt-2">Already paid? Contact us and we'll activate your access promptly.</p>
+                </div>
+              </div>
+            )}
 
             {/* Sub-tab switcher */}
             <div className="flex items-center gap-2 mb-5 flex-wrap">

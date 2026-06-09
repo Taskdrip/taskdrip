@@ -5783,6 +5783,44 @@ Instructions:
     }
   });
 
+  // Admin: manually re-activate course enrollment for a verified breedskool registration
+  app.post('/api/admin/breedskool/registrations/:id/activate-enrollment', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const [row] = await db.select().from(breedskoolRegistrations).where(eq(breedskoolRegistrations.id, req.params.id)).limit(1);
+      if (!row) return res.status(404).json({ message: 'Registration not found' });
+      if (!row.userId) return res.status(400).json({ message: 'No user linked to this registration' });
+
+      let courseId = row.linkedCourseId;
+      if (!courseId && row.selectedCourseKey) {
+        const [pricing] = await db.select().from(breedskoolCoursePricing)
+          .where(eq(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+        courseId = (pricing as any)?.linkedCourseId || null;
+      }
+      if (!courseId) return res.status(400).json({ message: 'No linked platform course found for this course key. Please ensure courses are seeded.' });
+
+      const [existing] = await db.select({ id: courseEnrollments.id })
+        .from(courseEnrollments)
+        .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, row.userId)))
+        .limit(1);
+
+      if (existing) {
+        await db.update(courseEnrollments).set({ status: 'active', isPaid: true } as any).where(eq(courseEnrollments.id, existing.id));
+      } else {
+        await db.insert(courseEnrollments).values({
+          courseId, userId: row.userId, status: 'active', isPaid: true,
+          paymentMethod: row.paymentMethod || null, amount: String(row.amountNgn || 0),
+        } as any);
+      }
+      if (!row.linkedCourseId) {
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId } as any).where(eq(breedskoolRegistrations.id, row.id));
+      }
+      res.json({ success: true, courseId, message: 'Enrollment activated successfully' });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // Public: get BreedSkool payment settings (bank + crypto info for registration form)
   app.get('/api/breedskool/payment-settings', async (_req, res) => {
     try {

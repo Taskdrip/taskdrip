@@ -1995,6 +1995,15 @@ export default function AdminMaster() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const activateEnrollmentMutation = useMutation({
+    mutationFn: async (id: string) => apiRequest("POST", `/api/admin/breedskool/registrations/${id}/activate-enrollment`, {}),
+    onSuccess: (data: any) => {
+      refetchBsRegs();
+      toast({ title: "✅ Enrollment activated!", description: data?.message || "Student now has full course access, community & tutor chat." });
+    },
+    onError: (e: any) => toast({ title: "Enrollment activation failed", description: e.message, variant: "destructive" }),
+  });
+
   const savePaySettingsMutation = useMutation({
     mutationFn: async () => apiRequest("PUT", "/api/admin/breedskool/payment-settings", bsSettings),
     onSuccess: () => { refetchBsPaySettings(); setBsSettingsDirty(false); toast({ title: "Payment settings saved!" }); },
@@ -5866,7 +5875,7 @@ export default function AdminMaster() {
                           <div>
                             <Label className="text-xs font-semibold mb-2 block">Update Payment Status</Label>
                             <div className="flex flex-wrap gap-2">
-                              {["pending","registered","paid","confirmed","rejected"].map(s => (
+                              {["pending","registered","paid","confirmed","verified","rejected"].map(s => (
                                 <Button
                                   key={s}
                                   size="sm"
@@ -5879,6 +5888,23 @@ export default function AdminMaster() {
                                 </Button>
                               ))}
                             </div>
+                          </div>
+                          <div className="pt-2 border-t border-gray-100">
+                            <p className="text-xs font-semibold text-gray-700 mb-1.5">Course Access</p>
+                            <p className="text-xs text-gray-500 mb-2">
+                              This gives the student an active course enrollment so they can access the course hub, community posts, group chat, and private tutor messaging.
+                            </p>
+                            <Button
+                              size="sm"
+                              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5"
+                              disabled={activateEnrollmentMutation.isPending}
+                              onClick={() => activateEnrollmentMutation.mutate(bsViewReg.id)}
+                            >
+                              {activateEnrollmentMutation.isPending
+                                ? <><span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" /> Activating…</>
+                                : <><GraduationCap className="h-3.5 w-3.5" /> Activate / Restore Course Enrollment</>
+                              }
+                            </Button>
                           </div>
                         </div>
                       )}
