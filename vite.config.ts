@@ -19,6 +19,13 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 5000,
+    rollupOptions: {
+      output: {
+        // Prevents TDZ errors caused by cross-chunk initialization ordering
+        // in circular dependency scenarios across lazy-loaded chunks
+        hoistTransitiveImports: false,
+      },
+    },
   },
   server: {
     allowedHosts: true,

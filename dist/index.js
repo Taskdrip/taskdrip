@@ -2808,7 +2808,14 @@ var init_vite_config = __esm({
       build: {
         outDir: path2.resolve(__dirname, "dist/public"),
         emptyOutDir: true,
-        chunkSizeWarningLimit: 5e3
+        chunkSizeWarningLimit: 5e3,
+        rollupOptions: {
+          output: {
+            // Prevents TDZ errors caused by cross-chunk initialization ordering
+            // in circular dependency scenarios across lazy-loaded chunks
+            hoistTransitiveImports: false
+          }
+        }
       },
       server: {
         allowedHosts: true,
