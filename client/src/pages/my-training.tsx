@@ -19,7 +19,8 @@ import {
   TrendingUp, Zap, ArrowRight, Download, Eye, Sparkles, Users,
   ChevronRight, ShieldCheck, Plus, LayoutGrid, List, Heart, MessageCircle,
   Send, UserPlus, UserCheck, Reply, MoreHorizontal, Globe, Loader2,
-  MessageSquare, Share2, X, BookMarked,
+  MessageSquare, Share2, X, BookMarked, Hash, Pin, Bookmark, Filter,
+  ExternalLink, MessagesSquare, PenLine, AtSign, Bell, BookCheck, Flame,
 } from "lucide-react";
 
 interface Enrollment {
@@ -72,6 +73,7 @@ interface CommunityPost {
   userId: string;
   message: string;
   replyToId?: string | null;
+  topic?: string | null;
   likeCount: number;
   liked: boolean;
   createdAt: string;
@@ -146,6 +148,12 @@ export default function MyTraining() {
   const [replyTo, setReplyTo] = useState<{ id: string; name: string; message: string } | null>(null);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
   const feedRef = useRef<HTMLDivElement>(null);
+  // Community forum state
+  const [commView, setCommView] = useState<"forum" | "tutors">("forum");
+  const [activeTopic, setActiveTopic] = useState<string>("All");
+  const [showNewThread, setShowNewThread] = useState(false);
+  const [newThreadTopic, setNewThreadTopic] = useState("General");
+  const [newThreadMessage, setNewThreadMessage] = useState("");
   const u = user as any;
 
   const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery<Enrollment[]>({
@@ -207,9 +215,9 @@ export default function MyTraining() {
   });
 
   const createPost = useMutation({
-    mutationFn: async ({ message, replyToId }: { message: string; replyToId?: string | null }) => {
+    mutationFn: async ({ message, replyToId, topic }: { message: string; replyToId?: string | null; topic?: string }) => {
       if (!postCourseId) throw new Error("Select a course to post in.");
-      const r = await apiRequest("POST", `/api/courses/${postCourseId}/community/posts`, { message, replyToId: replyToId || null });
+      const r = await apiRequest("POST", `/api/courses/${postCourseId}/community/posts`, { message, replyToId: replyToId || null, topic: topic || "General" });
       return r.json();
     },
     onSuccess: () => {
@@ -463,6 +471,31 @@ export default function MyTraining() {
 
           {/* ── Courses Tab ── */}
           <TabsContent value="courses">
+            {/* Hero */}
+            <div className="relative rounded-3xl overflow-hidden mb-6 h-36">
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1400&h=320&fit=crop&q=80')" }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-900/95 to-indigo-800/80" />
+              <div className="relative z-10 flex items-center h-full px-8 gap-6">
+                <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center shrink-0">
+                  <BookOpen className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white">My Courses</h2>
+                  <p className="text-white/60 text-sm">{activeEnrollments.length} active · {enrollments.length} total enrolled</p>
+                </div>
+                <div className="ml-auto hidden sm:flex items-center gap-3">
+                  {[
+                    { label: "Active", val: activeEnrollments.length, color: "text-emerald-300" },
+                    { label: "Completed", val: enrollments.filter(e => (e.progress || 0) >= 100).length, color: "text-amber-300" },
+                  ].map(s => (
+                    <div key={s.label} className="text-center bg-white/10 backdrop-blur rounded-2xl px-4 py-2">
+                      <div className={`text-lg font-black ${s.color}`}>{s.val}</div>
+                      <div className="text-white/50 text-[10px]">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
             {enrollments.length > 1 && (
               <div className="mb-5 flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-gray-500 mr-1">Filter:</span>
@@ -540,91 +573,117 @@ export default function MyTraining() {
 
           {/* ── Community Tab ── */}
           <TabsContent value="community">
-            <div className="grid lg:grid-cols-[1fr,280px] gap-6">
-              {/* Feed */}
-              <div className="space-y-4" ref={feedRef}>
-                {/* Composer */}
-                {enrollments.length > 0 && (
-                  <div className="bg-white rounded-2xl border shadow-sm p-5">
-                    <div className="flex gap-3">
-                      <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarImage src={u?.profileImageUrl} />
-                        <AvatarFallback className="bg-violet-100 text-violet-700 font-bold text-sm">{initials(u?.firstName, u?.lastName)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-3">
-                        {replyTo && (
-                          <div className="bg-violet-50 border border-violet-200 rounded-lg px-3 py-2 flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-violet-700">Replying to {replyTo.name}</p>
-                              <p className="text-xs text-gray-600 truncate">{replyTo.message}</p>
-                            </div>
-                            <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )}
-                        <Textarea
-                          placeholder={replyTo ? `Reply to ${replyTo.name}...` : "Share something with your classmates…"}
-                          value={postText}
-                          onChange={e => setPostText(e.target.value)}
-                          className="min-h-[80px] resize-none border-gray-200 focus:border-violet-300"
-                          data-testid="input-community-post"
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && postText.trim()) {
-                              createPost.mutate({ message: postText.trim(), replyToId: replyTo?.id });
-                            }
-                          }}
-                        />
-                        <div className="flex items-center justify-between gap-3">
-                          {enrollments.length > 1 ? (
-                            <select
-                              value={postCourseId}
-                              onChange={e => setPostCourseId(e.target.value)}
-                              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 bg-white flex-1 max-w-[200px]"
-                              data-testid="select-post-course"
-                            >
-                              {enrollments.filter(e => e.status === "active").map(e => (
-                                <option key={e.courseId} value={e.courseId}>{e.course.title.slice(0, 30)}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                              <Globe className="h-3 w-3" /> {enrollments[0]?.course.title.slice(0, 30)}
-                            </span>
-                          )}
-                          <Button
-                            size="sm"
-                            onClick={() => postText.trim() && createPost.mutate({ message: postText.trim(), replyToId: replyTo?.id })}
-                            disabled={!postText.trim() || createPost.isPending}
-                            className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white gap-1.5 shrink-0"
-                            data-testid="btn-submit-post"
-                          >
-                            {createPost.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                            Post
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+            {/* Hero Banner */}
+            <div className="relative rounded-3xl overflow-hidden mb-6 h-44">
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&h=400&fit=crop&q=85')" }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-900/95 via-indigo-900/90 to-violet-900/80" />
+              <div className="relative z-10 flex items-center justify-between h-full px-8 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessagesSquare className="h-5 w-5 text-blue-300" />
+                    <span className="text-blue-200 text-xs font-bold uppercase tracking-widest">Learning Community</span>
                   </div>
-                )}
+                  <h2 className="text-2xl font-black text-white leading-tight">Connect · Discuss · Grow</h2>
+                  <p className="text-white/60 text-sm mt-1">A space for students and tutors to collaborate</p>
+                </div>
+                <div className="hidden sm:flex items-center gap-3">
+                  <div className="text-center bg-white/10 backdrop-blur rounded-2xl px-4 py-3">
+                    <div className="text-xl font-black text-white">{communityPosts.filter(p => !p.replyToId).length}</div>
+                    <div className="text-white/60 text-[10px]">Threads</div>
+                  </div>
+                  <div className="text-center bg-white/10 backdrop-blur rounded-2xl px-4 py-3">
+                    <div className="text-xl font-black text-white">{classmates.length}</div>
+                    <div className="text-white/60 text-[10px]">Students</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {/* Feed */}
-                {postsLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse border" />)}
-                  </div>
-                ) : topPosts.length === 0 ? (
-                  <div className="bg-white rounded-2xl border text-center py-14 px-6">
-                    <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <MessageCircle className="h-8 w-8 text-violet-300" />
-                    </div>
-                    <h3 className="font-bold text-gray-700 mb-1">No posts yet</h3>
-                    <p className="text-sm text-gray-500">Be the first to share something with your classmates!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {topPosts.map(post => (
-                      <PostCard
+            {/* Sub-tab switcher */}
+            <div className="flex items-center gap-2 mb-5 flex-wrap">
+              <div className="flex bg-white border border-gray-200 rounded-2xl p-1 shadow-sm">
+                <button
+                  onClick={() => setCommView("forum")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${commView === "forum" ? "bg-indigo-600 text-white shadow" : "text-gray-600 hover:bg-gray-50"}`}
+                  data-testid="btn-comm-forum"
+                >
+                  <Hash className="h-4 w-4" /> Discussion Board
+                </button>
+                <button
+                  onClick={() => setCommView("tutors")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${commView === "tutors" ? "bg-indigo-600 text-white shadow" : "text-gray-600 hover:bg-gray-50"}`}
+                  data-testid="btn-comm-tutors"
+                >
+                  <MessageSquare className="h-4 w-4" /> Private Chat
+                </button>
+              </div>
+              {commView === "forum" && enrollments.some(e => e.status === "active") && (
+                <Button
+                  onClick={() => setShowNewThread(true)}
+                  className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white gap-2 ml-auto rounded-xl shadow"
+                  data-testid="btn-new-thread"
+                >
+                  <PenLine className="h-4 w-4" /> New Thread
+                </Button>
+              )}
+            </div>
+
+            {commView === "forum" ? (
+              <div className="grid lg:grid-cols-[220px,1fr] gap-6">
+                {/* Topic Sidebar */}
+                <aside className="space-y-2">
+                  <p className="text-xs font-black text-gray-500 uppercase tracking-widest px-2 mb-3">Topics</p>
+                  {[
+                    { key: "All", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
+                    { key: "General", icon: MessageCircle, color: "text-blue-500", bg: "bg-blue-50" },
+                    { key: "Questions", icon: AtSign, color: "text-violet-500", bg: "bg-violet-50" },
+                    { key: "Resources", icon: BookMarked, color: "text-emerald-500", bg: "bg-emerald-50" },
+                    { key: "Projects", icon: Zap, color: "text-amber-500", bg: "bg-amber-50" },
+                    { key: "Announcements", icon: Bell, color: "text-red-500", bg: "bg-red-50" },
+                    { key: "Study Tips", icon: BookCheck, color: "text-teal-500", bg: "bg-teal-50" },
+                  ].map(({ key, icon: Icon, color, bg }) => {
+                    const count = key === "All"
+                      ? topPosts.length
+                      : topPosts.filter(p => (p.topic || "General") === key).length;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setActiveTopic(key)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTopic === key ? "bg-indigo-600 text-white shadow" : "text-gray-700 hover:bg-gray-100"}`}
+                        data-testid={`btn-topic-${key}`}
+                      >
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${activeTopic === key ? "bg-white/20" : bg}`}>
+                          <Icon className={`h-3.5 w-3.5 ${activeTopic === key ? "text-white" : color}`} />
+                        </div>
+                        <span className="flex-1 text-left">{key}</span>
+                        {count > 0 && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTopic === key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600"}`}>{count}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </aside>
+
+                {/* Thread Feed */}
+                <div className="space-y-4 min-w-0" ref={feedRef}>
+                  {postsLoading ? (
+                    <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse border" />)}</div>
+                  ) : (() => {
+                    const filtered = topPosts.filter(p => activeTopic === "All" || (p.topic || "General") === activeTopic);
+                    if (filtered.length === 0) return (
+                      <div className="bg-white rounded-3xl border border-dashed text-center py-16 px-6">
+                        <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Hash className="h-8 w-8 text-indigo-300" />
+                        </div>
+                        <h3 className="font-bold text-gray-700 mb-1">No threads in {activeTopic} yet</h3>
+                        <p className="text-sm text-gray-500 mb-4">Be the first to start a conversation!</p>
+                        <Button onClick={() => setShowNewThread(true)} className="bg-indigo-600 text-white gap-2 rounded-xl" size="sm">
+                          <PenLine className="h-3.5 w-3.5" /> Start First Thread
+                        </Button>
+                      </div>
+                    );
+                    return filtered.map(post => (
+                      <ForumThreadCard
                         key={post.id}
                         post={post}
                         replies={repliesMap[post.id] || []}
@@ -632,119 +691,181 @@ export default function MyTraining() {
                         currentUserId={u?.id}
                         followedUsers={followedUsers}
                         onLike={() => likePost.mutate({ courseId: post.courseId, postId: post.id })}
-                        onReply={() => setReplyTo({ id: post.id, name: `${post.authorFirstName} ${post.authorLastName}`, message: post.message })}
+                        onReply={() => { setReplyTo({ id: post.id, name: `${post.authorFirstName} ${post.authorLastName}`, message: post.message }); setShowNewThread(true); setNewThreadTopic(post.topic || "General"); setNewThreadMessage(""); }}
                         onFollow={(uid) => followUser.mutate(uid)}
                         onLikeReply={(reply) => likePost.mutate({ courseId: reply.courseId, postId: reply.id })}
                       />
-                    ))}
-                  </div>
-                )}
+                    ));
+                  })()}
+                </div>
               </div>
-
-              {/* Sidebar — Classmates */}
-              <aside className="space-y-5">
-                {/* Quick chat with tutors */}
-                {enrollments.filter(e => e.status === "active" && e.course.instructor?.id).length > 0 && (
-                  <div className="bg-white rounded-2xl border shadow-sm p-4">
-                    <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-violet-600" /> Chat with Tutors
-                    </h3>
-                    <div className="space-y-2">
-                      {enrollments.filter(e => e.status === "active" && e.course.instructor).map(e => (
-                        <Link key={e.id} href={e.course.instructor?.id ? `/messages?to=${e.course.instructor.id}` : "#"}>
-                          <div className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-violet-50 cursor-pointer transition-colors group border border-transparent hover:border-violet-100">
-                            <Avatar className="h-8 w-8 shrink-0">
-                              <AvatarFallback className="bg-violet-100 text-violet-700 text-xs font-bold">
-                                {initials(e.course.instructor?.firstName, e.course.instructor?.lastName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold text-gray-900 truncate">{e.course.instructor?.firstName} {e.course.instructor?.lastName}</p>
-                              <p className="text-[10px] text-gray-500 truncate">{e.course.title}</p>
-                            </div>
-                            <MessageSquare className="h-3.5 w-3.5 text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
+            ) : (
+              /* Private Chat with Tutors view */
+              <div className="space-y-4 max-w-2xl mx-auto">
+                <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 rounded-3xl p-6 text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <MessageSquare className="h-8 w-8 text-white" />
                   </div>
+                  <h3 className="font-black text-gray-900 text-lg mb-1">Private Tutor Chat</h3>
+                  <p className="text-gray-500 text-sm">Send a direct message to your course instructor. They'll respond as soon as possible.</p>
+                </div>
+                {enrollments.filter(e => e.status === "active" && e.course.instructor?.id).length === 0 ? (
+                  <div className="bg-white border rounded-3xl text-center py-12">
+                    <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No instructors available yet. Enroll in a course to unlock tutor chat.</p>
+                  </div>
+                ) : (
+                  enrollments.filter(e => e.status === "active" && e.course.instructor?.id).map(e => (
+                    <div key={e.id} className="bg-white border border-gray-200 rounded-3xl p-6 flex items-center gap-5 hover:shadow-lg hover:border-indigo-200 transition-all group">
+                      <div className="relative shrink-0">
+                        <Avatar className="h-16 w-16 ring-4 ring-indigo-100 group-hover:ring-indigo-300 transition-all">
+                          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-lg font-black">
+                            {initials(e.course.instructor?.firstName, e.course.instructor?.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-black text-gray-900 text-lg">{e.course.instructor?.firstName} {e.course.instructor?.lastName}</h4>
+                        <p className="text-indigo-600 font-semibold text-sm">Instructor · {e.course.title}</p>
+                        <p className="text-gray-500 text-xs mt-1">Tap "Message" to open a private conversation</p>
+                      </div>
+                      <Link href={`/messages?to=${e.course.instructor?.id}`}>
+                        <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white gap-2 rounded-2xl shadow-lg hover:shadow-indigo-500/30 transition-all" data-testid={`btn-msg-tutor-${e.courseId}`}>
+                          <MessageSquare className="h-4 w-4" /> Message
+                        </Button>
+                      </Link>
+                    </div>
+                  ))
                 )}
-
-                {/* Classmates */}
-                <div className="bg-white rounded-2xl border shadow-sm p-4">
-                  <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                    <Users className="h-4 w-4 text-violet-600" />
-                    Classmates
-                    {classmates.length > 0 && <Badge className="bg-violet-100 text-violet-700 text-xs px-1.5 ml-auto">{classmates.length}</Badge>}
-                  </h3>
-                  {classmates.length === 0 ? (
-                    <p className="text-xs text-gray-500 text-center py-4">No classmates yet. Invite friends to join!</p>
-                  ) : (
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                      {classmates.slice(0, 20).map(c => (
-                        <div key={c.userId} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                {/* Classmates panel below */}
+                {classmates.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-3xl p-6 mt-4">
+                    <h3 className="font-black text-gray-900 mb-4 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-violet-500" /> Your Classmates
+                      <Badge className="bg-violet-100 text-violet-700 ml-auto">{classmates.length}</Badge>
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {classmates.slice(0, 12).map(c => (
+                        <div key={c.userId} className="flex items-center gap-2.5 p-3 rounded-2xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all">
                           <Link href={`/profile/${c.userId}`}>
                             <Avatar className="h-8 w-8 shrink-0 cursor-pointer hover:ring-2 hover:ring-violet-300 transition-all">
                               <AvatarImage src={c.profileImageUrl || undefined} />
-                              <AvatarFallback className="bg-gradient-to-br from-violet-400 to-indigo-500 text-white text-xs font-bold">
-                                {initials(c.firstName, c.lastName)}
-                              </AvatarFallback>
+                              <AvatarFallback className="bg-gradient-to-br from-violet-400 to-indigo-500 text-white text-xs font-bold">{initials(c.firstName, c.lastName)}</AvatarFallback>
                             </Avatar>
                           </Link>
                           <div className="flex-1 min-w-0">
-                            <Link href={`/profile/${c.userId}`}>
-                              <p className="text-xs font-semibold text-gray-900 hover:text-violet-600 cursor-pointer truncate">
-                                {c.firstName} {c.lastName}
-                              </p>
-                            </Link>
-                            {c.creatorTier && (
-                              <p className="text-[10px] text-gray-400 capitalize">{c.creatorTier}</p>
+                            <p className="text-xs font-bold text-gray-900 truncate">{c.firstName} {c.lastName}</p>
+                            {c.userId !== u?.id && (
+                              <button onClick={() => followUser.mutate(c.userId)} className={`text-[10px] font-semibold transition-colors ${followedUsers.has(c.userId) ? "text-gray-400" : "text-violet-600"}`} data-testid={`btn-follow-${c.userId}`}>
+                                {followedUsers.has(c.userId) ? "Following" : "Follow"}
+                              </button>
                             )}
                           </div>
-                          {c.userId !== u?.id && (
-                            <button
-                              onClick={() => followUser.mutate(c.userId)}
-                              className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-lg transition-all ${
-                                followedUsers.has(c.userId)
-                                  ? "bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500"
-                                  : "bg-violet-50 text-violet-600 hover:bg-violet-100"
-                              }`}
-                              data-testid={`btn-follow-${c.userId}`}
-                            >
-                              {followedUsers.has(c.userId) ? "Following" : "Follow"}
-                            </button>
-                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Course Links */}
-                {enrollments.length > 0 && (
-                  <div className="bg-white rounded-2xl border shadow-sm p-4">
-                    <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-violet-600" /> My Courses
-                    </h3>
-                    <div className="space-y-2">
-                      {enrollments.filter(e => e.status === "active").map(e => (
-                        <Link key={e.id} href={`/breedskool/${e.courseId}/learn`}>
-                          <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-violet-50 cursor-pointer transition-colors group">
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shrink-0" />
-                            <p className="text-xs font-medium text-gray-700 group-hover:text-violet-600 truncate flex-1">{e.course.title}</p>
-                            <ChevronRight className="h-3 w-3 text-gray-400 shrink-0" />
-                          </div>
-                        </Link>
                       ))}
                     </div>
                   </div>
                 )}
-              </aside>
-            </div>
+              </div>
+            )}
+
+            {/* New Thread Dialog */}
+            <Dialog open={showNewThread} onOpenChange={(v) => { setShowNewThread(v); if (!v) { setReplyTo(null); setNewThreadMessage(""); }}}>
+              <DialogContent className="max-w-lg" aria-describedby="new-thread-desc">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <PenLine className="h-5 w-5 text-indigo-600" />
+                    {replyTo ? `Reply to ${replyTo.name}` : "Start a New Thread"}
+                  </DialogTitle>
+                  <DialogDescription id="new-thread-desc">
+                    {replyTo ? "Add your reply to this discussion." : "Share a question, insight, or resource with your classmates."}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  {!replyTo && (
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 mb-2 block">Topic Category</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {["General", "Questions", "Resources", "Projects", "Announcements", "Study Tips"].map(t => (
+                          <button
+                            key={t}
+                            onClick={() => setNewThreadTopic(t)}
+                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${newThreadTopic === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"}`}
+                            data-testid={`btn-thread-topic-${t}`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {replyTo && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-gray-600">
+                      <span className="font-bold text-indigo-700">Replying to:</span> {replyTo.message.slice(0, 120)}{replyTo.message.length > 120 ? "…" : ""}
+                    </div>
+                  )}
+                  {enrollments.length > 1 && (
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 mb-1 block">Course</label>
+                      <select value={postCourseId} onChange={e => setPostCourseId(e.target.value)} className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-600 bg-white" data-testid="select-thread-course">
+                        {enrollments.filter(e => e.status === "active").map(e => (
+                          <option key={e.courseId} value={e.courseId}>{e.course.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">{replyTo ? "Your Reply" : "Message"}</label>
+                    <Textarea
+                      placeholder={replyTo ? "Write your reply..." : "Share your thoughts, questions, or resources…"}
+                      value={replyTo ? postText : newThreadMessage}
+                      onChange={e => replyTo ? setPostText(e.target.value) : setNewThreadMessage(e.target.value)}
+                      className="min-h-[120px] resize-none border-gray-200 focus:border-indigo-300 rounded-xl"
+                      data-testid="input-new-thread-message"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => { setShowNewThread(false); setReplyTo(null); setNewThreadMessage(""); }} className="flex-1 rounded-xl">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        const msg = replyTo ? postText : newThreadMessage;
+                        if (!msg.trim()) return;
+                        createPost.mutate({ message: msg.trim(), replyToId: replyTo?.id, topic: replyTo ? (replyTo as any).topic : newThreadTopic });
+                        setShowNewThread(false);
+                        setReplyTo(null);
+                        setNewThreadMessage("");
+                        setPostText("");
+                      }}
+                      disabled={createPost.isPending || !(replyTo ? postText : newThreadMessage).trim()}
+                      className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl gap-2"
+                      data-testid="btn-submit-thread"
+                    >
+                      {createPost.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      {replyTo ? "Post Reply" : "Start Thread"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* ── Assignments Tab ── */}
           <TabsContent value="assignments">
+            {/* Hero */}
+            <div className="relative rounded-3xl overflow-hidden mb-6 h-36">
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1400&h=320&fit=crop&q=80')" }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-900/95 to-orange-700/80" />
+              <div className="relative z-10 flex items-center h-full px-8 gap-6">
+                <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center shrink-0">
+                  <FileText className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white">Assignments</h2>
+                  <p className="text-white/60 text-sm">{assignments.length} total · {assignments.filter(a => a.status === "submitted").length} awaiting review</p>
+                </div>
+              </div>
+            </div>
             {assignmentsLoading ? (
               <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="bg-white rounded-xl p-5 h-24 animate-pulse border" />)}</div>
             ) : assignments.length === 0 ? (
@@ -792,6 +913,20 @@ export default function MyTraining() {
 
           {/* ── Certificates Tab ── */}
           <TabsContent value="certificates">
+            {/* Hero */}
+            <div className="relative rounded-3xl overflow-hidden mb-6 h-36">
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1400&h=320&fit=crop&q=80')" }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-900/95 to-yellow-700/80" />
+              <div className="relative z-10 flex items-center h-full px-8 gap-6">
+                <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center shrink-0">
+                  <Award className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white">My Certificates</h2>
+                  <p className="text-white/60 text-sm">{certificates.length} certificate{certificates.length !== 1 ? "s" : ""} earned · Complete courses to unlock more</p>
+                </div>
+              </div>
+            </div>
             {certsLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1, 2].map(i => <div key={i} className="bg-white rounded-2xl p-6 h-40 animate-pulse border" />)}</div>
             ) : certificates.length === 0 ? (
@@ -835,6 +970,31 @@ export default function MyTraining() {
 
           {/* ── Registrations Tab ── */}
           <TabsContent value="registrations">
+            {/* Hero */}
+            <div className="relative rounded-3xl overflow-hidden mb-6 h-36">
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1400&h=320&fit=crop&q=80')" }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/95 to-teal-700/80" />
+              <div className="relative z-10 flex items-center h-full px-8 gap-6">
+                <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center shrink-0">
+                  <ShieldCheck className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white">BreedSkool Registrations</h2>
+                  <p className="text-white/60 text-sm">{breedskoolRegs.length} registration{breedskoolRegs.length !== 1 ? "s" : ""} · Track your enrollment journey</p>
+                </div>
+                <div className="ml-auto hidden sm:flex items-center gap-3">
+                  {[
+                    { label: "Verified", val: breedskoolRegs.filter((r: any) => r.paymentStatus === "verified").length, color: "text-emerald-300" },
+                    { label: "Pending", val: breedskoolRegs.filter((r: any) => r.paymentStatus === "pending" || !r.paymentStatus).length, color: "text-amber-300" },
+                  ].map(s => (
+                    <div key={s.label} className="text-center bg-white/10 backdrop-blur rounded-2xl px-4 py-2">
+                      <div className={`text-lg font-black ${s.color}`}>{s.val}</div>
+                      <div className="text-white/50 text-[10px]">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
             {breedskoolRegs.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                 <div className="w-20 h-20 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -886,6 +1046,144 @@ export default function MyTraining() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ── Forum Thread Card ─────────────────────────────────────────────────────────
+const TOPIC_STYLES: Record<string, { color: string; bg: string; icon: any }> = {
+  General:       { color: "text-blue-700",    bg: "bg-blue-50",    icon: MessageCircle },
+  Questions:     { color: "text-violet-700",  bg: "bg-violet-50",  icon: AtSign },
+  Resources:     { color: "text-emerald-700", bg: "bg-emerald-50", icon: BookMarked },
+  Projects:      { color: "text-amber-700",   bg: "bg-amber-50",   icon: Zap },
+  Announcements: { color: "text-red-700",     bg: "bg-red-50",     icon: Bell },
+  "Study Tips":  { color: "text-teal-700",    bg: "bg-teal-50",    icon: BookCheck },
+};
+
+function ForumThreadCard({
+  post, replies, courseLabel, currentUserId, followedUsers,
+  onLike, onReply, onFollow, onLikeReply,
+}: {
+  post: CommunityPost;
+  replies: CommunityPost[];
+  courseLabel?: string;
+  currentUserId?: string;
+  followedUsers: Set<string>;
+  onLike: () => void;
+  onReply: () => void;
+  onFollow: (uid: string) => void;
+  onLikeReply: (reply: CommunityPost) => void;
+}) {
+  const [showReplies, setShowReplies] = useState(false);
+  const isOwn = post.userId === currentUserId;
+  const authorName = `${post.authorFirstName || ""} ${post.authorLastName || ""}`.trim() || "Student";
+  const topicKey = post.topic || "General";
+  const topicStyle = TOPIC_STYLES[topicKey] || { color: "text-gray-700", bg: "bg-gray-100", icon: MessageCircle };
+  const TopicIcon = topicStyle.icon;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all" data-testid={`thread-${post.id}`}>
+      {/* Thread header stripe */}
+      <div className={`h-1 w-full ${topicStyle.bg.replace("50", "400")} opacity-60`} />
+      <div className="p-5">
+        {/* Topic + Meta row */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${topicStyle.bg} ${topicStyle.color}`}>
+            <TopicIcon className="h-3 w-3" /> {topicKey}
+          </span>
+          {courseLabel && <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{courseLabel}</span>}
+          <span className="text-[10px] text-gray-400 ml-auto">{timeAgo(post.createdAt)}</span>
+        </div>
+
+        {/* Author */}
+        <div className="flex items-start gap-3 mb-3">
+          <Link href={`/profile/${post.userId}`}>
+            <Avatar className="h-9 w-9 shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-300 transition-all">
+              <AvatarImage src={post.authorAvatar || undefined} />
+              <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-violet-500 text-white font-bold text-xs">
+                {initials(post.authorFirstName, post.authorLastName)}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link href={`/profile/${post.userId}`}>
+                <span className="font-bold text-gray-900 text-sm hover:text-indigo-600 cursor-pointer">{authorName}</span>
+              </Link>
+              {(post.authorType === "admin" || post.authorType === "instructor") && (
+                <Badge className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 border-0">Tutor</Badge>
+              )}
+            </div>
+            {/* Message */}
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mt-1">{post.message}</p>
+          </div>
+          {!isOwn && (
+            <button
+              onClick={() => onFollow(post.userId)}
+              className={`shrink-0 flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-all ${
+                followedUsers.has(post.userId) ? "bg-gray-100 text-gray-500" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200"
+              }`}
+              data-testid={`btn-follow-thread-${post.userId}`}
+            >
+              {followedUsers.has(post.userId) ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+              {followedUsers.has(post.userId) ? "Following" : "Follow"}
+            </button>
+          )}
+        </div>
+
+        {/* Actions bar */}
+        <div className="flex items-center gap-1 pt-3 border-t border-gray-100">
+          <button onClick={onLike} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${post.liked ? "text-red-500 bg-red-50" : "text-gray-400 hover:text-red-500 hover:bg-red-50"}`} data-testid={`btn-like-thread-${post.id}`}>
+            <Heart className={`h-4 w-4 ${post.liked ? "fill-red-500" : ""}`} />
+            {post.likeCount > 0 && <span>{post.likeCount}</span>}
+          </button>
+          <button onClick={onReply} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" data-testid={`btn-reply-thread-${post.id}`}>
+            <Reply className="h-4 w-4" /> Reply
+          </button>
+          {replies.length > 0 && (
+            <button onClick={() => setShowReplies(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all ml-auto" data-testid={`btn-toggle-replies-${post.id}`}>
+              <MessageCircle className="h-4 w-4" />
+              {replies.length} {replies.length === 1 ? "reply" : "replies"}
+              <ChevronRight className={`h-3.5 w-3.5 transition-transform ${showReplies ? "rotate-90" : ""}`} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Replies */}
+      {showReplies && replies.length > 0 && (
+        <div className="bg-indigo-50/40 border-t border-indigo-100 px-5 py-4 space-y-3">
+          {replies.map(reply => {
+            const replyName = `${reply.authorFirstName || ""} ${reply.authorLastName || ""}`.trim() || "Student";
+            return (
+              <div key={reply.id} className="flex items-start gap-2.5" data-testid={`reply-${reply.id}`}>
+                <Link href={`/profile/${reply.userId}`}>
+                  <Avatar className="h-7 w-7 shrink-0 cursor-pointer">
+                    <AvatarImage src={reply.authorAvatar || undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-violet-500 text-white text-[10px] font-bold">{initials(reply.authorFirstName, reply.authorLastName)}</AvatarFallback>
+                  </Avatar>
+                </Link>
+                <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-indigo-100 shadow-sm">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <Link href={`/profile/${reply.userId}`}>
+                      <span className="text-xs font-bold text-gray-900 hover:text-indigo-600 cursor-pointer">{replyName}</span>
+                    </Link>
+                    {(reply.authorType === "admin" || reply.authorType === "instructor") && (
+                      <Badge className="bg-indigo-100 text-indigo-700 text-[10px] px-1 border-0">Tutor</Badge>
+                    )}
+                    <span className="text-[10px] text-gray-400 ml-auto">{timeAgo(reply.createdAt)}</span>
+                  </div>
+                  <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{reply.message}</p>
+                  <button onClick={() => onLikeReply(reply)} className={`mt-1.5 flex items-center gap-1 text-[10px] font-medium transition-all ${reply.liked ? "text-red-500" : "text-gray-400 hover:text-red-500"}`} data-testid={`btn-like-reply-${reply.id}`}>
+                    <Heart className={`h-3 w-3 ${reply.liked ? "fill-red-500" : ""}`} />
+                    {reply.likeCount > 0 && reply.likeCount}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

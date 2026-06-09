@@ -1339,6 +1339,7 @@ export const courseCommunityPosts = pgTable("course_community_posts", {
   userId: varchar("user_id").notNull().references(() => users.id),
   message: text("message").notNull(),
   replyToId: varchar("reply_to_id"), // nullable — set for replies, references another post id
+  topic: varchar("topic", { length: 100 }).default("General"), // Forum topic/category
   likeCount: integer("like_count").default(0),
   isDeleted: boolean("is_deleted").default(false),
   createdAt: timestamp("created_at").defaultNow(),

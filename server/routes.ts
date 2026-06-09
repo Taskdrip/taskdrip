@@ -5730,8 +5730,8 @@ Instructions:
       if (notes !== undefined) updateData.notes = notes;
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq(breedskoolRegistrations.id, req.params.id)).returning();
 
-      // When payment is verified → activate the linked platform course enrollment
-      if (paymentStatus === 'verified' && row?.userId) {
+      // When payment is verified OR confirmed → activate the linked platform course enrollment
+      if ((paymentStatus === 'verified' || paymentStatus === 'confirmed') && row?.userId) {
         let courseIdToActivate = row.linkedCourseId;
 
         // If no linkedCourseId on the reg row, look it up from pricing
@@ -6084,7 +6084,7 @@ Instructions:
     try {
       const u = req.user as any;
       const courseId = req.params.id;
-      const { message, replyToId } = req.body;
+      const { message, replyToId, topic } = req.body;
       if (!message?.trim()) return res.status(400).json({ message: 'Message is required.' });
       // Auth: must be enrolled, instructor, or admin
       const isAdmin = u.userType === 'admin' || u.role === 'admin';
@@ -6103,6 +6103,7 @@ Instructions:
         userId: u.id,
         message: message.trim(),
         replyToId: replyToId || null,
+        topic: topic || 'General',
       } as any).returning();
       res.json(post);
     } catch (e: any) {
@@ -6198,6 +6199,7 @@ Instructions:
         userId: courseCommunityPosts.userId,
         message: courseCommunityPosts.message,
         replyToId: courseCommunityPosts.replyToId,
+        topic: courseCommunityPosts.topic,
         likeCount: courseCommunityPosts.likeCount,
         createdAt: courseCommunityPosts.createdAt,
         authorFirstName: users.firstName,

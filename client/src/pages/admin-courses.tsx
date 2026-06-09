@@ -1343,13 +1343,22 @@ function BreedSkoolManagementPanel() {
                       <p className="text-xs text-gray-500">{reg.email} · {reg.phone}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{reg.selectedCourseTitle} · <span className="font-bold text-gray-800">{fmtNgn(reg.amountNgn)}</span></p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                       <span className="text-xs text-gray-400">{new Date(reg.createdAt).toLocaleDateString()}</span>
-                      {reg.paymentStatus !== "confirmed" && (
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "confirmed" })}>✓ Confirm</Button>
+                      {/* Pending → Confirm button */}
+                      {(!reg.paymentStatus || reg.paymentStatus === "pending") && (
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "confirmed" })} disabled={updateRegMutation.isPending}>✓ Confirm</Button>
                       )}
-                      {reg.paymentStatus !== "rejected" && (
-                        <Button size="sm" variant="outline" className="text-red-500 text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "rejected" })}>✗</Button>
+                      {/* Confirmed → Mark Paid (Verified) button */}
+                      {reg.paymentStatus === "confirmed" && (
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7 px-2" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "verified" })} disabled={updateRegMutation.isPending}>💳 Mark Paid</Button>
+                      )}
+                      {/* Verified badge — no more action needed */}
+                      {reg.paymentStatus === "verified" && (
+                        <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">✅ Access Granted</span>
+                      )}
+                      {reg.paymentStatus !== "rejected" && reg.paymentStatus !== "verified" && (
+                        <Button size="sm" variant="outline" className="text-red-500 text-xs h-7 px-2 border-red-200 hover:bg-red-50" onClick={() => updateRegMutation.mutate({ id: reg.id, status: "rejected" })} disabled={updateRegMutation.isPending}>✗ Reject</Button>
                       )}
                       <button onClick={() => setExpandedReg(expandedReg === reg.id ? null : reg.id)} className="text-gray-400 hover:text-gray-700 p-1">
                         {expandedReg === reg.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
