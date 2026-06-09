@@ -1,2 +1,3 @@
 - [BreedSkool Tech Training](breedskool-tech-training.md) — registration feature with ₦ pricing; tables in DB, routes in server/routes.ts, import pattern matters.
 - [Railway Nixpacks Deployment](railway-nixpacks.md) — Dockerfile build fails on Railway; switched to Nixpacks with nixpacks.toml + railway.toml buildCommand.
+- [Admin Dashboard TDZ Fix](admin-dashboard-tdz.md) — root cause and definitive fix for recurring "Cannot access X before initialization" crashes.

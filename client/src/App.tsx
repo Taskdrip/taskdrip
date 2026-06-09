@@ -1,4 +1,4 @@
-import { useEffect, Component } from "react";
+import { useEffect, Component, lazy, Suspense } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ import FinalLanding from "@/pages/final-landing";
 import Dashboard from "@/pages/dashboard";
 import SimpleDashboard from "@/pages/simple-dashboard";
 import AdminUserManagement from "@/pages/admin-user-management";
-import AdminDashboard from "@/pages/admin-master";
+const AdminDashboard = lazy(() => import("@/pages/admin-master"));
 import BrandDashboard from "@/pages/brand-dashboard";
 import Campaigns from "@/pages/campaigns";
 import Profile from "@/pages/profile";
@@ -123,7 +123,20 @@ class AdminErrorBoundary extends Component<{ children: any }, { hasError: boolea
         </div>
       );
     }
-    return this.props.children;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+              <span className="text-white text-xl font-black">T</span>
+            </div>
+            <div className="w-5 h-5 border-2 border-violet-500/40 border-t-violet-500 rounded-full animate-spin" />
+          </div>
+        </div>
+      }>
+        {this.props.children}
+      </Suspense>
+    );
   }
 }
 
