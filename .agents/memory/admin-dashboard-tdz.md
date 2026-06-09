@@ -4,17 +4,19 @@ description: Root cause and fix for "Cannot access 'X' before initialization" on
 ---
 
 ## The Rule
-`admin-master.tsx` must be lazy-loaded in `App.tsx` using `React.lazy()`. Never use a static import.
+Every page in App.tsx must use `React.lazy()`. Never use static imports for page components.
 
-**Why:** admin-master.tsx is 9000+ lines and pulls in recharts, zod, many UI components, and custom hooks. When statically imported, it joins the main synchronous bundle. Rollup/esbuild then encounters circular module references inside this massive import tree and produces TDZ errors in production (minified) builds. The variable name changes each build (Wu, po, Co, Hm) because Rollup assigns new minified names — but the underlying cause is always the same circular dep.
+**Why:** The main bundle had ~85 static page imports all bundled into one 3.19MB chunk. Rollup had to order ALL module initializers in a single sequence. When any page had an ordering conflict (even inside a node_module dependency), Rollup produced TDZ errors with the failing `const`/`let` variable name changing each build (minification assigns new names each time). Making every page lazy creates 239 isolated chunks — each page loads asynchronously, there's no cross-page initialization order to conflict.
+
+**Result:** Main bundle dropped from 3.19MB → 430KB. Each page is its own chunk. Admin-master is its own 396KB async chunk.
 
 **How to apply:** In `client/src/App.tsx`:
-- Use `const AdminDashboard = lazy(() => import("@/pages/admin-master"))` — never `import AdminDashboard from ...`
-- `AdminErrorBoundary` wraps the Suspense fallback internally (already done) so no call-site changes needed.
-- This creates `admin-master-HASH.js` as a separate async chunk, completely isolated from main bundle init.
+- `const PageName = lazy(() => import("@/pages/page-name"))` for every page
+- For named exports: `lazy(() => import("@/pages/foo").then(m => ({ default: m.NamedExport })))`
+- Wrap `<Router>` with `<Suspense fallback={<PageFallback />}>` at the top level
+- `AdminErrorBoundary` wraps admin routes and includes its own Suspense fallback
 
-## Related fixes made
-- TipTap removed from `RichTextEditor.tsx` entirely (replaced with native contenteditable). No @tiptap packages in codebase.
-- `vite.config.ts` has NO manualChunks — manual chunking caused circular chunk→chunk dependencies that also produced TDZ errors.
-- `nixpacks.toml` start cmd runs `npm run db:push --force && node dist/index.js` so Railway syncs missing DB tables on every deploy.
-- Railway DB was missing `breedskool_course_pricing` table and `ai_provider` column — the db:push hook fixes this automatically.
+## Related fixes
+- TipTap removed from `RichTextEditor.tsx` (replaced with native contenteditable).
+- `vite.config.ts` has NO manualChunks.
+- `nixpacks.toml` start cmd: `npm run db:push --force && node dist/index.js` (syncs DB schema on every Railway deploy).

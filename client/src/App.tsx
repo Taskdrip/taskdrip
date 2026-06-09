@@ -8,91 +8,105 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { GuideBot } from "@/components/ui/guide-bot";
 import { SocialTasksWelcomeModal } from "@/components/ui/social-tasks-welcome-modal";
 import { useAuth } from "@/hooks/useAuth";
-import FinalLanding from "@/pages/final-landing";
-import Dashboard from "@/pages/dashboard";
-import SimpleDashboard from "@/pages/simple-dashboard";
-import AdminUserManagement from "@/pages/admin-user-management";
-const AdminDashboard = lazy(() => import("@/pages/admin-master"));
-import BrandDashboard from "@/pages/brand-dashboard";
-import Campaigns from "@/pages/campaigns";
-import Profile from "@/pages/profile";
-import UserProfile from "@/pages/user-profile";
-import Messages from "@/pages/messages";
-import Chat from "@/pages/chat";
-import Blog from "@/pages/blog";
-import BlogPost from "@/pages/blog-post";
-import Shop from "@/pages/shop";
-import ProductDetail from "@/pages/product-detail";
-import ShopCheckout from "@/pages/shop-checkout";
-import AdminProducts from "@/pages/admin-products";
-import Admin from "@/pages/admin";
-import NotFound from "@/pages/not-found";
-import Signup from "@/pages/signup";
-import SimpleSignup from "@/pages/simple-signup";
-import Login from "@/pages/login";
-import AdminLogin from "@/pages/admin-login";
-import ForgotPassword from "@/pages/forgot-password";
-import BreedSkool from "@/pages/breedskool";
-import BreedSkoolOnsite from "@/pages/breedskool-onsite";
-import BreedSkoolCourse from "@/pages/breedskool-course";
-import CourseLearn from "@/pages/course-learn";
-import CourseCertificate from "@/pages/course-certificate";
-import CertificateVerify from "@/pages/certificate-verify";
-import AdminCourses from "@/pages/admin-courses";
-import AdminCertificateTemplate from "@/pages/admin-certificate-template";
-import CampaignDetail from "@/pages/campaign-detail";
-import BrandProfile from "@/pages/brand-profile";
-import WalletSettings from "@/pages/wallet-settings";
-import PaymentDeposit from "@/pages/payment-deposit";
-import ProfileEdit from "@/pages/profile-edit";
-import BrandProfileEdit from "@/pages/brand-profile-edit";
-import ProfileByUsername from "@/pages/profile-by-username";
-import About from "@/pages/about";
-import Contact from "@/pages/contact";
-import EscrowPayment from "@/pages/escrow-payment";
-import Influencers from "@/pages/influencers";
-import BrandsPage from "@/pages/brands";
-import FeedPage from "@/pages/feed";
-import CreatorProfile from "@/pages/influencer-profile";
-import Leaderboard from "@/pages/leaderboard";
-import SubscriptionPage from "@/pages/subscription";
-import PayoutRequestsPage from "@/pages/payout-requests";
-import MyCampaignsPage from "@/pages/my-campaigns";
-import ReferralsPage from "@/pages/referrals";
-import UnifiedProfile from "@/pages/unified-profile";
-import TasksPage from "@/pages/tasks";
-import AdminPayments from "@/pages/admin-payments";
-import AdminAds from "@/pages/admin-ads";
-import AdminEmail from "@/pages/admin-email";
-import AdvertiseWithUs from "@/pages/advertise-with-us";
-import GetStarted from "@/pages/get-started";
-import DirectHirePayment from "@/pages/direct-hire-payment";
-import LedgerPage from "@/pages/ledger";
-import SecuritySettings from "@/pages/security-settings";
-import ShortLinksPage from "@/pages/short-links";
-import ShortLinkAnalyticsPage from "@/pages/short-link-analytics";
-import AdminUrlShortenerPage from "@/pages/admin-url-shortener";
-import AdminKeywordAnalyticsPage from "@/pages/admin-keyword-analytics";
-import AdminAutoBloggerPage from "@/pages/admin-auto-blogger";
-import P2PHub from "@/pages/p2p-hub";
-import P2PDealRoom from "@/pages/p2p-deal-room";
-import P2PListing from "@/pages/p2p-listing";
-import AdminP2PTransactions from "@/pages/admin-p2p-transactions";
-import AdminP2PFees from "@/pages/admin-p2p-fees";
-import AdminPlatformFees from "@/pages/admin-platform-fees";
-import MyOrdersPage from "@/pages/my-orders";
-import OrderDetailPage from "@/pages/order-detail";
-import TDripInfoPage from "@/pages/tdrip-info";
-import DocumentationPage from "@/pages/documentation";
-import RoadmapPage from "@/pages/roadmap";
-import AdminSpotlight from "@/pages/admin-spotlight";
-import AdminCMSEditor from "@/pages/admin-cms-editor";
-import AdminSEO from "@/pages/admin-seo";
-import AdminLeads from "@/pages/admin-leads";
-import AdminLeadDetail from "@/pages/admin-lead-detail";
-import { LegalPageTemplate } from "@/pages/legal-page";
 import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
-import MyTraining from "@/pages/my-training";
+
+const FinalLanding = lazy(() => import("@/pages/final-landing"));
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const SimpleDashboard = lazy(() => import("@/pages/simple-dashboard"));
+const AdminUserManagement = lazy(() => import("@/pages/admin-user-management"));
+const AdminDashboard = lazy(() => import("@/pages/admin-master"));
+const BrandDashboard = lazy(() => import("@/pages/brand-dashboard"));
+const Campaigns = lazy(() => import("@/pages/campaigns"));
+const Profile = lazy(() => import("@/pages/profile"));
+const UserProfile = lazy(() => import("@/pages/user-profile"));
+const Messages = lazy(() => import("@/pages/messages"));
+const Chat = lazy(() => import("@/pages/chat"));
+const Blog = lazy(() => import("@/pages/blog"));
+const BlogPost = lazy(() => import("@/pages/blog-post"));
+const Shop = lazy(() => import("@/pages/shop"));
+const ProductDetail = lazy(() => import("@/pages/product-detail"));
+const ShopCheckout = lazy(() => import("@/pages/shop-checkout"));
+const AdminProducts = lazy(() => import("@/pages/admin-products"));
+const Admin = lazy(() => import("@/pages/admin"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const Signup = lazy(() => import("@/pages/signup"));
+const SimpleSignup = lazy(() => import("@/pages/simple-signup"));
+const Login = lazy(() => import("@/pages/login"));
+const AdminLogin = lazy(() => import("@/pages/admin-login"));
+const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
+const BreedSkool = lazy(() => import("@/pages/breedskool"));
+const BreedSkoolOnsite = lazy(() => import("@/pages/breedskool-onsite"));
+const BreedSkoolCourse = lazy(() => import("@/pages/breedskool-course"));
+const CourseLearn = lazy(() => import("@/pages/course-learn"));
+const CourseCertificate = lazy(() => import("@/pages/course-certificate"));
+const CertificateVerify = lazy(() => import("@/pages/certificate-verify"));
+const AdminCourses = lazy(() => import("@/pages/admin-courses"));
+const AdminCertificateTemplate = lazy(() => import("@/pages/admin-certificate-template"));
+const CampaignDetail = lazy(() => import("@/pages/campaign-detail"));
+const BrandProfile = lazy(() => import("@/pages/brand-profile"));
+const WalletSettings = lazy(() => import("@/pages/wallet-settings"));
+const PaymentDeposit = lazy(() => import("@/pages/payment-deposit"));
+const ProfileEdit = lazy(() => import("@/pages/profile-edit"));
+const BrandProfileEdit = lazy(() => import("@/pages/brand-profile-edit"));
+const ProfileByUsername = lazy(() => import("@/pages/profile-by-username"));
+const About = lazy(() => import("@/pages/about"));
+const Contact = lazy(() => import("@/pages/contact"));
+const EscrowPayment = lazy(() => import("@/pages/escrow-payment"));
+const Influencers = lazy(() => import("@/pages/influencers"));
+const BrandsPage = lazy(() => import("@/pages/brands"));
+const FeedPage = lazy(() => import("@/pages/feed"));
+const CreatorProfile = lazy(() => import("@/pages/influencer-profile"));
+const Leaderboard = lazy(() => import("@/pages/leaderboard"));
+const SubscriptionPage = lazy(() => import("@/pages/subscription"));
+const PayoutRequestsPage = lazy(() => import("@/pages/payout-requests"));
+const MyCampaignsPage = lazy(() => import("@/pages/my-campaigns"));
+const ReferralsPage = lazy(() => import("@/pages/referrals"));
+const UnifiedProfile = lazy(() => import("@/pages/unified-profile"));
+const TasksPage = lazy(() => import("@/pages/tasks"));
+const AdminPayments = lazy(() => import("@/pages/admin-payments"));
+const AdminAds = lazy(() => import("@/pages/admin-ads"));
+const AdminEmail = lazy(() => import("@/pages/admin-email"));
+const AdvertiseWithUs = lazy(() => import("@/pages/advertise-with-us"));
+const GetStarted = lazy(() => import("@/pages/get-started"));
+const DirectHirePayment = lazy(() => import("@/pages/direct-hire-payment"));
+const LedgerPage = lazy(() => import("@/pages/ledger"));
+const SecuritySettings = lazy(() => import("@/pages/security-settings"));
+const ShortLinksPage = lazy(() => import("@/pages/short-links"));
+const ShortLinkAnalyticsPage = lazy(() => import("@/pages/short-link-analytics"));
+const AdminUrlShortenerPage = lazy(() => import("@/pages/admin-url-shortener"));
+const AdminKeywordAnalyticsPage = lazy(() => import("@/pages/admin-keyword-analytics"));
+const AdminAutoBloggerPage = lazy(() => import("@/pages/admin-auto-blogger"));
+const P2PHub = lazy(() => import("@/pages/p2p-hub"));
+const P2PDealRoom = lazy(() => import("@/pages/p2p-deal-room"));
+const P2PListing = lazy(() => import("@/pages/p2p-listing"));
+const AdminP2PTransactions = lazy(() => import("@/pages/admin-p2p-transactions"));
+const AdminP2PFees = lazy(() => import("@/pages/admin-p2p-fees"));
+const AdminPlatformFees = lazy(() => import("@/pages/admin-platform-fees"));
+const MyOrdersPage = lazy(() => import("@/pages/my-orders"));
+const OrderDetailPage = lazy(() => import("@/pages/order-detail"));
+const TDripInfoPage = lazy(() => import("@/pages/tdrip-info"));
+const DocumentationPage = lazy(() => import("@/pages/documentation"));
+const RoadmapPage = lazy(() => import("@/pages/roadmap"));
+const AdminSpotlight = lazy(() => import("@/pages/admin-spotlight"));
+const AdminCMSEditor = lazy(() => import("@/pages/admin-cms-editor"));
+const AdminSEO = lazy(() => import("@/pages/admin-seo"));
+const AdminLeads = lazy(() => import("@/pages/admin-leads"));
+const AdminLeadDetail = lazy(() => import("@/pages/admin-lead-detail"));
+const LegalPageTemplate = lazy(() =>
+  import("@/pages/legal-page").then((m) => ({ default: m.LegalPageTemplate }))
+);
+const MyTraining = lazy(() => import("@/pages/my-training"));
+
+const PageFallback = () => (
+  <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+        <span className="text-white text-xl font-black">T</span>
+      </div>
+      <div className="w-5 h-5 border-2 border-violet-500/40 border-t-violet-500 rounded-full animate-spin" />
+    </div>
+  </div>
+);
 
 class AdminErrorBoundary extends Component<{ children: any }, { hasError: boolean; error: string }> {
   constructor(props: any) {
@@ -124,16 +138,7 @@ class AdminErrorBoundary extends Component<{ children: any }, { hasError: boolea
       );
     }
     return (
-      <Suspense fallback={
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
-              <span className="text-white text-xl font-black">T</span>
-            </div>
-            <div className="w-5 h-5 border-2 border-violet-500/40 border-t-violet-500 rounded-full animate-spin" />
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<PageFallback />}>
         {this.props.children}
       </Suspense>
     );
@@ -150,154 +155,142 @@ function Router() {
   const cleanLocation = location.split("?")[0];
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
-            <span className="text-white text-xl font-black">T</span>
-          </div>
-          <div className="w-5 h-5 border-2 border-violet-500/40 border-t-violet-500 rounded-full animate-spin" />
-        </div>
-      </div>
-    );
+    return <PageFallback />;
   }
 
   return (
-    <Switch location={cleanLocation}>
-      <Route path="/" component={isAuthenticated ? (() => {
-        const userType = (user as any)?.userType;
-        if (hasAdminDashboardAccess(user)) return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
-        if (userType === 'brand') return <BrandDashboard />;
-        return <SimpleDashboard />;
-      }) : FinalLanding} />
-      <Route path="/signup" component={SimpleSignup} />
-      <Route path="/login" component={Login} />
-      <Route path="/admin-login" component={AdminLogin} />
-      <Route path="/admin/cms" component={AdminCMSEditor} />
-      <Route path="/admin/seo" component={AdminSEO} />
-      <Route path="/admin/leads" component={AdminLeads} />
-      <Route path="/admin/leads/:id" component={AdminLeadDetail} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/breedskool" component={BreedSkool} />
-      <Route path="/breedskool/onsite" component={BreedSkoolOnsite} />
-      <Route path="/breedskool/:id" component={BreedSkoolCourse} />
-      <Route path="/certificates/:code" component={CertificateVerify} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/blog/:slug" component={BlogPost} />
-      <Route path="/shop" component={Shop} />
-      <Route path="/shop/product/:id" component={ProductDetail} />
-      <Route path="/shop/checkout/:id" component={ShopCheckout} />
-      <Route path="/about" component={About} />
-      <Route path="/contact" component={Contact} />
-      <Route path="/terms" component={() => <LegalPageTemplate slug="terms" />} />
-      <Route path="/privacy" component={() => <LegalPageTemplate slug="privacy" />} />
-      <Route path="/cookies" component={() => <LegalPageTemplate slug="cookies" />} />
-      <Route path="/disclaimer" component={() => <LegalPageTemplate slug="disclaimer" />} />
-      <Route path="/tasks" component={TasksPage} />
-      <Route path="/advertise" component={AdvertiseWithUs} />
-      <Route path="/get-started" component={GetStarted} />
-      <Route path="/influencers" component={Influencers} />
-      <Route path="/influencers/:id" component={CreatorProfile} />
-      <Route path="/brands" component={BrandsPage} />
-      <Route path="/profile/:id" component={UnifiedProfile} />
-      {/* Clean username-based public profile URL — resolves @username → canonical id route */}
-      <Route path="/p/:username" component={ProfileByUsername} />
-      <Route path="/u/:username" component={ProfileByUsername} />
-      <Route path="/brand/:id" component={BrandProfile} />
-      <Route path="/feed" component={FeedPage} />
-      <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/tdrip" component={TDripInfoPage} />
-      <Route path="/docs" component={DocumentationPage} />
-      <Route path="/documentation" component={DocumentationPage} />
-      <Route path="/roadmap" component={RoadmapPage} />
-      <Route path="/tokenomics" component={RoadmapPage} />
-      <Route path="/admin/spotlight" component={AdminSpotlight} />
-      <Route path="/p2p-hub" component={P2PHub} />
-      <Route path="/p2p/:id" component={P2PListing} />
-      {isAuthenticated ? (
-        <>
-          <Route path="/dashboard" component={() => {
-            const userType = (user as any)?.userType;
-            if (hasAdminDashboardAccess(user)) return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
-            if (userType === 'brand') return <BrandDashboard />;
-            return <SimpleDashboard />;
-          }} />
-          <Route path="/brand-dashboard" component={BrandDashboard} />
-          <Route path="/admin-dashboard" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
-          <Route path="/campaigns" component={TasksPage} />
-          <Route path="/campaigns/:id" component={CampaignDetail} />
-          <Route path="/profile" component={() => {
-            const userType = (user as any)?.userType;
-            if (hasAdminDashboardAccess(user)) {
-              return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
-            } else if (userType === 'brand') {
-              return <BrandDashboard />;
-            } else {
+    <Suspense fallback={<PageFallback />}>
+      <Switch location={cleanLocation}>
+        <Route path="/" component={isAuthenticated ? (() => {
+          const userType = (user as any)?.userType;
+          if (hasAdminDashboardAccess(user)) return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
+          if (userType === 'brand') return <BrandDashboard />;
+          return <SimpleDashboard />;
+        }) : FinalLanding} />
+        <Route path="/signup" component={SimpleSignup} />
+        <Route path="/login" component={Login} />
+        <Route path="/admin-login" component={AdminLogin} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/breedskool" component={BreedSkool} />
+        <Route path="/breedskool/onsite" component={BreedSkoolOnsite} />
+        <Route path="/breedskool/:id" component={BreedSkoolCourse} />
+        <Route path="/certificates/:code" component={CertificateVerify} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/blog/:slug" component={BlogPost} />
+        <Route path="/shop" component={Shop} />
+        <Route path="/shop/product/:id" component={ProductDetail} />
+        <Route path="/shop/checkout/:id" component={ShopCheckout} />
+        <Route path="/about" component={About} />
+        <Route path="/contact" component={Contact} />
+        <Route path="/terms" component={() => <LegalPageTemplate slug="terms" />} />
+        <Route path="/privacy" component={() => <LegalPageTemplate slug="privacy" />} />
+        <Route path="/cookies" component={() => <LegalPageTemplate slug="cookies" />} />
+        <Route path="/disclaimer" component={() => <LegalPageTemplate slug="disclaimer" />} />
+        <Route path="/tasks" component={TasksPage} />
+        <Route path="/advertise" component={AdvertiseWithUs} />
+        <Route path="/get-started" component={GetStarted} />
+        <Route path="/influencers" component={Influencers} />
+        <Route path="/influencers/:id" component={CreatorProfile} />
+        <Route path="/brands" component={BrandsPage} />
+        <Route path="/profile/:id" component={UnifiedProfile} />
+        <Route path="/p/:username" component={ProfileByUsername} />
+        <Route path="/u/:username" component={ProfileByUsername} />
+        <Route path="/brand/:id" component={BrandProfile} />
+        <Route path="/feed" component={FeedPage} />
+        <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/tdrip" component={TDripInfoPage} />
+        <Route path="/docs" component={DocumentationPage} />
+        <Route path="/documentation" component={DocumentationPage} />
+        <Route path="/roadmap" component={RoadmapPage} />
+        <Route path="/tokenomics" component={RoadmapPage} />
+        <Route path="/admin/spotlight" component={AdminSpotlight} />
+        <Route path="/p2p-hub" component={P2PHub} />
+        <Route path="/p2p/:id" component={P2PListing} />
+        {isAuthenticated ? (
+          <>
+            <Route path="/dashboard" component={() => {
+              const userType = (user as any)?.userType;
+              if (hasAdminDashboardAccess(user)) return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
+              if (userType === 'brand') return <BrandDashboard />;
               return <SimpleDashboard />;
-            }
-          }} />
-          <Route path="/user-profile" component={UserProfile} />
-          <Route path="/messages" component={Messages} />
-          <Route path="/chat" component={Chat} />
-          <Route path="/wallet" component={WalletSettings} />
-          <Route path="/ledger" component={LedgerPage} />
-          <Route path="/payment-deposit" component={PaymentDeposit} />
-          <Route path="/profile-edit" component={() => {
-            const userType = (user as any)?.userType;
-            return userType === 'brand' ? <BrandProfileEdit /> : <ProfileEdit />;
-          }} />
-          <Route path="/escrow-payment" component={EscrowPayment} />
-          <Route path="/direct-hire/:id" component={DirectHirePayment} />
-          <Route path="/p2p-deals" component={P2PDealRoom} />
-          <Route path="/p2p-deals/:id" component={P2PDealRoom} />
-          <Route path="/admin" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
-          <Route path="/admin/users" component={AdminUserManagement} />
-          <Route path="/admin/products" component={AdminProducts} />
-          <Route path="/admin/courses" component={AdminCourses} />
-          <Route path="/admin/certificate-template" component={AdminCertificateTemplate} />
-          <Route path="/breedskool/:id/learn" component={CourseLearn} />
-          <Route path="/breedskool/:id/learn/:lessonId" component={CourseLearn} />
-          <Route path="/breedskool/:id/certificate" component={CourseCertificate} />
-          <Route path="/admin/payments" component={AdminPayments} />
-          <Route path="/admin-ads" component={AdminAds} />
-          <Route path="/admin/ads" component={AdminAds} />
-          <Route path="/admin/email" component={AdminEmail} />
-          <Route path="/admin/p2p-transactions" component={AdminP2PTransactions} />
-          <Route path="/admin/p2p-fees" component={AdminP2PFees} />
-          <Route path="/admin/platform-fees" component={AdminPlatformFees} />
-          <Route path="/admin/cms" component={AdminCMSEditor} />
-          <Route path="/admin/seo" component={AdminSEO} />
-          <Route path="/subscription" component={SubscriptionPage} />
-          <Route path="/payout-requests" component={PayoutRequestsPage} />
-          <Route path="/my-campaigns" component={MyCampaignsPage} />
-          <Route path="/my-orders" component={MyOrdersPage} />
-          <Route path="/my-training" component={MyTraining} />
-          <Route path="/orders/:id" component={OrderDetailPage} />
-          <Route path="/referrals" component={ReferralsPage} />
-          <Route path="/security" component={SecuritySettings} />
-          <Route path="/short-links" component={ShortLinksPage} />
-          <Route path="/short-links/:id/analytics" component={ShortLinkAnalyticsPage} />
-          <Route path="/admin/url-shortener" component={AdminUrlShortenerPage} />
-          <Route path="/admin/keyword-analytics" component={AdminKeywordAnalyticsPage} />
-          <Route path="/admin/auto-blogger" component={AdminAutoBloggerPage} />
-        </>
-      ) : (
-        <>
-          <Route path="/dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
-          <Route path="/admin-dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-dashboard')}`; return null; }} />
-          <Route path="/campaigns" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/campaigns')}`; return null; }} />
-          <Route path="/campaigns/:id" component={CampaignDetail} />
-          <Route path="/profile" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/profile')}`; return null; }} />
-          <Route path="/wallet" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/wallet')}`; return null; }} />
-          <Route path="/admin" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin')}`; return null; }} />
-          <Route path="/admin-ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-ads')}`; return null; }} />
-          <Route path="/admin/ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
-          <Route path="/p2p-deals" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/p2p-deals')}`; return null; }} />
-          <Route path="/p2p-deals/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
+            }} />
+            <Route path="/brand-dashboard" component={BrandDashboard} />
+            <Route path="/admin-dashboard" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
+            <Route path="/campaigns" component={TasksPage} />
+            <Route path="/campaigns/:id" component={CampaignDetail} />
+            <Route path="/profile" component={() => {
+              const userType = (user as any)?.userType;
+              if (hasAdminDashboardAccess(user)) {
+                return <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>;
+              } else if (userType === 'brand') {
+                return <BrandDashboard />;
+              } else {
+                return <SimpleDashboard />;
+              }
+            }} />
+            <Route path="/user-profile" component={UserProfile} />
+            <Route path="/messages" component={Messages} />
+            <Route path="/chat" component={Chat} />
+            <Route path="/wallet" component={WalletSettings} />
+            <Route path="/ledger" component={LedgerPage} />
+            <Route path="/payment-deposit" component={PaymentDeposit} />
+            <Route path="/profile-edit" component={() => {
+              const userType = (user as any)?.userType;
+              return userType === 'brand' ? <BrandProfileEdit /> : <ProfileEdit />;
+            }} />
+            <Route path="/escrow-payment" component={EscrowPayment} />
+            <Route path="/direct-hire/:id" component={DirectHirePayment} />
+            <Route path="/p2p-deals" component={P2PDealRoom} />
+            <Route path="/p2p-deals/:id" component={P2PDealRoom} />
+            <Route path="/admin" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
+            <Route path="/admin/users" component={AdminUserManagement} />
+            <Route path="/admin/products" component={AdminProducts} />
+            <Route path="/admin/courses" component={AdminCourses} />
+            <Route path="/admin/certificate-template" component={AdminCertificateTemplate} />
+            <Route path="/breedskool/:id/learn" component={CourseLearn} />
+            <Route path="/breedskool/:id/learn/:lessonId" component={CourseLearn} />
+            <Route path="/breedskool/:id/certificate" component={CourseCertificate} />
+            <Route path="/admin/payments" component={AdminPayments} />
+            <Route path="/admin-ads" component={AdminAds} />
+            <Route path="/admin/ads" component={AdminAds} />
+            <Route path="/admin/email" component={AdminEmail} />
+            <Route path="/admin/p2p-transactions" component={AdminP2PTransactions} />
+            <Route path="/admin/p2p-fees" component={AdminP2PFees} />
+            <Route path="/admin/platform-fees" component={AdminPlatformFees} />
+            <Route path="/admin/cms" component={AdminCMSEditor} />
+            <Route path="/admin/seo" component={AdminSEO} />
+            <Route path="/subscription" component={SubscriptionPage} />
+            <Route path="/payout-requests" component={PayoutRequestsPage} />
+            <Route path="/my-campaigns" component={MyCampaignsPage} />
+            <Route path="/my-orders" component={MyOrdersPage} />
+            <Route path="/my-training" component={MyTraining} />
+            <Route path="/orders/:id" component={OrderDetailPage} />
+            <Route path="/referrals" component={ReferralsPage} />
+            <Route path="/security" component={SecuritySettings} />
+            <Route path="/short-links" component={ShortLinksPage} />
+            <Route path="/short-links/:id/analytics" component={ShortLinkAnalyticsPage} />
+            <Route path="/admin/url-shortener" component={AdminUrlShortenerPage} />
+            <Route path="/admin/keyword-analytics" component={AdminKeywordAnalyticsPage} />
+            <Route path="/admin/auto-blogger" component={AdminAutoBloggerPage} />
+          </>
+        ) : (
+          <>
+            <Route path="/dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
+            <Route path="/admin-dashboard" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-dashboard')}`; return null; }} />
+            <Route path="/campaigns" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/campaigns')}`; return null; }} />
+            <Route path="/campaigns/:id" component={CampaignDetail} />
+            <Route path="/profile" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/profile')}`; return null; }} />
+            <Route path="/wallet" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/wallet')}`; return null; }} />
+            <Route path="/admin" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin')}`; return null; }} />
+            <Route path="/admin-ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-ads')}`; return null; }} />
+            <Route path="/admin/ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
+            <Route path="/p2p-deals" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/p2p-deals')}`; return null; }} />
+            <Route path="/p2p-deals/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
+          </>
+        )}
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

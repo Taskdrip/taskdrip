@@ -1,0 +1,1 @@
+import{c as a}from"./constructNow-D3Ie8fTE.js";import{s as r}from"./format-DCW6RvxT.js";import{s as f}from"./subDays-B3wmoNhL.js";function s(t,o){const n=r(t),i=r(o);return+n==+i}function m(t){return s(t,a(t))}function y(t){return s(t,f(a(t),1))}export{y as a,m as i};
