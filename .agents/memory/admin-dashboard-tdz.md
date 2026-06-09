@@ -22,6 +22,14 @@ Every page in App.tsx must use `React.lazy()`. AND all top-level `const`/`let` d
 
 **The golden rule for admin-master.tsx:** ALL top-level `const`/`let` must be declared BEFORE the first `function` declaration (line ~212). Never add new constants after the `export default function AdminMaster()` line.
 
+## Second TDZ fixed (June 2026) — inside AdminMaster function body
+
+`const bsEffectiveSettings = { ...bsPaymentSettings, ...bsSettings }` was at line ~2005, but `bsPaymentSettings` was declared at line ~2161 via `useQuery`. Production Rollup/Terser minified `bsPaymentSettings` → `Wa`, throwing "Cannot access 'Wa' before initialization".
+
+**Fix:** Move `bsEffectiveSettings` to immediately after the `bsPaymentSettings` useQuery call.
+
+**Prevention:** In large React components with many `useQuery` hooks, NEVER spread/read a query result's `data` value in a `const` that appears BEFORE the `useQuery` call in the function body. Closures (onSuccess, useEffect callbacks) are safe because they execute after all declarations have run.
+
 ## Related fixes
 - TipTap removed from `RichTextEditor.tsx` (replaced with native contenteditable).
 - `vite.config.ts` has NO manualChunks.

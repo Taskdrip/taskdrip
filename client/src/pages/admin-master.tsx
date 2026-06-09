@@ -2002,7 +2002,6 @@ export default function AdminMaster() {
   });
 
   const setBsField = (key: string, val: string) => { setBsSettings(p => ({ ...p, [key]: val })); setBsSettingsDirty(true); };
-  const bsEffectiveSettings = { ...bsPaymentSettings, ...bsSettings };
 
   // Shop management state
   const [isShopProductDialogOpen, setIsShopProductDialogOpen] = useState(false);
@@ -2163,6 +2162,8 @@ export default function AdminMaster() {
     enabled: isFullAdmin,
     retry: false,
   });
+
+  const bsEffectiveSettings = { ...bsPaymentSettings, ...bsSettings };
 
   const { data: shopProducts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/shop/products"],
