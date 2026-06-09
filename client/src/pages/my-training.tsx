@@ -836,62 +836,21 @@ export default function MyTraining() {
           {/* ── Registrations Tab ── */}
           <TabsContent value="registrations">
             {breedskoolRegs.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border">
-                <ShieldCheck className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-bold text-gray-700 mb-1">No registrations yet</h3>
-                <p className="text-gray-500 text-sm mb-4">Register for a BreedSkool course to see your enrollment status here.</p>
+              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                <div className="w-20 h-20 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShieldCheck className="h-10 w-10 text-violet-300" />
+                </div>
+                <h3 className="font-bold text-gray-700 text-lg mb-2">No registrations yet</h3>
+                <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">Register for a BreedSkool course — online, onsite, or home lesson — to see your full enrollment details here.</p>
                 <Link href="/breedskool">
-                  <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-2 px-6">
-                    <Plus className="h-4 w-4" /> Browse Courses
+                  <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-2 px-8" data-testid="btn-browse-breedskool-empty">
+                    <Plus className="h-4 w-4" /> Browse Programs
                   </Button>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {breedskoolRegs.map((reg: any) => {
-                  const status: string = reg.paymentStatus || "pending";
-                  const statusColors: Record<string, string> = {
-                    pending: "bg-amber-100 text-amber-700",
-                    paid: "bg-emerald-100 text-emerald-700",
-                    confirmed: "bg-blue-100 text-blue-700",
-                    rejected: "bg-red-100 text-red-700",
-                    registered: "bg-violet-100 text-violet-700",
-                  };
-                  return (
-                    <div key={reg.id} data-testid={`card-reg-${reg.id}`} className="bg-white rounded-2xl border shadow-sm p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-900 text-base">{reg.selectedCourseTitle}</h3>
-                          <div className="flex items-center gap-3 mt-1 flex-wrap">
-                            <span className="text-sm text-gray-500">{reg.deliveryMode?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</span>
-                            {reg.amountNgn ? <span className="text-sm font-semibold text-gray-700">₦{Number(reg.amountNgn).toLocaleString("en-NG")}</span> : null}
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1">Registered {new Date(reg.createdAt).toLocaleDateString()}</p>
-                          {reg.transactionRef && (
-                            <p className="text-xs text-gray-500 mt-1">Ref: <span className="font-mono">{reg.transactionRef}</span></p>
-                          )}
-                        </div>
-                        <Badge className={`text-xs shrink-0 ${statusColors[status] || "bg-gray-100 text-gray-600"}`}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </Badge>
-                      </div>
-                      {reg.linkedCourseId && (
-                        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 flex-wrap">
-                          <Link href={`/breedskool/${reg.linkedCourseId}/learn`}>
-                            <Button size="sm" className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs gap-1" data-testid={`btn-go-course-${reg.id}`}>
-                              <Play className="h-3 w-3" /> Go to Course Training
-                            </Button>
-                          </Link>
-                          <Link href={`/breedskool/${reg.linkedCourseId}`}>
-                            <Button size="sm" variant="outline" className="text-xs" data-testid={`btn-view-course-${reg.id}`}>
-                              Course Details
-                            </Button>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="space-y-6">
+                {breedskoolRegs.map((reg: any) => <RegistrationDetailCard key={reg.id} reg={reg} />)}
               </div>
             )}
           </TabsContent>
@@ -1064,6 +1023,204 @@ function PostCard({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Registration Detail Card ──────────────────────────────────────────────────
+const REG_STATUS_META: Record<string, { label: string; color: string; bg: string; step: number }> = {
+  registered: { label: "Registered",       color: "text-violet-700", bg: "bg-violet-100",  step: 1 },
+  pending:    { label: "Pending Review",    color: "text-amber-700",  bg: "bg-amber-100",   step: 2 },
+  verified:   { label: "Payment Verified",  color: "text-emerald-700",bg: "bg-emerald-100", step: 3 },
+  paid:       { label: "Payment Verified",  color: "text-emerald-700",bg: "bg-emerald-100", step: 3 },
+  confirmed:  { label: "Confirmed",         color: "text-blue-700",   bg: "bg-blue-100",    step: 3 },
+  rejected:   { label: "Payment Rejected",  color: "text-red-700",    bg: "bg-red-100",     step: -1 },
+};
+
+const TIMELINE_STEPS = [
+  { key: "registered", label: "Registration\nReceived",    icon: ShieldCheck },
+  { key: "pending",    label: "Payment\nUnder Review",     icon: Clock },
+  { key: "verified",   label: "Payment\nVerified",         icon: CheckCircle2 },
+  { key: "access",     label: "Full Course\nAccess",       icon: GraduationCap },
+];
+
+const DELIVERY_LABELS: Record<string, string> = {
+  online: "Online",
+  onsite: "Onsite Group",
+  home_lesson: "Home Lesson",
+};
+const DELIVERY_COLORS: Record<string, string> = {
+  online:       "bg-blue-100 text-blue-700",
+  onsite:       "bg-teal-100 text-teal-700",
+  home_lesson:  "bg-pink-100 text-pink-700",
+};
+const PAYMENT_LABELS: Record<string, string> = {
+  bank_transfer: "Bank Transfer",
+  usdt_tron:     "USDT (Tron)",
+  usdt_ton:      "USDT (TON)",
+  usdt_bnb:      "USDT (BNB)",
+};
+
+function RegistrationDetailCard({ reg }: { reg: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const statusKey: string = reg.paymentStatus || "registered";
+  const meta = REG_STATUS_META[statusKey] || { label: statusKey, color: "text-gray-700", bg: "bg-gray-100", step: 0 };
+  const currentStep = meta.step;
+  const isRejected = statusKey === "rejected";
+  const isVerified = ["verified", "paid", "confirmed"].includes(statusKey);
+  const deliveryMode = reg.deliveryMode || "online";
+
+  return (
+    <div data-testid={`card-reg-${reg.id}`} className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* ── Header banner ── */}
+      <div className={`relative overflow-hidden px-6 pt-5 pb-4 ${isRejected ? "bg-gradient-to-r from-red-50 to-pink-50" : isVerified ? "bg-gradient-to-r from-emerald-50 to-teal-50" : "bg-gradient-to-r from-violet-50 to-indigo-50"}`}>
+        <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
+          <GraduationCap className="w-full h-full" />
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <Badge className={`text-xs font-bold border-0 ${DELIVERY_COLORS[deliveryMode] || "bg-gray-100 text-gray-700"}`}>
+                {DELIVERY_LABELS[deliveryMode] || deliveryMode}
+              </Badge>
+              <Badge className={`text-xs font-bold border-0 ${meta.bg} ${meta.color}`}>{meta.label}</Badge>
+            </div>
+            <h3 className="font-black text-gray-900 text-lg leading-tight">{reg.selectedCourseTitle || "BreedSkool Program"}</h3>
+            <p className="text-sm text-gray-500 mt-1">{reg.fullName} · Registered {new Date(reg.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</p>
+          </div>
+          {reg.amountNgn > 0 && (
+            <div className="text-right shrink-0">
+              <div className="text-2xl font-black text-gray-900">₦{Number(reg.amountNgn).toLocaleString("en-NG")}</div>
+              {reg.paymentOption === "pay_now" && <div className="text-xs text-gray-500">Pay Now</div>}
+              {reg.paymentOption === "pay_later" && <div className="text-xs text-gray-500">Pay Later</div>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Progress Timeline ── */}
+      {!isRejected && (
+        <div className="px-6 py-5 border-b border-gray-100">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Enrollment Journey</p>
+          <div className="flex items-start gap-0">
+            {TIMELINE_STEPS.map((ts, idx) => {
+              const isActive = currentStep > idx;
+              const isCurrent = currentStep === idx + 1;
+              const Icon = ts.icon;
+              return (
+                <div key={ts.key} className="flex-1 flex flex-col items-center">
+                  {/* connector line before */}
+                  <div className="w-full flex items-center">
+                    {idx > 0 && (
+                      <div className={`flex-1 h-0.5 ${currentStep > idx ? "bg-violet-500" : "bg-gray-200"}`} />
+                    )}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                      isActive ? "bg-violet-600 border-violet-600" :
+                      isCurrent ? "bg-white border-violet-500 ring-2 ring-violet-200" :
+                      "bg-white border-gray-300"
+                    }`}>
+                      <Icon className={`h-3.5 w-3.5 ${isActive ? "text-white" : isCurrent ? "text-violet-600" : "text-gray-400"}`} />
+                    </div>
+                    {idx < TIMELINE_STEPS.length - 1 && (
+                      <div className={`flex-1 h-0.5 ${currentStep > idx + 1 ? "bg-violet-500" : "bg-gray-200"}`} />
+                    )}
+                  </div>
+                  <p className={`text-center mt-2 whitespace-pre-line text-[10px] font-semibold leading-tight ${
+                    isActive ? "text-violet-700" : isCurrent ? "text-violet-600" : "text-gray-400"
+                  }`}>{ts.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Rejected state ── */}
+      {isRejected && (
+        <div className="mx-6 mt-4 mb-2 bg-red-50 border border-red-200 rounded-xl p-4">
+          <p className="text-sm font-bold text-red-700 mb-1">⚠️ Payment Not Confirmed</p>
+          <p className="text-xs text-red-600">{reg.notes || "Your payment could not be verified. Please contact support or re-submit your proof."}</p>
+        </div>
+      )}
+
+      {/* ── Admin note (if any) ── */}
+      {reg.notes && !isRejected && (
+        <div className="mx-6 mt-4 bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-2">
+          <MessageCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-700">{reg.notes}</p>
+        </div>
+      )}
+
+      {/* ── Details grid ── */}
+      <div className="px-6 py-4">
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-800 mb-3"
+          data-testid={`btn-expand-reg-${reg.id}`}
+        >
+          {expanded ? <ChevronRight className="h-3.5 w-3.5 rotate-90" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          {expanded ? "Hide Details" : "View Full Details"}
+        </button>
+
+        {expanded && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            {[
+              { label: "Full Name",       value: reg.fullName },
+              { label: "Email",           value: reg.email },
+              { label: "Phone",           value: reg.phone },
+              { label: "Location",        value: reg.location },
+              { label: "Payment Method",  value: PAYMENT_LABELS[reg.paymentMethod] || reg.paymentMethod },
+              { label: "Transaction Ref", value: reg.transactionRef, mono: true },
+              { label: "Registration ID", value: reg.id, mono: true },
+              { label: "Registered On",   value: new Date(reg.createdAt).toLocaleString("en-US", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) },
+              ...(reg.childName ? [{ label: "Student Name", value: reg.childName }] : []),
+              ...(reg.parentName ? [{ label: "Parent Name",  value: reg.parentName }] : []),
+              ...(reg.homeAddress ? [{ label: "Home Address", value: reg.homeAddress }] : []),
+            ].filter(d => d.value).map(d => (
+              <div key={d.label} className="bg-gray-50 rounded-xl p-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{d.label}</p>
+                <p className={`text-sm text-gray-800 font-medium break-all ${d.mono ? "font-mono text-xs" : ""}`}>{d.value}</p>
+              </div>
+            ))}
+            {reg.paymentProof && (
+              <a href={reg.paymentProof} target="_blank" rel="noopener noreferrer" className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 hover:bg-emerald-100 transition-colors">
+                <Eye className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="text-sm text-emerald-700 font-semibold">View Payment Proof</span>
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* ── Action buttons ── */}
+        <div className="flex gap-2 flex-wrap">
+          {isVerified && reg.linkedCourseId && (
+            <Link href={`/breedskool/${reg.linkedCourseId}/learn`}>
+              <Button size="sm" className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold gap-1.5 shadow-md" data-testid={`btn-go-course-${reg.id}`}>
+                <Play className="h-3.5 w-3.5" /> Start Training
+              </Button>
+            </Link>
+          )}
+          {reg.linkedCourseId && (
+            <Link href={`/breedskool/${reg.linkedCourseId}`}>
+              <Button size="sm" variant="outline" className="gap-1.5 text-violet-600 border-violet-200 hover:bg-violet-50" data-testid={`btn-view-course-${reg.id}`}>
+                <BookOpen className="h-3.5 w-3.5" /> Course Details
+              </Button>
+            </Link>
+          )}
+          {!isVerified && !isRejected && (
+            <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I registered for ${reg.selectedCourseTitle || "BreedSkool"}. Name: ${reg.fullName}. Ref: ${reg.transactionRef || reg.id}. Please confirm my payment.`)}`} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50" data-testid={`btn-whatsapp-reg-${reg.id}`}>
+                <MessageCircle className="h-3.5 w-3.5" /> Confirm via WhatsApp
+              </Button>
+            </a>
+          )}
+          {isVerified && (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Payment Verified · Full Access Granted
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

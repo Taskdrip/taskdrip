@@ -5610,8 +5610,9 @@ Instructions:
             await db.insert(courseEnrollments).values({
               courseId: linkedCourseId,
               userId: userId!,
-              status: 'active',
-              isPaid: !isPayLater,
+              // Pay later = free online access immediately; Pay now = pending admin approval
+              status: isPayLater ? 'active' : 'pending_payment',
+              isPaid: false,
               paymentMethod: paymentMethod || null,
               amount: String(parseInt(amountNgn) || 0),
             } as any);
@@ -5719,7 +5720,7 @@ Instructions:
     }
   });
 
-  // Admin: update registration status
+  // Admin: update registration status (and activate linked course enrollment on verification)
   app.patch('/api/admin/breedskool/registrations/:id', isAuthenticated, async (req: any, res) => {
     if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
     try {
@@ -5728,6 +5729,54 @@ Instructions:
       if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
       if (notes !== undefined) updateData.notes = notes;
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq(breedskoolRegistrations.id, req.params.id)).returning();
+
+      // When payment is verified → activate the linked platform course enrollment
+      if (paymentStatus === 'verified' && row?.userId) {
+        let courseIdToActivate = row.linkedCourseId;
+
+        // If no linkedCourseId on the reg row, look it up from pricing
+        if (!courseIdToActivate && row.selectedCourseKey) {
+          const [pricing] = await db.select().from(breedskoolCoursePricing)
+            .where(eq(breedskoolCoursePricing.courseKey, row.selectedCourseKey))
+            .limit(1);
+          courseIdToActivate = pricing?.linkedCourseId || null;
+        }
+
+        if (courseIdToActivate) {
+          // Check if enrollment exists
+          const [existing] = await db.select({ id: courseEnrollments.id })
+            .from(courseEnrollments)
+            .where(and(
+              eq(courseEnrollments.courseId, courseIdToActivate),
+              eq(courseEnrollments.userId, row.userId)
+            )).limit(1);
+
+          if (existing) {
+            // Activate existing enrollment
+            await db.update(courseEnrollments)
+              .set({ status: 'active', isPaid: true })
+              .where(eq(courseEnrollments.id, existing.id));
+          } else {
+            // Create fresh enrollment
+            await db.insert(courseEnrollments).values({
+              courseId: courseIdToActivate,
+              userId: row.userId,
+              status: 'active',
+              isPaid: true,
+              paymentMethod: row.paymentMethod || null,
+              amount: String(row.amountNgn || 0),
+            } as any);
+          }
+
+          // Also save linkedCourseId back to registration if missing
+          if (!row.linkedCourseId) {
+            await db.update(breedskoolRegistrations)
+              .set({ linkedCourseId: courseIdToActivate })
+              .where(eq(breedskoolRegistrations.id, row.id));
+          }
+        }
+      }
+
       res.json(row);
     } catch (e: any) {
       res.status(500).json({ message: e.message });

@@ -287,6 +287,11 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
   const [regWrongPassword, setRegWrongPassword] = useState(false);
   const [regAutoLoggedIn, setRegAutoLoggedIn] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  // Inline login mode — for existing account holders
+  const [loginMode, setLoginMode] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [form, setForm] = useState<RegForm>({
     fullName: "", phone: "", location: "",
     email: "", password: "", confirmPassword: "",
@@ -438,6 +443,9 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
     setStep(1);
     setShowSuccess(false);
     setProofFile(null);
+    setLoginMode(false);
+    setLoginEmail("");
+    setLoginPassword("");
     setForm({ fullName: "", phone: "", location: "", email: "", password: "", confirmPassword: "", selectedCourseKey: "", selectedCourseTitle: "", amountNgn: 0, paymentOption: "pay_now", paymentMethod: "bank_transfer", transactionRef: "", deliveryMode: initialDeliveryMode, childName: "", childAge: "", parentName: "", homeAddress: "" });
   };
 
@@ -601,17 +609,71 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
                     Continue <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-center text-xs text-gray-500 pt-1">
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => { onClose(); navigate("/login?redirect=/my-training"); }}
-                    className="text-violet-600 font-semibold underline underline-offset-2"
-                    data-testid="btn-reg-login-existing"
-                  >
-                    Log in here
-                  </button>
-                </p>
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-center text-xs text-gray-500 mb-2">Already have a Taskdrip account?</p>
+                  {!loginMode ? (
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMode(true); setLoginEmail(form.email); }}
+                      className="w-full text-center text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-xl py-2.5 transition-colors"
+                      data-testid="btn-reg-login-existing"
+                    >
+                      Log in with my existing account →
+                    </button>
+                  ) : (
+                    <div className="space-y-3 bg-violet-50 border border-violet-200 rounded-xl p-4">
+                      <p className="text-xs font-bold text-violet-800">Log in to continue your enrollment</p>
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700">Email</Label>
+                        <Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} placeholder="Your Taskdrip email" className="mt-1 text-sm" data-testid="input-login-email" />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold text-gray-700">Password</Label>
+                        <PasswordInput value={loginPassword} onChange={setLoginPassword} placeholder="Your account password" testId="input-login-password" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setLoginMode(false)}>Cancel</Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={loginLoading || !loginEmail || !loginPassword}
+                          className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-bold"
+                          data-testid="btn-login-inline"
+                          onClick={async () => {
+                            setLoginLoading(true);
+                            try {
+                              const r = await fetch("/api/login", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                credentials: "include",
+                                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+                              });
+                              if (!r.ok) {
+                                const err = await r.json();
+                                toast({ title: "Login failed", description: err.message || "Check your email and password.", variant: "destructive" });
+                              } else {
+                                const data = await r.json();
+                                queryClient.setQueryData(["/api/user"], data.user || data);
+                                queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+                                setLoginMode(false);
+                                // Pre-fill email so registration is linked to their account
+                                set("email", loginEmail);
+                                set("password", loginPassword);
+                                toast({ title: "✅ Logged in!", description: "Continue the form to complete your enrollment." });
+                              }
+                            } catch {
+                              toast({ title: "Login error", description: "Please try again.", variant: "destructive" });
+                            } finally {
+                              setLoginLoading(false);
+                            }
+                          }}
+                        >
+                          {loginLoading ? "Logging in…" : "Log In →"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -844,34 +906,21 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
 
             {/* Wrong password — existing account scenario */}
             {regWrongPassword ? (
-              <>
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl">
-                  <CheckCircle className="w-10 h-10 text-white" />
-                </div>
-                <div className="text-center">
-                  <h2 className="text-xl font-black text-gray-900">✅ Registration Saved, {registeredName.split(" ")[0]}!</h2>
-                  <p className="text-gray-600 text-sm mt-2 leading-relaxed">
-                    You already have a Taskdrip account with this email. Your <strong className="text-violet-700">{registeredCourse}</strong> enrollment is saved — just log in to access your dashboard.
-                  </p>
-                </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
-                  <p className="text-xs text-amber-800 font-medium">⚠️ Your registration password didn't match your existing account. Log in below with your <strong>original Taskdrip password</strong> to see your training.</p>
-                </div>
-                <Button
-                  onClick={() => { setShowSuccess(false); reset(); navigate("/login?redirect=" + encodeURIComponent("/dashboard?tab=training")); }}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl"
-                  data-testid="btn-welcome-login"
-                >
-                  Log In to My Account →
-                </Button>
-                <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-left">
-                  <p className="font-semibold text-gray-800 text-sm">Need help? Contact your tutor 👇</p>
-                  <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${registeredCourse} on BreedSkool. My name is ${registeredName}. I need help accessing my account.`)}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors text-sm font-bold" data-testid="link-welcome-whatsapp-existing">
-                    <PhoneCall className="w-4 h-4" /> WhatsApp Tutor — +1 (201) 680-0266
-                  </a>
-                </div>
-              </>
+              <ExistingAccountModal
+                name={registeredName}
+                course={registeredCourse}
+                courseId={registeredCourseId}
+                onClose={() => { setShowSuccess(false); reset(); }}
+                onSuccess={(user, courseId) => {
+                  setShowSuccess(false); reset();
+                  queryClient.setQueryData(["/api/user"], user);
+                  queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/my/breedskool-registrations"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
+                  if (courseId) navigate(`/breedskool/${courseId}/learn`);
+                  else navigate("/my-training");
+                }}
+              />
             ) : (
               <>
                 {/* New registration success */}
@@ -945,6 +994,87 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// ── Existing Account Inline Login Modal ────────────────────────────────────────
+function ExistingAccountModal({ name, course, courseId, onClose, onSuccess }: {
+  name: string; course: string; courseId: string | null;
+  onClose: () => void;
+  onSuccess: (user: any, courseId: string | null) => void;
+}) {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) return toast({ title: "Enter your email and password", variant: "destructive" });
+    setLoading(true);
+    try {
+      const r = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+      if (!r.ok) {
+        const err = await r.json();
+        toast({ title: "Login failed", description: err.message || "Wrong email or password.", variant: "destructive" });
+      } else {
+        const data = await r.json();
+        toast({ title: "✅ Logged in!", description: "Taking you to your training…" });
+        onSuccess(data.user || data, courseId);
+      }
+    } catch {
+      toast({ title: "Login error", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-xl">
+        <CheckCircle className="w-10 h-10 text-white" />
+      </div>
+      <div className="text-center">
+        <h2 className="text-xl font-black text-gray-900">✅ Registration Saved, {name.split(" ")[0]}!</h2>
+        <p className="text-gray-600 text-sm mt-2 leading-relaxed">
+          Your <strong className="text-violet-700">{course}</strong> enrollment is saved. Log in with your original account password to access your training dashboard.
+        </p>
+      </div>
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <p className="text-xs text-amber-800 font-medium">⚠️ An account already exists for this email. Enter your <strong>original Taskdrip password</strong> below.</p>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs font-semibold text-gray-700">Email</Label>
+          <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Your account email" className="mt-1" data-testid="input-existing-email" />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold text-gray-700">Password</Label>
+          <PasswordInput value={password} onChange={setPassword} placeholder="Your original password" testId="input-existing-password" />
+        </div>
+        <Button
+          disabled={loading || !email || !password}
+          onClick={handleLogin}
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl"
+          data-testid="btn-welcome-login"
+        >
+          {loading ? "Logging in…" : "Log In & Access My Training →"}
+        </Button>
+      </div>
+      <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+        <p className="font-semibold text-gray-800 text-sm">Need help?</p>
+        <a href={`https://wa.me/12016800266?text=${encodeURIComponent(`Hi! I just registered for ${course} on BreedSkool. My name is ${name}. I need help accessing my account.`)}`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-3 transition-colors text-sm font-bold"
+          data-testid="link-welcome-whatsapp-existing">
+          <PhoneCall className="w-4 h-4" /> WhatsApp Tutor — +1 (201) 680-0266
+        </a>
+      </div>
+    </div>
   );
 }
 
