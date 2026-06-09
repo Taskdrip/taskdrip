@@ -209,6 +209,107 @@ const PLATFORM_QUICK_PRESETS = [
   { name: 'Kick', slug: 'kick', emoji: '🎮', bgColor: '#53fc18', urlPrefix: 'https://kick.com/' },
 ];
 
+// ─── Hero Sliders Panel consts ────────────────────────────────────────────────
+const PAGE_TARGETS = [
+  { value: "all", label: "All Pages" },
+  { value: "landing", label: "Landing Page" },
+  { value: "feed", label: "Feed" },
+  { value: "shop", label: "Shop" },
+  { value: "products", label: "Products / Brands" },
+  { value: "services", label: "Services" },
+  { value: "campaigns", label: "Campaigns / Tasks" },
+  { value: "courses", label: "Courses (BreedSkool)" },
+  { value: "ads", label: "Ads" },
+  { value: "p2p", label: "P2P Hub" },
+  { value: "blog", label: "Blog" },
+  { value: "influencers", label: "Influencer Discovery" },
+  { value: "influencer-profile", label: "Influencer Profiles" },
+  { value: "brand-profile", label: "Brand Profiles" },
+  { value: "dashboard", label: "Dashboard" },
+];
+
+const sliderFormSchema = z.object({
+  badge: z.string().optional(),
+  headline: z.string().min(3, "Headline is required"),
+  subheadline: z.string().optional(),
+  ctaPrimaryLabel: z.string().optional(),
+  ctaPrimaryLink: z.string().optional(),
+  ctaSecondaryLabel: z.string().optional(),
+  ctaSecondaryLink: z.string().optional(),
+  backgroundImage: z.string().optional(),
+  overlayColor: z.string().optional(),
+  accentColor: z.string().optional(),
+  order: z.number().default(0),
+  isActive: z.boolean().default(true),
+  targetPages: z.string().default("landing"),
+});
+type SliderFormData = z.infer<typeof sliderFormSchema>;
+
+// ─── Spotlight Content Panel consts ──────────────────────────────────────────
+const ITEM_TYPES = [
+  { value: "campaign", label: "Campaign" },
+  { value: "product", label: "Product" },
+  { value: "course", label: "Course" },
+  { value: "p2p", label: "P2P Listing" },
+  { value: "service", label: "Service" },
+  { value: "custom", label: "Custom (manual content)" },
+];
+
+const BADGE_OPTIONS = ["Hot", "New", "Trending", "Featured", "Sale", "Limited", "Popular", ""];
+
+const emptySpotlight = {
+  name: "",
+  itemType: "custom",
+  itemId: "",
+  customTitle: "",
+  customDescription: "",
+  customImage: "",
+  customLink: "",
+  badgeLabel: "",
+  targetPages: "landing",
+  sortOrder: 0,
+  isActive: true,
+};
+
+// ─── Ad Networks Panel consts ─────────────────────────────────────────────────
+const AD_NETWORKS = [
+  { value: "adsense", label: "Google AdSense", color: "text-blue-400" },
+  { value: "admanager", label: "Google Ad Manager", color: "text-blue-400" },
+  { value: "medianet", label: "Media.net", color: "text-orange-400" },
+  { value: "propeller", label: "PropellerAds", color: "text-red-400" },
+  { value: "taboola", label: "Taboola", color: "text-cyan-400" },
+  { value: "mgid", label: "MGID", color: "text-green-400" },
+  { value: "infolinks", label: "Infolinks", color: "text-yellow-400" },
+  { value: "custom", label: "Custom / Other", color: "text-gray-400" },
+];
+
+const AD_PLACEMENT_TYPES = [
+  { value: "banner_top", label: "Top Banner", desc: "Fixed banner at the very top of each page" },
+  { value: "banner_bottom", label: "Bottom Banner", desc: "Fixed banner at the bottom of the page" },
+  { value: "inline", label: "Inline (In-content)", desc: "Injected between page sections/content" },
+  { value: "sidebar", label: "Sidebar", desc: "Shown in the right sidebar on content pages" },
+  { value: "popup", label: "Popup / Overlay", desc: "Appears as a dismissable popup after a delay" },
+];
+
+const AD_FREQ_OPTIONS = [
+  { value: "always", label: "Always (every page load)" },
+  { value: "session", label: "Once per browser session" },
+  { value: "daily", label: "Once per day" },
+  { value: "once", label: "Once ever (per device)" },
+];
+
+const emptyAdNetwork = {
+  name: "",
+  network: "adsense",
+  adCode: "",
+  placementType: "inline",
+  targetPages: "all",
+  popupDelay: 5,
+  popupFrequency: "session",
+  isActive: true,
+  notes: "",
+};
+
 function LessonManageButton({ course }: { course: any }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -421,41 +522,6 @@ function EnrollmentPaymentDialog({ enrollment, onApprove, approving }: { enrollm
 }
 
 // ─── Hero Sliders Panel ──────────────────────────────────────────────────────
-const PAGE_TARGETS = [
-  { value: "all", label: "All Pages" },
-  { value: "landing", label: "Landing Page" },
-  { value: "feed", label: "Feed" },
-  { value: "shop", label: "Shop" },
-  { value: "products", label: "Products / Brands" },
-  { value: "services", label: "Services" },
-  { value: "campaigns", label: "Campaigns / Tasks" },
-  { value: "courses", label: "Courses (BreedSkool)" },
-  { value: "ads", label: "Ads" },
-  { value: "p2p", label: "P2P Hub" },
-  { value: "blog", label: "Blog" },
-  { value: "influencers", label: "Influencer Discovery" },
-  { value: "influencer-profile", label: "Influencer Profiles" },
-  { value: "brand-profile", label: "Brand Profiles" },
-  { value: "dashboard", label: "Dashboard" },
-];
-
-const sliderFormSchema = z.object({
-  badge: z.string().optional(),
-  headline: z.string().min(3, "Headline is required"),
-  subheadline: z.string().optional(),
-  ctaPrimaryLabel: z.string().optional(),
-  ctaPrimaryLink: z.string().optional(),
-  ctaSecondaryLabel: z.string().optional(),
-  ctaSecondaryLink: z.string().optional(),
-  backgroundImage: z.string().optional(),
-  overlayColor: z.string().optional(),
-  accentColor: z.string().optional(),
-  order: z.number().default(0),
-  isActive: z.boolean().default(true),
-  targetPages: z.string().default("landing"),
-});
-type SliderFormData = z.infer<typeof sliderFormSchema>;
-
 function HeroSlidersPanel() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -821,31 +887,6 @@ function HeroSlidersPanel() {
 }
 
 // ─── Spotlight Content Panel ─────────────────────────────────────────────────
-const ITEM_TYPES = [
-  { value: "campaign", label: "Campaign" },
-  { value: "product", label: "Product" },
-  { value: "course", label: "Course" },
-  { value: "p2p", label: "P2P Listing" },
-  { value: "service", label: "Service" },
-  { value: "custom", label: "Custom (manual content)" },
-];
-
-const BADGE_OPTIONS = ["Hot", "New", "Trending", "Featured", "Sale", "Limited", "Popular", ""];
-
-const emptySpotlight = {
-  name: "",
-  itemType: "custom",
-  itemId: "",
-  customTitle: "",
-  customDescription: "",
-  customImage: "",
-  customLink: "",
-  badgeLabel: "",
-  targetPages: "landing",
-  sortOrder: 0,
-  isActive: true,
-};
-
 function SpotlightContentPanel() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1009,44 +1050,6 @@ function SpotlightContentPanel() {
 }
 
 // ─── Ad Networks Panel ───────────────────────────────────────────────────────
-const AD_NETWORKS = [
-  { value: "adsense", label: "Google AdSense", color: "text-blue-400" },
-  { value: "admanager", label: "Google Ad Manager", color: "text-blue-400" },
-  { value: "medianet", label: "Media.net", color: "text-orange-400" },
-  { value: "propeller", label: "PropellerAds", color: "text-red-400" },
-  { value: "taboola", label: "Taboola", color: "text-cyan-400" },
-  { value: "mgid", label: "MGID", color: "text-green-400" },
-  { value: "infolinks", label: "Infolinks", color: "text-yellow-400" },
-  { value: "custom", label: "Custom / Other", color: "text-gray-400" },
-];
-
-const AD_PLACEMENT_TYPES = [
-  { value: "banner_top", label: "Top Banner", desc: "Fixed banner at the very top of each page" },
-  { value: "banner_bottom", label: "Bottom Banner", desc: "Fixed banner at the bottom of the page" },
-  { value: "inline", label: "Inline (In-content)", desc: "Injected between page sections/content" },
-  { value: "sidebar", label: "Sidebar", desc: "Shown in the right sidebar on content pages" },
-  { value: "popup", label: "Popup / Overlay", desc: "Appears as a dismissable popup after a delay" },
-];
-
-const AD_FREQ_OPTIONS = [
-  { value: "always", label: "Always (every page load)" },
-  { value: "session", label: "Once per browser session" },
-  { value: "daily", label: "Once per day" },
-  { value: "once", label: "Once ever (per device)" },
-];
-
-const emptyAdNetwork = {
-  name: "",
-  network: "adsense",
-  adCode: "",
-  placementType: "inline",
-  targetPages: "all",
-  popupDelay: 5,
-  popupFrequency: "session",
-  isActive: true,
-  notes: "",
-};
-
 function AdNetworksPanel() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
