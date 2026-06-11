@@ -5731,48 +5731,61 @@ Instructions:
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq(breedskoolRegistrations.id, req.params.id)).returning();
 
       // When payment is verified OR confirmed → activate the linked platform course enrollment
-      if ((paymentStatus === 'verified' || paymentStatus === 'confirmed') && row?.userId) {
-        let courseIdToActivate = row.linkedCourseId;
-
-        // If no linkedCourseId on the reg row, look it up from pricing
-        if (!courseIdToActivate && row.selectedCourseKey) {
-          const [pricing] = await db.select().from(breedskoolCoursePricing)
-            .where(eq(breedskoolCoursePricing.courseKey, row.selectedCourseKey))
+      if (paymentStatus === 'verified' || paymentStatus === 'confirmed' || paymentStatus === 'paid' || paymentStatus === 'approved') {
+        // Resolve userId — may be null if student registered without being logged in
+        let resolvedUserId = row?.userId;
+        if (!resolvedUserId && row?.email) {
+          const [matchedUser] = await db.select({ id: users.id })
+            .from(users)
+            .where(eq(users.email, row.email.toLowerCase().trim()))
             .limit(1);
-          courseIdToActivate = pricing?.linkedCourseId || null;
+          if (matchedUser) {
+            resolvedUserId = matchedUser.id;
+            await db.update(breedskoolRegistrations)
+              .set({ userId: resolvedUserId } as any)
+              .where(eq(breedskoolRegistrations.id, row.id));
+          }
         }
 
-        if (courseIdToActivate) {
-          // Check if enrollment exists
-          const [existing] = await db.select({ id: courseEnrollments.id })
-            .from(courseEnrollments)
-            .where(and(
-              eq(courseEnrollments.courseId, courseIdToActivate),
-              eq(courseEnrollments.userId, row.userId)
-            )).limit(1);
+        if (resolvedUserId) {
+          let courseIdToActivate = row.linkedCourseId;
 
-          if (existing) {
-            // Activate existing enrollment
-            await db.update(courseEnrollments)
-              .set({ status: 'active', isPaid: true })
-              .where(eq(courseEnrollments.id, existing.id));
-          } else {
-            // Create fresh enrollment
-            await db.insert(courseEnrollments).values({
-              courseId: courseIdToActivate,
-              userId: row.userId,
-              status: 'active',
-              isPaid: true,
-              paymentMethod: row.paymentMethod || null,
-              amount: String(row.amountNgn || 0),
-            } as any);
+          // If no linkedCourseId on the reg row, look it up from pricing
+          if (!courseIdToActivate && row.selectedCourseKey) {
+            const [pricing] = await db.select().from(breedskoolCoursePricing)
+              .where(eq(breedskoolCoursePricing.courseKey, row.selectedCourseKey))
+              .limit(1);
+            courseIdToActivate = pricing?.linkedCourseId || null;
           }
 
-          // Also save linkedCourseId back to registration if missing
-          if (!row.linkedCourseId) {
-            await db.update(breedskoolRegistrations)
-              .set({ linkedCourseId: courseIdToActivate })
-              .where(eq(breedskoolRegistrations.id, row.id));
+          if (courseIdToActivate) {
+            const [existing] = await db.select({ id: courseEnrollments.id })
+              .from(courseEnrollments)
+              .where(and(
+                eq(courseEnrollments.courseId, courseIdToActivate),
+                eq(courseEnrollments.userId, resolvedUserId)
+              )).limit(1);
+
+            if (existing) {
+              await db.update(courseEnrollments)
+                .set({ status: 'active', isPaid: true })
+                .where(eq(courseEnrollments.id, existing.id));
+            } else {
+              await db.insert(courseEnrollments).values({
+                courseId: courseIdToActivate,
+                userId: resolvedUserId,
+                status: 'active',
+                isPaid: true,
+                paymentMethod: row.paymentMethod || null,
+                amount: String(row.amountNgn || 0),
+              } as any);
+            }
+
+            if (!row.linkedCourseId) {
+              await db.update(breedskoolRegistrations)
+                .set({ linkedCourseId: courseIdToActivate })
+                .where(eq(breedskoolRegistrations.id, row.id));
+            }
           }
         }
       }
@@ -5789,7 +5802,27 @@ Instructions:
     try {
       const [row] = await db.select().from(breedskoolRegistrations).where(eq(breedskoolRegistrations.id, req.params.id)).limit(1);
       if (!row) return res.status(404).json({ message: 'Registration not found' });
-      if (!row.userId) return res.status(400).json({ message: 'No user linked to this registration' });
+
+      // Resolve userId — may be null if student registered without logging in
+      let resolvedUserId = row.userId;
+      if (!resolvedUserId && row.email) {
+        const [matchedUser] = await db.select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, row.email.toLowerCase().trim()))
+          .limit(1);
+        if (matchedUser) {
+          resolvedUserId = matchedUser.id;
+          // Backfill userId onto the registration row
+          await db.update(breedskoolRegistrations)
+            .set({ userId: resolvedUserId } as any)
+            .where(eq(breedskoolRegistrations.id, row.id));
+        }
+      }
+      if (!resolvedUserId) {
+        return res.status(400).json({
+          message: `No platform account found for ${row.email}. The student must create an account on Taskdrip first, then try again.`
+        });
+      }
 
       let courseId = row.linkedCourseId;
       if (!courseId && row.selectedCourseKey) {
@@ -5801,14 +5834,14 @@ Instructions:
 
       const [existing] = await db.select({ id: courseEnrollments.id })
         .from(courseEnrollments)
-        .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, row.userId)))
+        .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, resolvedUserId)))
         .limit(1);
 
       if (existing) {
         await db.update(courseEnrollments).set({ status: 'active', isPaid: true } as any).where(eq(courseEnrollments.id, existing.id));
       } else {
         await db.insert(courseEnrollments).values({
-          courseId, userId: row.userId, status: 'active', isPaid: true,
+          courseId, userId: resolvedUserId, status: 'active', isPaid: true,
           paymentMethod: row.paymentMethod || null, amount: String(row.amountNgn || 0),
         } as any);
       }

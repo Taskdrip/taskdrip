@@ -1996,12 +1996,26 @@ export default function AdminMaster() {
   });
 
   const activateEnrollmentMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest("POST", `/api/admin/breedskool/registrations/${id}/activate-enrollment`, {}),
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/breedskool/registrations/${id}/activate-enrollment`, {});
+      return res.json();
+    },
     onSuccess: (data: any) => {
       refetchBsRegs();
       toast({ title: "✅ Enrollment activated!", description: data?.message || "Student now has full course access, community & tutor chat." });
     },
-    onError: (e: any) => toast({ title: "Enrollment activation failed", description: e.message, variant: "destructive" }),
+    onError: async (e: any) => {
+      // Try to extract a clean message from JSON error body
+      let msg = e.message || "Activation failed";
+      try {
+        const jsonStart = msg.indexOf("{");
+        if (jsonStart !== -1) {
+          const parsed = JSON.parse(msg.slice(jsonStart));
+          if (parsed?.message) msg = parsed.message;
+        }
+      } catch {}
+      toast({ title: "Enrollment activation failed", description: msg, variant: "destructive" });
+    },
   });
 
   const savePaySettingsMutation = useMutation({

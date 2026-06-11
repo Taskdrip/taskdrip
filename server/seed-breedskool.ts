@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { breedskoolCoursePricing, appSettings, breedskoolRegistrations, courseEnrollments } from "@shared/schema";
+import { breedskoolCoursePricing, appSettings, breedskoolRegistrations, courseEnrollments, users } from "@shared/schema";
 import { eq, sql, inArray, and } from "drizzle-orm";
 
 // GTBank payment details — seeded on every startup (only inserts if missing)
@@ -149,7 +149,21 @@ export async function fixVerifiedBreedskoolEnrollments(): Promise<{ fixed: numbe
       .where(inArray(breedskoolRegistrations.paymentStatus, ['verified', 'confirmed', 'paid', 'approved']));
 
     for (const reg of verified) {
-      if (!reg.userId) { noLink++; continue; }
+      // Resolve userId — may be null if student registered without being logged in
+      let resolvedUserId = reg.userId;
+      if (!resolvedUserId && reg.email) {
+        const [matchedUser] = await db.select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, reg.email.toLowerCase().trim()))
+          .limit(1);
+        if (matchedUser) {
+          resolvedUserId = matchedUser.id;
+          await db.update(breedskoolRegistrations)
+            .set({ userId: resolvedUserId } as any)
+            .where(eq(breedskoolRegistrations.id, reg.id));
+        }
+      }
+      if (!resolvedUserId) { noLink++; continue; }
 
       // Resolve course ID from the registration or from pricing table
       let courseId = reg.linkedCourseId;
