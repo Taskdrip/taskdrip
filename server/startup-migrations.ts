@@ -238,6 +238,19 @@ const REQUIRED_TABLES: string[] = [
     "completed_at" timestamp
   )`,
 
+  // BreedSkool course pricing / linked course config
+  `CREATE TABLE IF NOT EXISTS "breedskool_course_pricing" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_key" varchar NOT NULL UNIQUE,
+    "course_title" varchar NOT NULL,
+    "price_ngn" integer NOT NULL DEFAULT 0,
+    "price_usd" decimal(10,2) DEFAULT '0.00',
+    "linked_course_id" varchar,
+    "is_active" boolean DEFAULT true,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+
   // BreedSkool course registrations
   `CREATE TABLE IF NOT EXISTS "breedskool_registrations" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
