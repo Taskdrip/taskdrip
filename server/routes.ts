@@ -5823,15 +5823,40 @@ Instructions:
         });
       }
 
-      // Look up linked course
+      // Look up linked course — try multiple fallbacks in order
       let courseId: string | null = row.linked_course_id || null;
+
+      // Fallback 1: pricing table linked_course_id
       if (!courseId && row.selected_course_key) {
         const pricingResult = await db.execute(sql`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
         const pricing: any = pricingResult.rows[0];
         courseId = pricing?.linked_course_id || null;
       }
+
+      // Fallback 2: find course by breedskool tag matching the course key
+      if (!courseId && row.selected_course_key) {
+        const tag = `breedskool_${row.selected_course_key}`;
+        const tagResult = await db.execute(sql`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
+        const tagCourse: any = tagResult.rows[0];
+        courseId = tagCourse?.id || null;
+      }
+
+      // Fallback 3: find course by matching selected_course_title (case-insensitive partial)
+      if (!courseId && row.selected_course_title) {
+        const titleResult = await db.execute(sql`SELECT id FROM courses WHERE title ILIKE ${'%' + row.selected_course_title + '%'} LIMIT 1`);
+        const titleCourse: any = titleResult.rows[0];
+        courseId = titleCourse?.id || null;
+      }
+
       if (!courseId) {
-        return res.status(400).json({ message: 'No linked platform course found for this course key. Please ensure courses are seeded.' });
+        return res.status(400).json({
+          message: `No linked platform course found for course key "${row.selected_course_key}". Please check Admin → BreedSkool → Courses are seeded, then try again.`
+        });
+      }
+
+      // Auto-repair: update pricing table so this won't fail again
+      if (row.selected_course_key && courseId) {
+        await db.execute(sql`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {});
       }
 
       // Check for existing enrollment
