@@ -6212,13 +6212,12 @@ Instructions:
           }
         }
       }
-      const [post] = await db.insert(courseCommunityPosts).values({
-        courseId,
-        userId: u.id,
-        message: message.trim(),
-        replyToId: replyToId || null,
-        topic: topic || 'General',
-      } as any).returning();
+      const postRows = await db.execute(sql`
+        INSERT INTO course_community_posts (course_id, user_id, message, reply_to_id, topic)
+        VALUES (${courseId}, ${u.id}, ${message.trim()}, ${replyToId || null}, ${topic || 'General'})
+        RETURNING *
+      `);
+      const post = (postRows as any).rows?.[0] ?? (Array.isArray(postRows) ? postRows[0] : postRows);
       res.json(post);
     } catch (e: any) {
       res.status(500).json({ message: e.message || 'Failed to create post' });
@@ -6263,9 +6262,8 @@ Instructions:
           .where(eq(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
-        await db.insert(courseCommunityLikes).values({ postId, userId: u.id } as any);
-        await db.update(courseCommunityPosts).set({ likeCount: sql`like_count + 1` })
-          .where(eq(courseCommunityPosts.id, postId));
+        await db.execute(sql`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
+        await db.execute(sql`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
         res.json({ liked: true });
       }
     } catch (e: any) {
@@ -6690,17 +6688,22 @@ Instructions:
       const fileUrlValue = allFilePaths.length > 1
         ? JSON.stringify(allFilePaths)
         : (primaryFile ? `/uploads/${primaryFile.filename}` : null);
-      const [assignment] = await db.insert(courseAssignments).values({
-        courseId: req.params.id,
-        userId: req.user.id,
-        lessonId: lessonId || null,
-        title: title.trim(),
-        description: description?.trim() || null,
-        fileUrl: fileUrlValue,
-        fileName: primaryFile ? (primaryFile.originalname || primaryFile.filename) : (files.length > 1 ? `${files.length} files` : null),
-        fileType: primaryFile ? primaryFile.mimetype : null,
-        status: 'submitted',
-      } as any).returning();
+      const assignRows = await db.execute(sql`
+        INSERT INTO course_assignments (course_id, user_id, lesson_id, title, description, file_url, file_name, file_type, status)
+        VALUES (
+          ${req.params.id},
+          ${req.user.id},
+          ${lessonId || null},
+          ${title.trim()},
+          ${description?.trim() || null},
+          ${fileUrlValue},
+          ${primaryFile ? (primaryFile.originalname || primaryFile.filename) : (files.length > 1 ? `${files.length} files` : null)},
+          ${primaryFile ? primaryFile.mimetype : null},
+          'submitted'
+        )
+        RETURNING *
+      `);
+      const assignment = (assignRows as any).rows?.[0] ?? (Array.isArray(assignRows) ? assignRows[0] : assignRows);
       res.status(201).json(assignment);
     } catch (e: any) {
       res.status(500).json({ message: e.message || "Failed to submit assignment" });

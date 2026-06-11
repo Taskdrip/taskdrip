@@ -54,6 +54,24 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "advertise_applications", column: "platforms", definition: "varchar" },
   { table: "advertise_applications", column: "giveaway_type", definition: "text" },
   { table: "advertise_applications", column: "tdrip_budget", definition: "text" },
+  // Course community post topic/category field
+  { table: "course_community_posts", column: "topic", definition: "varchar(100) DEFAULT 'General'" },
+  // BreedSkool registrations extended fields
+  { table: "breedskool_registrations", column: "delivery_mode", definition: "varchar DEFAULT 'online'" },
+  { table: "breedskool_registrations", column: "child_name", definition: "varchar" },
+  { table: "breedskool_registrations", column: "child_age", definition: "varchar" },
+  { table: "breedskool_registrations", column: "parent_name", definition: "varchar" },
+  { table: "breedskool_registrations", column: "home_address", definition: "text" },
+  { table: "breedskool_registrations", column: "linked_course_id", definition: "varchar" },
+  { table: "breedskool_registrations", column: "currency_used", definition: "varchar DEFAULT 'NGN'" },
+  { table: "breedskool_registrations", column: "amount_usd", definition: "decimal(10,2)" },
+  { table: "breedskool_registrations", column: "pay_later_deadline", definition: "timestamp" },
+  { table: "breedskool_course_pricing", column: "title", definition: "varchar NOT NULL DEFAULT ''" },
+  { table: "breedskool_course_pricing", column: "short_description", definition: "text" },
+  { table: "breedskool_course_pricing", column: "regular_price", definition: "integer NOT NULL DEFAULT 0" },
+  { table: "breedskool_course_pricing", column: "discount_price", definition: "integer NOT NULL DEFAULT 0" },
+  { table: "breedskool_course_pricing", column: "duration", definition: "varchar" },
+  { table: "breedskool_course_pricing", column: "accepted_payments", definition: "text[] DEFAULT ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']" },
 ];
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot
@@ -295,6 +313,43 @@ const REQUIRED_TABLES: string[] = [
     "sort_order" integer DEFAULT 0,
     "created_at" timestamp DEFAULT now(),
     "updated_at" timestamp DEFAULT now()
+  )`,
+
+  // Course assignment submissions (students submit work per lesson)
+  `CREATE TABLE IF NOT EXISTS "course_assignments" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "lesson_id" varchar REFERENCES "course_lessons"("id") ON DELETE SET NULL,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "title" varchar NOT NULL,
+    "description" text,
+    "file_url" varchar,
+    "file_name" varchar,
+    "file_type" varchar,
+    "status" varchar DEFAULT 'submitted',
+    "tutor_feedback" text,
+    "submitted_at" timestamp DEFAULT now()
+  )`,
+
+  // Course community discussion posts (threaded forum per course)
+  `CREATE TABLE IF NOT EXISTS "course_community_posts" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "message" text NOT NULL,
+    "reply_to_id" varchar,
+    "topic" varchar(100) DEFAULT 'General',
+    "like_count" integer DEFAULT 0,
+    "is_deleted" boolean DEFAULT false,
+    "created_at" timestamp DEFAULT now()
+  )`,
+
+  // Likes on community posts (one per user per post)
+  `CREATE TABLE IF NOT EXISTS "course_community_likes" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "post_id" varchar NOT NULL REFERENCES "course_community_posts"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "created_at" timestamp DEFAULT now()
   )`,
 ];
 
