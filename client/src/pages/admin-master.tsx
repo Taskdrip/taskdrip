@@ -2018,6 +2018,12 @@ export default function AdminMaster() {
     },
   });
 
+  const deleteRegMutation = useMutation({
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/admin/breedskool/registrations/${id}`),
+    onSuccess: () => { refetchBsRegs(); setBsViewReg(null); toast({ title: "Registration deleted" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const savePaySettingsMutation = useMutation({
     mutationFn: async () => apiRequest("PUT", "/api/admin/breedskool/payment-settings", bsSettings),
     onSuccess: () => { refetchBsPaySettings(); setBsSettingsDirty(false); toast({ title: "Payment settings saved!" }); },
@@ -5903,7 +5909,7 @@ export default function AdminMaster() {
                               ))}
                             </div>
                           </div>
-                          <div className="pt-2 border-t border-gray-100">
+                          <div className="pt-2 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-semibold text-gray-700 mb-1.5">Course Access</p>
                             <p className="text-xs text-gray-500 mb-2">
                               This gives the student an active course enrollment so they can access the course hub, community posts, group chat, and private tutor messaging.
@@ -5917,6 +5923,22 @@ export default function AdminMaster() {
                               {activateEnrollmentMutation.isPending
                                 ? <><span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" /> Activating…</>
                                 : <><GraduationCap className="h-3.5 w-3.5" /> Activate / Restore Course Enrollment</>
+                              }
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full border-red-200 text-red-600 hover:bg-red-50 text-xs gap-1.5"
+                              disabled={deleteRegMutation.isPending}
+                              onClick={() => {
+                                if (window.confirm(`Delete registration for ${bsViewReg.fullName}? This cannot be undone.`)) {
+                                  deleteRegMutation.mutate(bsViewReg.id);
+                                }
+                              }}
+                            >
+                              {deleteRegMutation.isPending
+                                ? <><span className="w-3 h-3 border border-red-400/40 border-t-red-500 rounded-full animate-spin" /> Deleting…</>
+                                : <><Trash2 className="h-3.5 w-3.5" /> Delete Registration</>
                               }
                             </Button>
                           </div>

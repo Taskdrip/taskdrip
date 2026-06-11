@@ -5800,56 +5800,74 @@ Instructions:
   app.post('/api/admin/breedskool/registrations/:id/activate-enrollment', isAuthenticated, async (req: any, res) => {
     if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
     try {
-      const [row] = await db.select().from(breedskoolRegistrations).where(eq(breedskoolRegistrations.id, req.params.id)).limit(1);
+      const regId = req.params.id;
+
+      // Use raw SQL to avoid any ORM query-building issues
+      const regResult = await db.execute(sql`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
+      const row: any = regResult.rows[0];
       if (!row) return res.status(404).json({ message: 'Registration not found' });
 
       // Resolve userId — may be null if student registered without logging in
-      let resolvedUserId = row.userId;
+      let resolvedUserId: string | null = row.user_id || null;
       if (!resolvedUserId && row.email) {
-        const [matchedUser] = await db.select({ id: users.id })
-          .from(users)
-          .where(eq(users.email, row.email.toLowerCase().trim()))
-          .limit(1);
+        const userResult = await db.execute(sql`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
+        const matchedUser: any = userResult.rows[0];
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          // Backfill userId onto the registration row
-          await db.update(breedskoolRegistrations)
-            .set({ userId: resolvedUserId } as any)
-            .where(eq(breedskoolRegistrations.id, row.id));
+          await db.execute(sql`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
         }
       }
       if (!resolvedUserId) {
         return res.status(400).json({
-          message: `No platform account found for ${row.email}. The student must create an account on Taskdrip first, then try again.`
+          message: `No platform account found for ${row.email}. The student must sign up on Taskdrip first.`
         });
       }
 
-      let courseId = row.linkedCourseId;
-      if (!courseId && row.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing)
-          .where(eq(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
-        courseId = (pricing as any)?.linkedCourseId || null;
+      // Look up linked course
+      let courseId: string | null = row.linked_course_id || null;
+      if (!courseId && row.selected_course_key) {
+        const pricingResult = await db.execute(sql`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
+        const pricing: any = pricingResult.rows[0];
+        courseId = pricing?.linked_course_id || null;
       }
-      if (!courseId) return res.status(400).json({ message: 'No linked platform course found for this course key. Please ensure courses are seeded.' });
+      if (!courseId) {
+        return res.status(400).json({ message: 'No linked platform course found for this course key. Please ensure courses are seeded.' });
+      }
 
-      const [existing] = await db.select({ id: courseEnrollments.id })
-        .from(courseEnrollments)
-        .where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, resolvedUserId)))
-        .limit(1);
+      // Check for existing enrollment
+      const existingResult = await db.execute(sql`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
+      const existing: any = existingResult.rows[0];
 
       if (existing) {
-        await db.update(courseEnrollments).set({ status: 'active', isPaid: true } as any).where(eq(courseEnrollments.id, existing.id));
+        await db.execute(sql`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
       } else {
-        await db.insert(courseEnrollments).values({
-          courseId, userId: resolvedUserId, status: 'active', isPaid: true,
-          paymentMethod: row.paymentMethod || null, amount: String(row.amountNgn || 0),
-        } as any);
+        const amount = String(row.amount_ngn || 0);
+        const payMethod = row.payment_method || null;
+        await db.execute(sql`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
       }
-      if (!row.linkedCourseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId } as any).where(eq(breedskoolRegistrations.id, row.id));
+
+      // Backfill linkedCourseId on registration row if missing
+      if (!row.linked_course_id) {
+        await db.execute(sql`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
       }
+
       res.json({ success: true, courseId, message: 'Enrollment activated successfully' });
     } catch (e: any) {
+      console.error('[activate-enrollment error]', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: delete a BreedSkool registration
+  app.delete('/api/admin/breedskool/registrations/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const regId = req.params.id;
+      const result = await db.execute(sql`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
+      if (!result.rows.length) return res.status(404).json({ message: 'Registration not found' });
+      res.json({ success: true, message: 'Registration deleted' });
+    } catch (e: any) {
+      console.error('[delete-registration error]', e);
       res.status(500).json({ message: e.message });
     }
   });
