@@ -520,6 +520,12 @@ export const directHireOffers = pgTable("direct_hire_offers", {
   revisionNote: text("revision_note"),
   activatedAt: timestamp("activated_at"),
   completedAt: timestamp("completed_at"),
+  // Invoice fields
+  invoiceNumber: varchar("invoice_number"),
+  invoiceGeneratedAt: timestamp("invoice_generated_at"),
+  invoiceDueDate: timestamp("invoice_due_date"),
+  invoiceNote: text("invoice_note"),
+  agreedBudget: decimal("agreed_budget", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

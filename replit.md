@@ -41,7 +41,20 @@ The dev server runs on port 5000.
 - `/influencers` — Creator marketplace
 - `/breedskool` — Course platform
 - `/admin` — Admin dashboard (admin credentials set at first run)
-- `/dashboard` — User dashboard
+- `/dashboard` — User dashboard (influencers/regular users)
+- `/brand-dashboard` — Brand dashboard with "Direct Hires" tab for tracking hire requests
+- `/hire-developer` — Submit a developer hire request
+- `/direct-hire/:id` — Track a specific hire project + project chat
+
+## Hire Developer Process Flow
+
+1. Client fills `/hire-developer` form — creates a hire request (`direct_hire_offers` table)
+2. Admin sees it under "Hires" tab in Order Delivery & Access Grants panel
+3. Admin chats with client via "Chat with Client" → links to `/direct-hire/{id}` project chat
+4. Admin generates invoice via "Generate Invoice" button — stores `invoiceNumber`, `invoiceDueDate`, `agreedBudget`, `invoiceNote` + notifies client
+5. Client sees invoice on `/direct-hire/{id}` and can print/download it
+6. Client submits payment → admin activates project
+7. Both parties track progress through the project page
 
 ## User preferences
 

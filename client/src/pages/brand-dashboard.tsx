@@ -2047,33 +2047,76 @@ export default function BrandDashboard() {
                     completed: "Completed ✅",
                     cancelled: "Cancelled",
                   };
+                  const hasInvoice = !!hire.invoiceNumber;
                   return (
-                    <Card key={hire.id} className="hover:shadow-md transition-shadow" data-testid={`card-direct-hire-${hire.id}`}>
+                    <Card key={hire.id} className={`hover:shadow-md transition-shadow ${hasInvoice && hire.status === 'pending' ? 'border-emerald-200 bg-emerald-50/30' : ''}`} data-testid={`card-direct-hire-${hire.id}`}>
                       <CardContent className="p-5">
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="font-semibold text-gray-900 truncate">{hire.title}</h3>
                               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColors[hire.status] || "bg-gray-100 text-gray-600"}`}>
                                 {statusLabels[hire.status] || hire.status}
                               </span>
+                              {hasInvoice && (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                  🧾 {hire.invoiceNumber}
+                                </span>
+                              )}
                             </div>
                             <p className="text-sm text-gray-500 mt-1">
-                              To: {hire.influencer?.firstName} {hire.influencer?.lastName}
-                              {hire.influencer?.username && <span className="text-gray-400"> @{hire.influencer.username}</span>}
+                              Developer: {hire.influencer?.firstName} {hire.influencer?.lastName}
                             </p>
-                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                              <span className="font-semibold text-green-700 text-sm">${Number(hire.budget).toFixed(2)} USDT</span>
-                              {hire.deadline && <span>Due {format(new Date(hire.deadline), "MMM d, yyyy")}</span>}
-                              <span>{format(new Date(hire.createdAt), "MMM d, yyyy")}</span>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 flex-wrap">
+                              <span className="font-semibold text-green-700 text-sm">${Number(hire.agreedBudget || hire.budget).toFixed(2)} USDT</span>
+                              {hire.deadline && <span>Deadline: {format(new Date(hire.deadline), "MMM d, yyyy")}</span>}
+                              {hire.invoiceDueDate && <span className="text-red-600 font-medium">Invoice due: {format(new Date(hire.invoiceDueDate), "MMM d, yyyy")}</span>}
+                              <span>Submitted: {format(new Date(hire.createdAt), "MMM d, yyyy")}</span>
                             </div>
+
+                            {/* Process timeline for this hire */}
+                            <div className="mt-3 flex items-center gap-1 flex-wrap">
+                              {[
+                                { key: "pending", label: "Requested" },
+                                { key: "invoice", label: "Invoice Sent" },
+                                { key: "payment_submitted", label: "Payment Sent" },
+                                { key: "active", label: "In Progress" },
+                                { key: "completed", label: "Done" },
+                              ].map((step, i) => {
+                                const stepOrder = ["pending", "invoice", "payment_submitted", "active", "completed"];
+                                const currentIdx = hire.invoiceNumber
+                                  ? (hire.status === "pending" ? 1 : stepOrder.indexOf(hire.status))
+                                  : stepOrder.indexOf(hire.status);
+                                const thisIdx = i;
+                                const active = thisIdx <= currentIdx;
+                                return (
+                                  <span key={step.key} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${active ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                                    {step.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+
+                            {/* Admin note if any */}
+                            {hire.adminNote && (
+                              <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5">
+                                💬 <strong>Developer note:</strong> {hire.adminNote}
+                              </p>
+                            )}
                           </div>
-                          <Link href={`/direct-hire/${hire.id}`}>
-                            <Button size="sm" variant={hire.status === 'accepted' ? 'default' : 'outline'} className={hire.status === 'accepted' ? 'bg-green-600 hover:bg-green-700' : ''} data-testid={`button-view-hire-${hire.id}`}>
-                              {hire.status === 'accepted' ? 'Pay Now' : 'View'}
-                              <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </Link>
+                          <div className="flex flex-col gap-2 items-end flex-shrink-0">
+                            <Link href={`/direct-hire/${hire.id}`}>
+                              <Button size="sm" variant={hire.status === 'accepted' || (hasInvoice && hire.status === 'pending') ? 'default' : 'outline'} className={hire.status === 'accepted' || (hasInvoice && hire.status === 'pending') ? 'bg-green-600 hover:bg-green-700' : ''} data-testid={`button-view-hire-${hire.id}`}>
+                                {hasInvoice && hire.status === 'pending' ? 'View Invoice & Pay' : hire.status === 'accepted' ? 'Pay Now' : 'View & Chat'}
+                                <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </Link>
+                            <Link href={`/direct-hire/${hire.id}`}>
+                              <Button size="sm" variant="ghost" className="text-blue-600 hover:bg-blue-50 text-xs">
+                                <MessageCircle className="w-3.5 h-3.5 mr-1" /> Chat with Developer
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

@@ -8,12 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Package, KeyRound, Link2, GraduationCap, Briefcase, ShoppingBag,
   CheckCircle, Send, XCircle, Trash2, Eye, ExternalLink, Clock,
   RefreshCw, ReceiptText, ShieldCheck, ShieldX, MessageSquare,
   ChevronDown, ChevronUp, Copy, Hash, CreditCard, Tag, Info,
-  AlertCircle,
+  AlertCircle, FileText, DollarSign,
 } from "lucide-react";
 
 type FormState = {
@@ -82,6 +83,9 @@ export function OrderDeliveryAccessPanel() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [proofModal, setProofModal] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Invoice state
+  const [invoiceTarget, setInvoiceTarget] = useState<any | null>(null);
+  const [invoiceForm, setInvoiceForm] = useState({ agreedBudget: "", invoiceDueDate: "", invoiceNote: "" });
 
   const { data: purchases = [], refetch: refetchPurchases, isError: purchasesError } = useQuery<any[]>({
     queryKey: ["/api/admin/purchases"],
@@ -141,6 +145,25 @@ export function OrderDeliveryAccessPanel() {
       (await apiRequest("DELETE", `/api/admin/purchases/${id}`)).json(),
     onSuccess: () => { invalidateAll(); toast({ title: "🗑️ Order deleted" }); },
     onError: (e: any) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
+  // Invoice generation mutation
+  const invoiceMutation = useMutation({
+    mutationFn: async () => {
+      if (!invoiceTarget) throw new Error("No hire selected");
+      return (await apiRequest("POST", `/api/admin/direct-hire/${invoiceTarget.id}/generate-invoice`, {
+        agreedBudget: invoiceForm.agreedBudget || invoiceTarget.budget,
+        invoiceDueDate: invoiceForm.invoiceDueDate || null,
+        invoiceNote: invoiceForm.invoiceNote || null,
+      })).json();
+    },
+    onSuccess: () => {
+      invalidateAll();
+      toast({ title: "✅ Invoice generated", description: "Client has been notified with invoice details." });
+      setInvoiceTarget(null);
+      setInvoiceForm({ agreedBudget: "", invoiceDueDate: "", invoiceNote: "" });
+    },
+    onError: (e: any) => toast({ title: "Invoice failed", description: e.message, variant: "destructive" }),
   });
 
   function invalidateAll() {
@@ -645,25 +668,29 @@ export function OrderDeliveryAccessPanel() {
                       >
                         <Send className="h-3.5 w-3.5 mr-1" /> {h.workSubmissionUrl ? "Update Deliverable" : "Set Deliverable"}
                       </Button>
-                      {/* Chat with brand/client */}
-                      {h.brand?.id && (
-                        <a
-                          href={chatUrl(h.brand.id)}
-                          className="inline-flex items-center gap-1.5 h-8 text-xs px-3 rounded-md border border-sky-500/30 text-sky-400 hover:bg-sky-500/10 transition-colors"
-                          title="Chat with client"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" /> Chat with Client
-                        </a>
-                      )}
-                      {/* Chat with developer/influencer */}
-                      {h.influencer?.id && (
-                        <a
-                          href={chatUrl(h.influencer.id)}
-                          className="inline-flex items-center gap-1.5 h-8 text-xs px-3 rounded-md border border-violet-500/30 text-violet-400 hover:bg-violet-500/10 transition-colors"
-                          title="Chat with developer"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" /> Chat with Developer
-                        </a>
+                      {/* Chat with client — links to project page which has the in-project chat */}
+                      <a
+                        href={`/direct-hire/${h.id}`}
+                        className="inline-flex items-center gap-1.5 h-8 text-xs px-3 rounded-md border border-sky-500/30 text-sky-400 hover:bg-sky-500/10 transition-colors"
+                        title="Open project chat with client"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" /> Chat with Client
+                      </a>
+                      {/* Generate Invoice button */}
+                      <button
+                        onClick={() => {
+                          setInvoiceTarget(h);
+                          setInvoiceForm({ agreedBudget: String(h.agreedBudget || h.budget || ""), invoiceDueDate: "", invoiceNote: h.invoiceNote || "" });
+                        }}
+                        className="inline-flex items-center gap-1.5 h-8 text-xs px-3 rounded-md border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        title="Generate invoice for client"
+                      >
+                        <FileText className="h-3.5 w-3.5" /> {h.invoiceNumber ? "Re-issue Invoice" : "Generate Invoice"}
+                      </button>
+                      {h.invoiceNumber && (
+                        <span className="inline-flex items-center gap-1 h-8 text-xs px-2 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20" title={`Invoice ${h.invoiceNumber}`}>
+                          <CheckCircle className="h-3 w-3" /> {h.invoiceNumber}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -753,6 +780,80 @@ export function OrderDeliveryAccessPanel() {
             <Button onClick={() => grantMutation.mutate()} disabled={grantMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="btn-grant-submit">
               <CheckCircle className="h-4 w-4 mr-1" />
               {grantMutation.isPending ? "Granting…" : "Grant & Notify Buyer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Generate Invoice modal ── */}
+      <Dialog open={!!invoiceTarget} onOpenChange={(o) => { if (!o) { setInvoiceTarget(null); setInvoiceForm({ agreedBudget: "", invoiceDueDate: "", invoiceNote: "" }); } }}>
+        <DialogContent className="max-w-md bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <FileText className="h-5 w-5 text-emerald-400" />
+              Generate Invoice — {invoiceTarget?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-xs text-blue-300">
+              <p className="font-semibold mb-1">🧾 Invoice Details</p>
+              <p>A unique invoice number will be assigned and the client will be notified via their dashboard and project chat.</p>
+            </div>
+
+            {/* Show existing invoice if already generated */}
+            {invoiceTarget?.invoiceNumber && (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-300">
+                <p className="font-semibold">Existing Invoice: {invoiceTarget.invoiceNumber}</p>
+                <p className="mt-0.5 text-emerald-400">Re-issuing will create a new invoice number.</p>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-xs font-semibold text-slate-300">Agreed Budget / Invoice Amount (USD)</Label>
+              <div className="relative mt-1">
+                <DollarSign className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
+                <Input
+                  value={invoiceForm.agreedBudget}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, agreedBudget: e.target.value })}
+                  placeholder={`${invoiceTarget?.budget || "0.00"}`}
+                  className="bg-slate-800 border-slate-600 text-white pl-7"
+                  type="number"
+                  step="0.01"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Leave blank to use the original budget (${invoiceTarget?.budget})</p>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold text-slate-300">Payment Due Date</Label>
+              <Input
+                value={invoiceForm.invoiceDueDate}
+                onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDueDate: e.target.value })}
+                type="date"
+                className="bg-slate-800 border-slate-600 text-white mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold text-slate-300">Invoice Note / Terms</Label>
+              <Textarea
+                value={invoiceForm.invoiceNote}
+                onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNote: e.target.value })}
+                placeholder="Payment terms, bank details, or project scope summary..."
+                rows={3}
+                className="bg-slate-800 border-slate-600 text-white mt-1 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInvoiceTarget(null)} className="text-slate-400">Cancel</Button>
+            <Button
+              onClick={() => invoiceMutation.mutate()}
+              disabled={invoiceMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              {invoiceMutation.isPending ? "Generating…" : "Generate & Send Invoice"}
             </Button>
           </DialogFooter>
         </DialogContent>

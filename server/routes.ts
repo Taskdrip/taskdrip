@@ -7713,7 +7713,9 @@ Instructions:
       if (offer.status !== 'accepted') return res.status(400).json({ message: 'Offer must be accepted before payment' });
       const { transactionHash, paymentNetwork } = req.body;
       const paymentProof = req.file ? `/uploads/${req.file.filename}` : null;
-      const verification = await verifyBlockchainTransaction(paymentNetwork, transactionHash, Number(offer.brandTotalCharge || offer.budget || 0));
+      // Use agreed budget (from invoice) when set, otherwise fall back to original budget
+      const payableAmount = Number(offer.agreedBudget || offer.brandTotalCharge || offer.budget || 0);
+      const verification = await verifyBlockchainTransaction(paymentNetwork, transactionHash, payableAmount);
       const updated = await storage.updateDirectHireOffer(req.params.id, {
         status: 'payment_submitted',
         transactionHash,
@@ -7755,8 +7757,12 @@ Instructions:
         adminNote: req.body.note || '',
         activatedAt: new Date(),
       });
-      const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
-      const brandTotalCharge = Number(offer.budget || 0); // Brand pays exact budget — no brand fee
+      // Use agreedBudget (from invoice) when set; fall back to original budget
+      const authoritative = Number(offer.agreedBudget || offer.budget || 0);
+      const platformFeeRate = 0.10;
+      const platformFee = +(authoritative * platformFeeRate).toFixed(2);
+      const payout = +(authoritative - platformFee).toFixed(2);
+      const brandTotalCharge = authoritative; // Brand pays exact agreed/budgeted amount
       await db.update(users).set({
         pendingBalance: sql`${users.pendingBalance} + ${payout}`,
         updatedAt: new Date(),
@@ -7977,6 +7983,54 @@ Instructions:
       res.json(updated);
     } catch (e: any) {
       console.error('Error granting hire access:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // Admin: generate invoice for a direct hire offer
+  app.post('/api/admin/direct-hire/:id/generate-invoice', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+      const { invoiceNote, invoiceDueDate, agreedBudget } = req.body;
+      // Generate unique invoice number: INV-YYYYMM-XXXX
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const suffix = Math.floor(1000 + Math.random() * 9000);
+      const invoiceNumber = `INV-${now.getFullYear()}${pad(now.getMonth() + 1)}-${suffix}`;
+      // Move to 'accepted' so the payment flow gates open for the client
+      const nextStatus = ['pending', 'accepted'].includes(offer.status) ? 'accepted' : offer.status;
+      const updated = await storage.updateDirectHireOffer(req.params.id, {
+        invoiceNumber,
+        invoiceGeneratedAt: now,
+        invoiceDueDate: invoiceDueDate ? new Date(invoiceDueDate) : null,
+        invoiceNote: invoiceNote || null,
+        agreedBudget: agreedBudget ? String(Number(agreedBudget).toFixed(2)) : offer.budget,
+        status: nextStatus,
+      } as any);
+      // Notify client
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: 'direct_hire_invoice',
+        title: '🧾 Invoice Ready — ' + invoiceNumber,
+        content: `Your invoice for "${offer.title}" has been generated. Amount: $${agreedBudget || offer.budget}. View and download it from your project page.`,
+        actionUrl: `/direct-hire/${offer.id}`,
+        relatedId: offer.id,
+      });
+      // Also post a project chat message so the client sees it in the project thread
+      await storage.createMessage({
+        senderId: req.user.id,
+        receiverId: offer.brandId,
+        subject: `Direct hire: ${offer.title}`,
+        content: `📄 Invoice ${invoiceNumber} has been generated for this project.\n💰 Amount: $${agreedBudget || offer.budget}\n${invoiceDueDate ? `📅 Due: ${new Date(invoiceDueDate).toLocaleDateString()}` : ''}\n${invoiceNote ? `📝 Note: ${invoiceNote}` : ''}\n\nPlease proceed to the payment section when ready.`,
+        messageType: 'direct_hire',
+        referenceType: 'direct_hire',
+        referenceId: offer.id,
+      } as any);
+      res.json(updated);
+    } catch (e: any) {
+      console.error('Error generating invoice:', e);
       res.status(500).json({ message: e.message });
     }
   });
