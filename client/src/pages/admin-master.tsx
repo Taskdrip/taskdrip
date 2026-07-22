@@ -2661,13 +2661,24 @@ export default function AdminMaster() {
 
   const deleteUser = useMutation({
     mutationFn: async (userId: string) => {
-      await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || `Server error ${res.status}`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
-        title: "Success",
-        description: "User deleted successfully",
+        title: "User deleted",
+        description: "The user account has been permanently removed.",
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        title: "Failed to delete user",
+        description: e.message || "An unexpected error occurred.",
+        variant: "destructive",
       });
     },
   });

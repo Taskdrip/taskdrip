@@ -8,7 +8,7 @@ import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blo
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -7797,6 +7797,71 @@ Instructions:
       res.json(updated);
     } catch (e: any) {
       console.error('Error granting purchase access:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Admin: approve purchase (pending → paid) ───────────────────────────
+  app.patch('/api/admin/purchases/:id/approve', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const updated = await storage.updatePurchase(req.params.id, {
+        status: 'paid',
+        paidAt: new Date(),
+      });
+      const existing = await storage.getPurchaseById(req.params.id);
+      if (existing) {
+        const product = await storage.getShopProductById(existing.productId);
+        await storage.createNotification({
+          userId: existing.userId,
+          type: 'order_approved',
+          title: '✅ Payment Approved',
+          content: `Your payment for "${product?.title || 'your order'}" has been approved. Delivery details will follow shortly.`,
+          actionUrl: `/my-orders?order=${existing.id}`,
+          relatedId: existing.id,
+        });
+      }
+      res.json(updated);
+    } catch (e: any) {
+      console.error('Error approving purchase:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Admin: disapprove / cancel purchase ────────────────────────────────
+  app.patch('/api/admin/purchases/:id/disapprove', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const updated = await storage.updatePurchase(req.params.id, { status: 'cancelled' });
+      const existing = await storage.getPurchaseById(req.params.id);
+      if (existing) {
+        const product = await storage.getShopProductById(existing.productId);
+        await storage.createNotification({
+          userId: existing.userId,
+          type: 'order_cancelled',
+          title: '❌ Order Cancelled',
+          content: `Your order for "${product?.title || 'your order'}" was cancelled. Please contact support if you believe this is an error.`,
+          actionUrl: `/my-orders?order=${existing.id}`,
+          relatedId: existing.id,
+        });
+      }
+      res.json(updated);
+    } catch (e: any) {
+      console.error('Error cancelling purchase:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Admin: delete purchase record ──────────────────────────────────────
+  app.delete('/api/admin/purchases/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      // Delete any product reviews linked to this purchase first
+      await db.delete(productReviews).where(eq(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq(purchases.id, req.params.id));
+      res.json({ message: 'Purchase deleted' });
+    } catch (e: any) {
+      console.error('Error deleting purchase:', e);
       res.status(500).json({ message: e.message });
     }
   });

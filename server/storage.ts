@@ -686,28 +686,96 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
-    // Delete in dependency order to avoid FK violations
+    // Delete in dependency order to avoid FK violations.
+    // Use raw SQL for tables not individually imported to avoid reference errors.
+
+    // Social / community content
     await db.delete(postComments).where(eq(postComments.userId, id));
     await db.delete(postLikes).where(eq(postLikes.userId, id));
     await db.delete(posts).where(eq(posts.userId, id));
+
+    // Shop
     await db.delete(productReviews).where(eq(productReviews.userId, id));
     await db.delete(purchases).where(eq(purchases.userId, id));
+
+    // Course activity
+    await db.delete(courseEnrollments).where(eq(courseEnrollments.userId, id));
+    await db.execute(sql`DELETE FROM course_assignments WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_community_posts WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_community_likes WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_reviews WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_comments WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_lesson_progress WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_certificates WHERE user_id = ${id}`);
+
+    // Subscriptions & notifications
+    await db.delete(subscriptions).where(eq(subscriptions.userId, id));
     await db.delete(notifications).where(eq(notifications.userId, id));
+
+    // Task / micro-task activity
     await db.delete(taskSubmissions).where(eq(taskSubmissions.userId, id));
+    await db.delete(microTaskSubmissions).where(eq(microTaskSubmissions.userId, id));
+    await db.delete(userSocialTaskCompletions).where(eq(userSocialTaskCompletions.userId, id));
+    await db.execute(sql`DELETE FROM welcome_task_completions WHERE user_id = ${id}`);
+
+    // Campaign activity
     await db.delete(campaignParticipations).where(eq(campaignParticipations.userId, id));
+
+    // Financial
     await db.delete(transactions).where(eq(transactions.userId, id));
+    await db.execute(sql`DELETE FROM payout_requests WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM referrals WHERE referrer_id = ${id} OR referred_id = ${id}`);
+    await db.execute(sql`DELETE FROM payment_deposits WHERE user_id = ${id}`);
+
+    // Social links / portfolio
+    await db.execute(sql`DELETE FROM user_social_links WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM portfolio_items WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM user_follows WHERE follower_id = ${id} OR following_id = ${id}`);
+    await db.execute(sql`DELETE FROM blocked_users WHERE blocker_id = ${id} OR blocked_id = ${id}`);
+    await db.execute(sql`DELETE FROM content_reports WHERE reporter_id = ${id}`);
+
+    // Direct hires
+    await db.execute(sql`DELETE FROM direct_hire_offers WHERE brand_id = ${id} OR influencer_id = ${id}`);
+
+    // P2P
+    await db.execute(sql`DELETE FROM p2p_messages WHERE sender_id = ${id}`);
+    await db.execute(sql`DELETE FROM p2p_action_logs WHERE actor_id = ${id}`);
+    await db.execute(sql`DELETE FROM p2p_transactions WHERE buyer_id = ${id} OR seller_id = ${id}`);
+    await db.execute(sql`DELETE FROM p2p_listings WHERE seller_id = ${id}`);
+
     // Messages: delete where sender or receiver
     await db.execute(sql`DELETE FROM messages WHERE sender_id = ${id} OR receiver_id = ${id}`);
+
+    // Brand-specific resources
     await db.delete(escrowPayments).where(eq(escrowPayments.brandId, id));
     await db.delete(paymentDeposits).where(eq(paymentDeposits.brandId, id));
     await db.delete(brandWallets).where(eq(brandWallets.brandId, id));
+    await db.execute(sql`DELETE FROM advertise_applications WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM push_subscriptions WHERE user_id = ${id}`);
+
+    // User reviews (both as reviewer and reviewee)
+    await db.execute(sql`DELETE FROM user_reviews WHERE reviewer_id = ${id} OR reviewee_id = ${id}`);
+
+    // BreedSkool registrations
+    await db.execute(sql`DELETE FROM breedskool_registrations WHERE user_id = ${id}`);
+
     // Delete user's campaigns (and their participations first)
     const userCampaigns = await db.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.brandId, id));
     for (const c of userCampaigns) {
       await db.delete(campaignParticipations).where(eq(campaignParticipations.campaignId, c.id));
+      await db.execute(sql`DELETE FROM campaign_micro_tasks WHERE campaign_id = ${c.id}`);
     }
     await db.delete(campaigns).where(eq(campaigns.brandId, id));
+
+    // Blog content
+    await db.execute(sql`DELETE FROM blog_likes WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM blog_comments WHERE user_id = ${id}`);
     await db.delete(blogPosts).where(eq(blogPosts.authorId, id));
+
+    // Shop products created by this user
+    await db.execute(sql`DELETE FROM shop_products WHERE created_by = ${id}`);
+
+    // Finally delete the user
     await db.delete(users).where(eq(users.id, id));
   }
 
