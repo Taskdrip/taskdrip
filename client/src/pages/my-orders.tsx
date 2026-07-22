@@ -411,7 +411,10 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             const prod = detail?.product || raw?.product;
             const imgUrl = prod?.featuredImage || prod?.imageUrl;
             const liveDD = detail?.deliveryDetails || deliveryDetails || {};
-            const hasAccess = liveDD?.downloadUrl || liveDD?.accessUrl || liveDD?.licenseKey || prod?.downloadUrl;
+            // hasAccess is ONLY true when the admin has explicitly granted access via delivery details.
+            // prod?.downloadUrl is intentionally excluded — it's the product's raw stored URL and must
+            // never be shown until the admin reviews the payment and grants access through the panel.
+            const hasAccess = !!(liveDD?.downloadUrl || liveDD?.accessUrl || liveDD?.licenseKey);
             return (
               <div className="rounded-xl border border-gray-100 overflow-hidden bg-white">
                 {/* Product header */}
@@ -426,16 +429,16 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                   </div>
                 </div>
 
-                {/* Access section */}
+                {/* Access section — only shown after admin explicitly grants access via delivery details */}
                 {hasAccess ? (
                   <div className="p-4 bg-emerald-50 border-t border-emerald-100">
                     <p className="text-xs font-bold text-emerald-800 mb-3 flex items-center gap-1.5">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Full Access Granted
                     </p>
                     <div className="space-y-2">
-                      {(liveDD?.downloadUrl || prod?.downloadUrl) && (
+                      {liveDD?.downloadUrl && (
                         <a
-                          href={liveDD?.downloadUrl || prod?.downloadUrl}
+                          href={liveDD.downloadUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-center gap-2.5 p-3 rounded-lg bg-white border border-emerald-200 hover:border-emerald-400 hover:shadow-sm transition-all group"
@@ -446,7 +449,7 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-emerald-700">Download Product</p>
-                            <p className="text-xs text-gray-400 truncate">{liveDD?.downloadUrl || prod?.downloadUrl}</p>
+                            <p className="text-xs text-gray-400 truncate">{liveDD.downloadUrl}</p>
                           </div>
                         </a>
                       )}
@@ -480,17 +483,71 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-amber-50 border-t border-amber-100">
-                    <div className="flex items-start gap-2.5">
-                      <Clock className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-800">Access Pending</p>
-                        <p className="text-xs text-amber-600 mt-0.5">
-                          {order.status === "pending"
-                            ? "Your payment is under review. Once approved, your download link and access details will appear right here in this order."
-                            : "Access details will appear here once processed by our team."}
-                        </p>
+                  <div className="p-4 border-t border-gray-100 space-y-3">
+                    {/* Status-aware message */}
+                    {order.status === "pending" ? (
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                        <Clock className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-800">Payment Under Review</p>
+                          <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                            Your payment proof has been received and is being reviewed by our team. Once confirmed your download link and access details will appear here automatically.
+                          </p>
+                        </div>
                       </div>
+                    ) : order.status === "paid" ? (
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                        <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-blue-800">Payment Confirmed — Preparing Access</p>
+                          <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
+                            Your payment has been verified. Our team is now preparing your access details (download link, license key, or access URL). This usually takes a few hours — you'll be notified the moment it's ready.
+                          </p>
+                        </div>
+                      </div>
+                    ) : order.status === "cancelled" ? (
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50 border border-red-100">
+                        <Clock className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-red-700">Order Cancelled</p>
+                          <p className="text-xs text-red-600 mt-0.5">This order has been cancelled. No access will be granted. Contact support if you have questions.</p>
+                        </div>
+                      </div>
+                    ) : order.status === "refunded" ? (
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50 border border-red-100">
+                        <Clock className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-red-700">Order Refunded</p>
+                          <p className="text-xs text-red-600 mt-0.5">This order has been refunded. No access will be granted. Contact support if you have questions.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <Clock className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">Access Not Yet Granted</p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                            Our team is reviewing your order. Your download link, license key, or access URL will appear here once access has been granted. You'll receive a notification when it's ready.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* How it works — step guide */}
+                    <div className="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">How it works</p>
+                      <ol className="space-y-1.5">
+                        {[
+                          { n: "1", label: "Submit payment", desc: "Pay and upload your payment proof on the order page." },
+                          { n: "2", label: "Admin reviews", desc: "Our team verifies your payment — usually within a few hours." },
+                          { n: "3", label: "Access granted", desc: "Your download link, license key, or access URL appears here and you receive an in-app notification." },
+                        ].map(({ n, label, desc }) => (
+                          <li key={n} className="flex items-start gap-2">
+                            <span className="flex-shrink-0 w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-bold flex items-center justify-center mt-0.5">{n}</span>
+                            <span className="text-xs text-gray-600"><span className="font-medium text-gray-800">{label}</span> — {desc}</span>
+                          </li>
+                        ))}
+                      </ol>
                     </div>
                   </div>
                 )}
