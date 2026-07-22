@@ -208,6 +208,7 @@ function Router() {
         <Route path="/p2p-hub" component={P2PHub} />
         <Route path="/p2p/:id" component={P2PListing} />
         <Route path="/hire-developer" component={HireDeveloper} />
+        <Route path="/messages" component={Messages} />
         {isAuthenticated ? (
           <>
             <Route path="/dashboard" component={() => {
@@ -231,7 +232,6 @@ function Router() {
               }
             }} />
             <Route path="/user-profile" component={UserProfile} />
-            <Route path="/messages" component={Messages} />
             <Route path="/chat" component={Chat} />
             <Route path="/wallet" component={WalletSettings} />
             <Route path="/ledger" component={LedgerPage} />

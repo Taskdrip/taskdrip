@@ -606,22 +606,31 @@ export default function AdminUserManagement() {
     },
   });
 
+  // Delete user confirmation state
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<{ id: string; name: string } | null>(null);
+
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await apiRequest("DELETE", `/api/admin/users/${id}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Failed to delete user (${res.status})`);
+      }
       return res.json();
     },
     onSuccess: () => {
+      setDeleteConfirmUser(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "User Deleted",
-        description: "User has been deleted successfully.",
+        description: "User has been permanently deleted.",
       });
     },
     onError: (error: Error) => {
+      setDeleteConfirmUser(null);
       toast({
-        title: "Error",
+        title: "Delete Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -1080,7 +1089,7 @@ export default function AdminUserManagement() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => deleteUserMutation.mutate(user.id)}
+                                onClick={() => setDeleteConfirmUser({ id: user.id, name: `${user.firstName} ${user.lastName}` })}
                                 className="text-red-600 hover:text-red-700"
                                 data-testid={`button-delete-user-${user.id}`}
                               >
@@ -1438,6 +1447,37 @@ export default function AdminUserManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsGrantRoleOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete User Confirmation Dialog ─────────────────────────────── */}
+      <Dialog open={!!deleteConfirmUser} onOpenChange={open => { if (!open) setDeleteConfirmUser(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Delete User
+            </DialogTitle>
+            <DialogDescription>
+              This will <strong>permanently delete</strong> <span className="font-semibold text-slate-800">{deleteConfirmUser?.name}</span> and all their data — messages, campaigns, transactions, and more. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteConfirmUser(null)} disabled={deleteUserMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteUserMutation.isPending}
+              onClick={() => deleteConfirmUser && deleteUserMutation.mutate(deleteConfirmUser.id)}
+              data-testid="button-confirm-delete-user"
+            >
+              {deleteUserMutation.isPending ? (
+                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" /> Deleting…</>
+              ) : (
+                <><Trash2 className="h-4 w-4 mr-2" /> Delete Permanently</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

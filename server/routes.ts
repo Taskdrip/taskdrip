@@ -497,6 +497,25 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     res.json({ typing: Date.now() - ts < 4000 });
   });
 
+  // ── Online presence (in-memory, heartbeat-based) ─────────────────────────
+  // Clients ping /api/online/ping every 30s; /api/online/:userId returns whether
+  // that user was active in the last 90 seconds.
+  const onlineMap = new Map<string, number>();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, ts] of onlineMap) if (now - ts > 120_000) onlineMap.delete(k);
+  }, 30_000).unref?.();
+
+  app.post('/api/online/ping', isAuthenticated, (req: any, res) => {
+    onlineMap.set(req.user.id, Date.now());
+    res.json({ ok: true });
+  });
+  app.get('/api/online/:userId', isAuthenticated, (req: any, res) => {
+    const ts = onlineMap.get(req.params.userId) || 0;
+    const online = Date.now() - ts < 90_000;
+    res.json({ online, lastSeen: ts ? new Date(ts).toISOString() : null });
+  });
+
   // Brands discovery — grouped by brand tier
   app.get('/api/brands/by-tier', async (req, res) => {
     try {

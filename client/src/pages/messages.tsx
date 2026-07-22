@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -193,6 +194,25 @@ export default function MessagesPage() {
     queryKey: ["/api/users", urlToId, "profile"],
     queryFn: () => fetch(`/api/users/${urlToId}/profile`, { credentials: "include" }).then(r => r.json()),
     enabled: !!urlToId && !!user,
+  });
+
+  // ── Online presence heartbeat ────────────────────────────────────────────
+  // Ping the server every 30s so the other party can see we're online.
+  useEffect(() => {
+    if (!user) return;
+    const ping = () => fetch('/api/online/ping', { method: 'POST', credentials: 'include' }).catch(() => {});
+    ping(); // ping immediately on mount
+    const id = setInterval(ping, 30_000);
+    return () => clearInterval(id);
+  }, [user?.id]);
+
+  // Poll online status of the peer we're chatting with
+  const { data: peerOnline } = useQuery<{ online: boolean; lastSeen: string | null }>({
+    queryKey: ['/api/online', peerId],
+    queryFn: () => fetch(`/api/online/${peerId}`, { credentials: 'include' }).then(r => r.json()),
+    enabled: !!peerId && !!user,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   // Block status — for the other participant in a direct conversation
@@ -680,9 +700,37 @@ export default function MessagesPage() {
                         {(selectedConv.campaign?.title ?? selectedConv.participants.filter(p => p.id !== user?.id).map(p => displayName(p)).join(", ")) || "Conversation"}
                       </h2>
                     </div>
-                    <p className="text-xs text-slate-500 truncate">
-                      {selectedConv.participants.filter(p => p.id !== user?.id).map(p => displayName(p, user?.id)).join(", ")}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      {peerId && (
+                        peerTyping?.typing ? (
+                          <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                            <span className="flex gap-0.5">
+                              <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </span>
+                            typing…
+                          </span>
+                        ) : peerOnline?.online ? (
+                          <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                            <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" /> Online
+                          </span>
+                        ) : peerOnline?.lastSeen ? (
+                          <span className="text-xs text-slate-400">
+                            Last seen {new Date(peerOnline.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">
+                            {selectedConv.participants.filter(p => p.id !== user?.id).map(p => displayName(p, user?.id)).join(", ")}
+                          </span>
+                        )
+                      )}
+                      {!peerId && (
+                        <p className="text-xs text-slate-500 truncate">
+                          {selectedConv.participants.filter(p => p.id !== user?.id).map(p => displayName(p, user?.id)).join(", ")}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Brand broadcast selector */}

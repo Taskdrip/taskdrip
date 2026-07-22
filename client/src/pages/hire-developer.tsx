@@ -16,7 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Code2, DollarSign, Calendar, MessageCircle, CheckCircle,
   User, Mail, Lock, Briefcase, Zap, Shield, Clock,
-  ArrowRight, Star, Phone, Send,
+  ArrowRight, Star, Phone, Send, LogIn,
 } from "lucide-react";
 
 const PROJECT_TYPES = [
@@ -85,6 +85,32 @@ export default function HireDeveloper() {
 
   const [submitted, setSubmitted] = useState(false);
 
+  // "register" | "login" — toggles the auth section for unauthenticated users
+  const [authMode, setAuthMode] = useState<"register" | "login">("register");
+
+  // Login fields
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/login", { email: loginEmail.trim(), password: loginPassword });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Login failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({ title: "Logged in!", description: "You can now submit your project request." });
+    },
+    onError: (e: any) => {
+      toast({ title: "Login failed", description: e.message, variant: "destructive" });
+    },
+  });
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -135,6 +161,10 @@ export default function HireDeveloper() {
     if (!projectType) return toast({ title: "Please select a project type", variant: "destructive" });
     if (!budget) return toast({ title: "Please select a budget range", variant: "destructive" });
     if (!user) {
+      if (authMode === "login") {
+        // User must log in first using the login button above; if they're here without being logged in, prompt
+        return toast({ title: "Please log in first", description: "Use the login form above to sign in before submitting.", variant: "destructive" });
+      }
       if (!firstName.trim() || !lastName.trim()) return toast({ title: "Please enter your name", variant: "destructive" });
       if (!email.trim()) return toast({ title: "Please enter your email", variant: "destructive" });
       if (password.length < 6) return toast({ title: "Password must be at least 6 characters", variant: "destructive" });
@@ -360,74 +390,137 @@ export default function HireDeveloper() {
             </p>
           </div>
 
-          {/* Account creation (only when not logged in) */}
+          {/* Account section (only when not logged in) */}
           {!authLoading && !user && (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center">
-                  <User className="h-4 w-4 text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Create Your Account</h2>
-                  <p className="text-xs text-gray-500">So you can chat with the developer about your project</p>
-                </div>
+              {/* Tab toggle */}
+              <div className="flex rounded-xl bg-gray-800 p-1 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("register")}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all ${
+                    authMode === "register" ? "bg-violet-600 text-white shadow" : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" /> Create Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("login")}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all ${
+                    authMode === "login" ? "bg-violet-600 text-white shadow" : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  <LogIn className="h-3.5 w-3.5" /> Log In
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300 text-sm mb-1.5 block">First Name *</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      value={firstName}
-                      onChange={e => setFirstName(e.target.value)}
-                      placeholder="John"
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
-                    />
+              {authMode === "register" ? (
+                <>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-3">New here? Create a free account so you can chat with the developer.</p>
                   </div>
-                </div>
-                <div>
-                  <Label className="text-gray-300 text-sm mb-1.5 block">Last Name *</Label>
-                  <Input
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-violet-500"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-300 text-sm mb-1.5 block">First Name *</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          value={firstName}
+                          onChange={e => setFirstName(e.target.value)}
+                          placeholder="John"
+                          className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-gray-300 text-sm mb-1.5 block">Last Name *</Label>
+                      <Input
+                        value={lastName}
+                        onChange={e => setLastName(e.target.value)}
+                        placeholder="Doe"
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-violet-500"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <Label className="text-gray-300 text-sm mb-1.5 block">Email Address *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={e => {
-                      setEmail(e.target.value);
-                      if (!contactEmail) setContactEmail(e.target.value);
-                    }}
-                    placeholder="you@example.com"
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
-                  />
-                </div>
-              </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm mb-1.5 block">Email Address *</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={e => { setEmail(e.target.value); if (!contactEmail) setContactEmail(e.target.value); }}
+                        placeholder="you@example.com"
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <Label className="text-gray-300 text-sm mb-1.5 block">Password *</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
-                  />
-                </div>
-                <p className="text-xs text-gray-600 mt-1.5">We'll create your account and log you in automatically.</p>
-              </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm mb-1.5 block">Password *</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input
+                        type="password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1.5">We'll create your account and log you in automatically.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-3">Already have an account? Log in to submit your request.</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm mb-1.5 block">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input
+                        type="email"
+                        value={loginEmail}
+                        onChange={e => setLoginEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm mb-1.5 block">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Input
+                        type="password"
+                        value={loginPassword}
+                        onChange={e => setLoginPassword(e.target.value)}
+                        placeholder="Your password"
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={loginMutation.isPending || !loginEmail.trim() || !loginPassword}
+                    onClick={() => loginMutation.mutate()}
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold gap-2"
+                  >
+                    {loginMutation.isPending ? (
+                      <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /> Logging in…</>
+                    ) : (
+                      <><LogIn className="h-4 w-4" /> Log In to Your Account</>
+                    )}
+                  </Button>
+                  <p className="text-center text-xs text-gray-600">
+                    <a href="/forgot-password" className="text-violet-400 hover:text-violet-300 underline">Forgot password?</a>
+                  </p>
+                </>
+              )}
             </div>
           )}
 

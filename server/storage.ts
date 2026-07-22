@@ -775,6 +775,16 @@ export class DatabaseStorage implements IStorage {
     // Shop products created by this user
     await db.execute(sql`DELETE FROM shop_products WHERE created_by = ${id}`);
 
+    // Null-out FK references that can't simply be deleted (e.g. approvedBy, reviewedBy, verifiedBy)
+    await db.execute(sql`UPDATE transactions SET approved_by = NULL WHERE approved_by = ${id}`);
+    await db.execute(sql`UPDATE escrow_payments SET verified_by = NULL WHERE verified_by = ${id}`);
+    await db.execute(sql`UPDATE micro_task_submissions SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
+    await db.execute(sql`UPDATE p2p_task_addon_submissions SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
+    await db.execute(sql`UPDATE task_submissions SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
+
+    // Hire-developer requests (if table exists)
+    await db.execute(sql`DELETE FROM hire_developer_requests WHERE user_id = ${id}`).catch(() => {});
+
     // Finally delete the user
     await db.delete(users).where(eq(users.id, id));
   }
