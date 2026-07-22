@@ -3223,9 +3223,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       }
       await storage.deleteUser(targetId);
       res.json({ message: "User deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
+      // Surface the actual DB constraint detail to aid diagnosis
+      const detail = error?.detail || error?.message || "Failed to delete user";
+      res.status(500).json({ message: "Failed to delete user", detail });
     }
   });
 

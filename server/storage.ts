@@ -686,109 +686,142 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
-    // Delete in strict dependency order to avoid FK violations.
-    // Rule: child rows must be removed/nulled BEFORE their parent rows.
+    // ═══════════════════════════════════════════════════════════════════
+    // STRICT DELETION ORDER — child rows first, parent rows last.
+    // Every FK that references users.id (directly or transitively) must
+    // be handled here, either by deletion or by nulling out the column.
+    // ═══════════════════════════════════════════════════════════════════
 
-    // ── Step 1: Null-out soft FK references (columns that reference users but
-    //    can stay as NULL — e.g. approvedBy, reviewedBy, verifiedBy, adminId)
-    // These must come FIRST so the rows that own them don't block later deletes.
-    await db.execute(sql`UPDATE transactions SET approved_by = NULL WHERE approved_by = ${id}`);
-    await db.execute(sql`UPDATE escrow_payments SET verified_by = NULL WHERE verified_by = ${id}`);
-    await db.execute(sql`UPDATE micro_task_submissions SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
-    await db.execute(sql`UPDATE p2p_task_addon_submissions SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
-    await db.execute(sql`UPDATE task_submissions SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
-    await db.execute(sql`UPDATE p2p_transactions SET admin_id = NULL WHERE admin_id = ${id}`);
-    await db.execute(sql`UPDATE p2p_transactions SET dispute_winner_id = NULL WHERE dispute_winner_id = ${id}`);
-    await db.execute(sql`UPDATE p2p_listings SET approved_by = NULL WHERE approved_by = ${id}`);
-    await db.execute(sql`UPDATE content_reports SET reviewed_by = NULL WHERE reviewed_by = ${id}`);
-    await db.execute(sql`UPDATE push_notification_campaigns SET created_by = NULL WHERE created_by = ${id}`).catch(() => {});
-    await db.execute(sql`UPDATE p2p_fee_config SET updated_by = NULL WHERE updated_by = ${id}`).catch(() => {});
-    await db.execute(sql`UPDATE payout_requests SET processed_by = NULL WHERE processed_by = ${id}`).catch(() => {});
-    await db.execute(sql`UPDATE campaign_micro_tasks SET reviewed_by = NULL WHERE reviewed_by = ${id}`).catch(() => {});
+    // ── Phase 1: NULL-OUT nullable FKs that point at this user ─────────
+    // Do this before ANY deletions so we never block on a soft reference.
+    await db.execute(sql`UPDATE transactions               SET approved_by        = NULL WHERE approved_by        = ${id}`);
+    await db.execute(sql`UPDATE escrow_payments            SET verified_by        = NULL WHERE verified_by        = ${id}`);
+    await db.execute(sql`UPDATE micro_task_submissions     SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql`UPDATE task_submissions           SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql`UPDATE p2p_task_addon_submissions SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql`UPDATE p2p_transactions           SET admin_id           = NULL WHERE admin_id           = ${id}`);
+    await db.execute(sql`UPDATE p2p_transactions           SET dispute_winner_id  = NULL WHERE dispute_winner_id  = ${id}`);
+    await db.execute(sql`UPDATE p2p_listings               SET approved_by        = NULL WHERE approved_by        = ${id}`);
+    await db.execute(sql`UPDATE content_reports            SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql`UPDATE course_enrollments         SET approved_by        = NULL WHERE approved_by        = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE payout_requests            SET processed_by       = NULL WHERE processed_by       = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE campaign_micro_tasks       SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE push_notification_campaigns SET created_by        = NULL WHERE created_by         = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE p2p_fee_config             SET updated_by         = NULL WHERE updated_by         = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE platform_fees              SET updated_by         = NULL WHERE updated_by         = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE leaderboard_rewards        SET sponsor_brand_id   = NULL WHERE sponsor_brand_id   = ${id}`).catch(() => {});
+    await db.execute(sql`UPDATE leaderboard_giveaways      SET sponsor_brand_id   = NULL WHERE sponsor_brand_id   = ${id}`).catch(() => {});
 
-    // ── Step 2: Delete leaf-level activity rows (no other rows depend on these)
+    // ── Phase 2: User activity in OTHER people's content ───────────────
 
-    // Social / community content
+    // Feed posts
     await db.delete(postComments).where(eq(postComments.userId, id));
     await db.delete(postLikes).where(eq(postLikes.userId, id));
     await db.delete(posts).where(eq(posts.userId, id));
 
     // Blog activity
-    await db.execute(sql`DELETE FROM blog_likes WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM blog_comments WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM blog_likes            WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM blog_comments         WHERE user_id = ${id}`);
     await db.execute(sql`DELETE FROM blog_category_follows WHERE user_id = ${id}`).catch(() => {});
+    await db.execute(sql`DELETE FROM blog_tips             WHERE user_id = ${id}`).catch(() => {});
 
-    // Shop activity
+    // Shop: this user's purchases and reviews/likes as a buyer
     await db.delete(productReviews).where(eq(productReviews.userId, id));
-    await db.execute(sql`DELETE FROM product_likes WHERE user_id = ${id}`).catch(() => {});
+    await db.execute(sql`DELETE FROM product_likes         WHERE user_id = ${id}`).catch(() => {});
     await db.delete(purchases).where(eq(purchases.userId, id));
 
-    // Course activity
-    await db.execute(sql`DELETE FROM course_messages WHERE sender_id = ${id} OR recipient_id = ${id}`).catch(() => {});
-    await db.execute(sql`DELETE FROM course_likes WHERE user_id = ${id}`).catch(() => {});
+    // Course activity (as student / participant in any course)
+    await db.execute(sql`DELETE FROM course_messages        WHERE sender_id = ${id} OR recipient_id = ${id}`).catch(() => {});
+    await db.execute(sql`DELETE FROM course_likes           WHERE user_id = ${id}`).catch(() => {});
     await db.execute(sql`DELETE FROM course_community_likes WHERE user_id = ${id}`);
     await db.execute(sql`DELETE FROM course_community_posts WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM course_comments WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM course_reviews WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_comments        WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_reviews         WHERE user_id = ${id}`);
     await db.execute(sql`DELETE FROM course_lesson_progress WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM course_certificates WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM course_assignments WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_certificates    WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM course_assignments     WHERE user_id = ${id}`);
     await db.delete(courseEnrollments).where(eq(courseEnrollments.userId, id));
 
     // Subscriptions & notifications
     await db.delete(subscriptions).where(eq(subscriptions.userId, id));
     await db.delete(notifications).where(eq(notifications.userId, id));
 
-    // Task / micro-task activity
+    // Task / micro-task / social-task activity
     await db.delete(taskSubmissions).where(eq(taskSubmissions.userId, id));
     await db.delete(microTaskSubmissions).where(eq(microTaskSubmissions.userId, id));
     await db.delete(userSocialTaskCompletions).where(eq(userSocialTaskCompletions.userId, id));
     await db.execute(sql`DELETE FROM welcome_task_completions WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM user_points WHERE user_id = ${id}`).catch(() => {});
+    await db.execute(sql`DELETE FROM user_points              WHERE user_id = ${id}`).catch(() => {});
 
-    // Campaign activity
+    // Campaign participations
     await db.delete(campaignParticipations).where(eq(campaignParticipations.userId, id));
 
-    // Financial — payout messages MUST be deleted before payout requests (FK chain)
+    // ── Phase 3: Financial records ─────────────────────────────────────
+
+    // payout_messages.senderId has a NOT NULL FK → users; delete BEFORE payout_requests
     await db.execute(sql`DELETE FROM payout_messages WHERE sender_id = ${id}`).catch(() => {});
-    await db.execute(sql`DELETE FROM payout_requests WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM payout_requests WHERE user_id   = ${id}`);
     await db.delete(transactions).where(eq(transactions.userId, id));
-    await db.execute(sql`DELETE FROM referrals WHERE referrer_id = ${id} OR referred_id = ${id}`);
-    await db.execute(sql`DELETE FROM payment_deposits WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM referrals        WHERE referrer_id = ${id} OR referred_id = ${id}`);
+    await db.execute(sql`DELETE FROM payment_deposits WHERE user_id    = ${id}`);
 
-    // Social graph
-    await db.execute(sql`DELETE FROM user_social_links WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM portfolio_items WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM user_follows WHERE follower_id = ${id} OR following_id = ${id}`);
-    await db.execute(sql`DELETE FROM blocked_users WHERE blocker_id = ${id} OR blocked_id = ${id}`);
-    await db.execute(sql`DELETE FROM content_reports WHERE reporter_id = ${id}`);
+    // ── Phase 4: Social graph & inbox ──────────────────────────────────
+    await db.execute(sql`DELETE FROM user_social_links WHERE user_id      = ${id}`);
+    await db.execute(sql`DELETE FROM portfolio_items    WHERE user_id      = ${id}`);
+    await db.execute(sql`DELETE FROM user_follows       WHERE follower_id  = ${id} OR following_id = ${id}`);
+    await db.execute(sql`DELETE FROM blocked_users      WHERE blocker_id   = ${id} OR blocked_id   = ${id}`);
+    await db.execute(sql`DELETE FROM content_reports    WHERE reporter_id  = ${id}`);
+    await db.execute(sql`DELETE FROM messages           WHERE sender_id    = ${id} OR receiver_id  = ${id}`);
+    await db.execute(sql`DELETE FROM direct_hire_offers WHERE brand_id     = ${id} OR influencer_id = ${id}`);
 
-    // Messages (general inbox)
-    await db.execute(sql`DELETE FROM messages WHERE sender_id = ${id} OR receiver_id = ${id}`);
-
-    // Direct hires
-    await db.execute(sql`DELETE FROM direct_hire_offers WHERE brand_id = ${id} OR influencer_id = ${id}`);
-
-    // P2P — messages and logs before transactions, transactions before listings
-    await db.execute(sql`DELETE FROM p2p_messages WHERE sender_id = ${id}`);
-    await db.execute(sql`DELETE FROM p2p_action_logs WHERE actor_id = ${id}`);
+    // ── Phase 5: P2P ───────────────────────────────────────────────────
+    // p2p_messages.transactionId references p2pTransactions.id WITHOUT cascade
+    // → must delete ALL messages in this user's transactions BEFORE the transactions
+    await db.execute(sql`
+      DELETE FROM p2p_messages
+      WHERE transaction_id IN (
+        SELECT id FROM p2p_transactions WHERE buyer_id = ${id} OR seller_id = ${id}
+      )
+    `);
+    await db.execute(sql`DELETE FROM p2p_messages    WHERE sender_id = ${id}`);
+    await db.execute(sql`DELETE FROM p2p_action_logs WHERE actor_id  = ${id}`);
     await db.execute(sql`DELETE FROM p2p_transactions WHERE buyer_id = ${id} OR seller_id = ${id}`);
-    await db.execute(sql`DELETE FROM p2p_listings WHERE seller_id = ${id}`);
+    await db.execute(sql`DELETE FROM p2p_listings    WHERE seller_id = ${id}`);
 
-    // Brand-specific resources
+    // ── Phase 6: Brand / escrow resources ──────────────────────────────
     await db.delete(escrowPayments).where(eq(escrowPayments.brandId, id));
     await db.delete(paymentDeposits).where(eq(paymentDeposits.brandId, id));
     await db.delete(brandWallets).where(eq(brandWallets.brandId, id));
     await db.execute(sql`DELETE FROM advertise_applications WHERE user_id = ${id}`).catch(() => {});
-    await db.execute(sql`DELETE FROM push_subscriptions WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM push_subscriptions     WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM user_reviews           WHERE reviewer_id = ${id} OR reviewee_id = ${id}`);
+    await db.execute(sql`DELETE FROM breedskool_registrations WHERE user_id  = ${id}`);
+    await db.execute(sql`DELETE FROM hire_developer_requests  WHERE user_id  = ${id}`).catch(() => {});
 
-    // User reviews (both roles)
-    await db.execute(sql`DELETE FROM user_reviews WHERE reviewer_id = ${id} OR reviewee_id = ${id}`);
+    // ── Phase 7: Shop products this user CREATED ───────────────────────
+    // Other users' purchases, reviews, and likes of this user's products
+    // must be cleared before the products can be deleted.
+    await db.execute(sql`
+      UPDATE product_reviews SET purchase_id = NULL
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `).catch(() => {});
+    await db.execute(sql`
+      DELETE FROM purchases
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `);
+    await db.execute(sql`
+      DELETE FROM product_reviews
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `);
+    await db.execute(sql`
+      DELETE FROM product_likes
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `).catch(() => {});
+    await db.execute(sql`DELETE FROM shop_products WHERE created_by = ${id}`);
 
-    // BreedSkool registrations
-    await db.execute(sql`DELETE FROM breedskool_registrations WHERE user_id = ${id}`);
-
-    // Delete user's campaigns — participations and micro-tasks first
+    // ── Phase 8: Campaigns this user CREATED (as brand) ────────────────
+    // campaign_micro_tasks.brandId is NOT NULL → delete before campaigns
+    await db.execute(sql`DELETE FROM campaign_micro_tasks WHERE brand_id = ${id}`);
     const userCampaigns = await db.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.brandId, id));
     for (const c of userCampaigns) {
       await db.delete(campaignParticipations).where(eq(campaignParticipations.campaignId, c.id));
@@ -796,16 +829,17 @@ export class DatabaseStorage implements IStorage {
     }
     await db.delete(campaigns).where(eq(campaigns.brandId, id));
 
-    // Blog posts authored by this user
+    // ── Phase 9: Blog posts authored by this user ───────────────────────
     await db.delete(blogPosts).where(eq(blogPosts.authorId, id));
 
-    // Shop products created by this user (purchases already cleared above)
-    await db.execute(sql`DELETE FROM shop_products WHERE created_by = ${id}`);
+    // ── Phase 10: Courses this user CREATED (as instructor) ─────────────
+    // courses.instructorId is NOT NULL without cascade.
+    // Deleting a course cascades: enrollments, reviews, comments, likes,
+    // messages, lesson_progress, certificates, assignments, community posts/likes.
+    // course_messages senderId/recipientId rows were already deleted in Phase 2.
+    await db.execute(sql`DELETE FROM courses WHERE instructor_id = ${id}`);
 
-    // Hire-developer requests (if table exists — older schema)
-    await db.execute(sql`DELETE FROM hire_developer_requests WHERE user_id = ${id}`).catch(() => {});
-
-    // Finally delete the user record itself
+    // ── Phase 11: Delete the user ────────────────────────────────────────
     await db.delete(users).where(eq(users.id, id));
   }
 
