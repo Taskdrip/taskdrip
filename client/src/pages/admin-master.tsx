@@ -2200,6 +2200,36 @@ export default function AdminMaster() {
     retry: false,
   });
 
+  const { data: adminPurchases = [], refetch: refetchPurchases } = useQuery<any[]>({
+    queryKey: ["/api/admin/purchases"],
+    enabled: canManageStore || isFullAdmin,
+    retry: false,
+    refetchInterval: 30000,
+  });
+
+  const [ordersFilter, setOrdersFilter] = useState<string>("all");
+  const [selectedOrderForDeliver, setSelectedOrderForDeliver] = useState<any>(null);
+  const [deliverForm, setDeliverForm] = useState({
+    downloadUrl: "", accessUrl: "", licenseKey: "", accessNotes: "", adminNotes: "", status: "delivered",
+  });
+
+  const deliverOrderMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof deliverForm }) =>
+      (await apiRequest("PATCH", `/api/admin/purchases/${id}/deliver`, data)).json(),
+    onSuccess: () => {
+      refetchPurchases();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+      setSelectedOrderForDeliver(null);
+      setDeliverForm({ downloadUrl: "", accessUrl: "", licenseKey: "", accessNotes: "", adminNotes: "", status: "delivered" });
+      toast({ title: "✅ Order delivered!", description: "Buyer has been notified with access details." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const filteredPurchases = adminPurchases.filter((p: any) =>
+    ordersFilter === "all" ? true : p.status === ordersFilter
+  );
+
   const { data: adminFeedPosts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/feed-posts"],
     enabled: canManageContent || canModerate,
@@ -6324,6 +6354,217 @@ export default function AdminMaster() {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ═══ SHOP ORDERS / PURCHASES ═══ */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingBag className="h-5 w-5 text-indigo-600" />
+                    Shop Orders ({adminPurchases.length})
+                  </CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    {(["all", "pending", "paid", "delivered", "cancelled"] as const).map((s) => {
+                      const count = s === "all" ? adminPurchases.length : adminPurchases.filter((p: any) => p.status === s).length;
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setOrdersFilter(s)}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${ordersFilter === s ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"}`}
+                        >
+                          {s.charAt(0).toUpperCase() + s.slice(1)} ({count})
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => refetchPurchases()} className="px-3 py-1 rounded-full text-xs font-semibold border bg-white text-gray-600 border-gray-200 hover:border-indigo-300 flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3" /> Refresh
+                    </button>
+                  </div>
+                </div>
+                {/* Order stats row */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                  {[
+                    { label: "Pending", count: adminPurchases.filter((p: any) => p.status === "pending").length, color: "text-amber-600", bg: "bg-amber-50" },
+                    { label: "Paid (Awaiting Delivery)", count: adminPurchases.filter((p: any) => p.status === "paid").length, color: "text-blue-600", bg: "bg-blue-50" },
+                    { label: "Delivered", count: adminPurchases.filter((p: any) => p.status === "delivered").length, color: "text-green-600", bg: "bg-green-50" },
+                    { label: "Total Revenue", count: `$${adminPurchases.reduce((acc: number, p: any) => acc + (parseFloat(p.totalAmount) || 0), 0).toFixed(2)}`, color: "text-indigo-600", bg: "bg-indigo-50" },
+                  ].map((s) => (
+                    <div key={s.label} className={`${s.bg} rounded-xl p-3`}>
+                      <p className={`text-xl font-bold ${s.color}`}>{s.count}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredPurchases.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <ShoppingBag className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p className="font-medium">No {ordersFilter === "all" ? "" : ordersFilter} orders yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredPurchases.map((order: any) => {
+                      const dd = (order.deliveryDetails as any) || {};
+                      const statusColors: Record<string, string> = {
+                        pending: "bg-amber-100 text-amber-700",
+                        paid: "bg-blue-100 text-blue-700",
+                        delivered: "bg-green-100 text-green-700",
+                        completed: "bg-emerald-100 text-emerald-700",
+                        cancelled: "bg-red-100 text-red-700",
+                      };
+                      return (
+                        <div key={order.id} className="border border-gray-200 rounded-2xl p-4 hover:border-indigo-200 transition-all">
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            {/* Product image */}
+                            {order.product?.imageUrl && (
+                              <img src={order.product.imageUrl} alt={order.product?.title} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                                <div>
+                                  <p className="font-bold text-gray-900 truncate">{order.product?.title || "Unknown Product"}</p>
+                                  <p className="text-xs text-gray-500">{order.product?.category} · {order.product?.type}</p>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}>
+                                  {order.status.toUpperCase()}
+                                </span>
+                              </div>
+
+                              {/* Buyer info */}
+                              <div className="flex items-center gap-2 mb-2">
+                                {order.buyer?.profileImage ? (
+                                  <img src={order.buyer.profileImage} alt="" className="w-7 h-7 rounded-full object-cover" />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
+                                    {(order.buyer?.username || order.buyer?.email || "?")[0].toUpperCase()}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{order.buyer?.fullName || order.buyer?.username || "Unknown buyer"}</p>
+                                  <p className="text-xs text-gray-400">{order.buyer?.email}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
+                                <span>💰 <b>${order.totalAmount}</b></span>
+                                <span>💳 {order.paymentMethod || "—"}</span>
+                                <span>📅 {new Date(order.createdAt).toLocaleDateString()}</span>
+                                {order.transactionHash && (
+                                  <span title={order.transactionHash} className="truncate max-w-[120px]">🔗 {order.transactionHash.slice(0, 12)}…</span>
+                                )}
+                              </div>
+
+                              {/* Payment proof */}
+                              {order.paymentProof && (
+                                <div className="mb-3">
+                                  <a href={order.paymentProof} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline bg-indigo-50 px-2 py-1 rounded-lg">
+                                    <Eye className="h-3 w-3" /> View Payment Proof
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* Delivery details if already set */}
+                              {(dd.downloadUrl || dd.accessUrl || dd.licenseKey) && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-3 text-xs space-y-1">
+                                  {dd.downloadUrl && <p>📥 Download: <a href={dd.downloadUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{dd.downloadUrl}</a></p>}
+                                  {dd.accessUrl && <p>🔗 Access: <a href={dd.accessUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{dd.accessUrl}</a></p>}
+                                  {dd.licenseKey && <p>🔑 Key: <code className="bg-white px-1 rounded">{dd.licenseKey}</code></p>}
+                                  {dd.accessNotes && <p>📋 Notes: {dd.accessNotes}</p>}
+                                </div>
+                              )}
+
+                              {/* Action buttons */}
+                              <div className="flex flex-wrap gap-2">
+                                <Dialog open={selectedOrderForDeliver?.id === order.id} onOpenChange={(v) => {
+                                  if (v) {
+                                    setSelectedOrderForDeliver(order);
+                                    setDeliverForm({
+                                      downloadUrl: dd.downloadUrl || "",
+                                      accessUrl: dd.accessUrl || "",
+                                      licenseKey: dd.licenseKey || "",
+                                      accessNotes: dd.accessNotes || "",
+                                      adminNotes: order.adminNotes || "",
+                                      status: order.status === "pending" ? "delivered" : order.status,
+                                    });
+                                  } else {
+                                    setSelectedOrderForDeliver(null);
+                                  }
+                                }}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" className={order.status === "delivered" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}>
+                                      {order.status === "delivered" ? <><CheckCircle className="h-3 w-3 mr-1" /> Delivered — Edit</> : <><Download className="h-3 w-3 mr-1" /> Approve &amp; Deliver</>}
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-lg">
+                                    <DialogHeader>
+                                      <DialogTitle>Deliver Order Access</DialogTitle>
+                                      <DialogDescription>
+                                        Set the access details for <b>{order.product?.title}</b>. The buyer will be notified instantly.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-2">
+                                      <div>
+                                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Order Status</Label>
+                                        <select value={deliverForm.status} onChange={(e) => setDeliverForm(f => ({ ...f, status: e.target.value }))}
+                                          className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                                          <option value="pending">Pending</option>
+                                          <option value="paid">Paid (awaiting delivery)</option>
+                                          <option value="delivered">Delivered ✅</option>
+                                          <option value="cancelled">Cancelled</option>
+                                        </select>
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Download URL</Label>
+                                        <Input className="mt-1" value={deliverForm.downloadUrl} onChange={(e) => setDeliverForm(f => ({ ...f, downloadUrl: e.target.value }))} placeholder="https://drive.google.com/... or direct link" />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Access URL (dashboard / portal)</Label>
+                                        <Input className="mt-1" value={deliverForm.accessUrl} onChange={(e) => setDeliverForm(f => ({ ...f, accessUrl: e.target.value }))} placeholder="https://app.example.com/access" />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">License / Access Key</Label>
+                                        <Input className="mt-1" value={deliverForm.licenseKey} onChange={(e) => setDeliverForm(f => ({ ...f, licenseKey: e.target.value }))} placeholder="LICENSE-XXXX-XXXX-XXXX" />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Access Notes (shown to buyer)</Label>
+                                        <Textarea className="mt-1" value={deliverForm.accessNotes} onChange={(e) => setDeliverForm(f => ({ ...f, accessNotes: e.target.value }))} placeholder="Setup instructions, login details, onboarding steps..." rows={3} />
+                                      </div>
+                                      <div>
+                                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Admin Notes (internal only)</Label>
+                                        <Textarea className="mt-1" value={deliverForm.adminNotes} onChange={(e) => setDeliverForm(f => ({ ...f, adminNotes: e.target.value }))} placeholder="Internal notes..." rows={2} />
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button variant="outline" onClick={() => setSelectedOrderForDeliver(null)}>Cancel</Button>
+                                      <Button
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                        disabled={deliverOrderMutation.isPending}
+                                        onClick={() => deliverOrderMutation.mutate({ id: order.id, data: deliverForm })}
+                                      >
+                                        {deliverOrderMutation.isPending ? "Saving..." : "Save & Notify Buyer"}
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+
+                                {order.buyer?.id && (
+                                  <RouterLink href={`/messages?to=${order.buyer.id}`}>
+                                    <Button size="sm" variant="outline" className="gap-1">
+                                      <MessageCircle className="h-3 w-3" /> Chat with Buyer
+                                    </Button>
+                                  </RouterLink>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </CardContent>
             </Card>

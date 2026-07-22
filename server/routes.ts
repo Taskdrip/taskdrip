@@ -4221,7 +4221,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.get('/api/admin/purchases', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.role !== 'admin') {
+      if (user.userType !== 'admin' && user.role !== 'admin') {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -4230,6 +4230,20 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     } catch (error) {
       console.error("Error fetching purchases:", error);
       res.status(500).json({ message: "Failed to fetch purchases" });
+    }
+  });
+
+  // ── Public: get admin contact ID so anyone can message admin ─────────
+  app.get('/api/admin/contact', async (_req, res) => {
+    try {
+      const [admin] = await db.select({ id: users.id, username: users.username, profileImage: users.profileImage })
+        .from(users)
+        .where(eq(users.userType, 'admin'))
+        .limit(1);
+      if (!admin) return res.status(404).json({ message: 'Admin not found' });
+      res.json(admin);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
     }
   });
 
@@ -7777,7 +7791,7 @@ Instructions:
         type: 'order_delivered',
         title: '🎉 Your order is ready',
         content: `Your purchase of "${product?.title || 'product'}" has been fulfilled. View access details in My Orders.`,
-        actionUrl: '/my-orders',
+        actionUrl: `/my-orders?order=${existing.id}`,
         relatedId: existing.id,
       });
       res.json(updated);

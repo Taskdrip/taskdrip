@@ -7,7 +7,7 @@ import {
   ShoppingCart, Star, Download, ExternalLink, ChevronLeft, 
   Package, Shield, CheckCircle, MessageCircle, Share2, Flag,
   Heart, Eye, Calendar, Tag, ArrowRight, PlayCircle,
-  ThumbsUp, ThumbsDown
+  ThumbsUp, ThumbsDown, Briefcase
 } from "lucide-react";
 import { ReportDialog } from "@/components/ui/report-dialog";
 import { shareItem } from "@/lib/share";
@@ -47,6 +47,11 @@ export default function ProductDetail() {
   const { data: relatedProducts = [] } = useQuery<ShopProduct[]>({
     queryKey: ["/api/shop/products/category", product?.category],
     enabled: !!product?.category,
+  });
+
+  const { data: adminContact } = useQuery<{ id: string; username: string }>({
+    queryKey: ["/api/admin/contact"],
+    staleTime: 5 * 60 * 1000,
   });
 
   const createReviewMutation = useMutation({
@@ -396,6 +401,24 @@ export default function ProductDetail() {
             <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 p-3 rounded-lg">
               <Shield className="w-5 h-5 text-green-500" />
               <span>Secure admin-reviewed checkout before product delivery</span>
+            </div>
+
+            {/* Chat + Hire Developer CTAs */}
+            <div className="grid grid-cols-2 gap-3">
+              {adminContact?.id && (
+                <Link href={`/messages?to=${adminContact.id}`}>
+                  <Button variant="outline" className="w-full gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                    <MessageCircle className="w-4 h-4" />
+                    Chat with Admin
+                  </Button>
+                </Link>
+              )}
+              <Link href="/hire-developer">
+                <Button variant="outline" className="w-full gap-2 border-purple-200 text-purple-700 hover:bg-purple-50">
+                  <Briefcase className="w-4 h-4" />
+                  Hire a Developer
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

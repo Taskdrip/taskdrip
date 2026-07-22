@@ -16,7 +16,7 @@ import {
   ThumbsUp, ThumbsDown, Shield, Zap, Download, TrendingUp,
   Filter, SlidersHorizontal, ChevronRight, ChevronLeft, Globe, Github,
   Rocket, BadgeCheck, X, Wallet, Coins, Send, Gift, Copy, CheckCircle2,
-  Lock, Repeat2, ArrowUpRight
+  Lock, Repeat2, ArrowUpRight, MessageCircle, Briefcase
 } from "lucide-react";
 import type { ShopProduct } from "@shared/schema";
 import { Spotlight } from "@/components/Spotlight";
@@ -638,6 +638,11 @@ export default function Shop() {
     queryKey: ["/api/shop/products/featured"],
   });
 
+  const { data: adminContact } = useQuery<{ id: string; username: string; profileImage?: string }>({
+    queryKey: ["/api/admin/contact"],
+    staleTime: 5 * 60 * 1000,
+  });
+
   const tags = Array.from(new Set(products.flatMap((p) => p.tags || []))).slice(0, 18);
   const types = Array.from(new Set(products.map((p) => p.type).filter(Boolean)));
   const clearFilters = () => {
@@ -875,13 +880,30 @@ export default function Shop() {
           <p className="text-white/80 max-w-lg mx-auto mb-6">
             Shop purchases can use admin-configured payment options. Payment proofs are reviewed before delivery so buyers and sellers stay protected.
           </p>
-          <div className="flex items-center justify-center gap-8 flex-wrap">
+          <div className="flex items-center justify-center gap-4 flex-wrap mb-6">
             {["Manual review", "Digital delivery", "Verified products"].map((m) => (
               <div key={m} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2">
                 <Shield className="h-4 w-4 text-green-400" />
                 <span className="text-sm font-semibold">{m}</span>
               </div>
             ))}
+          </div>
+          {/* Help CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {adminContact?.id && (
+              <Link href={`/messages?to=${adminContact.id}`}>
+                <button className="flex items-center gap-2 bg-white text-slate-900 font-bold px-6 py-3 rounded-2xl hover:bg-indigo-50 transition-all shadow-lg">
+                  <MessageCircle className="h-5 w-5 text-indigo-600" />
+                  Chat with Admin
+                </button>
+              </Link>
+            )}
+            <Link href="/hire-developer">
+              <button className="flex items-center gap-2 bg-indigo-500/30 hover:bg-indigo-500/50 border border-white/30 text-white font-bold px-6 py-3 rounded-2xl transition-all shadow-lg">
+                <Briefcase className="h-5 w-5 text-cyan-300" />
+                Hire a Developer
+              </button>
+            </Link>
           </div>
         </div>
       </div>
