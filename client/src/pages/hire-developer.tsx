@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Code2, DollarSign, Calendar, MessageCircle, CheckCircle,
   User, Mail, Lock, Briefcase, Zap, Shield, Clock,
-  ArrowRight, Star,
+  ArrowRight, Star, Phone, Send,
 } from "lucide-react";
 
 const PROJECT_TYPES = [
@@ -48,6 +49,14 @@ const TIMELINES = [
   { value: "flexible", label: "Flexible" },
 ];
 
+const CONTACT_METHODS = [
+  { value: "in_app_chat", label: "In-app Chat (preferred)" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "telegram", label: "Telegram" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone / Voice Call" },
+];
+
 export default function HireDeveloper() {
   const [, setLocation] = useLocation();
   const { user, isLoading: authLoading } = useAuth();
@@ -60,6 +69,13 @@ export default function HireDeveloper() {
   const [budget, setBudget] = useState("");
   const [timeline, setTimeline] = useState("");
   const [features, setFeatures] = useState("");
+
+  // Contact details
+  const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [telegram, setTelegram] = useState("");
+  const [preferredContact, setPreferredContact] = useState("in_app_chat");
+  const [contactEmail, setContactEmail] = useState((user as any)?.email || "");
 
   // Account creation (if not logged in)
   const [firstName, setFirstName] = useState("");
@@ -78,6 +94,12 @@ export default function HireDeveloper() {
         budget,
         timeline,
         features,
+        // contact details
+        phone: phone.trim() || undefined,
+        whatsapp: whatsapp.trim() || undefined,
+        telegram: telegram.trim() || undefined,
+        preferredContact,
+        contactEmail: contactEmail.trim() || undefined,
         // account creation fields (only used when not logged in)
         firstName: user ? undefined : firstName,
         lastName: user ? undefined : lastName,
@@ -93,8 +115,11 @@ export default function HireDeveloper() {
     },
     onSuccess: (data) => {
       setSubmitted(true);
+      // Invalidate auth so a newly created session is recognised by the chat page
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       setTimeout(() => {
-        // Redirect to messages with admin
         setLocation(data?.adminId ? `/messages?to=${data.adminId}` : "/messages");
       }, 2500);
     },
@@ -263,6 +288,78 @@ export default function HireDeveloper() {
             </div>
           </div>
 
+          {/* ── Contact Details ── */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center">
+                <Phone className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Contact Details</h2>
+                <p className="text-xs text-gray-500">How should we reach you to discuss your project?</p>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-gray-300 text-sm mb-1.5 block">Preferred Contact Method</Label>
+              <Select value={preferredContact} onValueChange={setPreferredContact}>
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectValue placeholder="How should we contact you?" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {CONTACT_METHODS.map(m => (
+                    <SelectItem key={m.value} value={m.value} className="text-gray-200 focus:bg-gray-700">{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300 text-sm mb-1.5 block">
+                  <Phone className="h-3.5 w-3.5 inline mr-1 text-gray-400" /> Phone / WhatsApp Number
+                </Label>
+                <Input
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+1 234 567 8900"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <Label className="text-gray-300 text-sm mb-1.5 block">
+                  <Send className="h-3.5 w-3.5 inline mr-1 text-blue-400" /> Telegram Handle
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">@</span>
+                  <Input
+                    value={telegram}
+                    onChange={e => setTelegram(e.target.value)}
+                    placeholder="yourusername"
+                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-7 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-gray-300 text-sm mb-1.5 block">
+                <Mail className="h-3.5 w-3.5 inline mr-1 text-violet-400" /> Email for follow-up
+              </Label>
+              <Input
+                type="email"
+                value={contactEmail}
+                onChange={e => setContactEmail(e.target.value)}
+                placeholder={user ? (user as any).email : "you@example.com"}
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-violet-500"
+              />
+            </div>
+
+            <p className="text-xs text-gray-600 border border-gray-800 rounded-lg px-3 py-2 bg-gray-900/50">
+              💬 After you submit, you'll be taken directly to an in-app chat with our developer. The contact details above are a backup so we can reach you outside the platform if needed.
+            </p>
+          </div>
+
           {/* Account creation (only when not logged in) */}
           {!authLoading && !user && (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
@@ -307,7 +404,10 @@ export default function HireDeveloper() {
                   <Input
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      if (!contactEmail) setContactEmail(e.target.value);
+                    }}
                     placeholder="you@example.com"
                     className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 pl-10 focus:border-violet-500"
                   />

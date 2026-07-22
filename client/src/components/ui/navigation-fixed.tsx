@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap, Code2 } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -385,6 +385,17 @@ export function NavigationFixed() {
 
           {/* Right side */}
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
+            {/* Hire a Developer — always visible on desktop */}
+            <Link href="/hire-developer" className="hidden sm:block">
+              <button
+                data-testid="button-hire-developer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm transition-all whitespace-nowrap"
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                Hire Dev
+              </button>
+            </Link>
+
             {isAuthenticated ? (
               <>
                 {/* Animated upgrade button — only for free non-admin users */}
@@ -604,6 +615,17 @@ export function NavigationFixed() {
                   {item.label}
                 </Link>
               ))}
+
+              {/* Hire Developer CTA — mobile */}
+              <Link
+                href="/hire-developer"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 mx-2 mt-1 mb-1 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/30 text-violet-400 font-bold text-sm"
+                data-testid="link-mobile-hire-developer"
+              >
+                <Code2 className="h-4 w-4" />
+                Hire a Developer
+              </Link>
 
               {/* Auth buttons in mobile menu */}
               {!isAuthenticated && (

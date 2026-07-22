@@ -725,7 +725,7 @@ export default function Shop() {
           </div>
 
           {/* Search */}
-          <div className="max-w-xl mx-auto relative">
+          <div className="max-w-xl mx-auto relative mb-6">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               value={searchTerm}
@@ -734,6 +734,20 @@ export default function Shop() {
               className="pl-14 pr-4 h-14 text-base bg-white/95 backdrop-blur rounded-2xl border-0 shadow-2xl text-gray-900 placeholder-gray-400"
               data-testid="input-shop-search"
             />
+          </div>
+
+          {/* Hire Developer CTA */}
+          <div className="inline-flex flex-col sm:flex-row items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 shadow-xl">
+            <div className="text-left">
+              <p className="text-white font-bold text-sm">Need a custom solution?</p>
+              <p className="text-white/60 text-xs">Get a full-stack project built for you by our developer</p>
+            </div>
+            <Link href="/hire-developer">
+              <button className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-violet-900/40 transition-all whitespace-nowrap">
+                <Briefcase className="h-4 w-4" />
+                Hire a Developer
+              </button>
+            </Link>
           </div>
         </div>
       </div>

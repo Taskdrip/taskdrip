@@ -5345,6 +5345,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     try {
       const {
         title, description, projectType, budget, timeline, features,
+        // contact details
+        phone, whatsapp, telegram, preferredContact, contactEmail,
         // account creation (only when unauthenticated)
         firstName, lastName, email, password,
       } = req.body || {};
@@ -5405,6 +5407,18 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         marketplace: "Marketplace Platform", other: "Other / Custom",
       };
 
+      const contactLines: string[] = [];
+      if (phone) contactLines.push(`📞 Phone/WhatsApp: ${phone}`);
+      if (telegram) contactLines.push(`✈️ Telegram: @${telegram.replace(/^@/, '')}`);
+      if (contactEmail) contactLines.push(`📧 Email: ${contactEmail}`);
+      if (preferredContact) {
+        const contactLabels: Record<string, string> = {
+          in_app_chat: 'In-app Chat', whatsapp: 'WhatsApp', telegram: 'Telegram',
+          email: 'Email', phone: 'Phone / Voice Call',
+        };
+        contactLines.push(`⭐ Preferred contact: ${contactLabels[preferredContact] || preferredContact}`);
+      }
+
       const messageContent = `🚀 NEW PROJECT REQUEST\n\n` +
         `📌 Title: ${title}\n` +
         `🛠️ Type: ${typeLabels[projectType] || projectType}\n` +
@@ -5412,6 +5426,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         `⏱️ Timeline: ${timelineLabels[timeline] || timeline || "Not specified"}\n\n` +
         `📝 Description:\n${description}\n\n` +
         (features ? `✅ Key Features:\n${features}\n\n` : "") +
+        (contactLines.length ? `📬 Contact Details:\n${contactLines.join('\n')}\n\n` : "") +
         `---\nSubmitted via Hire Developer form. Reply in this chat to continue the conversation.`;
 
       const message = await storage.createMessage({
