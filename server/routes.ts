@@ -7970,8 +7970,21 @@ Instructions:
         const influencer = await storage.getUser(o.influencerId);
         return {
           ...o,
-          brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName } : null,
-          influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName } : null,
+          brand: brand ? {
+            id: brand.id,
+            firstName: brand.firstName,
+            lastName: brand.lastName,
+            companyName: brand.companyName,
+            email: brand.email,
+            username: brand.username,
+          } : null,
+          influencer: influencer ? {
+            id: influencer.id,
+            firstName: influencer.firstName,
+            lastName: influencer.lastName,
+            email: influencer.email,
+            username: influencer.username,
+          } : null,
         };
       }));
       res.json(enriched);
