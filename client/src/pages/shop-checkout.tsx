@@ -1022,8 +1022,8 @@ export default function ShopCheckout() {
                         <div className="flex items-start gap-3">
                           <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-violet-700">2</div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Access unlocked</p>
-                            <p className="text-xs text-gray-500">Download link delivered to your email</p>
+                            <p className="text-sm font-medium text-gray-900">Access unlocked in your dashboard</p>
+                            <p className="text-xs text-gray-500">Download link and full product details appear directly in your order page</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">

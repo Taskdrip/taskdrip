@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   return await bcrypt.hash(password, 10);
 }
 

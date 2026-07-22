@@ -41,6 +41,7 @@ const publicMainItems = [
 const secondaryMainItems = [
   { href: "/feed", label: "Feed" },
   { href: "/blog", label: "Blog" },
+  { href: "/hire-developer", label: "Hire a Developer" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/tdrip", label: "$TDrip" },
   { href: "/advertise", label: "Advertise" },

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth, isAuthenticated, hashPassword } from "./auth";
 import { registerShortenerRoutes } from "./url-shortener";
 import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
 import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blogger";
@@ -4076,11 +4076,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         storage.createNotification({
           userId: buyer.id,
           type: 'order',
-          title: product.isFree ? `${product.title} is ready! 🎉` : `Order received for ${product.title}`,
+          title: product.isFree ? `${product.title} is ready! 🎉` : `Order received: ${product.title}`,
           content: product.isFree
-            ? 'Your free product is approved and ready to access.'
-            : "Your payment is under review. We'll notify you once approved (usually within 24 hours).",
-          actionUrl: '/shop',
+            ? 'Your free product is approved — click to access it now.'
+            : "Your payment is under review. Click to track your order status.",
+          actionUrl: `/orders/${purchase.id}`,
           isRead: false,
           priority: 'high',
         }).catch(() => {});
@@ -5323,6 +5323,118 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: 'Failed to check block status' });
+    }
+  });
+
+  // ── Hire Developer: submit project request (with optional account creation) ──
+  app.post('/api/hire-developer', async (req: any, res) => {
+    try {
+      const {
+        title, description, projectType, budget, timeline, features,
+        // account creation (only when unauthenticated)
+        firstName, lastName, email, password,
+      } = req.body || {};
+
+      if (!title || !description || !projectType || !budget) {
+        return res.status(400).json({ message: "title, description, projectType, and budget are required" });
+      }
+
+      let userId: string | null = req.user?.id || null;
+
+      // ── Create account if the user is not logged in ──
+      if (!userId) {
+        if (!firstName || !lastName || !email || !password) {
+          return res.status(400).json({ message: "firstName, lastName, email, and password are required when not logged in" });
+        }
+        if (password.length < 6) {
+          return res.status(400).json({ message: "Password must be at least 6 characters" });
+        }
+        const existing = await storage.getUserByEmail(email);
+        if (existing) {
+          // Use existing account; authenticate below by returning its id
+          userId = existing.id;
+        } else {
+          const hashed = await hashPassword(password);
+          const newUser = await storage.createUser({
+            id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            email: email.toLowerCase().trim(),
+            password: hashed,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            username: email.toLowerCase().split("@")[0].replace(/[^a-z0-9_]/g, "_"),
+            userType: "creator",
+          } as any);
+          userId = newUser.id;
+
+          // Auto-login the newly created user
+          await new Promise<void>((resolve, reject) => {
+            req.login(newUser, (err: any) => (err ? reject(err) : resolve()));
+          });
+        }
+      }
+
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(404).json({ message: "No developer available" });
+
+      const budgetLabels: Record<string, string> = {
+        under_500: "Under $500", "500_2000": "$500 – $2,000", "2000_5000": "$2,000 – $5,000",
+        "5000_10000": "$5,000 – $10,000", over_10000: "$10,000+", discuss: "Let's discuss",
+      };
+      const timelineLabels: Record<string, string> = {
+        asap: "ASAP / Urgent", "1_2_weeks": "1 – 2 weeks", "1_month": "About 1 month",
+        "2_3_months": "2 – 3 months", flexible: "Flexible",
+      };
+      const typeLabels: Record<string, string> = {
+        web_app: "Web Application", ecommerce: "E-commerce Store", landing_page: "Landing Page / Website",
+        dashboard: "Dashboard / Admin Panel", mobile_app: "Mobile App", api_backend: "API / Backend System",
+        automation: "Automation / Bot", ai_integration: "AI / ChatGPT Integration",
+        marketplace: "Marketplace Platform", other: "Other / Custom",
+      };
+
+      const messageContent = `🚀 NEW PROJECT REQUEST\n\n` +
+        `📌 Title: ${title}\n` +
+        `🛠️ Type: ${typeLabels[projectType] || projectType}\n` +
+        `💰 Budget: ${budgetLabels[budget] || budget}\n` +
+        `⏱️ Timeline: ${timelineLabels[timeline] || timeline || "Not specified"}\n\n` +
+        `📝 Description:\n${description}\n\n` +
+        (features ? `✅ Key Features:\n${features}\n\n` : "") +
+        `---\nSubmitted via Hire Developer form. Reply in this chat to continue the conversation.`;
+
+      const message = await storage.createMessage({
+        senderId: userId,
+        receiverId: admin.id,
+        subject: `Project Request: ${title}`,
+        content: messageContent,
+        messageType: 'general',
+        attachments: [],
+      });
+
+      // Notify admin
+      await storage.createNotification({
+        userId: admin.id,
+        type: 'message',
+        title: `New dev project request: ${title}`,
+        content: `${typeLabels[projectType] || projectType} · ${budgetLabels[budget] || budget}`,
+        actionUrl: '/messages',
+        relatedId: message.id,
+      });
+
+      // Notify the user that their request was sent
+      await storage.createNotification({
+        userId: userId,
+        type: 'message',
+        title: 'Project request sent! 🚀',
+        content: `Your request for "${title}" was submitted. The developer will reply shortly.`,
+        actionUrl: '/messages',
+        relatedId: message.id,
+        isRead: false,
+        priority: 'high',
+      });
+
+      res.status(201).json({ messageId: message.id, adminId: admin.id });
+    } catch (error: any) {
+      console.error('hire-developer error:', error);
+      res.status(500).json({ message: error.message || "Failed to submit request" });
     }
   });
 

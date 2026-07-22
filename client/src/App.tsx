@@ -69,6 +69,7 @@ const AdminEmail = lazy(() => import("@/pages/admin-email"));
 const AdvertiseWithUs = lazy(() => import("@/pages/advertise-with-us"));
 const GetStarted = lazy(() => import("@/pages/get-started"));
 const DirectHirePayment = lazy(() => import("@/pages/direct-hire-payment"));
+const HireDeveloper = lazy(() => import("@/pages/hire-developer"));
 const LedgerPage = lazy(() => import("@/pages/ledger"));
 const SecuritySettings = lazy(() => import("@/pages/security-settings"));
 const ShortLinksPage = lazy(() => import("@/pages/short-links"));
@@ -206,6 +207,7 @@ function Router() {
         <Route path="/admin/spotlight" component={AdminSpotlight} />
         <Route path="/p2p-hub" component={P2PHub} />
         <Route path="/p2p/:id" component={P2PListing} />
+        <Route path="/hire-developer" component={HireDeveloper} />
         {isAuthenticated ? (
           <>
             <Route path="/dashboard" component={() => {
