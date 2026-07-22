@@ -763,7 +763,7 @@ export class DatabaseStorage implements IStorage {
     await db.execute(sql`DELETE FROM payout_requests WHERE user_id   = ${id}`);
     await db.delete(transactions).where(eq(transactions.userId, id));
     await db.execute(sql`DELETE FROM referrals        WHERE referrer_id = ${id} OR referred_id = ${id}`);
-    await db.execute(sql`DELETE FROM payment_deposits WHERE user_id    = ${id}`);
+    await db.execute(sql`DELETE FROM payment_deposits WHERE user_id    = ${id}`).catch(() => {});
 
     // ── Phase 4: Social graph & inbox ──────────────────────────────────
     await db.execute(sql`DELETE FROM user_social_links WHERE user_id      = ${id}`);
@@ -914,8 +914,9 @@ export class DatabaseStorage implements IStorage {
           id: users.id,
           username: users.username,
           email: users.email,
-          profileImage: users.profileImage,
-          fullName: users.fullName,
+          profileImage: users.profileImageUrl,
+          firstName: users.firstName,
+          lastName: users.lastName,
         },
       })
       .from(purchases)

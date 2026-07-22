@@ -5459,13 +5459,32 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         attachments: [],
       });
 
+      // Map budget range label to a representative number for the DB
+      const budgetNumberMap: Record<string, string> = {
+        under_500: "499", "500_2000": "1250", "2000_5000": "3500",
+        "5000_10000": "7500", over_10000: "15000", discuss: "0",
+      };
+      const budgetNumber = budgetNumberMap[budget] ?? "0";
+
+      // Create a direct_hire_offers record so the request appears in admin panel
+      await storage.createDirectHireOffer({
+        brandId: userId,
+        influencerId: admin.id,
+        title,
+        description: description + (features ? `\n\nKey Features:\n${features}` : "") +
+          (contactLines.length ? `\n\nContact:\n${contactLines.join('\n')}` : ""),
+        deliverables: features || null,
+        budget: budgetNumber,
+        status: "pending",
+      } as any).catch((e: any) => console.error("hire-offer insert failed:", e));
+
       // Notify admin
       await storage.createNotification({
         userId: admin.id,
         type: 'message',
         title: `New dev project request: ${title}`,
         content: `${typeLabels[projectType] || projectType} · ${budgetLabels[budget] || budget}`,
-        actionUrl: '/messages',
+        actionUrl: '/admin-dashboard',
         relatedId: message.id,
       });
 
