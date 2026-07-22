@@ -5507,6 +5507,20 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Hire Developer: get current user's dev project requests ──
+  app.get('/api/hire-developer/my-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.json([]);
+      // Dev project requests are stored as direct_hire_offers where brandId=user and influencerId=admin
+      const allSent = await storage.getDirectHireOffersByBrand(req.user.id);
+      const devRequests = allSent.filter((o: any) => o.influencerId === admin.id);
+      res.json(devRequests);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // ── Send message to admin (from escrow payment page) ───────────────
   app.post('/api/messages/to-admin', isAuthenticated, async (req: any, res) => {
     try {
@@ -7429,7 +7443,13 @@ Instructions:
     try {
       const offer = await storage.getDirectHireOffer(req.params.id);
       if (!offer) return res.status(404).json({ message: 'Offer not found' });
-      if (offer.status === 'pending') return res.status(400).json({ message: 'Chat opens after the offer is accepted' });
+      if (offer.status === 'pending') {
+        // Allow chat on pending offers only when the "influencer" is actually the admin developer
+        const devRecipient = await storage.getUser(offer.influencerId);
+        if (!devRecipient || devRecipient.userType !== 'admin') {
+          return res.status(400).json({ message: 'Chat opens after the offer is accepted' });
+        }
+      }
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== 'admin') {
         return res.status(403).json({ message: 'Forbidden' });
       }

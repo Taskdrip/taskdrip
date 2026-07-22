@@ -13,8 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
-import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail, Briefcase, Plus, Trash2, ExternalLink, Link2 } from "lucide-react";
+import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail, Briefcase, Plus, Trash2, ExternalLink, Link2, Code2 } from "lucide-react";
 import { DashboardSpotlight } from "@/components/DashboardSpotlight";
+import { DevProjectsTab } from "@/components/DevProjectsTab";
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -274,6 +275,9 @@ export default function Dashboard() {
           <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">
             <TabsTrigger value="overview" className="flex-1 min-w-[80px]">Overview</TabsTrigger>
             <TabsTrigger value="messages" className="flex-1 min-w-[80px]">Messages</TabsTrigger>
+            <TabsTrigger value="dev-projects" className="flex-1 min-w-[100px]" data-testid="tab-dev-projects">
+              <Code2 className="w-4 h-4 mr-1" /> Dev Projects
+            </TabsTrigger>
             <TabsTrigger value="portfolio" className="flex-1 min-w-[80px]" data-testid="tab-portfolio">
               <Briefcase className="w-4 h-4 mr-1" /> Portfolio
             </TabsTrigger>
@@ -419,6 +423,11 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Dev Projects Tab */}
+          <TabsContent value="dev-projects" className="space-y-6">
+            <DevProjectsTab />
           </TabsContent>
 
           {/* Messages Tab */}
