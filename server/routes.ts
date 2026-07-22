@@ -5467,16 +5467,40 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const budgetNumber = budgetNumberMap[budget] ?? "0";
 
       // Create a direct_hire_offers record so the request appears in admin panel
-      await storage.createDirectHireOffer({
-        brandId: userId,
-        influencerId: admin.id,
-        title,
-        description: description + (features ? `\n\nKey Features:\n${features}` : "") +
-          (contactLines.length ? `\n\nContact:\n${contactLines.join('\n')}` : ""),
-        deliverables: features || null,
-        budget: budgetNumber,
-        status: "pending",
-      } as any).catch((e: any) => console.error("hire-offer insert failed:", e));
+      let devOffer: any = null;
+      try {
+        devOffer = await storage.createDirectHireOffer({
+          brandId: userId,
+          influencerId: admin.id,
+          title,
+          description: description + (features ? `\n\nKey Features:\n${features}` : "") +
+            (contactLines.length ? `\n\nContact:\n${contactLines.join('\n')}` : ""),
+          deliverables: features || null,
+          budget: budgetNumber,
+          status: "pending",
+        } as any);
+      } catch (e: any) {
+        console.error("hire-offer insert failed:", e);
+      }
+
+      // Link the initial request as the first chat message on the offer,
+      // so the user can see it (and reply) from their Dev Projects tab.
+      if (devOffer?.id) {
+        try {
+          await storage.createMessage({
+            senderId: userId,
+            receiverId: admin.id,
+            subject: `Project Request: ${title}`,
+            content: messageContent,
+            messageType: 'direct_hire',
+            referenceType: 'direct_hire',
+            referenceId: devOffer.id,
+            attachments: [],
+          } as any);
+        } catch (e: any) {
+          console.error("hire-offer initial chat message failed:", e);
+        }
+      }
 
       // Notify admin
       await storage.createNotification({

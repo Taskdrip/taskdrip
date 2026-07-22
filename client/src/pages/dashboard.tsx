@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/ui/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +22,19 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+
+  // Read the initial tab from ?tab= query param so links like /dashboard?tab=dev-projects work
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tab");
+    return t || "overview";
+  });
+  const handleTabChange = useCallback((val: string) => {
+    setActiveTab(val);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", val);
+    window.history.replaceState(null, "", url.toString());
+  }, []);
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
   const [editingPortfolio, setEditingPortfolio] = useState<any>(null);
   const [portfolioForm, setPortfolioForm] = useState({ title: '', description: '', imageUrl: '', url: '', category: '' });
@@ -271,7 +284,7 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">
             <TabsTrigger value="overview" className="flex-1 min-w-[80px]">Overview</TabsTrigger>
             <TabsTrigger value="messages" className="flex-1 min-w-[80px]">Messages</TabsTrigger>

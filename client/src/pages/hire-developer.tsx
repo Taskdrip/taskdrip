@@ -139,14 +139,14 @@ export default function HireDeveloper() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       setSubmitted(true);
-      // Invalidate auth so a newly created session is recognised by the chat page
+      // Invalidate auth so a newly created session is recognised by the dashboard
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hire-developer/my-requests"] });
       setTimeout(() => {
-        setLocation(data?.adminId ? `/messages?to=${data.adminId}` : "/messages");
+        setLocation("/dashboard?tab=dev-projects");
       }, 2500);
     },
     onError: (e: any) => {
@@ -181,7 +181,7 @@ export default function HireDeveloper() {
           </div>
           <h2 className="text-3xl font-black text-white mb-3">Request Sent! 🎉</h2>
           <p className="text-gray-400 mb-2">Your project details have been sent to our developer.</p>
-          <p className="text-gray-500 text-sm">Redirecting you to your conversation now…</p>
+          <p className="text-gray-500 text-sm">Taking you to your Dev Projects tracker now…</p>
         </div>
       </div>
     );
