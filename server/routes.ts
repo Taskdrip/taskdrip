@@ -4260,12 +4260,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // ── Public: get admin contact ID so anyone can message admin ─────────
   app.get('/api/admin/contact', async (_req, res) => {
     try {
-      const [admin] = await db.select({ id: users.id, username: users.username, profileImage: users.profileImage })
-        .from(users)
-        .where(eq(users.userType, 'admin'))
-        .limit(1);
-      if (!admin) return res.status(404).json({ message: 'Admin not found' });
-      res.json(admin);
+      const result = await pool.query(
+        `SELECT id, username, profile_image_url AS "profileImage" FROM users WHERE role = 'admin' LIMIT 1`
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: 'Admin not found' });
+      res.json(result.rows[0]);
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

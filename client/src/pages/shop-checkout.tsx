@@ -182,26 +182,29 @@ function MethodDetails({ method, amount }: { method: any; amount: string }) {
   }
 
   if (method.type === 'bank') {
+    const BankRow = ({ label, value, mono = false, copyable = false }: { label: string; value: string; mono?: boolean; copyable?: boolean }) => (
+      <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-0.5 xs:gap-2 text-sm py-1">
+        <span className="text-gray-400 flex-shrink-0">{label}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-white ${mono ? "font-mono" : "font-medium"} break-all`}>{value}</span>
+          {copyable && (
+            <button onClick={() => copyText(value)} className="flex-shrink-0 p-1 rounded bg-blue-900 text-blue-300 hover:bg-blue-800">
+              {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </button>
+          )}
+        </div>
+      </div>
+    );
     return (
-      <div className="bg-blue-950 rounded-2xl p-5 mt-4 space-y-2">
-        <p className="text-blue-200 text-xs font-semibold mb-2">Bank Transfer Details — Send ${amount}</p>
-        {method.bankName && <div className="flex justify-between text-sm"><span className="text-gray-400">Bank</span><span className="text-white font-medium">{method.bankName}</span></div>}
-        {method.accountName && <div className="flex justify-between text-sm"><span className="text-gray-400">Account Name</span><span className="text-white font-medium">{method.accountName}</span></div>}
-        {method.accountNumber && (
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">Account No.</span>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-mono font-medium">{method.accountNumber}</span>
-              <button onClick={() => copyText(method.accountNumber)} className="p-1 rounded bg-blue-900 text-blue-300 hover:bg-blue-800">
-                {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              </button>
-            </div>
-          </div>
-        )}
-        {method.bankCurrency && <div className="flex justify-between text-sm"><span className="text-gray-400">Currency</span><span className="text-white">{method.bankCurrency}</span></div>}
-        {method.swiftCode && <div className="flex justify-between text-sm"><span className="text-gray-400">SWIFT</span><span className="text-white font-mono">{method.swiftCode}</span></div>}
-        {method.routingNumber && <div className="flex justify-between text-sm"><span className="text-gray-400">Routing</span><span className="text-white font-mono">{method.routingNumber}</span></div>}
-        {method.bankCountry && <div className="flex justify-between text-sm"><span className="text-gray-400">Country</span><span className="text-white">{method.bankCountry}</span></div>}
+      <div className="bg-blue-950 rounded-2xl p-5 mt-4 space-y-1">
+        <p className="text-blue-200 text-xs font-semibold mb-3">Bank Transfer Details — Send ${amount}</p>
+        {method.bankName && <BankRow label="Bank" value={method.bankName} />}
+        {method.accountName && <BankRow label="Account Name" value={method.accountName} />}
+        {method.accountNumber && <BankRow label="Account No." value={method.accountNumber} mono copyable />}
+        {method.bankCurrency && <BankRow label="Currency" value={method.bankCurrency} />}
+        {method.swiftCode && <BankRow label="SWIFT" value={method.swiftCode} mono />}
+        {method.routingNumber && <BankRow label="Routing" value={method.routingNumber} mono />}
+        {method.bankCountry && <BankRow label="Country" value={method.bankCountry} />}
         {method.instructions && <p className="text-amber-300 text-xs mt-2 pt-2 border-t border-blue-900">{method.instructions}</p>}
       </div>
     );
@@ -592,44 +595,14 @@ export default function ShopCheckout() {
         {/* Step: Summary */}
         {step === "summary" && (
           <div className="grid md:grid-cols-5 gap-6">
-            {/* Product card */}
-            <div className="md:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              {product.featuredImage && (
-                <img src={product.featuredImage} alt={product.title} className="w-full h-40 object-cover" />
-              )}
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <h2 className="font-bold text-gray-900 text-lg">{product.title}</h2>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">{product.category}</Badge>
-                      <Badge variant="outline" className="text-xs">{product.type}</Badge>
-                    </div>
-                  </div>
-                  {!product.featuredImage && <Package className="h-8 w-8 text-violet-400 flex-shrink-0" />}
-                </div>
-                <p className="text-sm text-gray-500 leading-relaxed mb-4">{product.shortDescription || product.description?.slice(0, 150)}...</p>
-                {product.features && (product.features as string[]).length > 0 && (
-                  <div className="space-y-1.5">
-                    {(product.features as string[]).slice(0, 4).map((f, i) => (
-                      <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                        {f}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Order summary */}
-            <div className="md:col-span-2 space-y-4">
+            {/* Order summary — shown first on mobile */}
+            <div className="md:col-span-2 md:order-2 space-y-4">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h3 className="font-semibold text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between text-gray-600">
-                    <span>{product.title}</span>
-                    <span>{product.isFree ? "Free" : `$${product.price}`}</span>
+                    <span className="truncate mr-2">{product.title}</span>
+                    <span className="flex-shrink-0">{product.isFree ? "Free" : `$${product.price}`}</span>
                   </div>
                   {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
                     <div className="flex justify-between text-green-600">
@@ -680,6 +653,37 @@ export default function ShopCheckout() {
                 </div>
               )}
             </div>
+
+            {/* Product card */}
+            <div className="md:col-span-3 md:order-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {product.featuredImage && (
+                <img src={product.featuredImage} alt={product.title} className="w-full h-40 object-cover" />
+              )}
+              <div className="p-6">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <h2 className="font-bold text-gray-900 text-lg">{product.title}</h2>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                      <Badge variant="outline" className="text-xs">{product.type}</Badge>
+                    </div>
+                  </div>
+                  {!product.featuredImage && <Package className="h-8 w-8 text-violet-400 flex-shrink-0" />}
+                </div>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{product.shortDescription || product.description?.slice(0, 150)}...</p>
+                {product.features && (product.features as string[]).length > 0 && (
+                  <div className="space-y-1.5">
+                    {(product.features as string[]).slice(0, 4).map((f, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         )}
 

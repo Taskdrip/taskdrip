@@ -5,7 +5,14 @@
 /* Dialog overrides for better scrolling */
 .dialog-content {
   max-height: 90vh !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Mobile tap targets — ensure buttons are always touchable */
+@media (max-width: 640px) {
+  button, [role="button"], a {
+    min-height: 40px;
+  }
 }
 
 /* Ensure select dropdowns appear above dialog */

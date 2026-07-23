@@ -195,12 +195,12 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
         </div>
 
         {/* Price & Actions */}
-        <div className="border-t border-gray-100 pt-3 flex items-center justify-between gap-3">
-          <div>
+        <div className="border-t border-gray-100 pt-3 flex items-center justify-between gap-2 flex-wrap">
+          <div className="min-w-0">
             {product.isFree ? (
               <span className="text-xl font-extrabold text-green-600">Free</span>
             ) : (
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
                 <span className="text-xl font-extrabold text-gray-900">${product.price}</span>
                 {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
                   <span className="text-sm text-gray-400 line-through">${product.originalPrice}</span>
@@ -209,14 +209,14 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
             )}
             <p className="text-xs text-gray-400">USD guide price</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <Link href={`/shop/product/${product.id}`}>
               <Button size="sm" variant="outline" className="h-9 w-9 p-0" data-testid={`button-view-${product.id}`}>
                 <Eye className="h-4 w-4" />
               </Button>
             </Link>
             <Link href={`/shop/checkout/${product.id}`}>
-              <Button size="sm" className="h-9 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4" data-testid={`button-buy-${product.id}`}>
+              <Button size="sm" className="h-9 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3 sm:px-4" data-testid={`button-buy-${product.id}`}>
                 {product.isFree ? <><Download className="h-3.5 w-3.5 mr-1" />Get</> : <><ShoppingCart className="h-3.5 w-3.5 mr-1" />Buy</>}
               </Button>
             </Link>
@@ -260,7 +260,7 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
         <h2 className="text-xl font-bold text-gray-900">Spotlight Products</h2>
         {total > 1 && <span className="text-xs text-gray-400 ml-1">{total} featured</span>}
       </div>
-      <div className="relative rounded-[2rem] overflow-hidden cursor-pointer group min-h-[310px] shadow-2xl shadow-indigo-200/70" onClick={() => setLocation(`/shop/product/${product.id}`)}>
+      <div className="relative rounded-2xl sm:rounded-[2rem] overflow-hidden cursor-pointer group min-h-[260px] sm:min-h-[310px] shadow-2xl shadow-indigo-200/70" onClick={() => setLocation(`/shop/product/${product.id}`)}>
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-purple-700 to-slate-950" />
         {image && (
           <img src={image} alt={product.title}
@@ -270,7 +270,7 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
         )}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28),transparent_32%),linear-gradient(90deg,rgba(15,23,42,0.92),rgba(49,46,129,0.72),rgba(15,23,42,0.18))]" />
 
-        <div className={`relative p-7 md:p-12 min-h-[310px] grid md:grid-cols-[1.1fr_0.9fr] gap-8 items-end transition-opacity duration-300 ${fading ? "opacity-0" : "opacity-100"}`}>
+        <div className={`relative p-5 sm:p-7 md:p-12 min-h-[260px] sm:min-h-[310px] grid md:grid-cols-[1.1fr_0.9fr] gap-6 md:gap-8 items-end transition-opacity duration-300 ${fading ? "opacity-0" : "opacity-100"}`}>
           <div>
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Badge className="bg-yellow-400 text-yellow-950 font-bold text-xs px-3 py-1">Spotlight Product</Badge>
@@ -281,7 +281,7 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
             )}
             <Badge className="bg-white/20 text-white border border-white/30 text-xs">{formatLabel(product.category)}</Badge>
           </div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{product.title}</h2>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{product.title}</h2>
           {product.shortDescription && (
             <p className="text-white/80 text-sm max-w-xl line-clamp-2 mb-4">{product.shortDescription}</p>
           )}
@@ -697,12 +697,12 @@ export default function Shop() {
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&h=600&fit=crop')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-gray-950/90 via-indigo-950/85 to-purple-900/90" />
-        <div className="relative max-w-7xl mx-auto px-4 py-20 text-center">
+        <div className="relative max-w-7xl mx-auto px-4 py-14 md:py-20 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2 mb-5 shadow-lg">
             <Shield className="h-4 w-4 text-green-400" />
             <span className="text-white text-sm font-semibold">Verified Digital Marketplace</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-xl">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-xl">
             Taskdrip{" "}
             <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-400 bg-clip-text text-transparent">Launch Market</span>
           </h1>

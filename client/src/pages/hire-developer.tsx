@@ -196,11 +196,11 @@ export default function HireDeveloper() {
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-900/40 via-gray-950 to-gray-950" />
-        <div className="relative max-w-6xl mx-auto px-4 pt-28 pb-16 text-center">
+        <div className="relative max-w-6xl mx-auto px-4 pt-20 md:pt-28 pb-12 md:pb-16 text-center">
           <Badge className="bg-violet-500/20 text-violet-300 border border-violet-500/30 mb-6 text-xs px-3 py-1">
             <Code2 className="h-3 w-3 mr-1.5" /> Full-Stack Developer for Hire
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-5 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-5 leading-tight">
             Build Your Project<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">
               With Expert Help
@@ -211,7 +211,7 @@ export default function HireDeveloper() {
           </p>
 
           {/* Trust badges */}
-          <div className="flex flex-wrap justify-center gap-4 text-sm">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-sm">
             {[
               { icon: <Shield className="h-4 w-4 text-emerald-400" />, text: "Secure & Private" },
               { icon: <Clock className="h-4 w-4 text-blue-400" />, text: "Fast Response" },
@@ -286,7 +286,7 @@ export default function HireDeveloper() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-gray-300 text-sm mb-1.5 block">
                   <DollarSign className="h-3.5 w-3.5 inline mr-1 text-emerald-400" /> Budget Range *
@@ -422,7 +422,7 @@ export default function HireDeveloper() {
                   <div>
                     <p className="text-xs text-gray-500 mb-3">New here? Create a free account so you can chat with the developer.</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-300 text-sm mb-1.5 block">First Name *</Label>
                       <div className="relative">
