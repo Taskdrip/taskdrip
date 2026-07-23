@@ -21,8 +21,9 @@ import {
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, ChevronDown, ChevronUp, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
   Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle,
-  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X, Wallet, Lock, Undo2, Loader2
+  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X, Wallet, Lock, Undo2, Loader2, Code2
 } from "lucide-react";
+import { DevProjectsTab } from "@/components/DevProjectsTab";
 import { format } from "date-fns";
 import { useLocation, Link } from "wouter";
 import { WelcomeCampaign } from "@/components/ui/welcome-campaign";
@@ -88,7 +89,17 @@ export default function BrandDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires" | "task-addons" | "escrow">("overview");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "campaigns" | "applications" | "submissions" | "influencers" | "direct-hires" | "task-addons" | "escrow" | "dev-projects">(() => {
+    const p = new URLSearchParams(window.location.search).get("tab");
+    return (p as any) || "overview";
+  });
+
+  const handleTabSelect = (id: string) => {
+    setSelectedTab(id as any);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", id);
+    window.history.replaceState(null, "", url.toString());
+  };
   const [reviewingAddon, setReviewingAddon] = useState<any>(null);
   const [addonReviewNote, setAddonReviewNote] = useState("");
   const [isCreateCampaignOpen, setIsCreateCampaignOpen] = useState(false);
@@ -1093,10 +1104,11 @@ export default function BrandDashboard() {
               { id: "escrow",       label: "Bounty Escrow", icon: Wallet,      badge: 0 },
               { id: "influencers",  label: "Influencers",   icon: Users,       badge: 0 },
               { id: "direct-hires", label: "Direct Hires",  icon: Briefcase,   badge: 0 },
+              { id: "dev-projects", label: "Dev Projects",  icon: Code2,       badge: 0 },
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => setSelectedTab(t.id as any)}
+                onClick={() => handleTabSelect(t.id)}
                 className={`flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   selectedTab === t.id
                     ? "border-blue-600 text-blue-700"
@@ -2193,6 +2205,8 @@ export default function BrandDashboard() {
         )}
 
         {selectedTab === "escrow" && <BountyEscrowPanel />}
+
+        {selectedTab === "dev-projects" && <DevProjectsTab />}
 
           </div>
         </div>

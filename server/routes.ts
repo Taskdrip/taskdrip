@@ -5524,7 +5524,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         priority: 'high',
       });
 
-      res.status(201).json({ messageId: message.id, adminId: admin.id });
+      res.status(201).json({ messageId: message.id, adminId: admin.id, offerId: devOffer?.id || null });
     } catch (error: any) {
       console.error('hire-developer error:', error);
       res.status(500).json({ message: error.message || "Failed to submit request" });
@@ -8107,7 +8107,13 @@ Instructions:
         };
       }));
       res.json(enriched);
-    } catch (e: any) { res.status(500).json({ message: e.message }); }
+    } catch (e: any) {
+      console.error('/api/admin/direct-hire error:', e.message);
+      // Return empty array instead of 500 so the panel shows "No hires yet"
+      // rather than "Failed to load hires" (common on first deploy before migration)
+      if (e.code === '42P01') return res.json([]); // table doesn't exist yet
+      res.status(500).json({ message: e.message });
+    }
   });
 
   // ── Admin: Full payout center (enriched with campaign/direct-hire linkage) ──
