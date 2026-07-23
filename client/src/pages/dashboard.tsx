@@ -76,6 +76,15 @@ export default function Dashboard() {
     enabled: !!user?.id,
   });
 
+  // Fetch dev project requests
+  const { data: devProjects = [] } = useQuery<any[]>({
+    queryKey: ["/api/hire-developer/my-requests"],
+    enabled: !!user?.id,
+  });
+  const activeDevProjects = (devProjects as any[]).filter((p: any) =>
+    !["completed", "rejected", "cancelled"].includes(p.status)
+  );
+
   // Fetch portfolio
   const { data: portfolioItems = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${user?.id}/portfolio`],
@@ -389,6 +398,38 @@ export default function Dashboard() {
                 </Button>
               </Link>
             </div>
+
+            {/* Dev Projects Banner */}
+            {(devProjects as any[]).length > 0 && (
+              <div
+                className="flex items-center justify-between p-4 bg-violet-50 border border-violet-200 rounded-xl cursor-pointer hover:bg-violet-100 transition-colors"
+                onClick={() => handleTabChange("dev-projects")}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                    <Code2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-violet-900">
+                      My Dev Projects
+                      {activeDevProjects.length > 0 && (
+                        <span className="ml-2 text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full">
+                          {activeDevProjects.length} active
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-violet-700">
+                      {activeDevProjects.length > 0
+                        ? `${activeDevProjects.length} request${activeDevProjects.length !== 1 ? "s" : ""} in progress — tap to track & chat`
+                        : `${(devProjects as any[]).length} completed request${(devProjects as any[]).length !== 1 ? "s" : ""}`}
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white shrink-0">
+                  View Projects →
+                </Button>
+              </div>
+            )}
 
             {/* Active Campaigns with Messaging */}
             <Card>

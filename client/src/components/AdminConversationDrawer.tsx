@@ -1,14 +1,19 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
-  MessageSquare, Users, Clock, ExternalLink, Shield,
-  AlertTriangle, CheckCircle, Briefcase, User,
+  MessageSquare, Users, ExternalLink, Shield,
+  AlertTriangle, Briefcase, Send, Loader2,
+  FileText, DollarSign, Calendar, CheckCircle,
 } from "lucide-react";
 
 interface Props {
@@ -17,6 +22,7 @@ interface Props {
   type: "campaign" | "direct_hire";
   id: string | null;
   title?: string;
+  isDevHire?: boolean;
 }
 
 function timeAgo(dateStr: string) {
@@ -49,10 +55,10 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.className}`}>{s.label}</span>;
 }
 
-function MessageBubble({ msg, viewerId }: { msg: any; viewerId: string }) {
+function MessageBubble({ msg }: { msg: any }) {
   const isSenderAdmin = msg.sender?.userType === "admin";
   const isSenderBrand = msg.sender?.userType === "brand";
-  const senderLabel = isSenderAdmin ? "Admin" : isSenderBrand ? "Brand" : "Influencer";
+  const senderLabel = isSenderAdmin ? "Admin/Dev" : isSenderBrand ? "Brand" : "User";
 
   return (
     <div className="flex gap-3 group py-2">
@@ -67,21 +73,23 @@ function MessageBubble({ msg, viewerId }: { msg: any; viewerId: string }) {
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${isSenderAdmin ? "bg-purple-100 text-purple-700" : isSenderBrand ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}>
             {senderLabel}
           </span>
-          <span className="text-[10px] text-gray-400">{timeAgo(msg.createdAt)}</span>
+          <span className="text-[10px] text-gray-400">{msg.createdAt ? timeAgo(msg.createdAt) : ""}</span>
         </div>
         <div className="bg-gray-50 border border-gray-100 rounded-xl rounded-tl-sm px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
           {msg.content}
         </div>
-        {msg.subject && (
-          <p className="text-[10px] text-gray-400 mt-1">Subject: {msg.subject}</p>
-        )}
       </div>
     </div>
   );
 }
 
-export function AdminConversationDrawer({ open, onClose, type, id, title }: Props) {
+export function AdminConversationDrawer({ open, onClose, type, id, title, isDevHire }: Props) {
   const [activeTab, setActiveTab] = useState("messages");
+  const [msgText, setMsgText] = useState("");
+  const [invoiceForm, setInvoiceForm] = useState({ agreedBudget: "", dueDate: "", note: "" });
+  const [invoiceSuccess, setInvoiceSuccess] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
 
   const { data: campaignThread, isLoading: loadingCampaign } = useQuery<any>({
     queryKey: ["/api/admin/campaigns", id, "thread"],
@@ -89,10 +97,11 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
     enabled: open && type === "campaign" && !!id,
   });
 
-  const { data: dhThread, isLoading: loadingDH } = useQuery<any>({
+  const { data: dhThread, isLoading: loadingDH, refetch: refetchDH } = useQuery<any>({
     queryKey: ["/api/admin/direct-hire", id, "thread"],
     queryFn: () => fetch(`/api/admin/direct-hire/${id}/thread`).then((r) => r.json()),
     enabled: open && type === "direct_hire" && !!id,
+    refetchInterval: open && type === "direct_hire" ? 8000 : false,
   });
 
   const isLoading = type === "campaign" ? loadingCampaign : loadingDH;
@@ -104,6 +113,59 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
   const participations = thread?.participations || [];
   const campaign = thread?.campaign;
   const offer = thread?.offer;
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  }, [messages.length]);
+
+  // Reset invoice success when offer changes
+  useEffect(() => {
+    setInvoiceSuccess(false);
+    setInvoiceForm({ agreedBudget: "", dueDate: "", note: "" });
+  }, [id]);
+
+  // Send message mutation
+  const sendMsgMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/direct-hire/${id}/messages`, { content: msgText }).then(r => r.json()),
+    onSuccess: () => {
+      setMsgText("");
+      refetchDH();
+      qc.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+    },
+  });
+
+  // Generate invoice mutation
+  const generateInvoiceMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/admin/direct-hire/${id}/generate-invoice`, {
+        agreedBudget: invoiceForm.agreedBudget || undefined,
+        invoiceDueDate: invoiceForm.dueDate || undefined,
+        invoiceNote: invoiceForm.note || undefined,
+      }).then(r => r.json()),
+    onSuccess: () => {
+      setInvoiceSuccess(true);
+      refetchDH();
+      qc.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      qc.invalidateQueries({ queryKey: ["/api/hire-developer/my-requests"] });
+    },
+  });
+
+  const handleSend = () => {
+    const txt = msgText.trim();
+    if (!txt || sendMsgMutation.isPending) return;
+    sendMsgMutation.mutate();
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -119,9 +181,14 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
               </SheetTitle>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant="outline" className="text-[10px] px-2 py-0">
-                  {type === "campaign" ? "Campaign Thread" : "Direct Hire Thread"}
+                  {type === "campaign" ? "Campaign Thread" : isDevHire ? "Dev Hire Thread" : "Direct Hire Thread"}
                 </Badge>
                 {(campaign?.status || offer?.status) && <StatusBadge status={campaign?.status || offer?.status} />}
+                {offer?.invoiceNumber && (
+                  <Badge className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0">
+                    🧾 {offer.invoiceNumber}
+                  </Badge>
+                )}
                 <span className="text-[10px] text-gray-400 flex items-center gap-1">
                   <Shield className="w-3 h-3 text-purple-400" /> Admin View
                 </span>
@@ -146,27 +213,34 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-4 mt-3 mb-0 grid grid-cols-2 h-8">
+            <TabsList className={`mx-4 mt-3 mb-0 h-8 ${isDevHire ? "grid grid-cols-3" : "grid grid-cols-2"}`}>
               <TabsTrigger value="messages" className="text-xs">
                 <MessageSquare className="w-3 h-3 mr-1" /> Messages ({messages.length})
               </TabsTrigger>
+              {isDevHire && (
+                <TabsTrigger value="invoice" className="text-xs">
+                  <FileText className="w-3 h-3 mr-1" /> Invoice
+                  {offer?.invoiceNumber && <span className="ml-1 text-emerald-600">✓</span>}
+                </TabsTrigger>
+              )}
               <TabsTrigger value="participants" className="text-xs">
                 <Users className="w-3 h-3 mr-1" />
-                {type === "campaign" ? `Participants (${participations.length})` : "Parties (2)"}
+                {type === "campaign" ? `Participants (${participations.length})` : "Details"}
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="messages" className="flex-1 overflow-hidden mt-0">
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center gap-2 text-gray-400">
-                  <MessageSquare className="w-10 h-10 opacity-30" />
-                  <p className="text-sm">No messages in this thread yet</p>
-                  <p className="text-xs text-gray-400">Messages between brand and influencer will appear here</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-full">
-                  <div className="px-4 py-3 space-y-1">
-                    {messages.map((msg: any, i: number) => {
+            {/* ── Messages Tab ── */}
+            <TabsContent value="messages" className="flex-1 flex flex-col overflow-hidden mt-0">
+              <ScrollArea className="flex-1">
+                <div className="px-4 py-3 space-y-1">
+                  {messages.length === 0 ? (
+                    <div className="h-48 flex flex-col items-center justify-center gap-2 text-gray-400">
+                      <MessageSquare className="w-10 h-10 opacity-30" />
+                      <p className="text-sm">No messages yet</p>
+                      <p className="text-xs text-gray-400">Start the conversation below</p>
+                    </div>
+                  ) : (
+                    messages.map((msg: any, i: number) => {
                       const prevMsg = messages[i - 1];
                       const showDateDivider = !prevMsg || new Date(msg.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString();
                       return (
@@ -180,20 +254,147 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
                               <Separator className="flex-1" />
                             </div>
                           )}
-                          <MessageBubble msg={msg} viewerId="admin" />
+                          <MessageBubble msg={msg} />
                         </div>
                       );
-                    })}
-                    <div className="pt-2 pb-4 text-center">
-                      <span className="text-[10px] text-gray-300 bg-gray-50 px-3 py-1 rounded-full border">
-                        End of thread · Admin read-only view
-                      </span>
-                    </div>
+                    })
+                  )}
+                  <div ref={bottomRef} />
+                </div>
+              </ScrollArea>
+
+              {/* Message input — only for direct hire threads */}
+              {type === "direct_hire" && (
+                <div className="border-t bg-white px-4 py-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={msgText}
+                      onChange={e => setMsgText(e.target.value)}
+                      onKeyDown={handleKey}
+                      placeholder="Reply to client..."
+                      className="flex-1 text-sm"
+                      disabled={sendMsgMutation.isPending}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSend}
+                      disabled={!msgText.trim() || sendMsgMutation.isPending}
+                      className="bg-purple-600 hover:bg-purple-700 px-3"
+                    >
+                      {sendMsgMutation.isPending
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Send className="w-4 h-4" />}
+                    </Button>
                   </div>
-                </ScrollArea>
+                  <p className="text-[10px] text-gray-400">Press Enter to send · Replies appear in the client's Dev Projects tab</p>
+                </div>
               )}
             </TabsContent>
 
+            {/* ── Invoice Tab (dev hire only) ── */}
+            {isDevHire && (
+              <TabsContent value="invoice" className="flex-1 overflow-hidden mt-0">
+                <ScrollArea className="h-full">
+                  <div className="px-4 py-4 space-y-4">
+                    {/* Existing invoice info */}
+                    {offer?.invoiceNumber ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                          <p className="font-semibold text-emerald-800">Invoice Generated</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><span className="text-gray-500">Number:</span> <strong>{offer.invoiceNumber}</strong></div>
+                          <div><span className="text-gray-500">Amount:</span> <strong>${parseFloat(offer.agreedBudget || offer.budget || 0).toFixed(2)}</strong></div>
+                          {offer.invoiceDueDate && (
+                            <div><span className="text-gray-500">Due:</span> {new Date(offer.invoiceDueDate).toLocaleDateString()}</div>
+                          )}
+                          {offer.invoiceNote && (
+                            <div className="col-span-2"><span className="text-gray-500">Note:</span> {offer.invoiceNote}</div>
+                          )}
+                        </div>
+                        <p className="text-xs text-emerald-700 mt-1">The client has been notified and can view/print this invoice from their project page.</p>
+                      </div>
+                    ) : invoiceSuccess ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                        <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                        <p className="font-semibold text-emerald-800">Invoice sent to client!</p>
+                        <p className="text-xs text-emerald-700 mt-1">A notification and chat message have been sent. The client can view and print the invoice from their project page.</p>
+                      </div>
+                    ) : null}
+
+                    {/* Generate / re-generate invoice form */}
+                    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-violet-600" />
+                        <p className="font-semibold text-gray-900">
+                          {offer?.invoiceNumber ? "Re-generate Invoice" : "Generate Invoice"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Generating an invoice will notify the client and post a message in the project chat. The offer status moves to "accepted" so payment gates open.
+                      </p>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+                            <DollarSign className="w-3 h-3" /> Agreed Budget (USD)
+                          </label>
+                          <Input
+                            type="number"
+                            placeholder={`e.g. ${offer?.budget || "1500"}`}
+                            value={invoiceForm.agreedBudget}
+                            onChange={e => setInvoiceForm(f => ({ ...f, agreedBudget: e.target.value }))}
+                            className="text-sm"
+                          />
+                          <p className="text-[10px] text-gray-400 mt-1">Leave blank to use the original budget estimate</p>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+                            <Calendar className="w-3 h-3" /> Invoice Due Date
+                          </label>
+                          <Input
+                            type="date"
+                            value={invoiceForm.dueDate}
+                            onChange={e => setInvoiceForm(f => ({ ...f, dueDate: e.target.value }))}
+                            className="text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+                            <MessageSquare className="w-3 h-3" /> Invoice Note (optional)
+                          </label>
+                          <Textarea
+                            placeholder="e.g. Payment via USDT TRC-20. Contact us after transfer."
+                            value={invoiceForm.note}
+                            onChange={e => setInvoiceForm(f => ({ ...f, note: e.target.value }))}
+                            rows={3}
+                            className="text-sm resize-none"
+                          />
+                        </div>
+
+                        <Button
+                          className="w-full bg-violet-600 hover:bg-violet-700"
+                          onClick={() => generateInvoiceMutation.mutate()}
+                          disabled={generateInvoiceMutation.isPending}
+                        >
+                          {generateInvoiceMutation.isPending
+                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                            : <><FileText className="w-4 h-4 mr-2" /> {offer?.invoiceNumber ? "Re-generate Invoice" : "Generate & Send Invoice"}</>}
+                        </Button>
+                        {generateInvoiceMutation.isError && (
+                          <p className="text-xs text-red-600 text-center">Failed to generate invoice. Try again.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            )}
+
+            {/* ── Participants / Details Tab ── */}
             <TabsContent value="participants" className="flex-1 overflow-hidden mt-0">
               <ScrollArea className="h-full">
                 <div className="px-4 py-3 space-y-3">
@@ -205,7 +406,6 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
                       ) : participations.map((p: any) => (
                         <div key={p.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                           <Avatar className="w-9 h-9">
-                            <AvatarImage src={p.user?.profileImageUrl} />
                             <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-bold">
                               {initials(p.user?.firstName, p.user?.lastName)}
                             </AvatarFallback>
@@ -216,19 +416,18 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             <StatusBadge status={p.status} />
-                            {p.user?.creatorTier && (
-                              <span className="text-[10px] text-gray-400">{p.user.creatorTier}</span>
-                            )}
                           </div>
                         </div>
                       ))}
                     </>
                   ) : (
                     <>
-                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Direct Hire Parties</div>
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        {isDevHire ? "Dev Hire Parties" : "Direct Hire Parties"}
+                      </div>
                       {[
-                        { label: "Brand", data: offer?.brand, color: "bg-blue-100 text-blue-700" },
-                        { label: "Influencer", data: offer?.influencer, color: "bg-orange-100 text-orange-700" },
+                        { label: isDevHire ? "Client" : "Brand", data: offer?.brand, color: "bg-blue-100 text-blue-700" },
+                        { label: isDevHire ? "Developer" : "Influencer", data: offer?.influencer, color: "bg-purple-100 text-purple-700" },
                       ].map(({ label, data, color }) => (
                         <div key={label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                           <Avatar className="w-9 h-9">
@@ -247,19 +446,28 @@ export function AdminConversationDrawer({ open, onClose, type, id, title }: Prop
                         </div>
                       ))}
                       {offer && (
-                        <div className="mt-4 p-3 bg-violet-50 rounded-xl border border-violet-100">
-                          <p className="text-xs font-semibold text-violet-700 mb-2">Offer Details</p>
+                        <div className="mt-4 p-3 bg-violet-50 rounded-xl border border-violet-100 space-y-2">
+                          <p className="text-xs font-semibold text-violet-700">Project Details</p>
                           <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                            <div><span className="text-gray-400">Budget:</span> ${parseFloat(offer.budget || 0).toFixed(2)}</div>
-                            <div><span className="text-gray-400">Payout:</span> ${parseFloat(offer.influencerPayout || 0).toFixed(2)}</div>
+                            <div><span className="text-gray-400">Budget:</span> <strong>${parseFloat(offer.agreedBudget || offer.budget || 0).toFixed(2)}</strong></div>
                             <div><span className="text-gray-400">Status:</span> <StatusBadge status={offer.status} /></div>
-                            <div><span className="text-gray-400">Deadline:</span> {offer.deadline ? new Date(offer.deadline).toLocaleDateString() : "N/A"}</div>
+                            {offer.deadline && <div><span className="text-gray-400">Deadline:</span> {new Date(offer.deadline).toLocaleDateString()}</div>}
+                            {offer.invoiceNumber && <div><span className="text-gray-400">Invoice:</span> <strong className="text-emerald-700">{offer.invoiceNumber}</strong></div>}
                           </div>
+                          {offer.description && (
+                            <div>
+                              <p className="text-xs text-gray-400 mb-1">Description:</p>
+                              <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed max-h-32 overflow-y-auto">{offer.description}</p>
+                            </div>
+                          )}
                           {offer.workSubmissionUrl && (
-                            <a href={offer.workSubmissionUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-violet-600 hover:underline">
+                            <a href={offer.workSubmissionUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-violet-600 hover:underline">
                               <ExternalLink className="w-3 h-3" /> View Submitted Work
                             </a>
                           )}
+                          <a href={`/direct-hire/${offer.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline ml-4">
+                            <ExternalLink className="w-3 h-3" /> Open Project Page
+                          </a>
                         </div>
                       )}
                     </>

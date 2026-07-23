@@ -2055,7 +2055,23 @@ export default function AdminMaster() {
 
   // Payment methods state
   const [isPaymentMethodDialogOpen, setIsPaymentMethodDialogOpen] = useState(false);
-  const [conversationDrawer, setConversationDrawer] = useState<{ open: boolean; type: "campaign" | "direct_hire"; id: string; title: string } | null>(null);
+  const [conversationDrawer, setConversationDrawer] = useState<{ open: boolean; type: "campaign" | "direct_hire"; id: string; title: string; isDevHire?: boolean } | null>(null);
+
+  // Invoice generation for dev hire requests
+  const [invoiceFormMap, setInvoiceFormMap] = useState<Record<string, { agreedBudget: string; dueDate: string; note: string; open: boolean }>>({});
+  const generateInvoiceMutation = useMutation({
+    mutationFn: async ({ id, agreedBudget, dueDate, note }: { id: string; agreedBudget: string; dueDate: string; note: string }) =>
+      (await apiRequest("POST", `/api/admin/direct-hire/${id}/generate-invoice`, {
+        agreedBudget: agreedBudget || undefined,
+        invoiceDueDate: dueDate || undefined,
+        invoiceNote: note || undefined,
+      })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      toast({ title: "Invoice Generated ✅", description: "Client has been notified with the invoice details." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
   const [editingPaymentMethod, setEditingPaymentMethod] = useState<any>(null);
   const [paymentMethodForm, setPaymentMethodForm] = useState<any>({ type: "crypto", label: "", network: "", currency: "", address: "", bankName: "", accountName: "", accountNumber: "", routingNumber: "", swiftCode: "", bankCountry: "", bankCurrency: "", paypalEmail: "", paypalClientId: "", paystackPublicKey: "", paystackSecretKey: "", stripePublicKey: "", stripeSecretKey: "", instructions: "", isActive: true, sortOrder: 0 });
   const [feedPostForm, setFeedPostForm] = useState({ content: "", imageUrl: "", videoUrl: "" });
@@ -7347,7 +7363,7 @@ export default function AdminMaster() {
                                   size="sm"
                                   variant="outline"
                                   className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
-                                  onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title })}
+                                  onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title, isDevHire: true })}
                                 >
                                   <MessageSquare className="w-3.5 h-3.5 mr-1" /> Message Requester
                                 </Button>
@@ -7360,11 +7376,101 @@ export default function AdminMaster() {
                                 size="sm"
                                 variant="outline"
                                 className="border-blue-600 text-blue-400 hover:bg-blue-900/20 mt-1"
-                                onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title })}
+                                onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title, isDevHire: true })}
                               >
-                                <MessageSquare className="w-3.5 h-3.5 mr-1" /> View Conversation
+                                <MessageSquare className="w-3.5 h-3.5 mr-1" /> Chat with Client
                               </Button>
                             )}
+
+                            {/* ── Inline Invoice Generation ── */}
+                            <div className="border-t border-gray-700 pt-3 mt-2 space-y-2">
+                              {offer.invoiceNumber ? (
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <span className="text-xs text-emerald-400 font-semibold">
+                                    📄 {offer.invoiceNumber}
+                                    {offer.agreedBudget && <span className="text-gray-400 ml-1">(${Number(offer.agreedBudget).toFixed(2)})</span>}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-violet-600 text-violet-400 hover:bg-violet-900/20 text-xs h-7"
+                                    onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title, isDevHire: true })}
+                                  >
+                                    Re-generate Invoice
+                                  </Button>
+                                </div>
+                              ) : (
+                                <>
+                                  {!invoiceFormMap[offer.id]?.open ? (
+                                    <Button
+                                      size="sm"
+                                      className="bg-violet-600 hover:bg-violet-700 text-white text-xs h-8"
+                                      onClick={() => setInvoiceFormMap(m => ({ ...m, [offer.id]: { agreedBudget: "", dueDate: "", note: "", open: true } }))}
+                                    >
+                                      📄 Generate Invoice
+                                    </Button>
+                                  ) : (
+                                    <div className="bg-gray-900 rounded-lg p-3 space-y-2 border border-violet-900/50">
+                                      <p className="text-xs font-semibold text-violet-300">Generate Invoice</p>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <label className="text-[10px] text-gray-400 block mb-1">Agreed Budget (USD)</label>
+                                          <input
+                                            type="number"
+                                            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder-gray-500"
+                                            placeholder={offer.budget || "0"}
+                                            value={invoiceFormMap[offer.id]?.agreedBudget || ""}
+                                            onChange={e => setInvoiceFormMap(m => ({ ...m, [offer.id]: { ...m[offer.id], agreedBudget: e.target.value } }))}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-gray-400 block mb-1">Due Date</label>
+                                          <input
+                                            type="date"
+                                            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white"
+                                            value={invoiceFormMap[offer.id]?.dueDate || ""}
+                                            onChange={e => setInvoiceFormMap(m => ({ ...m, [offer.id]: { ...m[offer.id], dueDate: e.target.value } }))}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] text-gray-400 block mb-1">Note (optional)</label>
+                                        <input
+                                          type="text"
+                                          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-white placeholder-gray-500"
+                                          placeholder="Payment instructions, wallet address, etc."
+                                          value={invoiceFormMap[offer.id]?.note || ""}
+                                          onChange={e => setInvoiceFormMap(m => ({ ...m, [offer.id]: { ...m[offer.id], note: e.target.value } }))}
+                                        />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          className="bg-violet-600 hover:bg-violet-700 text-white text-xs h-7 flex-1"
+                                          disabled={generateInvoiceMutation.isPending}
+                                          onClick={() => generateInvoiceMutation.mutate({
+                                            id: offer.id,
+                                            agreedBudget: invoiceFormMap[offer.id]?.agreedBudget || "",
+                                            dueDate: invoiceFormMap[offer.id]?.dueDate || "",
+                                            note: invoiceFormMap[offer.id]?.note || "",
+                                          })}
+                                        >
+                                          {generateInvoiceMutation.isPending ? "Sending…" : "Send Invoice"}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="text-gray-400 text-xs h-7"
+                                          onClick={() => setInvoiceFormMap(m => ({ ...m, [offer.id]: { ...m[offer.id], open: false } }))}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       );
@@ -9611,6 +9717,7 @@ function AdminPushNotificationsPanel() {
           type={conversationDrawer.type}
           id={conversationDrawer.id}
           title={conversationDrawer.title}
+          isDevHire={conversationDrawer.isDevHire}
         />
       )}
     </div>
