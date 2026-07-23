@@ -201,6 +201,7 @@ export default function SimpleDashboard() {
   const { data: orders = [] } = useQuery<any[]>({
     queryKey: ["/api/users", uid, "purchases"],
     enabled: !!uid,
+    refetchInterval: 10000,
   });
   const { data: activeCampaigns = [] } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
@@ -209,6 +210,7 @@ export default function SimpleDashboard() {
   const { data: hireOffers = [] } = useQuery<any[]>({
     queryKey: ["/api/direct-hire/received"],
     enabled: !!uid,
+    refetchInterval: 10000,
   });
   const { data: referralData } = useQuery<any>({
     queryKey: ["/api/referrals/my"],

@@ -190,6 +190,7 @@ export default function BrandDashboard() {
   const { data: directHires = [], isLoading: directHiresLoading } = useQuery<any[]>({
     queryKey: ["/api/direct-hire/sent"],
     retry: false,
+    refetchInterval: 10000,
   });
 
   // Create campaign mutation

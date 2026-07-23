@@ -1119,6 +1119,7 @@ export default function MyOrdersPage() {
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/my-orders"],
+    refetchInterval: 10000,
   });
 
   const allOrders = useMemo(() => normaliseOrders(data), [data]);

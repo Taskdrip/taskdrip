@@ -2204,7 +2204,7 @@ export default function AdminMaster() {
     queryKey: ["/api/admin/purchases"],
     enabled: canManageStore || isFullAdmin,
     retry: false,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
   });
 
   const [ordersFilter, setOrdersFilter] = useState<string>("all");
@@ -2240,6 +2240,7 @@ export default function AdminMaster() {
     queryKey: ["/api/admin/direct-hire"],
     enabled: isFullAdmin || canModerate,
     retry: false,
+    refetchInterval: 10000,
   });
 
   const [directHireNoteMap, setDirectHireNoteMap] = useState<Record<string, string>>({});

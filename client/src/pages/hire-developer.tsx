@@ -145,6 +145,8 @@ export default function HireDeveloper() {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/hire-developer/my-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-hire/sent"] });
       setTimeout(() => {
         setLocation("/dashboard?tab=dev-projects");
       }, 2500);

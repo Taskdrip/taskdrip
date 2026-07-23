@@ -529,6 +529,8 @@ export default function ShopCheckout() {
     onSuccess: (data) => {
       setPurchaseId(data.id);
       setStep("success");
+      queryClient.invalidateQueries({ queryKey: ["/api/my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
     },
     onError: (e: any) => toast({ title: "Submission failed", description: e.message, variant: "destructive" }),
   });
@@ -549,6 +551,8 @@ export default function ShopCheckout() {
     onSuccess: (data) => {
       setPurchaseId(data.id);
       setStep("success");
+      queryClient.invalidateQueries({ queryKey: ["/api/my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
