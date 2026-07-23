@@ -72,6 +72,8 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "breedskool_course_pricing", column: "discount_price", definition: "integer NOT NULL DEFAULT 0" },
   { table: "breedskool_course_pricing", column: "duration", definition: "varchar" },
   { table: "breedskool_course_pricing", column: "accepted_payments", definition: "text[] DEFAULT ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']" },
+  // Legal pages — last_updated_by added after initial schema
+  { table: "legal_pages", column: "last_updated_by", definition: "varchar" },
 ];
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot

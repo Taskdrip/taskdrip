@@ -12,6 +12,7 @@ import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
 import { seedBreedskoolPricing, seedBreedskoolPaymentSettings, fixVerifiedBreedskoolEnrollments } from "./seed-breedskool";
 import { seedBreedskoolCourses } from "./seed-breedskool-courses";
+import { seedLawcolab } from "./seed-lawcolab";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
 import bcrypt from "bcryptjs";
@@ -329,6 +330,9 @@ server.listen({
       await fixVerifiedBreedskoolEnrollments()
         .then((r) => log(`[BreedSkool] Enrollment fix: ${r.fixed} activated, ${r.skipped} already active, ${r.noLink} with no course link`))
         .catch((e) => console.error("fixVerifiedBreedskoolEnrollments:", e));
+      await seedLawcolab()
+        .then((r) => log(`[LAWCOLAB] Shop product: ${r.inserted ? "inserted" : "already exists"}`))
+        .catch((e) => console.error("seedLawcolab:", e));
     } catch (e) {
       console.error("Background seed error:", e);
     }

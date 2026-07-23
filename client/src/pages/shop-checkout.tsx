@@ -478,11 +478,17 @@ const FALLBACK_METHODS = [
 
 export default function ShopCheckout() {
   const [, params] = useRoute("/shop/checkout/:id");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   const productId = params?.id;
+
+  // Read ?plan=addonId from query string — enables tier-based pricing mode
+  const urlPlanId = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("plan") || ""
+    : "";
+
   const [step, setStep] = useState<Step>("summary");
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [txHash, setTxHash] = useState("");
@@ -504,15 +510,24 @@ export default function ShopCheckout() {
   const paymentMethods = paymentMethodsRaw.length > 0 ? paymentMethodsRaw : FALLBACK_METHODS;
   const selectedMethod = paymentMethods.find((m: any) => m.id === selectedMethodId) || paymentMethods[0];
 
-  if (!selectedMethodId && paymentMethods.length > 0 && !selectedMethodId) {
-    // Will be set on first render via the useEffect equivalent
-  }
-
   const productAddons: ServiceAddon[] = ((product as any)?.serviceAddons || []) as ServiceAddon[];
-  const chosenAddons = productAddons.filter((a) => selectedAddonIds.includes(a.id));
+
+  // ── Plan mode: ?plan=addonId makes tier selection mutually exclusive ─────────
+  // When a tier is pre-selected via URL, the chosen plan's price IS the total.
+  // Addons are not stacked additively — one plan at a time.
+  const isPlanMode = !!urlPlanId && productAddons.some((a) => a.id === urlPlanId);
+  const selectedPlan = isPlanMode ? productAddons.find((a) => a.id === urlPlanId) : null;
+  const [activePlanId, setActivePlanId] = useState<string>(urlPlanId);
+
+  const activePlan = productAddons.find((a) => a.id === activePlanId) ?? selectedPlan;
+
+  // In plan mode: total = chosen plan price. In addon mode: total = base + addons.
+  const chosenAddons = isPlanMode ? [] : productAddons.filter((a) => selectedAddonIds.includes(a.id));
   const addonsTotal = chosenAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
   const basePrice = product ? parseFloat(product.price) : 0;
-  const grandTotal = basePrice + addonsTotal;
+  const grandTotal = isPlanMode
+    ? (activePlan ? Number(activePlan.price) : basePrice)
+    : basePrice + addonsTotal;
   const introVideoEmbed = getYouTubeEmbed((product as any)?.introVideoUrl || "");
 
   const purchaseMutation = useMutation({
@@ -600,23 +615,84 @@ export default function ShopCheckout() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h3 className="font-semibold text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between text-gray-600">
-                    <span className="truncate mr-2">{product.title}</span>
-                    <span className="flex-shrink-0">{product.isFree ? "Free" : `$${product.price}`}</span>
-                  </div>
-                  {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount</span>
-                      <span>-${(parseFloat(product.originalPrice) - parseFloat(product.price)).toFixed(2)}</span>
-                    </div>
+                  {isPlanMode && activePlan ? (
+                    // ── Plan mode: show selected tier clearly ────────────────
+                    <>
+                      <div className="flex justify-between text-gray-600">
+                        <span className="truncate mr-2">{product.title}</span>
+                        <span className="flex-shrink-0 text-gray-400">—</span>
+                      </div>
+                      <div className="rounded-xl bg-violet-50 border border-violet-200 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-violet-800 text-xs uppercase tracking-wide mb-0.5">Selected Plan</p>
+                            <p className="font-bold text-gray-900">{activePlan.title.split("—")[0].trim()}</p>
+                            {activePlan.title.includes("—") && (
+                              <p className="text-xs text-gray-500">{activePlan.title.split("—")[1]?.trim()}</p>
+                            )}
+                          </div>
+                          <span className="font-extrabold text-violet-700 text-lg flex-shrink-0">
+                            {activePlan.price === 0 ? "FREE" : `$${Number(activePlan.price).toFixed(2)}`}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Let user switch to a different tier */}
+                      {productAddons.length > 1 && (
+                        <div>
+                          <p className="text-xs text-gray-400 mb-2">Switch plan:</p>
+                          <div className="space-y-1.5">
+                            {productAddons.map((a) => (
+                              <button
+                                key={a.id}
+                                onClick={() => setActivePlanId(a.id)}
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-all ${
+                                  activePlanId === a.id
+                                    ? "border-violet-500 bg-violet-50 text-violet-900 font-semibold"
+                                    : "border-gray-200 text-gray-600 hover:border-violet-300"
+                                }`}
+                              >
+                                <span>{a.title.split("—")[0].trim()}</span>
+                                <span className="font-bold">{a.price === 0 ? "Free" : `$${Number(a.price)}`}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="border-t pt-3 flex justify-between font-bold text-gray-900">
+                        <span>Total</span>
+                        <span className="text-lg text-violet-700">
+                          {activePlan.price === 0 ? "FREE" : `$${Number(activePlan.price).toFixed(2)}`}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    // ── Standard mode ────────────────────────────────────────
+                    <>
+                      <div className="flex justify-between text-gray-600">
+                        <span className="truncate mr-2">{product.title}</span>
+                        <span className="flex-shrink-0">{product.isFree ? "Free" : `$${product.price}`}</span>
+                      </div>
+                      {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Discount</span>
+                          <span>-${(parseFloat(product.originalPrice) - parseFloat(product.price)).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {chosenAddons.length > 0 && (
+                        <div className="flex justify-between text-violet-600">
+                          <span>Add-ons ({chosenAddons.length})</span>
+                          <span>+${addonsTotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="border-t pt-3 flex justify-between font-bold text-gray-900">
+                        <span>Total</span>
+                        <span className="text-lg">{product.isFree && addonsTotal === 0 ? "FREE" : `$${grandTotal.toFixed(2)}`}</span>
+                      </div>
+                    </>
                   )}
-                  <div className="border-t pt-3 flex justify-between font-bold text-gray-900">
-                    <span>Total</span>
-                    <span className="text-lg">{product.isFree ? "FREE" : `$${product.price}`}</span>
-                  </div>
                 </div>
 
-                {product.isFree ? (
+                {(product.isFree && !isPlanMode) || (isPlanMode && activePlan?.price === 0) ? (
                   <Button
                     className="w-full mt-5 bg-green-600 hover:bg-green-700 text-white gap-2 h-12"
                     onClick={() => freePurchaseMutation.mutate()}

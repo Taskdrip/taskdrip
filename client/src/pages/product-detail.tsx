@@ -7,7 +7,8 @@ import {
   ShoppingCart, Star, Download, ExternalLink, ChevronLeft, 
   Package, Shield, CheckCircle, MessageCircle, Share2, Flag,
   Heart, Eye, Calendar, Tag, ArrowRight, PlayCircle,
-  ThumbsUp, ThumbsDown, Briefcase
+  ThumbsUp, ThumbsDown, Briefcase, Zap, Crown, Rocket,
+  BadgeCheck, Globe, Code, Sparkles, Users, Building2
 } from "lucide-react";
 import { ReportDialog } from "@/components/ui/report-dialog";
 import { shareItem } from "@/lib/share";
@@ -23,6 +24,107 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ShopProduct, ProductReview } from "@shared/schema";
+
+// ── Pricing tier card for products with subscription plans ──────────────────
+function PricingTierCard({
+  addon,
+  index,
+  productId,
+}: {
+  addon: { id: string; title: string; description: string; price: number };
+  index: number;
+  productId: string;
+}) {
+  const isFree = addon.price === 0;
+  const isPopular = index === 2; // Growth plan
+  const isWhiteLabel = addon.price >= 1000;
+
+  const iconMap: Record<number, any> = {
+    0: Zap,
+    1: Users,
+    2: Rocket,
+    3: Crown,
+    4: Building2,
+  };
+  const Icon = iconMap[index] || Zap;
+
+  const gradients = [
+    "from-slate-50 to-slate-100 border-slate-200",
+    "from-blue-50 to-indigo-50 border-blue-200",
+    "from-indigo-600 to-purple-700 border-indigo-500 text-white",
+    "from-amber-50 to-orange-50 border-amber-200",
+    "from-yellow-900 to-amber-900 border-yellow-700 text-white",
+  ];
+
+  const gradient = gradients[index] ?? gradients[0];
+  const isInverted = isPopular || isWhiteLabel;
+
+  return (
+    <div
+      className={`relative rounded-2xl border-2 bg-gradient-to-br ${gradient} p-6 flex flex-col gap-3 shadow-sm hover:shadow-lg transition-all duration-300 ${isPopular ? "scale-105 shadow-xl shadow-indigo-300/40" : ""}`}
+    >
+      {isPopular && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+            ⭐ Most Popular
+          </span>
+        </div>
+      )}
+      {isWhiteLabel && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-gradient-to-r from-yellow-600 to-amber-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+            🏷 White-Label License
+          </span>
+        </div>
+      )}
+
+      <div className={`flex items-center gap-2 mb-1 ${isInverted ? "text-white/80" : "text-indigo-600"}`}>
+        <Icon className="w-5 h-5" />
+        <span className={`text-xs font-bold uppercase tracking-wider ${isInverted ? "text-white/70" : "text-gray-500"}`}>
+          {isFree ? "Free Trial" : isWhiteLabel ? "Lifetime License" : `Plan`}
+        </span>
+      </div>
+
+      <div>
+        <h3 className={`text-lg font-extrabold leading-tight ${isInverted ? "text-white" : "text-gray-900"}`}>
+          {addon.title.split("—")[0].trim()}
+        </h3>
+        <div className={`text-3xl font-black mt-1 ${isInverted ? "text-white" : "text-gray-900"}`}>
+          {isFree ? (
+            <span className="text-green-500">FREE</span>
+          ) : (
+            <>${addon.price.toLocaleString()}</>
+          )}
+        </div>
+        {addon.title.includes("—") && (
+          <p className={`text-sm font-medium mt-0.5 ${isInverted ? "text-white/70" : "text-gray-500"}`}>
+            {addon.title.split("—")[1]?.trim()}
+          </p>
+        )}
+      </div>
+
+      <p className={`text-sm leading-relaxed flex-1 ${isInverted ? "text-white/85" : "text-gray-600"}`}>
+        {addon.description}
+      </p>
+
+      <Link href={`/shop/checkout/${productId}?plan=${addon.id}`}>
+        <Button
+          className={`w-full mt-2 font-bold rounded-xl ${
+            isPopular
+              ? "bg-white text-indigo-700 hover:bg-indigo-50 shadow-lg"
+              : isWhiteLabel
+              ? "bg-yellow-400 text-yellow-900 hover:bg-yellow-300 shadow-lg"
+              : isFree
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+          }`}
+        >
+          {isFree ? "Start Free Trial" : isWhiteLabel ? "Get White-Label License" : "Get This Plan"}
+        </Button>
+      </Link>
+    </div>
+  );
+}
 
 export default function ProductDetail() {
   const [, params] = useRoute("/shop/product/:id");
@@ -403,25 +505,106 @@ export default function ProductDetail() {
               <span>Secure admin-reviewed checkout before product delivery</span>
             </div>
 
-            {/* Chat + Hire Developer CTAs */}
-            <div className="grid grid-cols-2 gap-3">
-              {adminContact?.id && (
-                <Link href={`/messages?to=${adminContact.id}`}>
-                  <Button variant="outline" className="w-full gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
-                    <MessageCircle className="w-4 h-4" />
-                    Chat with Admin
-                  </Button>
-                </Link>
-              )}
+            {/* Chat with Admin */}
+            {adminContact?.id && (
+              <Link href={`/messages?to=${adminContact.id}`}>
+                <Button variant="outline" className="w-full gap-2 border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <MessageCircle className="w-4 h-4" />
+                  Chat with Admin
+                </Button>
+              </Link>
+            )}
+
+            {/* Hire a Developer — prominent CTA */}
+            <div className="rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 p-5 text-white shadow-lg shadow-purple-200/60">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-base">Need Custom Development?</h4>
+                  <p className="text-white/80 text-xs mt-0.5">
+                    Hire our expert dev team to deploy, customise, or extend this system for your organisation — white-labelling, custom integrations, and more.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { icon: Globe, label: "White-Label Setup" },
+                  { icon: Code, label: "Custom Features" },
+                  { icon: Sparkles, label: "Full Deployment" },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="rounded-xl bg-white/10 px-2 py-2 text-center">
+                    <Icon className="w-4 h-4 mx-auto mb-1 text-white/80" />
+                    <p className="text-white/90 text-[10px] font-medium leading-tight">{label}</p>
+                  </div>
+                ))}
+              </div>
               <Link href="/hire-developer">
-                <Button variant="outline" className="w-full gap-2 border-purple-200 text-purple-700 hover:bg-purple-50">
-                  <Briefcase className="w-4 h-4" />
-                  Hire a Developer
+                <Button className="w-full bg-white text-indigo-700 hover:bg-indigo-50 font-bold rounded-xl shadow-md">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Hire a Developer Now
                 </Button>
               </Link>
             </div>
           </div>
         </div>
+
+        {/* Pricing Tiers — shown when product has subscription plans (serviceAddons) */}
+        {(product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 && (
+          <div className="mb-14">
+            <div className="text-center mb-8">
+              <Badge className="mb-3 bg-indigo-100 text-indigo-700 border border-indigo-200">Flexible Pricing</Badge>
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Simple Plans. Serious Value.</h2>
+              <p className="text-gray-500 max-w-xl mx-auto">
+                Start free, scale as you grow. No hidden fees, no long-term lock-in.
+              </p>
+            </div>
+            <div className={`grid gap-5 items-stretch ${(product as any).serviceAddons.length <= 3 ? "grid-cols-1 md:grid-cols-3" : (product as any).serviceAddons.length === 4 ? "grid-cols-1 md:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"}`}>
+              {(product as any).serviceAddons.map((addon: any, i: number) => (
+                <PricingTierCard key={addon.id} addon={addon} index={i} productId={product.id} />
+              ))}
+            </div>
+
+            {/* White-Label highlight banner */}
+            {(product as any).serviceAddons.some((a: any) => a.price >= 1000) && (
+              <div className="mt-8 rounded-2xl bg-gradient-to-br from-yellow-900 via-amber-800 to-yellow-900 p-6 md:p-8 text-white shadow-xl shadow-amber-900/30 border border-yellow-700/40">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Crown className="w-5 h-5 text-yellow-400" />
+                      <Badge className="bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 text-xs font-bold">WHITE-LABEL LICENSE — LIMITED</Badge>
+                    </div>
+                    <div className="text-4xl font-black text-yellow-300 mb-1">
+                      ${(product as any).serviceAddons.find((a: any) => a.price >= 1000)?.price.toLocaleString()}.00
+                    </div>
+                    <p className="text-yellow-200/80 text-sm font-medium mb-1">
+                      Own {product.title.split("—")[0].trim()} as Your Own SaaS Business. Forever.
+                    </p>
+                    <p className="text-yellow-100/70 text-sm">
+                      Rebrand it. Price it. Sell it. Keep 100% of revenue.<br />
+                      Includes 6 months of setup, training &amp; support.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 w-full md:w-auto md:min-w-[220px]">
+                    <Link href={`/shop/checkout/${product.id}?plan=${(product as any).serviceAddons?.find((a: any) => a.price >= 1000)?.id || ''}`}>
+                      <Button className="w-full bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold rounded-xl shadow-lg text-base py-5">
+                        <Crown className="w-4 h-4 mr-2" />
+                        Get White-Label License
+                      </Button>
+                    </Link>
+                    <Link href="/hire-developer">
+                      <Button variant="outline" className="w-full border-yellow-500/40 text-yellow-200 hover:bg-yellow-800/40 rounded-xl">
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        Hire Dev for Setup
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Product Details Tabs */}
         <div className="mb-12">
