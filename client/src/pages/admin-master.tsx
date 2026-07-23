@@ -3125,7 +3125,7 @@ export default function AdminMaster() {
                 { value: "tasks", icon: <CheckSquare className="h-3.5 w-3.5" />, label: "Tasks Mgmt" },
                 { value: "networks", icon: <Globe className="h-3.5 w-3.5" />, label: "Networks" },
                 { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
-                { value: "direct-hires", icon: <Briefcase className="h-3.5 w-3.5" />, label: "Direct Hires" },
+                { value: "direct-hires", icon: <Briefcase className="h-3.5 w-3.5" />, label: `Hires (${adminDirectHires.length})` },
                 { value: "p2p", icon: <Store className="h-3.5 w-3.5" />, label: "P2P Market" },
                 { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },

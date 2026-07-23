@@ -528,7 +528,12 @@ export const directHireOffers = pgTable("direct_hire_offers", {
   agreedBudget: decimal("agreed_budget", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => [
+  index("dho_brand_idx").on(t.brandId),
+  index("dho_influencer_idx").on(t.influencerId),
+  index("dho_status_idx").on(t.status),
+  index("dho_created_idx").on(t.createdAt),
+]);
 
 export const insertDirectHireOfferSchema = createInsertSchema(directHireOffers).omit({ id: true, createdAt: true, updatedAt: true, activatedAt: true });
 export type DirectHireOffer = typeof directHireOffers.$inferSelect;

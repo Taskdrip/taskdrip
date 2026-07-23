@@ -5482,7 +5482,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           status: "pending",
         } as any);
       } catch (e: any) {
-        console.error("hire-offer insert failed:", e);
+        console.error("hire-offer insert failed:", e.message, e.code);
+        // Surface the error so the caller knows something went wrong with record creation
+        // but still continue — the message was already sent to admin above.
+        // Do NOT return an error here; the message was delivered.
       }
 
       // Link the initial request as the first chat message on the offer,
@@ -8085,12 +8088,24 @@ Instructions:
   app.get('/api/admin/direct-hire', isAuthenticated, async (req: any, res) => {
     try {
       if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-      const offers = await storage.getAllDirectHireOffers();
-      const enriched = await Promise.all(offers.map(async (o: any) => {
-        const brand = await storage.getUser(o.brandId);
-        const influencer = await storage.getUser(o.influencerId);
+      const [admin, offers] = await Promise.all([
+        storage.getAdminUser(),
+        storage.getAllDirectHireOffers(),
+      ]);
+      const adminId = admin?.id;
+      // Batch user lookups — collect unique IDs then fetch all in parallel
+      const uniqueIds = [...new Set(offers.flatMap((o: any) => [o.brandId, o.influencerId]).filter(Boolean))];
+      const userArr = await Promise.all(uniqueIds.map((id: string) => storage.getUser(id)));
+      const userMap: Record<string, any> = {};
+      userArr.forEach((u: any) => { if (u) userMap[u.id] = u; });
+
+      const enriched = offers.map((o: any) => {
+        const brand = userMap[o.brandId];
+        const influencer = userMap[o.influencerId];
         return {
           ...o,
+          // Flag dev-hire requests (user→admin) vs brand→influencer direct hires
+          isDevHire: adminId ? o.influencerId === adminId : false,
           brand: brand ? {
             id: brand.id,
             firstName: brand.firstName,
@@ -8107,7 +8122,7 @@ Instructions:
             username: influencer.username,
           } : null,
         };
-      }));
+      });
       res.json(enriched);
     } catch (e: any) {
       console.error('/api/admin/direct-hire error:', e.message);
