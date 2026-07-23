@@ -36,7 +36,7 @@ import {
   Download, Upload, Filter, Search, MoreHorizontal, Activity, Globe, Lock,
   Mail, Phone, MapPin, Calendar, FileText, Image, Video, ExternalLink, Send,
   Bold, Italic, Underline, List, ListOrdered, Quote, Link, AlignLeft, AlignCenter, AlignRight,
-  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Layers, KeyRound, UserCog, Coins,
+  Copy, GraduationCap, ShoppingBag, Star, Package, Code, Code2, Layers, KeyRound, UserCog, Coins,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
   Briefcase, Store, Trophy, Gift, Award, Crown, MessageCircle
@@ -2265,6 +2265,29 @@ export default function AdminMaster() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  // Dev-hire specific mutations (admin is the influencer in dev hire records)
+  const acceptDevHireMutation = useMutation({
+    mutationFn: async (id: string) =>
+      (await apiRequest("PATCH", `/api/direct-hire/${id}/accept`, {})).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      toast({ title: "Request Accepted ✅", description: "The requester has been notified to proceed with payment." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectDevHireMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) =>
+      (await apiRequest("PATCH", `/api/direct-hire/${id}/reject`, { reason })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
+      toast({ title: "Request Declined", description: "The requester has been notified." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const [devHireRejectReasonMap, setDevHireRejectReasonMap] = useState<Record<string, string>>({});
+
   // Admin mutations
   const createBlogPost = useMutation({
     mutationFn: async (data: z.infer<typeof blogPostSchema>) => {
@@ -3125,7 +3148,7 @@ export default function AdminMaster() {
                 { value: "tasks", icon: <CheckSquare className="h-3.5 w-3.5" />, label: "Tasks Mgmt" },
                 { value: "networks", icon: <Globe className="h-3.5 w-3.5" />, label: "Networks" },
                 { value: "payments", icon: <DollarSign className="h-3.5 w-3.5" />, label: "Payments" },
-                { value: "direct-hires", icon: <Briefcase className="h-3.5 w-3.5" />, label: `Hires (${adminDirectHires.length})` },
+                { value: "direct-hires", icon: <Briefcase className="h-3.5 w-3.5" />, label: `Dev (${adminDirectHires.filter((h: any) => h.isDevHire).length}) · Hires (${adminDirectHires.filter((h: any) => !h.isDevHire).length})` },
                 { value: "p2p", icon: <Store className="h-3.5 w-3.5" />, label: "P2P Market" },
                 { value: "feed", icon: <Send className="h-3.5 w-3.5" />, label: "Feed" },
                 { value: "blog", icon: <BookOpen className="h-3.5 w-3.5" />, label: "Blog" },
@@ -7150,21 +7173,224 @@ export default function AdminMaster() {
 
           {/* ── DIRECT HIRES TAB ── */}
           <TabsContent value="direct-hires" className="space-y-6">
+            {/* ── Section 1: Dev Hire Requests (user → admin dev team) ── */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-purple-400" /> Direct Hire Offers
+                  <Code2 className="w-5 h-5 text-violet-400" /> Dev Hire Requests
+                  <Badge className="bg-violet-900 text-violet-300 text-xs ml-1">{adminDirectHires.filter((h: any) => h.isDevHire).length}</Badge>
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Review and approve payment submissions from brands to activate projects.
+                  Project requests sent by users (brands or creators) to the Taskdrip dev team.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {adminDirectHires.length === 0 ? (
+                {adminDirectHires.filter((h: any) => h.isDevHire).length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-8">No dev hire requests yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {adminDirectHires.filter((h: any) => h.isDevHire).map((offer: any) => {
+                      const statusColors: Record<string, string> = {
+                        pending: "bg-yellow-900 text-yellow-300",
+                        accepted: "bg-blue-900 text-blue-300",
+                        payment_submitted: "bg-purple-900 text-purple-300",
+                        active: "bg-green-900 text-green-300",
+                        rejected: "bg-red-900 text-red-300",
+                        completed: "bg-gray-700 text-gray-300",
+                      };
+                      const note = directHireNoteMap[offer.id] || "";
+                      const rejectReason = devHireRejectReasonMap[offer.id] || "";
+                      const requester = offer.brand;
+                      return (
+                        <Card key={offer.id} className="bg-gray-800 border-violet-900/50 border">
+                          <CardContent className="p-5 space-y-4">
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge className="bg-violet-900 text-violet-300 text-[10px]">🛠 Dev Hire Request</Badge>
+                                  <Badge className={`text-xs ${statusColors[offer.status] || "bg-gray-700 text-gray-300"}`}>
+                                    {offer.status.replace(/_/g, " ")}
+                                  </Badge>
+                                </div>
+                                <p className="font-semibold text-white mt-1.5">{offer.title}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  From: <span className="text-gray-200">{requester?.companyName || `${requester?.firstName ?? ""} ${requester?.lastName ?? ""}`.trim() || requester?.username || "Unknown"}</span>
+                                  {requester?.email && <span className="ml-1 text-gray-500">({requester.email})</span>}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  Submitted: {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-green-400 font-bold text-lg">{Number(offer.budget) > 0 ? `$${Number(offer.budget).toLocaleString()}` : "TBD"}</p>
+                                <p className="text-xs text-gray-500">Budget estimate</p>
+                              </div>
+                            </div>
+
+                            {/* Project Description */}
+                            {offer.description && (
+                              <div className="bg-gray-900 rounded-lg p-3 space-y-1">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Project Details</p>
+                                <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">{offer.description}</p>
+                              </div>
+                            )}
+
+                            {/* Deliverables / Features */}
+                            {offer.deliverables && (
+                              <div className="bg-gray-900 rounded-lg p-3">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Key Features / Deliverables</p>
+                                <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">{offer.deliverables}</p>
+                              </div>
+                            )}
+
+                            {/* Admin note (non-payment statuses) */}
+                            {offer.status !== "payment_submitted" && offer.adminNote && (
+                              <p className="text-xs text-gray-400 border-t border-gray-700 pt-2">
+                                Admin note: {offer.adminNote}
+                              </p>
+                            )}
+
+                            {/* Payment proof section */}
+                            {offer.status === "payment_submitted" && (
+                              <div className="space-y-3 border-t border-gray-700 pt-3">
+                                {offer.transactionHash && (
+                                  <div className="bg-gray-900 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">Transaction Hash</p>
+                                    <p className="text-xs font-mono text-gray-200 break-all">{offer.transactionHash}</p>
+                                  </div>
+                                )}
+                                {(offer.paymentProof || offer.transactionHash) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-purple-600 text-purple-300 hover:bg-purple-900/40 text-xs h-8"
+                                    onClick={() => setProofModal({
+                                      open: true,
+                                      url: offer.paymentProof,
+                                      txHash: offer.transactionHash,
+                                      network: offer.paymentNetwork,
+                                      amount: offer.budget,
+                                      label: `Dev Hire — ${requester?.username || offer.brandId}`,
+                                    })}
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" /> View Payment Proof
+                                  </Button>
+                                )}
+                                <div>
+                                  <label className="text-xs text-gray-400 block mb-1">Admin Note (optional)</label>
+                                  <input
+                                    type="text"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500"
+                                    placeholder="Add a note for the requester..."
+                                    value={note}
+                                    onChange={e => setDirectHireNoteMap(m => ({ ...m, [offer.id]: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    disabled={activateDirectHireMutation.isPending}
+                                    onClick={() => activateDirectHireMutation.mutate({ id: offer.id, note })}
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> Approve & Activate
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-700 text-red-400 hover:bg-red-900/30"
+                                    disabled={rejectDirectHirePaymentMutation.isPending}
+                                    onClick={() => rejectDirectHirePaymentMutation.mutate({ id: offer.id, note })}
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 mr-1" /> Reject Payment
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Actions for pending/accepted dev hire requests */}
+                            {(offer.status === "pending" || offer.status === "accepted") && offer.status !== "payment_submitted" && (
+                              <div className="border-t border-gray-700 pt-3 space-y-2">
+                                {offer.status === "pending" && (
+                                  <div className="flex gap-2 flex-wrap items-end">
+                                    <div className="flex-1 min-w-[180px]">
+                                      <label className="text-xs text-gray-400 block mb-1">Decline reason (optional)</label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500"
+                                        placeholder="Why declining? (optional)"
+                                        value={rejectReason}
+                                        onChange={e => setDevHireRejectReasonMap(m => ({ ...m, [offer.id]: e.target.value }))}
+                                      />
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                      disabled={acceptDevHireMutation.isPending}
+                                      onClick={() => acceptDevHireMutation.mutate(offer.id)}
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Accept Request
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-red-700 text-red-400 hover:bg-red-900/30"
+                                      disabled={rejectDevHireMutation.isPending}
+                                      onClick={() => rejectDevHireMutation.mutate({ id: offer.id, reason: rejectReason })}
+                                    >
+                                      <XCircle className="w-3.5 h-3.5 mr-1" /> Decline
+                                    </Button>
+                                  </div>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
+                                  onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title })}
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5 mr-1" /> Message Requester
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Chat button for non-pending states */}
+                            {!["pending", "payment_submitted"].includes(offer.status) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-600 text-blue-400 hover:bg-blue-900/20 mt-1"
+                                onClick={() => setConversationDrawer({ open: true, type: "direct_hire", id: offer.id, title: offer.title })}
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 mr-1" /> View Conversation
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ── Section 2: Brand → Influencer Direct Hire Offers ── */}
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-sky-400" /> Direct Hire Offers
+                  <Badge className="bg-sky-900 text-sky-300 text-xs ml-1">{adminDirectHires.filter((h: any) => !h.isDevHire).length}</Badge>
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Brand → Influencer direct hire offers. Review payment submissions to activate.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {adminDirectHires.filter((h: any) => !h.isDevHire).length === 0 ? (
                   <p className="text-gray-500 text-sm text-center py-8">No direct hire offers yet.</p>
                 ) : (
                   <div className="space-y-4">
-                    {adminDirectHires.map((offer: any) => {
+                    {adminDirectHires.filter((h: any) => !h.isDevHire).map((offer: any) => {
                       const statusColors: Record<string, string> = {
                         pending: "bg-yellow-900 text-yellow-300",
                         accepted: "bg-blue-900 text-blue-300",
@@ -7179,6 +7405,7 @@ export default function AdminMaster() {
                           <CardContent className="p-5 space-y-3">
                             <div className="flex items-start justify-between gap-3 flex-wrap">
                               <div>
+                                <Badge className="bg-sky-900 text-sky-300 text-[10px] mb-1">🤝 Direct Hire</Badge>
                                 <p className="font-semibold text-white">{offer.title}</p>
                                 <p className="text-xs text-gray-400 mt-0.5">
                                   Brand: {offer.brand?.companyName || `${offer.brand?.firstName} ${offer.brand?.lastName}`} →
@@ -7213,7 +7440,7 @@ export default function AdminMaster() {
                                         url: offer.paymentProof,
                                         txHash: offer.transactionHash,
                                         network: offer.paymentNetwork,
-                                        amount: offer.amount,
+                                        amount: offer.budget,
                                         label: `Direct Hire — ${offer.influencer?.username || offer.creatorId}`,
                                       })}
                                     >
