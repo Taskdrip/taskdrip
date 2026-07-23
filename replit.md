@@ -56,6 +56,16 @@ The dev server runs on port 5000.
 6. Client submits payment → admin activates project
 7. Both parties track progress through the project page
 
+## Replit setup notes
+
+- Dependencies: run `npm install` after cloning (node_modules are not committed)
+- Database: Replit provisions PostgreSQL automatically; `DATABASE_URL` is injected at runtime
+- Schema: run `npm run db:push` once after cloning (or after schema changes) to apply the Drizzle schema
+- `SESSION_SECRET` is stored as a Replit secret ✅
+- Default admin seeded on first run: `demo@taskdrip.online` / `Admin@2024` — **change before going live**
+- Dev server: port 5000, workflow "Start application" (`npm run dev`)
+- Production build outputs to `dist/index.js` (ESM)
+
 ## User preferences
 
 <!-- Add user preferences here -->

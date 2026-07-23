@@ -541,6 +541,7 @@ export default function ShopCheckout() {
         paymentProof: proofUrl || proofText,
         paymentMethod: selectedMethod?.label || "Crypto",
         selectedAddons: chosenAddons.map((a) => ({ id: a.id, title: a.title, price: a.price })),
+        ...(isPlanMode && activePlanId ? { planId: activePlanId } : {}),
       });
       return res.json();
     },

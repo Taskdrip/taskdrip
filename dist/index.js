@@ -705,9 +705,20 @@ var init_schema = __esm({
       revisionNote: text("revision_note"),
       activatedAt: timestamp("activated_at"),
       completedAt: timestamp("completed_at"),
+      // Invoice fields
+      invoiceNumber: varchar("invoice_number"),
+      invoiceGeneratedAt: timestamp("invoice_generated_at"),
+      invoiceDueDate: timestamp("invoice_due_date"),
+      invoiceNote: text("invoice_note"),
+      agreedBudget: decimal("agreed_budget", { precision: 10, scale: 2 }),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
-    });
+    }, (t) => [
+      index("dho_brand_idx").on(t.brandId),
+      index("dho_influencer_idx").on(t.influencerId),
+      index("dho_status_idx").on(t.status),
+      index("dho_created_idx").on(t.createdAt)
+    ]);
     insertDirectHireOfferSchema = createInsertSchema(directHireOffers).omit({ id: true, createdAt: true, updatedAt: true, activatedAt: true });
     p2pListings = pgTable("p2p_listings", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1383,6 +1394,8 @@ var init_schema = __esm({
       message: text("message").notNull(),
       replyToId: varchar("reply_to_id"),
       // nullable — set for replies, references another post id
+      topic: varchar("topic", { length: 100 }).default("General"),
+      // Forum topic/category
       likeCount: integer("like_count").default(0),
       isDeleted: boolean("is_deleted").default(false),
       createdAt: timestamp("created_at").defaultNow()
@@ -2171,7 +2184,7 @@ var init_schema = __esm({
 var db_exports = {};
 __export(db_exports, {
   db: () => db,
-  pool: () => pool
+  pool: () => pool2
 });
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -2206,7 +2219,7 @@ function resolveConnectionString() {
   }
   return void 0;
 }
-var Pool, connectionString, isLocalDatabase, usesSsl, pool, db;
+var Pool, connectionString, isLocalDatabase, usesSsl, pool2, db;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -2220,7 +2233,7 @@ var init_db = __esm({
     }
     isLocalDatabase = connectionString ? /localhost|127\.0\.0\.1|\.internal/.test(connectionString) : false;
     usesSsl = connectionString ? process.env.PGSSL === "true" || process.env.DATABASE_PUBLIC_URL === connectionString || connectionString.includes("sslmode=require") || connectionString.includes("neon.tech") || connectionString.includes("railway.app") || connectionString.includes("supabase.co") || connectionString.includes("rds.amazonaws.com") : false;
-    pool = new Pool(
+    pool2 = new Pool(
       connectionString ? {
         connectionString,
         ssl: usesSsl && !isLocalDatabase ? { rejectUnauthorized: false } : void 0,
@@ -2235,7 +2248,7 @@ var init_db = __esm({
         connectionTimeoutMillis: 1e3
       }
     );
-    db = drizzle({ client: pool, schema: schema_exports });
+    db = drizzle({ client: pool2, schema: schema_exports });
   }
 });
 
@@ -2997,25 +3010,127 @@ var DatabaseStorage = class {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
   }
   async deleteUser(id) {
+    await db.execute(sql2`UPDATE transactions               SET approved_by        = NULL WHERE approved_by        = ${id}`);
+    await db.execute(sql2`UPDATE escrow_payments            SET verified_by        = NULL WHERE verified_by        = ${id}`);
+    await db.execute(sql2`UPDATE micro_task_submissions     SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql2`UPDATE task_submissions           SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql2`UPDATE p2p_task_addon_submissions SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql2`UPDATE p2p_transactions           SET admin_id           = NULL WHERE admin_id           = ${id}`);
+    await db.execute(sql2`UPDATE p2p_transactions           SET dispute_winner_id  = NULL WHERE dispute_winner_id  = ${id}`);
+    await db.execute(sql2`UPDATE p2p_listings               SET approved_by        = NULL WHERE approved_by        = ${id}`);
+    await db.execute(sql2`UPDATE content_reports            SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`);
+    await db.execute(sql2`UPDATE course_enrollments         SET approved_by        = NULL WHERE approved_by        = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE payout_requests            SET processed_by       = NULL WHERE processed_by       = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE campaign_micro_tasks       SET reviewed_by        = NULL WHERE reviewed_by        = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE push_notification_campaigns SET created_by        = NULL WHERE created_by         = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE p2p_fee_config             SET updated_by         = NULL WHERE updated_by         = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE platform_fees              SET updated_by         = NULL WHERE updated_by         = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE leaderboard_rewards        SET sponsor_brand_id   = NULL WHERE sponsor_brand_id   = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`UPDATE leaderboard_giveaways      SET sponsor_brand_id   = NULL WHERE sponsor_brand_id   = ${id}`).catch(() => {
+    });
     await db.delete(postComments).where(eq(postComments.userId, id));
     await db.delete(postLikes).where(eq(postLikes.userId, id));
     await db.delete(posts).where(eq(posts.userId, id));
+    await db.execute(sql2`DELETE FROM blog_likes            WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM blog_comments         WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM blog_category_follows WHERE user_id = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM blog_tips             WHERE user_id = ${id}`).catch(() => {
+    });
     await db.delete(productReviews).where(eq(productReviews.userId, id));
+    await db.execute(sql2`DELETE FROM product_likes         WHERE user_id = ${id}`).catch(() => {
+    });
     await db.delete(purchases).where(eq(purchases.userId, id));
+    await db.execute(sql2`DELETE FROM course_messages        WHERE sender_id = ${id} OR recipient_id = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM course_likes           WHERE user_id = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM course_community_likes WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM course_community_posts WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM course_comments        WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM course_reviews         WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM course_lesson_progress WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM course_certificates    WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM course_assignments     WHERE user_id = ${id}`);
+    await db.delete(courseEnrollments).where(eq(courseEnrollments.userId, id));
+    await db.delete(subscriptions).where(eq(subscriptions.userId, id));
     await db.delete(notifications).where(eq(notifications.userId, id));
     await db.delete(taskSubmissions).where(eq(taskSubmissions.userId, id));
+    await db.delete(microTaskSubmissions).where(eq(microTaskSubmissions.userId, id));
+    await db.delete(userSocialTaskCompletions).where(eq(userSocialTaskCompletions.userId, id));
+    await db.execute(sql2`DELETE FROM welcome_task_completions WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM user_points              WHERE user_id = ${id}`).catch(() => {
+    });
     await db.delete(campaignParticipations).where(eq(campaignParticipations.userId, id));
+    await db.execute(sql2`DELETE FROM payout_messages WHERE sender_id = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM payout_requests WHERE user_id   = ${id}`);
     await db.delete(transactions).where(eq(transactions.userId, id));
-    await db.execute(sql2`DELETE FROM messages WHERE sender_id = ${id} OR receiver_id = ${id}`);
+    await db.execute(sql2`DELETE FROM referrals        WHERE referrer_id = ${id} OR referred_id = ${id}`);
+    await db.execute(sql2`DELETE FROM payment_deposits WHERE user_id    = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM user_social_links WHERE user_id      = ${id}`);
+    await db.execute(sql2`DELETE FROM portfolio_items    WHERE user_id      = ${id}`);
+    await db.execute(sql2`DELETE FROM user_follows       WHERE follower_id  = ${id} OR following_id = ${id}`);
+    await db.execute(sql2`DELETE FROM blocked_users      WHERE blocker_id   = ${id} OR blocked_id   = ${id}`);
+    await db.execute(sql2`DELETE FROM content_reports    WHERE reporter_id  = ${id}`);
+    await db.execute(sql2`DELETE FROM messages           WHERE sender_id    = ${id} OR receiver_id  = ${id}`);
+    await db.execute(sql2`DELETE FROM direct_hire_offers WHERE brand_id     = ${id} OR influencer_id = ${id}`);
+    await db.execute(sql2`
+      DELETE FROM p2p_messages
+      WHERE transaction_id IN (
+        SELECT id FROM p2p_transactions WHERE buyer_id = ${id} OR seller_id = ${id}
+      )
+    `);
+    await db.execute(sql2`DELETE FROM p2p_messages    WHERE sender_id = ${id}`);
+    await db.execute(sql2`DELETE FROM p2p_action_logs WHERE actor_id  = ${id}`);
+    await db.execute(sql2`DELETE FROM p2p_transactions WHERE buyer_id = ${id} OR seller_id = ${id}`);
+    await db.execute(sql2`DELETE FROM p2p_listings    WHERE seller_id = ${id}`);
     await db.delete(escrowPayments).where(eq(escrowPayments.brandId, id));
     await db.delete(paymentDeposits).where(eq(paymentDeposits.brandId, id));
     await db.delete(brandWallets).where(eq(brandWallets.brandId, id));
+    await db.execute(sql2`DELETE FROM advertise_applications WHERE user_id = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM push_subscriptions     WHERE user_id = ${id}`);
+    await db.execute(sql2`DELETE FROM user_reviews           WHERE reviewer_id = ${id} OR reviewee_id = ${id}`);
+    await db.execute(sql2`DELETE FROM breedskool_registrations WHERE user_id  = ${id}`);
+    await db.execute(sql2`DELETE FROM hire_developer_requests  WHERE user_id  = ${id}`).catch(() => {
+    });
+    await db.execute(sql2`
+      UPDATE product_reviews SET purchase_id = NULL
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `).catch(() => {
+    });
+    await db.execute(sql2`
+      DELETE FROM purchases
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `);
+    await db.execute(sql2`
+      DELETE FROM product_reviews
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `);
+    await db.execute(sql2`
+      DELETE FROM product_likes
+      WHERE product_id IN (SELECT id FROM shop_products WHERE created_by = ${id})
+    `).catch(() => {
+    });
+    await db.execute(sql2`DELETE FROM shop_products WHERE created_by = ${id}`);
+    await db.execute(sql2`DELETE FROM campaign_micro_tasks WHERE brand_id = ${id}`);
     const userCampaigns = await db.select({ id: campaigns.id }).from(campaigns).where(eq(campaigns.brandId, id));
     for (const c of userCampaigns) {
       await db.delete(campaignParticipations).where(eq(campaignParticipations.campaignId, c.id));
+      await db.execute(sql2`DELETE FROM campaign_micro_tasks WHERE campaign_id = ${c.id}`);
     }
     await db.delete(campaigns).where(eq(campaigns.brandId, id));
     await db.delete(blogPosts).where(eq(blogPosts.authorId, id));
+    await db.execute(sql2`DELETE FROM courses WHERE instructor_id = ${id}`);
     await db.delete(users).where(eq(users.id, id));
   }
   async resetUserPassword(id, newPassword) {
@@ -3053,7 +3168,26 @@ var DatabaseStorage = class {
   }
   // Purchase operations
   async getAllPurchases() {
-    return await db.select().from(purchases).orderBy(desc(purchases.createdAt));
+    const rows = await db.select({
+      purchase: purchases,
+      product: {
+        id: shopProducts.id,
+        title: shopProducts.title,
+        imageUrl: shopProducts.featuredImage,
+        category: shopProducts.category,
+        type: shopProducts.type,
+        downloadUrl: shopProducts.downloadUrl
+      },
+      buyer: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        profileImage: users.profileImageUrl,
+        firstName: users.firstName,
+        lastName: users.lastName
+      }
+    }).from(purchases).leftJoin(shopProducts, eq(purchases.productId, shopProducts.id)).leftJoin(users, eq(purchases.userId, users.id)).orderBy(desc(purchases.createdAt));
+    return rows.map((r) => ({ ...r.purchase, product: r.product, buyer: r.buyer }));
   }
   async getUserPurchases(userId) {
     const rows = await db.select({
@@ -4810,7 +4944,7 @@ function setupAuth(app2) {
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
-      pool,
+      pool: pool2,
       createTableIfMissing: true,
       tableName: "sessions"
     }),
@@ -6985,20 +7119,20 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       if (generateReviews) {
         const n = clamp(generateReviews, 100);
         const fakeUsers = await db.select({ id: users.id }).from(users).where(sql5`${users.email} LIKE 'fake_%@taskdrip.demo'`).limit(Math.max(n, 10));
-        const pool2 = fakeUsers.length > 0 ? fakeUsers.map((u) => u.id) : [req.user.id];
+        const pool3 = fakeUsers.length > 0 ? fakeUsers.map((u) => u.id) : [req.user.id];
         for (let i = 0; i < n; i++) {
           const blurb = REVIEW_BLURBS[i % REVIEW_BLURBS.length];
           const r = 4 + Math.floor(Math.random() * 2);
           await db.insert(productReviews).values({
             productId,
-            userId: pool2[i % pool2.length],
+            userId: pool3[i % pool3.length],
             rating: r,
             comment: blurb,
             isVerified: true,
             helpfulCount: Math.floor(Math.random() * 20)
           }).onConflictDoNothing?.() ?? db.insert(productReviews).values({
             productId,
-            userId: pool2[i % pool2.length],
+            userId: pool3[i % pool3.length],
             rating: r,
             comment: blurb,
             isVerified: true
@@ -8108,6 +8242,20 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/typing/:senderId", isAuthenticated, (req, res) => {
     const ts = typingMap.get(`${req.params.senderId}:${req.user.id}`) || 0;
     res.json({ typing: Date.now() - ts < 4e3 });
+  });
+  const onlineMap = /* @__PURE__ */ new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, ts] of onlineMap) if (now - ts > 12e4) onlineMap.delete(k);
+  }, 3e4).unref?.();
+  app2.post("/api/online/ping", isAuthenticated, (req, res) => {
+    onlineMap.set(req.user.id, Date.now());
+    res.json({ ok: true });
+  });
+  app2.get("/api/online/:userId", isAuthenticated, (req, res) => {
+    const ts = onlineMap.get(req.params.userId) || 0;
+    const online = Date.now() - ts < 9e4;
+    res.json({ online, lastSeen: ts ? new Date(ts).toISOString() : null });
   });
   app2.get("/api/brands/by-tier", async (req, res) => {
     try {
@@ -10413,7 +10561,8 @@ async function registerRoutes(app2, existingServer) {
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
+      const detail = error?.detail || error?.message || "Failed to delete user";
+      res.status(500).json({ message: "Failed to delete user", detail });
     }
   });
   app2.patch("/api/admin/users/:id/reset-password", async (req, res) => {
@@ -10597,8 +10746,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq14 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq14(transactions3.id, id));
+            const { eq: eq15 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq15(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -11205,9 +11354,9 @@ async function registerRoutes(app2, existingServer) {
         storage.createNotification({
           userId: buyer.id,
           type: "order",
-          title: product.isFree ? `${product.title} is ready! \u{1F389}` : `Order received for ${product.title}`,
-          content: product.isFree ? "Your free product is approved and ready to access." : "Your payment is under review. We'll notify you once approved (usually within 24 hours).",
-          actionUrl: "/shop",
+          title: product.isFree ? `${product.title} is ready! \u{1F389}` : `Order received: ${product.title}`,
+          content: product.isFree ? "Your free product is approved \u2014 click to access it now." : "Your payment is under review. Click to track your order status.",
+          actionUrl: `/orders/${purchase.id}`,
           isRead: false,
           priority: "high"
         }).catch(() => {
@@ -11331,14 +11480,26 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/admin/purchases", isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
-      if (user.role !== "admin") {
+      if (user.userType !== "admin" && user.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const purchases2 = await storage.getAllPurchases();
       res.json(purchases2);
     } catch (error) {
       console.error("Error fetching purchases:", error);
+      if (error?.code === "42P01" || error?.code === "42703") return res.json([]);
       res.status(500).json({ message: "Failed to fetch purchases" });
+    }
+  });
+  app2.get("/api/admin/contact", async (_req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT id, username, profile_image_url AS "profileImage" FROM users WHERE role = 'admin' LIMIT 1`
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Admin not found" });
+      res.json(result.rows[0]);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
     }
   });
   app2.put("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
@@ -12280,6 +12441,207 @@ async function registerRoutes(app2, existingServer) {
       res.status(500).json({ message: "Failed to check block status" });
     }
   });
+  app2.post("/api/hire-developer", async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        projectType,
+        budget,
+        timeline,
+        features,
+        // contact details
+        phone,
+        whatsapp,
+        telegram,
+        preferredContact,
+        contactEmail,
+        // account creation (only when unauthenticated)
+        firstName,
+        lastName,
+        email,
+        password
+      } = req.body || {};
+      if (!title || !description || !projectType || !budget) {
+        return res.status(400).json({ message: "title, description, projectType, and budget are required" });
+      }
+      let userId = req.user?.id || null;
+      if (!userId) {
+        if (!firstName || !lastName || !email || !password) {
+          return res.status(400).json({ message: "firstName, lastName, email, and password are required when not logged in" });
+        }
+        if (password.length < 6) {
+          return res.status(400).json({ message: "Password must be at least 6 characters" });
+        }
+        const existing = await storage.getUserByEmail(email);
+        if (existing) {
+          userId = existing.id;
+        } else {
+          const hashed = await hashPassword(password);
+          const newUser = await storage.createUser({
+            id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            email: email.toLowerCase().trim(),
+            password: hashed,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            username: email.toLowerCase().split("@")[0].replace(/[^a-z0-9_]/g, "_"),
+            userType: "creator"
+          });
+          userId = newUser.id;
+          await new Promise((resolve, reject) => {
+            req.login(newUser, (err) => err ? reject(err) : resolve());
+          });
+        }
+      }
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.status(404).json({ message: "No developer available" });
+      const budgetLabels = {
+        under_500: "Under $500",
+        "500_2000": "$500 \u2013 $2,000",
+        "2000_5000": "$2,000 \u2013 $5,000",
+        "5000_10000": "$5,000 \u2013 $10,000",
+        over_10000: "$10,000+",
+        discuss: "Let's discuss"
+      };
+      const timelineLabels = {
+        asap: "ASAP / Urgent",
+        "1_2_weeks": "1 \u2013 2 weeks",
+        "1_month": "About 1 month",
+        "2_3_months": "2 \u2013 3 months",
+        flexible: "Flexible"
+      };
+      const typeLabels = {
+        web_app: "Web Application",
+        ecommerce: "E-commerce Store",
+        landing_page: "Landing Page / Website",
+        dashboard: "Dashboard / Admin Panel",
+        mobile_app: "Mobile App",
+        api_backend: "API / Backend System",
+        automation: "Automation / Bot",
+        ai_integration: "AI / ChatGPT Integration",
+        marketplace: "Marketplace Platform",
+        other: "Other / Custom"
+      };
+      const contactLines = [];
+      if (phone) contactLines.push(`\u{1F4DE} Phone/WhatsApp: ${phone}`);
+      if (telegram) contactLines.push(`\u2708\uFE0F Telegram: @${telegram.replace(/^@/, "")}`);
+      if (contactEmail) contactLines.push(`\u{1F4E7} Email: ${contactEmail}`);
+      if (preferredContact) {
+        const contactLabels = {
+          in_app_chat: "In-app Chat",
+          whatsapp: "WhatsApp",
+          telegram: "Telegram",
+          email: "Email",
+          phone: "Phone / Voice Call"
+        };
+        contactLines.push(`\u2B50 Preferred contact: ${contactLabels[preferredContact] || preferredContact}`);
+      }
+      const messageContent = `\u{1F680} NEW PROJECT REQUEST
+
+\u{1F4CC} Title: ${title}
+\u{1F6E0}\uFE0F Type: ${typeLabels[projectType] || projectType}
+\u{1F4B0} Budget: ${budgetLabels[budget] || budget}
+\u23F1\uFE0F Timeline: ${timelineLabels[timeline] || timeline || "Not specified"}
+
+\u{1F4DD} Description:
+${description}
+
+` + (features ? `\u2705 Key Features:
+${features}
+
+` : "") + (contactLines.length ? `\u{1F4EC} Contact Details:
+${contactLines.join("\n")}
+
+` : "") + `---
+Submitted via Hire Developer form. Reply in this chat to continue the conversation.`;
+      const message = await storage.createMessage({
+        senderId: userId,
+        receiverId: admin.id,
+        subject: `Project Request: ${title}`,
+        content: messageContent,
+        messageType: "general",
+        attachments: []
+      });
+      const budgetNumberMap = {
+        under_500: "499",
+        "500_2000": "1250",
+        "2000_5000": "3500",
+        "5000_10000": "7500",
+        over_10000: "15000",
+        discuss: "0"
+      };
+      const budgetNumber = budgetNumberMap[budget] ?? "0";
+      let devOffer = null;
+      try {
+        devOffer = await storage.createDirectHireOffer({
+          brandId: userId,
+          influencerId: admin.id,
+          title,
+          description: description + (features ? `
+
+Key Features:
+${features}` : "") + (contactLines.length ? `
+
+Contact:
+${contactLines.join("\n")}` : ""),
+          deliverables: features || null,
+          budget: budgetNumber,
+          status: "pending"
+        });
+      } catch (e) {
+        console.error("hire-offer insert failed:", e.message, e.code);
+      }
+      if (devOffer?.id) {
+        try {
+          await storage.createMessage({
+            senderId: userId,
+            receiverId: admin.id,
+            subject: `Project Request: ${title}`,
+            content: messageContent,
+            messageType: "direct_hire",
+            referenceType: "direct_hire",
+            referenceId: devOffer.id,
+            attachments: []
+          });
+        } catch (e) {
+          console.error("hire-offer initial chat message failed:", e);
+        }
+      }
+      await storage.createNotification({
+        userId: admin.id,
+        type: "message",
+        title: `New dev project request: ${title}`,
+        content: `${typeLabels[projectType] || projectType} \xB7 ${budgetLabels[budget] || budget}`,
+        actionUrl: "/admin-dashboard",
+        relatedId: message.id
+      });
+      await storage.createNotification({
+        userId,
+        type: "message",
+        title: "Project request sent! \u{1F680}",
+        content: `Your request for "${title}" was submitted. The developer will reply shortly.`,
+        actionUrl: "/messages",
+        relatedId: message.id,
+        isRead: false,
+        priority: "high"
+      });
+      res.status(201).json({ messageId: message.id, adminId: admin.id, offerId: devOffer?.id || null });
+    } catch (error) {
+      console.error("hire-developer error:", error);
+      res.status(500).json({ message: error.message || "Failed to submit request" });
+    }
+  });
+  app2.get("/api/hire-developer/my-requests", isAuthenticated, async (req, res) => {
+    try {
+      const admin = await storage.getAdminUser();
+      if (!admin) return res.json([]);
+      const allSent = await storage.getDirectHireOffersByBrand(req.user.id);
+      const devRequests = allSent.filter((o) => o.influencerId === admin.id);
+      res.json(devRequests);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
   app2.post("/api/messages/to-admin", isAuthenticated, async (req, res) => {
     try {
       const admin = await storage.getAdminUser();
@@ -12541,8 +12903,9 @@ Instructions:
             await db.insert(courseEnrollments).values({
               courseId: linkedCourseId,
               userId,
-              status: "active",
-              isPaid: !isPayLater,
+              // Pay later = free online access immediately; Pay now = pending admin approval
+              status: isPayLater ? "active" : "pending_payment",
+              isPaid: false,
               paymentMethod: paymentMethod || null,
               amount: String(parseInt(amountNgn) || 0)
             });
@@ -12640,8 +13003,123 @@ Instructions:
       if (paymentStatus !== void 0) updateData.paymentStatus = paymentStatus;
       if (notes !== void 0) updateData.notes = notes;
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq8(breedskoolRegistrations.id, req.params.id)).returning();
+      if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
+        let resolvedUserId = row?.userId;
+        if (!resolvedUserId && row?.email) {
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq8(users.email, row.email.toLowerCase().trim())).limit(1);
+          if (matchedUser) {
+            resolvedUserId = matchedUser.id;
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq8(breedskoolRegistrations.id, row.id));
+          }
+        }
+        if (resolvedUserId) {
+          let courseIdToActivate = row.linkedCourseId;
+          if (!courseIdToActivate && row.selectedCourseKey) {
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq8(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            courseIdToActivate = pricing?.linkedCourseId || null;
+          }
+          if (courseIdToActivate) {
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and5(
+              eq8(courseEnrollments.courseId, courseIdToActivate),
+              eq8(courseEnrollments.userId, resolvedUserId)
+            )).limit(1);
+            if (existing) {
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq8(courseEnrollments.id, existing.id));
+            } else {
+              await db.insert(courseEnrollments).values({
+                courseId: courseIdToActivate,
+                userId: resolvedUserId,
+                status: "active",
+                isPaid: true,
+                paymentMethod: row.paymentMethod || null,
+                amount: String(row.amountNgn || 0)
+              });
+            }
+            if (!row.linkedCourseId) {
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq8(breedskoolRegistrations.id, row.id));
+            }
+          }
+        }
+      }
       res.json(row);
     } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.post("/api/admin/breedskool/registrations/:id/activate-enrollment", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+    try {
+      const regId = req.params.id;
+      const regResult = await db.execute(sql6`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
+      const row = regResult.rows[0];
+      if (!row) return res.status(404).json({ message: "Registration not found" });
+      let resolvedUserId = row.user_id || null;
+      if (!resolvedUserId && row.email) {
+        const userResult = await db.execute(sql6`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
+        const matchedUser = userResult.rows[0];
+        if (matchedUser) {
+          resolvedUserId = matchedUser.id;
+          await db.execute(sql6`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
+        }
+      }
+      if (!resolvedUserId) {
+        return res.status(400).json({
+          message: `No platform account found for ${row.email}. The student must sign up on Taskdrip first.`
+        });
+      }
+      let courseId = row.linked_course_id || null;
+      if (!courseId && row.selected_course_key) {
+        const pricingResult = await db.execute(sql6`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
+        const pricing = pricingResult.rows[0];
+        courseId = pricing?.linked_course_id || null;
+      }
+      if (!courseId && row.selected_course_key) {
+        const tag = `breedskool_${row.selected_course_key}`;
+        const tagResult = await db.execute(sql6`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
+        const tagCourse = tagResult.rows[0];
+        courseId = tagCourse?.id || null;
+      }
+      if (!courseId && row.selected_course_title) {
+        const titleResult = await db.execute(sql6`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
+        const titleCourse = titleResult.rows[0];
+        courseId = titleCourse?.id || null;
+      }
+      if (!courseId) {
+        return res.status(400).json({
+          message: `No linked platform course found for course key "${row.selected_course_key}". Please check Admin \u2192 BreedSkool \u2192 Courses are seeded, then try again.`
+        });
+      }
+      if (row.selected_course_key && courseId) {
+        await db.execute(sql6`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
+        });
+      }
+      const existingResult = await db.execute(sql6`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
+      const existing = existingResult.rows[0];
+      if (existing) {
+        await db.execute(sql6`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
+      } else {
+        const amount = String(row.amount_ngn || 0);
+        const payMethod = row.payment_method || null;
+        await db.execute(sql6`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
+      }
+      if (!row.linked_course_id) {
+        await db.execute(sql6`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
+      }
+      res.json({ success: true, courseId, message: "Enrollment activated successfully" });
+    } catch (e) {
+      console.error("[activate-enrollment error]", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.delete("/api/admin/breedskool/registrations/:id", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+    try {
+      const regId = req.params.id;
+      const result = await db.execute(sql6`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
+      if (!result.rows.length) return res.status(404).json({ message: "Registration not found" });
+      res.json({ success: true, message: "Registration deleted" });
+    } catch (e) {
+      console.error("[delete-registration error]", e);
       res.status(500).json({ message: e.message });
     }
   });
@@ -12929,7 +13407,7 @@ Instructions:
     try {
       const u = req.user;
       const courseId = req.params.id;
-      const { message, replyToId } = req.body;
+      const { message, replyToId, topic } = req.body;
       if (!message?.trim()) return res.status(400).json({ message: "Message is required." });
       const isAdmin4 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin4) {
@@ -12942,12 +13420,12 @@ Instructions:
           }
         }
       }
-      const [post] = await db.insert(courseCommunityPosts).values({
-        courseId,
-        userId: u.id,
-        message: message.trim(),
-        replyToId: replyToId || null
-      }).returning();
+      const postRows = await db.execute(sql6`
+        INSERT INTO course_community_posts (course_id, user_id, message, reply_to_id, topic)
+        VALUES (${courseId}, ${u.id}, ${message.trim()}, ${replyToId || null}, ${topic || "General"})
+        RETURNING *
+      `);
+      const post = postRows.rows?.[0] ?? (Array.isArray(postRows) ? postRows[0] : postRows);
       res.json(post);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to create post" });
@@ -12981,8 +13459,8 @@ Instructions:
         await db.update(courseCommunityPosts).set({ likeCount: sql6`GREATEST(like_count - 1, 0)` }).where(eq8(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
-        await db.insert(courseCommunityLikes).values({ postId, userId: u.id });
-        await db.update(courseCommunityPosts).set({ likeCount: sql6`like_count + 1` }).where(eq8(courseCommunityPosts.id, postId));
+        await db.execute(sql6`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
+        await db.execute(sql6`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
         res.json({ liked: true });
       }
     } catch (e) {
@@ -13020,6 +13498,7 @@ Instructions:
         userId: courseCommunityPosts.userId,
         message: courseCommunityPosts.message,
         replyToId: courseCommunityPosts.replyToId,
+        topic: courseCommunityPosts.topic,
         likeCount: courseCommunityPosts.likeCount,
         createdAt: courseCommunityPosts.createdAt,
         authorFirstName: users.firstName,
@@ -13333,17 +13812,22 @@ Instructions:
       const primaryFile = files[0] || null;
       const allFilePaths = files.map((f) => `/uploads/${f.filename}`);
       const fileUrlValue = allFilePaths.length > 1 ? JSON.stringify(allFilePaths) : primaryFile ? `/uploads/${primaryFile.filename}` : null;
-      const [assignment] = await db.insert(courseAssignments).values({
-        courseId: req.params.id,
-        userId: req.user.id,
-        lessonId: lessonId || null,
-        title: title.trim(),
-        description: description?.trim() || null,
-        fileUrl: fileUrlValue,
-        fileName: primaryFile ? primaryFile.originalname || primaryFile.filename : files.length > 1 ? `${files.length} files` : null,
-        fileType: primaryFile ? primaryFile.mimetype : null,
-        status: "submitted"
-      }).returning();
+      const assignRows = await db.execute(sql6`
+        INSERT INTO course_assignments (course_id, user_id, lesson_id, title, description, file_url, file_name, file_type, status)
+        VALUES (
+          ${req.params.id},
+          ${req.user.id},
+          ${lessonId || null},
+          ${title.trim()},
+          ${description?.trim() || null},
+          ${fileUrlValue},
+          ${primaryFile ? primaryFile.originalname || primaryFile.filename : files.length > 1 ? `${files.length} files` : null},
+          ${primaryFile ? primaryFile.mimetype : null},
+          'submitted'
+        )
+        RETURNING *
+      `);
+      const assignment = assignRows.rows?.[0] ?? (Array.isArray(assignRows) ? assignRows[0] : assignRows);
       res.status(201).json(assignment);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to submit assignment" });
@@ -13429,13 +13913,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq14, desc: desc7 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq14(courseMessages2.courseId, req.params.id)).orderBy(desc7(courseMessages2.createdAt));
+      const { eq: eq15, desc: desc7 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq15(courseMessages2.courseId, req.params.id)).orderBy(desc7(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq14(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq15(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq14(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq15(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -13468,8 +13952,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq14, and: and6 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and6(eq14(productLikes2.productId, req.params.id), eq14(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq15, and: and7 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and7(eq15(productLikes2.productId, req.params.id), eq15(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -13479,26 +13963,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq14, and: and6, sql: sql11 } = await import("drizzle-orm");
+      const { eq: eq15, and: and7, sql: sql11 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and6(eq14(productLikes2.productId, req.params.id), eq14(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and7(eq15(productLikes2.productId, req.params.id), eq15(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq14(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq15(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             [type === "like" ? "likesCount" : "dislikesCount"]: sql11`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq14(shopProducts2.id, req.params.id));
+          }).where(eq15(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq14(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq15(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             likesCount: sql11`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
             dislikesCount: sql11`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq14(shopProducts2.id, req.params.id));
+          }).where(eq15(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -13509,7 +13993,7 @@ Instructions:
         });
         await db2.update(shopProducts2).set({
           [type === "like" ? "likesCount" : "dislikesCount"]: sql11`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq14(shopProducts2.id, req.params.id));
+        }).where(eq15(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -13837,7 +14321,12 @@ Instructions:
     try {
       const offer = await storage.getDirectHireOffer(req.params.id);
       if (!offer) return res.status(404).json({ message: "Offer not found" });
-      if (offer.status === "pending") return res.status(400).json({ message: "Chat opens after the offer is accepted" });
+      if (offer.status === "pending") {
+        const devRecipient = await storage.getUser(offer.influencerId);
+        if (!devRecipient || devRecipient.userType !== "admin") {
+          return res.status(400).json({ message: "Chat opens after the offer is accepted" });
+        }
+      }
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
@@ -14121,7 +14610,8 @@ Instructions:
       if (offer.status !== "accepted") return res.status(400).json({ message: "Offer must be accepted before payment" });
       const { transactionHash, paymentNetwork } = req.body;
       const paymentProof = req.file ? `/uploads/${req.file.filename}` : null;
-      const verification = await verifyBlockchainTransaction(paymentNetwork, transactionHash, Number(offer.brandTotalCharge || offer.budget || 0));
+      const payableAmount = Number(offer.agreedBudget || offer.brandTotalCharge || offer.budget || 0);
+      const verification = await verifyBlockchainTransaction(paymentNetwork, transactionHash, payableAmount);
       const updated = await storage.updateDirectHireOffer(req.params.id, {
         status: "payment_submitted",
         transactionHash,
@@ -14161,8 +14651,11 @@ Instructions:
         adminNote: req.body.note || "",
         activatedAt: /* @__PURE__ */ new Date()
       });
-      const payout = Number(offer.influencerPayout || Number(offer.budget) * 0.9);
-      const brandTotalCharge = Number(offer.budget || 0);
+      const authoritative = Number(offer.agreedBudget || offer.budget || 0);
+      const platformFeeRate = 0.1;
+      const platformFee = +(authoritative * platformFeeRate).toFixed(2);
+      const payout = +(authoritative - platformFee).toFixed(2);
+      const brandTotalCharge = authoritative;
       await db.update(users).set({
         pendingBalance: sql6`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
@@ -14251,12 +14744,70 @@ Instructions:
         type: "order_delivered",
         title: "\u{1F389} Your order is ready",
         content: `Your purchase of "${product?.title || "product"}" has been fulfilled. View access details in My Orders.`,
-        actionUrl: "/my-orders",
+        actionUrl: `/my-orders?order=${existing.id}`,
         relatedId: existing.id
       });
       res.json(updated);
     } catch (e) {
       console.error("Error granting purchase access:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.patch("/api/admin/purchases/:id/approve", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const updated = await storage.updatePurchase(req.params.id, {
+        status: "paid",
+        paidAt: /* @__PURE__ */ new Date()
+      });
+      const existing = await storage.getPurchaseById(req.params.id);
+      if (existing) {
+        const product = await storage.getShopProductById(existing.productId);
+        await storage.createNotification({
+          userId: existing.userId,
+          type: "order_approved",
+          title: "\u2705 Payment Approved",
+          content: `Your payment for "${product?.title || "your order"}" has been approved. Delivery details will follow shortly.`,
+          actionUrl: `/my-orders?order=${existing.id}`,
+          relatedId: existing.id
+        });
+      }
+      res.json(updated);
+    } catch (e) {
+      console.error("Error approving purchase:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.patch("/api/admin/purchases/:id/disapprove", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const updated = await storage.updatePurchase(req.params.id, { status: "cancelled" });
+      const existing = await storage.getPurchaseById(req.params.id);
+      if (existing) {
+        const product = await storage.getShopProductById(existing.productId);
+        await storage.createNotification({
+          userId: existing.userId,
+          type: "order_cancelled",
+          title: "\u274C Order Cancelled",
+          content: `Your order for "${product?.title || "your order"}" was cancelled. Please contact support if you believe this is an error.`,
+          actionUrl: `/my-orders?order=${existing.id}`,
+          relatedId: existing.id
+        });
+      }
+      res.json(updated);
+    } catch (e) {
+      console.error("Error cancelling purchase:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      await db.delete(productReviews).where(eq8(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq8(purchases.id, req.params.id));
+      res.json({ message: "Purchase deleted" });
+    } catch (e) {
+      console.error("Error deleting purchase:", e);
       res.status(500).json({ message: e.message });
     }
   });
@@ -14315,21 +14866,95 @@ ${accessNotes}` : ""}`,
       res.status(500).json({ message: e.message });
     }
   });
+  app2.post("/api/admin/direct-hire/:id/generate-invoice", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: "Offer not found" });
+      const { invoiceNote, invoiceDueDate, agreedBudget } = req.body;
+      const now = /* @__PURE__ */ new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const suffix = Math.floor(1e3 + Math.random() * 9e3);
+      const invoiceNumber = `INV-${now.getFullYear()}${pad(now.getMonth() + 1)}-${suffix}`;
+      const nextStatus = ["pending", "accepted"].includes(offer.status) ? "accepted" : offer.status;
+      const updated = await storage.updateDirectHireOffer(req.params.id, {
+        invoiceNumber,
+        invoiceGeneratedAt: now,
+        invoiceDueDate: invoiceDueDate ? new Date(invoiceDueDate) : null,
+        invoiceNote: invoiceNote || null,
+        agreedBudget: agreedBudget ? String(Number(agreedBudget).toFixed(2)) : offer.budget,
+        status: nextStatus
+      });
+      await storage.createNotification({
+        userId: offer.brandId,
+        type: "direct_hire_invoice",
+        title: "\u{1F9FE} Invoice Ready \u2014 " + invoiceNumber,
+        content: `Your invoice for "${offer.title}" has been generated. Amount: $${agreedBudget || offer.budget}. View and download it from your project page.`,
+        actionUrl: `/direct-hire/${offer.id}`,
+        relatedId: offer.id
+      });
+      await storage.createMessage({
+        senderId: req.user.id,
+        receiverId: offer.brandId,
+        subject: `Direct hire: ${offer.title}`,
+        content: `\u{1F4C4} Invoice ${invoiceNumber} has been generated for this project.
+\u{1F4B0} Amount: $${agreedBudget || offer.budget}
+${invoiceDueDate ? `\u{1F4C5} Due: ${new Date(invoiceDueDate).toLocaleDateString()}` : ""}
+${invoiceNote ? `\u{1F4DD} Note: ${invoiceNote}` : ""}
+
+Please proceed to the payment section when ready.`,
+        messageType: "direct_hire",
+        referenceType: "direct_hire",
+        referenceId: offer.id
+      });
+      res.json(updated);
+    } catch (e) {
+      console.error("Error generating invoice:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
   app2.get("/api/admin/direct-hire", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const offers = await storage.getAllDirectHireOffers();
-      const enriched = await Promise.all(offers.map(async (o) => {
-        const brand = await storage.getUser(o.brandId);
-        const influencer = await storage.getUser(o.influencerId);
+      const [admin, offers] = await Promise.all([
+        storage.getAdminUser(),
+        storage.getAllDirectHireOffers()
+      ]);
+      const adminId = admin?.id;
+      const uniqueIds = [...new Set(offers.flatMap((o) => [o.brandId, o.influencerId]).filter(Boolean))];
+      const userArr = await Promise.all(uniqueIds.map((id) => storage.getUser(id)));
+      const userMap = {};
+      userArr.forEach((u) => {
+        if (u) userMap[u.id] = u;
+      });
+      const enriched = offers.map((o) => {
+        const brand = userMap[o.brandId];
+        const influencer = userMap[o.influencerId];
         return {
           ...o,
-          brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName } : null,
-          influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName } : null
+          // Flag dev-hire requests (user→admin) vs brand→influencer direct hires
+          isDevHire: adminId ? o.influencerId === adminId : false,
+          brand: brand ? {
+            id: brand.id,
+            firstName: brand.firstName,
+            lastName: brand.lastName,
+            companyName: brand.companyName,
+            email: brand.email,
+            username: brand.username
+          } : null,
+          influencer: influencer ? {
+            id: influencer.id,
+            firstName: influencer.firstName,
+            lastName: influencer.lastName,
+            email: influencer.email,
+            username: influencer.username
+          } : null
         };
-      }));
+      });
       res.json(enriched);
     } catch (e) {
+      console.error("/api/admin/direct-hire error:", e.message);
+      if (e.code === "42P01" || e.code === "42703" || e.code === "42P07") return res.json([]);
       res.status(500).json({ message: e.message });
     }
   });
@@ -16457,8 +17082,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq14, and: and6 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and6(eq14(pageHeroBackgrounds2.page, req.params.page), eq14(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq15, and: and7 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and7(eq15(pageHeroBackgrounds2.page, req.params.page), eq15(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16480,12 +17105,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq14 } = await import("drizzle-orm");
+      const { eq: eq15 } = await import("drizzle-orm");
       const page = req.params.page;
       const data = { ...req.body, page, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq14(pageHeroBackgrounds2.page, page));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq15(pageHeroBackgrounds2.page, page));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq14(pageHeroBackgrounds2.page, page)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq15(pageHeroBackgrounds2.page, page)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -16499,8 +17124,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq14 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq14(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq15 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq15(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19309,7 +19934,7 @@ async function seedLegalPages() {
 // server/seed-breedskool.ts
 init_db();
 init_schema();
-import { eq as eq12 } from "drizzle-orm";
+import { eq as eq12, inArray as inArray7, and as and6 } from "drizzle-orm";
 var BREEDSKOOL_PAYMENT_DEFAULTS = [
   { key: "breedskool_bank_name", value: "GTBank" },
   { key: "breedskool_bank_account_number", value: "0273575556" },
@@ -19421,6 +20046,63 @@ async function seedBreedskoolPricing() {
     }
   }
   return { upserted, skipped };
+}
+async function fixVerifiedBreedskoolEnrollments() {
+  let fixed = 0, skipped = 0, noLink = 0;
+  try {
+    const verified = await db.select().from(breedskoolRegistrations).where(inArray7(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
+    for (const reg of verified) {
+      let resolvedUserId = reg.userId;
+      if (!resolvedUserId && reg.email) {
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq12(users.email, reg.email.toLowerCase().trim())).limit(1);
+        if (matchedUser) {
+          resolvedUserId = matchedUser.id;
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq12(breedskoolRegistrations.id, reg.id));
+        }
+      }
+      if (!resolvedUserId) {
+        noLink++;
+        continue;
+      }
+      let courseId = reg.linkedCourseId;
+      if (!courseId && reg.selectedCourseKey) {
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        courseId = pricing?.linkedCourseId || null;
+      }
+      if (!courseId) {
+        noLink++;
+        continue;
+      }
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and6(
+        eq12(courseEnrollments.courseId, courseId),
+        eq12(courseEnrollments.userId, reg.userId)
+      )).limit(1);
+      if (existing) {
+        if (existing.status !== "active") {
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq12(courseEnrollments.id, existing.id));
+          fixed++;
+        } else {
+          skipped++;
+        }
+      } else {
+        await db.insert(courseEnrollments).values({
+          courseId,
+          userId: reg.userId,
+          status: "active",
+          isPaid: true,
+          paymentMethod: reg.paymentMethod || null,
+          amount: String(reg.amountNgn || 0)
+        });
+        fixed++;
+      }
+      if (!reg.linkedCourseId && courseId) {
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq12(breedskoolRegistrations.id, reg.id));
+      }
+    }
+  } catch (e) {
+    console.error("[fixVerifiedBreedskoolEnrollments]", e?.message);
+  }
+  return { fixed, skipped, noLink };
 }
 
 // server/seed-breedskool-courses.ts
@@ -19655,6 +20337,212 @@ async function seedBreedskoolCourses(adminId) {
   return { created, linked };
 }
 
+// server/seed-lawcolab.ts
+init_db();
+init_schema();
+import { eq as eq14 } from "drizzle-orm";
+var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
+async function seedLawcolab() {
+  try {
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq14(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    if (existing.length > 0) {
+      return { inserted: false, skipped: true };
+    }
+    await db.insert(shopProducts).values({
+      title: LAWCOLAB_TITLE,
+      shortDescription: "Full-featured, multi-tenant Legal Practice Management SaaS. Run your law firm like a world-class business \u2014 manage cases, clients, invoices, calendars, payments, and team members from one unified workspace.",
+      description: `LAWCOLAB is a production-ready, multi-tenant Legal Practice Management SaaS platform built with Python/Flask and PostgreSQL.
+
+Designed for solo practitioners, growing firms, and multi-office enterprises, LAWCOLAB ships with four subscription tiers plus a white-label licensing option \u2014 everything you need to run a law firm (or launch your own legal-tech SaaS business) out of the box.
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F3DB} WHO IS LAWCOLAB FOR?
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u2022 Law firm admins managing cases, clients, and workflows
+\u2022 Attorneys and paralegals tracking deadlines and documents
+\u2022 Clients who need a secure portal to view their case progress and invoices
+\u2022 Entrepreneurs looking to resell a white-label legal SaaS platform
+\u2022 Developers wanting a production-ready Flask/PostgreSQL codebase to extend
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F511} FULL FEATURE LIST
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+
+MULTI-TENANT LAW FIRM MANAGEMENT
+Each law firm is fully isolated \u2014 admins see only their own firm's data. Super Admin manages the entire platform. Firm branding, profiles, and banking details are configurable per tenant. Trial period management with subscription gating on premium routes.
+
+CASE & PROJECT MANAGEMENT
+Create cases with title, description, status, priority, and deadline. Status workflow: Active \u2192 In Progress \u2192 Completed \u2192 On Hold. Priority levels: High / Medium / Low with colour-coded badges. Assign multiple team members and clients to a single case. Per-project file uploads with download management. Project-level group chat thread for team collaboration.
+
+CLIENT MANAGEMENT
+Full profiles: contact info, company, industry, website, headquarters. Searchable, filterable client directory. Client notes with timestamps (attorney work product). Link clients to multiple cases simultaneously. Client portal: clients view their own cases, invoices, and team contacts.
+
+TEAM MANAGEMENT
+Add attorneys, paralegals, and support staff as Team Members. Professional profiles: specialization, years of experience, education, certifications. Team directory with role-based access control. Assign team members to cases with automatic data scoping.
+
+INVOICING & BILLING
+Create professional invoices with line items, quantities, rates, and descriptions. Auto-calculated totals with configurable tax and discount. One-click PDF invoice generation (WeasyPrint/ReportLab). Invoice status workflow: Draft \u2192 Sent \u2192 Paid \u2192 Overdue. Payment record tracking with method and reference number. Revenue analytics dashboard: trends, outstanding balances, payment rates. Invoice-specific chat for client billing queries. Overdue invoice alert notifications.
+
+CALENDAR & SCHEDULING
+Create events: Court Date, Meeting, Appointment, Deadline, Reminder. Month view and upcoming events with colour coding. Attendee management \u2014 invite team members and clients. Notification badges for upcoming deadlines.
+
+REAL-TIME CHAT & SUPPORT
+Team direct messaging and project group chat threads. Client support chat with law firm team. Super Admin monitors all firm support conversations. Unread count badges in the navigation bar. Invoice-specific billing chat channel.
+
+ESCROW & PAYMENT PROCESSING
+Full escrow lifecycle: create, approve, and release milestones. Multi-gateway: Bank Transfer, USDT, BTC crypto payments. Bank transfer instructions and crypto wallet display for client payments. Payment evidence upload (screenshot / receipt) with admin review. Escrow transaction logs and audit trail.
+
+ANALYTICS DASHBOARD
+Total billed, collected, and outstanding revenue at a glance. Project status distribution and pipeline metrics. Invoice payment rate and overdue rate percentages. Per-admin scoped to their law firm only.
+
+PUBLIC FIRM SHOWCASE
+Each law firm gets a public-facing profile page. Display: firm name, logo, description, practice areas, contact info. Client reviews and star ratings shown publicly. Public contact/inquiry form delivered to admin dashboard.
+
+SUPER ADMIN CONTROL PANEL
+Manage all registered law firms: view, verify, suspend. Sales dashboard: leads, conversions, revenue by plan. Monitor all support conversations across every firm. Configure platform-wide pricing and popup settings. Broadcast announcements to all firms.
+
+SALES & SUBSCRIPTION SYSTEM
+Built-in pricing popup with configurable plans. Lead capture and management: name, email, firm, plan chosen. Checkout flow with payment method selection. Payment evidence submission and admin approval workflow. Subscription expiry enforcement with grace period. Configurable trial duration (default 3-day free trial).
+
+DASHBOARD FEATURE SLIDERS
+Admin-editable banner ads at the top of every user dashboard. Upload custom background images or choose a solid colour. Configurable: title, subtitle, CTA button text & link, icon. Auto-advancing carousel with arrows and dot indicators.
+
+DOCUMENT MANAGEMENT
+Per-project file upload with original filename preservation. File listing with uploader name and upload timestamp. Download any project file from the case detail page. 16 MB per-file limit (configurable).
+
+AUDIT LOGGING
+Full audit trail for critical actions. Timestamp, actor, action type, and target entity recorded. Accessible from the Super Admin panel.
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F3F7} PRICING PLANS
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u2022 3-Day Free Trial \u2014 FREE, no credit card required
+\u2022 Starter \u2014 $39/month (up to 5 team members, solo lawyers & small practices)
+\u2022 Growth \u2014 $90/3 months (up to 20 team members, advanced analytics, priority support)
+\u2022 Enterprise \u2014 $350/year (unlimited users, white-label client portal, dedicated account manager)
+\u2022 White-Label License \u2014 $1,745 one-time (own the platform, resell as your own SaaS, 6-month setup & support included)
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F527} TECH STACK
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+Python 3.11 \xB7 Flask 3.x \xB7 PostgreSQL \xB7 SQLAlchemy ORM \xB7 Bootstrap 5 \xB7 Jinja2 \xB7 Gunicorn \xB7 WeasyPrint \xB7 ReportLab
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4E6} WHAT'S INCLUDED
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u2022 Full Python/Flask source code (all blueprints, models, routes, utilities)
+\u2022 60+ Jinja2 HTML templates with responsive Bootstrap 5 layout
+\u2022 Complete SQLAlchemy schema \u2014 tables auto-created on startup
+\u2022 Seeding scripts for super admin, sales data, and payment configuration
+\u2022 Railway/Heroku/Replit deployment configs (Procfile, requirements.txt, .replit)
+\u2022 Comprehensive developer documentation (this PDF)
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4DE} SUPPORT & UPDATES
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+Email: info@lawcolab.com | YouTube: @Taskdriper | Response: within 24 hours (business days).
+White-Label License holders receive all future updates at no cost.`,
+      price: "39.00",
+      originalPrice: "5000.00",
+      category: "software",
+      type: "saas_tool",
+      featuredImage: "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80",
+      galleryImages: [
+        "https://images.unsplash.com/photo-1575505586569-646b2ca898fc?w=800&q=80",
+        "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=80",
+        "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&q=80",
+        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80"
+      ],
+      demoUrl: "https://lawcolab.com",
+      documentationUrl: "https://lawcolab.com",
+      features: [
+        "Multi-tenant law firm management \u2014 full data isolation per firm",
+        "Case & project management with status workflows and priority badges",
+        "Client portal \u2014 clients view cases, invoices, and team contacts",
+        "Team management with role-based access control",
+        "Professional invoicing with one-click PDF generation",
+        "Real-time chat: team DMs, project threads, client support",
+        "Escrow & payments \u2014 Bank Transfer, USDT, BTC multi-gateway",
+        "Calendar with Court Dates, Meetings, Appointments, Deadlines",
+        "Revenue analytics dashboard (billed vs collected vs outstanding)",
+        "Public law firm showcase profile with client reviews",
+        "Super Admin control panel \u2014 manage all firms platform-wide",
+        "Built-in sales & subscription system with checkout flow",
+        "Dashboard feature sliders (admin-editable banner ads)",
+        "Document management with per-project file uploads",
+        "Full audit logging \u2014 actor, action, timestamp",
+        "3-day free trial \u2014 no credit card required",
+        "White-label license available \u2014 resell as your own SaaS",
+        "Deploys on Replit, Railway, or Heroku out of the box"
+      ],
+      requirements: [
+        "Python 3.11+",
+        "PostgreSQL 13+ (auto-provisioned on Replit/Railway)",
+        "512 MB RAM minimum (1 GB recommended)",
+        "1 GB disk space + file storage",
+        "SESSION_SECRET environment variable",
+        "DATABASE_URL / PG* environment variables"
+      ],
+      tags: [
+        "law-firm",
+        "legal",
+        "practice-management",
+        "saas",
+        "multi-tenant",
+        "python",
+        "flask",
+        "postgresql",
+        "white-label",
+        "invoicing",
+        "case-management",
+        "lawtech",
+        "lawcolab"
+      ],
+      serviceAddons: [
+        {
+          id: "plan-trial",
+          title: "3-Day Free Trial",
+          description: "Full platform access, no credit card required. Evaluation & testing.",
+          price: 0
+        },
+        {
+          id: "plan-starter",
+          title: "Starter \u2014 $39/mo",
+          description: "Perfect for solo lawyers & small practices. Up to 5 team members. Full client management, case & project tracking, secure client portal, invoicing & billing, email support.",
+          price: 39
+        },
+        {
+          id: "plan-growth",
+          title: "Growth \u2014 $90/3 months",
+          description: "Ideal for growing law firms up to 20 team members. Everything in Starter plus advanced analytics & reports, calendar & scheduling, public firm showcase profile, priority support & training.",
+          price: 90
+        },
+        {
+          id: "plan-enterprise",
+          title: "Enterprise \u2014 $350/year",
+          description: "For large firms & multi-office practices. Unlimited team members. Everything in Growth plus white-label client portal, custom API integrations, dedicated account manager, 24/7 premium support.",
+          price: 350
+        },
+        {
+          id: "plan-whitelabel",
+          title: "White-Label License \u2014 $1,745 one-time",
+          description: "Own LAWCOLAB as your own SaaS business forever. Full source code, self-hosting rights, resell 100% revenue, 6 months white-glove setup & support, all future updates included.",
+          price: 1745
+        }
+      ],
+      rating: "4.90",
+      reviewCount: 12,
+      salesCount: 8,
+      isActive: true,
+      isFeatured: true
+    });
+    return { inserted: true, skipped: false };
+  } catch (error) {
+    console.error("[seedLawcolab] Error:", error);
+    throw error;
+  }
+}
+
 // server/startup-migrations.ts
 init_db();
 import { sql as sql10 } from "drizzle-orm";
@@ -19704,7 +20592,27 @@ var REQUIRED_COLUMNS = [
   // Advertise applications extras
   { table: "advertise_applications", column: "platforms", definition: "varchar" },
   { table: "advertise_applications", column: "giveaway_type", definition: "text" },
-  { table: "advertise_applications", column: "tdrip_budget", definition: "text" }
+  { table: "advertise_applications", column: "tdrip_budget", definition: "text" },
+  // Course community post topic/category field
+  { table: "course_community_posts", column: "topic", definition: "varchar(100) DEFAULT 'General'" },
+  // BreedSkool registrations extended fields
+  { table: "breedskool_registrations", column: "delivery_mode", definition: "varchar DEFAULT 'online'" },
+  { table: "breedskool_registrations", column: "child_name", definition: "varchar" },
+  { table: "breedskool_registrations", column: "child_age", definition: "varchar" },
+  { table: "breedskool_registrations", column: "parent_name", definition: "varchar" },
+  { table: "breedskool_registrations", column: "home_address", definition: "text" },
+  { table: "breedskool_registrations", column: "linked_course_id", definition: "varchar" },
+  { table: "breedskool_registrations", column: "currency_used", definition: "varchar DEFAULT 'NGN'" },
+  { table: "breedskool_registrations", column: "amount_usd", definition: "decimal(10,2)" },
+  { table: "breedskool_registrations", column: "pay_later_deadline", definition: "timestamp" },
+  { table: "breedskool_course_pricing", column: "title", definition: "varchar NOT NULL DEFAULT ''" },
+  { table: "breedskool_course_pricing", column: "short_description", definition: "text" },
+  { table: "breedskool_course_pricing", column: "regular_price", definition: "integer NOT NULL DEFAULT 0" },
+  { table: "breedskool_course_pricing", column: "discount_price", definition: "integer NOT NULL DEFAULT 0" },
+  { table: "breedskool_course_pricing", column: "duration", definition: "varchar" },
+  { table: "breedskool_course_pricing", column: "accepted_payments", definition: "text[] DEFAULT ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']" },
+  // Legal pages — last_updated_by added after initial schema
+  { table: "legal_pages", column: "last_updated_by", definition: "varchar" }
 ];
 var REQUIRED_TABLES = [
   // P2P task addon proof submissions
@@ -19873,6 +20781,18 @@ var REQUIRED_TABLES = [
     "created_at" timestamp DEFAULT now(),
     "completed_at" timestamp
   )`,
+  // BreedSkool course pricing / linked course config
+  `CREATE TABLE IF NOT EXISTS "breedskool_course_pricing" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_key" varchar NOT NULL UNIQUE,
+    "course_title" varchar NOT NULL,
+    "price_ngn" integer NOT NULL DEFAULT 0,
+    "price_usd" decimal(10,2) DEFAULT '0.00',
+    "linked_course_id" varchar,
+    "is_active" boolean DEFAULT true,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
   // BreedSkool course registrations
   `CREATE TABLE IF NOT EXISTS "breedskool_registrations" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -19916,6 +20836,40 @@ var REQUIRED_TABLES = [
     "sort_order" integer DEFAULT 0,
     "created_at" timestamp DEFAULT now(),
     "updated_at" timestamp DEFAULT now()
+  )`,
+  // Course assignment submissions (students submit work per lesson)
+  `CREATE TABLE IF NOT EXISTS "course_assignments" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "lesson_id" varchar REFERENCES "course_lessons"("id") ON DELETE SET NULL,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "title" varchar NOT NULL,
+    "description" text,
+    "file_url" varchar,
+    "file_name" varchar,
+    "file_type" varchar,
+    "status" varchar DEFAULT 'submitted',
+    "tutor_feedback" text,
+    "submitted_at" timestamp DEFAULT now()
+  )`,
+  // Course community discussion posts (threaded forum per course)
+  `CREATE TABLE IF NOT EXISTS "course_community_posts" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "message" text NOT NULL,
+    "reply_to_id" varchar,
+    "topic" varchar(100) DEFAULT 'General',
+    "like_count" integer DEFAULT 0,
+    "is_deleted" boolean DEFAULT false,
+    "created_at" timestamp DEFAULT now()
+  )`,
+  // Likes on community posts (one per user per post)
+  `CREATE TABLE IF NOT EXISTS "course_community_likes" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "post_id" varchar NOT NULL REFERENCES "course_community_posts"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "created_at" timestamp DEFAULT now()
   )`
 ];
 async function runStartupMigrations() {
@@ -20198,6 +21152,8 @@ server.listen({
       if (adminUser) {
         await seedBreedskoolCourses(adminUser.id).then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`)).catch((e) => console.error("seedBreedskoolCourses:", e));
       }
+      await fixVerifiedBreedskoolEnrollments().then((r) => log(`[BreedSkool] Enrollment fix: ${r.fixed} activated, ${r.skipped} already active, ${r.noLink} with no course link`)).catch((e) => console.error("fixVerifiedBreedskoolEnrollments:", e));
+      await seedLawcolab().then((r) => log(`[LAWCOLAB] Shop product: ${r.inserted ? "inserted" : "already exists"}`)).catch((e) => console.error("seedLawcolab:", e));
     } catch (e) {
       console.error("Background seed error:", e);
     }

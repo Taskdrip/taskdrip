@@ -4033,7 +4033,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.post('/api/shop/purchase', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const { productId, amount, currency, network, paymentProof, transactionHash, selectedAddons: rawAddons } = req.body;
+      const { productId, amount, currency, network, paymentProof, transactionHash, selectedAddons: rawAddons, planId } = req.body;
 
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
@@ -4044,9 +4044,60 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(404).json({ message: "Product not found" });
       }
 
+      const available = ((product as any).serviceAddons as any[]) || [];
+
+      // Plan mode: a single tier (e.g. ?plan=plan-whitelabel) was selected.
+      // The plan price IS the total — it is not stacked on top of the base price.
+      if (planId) {
+        const plan = available.find((a: any) => a.id === planId);
+        if (!plan) {
+          return res.status(400).json({ message: "Selected plan not found" });
+        }
+        const planPrice = Number(plan.price) || 0;
+        const submittedTotal = parseFloat(amount);
+        if (!product.isFree || planPrice > 0) {
+          if (!paymentProof || !paymentProof.trim()) {
+            return res.status(400).json({ message: "Payment proof is required for paid products" });
+          }
+          if (Math.abs(submittedTotal - planPrice) > 0.01) {
+            return res.status(400).json({ message: `Payment amount doesn't match expected total of ${planPrice.toFixed(2)}` });
+          }
+        }
+        const purchase = await storage.createPurchase({
+          userId: user.id,
+          productId,
+          amount: planPrice.toFixed(2),
+          totalAmount: planPrice.toFixed(2),
+          selectedAddons: [{ id: plan.id, title: plan.title, price: planPrice }],
+          addonsTotal: "0.00",
+          paymentProof: paymentProof || "FREE_PRODUCT",
+          transactionHash: transactionHash || "",
+          status: "pending",
+        });
+        const buyer = await storage.getUser(user.id).catch(() => null);
+        if (buyer) {
+          sendOrderConfirmationEmail({
+            email: buyer.email,
+            firstName: buyer.firstName || '',
+            productName: `${product.title} — ${plan.title}`,
+            amount: `${planPrice.toFixed(2)} ${currency || ""}`.trim(),
+            isFree: false,
+          }).catch(() => {});
+          storage.createNotification({
+            userId: buyer.id,
+            type: 'order',
+            title: `Order received: ${product.title}`,
+            content: "Your payment is under review. Click to track your order status.",
+            actionUrl: `/orders/${purchase.id}`,
+            isRead: false,
+            priority: 'high',
+          }).catch(() => {});
+        }
+        return res.status(201).json(purchase);
+      }
+
       // Validate & price addons server-side (trust the product, not the client)
       const incoming: any[] = Array.isArray(rawAddons) ? rawAddons : [];
-      const available = ((product as any).serviceAddons as any[]) || [];
       const trustedAddons: { id: string; title: string; price: number }[] = [];
       let addonsTotal = 0;
       for (const sel of incoming) {
