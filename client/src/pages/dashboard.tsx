@@ -379,6 +379,15 @@ export default function Dashboard() {
                   </div>
                 </Button>
               </Link>
+              <Link href="/hire-developer">
+                <Button variant="outline" className="w-full h-auto p-4 flex items-center gap-2 justify-start">
+                  <Code2 className="h-5 w-5 text-violet-600" />
+                  <div className="text-left">
+                    <div className="font-medium">Hire Developer</div>
+                    <div className="text-xs text-muted-foreground">Build your app idea</div>
+                  </div>
+                </Button>
+              </Link>
             </div>
 
             {/* Active Campaigns with Messaging */}

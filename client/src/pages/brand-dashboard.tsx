@@ -1188,6 +1188,15 @@ export default function BrandDashboard() {
                       </div>
                     </Button>
                   </Link>
+                  <Link href="/hire-developer">
+                    <Button variant="outline" className="flex items-center gap-2 h-auto p-4 w-full">
+                      <Code2 className="h-5 w-5 text-violet-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Hire Developer</div>
+                        <div className="text-xs opacity-75">Build your app idea</div>
+                      </div>
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

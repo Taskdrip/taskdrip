@@ -4248,8 +4248,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       const purchases = await storage.getAllPurchases();
       res.json(purchases);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching purchases:", error);
+      // Return empty array for schema errors (missing table/column) so the
+      // admin panel shows "No orders yet" instead of an error banner.
+      if (error?.code === '42P01' || error?.code === '42703') return res.json([]);
       res.status(500).json({ message: "Failed to fetch purchases" });
     }
   });
@@ -8109,9 +8112,9 @@ Instructions:
       res.json(enriched);
     } catch (e: any) {
       console.error('/api/admin/direct-hire error:', e.message);
-      // Return empty array instead of 500 so the panel shows "No hires yet"
-      // rather than "Failed to load hires" (common on first deploy before migration)
-      if (e.code === '42P01') return res.json([]); // table doesn't exist yet
+      // Return empty array for schema errors so the panel shows "No hires yet"
+      // rather than "Failed to load hires" (table/column missing before migration)
+      if (e.code === '42P01' || e.code === '42703' || e.code === '42P07') return res.json([]);
       res.status(500).json({ message: e.message });
     }
   });

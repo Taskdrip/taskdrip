@@ -333,13 +333,20 @@ export function DevProjectsTab() {
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Your Projects</p>
-            <button
-              onClick={() => refetch()}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              title="Refresh"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <a href="/hire-developer" title="New request">
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-violet-600 hover:text-violet-800 hover:bg-violet-50 text-xs gap-1">
+                  <ExternalLink className="w-3 h-3" /> New
+                </Button>
+              </a>
+              <button
+                onClick={() => refetch()}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           {projects.map(project => {
             const cfg = STATUS[project.status] || { label: project.status, color: "bg-gray-100 text-gray-700", step: 0 };
