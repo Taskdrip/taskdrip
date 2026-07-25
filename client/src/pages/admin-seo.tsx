@@ -358,14 +358,61 @@ function AnalyticsTab() {
 
       <BuiltInAnalyticsDashboard />
 
+      {/* Microsoft Clarity Section */}
+      <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-blue-50 p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-cyan-900">Microsoft Clarity — Session Recordings & Heatmaps</p>
+            <p className="text-sm text-cyan-700 mt-1">
+              Clarity is <strong>active</strong> on this site (Project ID: <code className="bg-cyan-100 px-1 rounded font-mono">xs01r3yrol</code>). It records real user sessions, click heatmaps, scroll depth, and rage clicks — all for free.
+            </p>
+          </div>
+          <span className="flex-shrink-0 flex items-center gap-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            LIVE
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { icon: "🎥", title: "Session Recordings", desc: "Watch exactly how users navigate your app — clicks, scrolls, and hesitation moments." },
+            { icon: "🔥", title: "Heatmaps", desc: "See aggregated click and scroll heatmaps for any page to spot friction areas." },
+            { icon: "😤", title: "Rage Clicks & Dead Clicks", desc: "Auto-detected frustration signals — find broken UI without any manual setup." },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} className="bg-white rounded-xl border border-cyan-100 p-3.5">
+              <p className="text-lg mb-1">{icon}</p>
+              <p className="text-sm font-bold text-gray-800">{title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <a
+          href="https://clarity.microsoft.com/projects/view/xs01r3yrol/dashboard"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-colors"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Open Clarity Dashboard
+        </a>
+      </div>
+
       <div className="rounded-2xl bg-gray-50 border border-gray-200 p-5">
         <p className="font-semibold text-gray-800 mb-3">Quick Links</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {[
             { label: "Google Search Console", url: "https://search.google.com/search-console" },
             { label: "GA4 Dashboard", url: "https://analytics.google.com" },
             { label: "Bing Webmaster", url: "https://www.bing.com/webmasters" },
             { label: "GTM Setup", url: "https://tagmanager.google.com" },
+            { label: "Microsoft Clarity", url: "https://clarity.microsoft.com/projects/view/xs01r3yrol/dashboard" },
+            { label: "Clarity Recordings", url: "https://clarity.microsoft.com/projects/view/xs01r3yrol/recordings" },
           ].map(({ label, url }) => (
             <a key={label} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5 text-xs font-semibold text-gray-700 hover:border-purple-300 hover:text-purple-700 transition-colors bg-white">
               <ExternalLink className="w-3.5 h-3.5" />{label}
