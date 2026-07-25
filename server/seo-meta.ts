@@ -8,6 +8,10 @@ type Meta = {
   image?: string;
   url?: string;
   type?: string;
+  keywords?: string;
+  canonicalUrl?: string;
+  noIndex?: boolean;
+  structuredData?: string | null;
 };
 
 const escapeHtml = (s: string) =>
@@ -173,6 +177,10 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
           title: (page as any).metaTitle || (page as any).pageTitle,
           description: (page as any).metaDescription,
           image: absolutize(origin, (page as any).ogImage || (page as any).twitterImage),
+          keywords: (page as any).keywords || undefined,
+          canonicalUrl: (page as any).canonicalUrl || undefined,
+          noIndex: !!(page as any).noIndex,
+          structuredData: (page as any).structuredData || null,
         };
       }
     } catch {}
@@ -182,7 +190,7 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
 }
 
 function injectMeta(html: string, origin: string, url: string, meta: Meta, fallbackImage: string): string {
-  const fullUrl = `${origin}${url}`;
+  const fullUrl = meta.canonicalUrl || `${origin}${url}`;
   const image = meta.image || fallbackImage;
   const title = meta.title;
   const description = meta.description;
@@ -190,7 +198,9 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
 
   // Remove any existing og/twitter/description tags so the per-page values win when crawlers parse.
   let out = html
-    .replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description)["'][^>]*>\s*/gi, "");
+    .replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "")
+    .replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "")
+    .replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/gi, "");
 
   if (title) {
     out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(title)}</title>`);
@@ -198,6 +208,9 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
 
   const tags = [
     description ? `<meta name="description" content="${escapeHtml(description)}" />` : "",
+    meta.keywords ? `<meta name="keywords" content="${escapeHtml(meta.keywords)}" />` : "",
+    meta.noIndex ? `<meta name="robots" content="noindex, nofollow" />` : `<meta name="robots" content="index, follow" />`,
+    `<link rel="canonical" href="${escapeHtml(fullUrl)}" />`,
     title ? `<meta property="og:title" content="${escapeHtml(title)}" />` : "",
     description ? `<meta property="og:description" content="${escapeHtml(description)}" />` : "",
     `<meta property="og:type" content="${escapeHtml(type)}" />`,
@@ -207,6 +220,7 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
     image ? `<meta property="og:image:height" content="630" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
+    `<meta name="twitter:site" content="@taskdrip" />`,
     title ? `<meta name="twitter:title" content="${escapeHtml(title)}" />` : "",
     description ? `<meta name="twitter:description" content="${escapeHtml(description)}" />` : "",
     image ? `<meta name="twitter:image" content="${escapeHtml(image)}" />` : "",
@@ -214,7 +228,19 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
     .filter(Boolean)
     .join("\n    ");
 
-  return out.replace(/<\/head>/i, `    ${tags}\n  </head>`);
+  let result = out.replace(/<\/head>/i, `    ${tags}\n  </head>`);
+
+  // Inject JSON-LD structured data
+  if (meta.structuredData) {
+    try {
+      // Validate it's valid JSON
+      JSON.parse(meta.structuredData);
+      const ldTag = `\n  <script type="application/ld+json">${meta.structuredData}</script>`;
+      result = result.replace(/<\/head>/i, `${ldTag}\n  </head>`);
+    } catch {}
+  }
+
+  return result;
 }
 
 export async function buildSeoHtml(html: string, req: { protocol: string; get: (h: string) => string | undefined; originalUrl: string }): Promise<string> {
