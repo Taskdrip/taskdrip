@@ -13,6 +13,7 @@ import { seedLegalPages } from "./seed-legal";
 import { seedBreedskoolPricing, seedBreedskoolPaymentSettings, fixVerifiedBreedskoolEnrollments } from "./seed-breedskool";
 import { seedBreedskoolCourses } from "./seed-breedskool-courses";
 import { seedLawcolab } from "./seed-lawcolab";
+import { seedPageSeo } from "./seed-page-seo";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
 import bcrypt from "bcryptjs";
@@ -333,6 +334,10 @@ server.listen({
       await seedLawcolab()
         .then((r) => log(`[LAWCOLAB] Shop product: ${r.inserted ? "inserted" : "already exists"}`))
         .catch((e) => console.error("seedLawcolab:", e));
+      // Auto-seed page SEO settings (upsert on every startup so edits here propagate on redeploy)
+      await seedPageSeo()
+        .then((r) => log(`[SEO] Page SEO: ${r.upserted} pages upserted`))
+        .catch((e) => console.error("seedPageSeo:", e));
     } catch (e) {
       console.error("Background seed error:", e);
     }

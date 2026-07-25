@@ -45,6 +45,115 @@ async function defaultOgImage(origin: string): Promise<string> {
   return `${origin}/taskdrip-logo.jpg`;
 }
 
+// Static fallback SEO for every known route — used when page_seo_settings has
+// no DB entry yet (e.g. fresh deploy before seeding completes).
+const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
+  "/": {
+    title: "Taskdrip — Earn Crypto Completing Brand Tasks | Web3 Influencer Platform",
+    description: "Taskdrip is the #1 Web3 influencer marketplace. Complete social media tasks, promote brands, and earn USDT crypto rewards. Join 15,000+ verified creators earning daily.",
+    keywords: "earn crypto online, web3 influencer platform, brand campaigns, earn USDT, crypto rewards",
+    canonicalUrl: "https://taskdrip.online",
+    type: "website",
+  },
+  "/tasks": {
+    title: "Browse Brand Campaigns & Earn Crypto | Taskdrip Tasks",
+    description: "Browse hundreds of paid brand campaigns on Taskdrip. Follow, like, share, and create content for top brands. Earn USDT and crypto rewards instantly upon approval.",
+    keywords: "paid social media tasks, brand campaigns, earn USDT tasks, crypto campaign rewards",
+    canonicalUrl: "https://taskdrip.online/tasks",
+  },
+  "/p2p-hub": {
+    title: "P2P Crypto Marketplace — Buy & Sell with Escrow Protection | Taskdrip",
+    description: "Trade crypto, digital services, and products peer-to-peer with escrow protection on Taskdrip. Safe, fast P2P transactions with verified sellers and buyer protection.",
+    keywords: "P2P crypto marketplace, buy sell crypto, peer to peer trading, escrow crypto",
+    canonicalUrl: "https://taskdrip.online/p2p-hub",
+  },
+  "/shop": {
+    title: "Digital Products & Creator Tools | Taskdrip Shop",
+    description: "Shop premium digital products, creator tools, e-books, and resources on Taskdrip. Curated selection of high-quality digital downloads for creators and marketers.",
+    keywords: "digital products shop, creator tools, e-books, digital downloads",
+    canonicalUrl: "https://taskdrip.online/shop",
+  },
+  "/influencers": {
+    title: "Find Verified Influencers & Content Creators | Taskdrip Directory",
+    description: "Discover thousands of verified influencers and content creators on Taskdrip. Filter by niche, following, engagement rate, and country.",
+    keywords: "influencer directory, find influencers, content creators, verified influencers",
+    canonicalUrl: "https://taskdrip.online/influencers",
+  },
+  "/brands": {
+    title: "Discover Brands & Sponsorship Opportunities | Taskdrip",
+    description: "Browse top brands on Taskdrip looking for content creators and influencers. Find sponsorship opportunities, brand deals, and paid collaborations.",
+    keywords: "brand deals, sponsor opportunities, brand collaborations, influencer sponsorship",
+    canonicalUrl: "https://taskdrip.online/brands",
+  },
+  "/feed": {
+    title: "Creator Feed — Latest Posts from Taskdrip Influencers",
+    description: "Browse the latest posts, updates, and content from Taskdrip's creator community. Follow top influencers and discover trending content.",
+    keywords: "creator feed, influencer posts, web3 creators, taskdrip community",
+    canonicalUrl: "https://taskdrip.online/feed",
+  },
+  "/blog": {
+    title: "Taskdrip Blog — Crypto, Influencer Marketing & Web3 Insights",
+    description: "Read the latest articles on crypto earnings, influencer marketing strategies, Web3 trends, and creator economy tips on the Taskdrip blog.",
+    keywords: "crypto blog, influencer marketing blog, web3 tips, creator economy",
+    canonicalUrl: "https://taskdrip.online/blog",
+    type: "website",
+  },
+  "/breedskool": {
+    title: "BreedSkool — Learn Tech Skills & Earn | Taskdrip Training",
+    description: "BreedSkool offers tech training in Web Development, AI Content Creation, Social Media Monetization, Trading, and more. Learn skills and earn crypto rewards.",
+    keywords: "tech training Nigeria, web development course, AI content creation, breedskool",
+    canonicalUrl: "https://taskdrip.online/breedskool",
+  },
+  "/leaderboard": {
+    title: "Top Earners Leaderboard — Who's Earning the Most on Taskdrip?",
+    description: "See the top-earning creators and influencers on Taskdrip's leaderboard. Compete to reach the top and earn bigger crypto rewards. Updated in real-time.",
+    keywords: "top earners, leaderboard, taskdrip top creators, earn most crypto",
+    canonicalUrl: "https://taskdrip.online/leaderboard",
+  },
+  "/advertise": {
+    title: "Advertise on Taskdrip — Reach 15,000+ Verified Influencers",
+    description: "Launch your influencer marketing campaign on Taskdrip. Reach 15,000+ verified creators across Africa and globally. Affordable rates, guaranteed deliverables.",
+    keywords: "advertise with influencers, influencer marketing campaign, brand promotion",
+    canonicalUrl: "https://taskdrip.online/advertise",
+  },
+  "/about": {
+    title: "About Taskdrip — Our Mission to Empower Creators with Crypto",
+    description: "Taskdrip is a Web3 influencer marketing platform built to help content creators earn crypto from brand campaigns. Learn about our story, mission, and values.",
+    keywords: "about taskdrip, web3 influencer platform, crypto creator economy",
+    canonicalUrl: "https://taskdrip.online/about",
+  },
+  "/contact": {
+    title: "Contact Taskdrip — Support, Partnerships & General Inquiries",
+    description: "Get in touch with Taskdrip for support, brand partnerships, or general inquiries. Our team responds within 24 hours.",
+    keywords: "contact taskdrip, taskdrip support, brand partnership inquiry",
+    canonicalUrl: "https://taskdrip.online/contact",
+  },
+  "/tdrip": {
+    title: "$TDRIP Token — Taskdrip's Reward Points & Future Crypto Token",
+    description: "Learn about $TDRIP, Taskdrip's points and future crypto token. Earn $TDRIP completing tasks, climbing the leaderboard, and referring friends.",
+    keywords: "TDRIP token, taskdrip crypto token, earn TDRIP, web3 reward token",
+    canonicalUrl: "https://taskdrip.online/tdrip",
+  },
+  "/signup": {
+    title: "Sign Up Free — Join Taskdrip & Start Earning Crypto Today",
+    description: "Create your free Taskdrip account in 60 seconds. Start completing brand tasks, earning USDT crypto, and building your creator income today.",
+    keywords: "join taskdrip, sign up crypto, create account, start earning crypto",
+    canonicalUrl: "https://taskdrip.online/signup",
+  },
+  "/login": {
+    title: "Login to Taskdrip — Access Your Creator Dashboard",
+    description: "Log in to your Taskdrip account to manage campaigns, check your crypto earnings, and access your creator dashboard.",
+    keywords: "taskdrip login, creator dashboard",
+    canonicalUrl: "https://taskdrip.online/login",
+  },
+  "/get-started": {
+    title: "Get Started on Taskdrip — Earn or Hire in Minutes",
+    description: "Pick your path: earn as a creator or hire verified influencers as a brand. Get up and running on Taskdrip in minutes.",
+    keywords: "get started taskdrip, join taskdrip, creator onboarding",
+    canonicalUrl: "https://taskdrip.online/get-started",
+  },
+};
+
 async function lookupRoute(origin: string, pathname: string): Promise<Meta | null> {
   // /blog/:slug
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
@@ -184,6 +293,13 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
         };
       }
     } catch {}
+  }
+
+  // Last resort: static compile-time defaults so every known route always has
+  // proper OG tags even before the DB seed has completed.
+  const staticDefault = STATIC_DEFAULTS[pathname];
+  if (staticDefault) {
+    return { ...staticDefault, image: undefined };
   }
 
   return null;

@@ -42,30 +42,43 @@ export async function setAppSetting(key: string, value: string): Promise<void> {
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: new Date() } });
 }
 
-// ─── Seed default blogs (idempotent, safe to call from startup) ─────────────
+// ─── Seed default blogs (UPSERT — updates content on every startup so edits
+//     in blog-seed-data.ts propagate automatically on redeploy) ───────────────
 export async function seedDefaultBlogs(authorId: string): Promise<{ inserted: number; skipped: number; total: number }> {
   const existing = await db.select({ slug: blogPosts.slug }).from(blogPosts);
   const existingSlugs = new Set(existing.map(b => b.slug));
   let inserted = 0;
-  const skipped: string[] = [];
+  let skipped = 0;
   const now = new Date();
   for (const b of DEFAULT_BLOGS) {
-    if (existingSlugs.has(b.slug)) { skipped.push(b.slug); continue; }
     try {
-      await db.insert(blogPosts).values({
+      const values = {
         title: b.title, slug: b.slug, content: b.content, excerpt: b.excerpt,
         featuredImage: b.featuredImage, category: b.category, tags: b.tags,
-        authorId, isPublished: true, publishedAt: now,
+        authorId, isPublished: true,
         viewCount: b.viewCount, likesCount: b.likesCount, commentsCount: b.commentsCount,
         metaDescription: b.metaDescription, seoKeywords: b.seoKeywords,
         readingTime: b.readingTime,
-      } as any);
-      inserted++;
+      } as any;
+      if (existingSlugs.has(b.slug)) {
+        // Update content, title, excerpt, images, and SEO fields but preserve
+        // live viewCount and likesCount that real users have accumulated.
+        await db.update(blogPosts).set({
+          title: b.title, content: b.content, excerpt: b.excerpt,
+          featuredImage: b.featuredImage, category: b.category, tags: b.tags,
+          metaDescription: b.metaDescription, seoKeywords: b.seoKeywords,
+          readingTime: b.readingTime,
+        } as any).where(eq(blogPosts.slug, b.slug));
+        skipped++;
+      } else {
+        await db.insert(blogPosts).values({ ...values, publishedAt: now });
+        inserted++;
+      }
     } catch (err: any) {
       console.error("seed blog failed", b.slug, err?.message);
     }
   }
-  return { inserted, skipped: skipped.length, total: DEFAULT_BLOGS.length };
+  return { inserted, skipped, total: DEFAULT_BLOGS.length };
 }
 
 // ─── Master wipe of all demo data (callable from kill switch) ───────────────
