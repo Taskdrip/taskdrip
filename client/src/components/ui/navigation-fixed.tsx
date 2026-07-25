@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap, Code2 } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap, Code2, Gift } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -182,6 +182,9 @@ export function NavigationFixed() {
           "Marketplace": [
             { href: "/p2p-hub", label: "P2P Market" },
           ],
+          "Earn": [
+            { href: "/referrals", label: "Referral Program" },
+          ],
           "Resources": secondaryMainItems,
         },
       };
@@ -195,13 +198,14 @@ export function NavigationFixed() {
           { href: "/influencers", label: "Find Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/breedskool", label: "BreedSkool" },
-          { href: "/chat", label: "Messages" },
+          { href: "/referrals", label: "Referrals 💰" },
         ],
         grouped: {
           "Marketplace": [
             { href: "/shop", label: "Shop" },
             { href: "/p2p-hub", label: "P2P Market" },
             { href: "/feed", label: "Feed" },
+            { href: "/chat", label: "Messages" },
           ],
           "Earn & Tools": [
             { href: "/wallet", label: "Wallet" },
@@ -221,7 +225,7 @@ export function NavigationFixed() {
           { href: "/influencers", label: "Influencers" },
           { href: "/brands", label: "Brands" },
           { href: "/campaigns", label: "Campaigns" },
-          { href: "/breedskool", label: "BreedSkool" },
+          { href: "/referrals", label: "Referrals 💰" },
         ],
         grouped: {
           "Marketplace": [
@@ -249,13 +253,14 @@ export function NavigationFixed() {
         { href: "/tasks", label: "Tasks" },
         { href: "/dashboard", label: "Dashboard" },
         { href: "/brands", label: "Brands" },
-        { href: "/influencers", label: "Influencers" },
         { href: "/breedskool", label: "BreedSkool" },
+        { href: "/referrals", label: "Referrals 💰" },
       ],
       grouped: {
         "Marketplace": [
           { href: "/shop", label: "Shop" },
           { href: "/p2p-hub", label: "P2P Market" },
+          { href: "/influencers", label: "Influencers" },
           { href: "/feed", label: "Feed" },
         ],
         "Earn & Tools": [

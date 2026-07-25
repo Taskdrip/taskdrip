@@ -5127,6 +5127,76 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Referral network / clan (referred users with profiles) ───────────
+  app.get('/api/referrals/network', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const rawReferrals = await storage.getReferralsByReferrer(userId);
+
+      // All commissions for this referrer
+      const commRows = await db.select().from(referralCommissions)
+        .where(eq(referralCommissions.referrerId, userId));
+
+      // All clicks for this referrer
+      const clickRows = await db.select().from(referralClicks)
+        .where(eq(referralClicks.referrerId, userId));
+
+      // Build click timeline: last 30 days
+      const timeline: { date: string; clicks: number }[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        const dayClicks = clickRows.filter(c => {
+          const cDate = new Date(c.createdAt as any).toISOString().split('T')[0];
+          return cDate === key;
+        }).length;
+        timeline.push({ date: key, clicks: dayClicks });
+      }
+
+      // Enrich each referred user
+      const members = (await Promise.all(rawReferrals.map(async (ref: any) => {
+        const referred = await storage.getUser(ref.referredId);
+        if (!referred) return null;
+        const { password: _, ...safeUser } = referred as any;
+        const isFollowing = await storage.isFollowing(userId, referred.id);
+        const userComms = commRows.filter((c: any) => c.referredUserId === referred.id);
+        const totalEarned = userComms.reduce((s, c) => s + parseFloat(c.commissionAmount as string || '0'), 0);
+        const pendingEarned = userComms.filter((c: any) => c.status === 'pending')
+          .reduce((s, c) => s + parseFloat(c.commissionAmount as string || '0'), 0);
+        return {
+          referralId: ref.id,
+          joinedAt: ref.createdAt,
+          status: ref.status,
+          user: safeUser,
+          isFollowing,
+          stats: {
+            totalEarned: totalEarned.toFixed(2),
+            pendingEarned: pendingEarned.toFixed(2),
+            commissionsCount: userComms.length,
+            isActive: userComms.length > 0,
+          }
+        };
+      }))).filter(Boolean);
+
+      const totalClanEarnings = members.reduce((s, m) => s + parseFloat(m!.stats.totalEarned), 0);
+
+      res.json({
+        members,
+        clanStats: {
+          totalMembers: members.length,
+          activeMembers: members.filter(m => m!.stats.isActive).length,
+          totalClanEarnings: totalClanEarnings.toFixed(2),
+        },
+        timeline,
+        totalClicks: clickRows.length,
+      });
+    } catch (error) {
+      console.error('[referrals/network]', error);
+      res.status(500).json({ message: "Failed to fetch referral network" });
+    }
+  });
+
   // ── Referral commissions list ──────────────────────────────────────
   app.get('/api/referrals/commissions', isAuthenticated, async (req: any, res) => {
     try {
