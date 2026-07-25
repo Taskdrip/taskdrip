@@ -91,6 +91,7 @@ const RoadmapPage = lazy(() => import("@/pages/roadmap"));
 const AdminSpotlight = lazy(() => import("@/pages/admin-spotlight"));
 const AdminCMSEditor = lazy(() => import("@/pages/admin-cms-editor"));
 const AdminSEO = lazy(() => import("@/pages/admin-seo"));
+const AdminSeoIntelligence = lazy(() => import("@/pages/admin-seo-intelligence"));
 const AdminLeads = lazy(() => import("@/pages/admin-leads"));
 const AdminLeadDetail = lazy(() => import("@/pages/admin-lead-detail"));
 const LegalPageTemplate = lazy(() =>
@@ -261,6 +262,7 @@ function Router() {
             <Route path="/admin/platform-fees" component={AdminPlatformFees} />
             <Route path="/admin/cms" component={AdminCMSEditor} />
             <Route path="/admin/seo" component={AdminSEO} />
+            <Route path="/admin/seo-intelligence" component={AdminSeoIntelligence} />
             <Route path="/subscription" component={SubscriptionPage} />
             <Route path="/payout-requests" component={PayoutRequestsPage} />
             <Route path="/my-campaigns" component={MyCampaignsPage} />
