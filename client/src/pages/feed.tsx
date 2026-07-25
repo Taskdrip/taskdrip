@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ReportDialog } from "@/components/ui/report-dialog";
 import { shareItem } from "@/lib/share";
+import { SharePanel } from "@/components/ui/share-panel";
 import { getTierConfig, getTierFromFollowers, formatFollowers } from "@/lib/tiers";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
@@ -520,9 +521,15 @@ function PostCard({ post, currentUserId, isAdmin }: { post: any; currentUserId?:
             <Gift className="w-4 h-4" /><span className="hidden sm:inline">Tip</span>
           </button>
         )}
-        <button onClick={handleShare} className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-green-500 transition-colors ml-auto" data-testid={`button-share-post-${post.id}`}>
-          <Share2 className="w-4 h-4" />
-        </button>
+        <div className="ml-auto" data-testid={`button-share-post-${post.id}`}>
+          <SharePanel
+            title={post.content?.slice(0, 80) || "Post on Taskdrip"}
+            description={post.content || ""}
+            url={`/feed`}
+            image={post.imageUrl || ""}
+            compact
+          />
+        </div>
         {currentUserId && !isSelf && (
           <ReportDialog
             contentType="post"

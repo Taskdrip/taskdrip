@@ -11,6 +11,7 @@ import {
   BadgeCheck, Globe, Code, Sparkles, Users, Building2
 } from "lucide-react";
 import { ReportDialog } from "@/components/ui/report-dialog";
+import { ShareButton } from "@/components/ui/share-panel";
 import { shareItem } from "@/lib/share";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -459,14 +460,14 @@ export default function ProductDetail() {
                 <Button variant="outline" size="lg">
                   <Heart className="w-5 h-5" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => shareItem({ title: product?.title || product?.name || 'Product on Taskdrip', text: product?.description, url: typeof window !== 'undefined' ? window.location.pathname : '/' })}
-                  data-testid="button-share-product"
-                >
-                  <Share2 className="w-5 h-5" />
-                </Button>
+                <div data-testid="button-share-product">
+                  <ShareButton
+                    title={product?.title || product?.name || 'Product on Taskdrip'}
+                    description={product?.description || ''}
+                    url={window.location.href}
+                    image={product?.featuredImage || ''}
+                  />
+                </div>
                 <ReportDialog
                   contentType="product"
                   contentId={String(product?.id || '')}

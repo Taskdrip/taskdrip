@@ -21,6 +21,7 @@ import { SecurityWarning } from '@/components/ui/security-warning';
 import { ReportDialog } from '@/components/ui/report-dialog';
 import { WhatsAppConfirmDialog } from '@/components/ui/whatsapp-confirm-dialog';
 import { shareItem } from '@/lib/share';
+import { ShareButton } from '@/components/ui/share-panel';
 import { 
   ArrowLeft, Calendar, Clock, DollarSign, Users, MapPin, 
   Edit, Share2, Flag, Star, CheckCircle, User, Building2,
@@ -511,15 +512,14 @@ export default function CampaignDetail() {
               Back to Campaigns
             </Button>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => shareItem({ title: (campaign as any)?.title || 'Campaign on Taskdrip', text: (campaign as any)?.description, url: `/campaigns/${campaignId}` })}
-                data-testid="button-share-campaign"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button>
+              <div data-testid="button-share-campaign">
+                <ShareButton
+                  title={(campaign as any)?.title || 'Campaign on Taskdrip'}
+                  description={(campaign as any)?.description || ''}
+                  url={`/campaigns/${campaignId}`}
+                  image={(campaign as any)?.image || ''}
+                />
+              </div>
               <ReportDialog contentType="campaign" contentId={campaignId || ''} />
             </div>
           </div>
