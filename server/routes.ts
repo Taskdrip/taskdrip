@@ -9,7 +9,7 @@ import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -5050,15 +5050,116 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
-  // ── Referral click tracking ────────────────────────────────────────
-  app.post('/api/referrals/click/:code', async (req, res) => {
+  // ── Referral click tracking (logs clicks into referral_clicks table) ──
+  app.post('/api/referrals/click/:code', async (req: any, res) => {
     try {
       const { code } = req.params;
+      const { itemType = 'user', itemId } = req.body;
       const referrer = await storage.getUserByReferralCode(code);
       if (!referrer) return res.status(404).json({ message: "Invalid referral code" });
+      // Log the click
+      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '';
+      const userAgent = (req.headers['user-agent'] as string || '').slice(0, 200);
+      await db.insert(referralClicks).values({
+        referrerId: referrer.id,
+        referralCode: code,
+        itemType: itemType || 'user',
+        itemId: itemId || null,
+        ip: ip.slice(0, 64),
+        userAgent,
+      });
       res.json({ valid: true, referrerName: `${referrer.firstName} ${referrer.lastName}` });
     } catch (error) {
       res.status(500).json({ message: "Failed to track click" });
+    }
+  });
+
+  // ── Referral analytics (clicks + commissions summary) ─────────────
+  app.get('/api/referrals/analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+
+      // Clicks from referral_clicks
+      const clickRows = await db.select().from(referralClicks).where(eq(referralClicks.referrerId, userId));
+      const totalClicks = clickRows.length;
+      const productClicks = clickRows.filter(c => c.itemType === 'product').length;
+      const courseClicks = clickRows.filter(c => c.itemType === 'course').length;
+      const userClicks = clickRows.filter(c => c.itemType === 'user').length;
+
+      // Commissions from referral_commissions
+      const commRows = await db.select().from(referralCommissions).where(eq(referralCommissions.referrerId, userId));
+      const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+      const pendingCommissions = commRows.filter(r => r.status === 'pending').reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+      const paidCommissions = commRows.filter(r => r.status === 'paid').reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+
+      const productEarnings = commRows.filter(r => r.itemType === 'product').reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+      const courseEarnings = commRows.filter(r => r.itemType === 'course').reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+      const inviteEarnings = commRows.filter(r => r.itemType === 'invite').reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+
+      // Signups (referrals table)
+      const signups = await storage.getReferralsByReferrer(userId);
+      const conversions = signups.filter(r => r.status === 'converted' || r.status === 'rewarded').length;
+
+      // Primary referral code — prefer username
+      const primaryCode = user?.username || user?.referralCodeCreator || '';
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      res.json({
+        totalClicks,
+        productClicks,
+        courseClicks,
+        userClicks,
+        totalSignups: signups.length,
+        conversions,
+        totalCommissions: totalCommissions.toFixed(2),
+        pendingCommissions: pendingCommissions.toFixed(2),
+        paidCommissions: paidCommissions.toFixed(2),
+        productEarnings: productEarnings.toFixed(2),
+        courseEarnings: courseEarnings.toFixed(2),
+        inviteEarnings: inviteEarnings.toFixed(2),
+        legacyBonusEarned: user?.referralBonusEarned || '0.00',
+        primaryCode,
+        baseUrl,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch referral analytics" });
+    }
+  });
+
+  // ── Referral commissions list ──────────────────────────────────────
+  app.get('/api/referrals/commissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const rows = await db.select().from(referralCommissions)
+        .where(eq(referralCommissions.referrerId, req.user.id))
+        .orderBy(desc(referralCommissions.createdAt));
+      res.json(rows);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch commissions" });
+    }
+  });
+
+  // ── Products for referral links (public catalog) ───────────────────
+  app.get('/api/referrals/products', isAuthenticated, async (req: any, res) => {
+    try {
+      const products = await storage.getAllShopProducts();
+      res.json(products.filter((p: any) => p.isActive !== false).map((p: any) => ({
+        id: p.id, title: p.title, price: p.price, featuredImage: p.featuredImage, category: p.category,
+      })));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  // ── Courses for referral links ─────────────────────────────────────
+  app.get('/api/referrals/courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const allCourses = await storage.getAllCourses();
+      res.json((allCourses || []).map((c: any) => ({
+        id: c.id, title: c.title, price: c.price, thumbnail: c.thumbnail, category: c.category,
+      })));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch courses" });
     }
   });
 
@@ -7982,6 +8083,56 @@ Instructions:
           actionUrl: `/my-orders?order=${existing.id}`,
           relatedId: existing.id,
         });
+
+        // ── 15% product referral commission ─────────────────────────────
+        try {
+          const PRODUCT_COMMISSION_RATE = 0.15;
+          let referrerId: string | null = null;
+          let refCode: string | null = (existing as any).referralCode || null;
+
+          // 1. Check if purchase has an embedded referral code
+          if (refCode) {
+            const codeOwner = await storage.getUserByReferralCode(refCode);
+            if (codeOwner && codeOwner.id !== existing.userId) referrerId = codeOwner.id;
+          }
+          // 2. Fall back: check if the buyer was referred by someone
+          if (!referrerId) {
+            const userReferral = await storage.getReferralByReferredId(existing.userId);
+            if (userReferral) referrerId = userReferral.referrerId;
+          }
+
+          if (referrerId) {
+            const saleAmount = parseFloat(existing.totalAmount as string || '0');
+            const commissionAmount = (saleAmount * PRODUCT_COMMISSION_RATE).toFixed(2);
+            await db.insert(referralCommissions).values({
+              referrerId,
+              referredUserId: existing.userId,
+              itemType: 'product',
+              itemId: existing.productId,
+              itemTitle: product?.title || 'Product',
+              saleAmount: saleAmount.toFixed(2),
+              commissionRate: PRODUCT_COMMISSION_RATE.toFixed(4),
+              commissionAmount,
+              status: 'approved',
+              referenceId: existing.id,
+              referralCode: refCode || undefined,
+              approvedAt: new Date(),
+            });
+            // Credit referrer's balance
+            await storage.updateUserProfile(referrerId, {
+              availableBalance: sql`${users.availableBalance} + ${parseFloat(commissionAmount)}` as any,
+              referralBonusEarned: sql`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}` as any,
+            });
+            await storage.createNotification({
+              userId: referrerId,
+              type: 'referral_bonus',
+              title: `💰 Product Referral Commission — $${commissionAmount}!`,
+              content: `Someone you referred just bought "${product?.title || 'a product'}". You earned a ${(PRODUCT_COMMISSION_RATE * 100).toFixed(0)}% commission of $${commissionAmount}.`,
+              actionUrl: '/referrals',
+              priority: 'high',
+            });
+          }
+        } catch (commErr) { /* non-fatal */ }
       }
       res.json(updated);
     } catch (e: any) {

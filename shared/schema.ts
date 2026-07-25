@@ -337,6 +337,7 @@ export const purchases = pgTable("purchases", {
   paymentMethod: varchar("payment_method"), // usdt_tron, usdt_bsc, ton
   paymentProof: varchar("payment_proof"),
   transactionHash: varchar("transaction_hash"),
+  referralCode: varchar("referral_code"), // ref code used when buyer visited from a referral link
   status: varchar("status").notNull().default("pending"), // pending, paid, delivered, cancelled, refunded
   deliveryDetails: jsonb("delivery_details"), // Download links, access keys, etc.
   adminNotes: text("admin_notes"),
@@ -2262,3 +2263,37 @@ export const breedskoolRegistrations = pgTable("breedskool_registrations", {
 export type BreedskoolRegistration = typeof breedskoolRegistrations.$inferSelect;
 export const insertBreedskoolRegistrationSchema = createInsertSchema(breedskoolRegistrations).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertBreedskoolRegistration = z.infer<typeof insertBreedskoolRegistrationSchema>;
+
+// ── Referral click tracking ────────────────────────────────────────────────
+export const referralClicks = pgTable("referral_clicks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id),
+  referralCode: varchar("referral_code").notNull(),
+  itemType: varchar("item_type").notNull().default("user"), // 'user' | 'product' | 'course'
+  itemId: varchar("item_id"),
+  ip: varchar("ip"),
+  userAgent: varchar("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ── Referral commissions — earnings from product, course, and invite referrals ──
+export const referralCommissions = pgTable("referral_commissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id),
+  referredUserId: varchar("referred_user_id").references(() => users.id),
+  itemType: varchar("item_type").notNull(), // 'product' | 'course' | 'invite'
+  itemId: varchar("item_id"),
+  itemTitle: varchar("item_title"),
+  saleAmount: decimal("sale_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status").notNull().default("pending"), // 'pending' | 'approved' | 'paid'
+  referenceId: varchar("reference_id"), // purchase id, enrollment id, etc.
+  referralCode: varchar("referral_code"),
+  createdAt: timestamp("created_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  paidAt: timestamp("paid_at"),
+});
+
+export type ReferralClick = typeof referralClicks.$inferSelect;
+export type ReferralCommission = typeof referralCommissions.$inferSelect;
