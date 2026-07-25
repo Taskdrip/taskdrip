@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Link2, Mail, Check, Share2, Facebook, Twitter } from "lucide-react";
+// Note: crypto / Web3 platform icons use inline SVGs below
 
 export interface SharePanelProps {
   title: string;
@@ -32,23 +33,29 @@ function buildLinks(title: string, desc: string, absUrl: string, absImage: strin
   const textAndUrl = `${title}\n\n${absUrl}`;
 
   return {
-    facebook:  `https://www.facebook.com/sharer/sharer.php?u=${enc(absUrl)}`,
-    twitter:   `https://twitter.com/intent/tweet?url=${enc(absUrl)}&text=${enc(title)}&via=taskdrip`,
-    whatsapp:  `https://wa.me/?text=${enc(textAndUrl)}`,
-    telegram:  `https://t.me/share/url?url=${enc(absUrl)}&text=${enc(title + (desc ? "\n" + desc.slice(0, 150) : ""))}`,
-    // LinkedIn's legacy shareArticle endpoint supports title, summary, and source —
-    // the modern share-offsite endpoint only accepts the url param and relies solely on OG tags.
-    linkedin:  `https://www.linkedin.com/shareArticle?mini=true&url=${enc(absUrl)}&title=${enc(title)}&summary=${enc(snippet)}&source=Taskdrip`,
-    // Pinterest requires the page image via the `media` param
-    pinterest: `https://pinterest.com/pin/create/button/?url=${enc(absUrl)}&media=${enc(absImage)}&description=${enc(title + (desc ? " — " + snippet : ""))}`,
-    reddit:    `https://www.reddit.com/submit?url=${enc(absUrl)}&title=${enc(title)}`,
-    // Threads (Meta) — compose pre-filled with title + url
-    threads:   `https://www.threads.net/intent/post?text=${enc(textAndUrl)}`,
-    // Bluesky — compose pre-filled
-    bluesky:   `https://bsky.app/intent/compose?text=${enc(textAndUrl)}`,
-    // Flipboard — content discovery / news aggregator
-    flipboard: `https://share.flipboard.com/bookmarklet/popout?v=2&title=${enc(title)}&url=${enc(absUrl)}`,
-    email:     `mailto:?subject=${enc(title)}&body=${enc(`${snippet ? snippet + "\n\n" : ""}${absUrl}`)}`,
+    facebook:    `https://www.facebook.com/sharer/sharer.php?u=${enc(absUrl)}`,
+    twitter:     `https://twitter.com/intent/tweet?url=${enc(absUrl)}&text=${enc(title)}&via=taskdrip`,
+    whatsapp:    `https://wa.me/?text=${enc(textAndUrl)}`,
+    telegram:    `https://t.me/share/url?url=${enc(absUrl)}&text=${enc(title + (desc ? "\n" + desc.slice(0, 150) : ""))}`,
+    linkedin:    `https://www.linkedin.com/shareArticle?mini=true&url=${enc(absUrl)}&title=${enc(title)}&summary=${enc(snippet)}&source=Taskdrip`,
+    pinterest:   `https://pinterest.com/pin/create/button/?url=${enc(absUrl)}&media=${enc(absImage)}&description=${enc(title + (desc ? " — " + snippet : ""))}`,
+    reddit:      `https://www.reddit.com/submit?url=${enc(absUrl)}&title=${enc(title)}`,
+    threads:     `https://www.threads.net/intent/post?text=${enc(textAndUrl)}`,
+    bluesky:     `https://bsky.app/intent/compose?text=${enc(textAndUrl)}`,
+    flipboard:   `https://share.flipboard.com/bookmarklet/popout?v=2&title=${enc(title)}&url=${enc(absUrl)}`,
+    // Hacker News — submit a link
+    hackernews:  `https://news.ycombinator.com/submitlink?u=${enc(absUrl)}&t=${enc(title)}`,
+    // Mastodon (mastodon.social) — compose toot
+    mastodon:    `https://mastodon.social/share?text=${enc(textAndUrl)}`,
+    // Snapchat — deep link share
+    snapchat:    `https://www.snapchat.com/scan?attachmentUrl=${enc(absUrl)}`,
+    // Medium — share via Twitter intent (Medium has no direct share API)
+    medium:      `https://twitter.com/intent/tweet?url=${enc(absUrl)}&text=${enc("Check this out on @Medium — " + title)}`,
+    // Bitcoin Talk (Crypto community)
+    bitcointalk: `https://bitcointalk.org/index.php?action=post;board=7`,
+    // Mirror.xyz — Web3 blogging platform (no direct share URL, open the site)
+    mirror:      `https://mirror.xyz`,
+    email:       `mailto:?subject=${enc(title)}&body=${enc(`${snippet ? snippet + "\n\n" : ""}${absUrl}`)}`,
   };
 }
 
@@ -150,6 +157,46 @@ const CHANNELS: {
     Icon: ({ className }) => (
       <svg viewBox="0 0 24 24" className={className} fill="currentColor">
         <path d="M0 0v24h24V0H0zm18 6H6v12h6v-6h6V6z" />
+      </svg>
+    ),
+  },
+  {
+    key: "hackernews",
+    label: "Hacker News",
+    color: "hover:bg-orange-600 hover:text-white hover:border-orange-600",
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M0 24V0h24v24H0zM6.951 5.896l4.112 7.708v5.064h1.583v-4.972l4.148-7.799h-1.749l-2.457 4.875c-.372.745-.688 1.434-.688 1.434s-.297-.708-.651-1.434L8.831 5.896H6.95z"/>
+      </svg>
+    ),
+  },
+  {
+    key: "mastodon",
+    label: "Mastodon",
+    color: "hover:bg-indigo-600 hover:text-white hover:border-indigo-600",
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/>
+      </svg>
+    ),
+  },
+  {
+    key: "snapchat",
+    label: "Snapchat",
+    color: "hover:bg-yellow-400 hover:text-black hover:border-yellow-400",
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M12.166.5c3.437 0 6.7 2.682 6.7 6.984v.567l.75.042c.55.03 1.3.2 1.3.9 0 .523-.427.9-1.036 1.032-.108.025-.22.046-.335.063-.52.083-1.233.197-1.712.682-.24.247-.372.56-.392.93-.017.34.063.67.198.955.443.936 1.544 2.244 3.476 2.244.217 0 .454-.022.706-.067.16-.028.32-.045.477-.045.334 0 .594.098.773.29.265.284.31.66.31.886 0 .626-.395 1.036-1.167 1.217-1.08.25-1.863.565-2.33 1.024-.396.394-.486.8-.5.998l-.003.072c-.08.847-.667 1.246-1.48 1.246-.22 0-.455-.026-.704-.077-.44-.09-.88-.135-1.31-.135-.43 0-.82.046-1.18.136-.677.17-1.2.677-1.7 1.2-.818.86-1.644 1.725-3.024 1.725-1.37 0-2.2-.862-3.012-1.718-.504-.527-1.026-1.035-1.703-1.206-.36-.09-.75-.136-1.18-.136-.43 0-.87.046-1.313.136-.25.05-.484.076-.704.076-.813 0-1.4-.4-1.48-1.246l-.003-.072c-.013-.197-.102-.603-.497-.998-.468-.46-1.25-.774-2.332-1.024-.77-.18-1.165-.59-1.165-1.217 0-.226.044-.6.31-.886.178-.19.44-.29.772-.29.158 0 .317.017.48.045.25.045.487.067.703.067 1.93 0 3.033-1.308 3.478-2.244.134-.284.214-.616.197-.954-.02-.37-.152-.683-.39-.93-.48-.486-1.194-.6-1.713-.682a6.13 6.13 0 0 1-.337-.063C2.928 9.483 2.5 9.106 2.5 8.583c0-.7.75-.87 1.302-.9l.748-.042V7.484C4.55 3.182 7.812.5 11.25.5h.916z"/>
+      </svg>
+    ),
+  },
+  {
+    key: "bitcointalk",
+    label: "BitcoinTalk",
+    color: "hover:bg-amber-500 hover:text-white hover:border-amber-500",
+    Icon: ({ className }) => (
+      <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+        <path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z" />
       </svg>
     ),
   },

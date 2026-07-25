@@ -353,6 +353,37 @@ const REQUIRED_TABLES: string[] = [
     "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
     "created_at" timestamp DEFAULT now()
   )`,
+
+  // Referral click tracking
+  `CREATE TABLE IF NOT EXISTS "referral_clicks" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "referrer_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "referral_code" varchar NOT NULL,
+    "item_type" varchar NOT NULL DEFAULT 'user',
+    "item_id" varchar,
+    "ip" varchar,
+    "user_agent" varchar,
+    "created_at" timestamp DEFAULT now()
+  )`,
+
+  // Referral commissions — earnings from product, course, and invite referrals
+  `CREATE TABLE IF NOT EXISTS "referral_commissions" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "referrer_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "referred_user_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "item_type" varchar NOT NULL,
+    "item_id" varchar,
+    "item_title" varchar,
+    "sale_amount" decimal(10,2) NOT NULL DEFAULT '0.00',
+    "commission_rate" decimal(5,4) NOT NULL DEFAULT '0.0500',
+    "commission_amount" decimal(10,2) NOT NULL DEFAULT '0.00',
+    "status" varchar NOT NULL DEFAULT 'pending',
+    "reference_id" varchar,
+    "referral_code" varchar,
+    "created_at" timestamp DEFAULT now(),
+    "approved_at" timestamp,
+    "paid_at" timestamp
+  )`,
 ];
 
 export async function runStartupMigrations(): Promise<void> {

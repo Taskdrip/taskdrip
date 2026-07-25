@@ -9,7 +9,7 @@ import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -5160,6 +5160,52 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       })));
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch courses" });
+    }
+  });
+
+  // ── Referral payout request ───────────────────────────────────────
+  app.post('/api/referrals/payout-request', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { amount, note } = req.body;
+      const amountNum = parseFloat(amount);
+      if (!amount || isNaN(amountNum) || amountNum < 10) {
+        return res.status(400).json({ message: "Minimum payout amount is $10" });
+      }
+      // Check pending commissions balance
+      const commRows = await db.select().from(referralCommissions)
+        .where(eq(referralCommissions.referrerId, userId));
+      const pendingTotal = commRows.filter(r => r.status === 'pending')
+        .reduce((s, r) => s + parseFloat(r.commissionAmount as string || '0'), 0);
+      const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned as string || '0');
+      const available = pendingTotal + legacyBonus;
+      if (amountNum > available) {
+        return res.status(400).json({ message: `Insufficient balance. Available: $${available.toFixed(2)}` });
+      }
+      // Create a payout request in the payout_requests table
+      const [payoutReq] = await db.insert(payoutRequests).values({
+        userId,
+        amount: amountNum.toFixed(2) as any,
+        currency: 'USD',
+        method: 'referral_payout',
+        status: 'pending',
+        notes: note ? `[Referral Payout] ${note}` : '[Referral Payout] Commission withdrawal',
+      } as any).returning();
+      // Notify admin
+      const adminUsers = await db.select().from(users).where(eq(users.userType, 'admin')).limit(3);
+      for (const admin of adminUsers) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'referral_payout',
+          title: 'Referral Payout Request',
+          content: `A user has requested a referral commission payout of $${amountNum.toFixed(2)}.`,
+          actionUrl: '/admin#payout-requests',
+        });
+      }
+      res.json({ success: true, payoutRequestId: payoutReq?.id, message: "Payout request submitted successfully" });
+    } catch (error: any) {
+      console.error('Referral payout request error:', error);
+      res.status(500).json({ message: error?.message || "Failed to submit payout request" });
     }
   });
 

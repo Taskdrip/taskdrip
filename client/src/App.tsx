@@ -210,6 +210,7 @@ function Router() {
         <Route path="/p2p/:id" component={P2PListing} />
         <Route path="/hire-developer" component={HireDeveloper} />
         <Route path="/messages" component={Messages} />
+        <Route path="/referrals" component={ReferralsPage} />
         {isAuthenticated ? (
           <>
             <Route path="/dashboard" component={() => {
@@ -269,7 +270,6 @@ function Router() {
             <Route path="/my-orders" component={MyOrdersPage} />
             <Route path="/my-training" component={MyTraining} />
             <Route path="/orders/:id" component={OrderDetailPage} />
-            <Route path="/referrals" component={ReferralsPage} />
             <Route path="/security" component={SecuritySettings} />
             <Route path="/short-links" component={ShortLinksPage} />
             <Route path="/short-links/:id/analytics" component={ShortLinkAnalyticsPage} />

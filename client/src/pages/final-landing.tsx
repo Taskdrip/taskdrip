@@ -164,6 +164,19 @@ const DEFAULT_SLIDES: Slide[] = [
     overlayColor: "from-black/90 via-yellow-950/60 to-black/50",
     accentColor: "from-yellow-400 via-amber-400 to-orange-400",
   },
+  {
+    id: "s10",
+    badge: "🤑 Affiliate & Referral Program",
+    headline: "Your Network Is Worth Money. Start Earning Now.",
+    subheadline: "Invite users and earn 5% of their transactions. Refer a course sale and earn 10%. Refer a product and earn 15%. No cap, no expiry — just pure passive income from sharing what you already love.",
+    ctaPrimaryLabel: "Start Earning →",
+    ctaPrimaryLink: "/referrals",
+    ctaSecondaryLabel: "Learn How It Works",
+    ctaSecondaryLink: "/referrals",
+    backgroundImage: "https://images.unsplash.com/photo-1579621970795-87facc2f976d?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/92 via-green-950/75 to-black/60",
+    accentColor: "from-green-400 via-emerald-400 to-teal-400",
+  },
 ];
 
 function HeroSlider({ slides }: { slides: Slide[] }) {
