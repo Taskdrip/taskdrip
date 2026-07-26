@@ -1572,4 +1572,122 @@ export const DEFAULT_BLOGS: DefaultBlog[] = [
 <p>👉 <a href="https://lawcolab.com" target="_blank" rel="noopener noreferrer"><strong>Start your free trial at lawcolab.com</strong></a> and see what your practice looks like when everything works.</p>
 `,
   },
+
+  // ── Referral Program Update ─────────────────────────────────────────────────
+  {
+    title: "Taskdrip Referral Program Update: Focusing on What Pays You Most",
+    slug: "taskdrip-referral-program-update-2025",
+    excerpt:
+      "We've simplified the Taskdrip referral program. The 5% invite commission has been removed — and every percentage point has been redirected to where it matters most: 10% on course sales and 15% on product sales.",
+    category: "platform-updates",
+    tags: ["referral program", "affiliate", "passive income", "update", "commissions"],
+    featuredImage:
+      "https://images.unsplash.com/photo-1579621970795-87facc2f976d?w=1200&h=700&fit=crop",
+    metaDescription:
+      "Taskdrip has updated its referral commission structure. The 5% invite referral has been removed. Earn 10% on every course sale and 15% on every product sale — no cap, no expiry.",
+    seoKeywords:
+      "taskdrip referral program, affiliate commission update, earn 15% product referral, earn 10% course referral, passive income influencer platform",
+    readingTime: 6,
+    viewCount: 0,
+    likesCount: 0,
+    commentsCount: 0,
+    content: `
+<p>Taskdrip's referral program has always been one of the platform's most powerful passive-income tools. Today we're announcing a focused update to how commissions work — and why we believe this change is better for every creator and affiliate on the platform.</p>
+
+<h2>What Changed</h2>
+
+<p>Effective immediately, the <strong>5% commission on user invite transactions has been removed</strong> from the Taskdrip referral program.</p>
+
+<p>Previously, when you referred a new user to Taskdrip and that user completed a transaction on the platform, you earned 5% of that transaction value. While well-intentioned, this tier created confusion — it was the lowest-paying commission, the hardest to track, and it blurred the focus of what the referral program does best.</p>
+
+<p>The updated program now has two clear, high-value commission tiers:</p>
+
+<div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:16px;padding:2rem;margin:2rem 0;border:1px solid #c4b5fd;">
+  <h3 style="margin-top:0;color:#5b21b6;">Your New Commission Rates</h3>
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+    <div style="background:#fff;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+      <span style="font-size:2rem;font-weight:900;color:#7c3aed;">10%</span>
+      <div>
+        <strong style="display:block;color:#1f2937;">Course Sales</strong>
+        <span style="font-size:0.875rem;color:#6b7280;">Earn 10% every time your referral enrolls in any BreedSkool course or platform course</span>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+      <span style="font-size:2rem;font-weight:900;color:#d97706;">15%</span>
+      <div>
+        <strong style="display:block;color:#1f2937;">Product Sales</strong>
+        <span style="font-size:0.875rem;color:#6b7280;">Earn 15% every time your referral buys a product from the Taskdrip shop</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<img src="https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=1200&h=600&fit=crop" alt="Passive income through smart referrals" style="width:100%;border-radius:12px;margin:1.5rem 0;" />
+
+<h2>Why We Made This Change</h2>
+
+<p>Three reasons drove this decision:</p>
+
+<h3>1. Clarity over complexity</h3>
+<p>A referral program with three different commission tiers for three different scenarios is harder to explain, harder to promote, and harder to trust. Creators who share their referral links need to communicate the value quickly — in a caption, a bio link, a story slide. Two clear, high percentages are far more compelling than three muddled ones.</p>
+
+<h3>2. Higher actual earnings for active affiliates</h3>
+<p>The 5% invite tier was generating commissions in the range of cents to low single digits on most transactions. The 10% and 15% tiers — tied to deliberate purchasing decisions on courses and products — consistently generate larger payouts per referral. Removing the lower tier and letting affiliates focus on high-intent traffic produces better results.</p>
+
+<h3>3. Alignment with how creators actually promote</h3>
+<p>When a creator recommends a course or a digital product to their audience, their audience trusts that recommendation because it's specific. "Buy this course on Instagram monetisation" converts at a far higher rate than "join this platform." The updated program rewards exactly that kind of targeted, value-driven promotion.</p>
+
+<h2>What Stays the Same</h2>
+
+<p>Everything else about the referral program is unchanged:</p>
+
+<ul>
+  <li>✅ <strong>No cap on earnings.</strong> There is no ceiling on how much you can earn in referral commissions.</li>
+  <li>✅ <strong>No expiry.</strong> Once someone joins Taskdrip through your link, they are permanently attached to your referral code. Any qualifying purchase they make — today, in six months, in two years — earns you the commission.</li>
+  <li>✅ <strong>Real-time tracking.</strong> Every click, signup, and commission is tracked and visible in your referral dashboard at <a href="/referrals">/referrals</a>.</li>
+  <li>✅ <strong>Payout on demand.</strong> Request your referral earnings at any time. Payouts are processed within 3–5 business days.</li>
+  <li>✅ <strong>Milestone bonuses in $TDRIP.</strong> Hitting referral milestones still earns you $TDRIP point bonuses — separate from your cash commissions.</li>
+  <li>✅ <strong>Your referral clan.</strong> Everyone who signs up through your link remains in your network. You can follow them, message them, and build a community from the My Network tab.</li>
+</ul>
+
+<img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=600&fit=crop" alt="Building a referral network" style="width:100%;border-radius:12px;margin:1.5rem 0;" />
+
+<h2>How to Earn the Most Under the New Structure</h2>
+
+<p>The shift to a two-tier model actually makes it easier to maximise your referral income. Here's where to focus:</p>
+
+<h3>Promote courses with intent-driven content</h3>
+<p>A 10% commission on a $200 course is $20 — from a single enrollment. Write a review article, record a short YouTube video, or post a genuine recommendation on your social channels. Course referrals convert best when they come with a clear "here's what I learned and why it's worth it" angle. Your referral link belongs in every piece of educational content you produce in your niche.</p>
+
+<h3>Promote products with specificity</h3>
+<p>At 15%, the product commission tier is one of the highest in the creator economy space. A $150 product purchase earns you $22.50. The Taskdrip shop carries digital tools, templates, and resources built specifically for influencers — which means your audience (other creators) is naturally the right target. Feature a product you actually use. Authenticity is your highest-converting asset.</p>
+
+<h3>Use the Catalog tab for ready-made links</h3>
+<p>In your referral dashboard, the <strong>Catalog</strong> tab generates a unique tracking link for every individual course and product on the platform. You don't have to use your generic referral link — you can link directly to a specific product or course and the commission attribution still flows back to you. This is especially useful for social media captions where a direct product link performs better than a homepage link.</p>
+
+<h3>Build once, earn indefinitely</h3>
+<p>The best referral content has a long shelf life. A well-written blog post comparing influencer platforms, or a YouTube tutorial walking through how to earn on Taskdrip, can generate clicks and commissions for months or years after publication. Unlike a sponsored post that expires, an embedded referral link compounds over time.</p>
+
+<h2>Transitioning Existing Affiliates</h2>
+
+<p>If you were previously earning commissions under the 5% invite tier, those historical earnings are preserved in your account and remain withdrawable. The change applies to new commissions going forward — no existing balances are affected.</p>
+
+<p>Your referral links and referral codes are unchanged. Nothing needs to be updated on your end. Any links you've already shared continue to work and will now track commissions under the updated two-tier structure.</p>
+
+<h2>Getting Started</h2>
+
+<p>If you haven't set up your referral links yet, now is the ideal time. Head to <a href="/referrals"><strong>taskdrip.online/referrals</strong></a> to:</p>
+
+<ol>
+  <li>Generate your primary referral link (username-based — easy to remember and share)</li>
+  <li>Browse the Catalog tab for individual product and course links</li>
+  <li>Track your clicks, signups, and commission earnings in real-time</li>
+  <li>Request a payout whenever your balance reaches the minimum threshold</li>
+</ol>
+
+<p>The referral program exists because the best way to grow a platform built for creators is through creators. When you share Taskdrip genuinely — not as a generic promo but as something you've found valuable — your audience trusts that recommendation. That trust converts. And now, with a cleaner, higher-value commission structure, it pays you better when it does.</p>
+
+<p>Questions about the referral program? Reach out on Telegram at <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer">t.me/taskdrip</a> or check the <a href="/documentation">documentation</a> for a full breakdown of how commissions are calculated and paid out.</p>
+`,
+  },
 ];
