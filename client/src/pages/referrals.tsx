@@ -131,7 +131,7 @@ const DEMO_REVIEWS = [
     name: "Sofia Rossi", country: "🇮🇹 Italy",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&q=80",
     rating: 5, earnings: "$890", type: "Brand Consultant",
-    text: "Running a fashion and lifestyle brand consultancy, I recommended Taskdrip to 3 client brands. Each brand spent on campaigns and I earned 5% of every transaction. Best passive income stream I've found.",
+    text: "Running a fashion and lifestyle brand consultancy, I recommended Taskdrip to 3 client brands. Each brand bought courses and products through my link — I earned 10–15% commissions automatically. Best passive income stream I've found.",
   },
   {
     name: "Kwame Asante", country: "🇳🇬 Nigeria",
@@ -142,7 +142,7 @@ const DEMO_REVIEWS = [
 ];
 
 const FAQS = [
-  { q: "How do I earn referral commissions?", a: "You earn automatically when someone signs up using your referral link and makes a purchase. 5% for user transactions, 10% when they buy a course, and 15% when they buy a product from the shop. All commissions are tracked in real-time." },
+  { q: "How do I earn referral commissions?", a: "You earn automatically when someone signs up using your referral link and makes a purchase. Earn 10% when they buy a course, and 15% when they buy a product from the shop. All commissions are tracked in real-time." },
   { q: "When are commissions paid out?", a: "Commissions accumulate in your referral earnings balance and can be requested at any time via the 'Request Payout' button. Admin processes payouts within 3-5 business days to your preferred payment method." },
   { q: "What is my unique referral link?", a: "Your primary referral link uses your username (e.g., taskdrip.com/signup?ref=yourname). This is the easiest to remember and share. You can also generate specific product and course links from the catalog tab." },
   { q: "Is there a limit on how much I can earn?", a: "No limits. The more users you refer and the more products/courses they buy, the more you earn. Top referrers on our platform have earned over $2,000/month in passive commissions alone." },
@@ -158,7 +158,7 @@ const STRATEGIES = [
   { icon: <Users className="w-5 h-5" />, color: "from-emerald-500 to-teal-600", title: "Build a WhatsApp / Telegram Community", desc: "Create a group for digital entrepreneurs, influencers, or brand managers in your niche. Share Taskdrip resources regularly and include your referral link in the group description." },
   { icon: <TrendingUp className="w-5 h-5" />, color: "from-orange-500 to-amber-600", title: "YouTube Tutorials & How-To Videos", desc: "Record tutorials showing how to use Taskdrip features. Put your referral link in the description. YouTube videos about earning platforms get high intent traffic." },
   { icon: <Zap className="w-5 h-5" />, color: "from-yellow-500 to-orange-600", title: "Email Newsletters", desc: "If you have an email list, a single dedicated send about Taskdrip can bring in dozens of signups. Personalize the email — explain why you use it and what you've earned." },
-  { icon: <Target className="w-5 h-5" />, color: "from-rose-500 to-pink-600", title: "Refer Brands Directly", desc: "Brands that run campaigns spend real money. One brand referral that spends $5,000 on campaigns earns you $250 (5%). Focus on agency owners, marketing managers, and startup founders." },
+  { icon: <Target className="w-5 h-5" />, color: "from-rose-500 to-pink-600", title: "Refer Brands & Creators to Courses", desc: "Courses and digital products pay you 10–15% commission automatically. One referral who buys a $200 course earns you $20 instantly. Focus on agency owners, marketing managers, and startup founders." },
 ];
 
 /* ─── Helpers ───────────────────────────────────────────────────────── */
@@ -506,13 +506,12 @@ export default function ReferralsPage() {
               Into Passive Income.
             </h1>
             <p className="text-gray-200 text-lg sm:text-xl max-w-2xl mb-8 leading-relaxed">
-              Earn commissions for every user you invite, every course they enroll in, and every product they buy.
+              Earn 10% on every course sale and 15% on every product sale your referrals make.
               Build your clan. Grow together. No cap. No expiry.
             </p>
 
             <div className="flex flex-wrap gap-3 mb-8">
               {[
-                { label: "5%", desc: "Per User Transaction", color: "bg-blue-500/20 border-blue-400/30 text-blue-200", icon: <Users className="w-3.5 h-3.5" /> },
                 { label: "10%", desc: "Per Course Enrollment", color: "bg-purple-500/20 border-purple-400/30 text-purple-200", icon: <BookOpen className="w-3.5 h-3.5" /> },
                 { label: "15%", desc: "Per Product Sale", color: "bg-amber-500/20 border-amber-400/30 text-amber-200", icon: <ShoppingBag className="w-3.5 h-3.5" /> },
               ].map(({ label, desc, color, icon }) => (
@@ -616,7 +615,6 @@ export default function ReferralsPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {[
-                      { label: "User Invites (5%)", amount: analytics?.inviteEarnings || "0.00", color: "bg-blue-500", clicks: analytics?.userClicks },
                       { label: "Course Enrollments (10%)", amount: analytics?.courseEarnings || "0.00", color: "bg-purple-500", clicks: analytics?.courseClicks },
                       { label: "Product Sales (15%)", amount: analytics?.productEarnings || "0.00", color: "bg-amber-500", clicks: analytics?.productClicks },
                     ].map(({ label, amount, color, clicks }) => {
@@ -721,7 +719,6 @@ export default function ReferralsPage() {
                   <CardHeader><CardTitle className="text-base flex items-center gap-2"><Gift className="w-4 h-4 text-amber-500" /> Commission Rates</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     {[
-                      { rate: "5%", label: "User Invites", desc: "When invited users complete paid transactions", icon: <Users className="w-4 h-4" />, bg: "bg-blue-100", color: "text-blue-700" },
                       { rate: "10%", label: "Course Sales", desc: "When your referral buys any course", icon: <BookOpen className="w-4 h-4" />, bg: "bg-purple-100", color: "text-purple-700" },
                       { rate: "15%", label: "Product Sales", desc: "When your referral buys from the shop", icon: <ShoppingBag className="w-4 h-4" />, bg: "bg-amber-100", color: "text-amber-700" },
                     ].map(({ rate, label, desc, icon, bg, color }) => (
@@ -993,7 +990,7 @@ export default function ReferralsPage() {
                     { n: 2, text: "Share it on social media, in articles, or via direct message", icon: <Share2 className="w-3.5 h-3.5" /> },
                     { n: 3, text: "When someone signs up through your link, they join your Network permanently", icon: <Network className="w-3.5 h-3.5" /> },
                     { n: 4, text: "Follow your referrals, message them, and build your clan from the My Network tab", icon: <Users className="w-3.5 h-3.5 text-purple-600" /> },
-                    { n: 5, text: "Earn 5% on their transactions, 10% on courses, 15% on products — automatically", icon: <DollarSign className="w-3.5 h-3.5 text-green-600" /> },
+                    { n: 5, text: "Earn 10% on course sales, 15% on product sales — automatically credited to your account", icon: <DollarSign className="w-3.5 h-3.5 text-green-600" /> },
                     { n: 6, text: "Request payout anytime from the Earnings tab", icon: <Wallet className="w-3.5 h-3.5 text-amber-600" /> },
                   ].map(({ n, text, icon }) => (
                     <div key={n} className="flex items-start gap-3">

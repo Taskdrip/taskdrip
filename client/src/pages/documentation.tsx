@@ -126,7 +126,7 @@ const SECTIONS = [
     items: [
       { title: "Daily Check-in", body: "Visit /rewards every day for a streak bonus in $TDRIP. 7/14/30-day streaks unlock multipliers." },
       { title: "Giveaways", body: "Sponsored prize giveaways (cash, gadgets, $TDRIP). Enter via the giveaways tab and complete the entry tasks." },
-      { title: "Referral Program", body: "Share your referral link from /referrals. Earn 10% lifetime commission on your referrals' deposits + $TDRIP bonuses for milestones." },
+      { title: "Referral Program", body: "Share your referral link from /referrals. Earn 10% on every course sale and 15% on every product sale your referrals make — automatically credited, no cap, no expiry. Milestone bonuses in $TDRIP also apply." },
     ],
   },
   {

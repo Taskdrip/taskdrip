@@ -168,7 +168,7 @@ const DEFAULT_SLIDES: Slide[] = [
     id: "s10",
     badge: "🤑 Affiliate & Referral Program",
     headline: "Your Network Is Worth Money. Start Earning Now.",
-    subheadline: "Invite users and earn 5% of their transactions. Refer a course sale and earn 10%. Refer a product and earn 15%. No cap, no expiry — just pure passive income from sharing what you already love.",
+    subheadline: "Refer a course sale and earn 10%. Refer a product and earn 15%. No cap, no expiry — just pure passive income from sharing what you already love.",
     ctaPrimaryLabel: "Start Earning →",
     ctaPrimaryLink: "/referrals",
     ctaSecondaryLabel: "Learn How It Works",
