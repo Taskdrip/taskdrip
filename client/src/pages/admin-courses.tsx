@@ -804,9 +804,10 @@ export default function AdminCourses() {
                     <p>No courses yet. Create your first course!</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[760px]">
+                      <TableHeader>
+                        <TableRow>
                         <TableHead>Course</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Price</TableHead>
@@ -814,9 +815,9 @@ export default function AdminCourses() {
                         <TableHead>Rating</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                       {courses.map((course: any) => (
                         <TableRow key={course.id}>
                           <TableCell>
@@ -875,8 +876,9 @@ export default function AdminCourses() {
                           </TableCell>
                         </TableRow>
                       ))}
-                    </TableBody>
-                  </Table>
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>

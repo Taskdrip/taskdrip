@@ -326,7 +326,7 @@ export function ShareButton({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-[22rem] sm:w-[26rem] shadow-2xl rounded-2xl">
+          <div className="fixed left-3 right-3 bottom-4 z-50 max-h-[calc(100svh-2rem)] overflow-y-auto shadow-2xl rounded-2xl sm:absolute sm:left-auto sm:right-0 sm:bottom-auto sm:top-full sm:mt-2 sm:w-[26rem] sm:max-h-none sm:overflow-visible">
             <SharePanel title={title} description={description} url={url} image={image} />
           </div>
         </>

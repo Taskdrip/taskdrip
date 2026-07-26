@@ -1564,12 +1564,12 @@ export default function BreedSkool() {
       {/* ── Course Library ── */}
       <div className="max-w-7xl mx-auto px-4 py-10" id="courses">
         {isAuthenticated && canTeach && (
-          <div className="mb-8 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 flex items-center justify-between text-white shadow-lg">
-            <div>
+          <div className="mb-8 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-white shadow-lg">
+            <div className="min-w-0">
               <h3 className="text-lg font-bold">🎤 Teach on BreedSkool</h3>
               <p className="text-white/80 text-sm mt-1">Share your expertise and earn revenue from your courses</p>
             </div>
-            <Button className="bg-white text-violet-700 hover:bg-gray-100 font-semibold" onClick={() => setLocation("/admin/courses")}>Create a Course</Button>
+            <Button className="w-full sm:w-auto shrink-0 bg-white text-violet-700 hover:bg-gray-100 font-semibold" onClick={() => setLocation("/admin/courses")}>Create a Course</Button>
           </div>
         )}
 
@@ -1584,17 +1584,19 @@ export default function BreedSkool() {
         )}
 
         {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            return (
-              <button key={cat.value} onClick={() => setActiveCategory(cat.value)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${activeCategory === cat.value ? "bg-violet-600 text-white shadow-md shadow-violet-200" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <Icon className="h-4 w-4" /> {cat.label}
-              </button>
-            );
-          })}
-          <div className="ml-auto flex gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pb-2 mb-6">
+          <div className="flex min-w-0 gap-2 overflow-x-auto scrollbar-hide">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <button key={cat.value} onClick={() => setActiveCategory(cat.value)}
+                  className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${activeCategory === cat.value ? "bg-violet-600 text-white shadow-md shadow-violet-200" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
+                  <Icon className="h-4 w-4" /> {cat.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex shrink-0 gap-2 overflow-x-auto scrollbar-hide sm:ml-auto">
             {["all", "beginner", "intermediate", "advanced"].map((lvl) => (
               <button key={lvl} onClick={() => setLevelFilter(lvl)}
                 className={`px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${levelFilter === lvl ? "bg-gray-900 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>

@@ -738,7 +738,7 @@ export function GuideBot() {
     <>
       {/* Popup notification */}
       {showPopup && !isOpen && (
-        <div className={`fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 max-w-xs animate-in slide-in-from-bottom-5 duration-300 ${isAdmin ? "border border-amber-200" : "border border-purple-100"}`}>
+        <div className={`fixed bottom-20 right-3 sm:bottom-24 sm:right-4 z-50 mobile-overlay-panel bg-white rounded-2xl shadow-2xl p-4 animate-in slide-in-from-bottom-5 duration-300 ${isAdmin ? "border border-amber-200" : "border border-purple-100"}`}>
           <button onClick={() => setShowPopup(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
           <div className="flex items-start gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isAdmin ? "bg-gradient-to-br from-slate-700 to-slate-900" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}>
@@ -757,7 +757,7 @@ export function GuideBot() {
 
       {/* Main panel */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ maxHeight: "calc(100vh - 140px)" }}>
+        <div className="fixed bottom-20 right-3 sm:right-4 z-50 mobile-overlay-panel bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden" style={{ maxHeight: "calc(100svh - 6rem)" }}>
           {/* Header */}
           <div className={`p-4 flex items-center justify-between flex-shrink-0 ${isAdmin ? "bg-gradient-to-r from-slate-800 to-slate-900" : isBrand ? "bg-gradient-to-r from-blue-600 to-cyan-600" : "bg-gradient-to-r from-purple-600 to-indigo-600"}`}>
             <div className="flex items-center gap-3">
@@ -955,7 +955,7 @@ export function GuideBot() {
                           {isAdmin ? <Shield className="w-3 h-3 text-white" /> : isBrand ? <Building2 className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
                         </div>
                       )}
-                      <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-tr-sm" : "bg-gray-100 text-gray-800 rounded-tl-sm"}`}>
+                        <div className={`max-w-[80%] break-words rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-tr-sm" : "bg-gray-100 text-gray-800 rounded-tl-sm"}`}>
                         {msg.content}
                       </div>
                     </div>
@@ -1027,7 +1027,7 @@ export function GuideBot() {
       {/* Floating button */}
       <button
         onClick={() => { setIsOpen(!isOpen); setShowPopup(false); }}
-        className={`fixed bottom-6 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${isAdmin ? "bg-gradient-to-br from-slate-800 to-slate-900" : isBrand ? "bg-gradient-to-br from-blue-600 to-cyan-600" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}
+        className={`fixed bottom-4 right-3 sm:right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all hover:scale-110 ${isAdmin ? "bg-gradient-to-br from-slate-800 to-slate-900" : isBrand ? "bg-gradient-to-br from-blue-600 to-cyan-600" : "bg-gradient-to-br from-purple-600 to-indigo-600"}`}
         data-testid="button-guide-bot-toggle"
       >
         {isOpen ? <X className="w-6 h-6 text-white" /> : isAdmin ? <Shield className="w-6 h-6 text-white" /> : isBrand ? <Building2 className="w-6 h-6 text-white" /> : <Bot className="w-6 h-6 text-white" />}

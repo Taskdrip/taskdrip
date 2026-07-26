@@ -43,11 +43,10 @@
 @layer base {
   * {
     box-sizing: border-box;
-    /* Prevent any element from blowing out the horizontal layout */
-    max-width: 100%;
   }
 
-  /* Preserve useful layout overrides */
+  /* Media should never create horizontal overflow. Keep this scoped to
+     replaced elements so popovers and positioned UI can size themselves. */
   img, video, canvas, svg {
     max-width: 100%;
     height: auto;
@@ -86,6 +85,12 @@
   .break-anywhere {
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  /* Fixed mobile UI must stay inside the visual viewport. */
+  .mobile-overlay-panel {
+    width: min(24rem, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
   }
 }
 
