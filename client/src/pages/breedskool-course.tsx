@@ -314,16 +314,18 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
                 }`}>
                   {accessible ? <Play className={`h-3 w-3 ${isSelected ? "fill-white" : "fill-violet-700"}`} /> : idx + 1}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-2 flex-wrap">
-                    <span className={`font-medium text-sm whitespace-normal break-anywhere min-w-0 flex-1 ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
-                      {lesson.title}
-                    </span>
-                    {lesson.isPreview && <Badge className="bg-green-100 text-green-700 text-xs flex-shrink-0">Free Preview</Badge>}
-                    {lesson.videoLink && <Badge className="bg-blue-100 text-blue-700 text-xs flex-shrink-0">Video</Badge>}
-                  </div>
+                <div className="min-w-0 flex-1 basis-0">
+                  <p className={`w-full font-medium text-sm leading-5 whitespace-normal break-anywhere ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
+                    {lesson.title}
+                  </p>
+                  {(lesson.isPreview || lesson.videoLink) && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {lesson.isPreview && <Badge className="bg-green-100 text-green-700 text-xs">Free Preview</Badge>}
+                      {lesson.videoLink && <Badge className="bg-blue-100 text-blue-700 text-xs">Video</Badge>}
+                    </div>
+                  )}
                   {lesson.description && (
-                    <p className="text-xs text-gray-400 mt-0.5 whitespace-normal break-anywhere">{lesson.description}</p>
+                    <p className="text-xs text-gray-400 mt-1 whitespace-normal break-anywhere">{lesson.description}</p>
                   )}
                 </div>
                 {!accessible && <Lock className="h-4 w-4 text-gray-300 flex-shrink-0" />}

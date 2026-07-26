@@ -429,8 +429,8 @@ export default function CourseLearn() {
                     }`}>
                       {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium whitespace-normal break-anywhere ${isCur ? "text-violet-900" : done ? "text-gray-700" : "text-gray-800"}`}>
+                    <div className="min-w-0 flex-1 basis-0">
+                      <p className={`w-full text-sm font-medium leading-5 whitespace-normal break-anywhere ${isCur ? "text-violet-900" : done ? "text-gray-700" : "text-gray-800"}`}>
                         {l.title}
                       </p>
                       {l.videoLink && (
