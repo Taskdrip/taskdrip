@@ -4069,12 +4069,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           productId,
           amount: planPrice.toFixed(2),
           totalAmount: planPrice.toFixed(2),
+          paymentMethod: (req.body.paymentMethod || network || "manual").slice(0, 100),
           selectedAddons: [{ id: plan.id, title: plan.title, price: planPrice }],
           addonsTotal: "0.00",
           paymentProof: paymentProof || "FREE_PRODUCT",
           transactionHash: transactionHash || "",
           status: "pending",
         });
+        if (!purchase) throw new Error("Purchase insert returned no result");
         const buyer = await storage.getUser(user.id).catch(() => null);
         if (buyer) {
           sendOrderConfirmationEmail({
@@ -4131,13 +4133,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         productId,
         amount: expectedTotal.toFixed(2),
         totalAmount: expectedTotal.toFixed(2),
+        paymentMethod: (req.body.paymentMethod || network || "manual").slice(0, 100),
         selectedAddons: trustedAddons,
         addonsTotal: addonsTotal.toFixed(2),
-
         paymentProof: paymentProof || "FREE_PRODUCT",
         transactionHash: transactionHash || "",
         status: product.isFree && addonsTotal === 0 ? "approved" : "pending",
       });
+      if (!purchase) throw new Error("Purchase insert returned no result");
 
       // Send order confirmation email + in-app notification (non-blocking)
       const buyer = await storage.getUser(user.id).catch(() => null);
@@ -4165,7 +4168,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.status(201).json(purchase);
     } catch (error) {
       console.error("Error creating purchase:", error);
-      res.status(500).json({ message: "Failed to create purchase" });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ message: `Failed to create purchase: ${errMsg}` });
     }
   });
 

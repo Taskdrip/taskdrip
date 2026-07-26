@@ -622,9 +622,8 @@ export default function ShopCheckout() {
                   {isPlanMode && activePlan ? (
                     // ── Plan mode: show selected tier clearly ────────────────
                     <>
-                      <div className="flex justify-between text-gray-600">
-                        <span className="truncate mr-2">{product.title}</span>
-                        <span className="flex-shrink-0 text-gray-400">—</span>
+                      <div className="flex items-baseline gap-2 text-gray-600 min-w-0">
+                        <span className="truncate min-w-0 flex-1 text-sm">{product.title}</span>
                       </div>
                       <div className="rounded-xl bg-violet-50 border border-violet-200 p-3">
                         <div className="flex items-center justify-between gap-2">
@@ -672,8 +671,8 @@ export default function ShopCheckout() {
                   ) : (
                     // ── Standard mode ────────────────────────────────────────
                     <>
-                      <div className="flex justify-between text-gray-600">
-                        <span className="truncate mr-2">{product.title}</span>
+                      <div className="flex justify-between gap-2 text-gray-600">
+                        <span className="truncate min-w-0 flex-1">{product.title}</span>
                         <span className="flex-shrink-0">{product.isFree ? "Free" : `$${product.price}`}</span>
                       </div>
                       {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
@@ -775,8 +774,33 @@ export default function ShopCheckout() {
               <p className="text-gray-500 text-sm mt-1">Select how you'd like to pay <span className="font-semibold text-gray-800">${grandTotal.toFixed(2)}</span></p>
             </div>
 
-            {/* Service Add-ons (Upsells) */}
-            {productAddons.length > 0 && (
+            {/* Plan recap (plan mode) — read-only, no checkboxes */}
+            {isPlanMode && activePlan && (
+              <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-2xl p-5 space-y-3">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
+                  <Star className="h-4 w-4 text-violet-600 fill-violet-600" />
+                  Your Selected Plan
+                </h3>
+                <div className="flex items-center justify-between gap-3 bg-white rounded-xl p-3 border border-violet-200">
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-900 truncate">{activePlan.title.split("—")[0].trim()}</p>
+                    {activePlan.title.includes("—") && (
+                      <p className="text-xs text-gray-500 truncate">{activePlan.title.split("—")[1]?.trim()}</p>
+                    )}
+                  </div>
+                  <span className="font-extrabold text-violet-700 text-lg flex-shrink-0">
+                    {activePlan.price === 0 ? "FREE" : `$${Number(activePlan.price).toFixed(2)}`}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-violet-200 text-sm font-bold text-gray-900">
+                  <span>Total</span>
+                  <span className="text-violet-700">{activePlan.price === 0 ? "FREE" : `$${Number(activePlan.price).toFixed(2)}`}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Service Add-ons (Upsells) — only shown in non-plan mode */}
+            {productAddons.length > 0 && !isPlanMode && (
               <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-200 rounded-2xl p-5 space-y-4" data-testid="addons-picker">
                 <div>
                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -821,10 +845,10 @@ export default function ShopCheckout() {
                           className="mt-1 h-4 w-4 accent-violet-600"
                           data-testid={`checkbox-addon-${addon.id}`}
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="font-semibold text-gray-900 text-sm">{addon.title}</p>
-                            <span className="font-bold text-violet-700">+${Number(addon.price).toFixed(2)}</span>
+                            <p className="font-semibold text-gray-900 text-sm truncate min-w-0 flex-1">{addon.title}</p>
+                            <span className="font-bold text-violet-700 flex-shrink-0">+${Number(addon.price).toFixed(2)}</span>
                           </div>
                           {addon.description && (
                             <p className="text-xs text-gray-600 mt-0.5">{addon.description}</p>

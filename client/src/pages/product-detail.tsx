@@ -449,30 +449,31 @@ export default function ProductDetail() {
             )}
 
             {/* Action Buttons */}
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <Link href={`/shop/checkout/${product.id}`} className="flex-1">
-                  <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    {product.isFree ? "Get Free" : "Buy Now"}
-                  </Button>
-                </Link>
-                <Button variant="outline" size="lg">
+            <div className="space-y-3">
+              <Link href={`/shop/checkout/${product.id}`} className="block w-full">
+                <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  {product.isFree ? "Get Free" : "Buy Now"}
+                </Button>
+              </Link>
+              <div className="flex gap-3">
+                <Button variant="outline" size="lg" className="flex-1">
                   <Heart className="w-5 h-5" />
                 </Button>
-                <div data-testid="button-share-product">
+                <div data-testid="button-share-product" className="flex-1">
                   <ShareButton
                     title={product?.title || product?.name || 'Product on Taskdrip'}
                     description={product?.description || ''}
                     url={window.location.href}
                     image={product?.featuredImage || ''}
+                    className="w-full"
                   />
                 </div>
                 <ReportDialog
                   contentType="product"
                   contentId={String(product?.id || '')}
                   trigger={
-                    <Button variant="outline" size="lg" data-testid="button-report-product">
+                    <Button variant="outline" size="lg" className="flex-1" data-testid="button-report-product">
                       <Flag className="w-5 h-5" />
                     </Button>
                   }
