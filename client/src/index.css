@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent horizontal overflow/scroll on all pages */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 /* Dialog overrides for better scrolling */
 .dialog-content {
   max-height: 90vh !important;

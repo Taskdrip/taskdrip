@@ -237,7 +237,7 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
   const canView = (lesson: any) => lesson.isPreview || isEnrolled || isInstructor;
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm overflow-hidden">
       <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
         <BookOpen className="h-5 w-5 text-violet-600" /> Course Lessons
       </h2>
@@ -315,12 +315,12 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
                   {accessible ? <Play className={`h-3 w-3 ${isSelected ? "fill-white" : "fill-violet-700"}`} /> : idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`font-medium text-sm truncate ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className={`font-medium text-sm truncate min-w-0 flex-1 ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
                       {lesson.title}
                     </span>
-                    {lesson.isPreview && <Badge className="bg-green-100 text-green-700 text-xs">Free Preview</Badge>}
-                    {lesson.videoLink && <Badge className="bg-blue-100 text-blue-700 text-xs">Video</Badge>}
+                    {lesson.isPreview && <Badge className="bg-green-100 text-green-700 text-xs flex-shrink-0">Free Preview</Badge>}
+                    {lesson.videoLink && <Badge className="bg-blue-100 text-blue-700 text-xs flex-shrink-0">Video</Badge>}
                   </div>
                   {lesson.description && (
                     <p className="text-xs text-gray-400 mt-0.5 truncate">{lesson.description}</p>

@@ -592,7 +592,7 @@ export default function ShopCheckout() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-violet-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-violet-50/30 overflow-x-hidden">
       {/* Header */}
       <div className="border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -616,7 +616,7 @@ export default function ShopCheckout() {
           <div className="grid md:grid-cols-5 gap-6">
             {/* Order summary — shown first on mobile */}
             <div className="md:col-span-2 md:order-2 space-y-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 overflow-hidden">
                 <h3 className="font-semibold text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-3 text-sm">
                   {isPlanMode && activePlan ? (
@@ -649,14 +649,14 @@ export default function ShopCheckout() {
                               <button
                                 key={a.id}
                                 onClick={() => setActivePlanId(a.id)}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-all ${
+                                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
                                   activePlanId === a.id
                                     ? "border-violet-500 bg-violet-50 text-violet-900 font-semibold"
                                     : "border-gray-200 text-gray-600 hover:border-violet-300"
                                 }`}
                               >
-                                <span>{a.title.split("—")[0].trim()}</span>
-                                <span className="font-bold">{a.price === 0 ? "Free" : `$${Number(a.price)}`}</span>
+                                <span className="truncate min-w-0 flex-1">{a.title.split("—")[0].trim()}</span>
+                                <span className="font-bold flex-shrink-0">{a.price === 0 ? "Free" : `$${Number(a.price)}`}</span>
                               </button>
                             ))}
                           </div>
