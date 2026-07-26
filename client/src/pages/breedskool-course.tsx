@@ -92,7 +92,8 @@ function CourseChatSection({ courseId, isEnrolled, isInstructor }: { courseId: s
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [message, setMessage] = useState("");
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isFirstLoad = useRef(true);
 
   const canChat = isAuthenticated && (isEnrolled || isInstructor);
 
@@ -106,8 +107,13 @@ function CourseChatSection({ courseId, isEnrolled, isInstructor }: { courseId: s
     refetchInterval: canChat ? 5000 : false,
   });
 
+  // Scroll only INSIDE the chat box — never the whole page.
+  // Skip the very first load so the page opens at the top.
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstLoad.current) { isFirstLoad.current = false; return; }
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const sendMutation = useMutation({
@@ -148,7 +154,7 @@ function CourseChatSection({ courseId, isEnrolled, isInstructor }: { courseId: s
         </div>
       ) : (
         <>
-          <div className="h-80 overflow-y-auto p-4 space-y-3">
+          <div ref={chatContainerRef} className="h-80 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -187,7 +193,6 @@ function CourseChatSection({ courseId, isEnrolled, isInstructor }: { courseId: s
                 );
               })
             )}
-            <div ref={chatBottomRef} />
           </div>
 
           <div className="px-4 pb-4 border-t border-gray-100 pt-3">
@@ -527,7 +532,7 @@ export default function BreedSkoolCourse() {
   const requirements = Array.isArray(course.requirements) ? course.requirements : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <NavigationFixed />
 
       {/* Hero Banner */}
@@ -681,7 +686,7 @@ export default function BreedSkoolCourse() {
               ) : (
                 <div className="space-y-4">
                   {(reviews as any[]).map((review: any) => (
-                    <div key={review.id} className="flex gap-3">
+                    <div key={review.id} className="flex gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex-shrink-0 overflow-hidden">
                         {review.user?.profileImageUrl ? (
                           <img src={review.user.profileImageUrl} alt="" className="w-full h-full object-cover" />
@@ -691,12 +696,12 @@ export default function BreedSkoolCourse() {
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold text-sm text-gray-900">{review.user?.firstName} {review.user?.lastName}</span>
                           <StarRating rating={review.rating} />
                         </div>
-                        {review.comment && <p className="text-sm text-gray-600">{review.comment}</p>}
+                        {review.comment && <p className="text-sm text-gray-600 break-words">{review.comment}</p>}
                         <p className="text-xs text-gray-400 mt-1">{new Date(review.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
@@ -741,7 +746,7 @@ export default function BreedSkoolCourse() {
               ) : (
                 <div className="space-y-4">
                   {(comments as any[]).map((c: any) => (
-                    <div key={c.id} className="flex gap-3">
+                    <div key={c.id} className="flex gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex-shrink-0 overflow-hidden">
                         {c.user?.profileImageUrl ? (
                           <img src={c.user.profileImageUrl} alt="" className="w-full h-full object-cover" />
@@ -749,12 +754,12 @@ export default function BreedSkoolCourse() {
                           <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold">{c.user?.firstName?.[0]}</div>
                         )}
                       </div>
-                      <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 min-w-0 bg-gray-50 rounded-xl px-4 py-3 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold text-sm">{c.user?.firstName} {c.user?.lastName}</span>
                           <span className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <p className="text-sm text-gray-700">{c.content}</p>
+                        <p className="text-sm text-gray-700 break-words">{c.content}</p>
                       </div>
                     </div>
                   ))}
