@@ -532,13 +532,16 @@ export default function ShopCheckout() {
 
   const purchaseMutation = useMutation({
     mutationFn: async () => {
+      // Use the uploaded screenshot URL first, then any free-text proof,
+      // then the transaction hash itself as the minimum required proof.
+      const effectiveProof = proofUrl || proofText || txHash.trim();
       const res = await apiRequest("POST", "/api/shop/purchase", {
         productId: product!.id,
         amount: grandTotal.toFixed(2),
         currency: selectedMethod?.currency || "USD",
         network: selectedMethod?.network || selectedMethod?.type || "manual",
         transactionHash: txHash,
-        paymentProof: proofUrl || proofText,
+        paymentProof: effectiveProof,
         paymentMethod: selectedMethod?.label || "Crypto",
         selectedAddons: chosenAddons.map((a) => ({ id: a.id, title: a.title, price: a.price })),
         ...(isPlanMode && activePlanId ? { planId: activePlanId } : {}),

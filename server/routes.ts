@@ -4113,13 +4113,16 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const expectedTotal = parseFloat(product.price) + addonsTotal;
       const submittedTotal = parseFloat(amount);
 
+      // Accept txHash as proof when no screenshot/text was provided
+      const effectiveProof = (paymentProof || "").trim() || (transactionHash || "").trim();
+
       // Validate payment for non-free products (or when addons add cost)
       if (!product.isFree || addonsTotal > 0) {
-        if (!paymentProof || !paymentProof.trim()) {
-          return res.status(400).json({ message: "Payment proof is required for paid products" });
+        if (!effectiveProof) {
+          return res.status(400).json({ message: "Please enter your transaction reference or upload a payment screenshot." });
         }
         if (Math.abs(submittedTotal - expectedTotal) > 0.01) {
-          return res.status(400).json({ message: `Payment amount doesn't match expected total of ${expectedTotal.toFixed(2)}` });
+          return res.status(400).json({ message: `Amount mismatch — expected $${expectedTotal.toFixed(2)}, got $${submittedTotal.toFixed(2)}. Please refresh and try again.` });
         }
       }
 
