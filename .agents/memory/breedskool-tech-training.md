@@ -54,3 +54,10 @@ Training tab includes:
 
 ## Home lesson validation
 Step 1 next() requires `childName` and `homeAddress` when `deliveryMode === "home_lesson"`.
+
+## Imported database compatibility
+When an imported database predates the current Drizzle schema, preserve its required legacy pricing columns in the shared schema and seed values rather than relying on a destructive schema push.
+
+**Why:** The development database can contain older non-null columns that cause ORM inserts to fail even though the current migration snapshot no longer declares them.
+
+**How to apply:** Inspect `information_schema.columns` before changing BreedSkool pricing seed logic; add nullable compatibility columns/migrations and populate both legacy and current fields when needed.

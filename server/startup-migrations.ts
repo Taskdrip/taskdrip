@@ -41,6 +41,11 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "campaigns", column: "feature_image", definition: "varchar(500)" },
   { table: "p2p_listings", column: "intro_video_url", definition: "varchar" },
   { table: "p2p_listings", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  // Legacy BreedSkool pricing fields retained for imported databases
+  { table: "breedskool_course_pricing", column: "course_title", definition: "varchar" },
+  { table: "breedskool_course_pricing", column: "price_ngn", definition: "integer" },
+  // Referral attribution captured when a product purchase is submitted
+  { table: "purchases", column: "referral_code", definition: "varchar" },
   { table: "purchases", column: "selected_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "purchases", column: "addons_total", definition: "decimal(10,2) DEFAULT '0.00'" },
   // Subscription period / expiry tracking

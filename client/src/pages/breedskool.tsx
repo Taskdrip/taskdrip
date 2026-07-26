@@ -234,7 +234,7 @@ function BsCourseCard({ course, selected, onClick }: { course: BsCoursePricing; 
             <Badge className="bg-red-100 text-red-600 text-[10px] border-0">-{savingsPct}% OFF</Badge>
           </div>
           <h3 className="font-bold text-gray-900 text-sm mb-0.5 leading-snug">{course.title}</h3>
-          <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.shortDescription}</p>
+          <p className="text-xs text-gray-500 whitespace-normal break-anywhere mb-2">{course.shortDescription}</p>
           <div className="flex items-baseline gap-2">
             <span className="text-xs text-gray-400 line-through">{fmtNgn(course.regularPrice)}</span>
             <span className="text-base font-black text-gray-900">{fmtNgn(course.discountPrice)}</span>
@@ -1146,8 +1146,8 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
             <Badge className={`text-[10px] px-2 py-0.5 ${LEVEL_COLORS[course.level] || "bg-gray-100 text-gray-600"}`}>{course.level}</Badge>
             <span className="text-[10px] text-gray-400 uppercase tracking-wide">{CATEGORIES.find(c => c.value === course.category)?.label || course.category}</span>
           </div>
-          <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 group-hover:text-violet-600 transition-colors line-clamp-2">{course.title}</h3>
-          <p className="text-xs text-gray-500 line-clamp-2 mb-3 flex-1">{course.shortDescription || course.description}</p>
+          <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 whitespace-normal break-anywhere group-hover:text-violet-600 transition-colors">{course.title}</h3>
+          <p className="text-xs text-gray-500 whitespace-normal break-anywhere mb-3 flex-1">{course.shortDescription || course.description}</p>
           <div className="flex items-center gap-1 mb-3"><StarRating rating={rating} /><span className="text-xs font-semibold text-gray-700">{rating.toFixed(1)}</span><span className="text-xs text-gray-400">({course.reviewsCount || 0})</span></div>
           <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
             <div className="flex items-center gap-1"><Users className="h-3 w-3" /><span>{(course.studentsCount || 0).toLocaleString()} students</span></div>
@@ -1212,7 +1212,7 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
             {enrolled && <Badge className="bg-emerald-500 text-white text-xs font-bold">✓ Enrolled</Badge>}
           </div>
           <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{course.title}</h2>
-          {course.shortDescription && <p className="text-white/80 text-sm max-w-xl line-clamp-2 mb-4">{course.shortDescription}</p>}
+          {course.shortDescription && <p className="text-white/80 text-sm max-w-xl whitespace-normal break-anywhere mb-4">{course.shortDescription}</p>}
           <div className="flex flex-wrap items-center gap-4">
             {course.duration && <span className="text-white/70 text-sm flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration}</span>}
             {course.lessonsCount > 0 && <span className="text-white/70 text-sm flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessonsCount} lessons</span>}
@@ -1496,7 +1496,7 @@ export default function BreedSkool() {
                         <Badge className="bg-red-100 text-red-600 text-[10px] border-0">-{savingsPct}% OFF</Badge>
                       </div>
                       <h3 className="font-black text-gray-900 text-sm mb-1 leading-snug">{course.title}</h3>
-                      <p className="text-xs text-gray-500 mb-4 line-clamp-3">{course.shortDescription}</p>
+                      <p className="text-xs text-gray-500 whitespace-normal break-anywhere mb-4">{course.shortDescription}</p>
                       <div className="border-t border-gray-100 pt-3">
                         <div className="flex items-baseline gap-2 mb-0.5">
                           <span className="text-xs text-gray-400 line-through">{fmtNgn(course.regularPrice)}</span>

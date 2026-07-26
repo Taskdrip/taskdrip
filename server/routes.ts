@@ -4034,7 +4034,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.post('/api/shop/purchase', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      const { productId, amount, currency, network, paymentProof, transactionHash, selectedAddons: rawAddons, planId } = req.body;
+      const {
+        productId,
+        amount,
+        currency,
+        network,
+        paymentProof,
+        transactionHash,
+        referralCode,
+        selectedAddons: rawAddons,
+        planId,
+      } = req.body;
 
       if (!productId) {
         return res.status(400).json({ message: "Product ID is required" });
@@ -4074,6 +4084,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           addonsTotal: "0.00",
           paymentProof: paymentProof || "FREE_PRODUCT",
           transactionHash: transactionHash || "",
+          referralCode: typeof referralCode === "string" ? referralCode.trim().slice(0, 100) || null : null,
           status: "pending",
         });
         if (!purchase) throw new Error("Purchase insert returned no result");
@@ -4138,6 +4149,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         addonsTotal: addonsTotal.toFixed(2),
         paymentProof: paymentProof || "FREE_PRODUCT",
         transactionHash: transactionHash || "",
+        referralCode: typeof referralCode === "string" ? referralCode.trim().slice(0, 100) || null : null,
         status: product.isFree && addonsTotal === 0 ? "approved" : "pending",
       });
       if (!purchase) throw new Error("Purchase insert returned no result");

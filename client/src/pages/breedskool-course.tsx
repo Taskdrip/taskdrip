@@ -237,7 +237,7 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
   const canView = (lesson: any) => lesson.isPreview || isEnrolled || isInstructor;
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm overflow-hidden min-w-0">
       <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
         <BookOpen className="h-5 w-5 text-violet-600" /> Course Lessons
       </h2>
@@ -247,7 +247,7 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
         <div className="mb-6 bg-gray-900 rounded-2xl overflow-hidden">
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div>
-              <p className="text-white font-semibold text-sm">{selectedLesson.title}</p>
+              <p className="text-white font-semibold text-sm whitespace-normal break-anywhere">{selectedLesson.title}</p>
               {selectedLesson.isPreview && <Badge className="bg-green-500 text-white text-xs mt-1">Free Preview</Badge>}
             </div>
             <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setSelectedLesson(null)}>
@@ -272,7 +272,7 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
           )}
           {selectedLesson.content && (
             <div className="p-4 border-t border-gray-700">
-              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{selectedLesson.content}</p>
+              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line break-anywhere">{selectedLesson.content}</p>
             </div>
           )}
           {Array.isArray(selectedLesson.lessonFiles) && selectedLesson.lessonFiles.length > 0 && (
@@ -315,15 +315,15 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
                   {accessible ? <Play className={`h-3 w-3 ${isSelected ? "fill-white" : "fill-violet-700"}`} /> : idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <span className={`font-medium text-sm truncate min-w-0 flex-1 ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <span className={`font-medium text-sm whitespace-normal break-anywhere min-w-0 flex-1 ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
                       {lesson.title}
                     </span>
                     {lesson.isPreview && <Badge className="bg-green-100 text-green-700 text-xs flex-shrink-0">Free Preview</Badge>}
                     {lesson.videoLink && <Badge className="bg-blue-100 text-blue-700 text-xs flex-shrink-0">Video</Badge>}
                   </div>
                   {lesson.description && (
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{lesson.description}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 whitespace-normal break-anywhere">{lesson.description}</p>
                   )}
                 </div>
                 {!accessible && <Lock className="h-4 w-4 text-gray-300 flex-shrink-0" />}

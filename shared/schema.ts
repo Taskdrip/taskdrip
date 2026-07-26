@@ -2218,6 +2218,9 @@ export type AppSetting = typeof appSettings.$inferSelect;
 export const breedskoolCoursePricing = pgTable("breedskool_course_pricing", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   courseKey: varchar("course_key").unique().notNull(), // e.g. 'webdev', 'ai_content', 'social_monetize', 'trading'
+  // Legacy imported-database fields retained for compatibility with older pricing rows.
+  courseTitle: varchar("course_title"),
+  priceNgn: integer("price_ngn"),
   title: varchar("title").notNull(),
   shortDescription: text("short_description"),
   regularPrice: integer("regular_price").notNull(), // NGN in kobo / whole NGN integer

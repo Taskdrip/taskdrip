@@ -372,7 +372,7 @@ export default function CourseLearn() {
                 </Button>
               </Link>
               <div className="min-w-0">
-                <h1 className="text-lg font-bold truncate" data-testid="text-course-title">{course.title}</h1>
+                <h1 className="text-lg font-bold whitespace-normal break-anywhere" data-testid="text-course-title">{course.title}</h1>
                 <p className="text-xs text-white/80">
                   Lesson {currentIdx + 1} of {sortedLessons.length} · {completedCount}/{totalLessons} completed
                 </p>
@@ -401,7 +401,7 @@ export default function CourseLearn() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-[300px,1fr] gap-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-[300px,minmax(0,1fr)] gap-6">
         {/* Sidebar lessons list */}
         <aside className="bg-white rounded-2xl border shadow-sm p-3 h-fit lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-hidden">
           <div className="px-2 py-2 flex items-center gap-2 border-b mb-2">
@@ -430,7 +430,7 @@ export default function CourseLearn() {
                       {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium truncate ${isCur ? "text-violet-900" : done ? "text-gray-700" : "text-gray-800"}`}>
+                      <p className={`text-sm font-medium whitespace-normal break-anywhere ${isCur ? "text-violet-900" : done ? "text-gray-700" : "text-gray-800"}`}>
                         {l.title}
                       </p>
                       {l.videoLink && (
@@ -450,7 +450,7 @@ export default function CourseLearn() {
         </aside>
 
         {/* Main content: lesson + tabs */}
-        <main className="space-y-4">
+        <main className="space-y-4 min-w-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-white border w-full justify-start overflow-x-auto">
               <TabsTrigger value="lesson" data-testid="tab-lesson">
@@ -496,8 +496,8 @@ export default function CourseLearn() {
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
                         <Badge className="bg-violet-100 text-violet-700 mb-2">Lesson {currentIdx + 1}</Badge>
-                        <h2 className="text-2xl font-bold text-gray-900" data-testid="text-lesson-title">{current.title}</h2>
-                        {current.description && <p className="text-gray-600 mt-1">{current.description}</p>}
+                        <h2 className="text-2xl font-bold text-gray-900 whitespace-normal break-anywhere" data-testid="text-lesson-title">{current.title}</h2>
+                        {current.description && <p className="text-gray-600 mt-1 whitespace-normal break-anywhere">{current.description}</p>}
                       </div>
                       {currentDone && (
                         <Badge className="bg-green-100 text-green-700 gap-1">

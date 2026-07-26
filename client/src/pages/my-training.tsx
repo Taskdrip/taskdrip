@@ -1576,7 +1576,7 @@ function CourseCard({ enrollment: e }: { enrollment: Enrollment }) {
         )}
       </div>
       <div className="p-5 flex-1 flex flex-col">
-        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 line-clamp-2 group-hover:text-violet-600 transition-colors">{e.course.title}</h3>
+        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 whitespace-normal break-anywhere group-hover:text-violet-600 transition-colors">{e.course.title}</h3>
         {e.course.instructor && (
           <p className="text-xs text-gray-400 mb-3">by {e.course.instructor.firstName} {e.course.instructor.lastName}</p>
         )}
@@ -1622,7 +1622,7 @@ function CourseListItem({ enrollment: e }: { enrollment: Enrollment }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-          <h3 className="font-bold text-gray-900 text-sm truncate">{e.course.title}</h3>
+          <h3 className="font-bold text-gray-900 text-sm whitespace-normal break-anywhere">{e.course.title}</h3>
           <Badge className={`text-[10px] shrink-0 ${statusInfo.color} border-0`}>{statusInfo.label}</Badge>
         </div>
         <div className="flex items-center gap-2 mt-1.5">

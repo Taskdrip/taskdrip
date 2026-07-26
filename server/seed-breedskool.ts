@@ -108,6 +108,10 @@ export async function seedBreedskoolPricing(): Promise<{ upserted: number; skipp
       if (existing.length === 0) {
         await db.insert(breedskoolCoursePricing).values({
           ...course,
+          // Keep older imported databases compatible with the legacy required
+          // pricing columns that predate the current title/price fields.
+          courseTitle: course.title,
+          priceNgn: course.discountPrice,
           updatedAt: new Date(),
         });
         upserted++;
@@ -116,9 +120,11 @@ export async function seedBreedskoolPricing(): Promise<{ upserted: number; skipp
           .update(breedskoolCoursePricing)
           .set({
             title: course.title,
+            courseTitle: course.title,
             shortDescription: course.shortDescription,
             regularPrice: course.regularPrice,
             discountPrice: course.discountPrice,
+            priceNgn: course.discountPrice,
             duration: course.duration,
             isActive: course.isActive,
             acceptedPayments: course.acceptedPayments,
