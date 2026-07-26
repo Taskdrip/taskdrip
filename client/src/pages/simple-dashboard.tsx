@@ -1172,7 +1172,7 @@ export default function SimpleDashboard() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900 truncate group-hover:text-pink-700 transition-colors">
+                              <p className="font-semibold text-gray-900 whitespace-normal break-anywhere group-hover:text-pink-700 transition-colors">
                                 {order.product?.title || `Order #${order.id.slice(0, 8)}`}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">

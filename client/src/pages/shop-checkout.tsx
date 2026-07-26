@@ -331,8 +331,8 @@ function ShopCheckoutAuth({ product, onAuthSuccess }: { product: ShopProduct | u
                 : <div className="w-16 h-16 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0"><ShoppingBag className="h-7 w-7 text-violet-500" /></div>
               }
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 truncate">{product.title}</p>
-                <p className="text-sm text-gray-500 truncate">{product.category}</p>
+                <p className="font-bold text-gray-900 whitespace-normal break-anywhere">{product.title}</p>
+                <p className="text-sm text-gray-500 whitespace-normal break-anywhere">{product.category}</p>
               </div>
               <div className="text-right">
                 <p className="text-xl font-extrabold text-violet-700">${Number(product.price).toFixed(2)}</p>
@@ -622,8 +622,8 @@ export default function ShopCheckout() {
                   {isPlanMode && activePlan ? (
                     // ── Plan mode: show selected tier clearly ────────────────
                     <>
-                      <div className="flex items-baseline gap-2 text-gray-600 min-w-0">
-                        <span className="truncate min-w-0 flex-1 text-sm">{product.title}</span>
+                      <div className="flex items-start gap-2 text-gray-600 min-w-0">
+                        <span className="min-w-0 flex-1 text-sm whitespace-normal break-anywhere">{product.title}</span>
                       </div>
                       <div className="rounded-xl bg-violet-50 border border-violet-200 p-3">
                         <div className="flex items-center justify-between gap-2">
@@ -671,8 +671,8 @@ export default function ShopCheckout() {
                   ) : (
                     // ── Standard mode ────────────────────────────────────────
                     <>
-                      <div className="flex justify-between gap-2 text-gray-600">
-                        <span className="truncate min-w-0 flex-1">{product.title}</span>
+                      <div className="flex items-start justify-between gap-2 text-gray-600">
+                        <span className="min-w-0 flex-1 whitespace-normal break-anywhere">{product.title}</span>
                         <span className="flex-shrink-0">{product.isFree ? "Free" : `$${product.price}`}</span>
                       </div>
                       {product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price) && (
@@ -739,9 +739,9 @@ export default function ShopCheckout() {
                 <img src={product.featuredImage} alt={product.title} className="w-full h-40 object-cover" />
               )}
               <div className="p-6">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <h2 className="font-bold text-gray-900 text-lg">{product.title}</h2>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                   <div className="min-w-0">
+                     <h2 className="font-bold text-gray-900 text-lg whitespace-normal break-anywhere">{product.title}</h2>
                     <div className="flex gap-2 mt-1">
                       <Badge variant="outline" className="text-xs">{product.category}</Badge>
                       <Badge variant="outline" className="text-xs">{product.type}</Badge>
@@ -930,9 +930,9 @@ export default function ShopCheckout() {
 
             {/* Payment recap */}
             <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">{product.title}</p>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-600 whitespace-normal break-anywhere">{product.title}</p>
                   <p className="text-2xl font-extrabold text-gray-900">${grandTotal.toFixed(2)}</p>
                   {chosenAddons.length > 0 && (
                     <p className="text-xs text-violet-700 mt-1">
@@ -940,7 +940,7 @@ export default function ShopCheckout() {
                     </p>
                   )}
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right flex-shrink-0">
                   <p className="text-xs text-gray-500">Payment via</p>
                   <Badge className="bg-violet-100 text-violet-700">{selectedMethod?.label || "Manual review"}</Badge>
                 </div>
@@ -1048,10 +1048,10 @@ export default function ShopCheckout() {
                     <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0">
                       <Zap className="h-4 w-4 text-white" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-gray-900 text-sm">Hey {buyerName}, we're on it! ⚡</p>
                       <p className="text-xs text-gray-700 mt-1">
-                        Your order for <span className="font-semibold">{product.title}</span> is now being processed by our team.
+                        Your order for <span className="font-semibold break-anywhere">{product.title}</span> is now being processed by our team.
                         {product.isFree
                           ? " You'll get instant access shortly."
                           : " We'll verify your payment within 24 hours and unlock your access right away."}
@@ -1063,34 +1063,34 @@ export default function ShopCheckout() {
 
                 {/* Order details */}
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Order ID</span>
-                    <span className="font-mono font-medium text-gray-900" data-testid="text-order-ref">#{orderRef}</span>
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="text-gray-500 flex-shrink-0">Order ID</span>
+                    <span className="font-mono font-medium text-gray-900 text-right break-anywhere" data-testid="text-order-ref">#{orderRef}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Product</span>
-                    <span className="font-medium text-gray-900">{product.title}</span>
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="text-gray-500 flex-shrink-0">Product</span>
+                    <span className="min-w-0 max-w-[75%] font-medium text-gray-900 text-right whitespace-normal break-anywhere">{product.title}</span>
                   </div>
                   {chosenAddons.length > 0 && (
-                    <div className="flex justify-between text-sm items-start">
-                      <span className="text-gray-500">Add-ons</span>
-                      <span className="font-medium text-gray-900 text-right">
+                  <div className="flex justify-between gap-3 text-sm items-start">
+                    <span className="text-gray-500 flex-shrink-0">Add-ons</span>
+                    <span className="min-w-0 max-w-[75%] font-medium text-gray-900 text-right whitespace-normal break-anywhere">
                         {chosenAddons.map((a) => (
                           <div key={a.id}>{a.title} <span className="text-gray-500">+${Number(a.price).toFixed(2)}</span></div>
                         ))}
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Amount</span>
-                    <span className="font-bold text-gray-900">{product.isFree && addonsTotal === 0 ? "FREE" : `$${grandTotal.toFixed(2)}`}</span>
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="text-gray-500 flex-shrink-0">Amount</span>
+                    <span className="font-bold text-gray-900 text-right">{product.isFree && addonsTotal === 0 ? "FREE" : `$${grandTotal.toFixed(2)}`}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Payment via</span>
-                    <span className="font-medium text-gray-900">{selectedMethod?.label || "Manual review"}</span>
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="text-gray-500 flex-shrink-0">Payment via</span>
+                    <span className="min-w-0 max-w-[75%] font-medium text-gray-900 text-right whitespace-normal break-anywhere">{selectedMethod?.label || "Manual review"}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Status</span>
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="text-gray-500 flex-shrink-0">Status</span>
                     {product.isFree ? (
                       <Badge className="bg-green-100 text-green-700">Confirmed</Badge>
                     ) : (

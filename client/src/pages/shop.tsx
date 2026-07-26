@@ -149,7 +149,7 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
         <div className="mb-2">
           <Badge variant="outline" className="text-xs text-gray-500 mb-2">{formatLabel(product.category)}</Badge>
           <Link href={`/shop/product/${product.id}`}>
-            <h3 className="font-bold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug text-[15px]">
+            <h3 className="font-bold text-gray-900 whitespace-normal break-anywhere group-hover:text-indigo-600 transition-colors leading-snug text-[15px]">
               {product.title}
             </h3>
           </Link>

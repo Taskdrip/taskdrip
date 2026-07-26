@@ -96,7 +96,7 @@ export function PaymentModal({ isOpen, onClose, product, onSubmit }: PaymentModa
         <div className="space-y-6">
           {/* Product Info */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-semibold text-black">{product.title}</h4>
+            <h4 className="font-semibold text-black whitespace-normal break-anywhere">{product.title}</h4>
             <p className="text-2xl font-bold text-accent mt-2">${product.price}</p>
           </div>
 

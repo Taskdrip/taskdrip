@@ -266,14 +266,14 @@ export default function ProductDetail() {
       <NavigationFixed />
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-8 min-w-0">
           <Link href="/shop" className="hover:text-blue-600">Shop</Link>
           <span>/</span>
           <Link href={`/shop?category=${product.category}`} className="hover:text-blue-600">
             {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
           </Link>
           <span>/</span>
-          <span className="text-gray-900">{product.title}</span>
+          <span className="text-gray-900 min-w-0 whitespace-normal break-anywhere">{product.title}</span>
         </div>
 
         {/* Product Details */}
@@ -358,14 +358,14 @@ export default function ProductDetail() {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <Badge variant="secondary">{product.category}</Badge>
                 <Badge variant="outline">{product.type}</Badge>
                 {product.isFeatured && (
                   <Badge className="bg-yellow-500 text-white">Featured</Badge>
                 )}
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.title}</h1>
+               <h1 className="text-3xl font-bold text-gray-900 mb-4 whitespace-normal break-anywhere">{product.title}</h1>
               
               {/* Rating */}
               <div className="flex items-center gap-4 mb-4">

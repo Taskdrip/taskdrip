@@ -383,7 +383,7 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${typeColor(order.type)}`}>
               {typeIcon(order.type)} {typeLabel(order.type)}
             </span>
-            <span className="text-gray-900 font-bold">{order.title}</span>
+            <span className="text-gray-900 font-bold min-w-0 whitespace-normal break-anywhere">{order.title}</span>
           </DialogTitle>
           <DialogDescription className="text-gray-500">
             Order ID: <span className="font-mono text-xs">{order.id}</span>
@@ -1396,7 +1396,7 @@ export default function MyOrdersPage() {
                           {order.status.replace(/_/g, " ")}
                         </Badge>
                       </div>
-                      <p className="font-semibold text-gray-900 truncate" data-testid={`text-order-title-${order.id}`}>
+                      <p className="font-semibold text-gray-900 whitespace-normal break-anywhere" data-testid={`text-order-title-${order.id}`}>
                         {order.title}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">{order.description}</p>
