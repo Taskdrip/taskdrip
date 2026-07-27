@@ -433,7 +433,8 @@ export default function Blog() {
   );
 
   const spotlightPosts = filteredPosts.filter((p: any) => p.isFeatured || p.featuredImage).slice(0, 5);
-  const nonSpotlight = filteredPosts.filter((p: any) => !spotlightPosts.includes(p));
+  // All filtered posts appear in the grid — the carousel is a hero highlight, not an exclusion filter
+  const nonSpotlight = filteredPosts;
 
   const followMutation = useMutation({
     mutationFn: (category: string) =>
