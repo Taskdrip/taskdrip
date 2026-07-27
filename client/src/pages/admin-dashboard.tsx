@@ -44,6 +44,10 @@ import {
   Edit,
   Trash2,
   PlusCircle,
+  Share2,
+  TrendingUp,
+  Link2,
+  Coins,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -146,6 +150,8 @@ export default function AdminDashboard() {
   const { data: escrowPayments = [] } = useQuery<any[]>({ queryKey: ["/api/admin/escrow-payments"] });
   const { data: payoutRequests = [], isLoading: payoutsLoading } = useQuery<any[]>({ queryKey: ["/api/payout-requests"] });
   const { data: adminUsers = [] } = useQuery<any[]>({ queryKey: ["/api/admin/users"] });
+  const { data: referralStats } = useQuery<any>({ queryKey: ["/api/admin/referral-stats"] });
+  const { data: referralCommData, refetch: refetchReferralComm } = useQuery<any>({ queryKey: ["/api/admin/referral-commissions"] });
 
   // ── BreedSkool state ──
   const [bsSubTab, setBsSubTab] = useState<"courses" | "enrollments" | "payments">("courses");
@@ -281,6 +287,49 @@ export default function AdminDashboard() {
     onError: () => toast({ title: "Failed to reject payout", variant: "destructive" }),
   });
 
+  const updateCommissionMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/referral-commissions/${id}`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/referral-commissions"] });
+      toast({ title: "Commission updated" });
+    },
+    onError: () => toast({ title: "Failed to update commission", variant: "destructive" }),
+  });
+
+  const approveRefPayoutMutation = useMutation({
+    mutationFn: async ({ id, txHash, notes }: { id: string; txHash: string; notes: string }) => {
+      const res = await apiRequest("PATCH", `/api/payout-requests/${id}`, {
+        status: "completed",
+        transactionHash: txHash,
+        adminNotes: notes,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/referral-commissions"] });
+      toast({ title: "Referral Payout Approved", description: "User notified." });
+    },
+    onError: () => toast({ title: "Failed to approve payout", variant: "destructive" }),
+  });
+
+  const rejectRefPayoutMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const res = await apiRequest("PATCH", `/api/payout-requests/${id}`, {
+        status: "rejected",
+        adminNotes: notes,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/referral-commissions"] });
+      toast({ title: "Referral Payout Rejected" });
+    },
+    onError: () => toast({ title: "Failed to reject payout", variant: "destructive" }),
+  });
+
   useEffect(() => {
     if (user) {
       setAdminProfile(p => ({ ...p, firstName: user.firstName || "", lastName: user.lastName || "", email: user.email || "" }));
@@ -355,7 +404,7 @@ export default function AdminDashboard() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="campaigns" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 h-auto">
+          <TabsList className="grid w-full grid-cols-9 h-auto">
             <TabsTrigger value="campaigns" className="relative py-2 text-xs sm:text-sm">
               Campaigns
               {pendingCampaigns > 0 && (
@@ -380,6 +429,14 @@ export default function AdminDashboard() {
               {pendingCoursePayments.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                   {pendingCoursePayments.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="relative py-2 text-xs sm:text-sm">
+              Referrals
+              {(referralCommData?.referralPayouts?.filter((p: any) => p.status === 'pending').length ?? 0) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {referralCommData.referralPayouts.filter((p: any) => p.status === 'pending').length}
                 </span>
               )}
             </TabsTrigger>
@@ -1025,6 +1082,285 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* ── REFERRALS TAB ── */}
+          <TabsContent value="referrals" className="space-y-6">
+            {/* Summary stat cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg"><Share2 className="w-5 h-5 text-emerald-600" /></div>
+                    <div>
+                      <div className="text-2xl font-bold">{referralStats?.total ?? 0}</div>
+                      <div className="text-xs text-gray-500">Total Referrals</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
+                    <div>
+                      <div className="text-2xl font-bold">{referralStats?.topReferrers?.length ?? 0}</div>
+                      <div className="text-xs text-gray-500">Active Referrers</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-violet-100 rounded-lg"><Coins className="w-5 h-5 text-violet-600" /></div>
+                    <div>
+                      <div className="text-2xl font-bold">${parseFloat(referralCommData?.totals?.totalAll ?? "0").toFixed(2)}</div>
+                      <div className="text-xs text-gray-500">Total Commissions</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-rose-100 rounded-lg"><Wallet className="w-5 h-5 text-rose-600" /></div>
+                    <div>
+                      <div className="text-2xl font-bold">
+                        {referralCommData?.referralPayouts?.filter((p: any) => p.status === 'pending').length ?? 0}
+                      </div>
+                      <div className="text-xs text-gray-500">Pending Payouts</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Commission Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border-yellow-200 bg-yellow-50">
+                <CardContent className="pt-4 text-center">
+                  <div className="text-lg font-bold text-yellow-700">${parseFloat(referralCommData?.totals?.totalPending ?? "0").toFixed(2)}</div>
+                  <div className="text-xs text-yellow-600 mt-1">Pending Commissions</div>
+                </CardContent>
+              </Card>
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="pt-4 text-center">
+                  <div className="text-lg font-bold text-blue-700">${parseFloat(referralCommData?.totals?.totalApproved ?? "0").toFixed(2)}</div>
+                  <div className="text-xs text-blue-600 mt-1">Approved Commissions</div>
+                </CardContent>
+              </Card>
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="pt-4 text-center">
+                  <div className="text-lg font-bold text-green-700">${parseFloat(referralCommData?.totals?.totalPaid ?? "0").toFixed(2)}</div>
+                  <div className="text-xs text-green-600 mt-1">Paid Out</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Referral Payout Requests */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wallet className="w-4 h-4 text-rose-500" /> Referral Payout Requests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!referralCommData?.referralPayouts?.length ? (
+                  <p className="text-sm text-gray-500 py-4 text-center">No referral payout requests yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {referralCommData.referralPayouts.map((req: any) => (
+                      <div key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-lg bg-gray-50">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">{req.firstName} {req.lastName} <span className="text-gray-400 text-xs">@{req.username}</span></div>
+                          <div className="text-xs text-gray-500">{req.email}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Requested ${parseFloat(req.amount).toFixed(2)} · {req.createdAt ? formatDistanceToNow(new Date(req.createdAt), { addSuffix: true }) : ""}
+                          </div>
+                          {req.adminNotes && <div className="text-xs text-gray-500 mt-1 italic">{req.adminNotes}</div>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className={
+                            req.status === 'completed' ? 'bg-green-100 text-green-700 border-green-200' :
+                            req.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                            req.status === 'processing' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            'bg-yellow-100 text-yellow-700 border-yellow-200'
+                          }>
+                            {req.status}
+                          </Badge>
+                          {req.status === 'pending' && (
+                            <>
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 h-7 text-xs" onClick={() => approveRefPayoutMutation.mutate({ id: req.id, txHash: '', notes: 'Referral commission payout approved.' })}>
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                              </Button>
+                              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => rejectRefPayoutMutation.mutate({ id: req.id, notes: 'Referral payout rejected by admin.' })}>
+                                <XCircle className="w-3 h-3 mr-1" /> Reject
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Referrers */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Trophy className="w-4 h-4 text-amber-500" /> Top Referrers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!referralStats?.topReferrers?.length ? (
+                  <p className="text-sm text-gray-500 py-4 text-center">No referrers yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-gray-500 text-xs">
+                        <th className="text-left pb-2 pr-4">#</th>
+                        <th className="text-left pb-2 pr-4">User</th>
+                        <th className="text-left pb-2 pr-4">Type</th>
+                        <th className="text-right pb-2">Referrals</th>
+                      </tr></thead>
+                      <tbody>
+                        {referralStats.topReferrers.map((u: any, i: number) => (
+                          <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50">
+                            <td className="py-2 pr-4 text-gray-400 font-mono text-xs">{i + 1}</td>
+                            <td className="py-2 pr-4">
+                              <div className="flex items-center gap-2">
+                                {u.profileImageUrl ? (
+                                  <img src={u.profileImageUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">{u.firstName?.[0]}</div>
+                                )}
+                                <span className="font-medium">{u.firstName} {u.lastName}</span>
+                              </div>
+                            </td>
+                            <td className="py-2 pr-4">
+                              <Badge className="text-xs">{u.userType}</Badge>
+                            </td>
+                            <td className="py-2 text-right font-bold text-emerald-600">{u.totalReferrals ?? 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Referrals */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Link2 className="w-4 h-4 text-blue-500" /> Recent Referrals
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!referralStats?.recentReferrals?.length ? (
+                  <p className="text-sm text-gray-500 py-4 text-center">No referrals recorded yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-gray-500 text-xs">
+                        <th className="text-left pb-2 pr-4">Referrer ID</th>
+                        <th className="text-left pb-2 pr-4">Referred ID</th>
+                        <th className="text-left pb-2 pr-4">Type</th>
+                        <th className="text-left pb-2 pr-4">Code</th>
+                        <th className="text-left pb-2 pr-4">Status</th>
+                        <th className="text-right pb-2">Date</th>
+                      </tr></thead>
+                      <tbody>
+                        {referralStats.recentReferrals.map((r: any) => (
+                          <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
+                            <td className="py-2 pr-4 font-mono text-xs text-gray-500 max-w-[100px] truncate">{r.referrerId}</td>
+                            <td className="py-2 pr-4 font-mono text-xs text-gray-500 max-w-[100px] truncate">{r.referredId}</td>
+                            <td className="py-2 pr-4"><Badge className="text-xs">{r.referralType}</Badge></td>
+                            <td className="py-2 pr-4 font-mono text-xs">{r.referralCode}</td>
+                            <td className="py-2 pr-4">
+                              <Badge className={
+                                r.status === 'rewarded' ? 'bg-green-100 text-green-700 border-green-200' :
+                                r.status === 'converted' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                'bg-yellow-100 text-yellow-700 border-yellow-200'
+                              } variant="outline">{r.status}</Badge>
+                            </td>
+                            <td className="py-2 text-right text-xs text-gray-400">{r.createdAt ? formatDistanceToNow(new Date(r.createdAt), { addSuffix: true }) : ""}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Referral Commissions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Coins className="w-4 h-4 text-violet-500" /> Commissions Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!referralCommData?.commissions?.length ? (
+                  <p className="text-sm text-gray-500 py-4 text-center">No commission records yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-gray-500 text-xs">
+                        <th className="text-left pb-2 pr-3">Referrer</th>
+                        <th className="text-left pb-2 pr-3">Item</th>
+                        <th className="text-left pb-2 pr-3">Sale</th>
+                        <th className="text-left pb-2 pr-3">Commission</th>
+                        <th className="text-left pb-2 pr-3">Status</th>
+                        <th className="text-right pb-2">Actions</th>
+                      </tr></thead>
+                      <tbody>
+                        {referralCommData.commissions.map((c: any) => (
+                          <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50">
+                            <td className="py-2 pr-3">
+                              <div className="text-xs font-medium">{c.referrerFirstName} {c.referrerLastName}</div>
+                              <div className="text-xs text-gray-400">@{c.referrerUsername}</div>
+                            </td>
+                            <td className="py-2 pr-3">
+                              <div className="text-xs">{c.itemTitle || c.itemType}</div>
+                              <Badge className="text-xs mt-0.5">{c.itemType}</Badge>
+                            </td>
+                            <td className="py-2 pr-3 text-xs">${parseFloat(c.saleAmount).toFixed(2)}</td>
+                            <td className="py-2 pr-3 text-xs font-bold text-emerald-600">${parseFloat(c.commissionAmount).toFixed(2)}</td>
+                            <td className="py-2 pr-3">
+                              <Badge className={
+                                c.status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' :
+                                c.status === 'approved' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                'bg-yellow-100 text-yellow-700 border-yellow-200'
+                              } variant="outline">{c.status}</Badge>
+                            </td>
+                            <td className="py-2 text-right">
+                              <div className="flex justify-end gap-1">
+                                {c.status === 'pending' && (
+                                  <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={() => updateCommissionMutation.mutate({ id: c.id, status: 'approved' })}>
+                                    Approve
+                                  </Button>
+                                )}
+                                {c.status === 'approved' && (
+                                  <Button size="sm" className="h-6 text-xs px-2 bg-green-600 hover:bg-green-700" onClick={() => updateCommissionMutation.mutate({ id: c.id, status: 'paid' })}>
+                                    Mark Paid
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Course Create/Edit Dialog */}

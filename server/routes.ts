@@ -5309,6 +5309,89 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Admin referral commissions + payout requests ────────────────────
+  app.get('/api/admin/referral-commissions', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: "Forbidden" });
+
+      // All commission records with referrer name
+      const referrerAlias = users;
+      const commissions = await db.select({
+        id: referralCommissions.id,
+        referrerId: referralCommissions.referrerId,
+        referrerFirstName: referrerAlias.firstName,
+        referrerLastName: referrerAlias.lastName,
+        referrerUsername: referrerAlias.username,
+        referrerEmail: referrerAlias.email,
+        itemType: referralCommissions.itemType,
+        itemTitle: referralCommissions.itemTitle,
+        saleAmount: referralCommissions.saleAmount,
+        commissionRate: referralCommissions.commissionRate,
+        commissionAmount: referralCommissions.commissionAmount,
+        status: referralCommissions.status,
+        createdAt: referralCommissions.createdAt,
+      }).from(referralCommissions)
+        .leftJoin(referrerAlias, eq(referralCommissions.referrerId, referrerAlias.id))
+        .orderBy(desc(referralCommissions.createdAt))
+        .limit(200);
+
+      // Referral payout requests (identified by notes prefix)
+      const referralPayouts = await db.select({
+        id: payoutRequests.id,
+        userId: payoutRequests.userId,
+        amount: payoutRequests.amount,
+        status: payoutRequests.status,
+        adminNotes: payoutRequests.adminNotes,
+        transactionHash: payoutRequests.transactionHash,
+        createdAt: payoutRequests.createdAt,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        email: users.email,
+      }).from(payoutRequests)
+        .leftJoin(users, eq(payoutRequests.userId, users.id))
+        .where(sql`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`)
+        .orderBy(desc(payoutRequests.createdAt))
+        .limit(100);
+
+      // Filter to only those with the referral payout marker
+      const filteredPayouts = referralPayouts.filter((p: any) =>
+        !p.adminNotes || (p.adminNotes as string).includes('Referral Payout')
+      );
+
+      // Platform-wide totals
+      const [totalComm] = await db.select({
+        totalPending: sql<number>`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'pending' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalApproved: sql<number>`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'approved' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'paid' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalAll: sql<number>`COALESCE(SUM(${referralCommissions.commissionAmount}::numeric), 0)`,
+      }).from(referralCommissions);
+
+      res.json({ commissions, referralPayouts: filteredPayouts, totals: totalComm });
+    } catch (error) {
+      console.error('Admin referral commissions error:', error);
+      res.status(500).json({ message: "Failed to fetch referral commissions" });
+    }
+  });
+
+  // PATCH /api/admin/referral-commissions/:id — approve or mark paid
+  app.patch('/api/admin/referral-commissions/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: "Forbidden" });
+      const { id } = req.params;
+      const { status } = req.body; // 'approved' | 'paid'
+      if (!['approved', 'paid', 'pending'].includes(status)) return res.status(400).json({ message: "Invalid status" });
+      const updateData: any = { status };
+      if (status === 'approved') updateData.approvedAt = new Date();
+      if (status === 'paid') updateData.paidAt = new Date();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq(referralCommissions.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: "Commission not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update commission" });
+    }
+  });
+
   // ── Conversations: grouped threads per campaign ─────────────────────
 
   // GET /api/conversations — list of conversations for current user
