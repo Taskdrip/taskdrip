@@ -83,6 +83,81 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot
 const REQUIRED_TABLES: string[] = [
+  // Core courses table — must exist before course_lessons and any seeding
+  `CREATE TABLE IF NOT EXISTS "courses" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "title" varchar NOT NULL,
+    "description" text NOT NULL,
+    "short_description" varchar,
+    "category" varchar NOT NULL,
+    "thumbnail" varchar,
+    "preview_video_url" varchar,
+    "intro_video_url" varchar,
+    "service_addons" jsonb DEFAULT '[]'::jsonb,
+    "instructor_id" varchar NOT NULL REFERENCES "users"("id"),
+    "price" decimal(10,2) DEFAULT '0.00',
+    "is_free" boolean DEFAULT false,
+    "level" varchar DEFAULT 'beginner',
+    "duration" varchar,
+    "lessons_count" integer DEFAULT 0,
+    "students_count" integer DEFAULT 0,
+    "likes_count" integer DEFAULT 0,
+    "comments_count" integer DEFAULT 0,
+    "reviews_count" integer DEFAULT 0,
+    "average_rating" decimal(3,2) DEFAULT '0.00',
+    "syllabus" jsonb DEFAULT '[]'::jsonb,
+    "requirements" text[],
+    "what_you_learn" text[],
+    "tags" text[],
+    "status" varchar DEFAULT 'draft',
+    "is_published" boolean DEFAULT false,
+    "is_featured" boolean DEFAULT false,
+    "sale_price" decimal(10,2),
+    "sale_deadline" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+
+  // Course lessons — must exist before course_lesson_progress and assignments
+  `CREATE TABLE IF NOT EXISTS "course_lessons" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "title" varchar NOT NULL,
+    "description" text,
+    "video_url" varchar,
+    "video_link" varchar,
+    "content" text,
+    "order" integer DEFAULT 0,
+    "lesson_files" jsonb DEFAULT '[]'::jsonb,
+    "is_preview" boolean DEFAULT false,
+    "created_at" timestamp DEFAULT now()
+  )`,
+
+  // Course enrollments
+  `CREATE TABLE IF NOT EXISTS "course_enrollments" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id"),
+    "status" varchar DEFAULT 'active',
+    "payment_proof" varchar,
+    "payment_amount" decimal(10,2),
+    "payment_method" varchar,
+    "payment_status" varchar DEFAULT 'pending',
+    "enrolled_at" timestamp DEFAULT now(),
+    "completed_at" timestamp
+  )`,
+
+  // Course messages (group chat + private DMs)
+  `CREATE TABLE IF NOT EXISTS "course_messages" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "sender_id" varchar NOT NULL REFERENCES "users"("id"),
+    "recipient_id" varchar REFERENCES "users"("id"),
+    "message" text NOT NULL,
+    "is_deleted" boolean DEFAULT false,
+    "created_at" timestamp DEFAULT now()
+  )`,
+
   // P2P task addon proof submissions
   `CREATE TABLE IF NOT EXISTS "p2p_task_addon_submissions" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
