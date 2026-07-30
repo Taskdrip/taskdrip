@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "preDeployCommand": "npm run db:push",
     "startCommand": "node dist/index.js",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
