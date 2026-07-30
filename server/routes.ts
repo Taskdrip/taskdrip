@@ -6293,6 +6293,23 @@ Instructions:
     }
   });
 
+  // Admin: force-reseed all BreedSkool platform courses (idempotent — safe to run multiple times)
+  app.post('/api/admin/reseed-courses', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    try {
+      const { seedBreedskoolCourses } = await import('./seed-breedskool-courses');
+      const { seedBreedskoolPricing } = await import('./seed-breedskool');
+      await seedBreedskoolPricing();
+      const result = await seedBreedskoolCourses(req.user.id);
+      res.json({ ok: true, created: result.created, linked: result.linked, message: `Reseeded: ${result.created} course(s) created, ${result.linked} linked to pricing` });
+    } catch (e: any) {
+      console.error('[reseed-courses]', e);
+      res.status(500).json({ ok: false, message: e?.message || 'Reseed failed' });
+    }
+  });
+
   // Admin: get all pricing
   app.get('/api/admin/breedskool/pricing', isAuthenticated, async (req: any, res) => {
     if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });

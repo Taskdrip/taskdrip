@@ -297,12 +297,30 @@ server.listen({
     console.error("[startup] Static serving setup error:", err);
   }
 
+  // ── Phase 4a: Critical seeds — run synchronously before marking ready ────────
+  // Courses must exist before the first request hits /api/courses on Railway.
+  try {
+    await ensureAdminExists();
+    const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+    if (adminUser) {
+      await seedBreedskoolPricing()
+        .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
+        .catch((e) => console.error("seedBreedskoolPricing:", e));
+      await seedBreedskoolCourses(adminUser.id)
+        .then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`))
+        .catch((e) => console.error("seedBreedskoolCourses:", e));
+    } else {
+      console.error("[startup] WARNING: admin user not found — BreedSkool courses not seeded");
+    }
+  } catch (e) {
+    console.error("[startup] Critical seed error:", e);
+  }
+
   if (!startupError) appReady = true;
 
   // ── Phase 4: Background seeds (deferred, never block readiness) ───────────────
   setImmediate(async () => {
     try {
-      await ensureAdminExists();
       const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
       if (adminUser) {
         await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
@@ -317,16 +335,8 @@ server.listen({
       await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
       await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
       await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
-      await seedBreedskoolPricing()
-        .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
-        .catch((e) => console.error("seedBreedskoolPricing:", e));
       await seedBreedskoolPaymentSettings()
         .catch((e) => console.error("seedBreedskoolPaymentSettings:", e));
-      if (adminUser) {
-        await seedBreedskoolCourses(adminUser.id)
-          .then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`))
-          .catch((e) => console.error("seedBreedskoolCourses:", e));
-      }
       // Seed demo data for SaaS Masterclass (students, enrollments, reviews)
       await seedSaasCourseDemo()
         .then((r) => log(`[SaaS Demo] students: ${r.students}, enrollments: ${r.enrollments}, reviews: ${r.reviews}`))
