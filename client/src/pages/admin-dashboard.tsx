@@ -153,6 +153,40 @@ export default function AdminDashboard() {
   const { data: referralStats } = useQuery<any>({ queryKey: ["/api/admin/referral-stats"] });
   const { data: referralCommData, refetch: refetchReferralComm } = useQuery<any>({ queryKey: ["/api/admin/referral-commissions"] });
 
+  // ── Shop Orders ──
+  const [shopSubTab, setShopSubTab] = useState<"orders" | "products">("orders");
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [shopProofZoom, setShopProofZoom] = useState<string | null>(null);
+  const [deliverDialog, setDeliverDialog] = useState<{ open: boolean; id: string; downloadUrl: string; accessUrl: string; accessNotes: string }>({ open: false, id: "", downloadUrl: "", accessUrl: "", accessNotes: "" });
+
+  const { data: adminPurchases = [], isLoading: purchasesLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/purchases"],
+    enabled: isAuthenticated,
+  });
+
+  const pendingShopOrders = (adminPurchases as any[]).filter((p: any) => p.status === "pending");
+
+  const approveShopOrderMutation = useMutation({
+    mutationFn: async (id: string) => { const r = await apiRequest("PATCH", `/api/admin/purchases/${id}/approve`); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] }); setSelectedOrder(null); toast({ title: "Order Approved ✅", description: "Customer has been notified." }); },
+    onError: (e: any) => toast({ title: "Failed to approve", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectShopOrderMutation = useMutation({
+    mutationFn: async (id: string) => { const r = await apiRequest("PATCH", `/api/admin/purchases/${id}/disapprove`); return r.json(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] }); setSelectedOrder(null); toast({ title: "Order Cancelled", description: "Customer has been notified." }); },
+    onError: (e: any) => toast({ title: "Failed to cancel order", description: e.message, variant: "destructive" }),
+  });
+
+  const deliverShopOrderMutation = useMutation({
+    mutationFn: async ({ id, downloadUrl, accessUrl, accessNotes }: { id: string; downloadUrl: string; accessUrl: string; accessNotes: string }) => {
+      const r = await apiRequest("PATCH", `/api/admin/purchases/${id}/deliver`, { downloadUrl, accessUrl, accessNotes, status: "delivered" });
+      return r.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] }); setDeliverDialog({ open: false, id: "", downloadUrl: "", accessUrl: "", accessNotes: "" }); toast({ title: "Order Delivered ✅" }); },
+    onError: (e: any) => toast({ title: "Failed to deliver", description: e.message, variant: "destructive" }),
+  });
+
   // ── BreedSkool state ──
   const [bsSubTab, setBsSubTab] = useState<"courses" | "enrollments" | "payments">("courses");
   const [courseDialog, setCourseDialog] = useState<{ open: boolean; mode: "create" | "edit"; course: any | null }>({ open: false, mode: "create", course: null });
@@ -161,7 +195,10 @@ export default function AdminDashboard() {
   const { data: allCourses = [], isLoading: coursesLoading } = useQuery<any[]>({ queryKey: ["/api/courses"] });
   const { data: adminEnrollments = [], isLoading: enrollmentsLoading } = useQuery<any[]>({ queryKey: ["/api/courses/admin/enrollments"] });
 
-  const pendingCoursePayments = (adminEnrollments as any[]).filter((e: any) => e.paymentStatus === "pending_verification");
+  // Fixed: status field is "pending_payment" not "pending_verification"
+  const pendingCoursePayments = (adminEnrollments as any[]).filter((e: any) =>
+    e.status === "pending_payment" || e.paymentStatus === "pending_verification"
+  );
 
   const createCourseMutation = useMutation({
     mutationFn: async (data: any) => { const r = await apiRequest("POST", "/api/courses", data); return r.json(); },
@@ -423,7 +460,14 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="overview" className="py-2 text-xs sm:text-sm">Overview</TabsTrigger>
             <TabsTrigger value="users" className="py-2 text-xs sm:text-sm">Users</TabsTrigger>
-            <TabsTrigger value="shop" className="py-2 text-xs sm:text-sm">Shop</TabsTrigger>
+            <TabsTrigger value="shop" className="relative py-2 text-xs sm:text-sm">
+              Shop
+              {pendingShopOrders.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {pendingShopOrders.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="breedskool" className="relative py-2 text-xs sm:text-sm">
               BreedSkool
               {pendingCoursePayments.length > 0 && (
@@ -906,38 +950,135 @@ export default function AdminDashboard() {
 
           {/* ── SHOP TAB ── */}
           <TabsContent value="shop" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" /> Shop Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  {[
-                    { icon: Package, label: "Total Products", value: "0", color: "text-blue-600" },
-                    { icon: ShoppingCart, label: "Total Sales", value: "0", color: "text-green-600" },
-                    { icon: DollarSign, label: "Revenue", value: "$0", color: "text-orange-600" },
-                  ].map((s) => (
-                    <div key={s.label} className="bg-gray-50 p-4 rounded-xl border flex items-center gap-4">
-                      <s.icon className={`w-8 h-8 ${s.color}`} />
-                      <div>
-                        <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                        <div className="text-sm text-gray-600">{s.label}</div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-blue-600">{adminPurchases.length}</div><div className="text-sm text-gray-500">Total Orders</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-amber-600">{pendingShopOrders.length}</div><div className="text-sm text-gray-500">Pending Review</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-green-600">{(adminPurchases as any[]).filter((p: any) => p.status === "paid" || p.status === "delivered").length}</div><div className="text-sm text-gray-500">Approved</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-purple-600">${(adminPurchases as any[]).filter((p: any) => p.status === "paid" || p.status === "delivered").reduce((s: number, p: any) => s + parseFloat(p.totalAmount || "0"), 0).toFixed(2)}</div><div className="text-sm text-gray-500">Revenue</div></CardContent></Card>
+            </div>
+
+            {/* Sub-tab nav */}
+            <div className="flex gap-2 border-b pb-2">
+              {(["orders", "products"] as const).map(t => (
+                <button key={t} onClick={() => setShopSubTab(t)} className={`px-4 py-2 rounded-t text-sm font-medium capitalize transition-colors ${shopSubTab === t ? "bg-orange-600 text-white" : "text-gray-600 hover:text-orange-600"}`}>
+                  {t === "orders" ? `Orders (${adminPurchases.length})` : "Products"}
+                </button>
+              ))}
+              {shopSubTab === "products" && (
+                <Button size="sm" className="ml-auto bg-orange-600 hover:bg-orange-700" asChild>
+                  <a href="/admin/products"><Package className="w-4 h-4 mr-1" /> Manage Products</a>
+                </Button>
+              )}
+            </div>
+
+            {/* ORDERS sub-tab */}
+            {shopSubTab === "orders" && (
+              <div className="space-y-3">
+                {purchasesLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading orders...</div>
+                ) : adminPurchases.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                    <p>No orders yet.</p>
+                  </div>
+                ) : (adminPurchases as any[]).map((order: any) => (
+                  <Card key={order.id} className={`border overflow-hidden ${order.status === "pending" ? "border-amber-200 bg-amber-50/30" : ""}`}>
+                    <CardContent className="py-4 px-4">
+                      <div className="flex items-start gap-3 flex-wrap">
+                        {/* Product image */}
+                        {order.product?.imageUrl && (
+                          <img src={order.product.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0 border" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm">{order.product?.title || "Product"}</span>
+                            <StatusBadge status={order.status || "pending"} />
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">{order.buyer?.firstName} {order.buyer?.lastName}</span>
+                            {order.buyer?.email && <span className="text-gray-400 ml-1">({order.buyer?.email})</span>}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
+                            <span className="font-bold text-green-700">${parseFloat(order.totalAmount || "0").toFixed(2)}</span>
+                            {order.paymentMethod && <span>via {order.paymentMethod}</span>}
+                            {order.createdAt && <span>{formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}</span>}
+                          </div>
+                          {/* Payment proof */}
+                          {order.paymentProof && (
+                            <button
+                              className="mt-2 text-xs text-blue-600 underline flex items-center gap-1 hover:text-blue-800"
+                              onClick={() => setShopProofZoom(order.paymentProof)}
+                            >
+                              <Eye className="w-3 h-3" /> View Payment Proof
+                            </button>
+                          )}
+                          {/* Transaction hash */}
+                          {order.transactionHash && (
+                            <div className="mt-1">
+                              <span className="text-xs text-gray-500">Tx: </span>
+                              <code className="text-xs bg-white border rounded px-1 py-0.5 break-all">{order.transactionHash}</code>
+                            </div>
+                          )}
+                          {/* Admin notes */}
+                          {order.adminNotes && (
+                            <p className="text-xs italic text-gray-500 mt-1">{order.adminNotes}</p>
+                          )}
+                          {/* Delivery details */}
+                          {order.deliveryDetails && (
+                            <div className="mt-2 bg-green-50 border border-green-100 rounded-lg p-2 text-xs text-green-800 space-y-0.5">
+                              <p className="font-semibold">Delivered:</p>
+                              {order.deliveryDetails.downloadUrl && <a href={order.deliveryDetails.downloadUrl} target="_blank" rel="noreferrer" className="underline block">Download Link</a>}
+                              {order.deliveryDetails.accessUrl && <a href={order.deliveryDetails.accessUrl} target="_blank" rel="noreferrer" className="underline block">Access Link</a>}
+                              {order.deliveryDetails.accessNotes && <p>{order.deliveryDetails.accessNotes}</p>}
+                            </div>
+                          )}
+                        </div>
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-2 shrink-0">
+                          {order.status === "pending" && (
+                            <>
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
+                                onClick={() => approveShopOrderMutation.mutate(order.id)}
+                                disabled={approveShopOrderMutation.isPending}>
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 h-8 text-xs"
+                                onClick={() => rejectShopOrderMutation.mutate(order.id)}
+                                disabled={rejectShopOrderMutation.isPending}>
+                                <XCircle className="w-3 h-3 mr-1" /> Reject
+                              </Button>
+                            </>
+                          )}
+                          {order.status === "paid" && (
+                            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white h-8 text-xs"
+                              onClick={() => setDeliverDialog({ open: true, id: order.id, downloadUrl: "", accessUrl: "", accessNotes: "" })}>
+                              <Package className="w-3 h-3 mr-1" /> Deliver
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* PRODUCTS sub-tab */}
+            {shopSubTab === "products" && (
+              <div className="space-y-3">
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-600 mb-4">Manage your shop products, prices, and inventory from the dedicated products page.</p>
+                    <div className="flex justify-center gap-3">
+                      <Button asChild><a href="/admin/products"><Package className="w-4 h-4 mr-2" /> Manage Products</a></Button>
+                      <Button variant="outline" asChild><a href="/shop"><ShoppingCart className="w-4 h-4 mr-2" /> View Customer Shop</a></Button>
                     </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <a href="/admin/products"><Package className="w-4 h-4 mr-2" /> Manage Products</a>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <a href="/shop"><ShoppingCart className="w-4 h-4 mr-2" /> View Customer Shop</a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           {/* ── BREEDSKOOL TAB ── */}
@@ -1683,6 +1824,48 @@ export default function AdminDashboard() {
                 {rejectPayoutMutation.isPending ? "Rejecting..." : "Reject & Refund Influencer"}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => setRejectPayoutDialog(p => ({ ...p, open: false }))}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shop Payment Proof Zoom */}
+      <Dialog open={!!shopProofZoom} onOpenChange={() => setShopProofZoom(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Payment Proof</DialogTitle></DialogHeader>
+          {shopProofZoom && (
+            <img src={shopProofZoom} alt="Payment proof" className="w-full rounded-xl border object-contain max-h-[70vh]" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Shop Order Deliver Dialog */}
+      <Dialog open={deliverDialog.open} onOpenChange={open => !open && setDeliverDialog(p => ({ ...p, open: false }))}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Deliver Order</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">Provide access details for this order. The customer will be notified.</p>
+            <div>
+              <Label>Download URL (optional)</Label>
+              <Input placeholder="https://..." value={deliverDialog.downloadUrl} onChange={e => setDeliverDialog(p => ({ ...p, downloadUrl: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Access URL (optional)</Label>
+              <Input placeholder="https://..." value={deliverDialog.accessUrl} onChange={e => setDeliverDialog(p => ({ ...p, accessUrl: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Access Notes / License Key (optional)</Label>
+              <Textarea placeholder="e.g. license key, private group link, instructions..." value={deliverDialog.accessNotes} onChange={e => setDeliverDialog(p => ({ ...p, accessNotes: e.target.value }))} rows={3} />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                onClick={() => deliverShopOrderMutation.mutate({ id: deliverDialog.id, downloadUrl: deliverDialog.downloadUrl, accessUrl: deliverDialog.accessUrl, accessNotes: deliverDialog.accessNotes })}
+                disabled={deliverShopOrderMutation.isPending}
+              >
+                {deliverShopOrderMutation.isPending ? "Delivering..." : "Mark as Delivered"}
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => setDeliverDialog(p => ({ ...p, open: false }))}>Cancel</Button>
             </div>
           </div>
         </DialogContent>

@@ -1217,6 +1217,8 @@ export const courses = pgTable("courses", {
   status: varchar("status").default("draft"),
   isPublished: boolean("is_published").default(false),
   isFeatured: boolean("is_featured").default(false),
+  salePrice: decimal("sale_price", { precision: 10, scale: 2 }),
+  saleDeadline: timestamp("sale_deadline"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -16,7 +16,7 @@ import {
   BookOpen, Users, Star, Clock, Play, CheckCircle2, Lock,
   Heart, MessageCircle, Send, ChevronDown, ChevronUp, Award,
   Upload, Copy, AlertCircle, File, Video, MessageSquare, ChevronRight,
-  PartyPopper, Zap,
+  PartyPopper, Zap, Timer, Tag, Flame,
 } from "lucide-react";
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -24,6 +24,117 @@ const LEVEL_COLORS: Record<string, string> = {
   intermediate: "bg-blue-100 text-blue-700",
   advanced: "bg-red-100 text-red-700",
 };
+
+function useCountdown(deadline: string | null) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
+  useEffect(() => {
+    if (!deadline) return;
+    const target = new Date(deadline).getTime();
+    const tick = () => {
+      const now = Date.now();
+      const diff = target - now;
+      if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true }); return; }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft({ days, hours, minutes, seconds, expired: false });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+  return timeLeft;
+}
+
+function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
+  course: any; onEnroll: () => void; isEnrolled: boolean; isPending: boolean;
+}) {
+  const salePrice = course.salePrice ? parseFloat(course.salePrice) : null;
+  const deadline = course.saleDeadline || null;
+  const { days, hours, minutes, seconds, expired } = useCountdown(deadline);
+
+  if (!salePrice || salePrice >= parseFloat(course.price || "0") || expired) return null;
+
+  const savings = parseFloat(course.price || "0") - salePrice;
+  const deadlineDate = deadline ? new Date(deadline) : null;
+  const deadlineStr = deadlineDate
+    ? deadlineDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : "";
+
+  return (
+    <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 rounded-2xl p-1 shadow-xl shadow-orange-200">
+      <div className="bg-white rounded-xl overflow-hidden">
+        {/* Top banner */}
+        <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 px-6 py-3 flex items-center gap-2">
+          <Flame className="h-5 w-5 text-white animate-pulse" />
+          <span className="text-white font-bold text-sm uppercase tracking-wider">Limited-Time Offer — Ends {deadlineStr}</span>
+          <Flame className="h-5 w-5 text-white animate-pulse" />
+        </div>
+
+        <div className="px-6 py-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+            {/* Pricing */}
+            <div className="flex-1">
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-4xl font-extrabold text-gray-900">${salePrice.toFixed(0)}</span>
+                <span className="text-xl text-gray-400 line-through">${parseFloat(course.price).toFixed(0)}</span>
+                <span className="bg-red-100 text-red-700 text-sm font-bold px-2 py-0.5 rounded-full">
+                  Save ${savings.toFixed(0)} ({Math.round((savings / parseFloat(course.price)) * 100)}% off)
+                </span>
+              </div>
+              <p className="text-gray-500 text-sm mt-1 flex items-center gap-1">
+                <Tag className="h-3.5 w-3.5" />
+                Special promo price — available at this rate until {deadlineStr} only
+              </p>
+            </div>
+
+            {/* Countdown timer */}
+            <div className="flex gap-3">
+              {[
+                { val: days, label: "Days" },
+                { val: hours, label: "Hrs" },
+                { val: minutes, label: "Min" },
+                { val: seconds, label: "Sec" },
+              ].map(({ val, label }) => (
+                <div key={label} className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
+                    <span className="text-white text-xl font-extrabold tabular-nums">{String(val).padStart(2, "0")}</span>
+                  </div>
+                  <span className="text-xs text-gray-400 mt-1 font-medium">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="mt-5">
+            {isEnrolled ? (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <span className="text-green-800 font-semibold text-sm">You're already enrolled — keep learning!</span>
+              </div>
+            ) : isPending ? (
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+                <span className="text-amber-800 text-sm font-semibold">Payment pending — awaiting admin approval</span>
+              </div>
+            ) : (
+              <button
+                onClick={onEnroll}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-4 rounded-xl text-base shadow-lg shadow-orange-200 transition-all hover:shadow-xl hover:scale-[1.01] flex items-center justify-center gap-2"
+              >
+                <Zap className="h-5 w-5" />
+                Register Now — ${salePrice.toFixed(0)} USDT
+                <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded-full">Offer ends {deadlineStr}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const CATEGORY_FALLBACK_IMAGES: Record<string, string> = {
   instagram_growth: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&h=400&fit=crop",
@@ -533,6 +644,10 @@ export default function BreedSkoolCourse() {
   const whatYouLearn = Array.isArray(course.whatYouLearn) ? course.whatYouLearn : [];
   const requirements = Array.isArray(course.requirements) ? course.requirements : [];
 
+  // Compute effective price — use salePrice if active promo
+  const hasSalePromo = !!(course.salePrice && course.saleDeadline && new Date(course.saleDeadline) > new Date() && parseFloat(course.salePrice) < parseFloat(course.price || "0"));
+  const effectivePrice = hasSalePromo ? parseFloat(course.salePrice).toFixed(2) : (course.price || "0.00");
+
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <NavigationFixed />
@@ -552,6 +667,11 @@ export default function BreedSkoolCourse() {
               <Badge className={LEVEL_COLORS[course.level] || "bg-gray-100 text-gray-600"}>{course.level}</Badge>
               {course.isFree ? (
                 <Badge className="bg-green-500 text-white">FREE</Badge>
+              ) : hasSalePromo ? (
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-orange-500 text-white">${effectivePrice} USDT</Badge>
+                  <Badge className="bg-white/20 text-white/60 line-through text-xs">${course.price}</Badge>
+                </div>
               ) : (
                 <Badge className="bg-white text-gray-900">${course.price} USDT</Badge>
               )}
@@ -597,6 +717,16 @@ export default function BreedSkoolCourse() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left: Course Details */}
           <div className="lg:col-span-2 space-y-8">
+
+            {/* Promo / Discount Banner — shown before "What You'll Learn" when active */}
+            {!isEnrolled && (
+              <PromoCountdownBanner
+                course={course}
+                onEnroll={() => setShowEnrollModal(true)}
+                isEnrolled={isEnrolled}
+                isPending={isPending}
+              />
+            )}
 
             {/* What You'll Learn */}
             {whatYouLearn.length > 0 && (
@@ -792,6 +922,14 @@ export default function BreedSkoolCourse() {
                   <div className="text-center mb-5">
                     {course.isFree ? (
                       <p className="text-4xl font-extrabold text-green-600">FREE</p>
+                    ) : hasSalePromo ? (
+                      <div>
+                        <p className="text-4xl font-extrabold text-orange-600">${effectivePrice} <span className="text-xl font-normal text-gray-400">USDT</span></p>
+                        <p className="text-sm text-gray-400 line-through mt-0.5">${course.price} USDT</p>
+                        <p className="text-xs text-red-500 mt-1 font-medium flex items-center justify-center gap-1">
+                          <Flame className="h-3 w-3" /> Promo price — offer ends Aug 7, 2026
+                        </p>
+                      </div>
                     ) : (
                       <p className="text-4xl font-extrabold text-gray-900">${course.price} <span className="text-xl font-normal text-gray-400">USDT</span></p>
                     )}
@@ -940,7 +1078,17 @@ export default function BreedSkoolCourse() {
             {/* Step: Choose payment method */}
             {!course?.isFree && enrollStep === "choose" && (
               <div className="space-y-3">
-                <p className="text-sm text-gray-600 mb-3">Select payment method for <span className="font-bold text-gray-900">${course?.price} USDT</span></p>
+                <p className="text-sm text-gray-600 mb-3">
+                  Select payment method for{" "}
+                  {hasSalePromo ? (
+                    <span>
+                      <span className="font-bold text-orange-600">${effectivePrice} USDT</span>{" "}
+                      <span className="line-through text-gray-400 text-xs">${course?.price}</span>
+                    </span>
+                  ) : (
+                    <span className="font-bold text-gray-900">${course?.price} USDT</span>
+                  )}
+                </p>
                 {paymentMethods.map((m: any) => {
                   const typeIcons: Record<string, string> = { crypto: "🪙", bank: "🏦", paypal: "🅿️", paystack: "🟢", stripe: "💳" };
                   const typeColors: Record<string, string> = { crypto: "bg-orange-100", bank: "bg-blue-100", paypal: "bg-sky-100", paystack: "bg-green-100", stripe: "bg-purple-100" };
@@ -999,7 +1147,12 @@ export default function BreedSkoolCourse() {
                 <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 flex justify-between items-center">
                   <div>
                     <p className="text-xs text-violet-600">Amount to send</p>
-                    <p className="text-2xl font-extrabold text-gray-900">${course?.price} <span className="text-sm text-gray-500">{selectedMethod?.currency || "USDT"}</span></p>
+                    <p className="text-2xl font-extrabold text-gray-900">
+                      ${effectivePrice} <span className="text-sm text-gray-500">{selectedMethod?.currency || "USDT"}</span>
+                    </p>
+                    {hasSalePromo && (
+                      <p className="text-xs text-orange-600 font-medium mt-0.5">🔥 Promo price (was ${course?.price})</p>
+                    )}
                   </div>
                   <Badge className="bg-violet-100 text-violet-700">{selectedMethod?.label}</Badge>
                 </div>

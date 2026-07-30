@@ -7021,6 +7021,14 @@ Instructions:
         : (req.body.paymentProofUrl || req.body.paymentProof || null);
       // Pay-later students get active access immediately so they can start learning
       const isPayLater = req.body.payLater === 'true' || req.body.payLater === true;
+      // Determine effective price: use sale price if active (deadline not expired)
+      let effectivePrice = course.isFree ? "0.00" : (course.price || "0.00");
+      if (!course.isFree && (course as any).salePrice && (course as any).saleDeadline) {
+        const deadline = new Date((course as any).saleDeadline);
+        if (deadline > new Date()) {
+          effectivePrice = String((course as any).salePrice);
+        }
+      }
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
@@ -7028,7 +7036,7 @@ Instructions:
         paymentMethod: req.body.paymentMethod,
         paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
-        amount: course.isFree ? "0.00" : (course.price || "0.00"),
+        amount: effectivePrice,
       });
 
       // Award points for enrolling in a course
