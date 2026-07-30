@@ -9,7 +9,7 @@ import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -3709,6 +3709,47 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           proofImageUrl: t.proofImageUrl || t.paymentScreenshot || null,
           adminNotes: t.adminNotes || null,
           reviewable: true,
+        });
+      }
+
+      // Course enrollments — appear in the Courses tab
+      const enrollmentRows = await db
+        .select({
+          id: courseEnrollments.id,
+          courseId: courseEnrollments.courseId,
+          userId: courseEnrollments.userId,
+          status: courseEnrollments.status,
+          amount: courseEnrollments.amount,
+          paymentMethod: courseEnrollments.paymentMethod,
+          paymentProof: courseEnrollments.paymentProof,
+          transactionHash: courseEnrollments.transactionHash,
+          isPaid: courseEnrollments.isPaid,
+          approvedBy: courseEnrollments.approvedBy,
+          approvedAt: courseEnrollments.approvedAt,
+          createdAt: courseEnrollments.createdAt,
+          courseTitle: courses.title,
+        })
+        .from(courseEnrollments)
+        .leftJoin(courses, eq(courseEnrollments.courseId, courses.id))
+        .orderBy(desc(courseEnrollments.createdAt));
+
+      for (const t of enrollmentRows as any[]) {
+        const enrollStatus = t.isPaid && t.status === 'active' ? 'paid'
+          : t.status === 'pending_payment' ? 'pending'
+          : t.status === 'active' ? 'active'
+          : t.status || 'pending';
+        unified.push({
+          id: `enr_${t.id}`, rawId: t.id, source: 'course_enrollment', kind: 'course_purchase',
+          amount: Number(t.amount || 0), currency: 'USD', status: enrollStatus,
+          createdAt: t.createdAt, reference: t.transactionHash || t.id,
+          method: t.paymentMethod || null,
+          fromUser: u(t.userId), toUser: null, approvedBy: u(t.approvedBy),
+          description: `Course enrollment — ${t.courseTitle || t.courseId}`,
+          proofImageUrl: t.paymentProof || null,
+          adminNotes: null,
+          reviewable: enrollStatus === 'pending',
+          courseId: t.courseId,
+          courseTitle: t.courseTitle,
         });
       }
 

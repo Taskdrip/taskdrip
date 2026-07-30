@@ -91,6 +91,19 @@ const BREEDSKOOL_COURSES = [
     isActive: true,
     acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
+  // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
+  // Regular: $290 USD (~435,000 NGN) | August 2026 promo: $145 USD (~217,500 NGN)
+  {
+    courseKey: "saas_masterclass",
+    title: "Full Stack SaaS Web App Development & Monetization Masterclass",
+    shortDescription:
+      "Build, launch, and monetize a full stack SaaS app from scratch — AI agents, GitHub, cloud deployment, SEO, growth, and $0-to-MRR in 12 weeks.",
+    regularPrice: 435000,
+    discountPrice: 217500,
+    duration: "12 Weeks",
+    isActive: true,
+    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
+  },
 ];
 
 export async function seedBreedskoolPricing(): Promise<{ upserted: number; skipped: number }> {

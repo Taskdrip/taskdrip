@@ -21,7 +21,8 @@ import {
   ShoppingCart, Target, Crown, BookOpen, Heart, ArrowDownToLine,
   AlertCircle, Lock, Eye, EyeOff, Settings, Layers, ArrowRight,
   Shield, Zap, Globe, ArrowLeft, Search, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, DollarSign, Users, Receipt, BarChart2, Activity
+  TrendingUp, DollarSign, Users, Receipt, BarChart2, Activity, KeyRound,
+  ThumbsUp, ThumbsDown, MessageSquare, X as CloseIcon
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -52,6 +53,7 @@ const TYPE_ICONS: Record<string, any> = {
 const SOURCE_LABEL: Record<string, string> = {
   transaction: "Transaction", p2p: "P2P", purchase: "Shop",
   escrow: "Escrow", deposit: "Deposit", subscription: "Subscription",
+  course_enrollment: "Course",
 };
 
 const SOURCE_TONE: Record<string, string> = {
@@ -61,6 +63,7 @@ const SOURCE_TONE: Record<string, string> = {
   escrow: "bg-violet-50 text-violet-700",
   deposit: "bg-amber-50 text-amber-700",
   subscription: "bg-rose-50 text-rose-700",
+  course_enrollment: "bg-indigo-50 text-indigo-700",
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -295,11 +298,12 @@ export default function AdminPayments() {
   });
 
   // Review approve / reject endpoints per source
-  function endpointFor(item: any, action: "approve" | "reject"): { method: "PATCH" | "PUT"; url: string } | null {
+  function endpointFor(item: any, action: "approve" | "reject"): { method: "PATCH" | "PUT" | "POST"; url: string } | null {
     if (!item?.rawId) return null;
     if (item.source === "deposit") return { method: "PATCH", url: `/api/admin/payment-deposits/${item.rawId}/${action}` };
     if (item.source === "escrow") return { method: "PUT", url: `/api/admin/escrow-payments/${item.rawId}/${action}` };
     if (item.source === "subscription") return { method: "PATCH", url: `/api/admin/subscriptions/${item.rawId}/${action}` };
+    if (item.source === "course_enrollment" && action === "approve") return { method: "POST", url: `/api/courses/enrollments/${item.rawId}/approve` };
     return null;
   }
 
@@ -893,25 +897,39 @@ export default function AdminPayments() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => reviewMutation.mutate({ item: reviewItem, action: "approve", notes: reviewNotes })}
-                      disabled={reviewMutation.isPending}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-9"
-                      data-testid="button-review-approve"
-                    >
-                      <ThumbsUp className="h-4 w-4 mr-1.5" />
-                      Approve
-                    </Button>
-                    <Button
-                      onClick={() => reviewMutation.mutate({ item: reviewItem, action: "reject", notes: reviewNotes })}
-                      disabled={reviewMutation.isPending}
-                      variant="destructive"
-                      className="flex-1 h-9"
-                      data-testid="button-review-reject"
-                    >
-                      <ThumbsDown className="h-4 w-4 mr-1.5" />
-                      Reject
-                    </Button>
+                    {reviewItem.source === "course_enrollment" ? (
+                      <Button
+                        onClick={() => reviewMutation.mutate({ item: reviewItem, action: "approve", notes: reviewNotes })}
+                        disabled={reviewMutation.isPending}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white h-9"
+                        data-testid="button-review-approve"
+                      >
+                        <KeyRound className="h-4 w-4 mr-1.5" />
+                        {reviewMutation.isPending ? "Granting…" : "Grant Access"}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => reviewMutation.mutate({ item: reviewItem, action: "approve", notes: reviewNotes })}
+                          disabled={reviewMutation.isPending}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-9"
+                          data-testid="button-review-approve"
+                        >
+                          <ThumbsUp className="h-4 w-4 mr-1.5" />
+                          Approve
+                        </Button>
+                        <Button
+                          onClick={() => reviewMutation.mutate({ item: reviewItem, action: "reject", notes: reviewNotes })}
+                          disabled={reviewMutation.isPending}
+                          variant="destructive"
+                          className="flex-1 h-9"
+                          data-testid="button-review-reject"
+                        >
+                          <ThumbsDown className="h-4 w-4 mr-1.5" />
+                          Reject
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 

@@ -12,6 +12,7 @@ import { seedCmsContent } from "./seed-cms";
 import { seedLegalPages } from "./seed-legal";
 import { seedBreedskoolPricing, seedBreedskoolPaymentSettings, fixVerifiedBreedskoolEnrollments } from "./seed-breedskool";
 import { seedBreedskoolCourses } from "./seed-breedskool-courses";
+import { seedSaasCourseDemo } from "./seed-saas-course-demo";
 import { seedLawcolab } from "./seed-lawcolab";
 import { seedPageSeo } from "./seed-page-seo";
 import { storage } from "./storage";
@@ -326,6 +327,10 @@ server.listen({
           .then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`))
           .catch((e) => console.error("seedBreedskoolCourses:", e));
       }
+      // Seed demo data for SaaS Masterclass (students, enrollments, reviews)
+      await seedSaasCourseDemo()
+        .then((r) => log(`[SaaS Demo] students: ${r.students}, enrollments: ${r.enrollments}, reviews: ${r.reviews}`))
+        .catch((e) => console.error("seedSaasCourseDemo:", e));
       // Retroactively activate enrollments for students whose payment was verified
       // before the course seed linked onsite/home_lesson to platform courses
       await fixVerifiedBreedskoolEnrollments()
