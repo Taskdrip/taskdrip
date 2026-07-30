@@ -59,9 +59,10 @@ const DEMO_COURSES = [
     isFree: false,
     level: "beginner",
     duration: "8h 45m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
-    tags: ["saas", "vibecoding", "replit", "github", "railway", "no-code", "monetization", "bestseller"],
+    tags: ["breedskool_vibecoding", "saas", "vibecoding", "replit", "github", "railway", "no-code", "monetization", "bestseller", "breedskool"],
     whatYouLearn: [
       "Build a real, working SaaS app from a single prompt — zero coding background required",
       "Use Replit as your AI-powered development studio with VibeCoding workflows",
@@ -108,8 +109,10 @@ const DEMO_COURSES = [
     isFree: false,
     level: "beginner",
     duration: "6h 30m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
+    tags: ["breedskool_instagram", "instagram", "social media", "breedskool"],
     whatYouLearn: [
       "Master the Instagram algorithm to maximize reach",
       "Create a consistent brand aesthetic that attracts followers",
@@ -141,8 +144,10 @@ const DEMO_COURSES = [
     isFree: true,
     level: "beginner",
     duration: "4h 15m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
+    tags: ["breedskool_tiktok", "tiktok", "short form video", "breedskool"],
     whatYouLearn: [
       "Create a TikTok hook in the first 3 seconds",
       "Find trending audio before it peaks",
@@ -172,8 +177,10 @@ const DEMO_COURSES = [
     isFree: false,
     level: "intermediate",
     duration: "8h 45m",
+    status: "published",
     isPublished: true,
     isFeatured: false,
+    tags: ["breedskool_youtube", "youtube", "monetization", "breedskool"],
     whatYouLearn: [
       "Set up a channel that stands out in any niche",
       "Write click-worthy titles and thumbnails",
@@ -206,8 +213,10 @@ const DEMO_COURSES = [
     isFree: false,
     level: "intermediate",
     duration: "5h 20m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
+    tags: ["breedskool_crypto", "crypto", "web3", "monetization", "breedskool"],
     whatYouLearn: [
       "Set up USDT (TRC20 & BEP20) and TON wallets",
       "Accept crypto payments from brands and fans",
@@ -725,6 +734,9 @@ export async function seedDemoData(adminUserId: string) {
     const existingProducts = await db.select({ id: shopProducts.id }).from(shopProducts).limit(1);
     const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
     const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
+
+    // Fix any existing courses that were seeded with status=draft but isPublished=true
+    await db.execute(sql`UPDATE courses SET status = 'published' WHERE is_published = true AND status = 'draft'`);
 
     // Idempotent course seeding: insert any DEMO_COURSES that don't already
     // exist (matched by title). Adds the new VibeCoding masterclass to existing
