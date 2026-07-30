@@ -1,4 +1,5 @@
 - [BreedSkool Tech Training](breedskool-tech-training.md) — registration feature with ₦ pricing; tables in DB, routes in server/routes.ts, import pattern matters.
 - [Railway Nixpacks Deployment](railway-nixpacks.md) — Dockerfile build fails on Railway; switched to Nixpacks with nixpacks.toml + railway.toml buildCommand.
+- [Railway preDeployCommand wipes data](railway-json-predeploy.md) — railway.json preDeployCommand with db:push --force destroyed all seeded courses on every deploy; remove it.
 - [Admin Dashboard TDZ Fix](admin-dashboard-tdz.md) — root cause and definitive fix for recurring "Cannot access X before initialization" crashes.
 - [Hire Developer Panel](hire-developer-panel.md) — flow, isDevHire flag, N+1 fix, indexes, and why "0 Hires" happens on Railway.
