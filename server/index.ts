@@ -370,4 +370,14 @@ server.listen({
   };
   runExpiryCheck();
   setInterval(runExpiryCheck, 30 * 60 * 1000);
+
+  // ── AI Marketing Robot — crawl every 60 minutes ──────────────────────────
+  const { runSocialCrawler } = await import("./social-crawler");
+  // Initial crawl 2 minutes after boot (avoids slowing startup)
+  setTimeout(async () => {
+    try { await runSocialCrawler(); } catch (e) { console.error("[social-crawler] boot crawl error:", e); }
+  }, 2 * 60 * 1000);
+  setInterval(async () => {
+    try { await runSocialCrawler(); } catch (e) { console.error("[social-crawler] scheduled crawl error:", e); }
+  }, 60 * 60 * 1000);
 })();

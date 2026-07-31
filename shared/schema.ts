@@ -2302,3 +2302,30 @@ export const referralCommissions = pgTable("referral_commissions", {
 
 export type ReferralClick = typeof referralClicks.$inferSelect;
 export type ReferralCommission = typeof referralCommissions.$inferSelect;
+
+// ── Social Leads — AI Marketing Robot ────────────────────────────────────────
+export const socialLeads = pgTable("social_leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  platform: varchar("platform").notNull(), // 'reddit' | 'hackernews'
+  sourceId: varchar("source_id").notNull(), // external post/comment ID
+  title: varchar("title", { length: 500 }).notNull(),
+  body: text("body"),
+  url: text("url").notNull(),
+  author: varchar("author"),
+  subreddit: varchar("subreddit"),
+  platformScore: integer("platform_score").default(0),
+  commentsCount: integer("comments_count").default(0),
+  relevanceScore: integer("relevance_score").default(0), // 0–100 AI score
+  aiSummary: text("ai_summary"),
+  suggestedReply: text("suggested_reply"),
+  category: varchar("category").default("web_development"),
+  urgency: varchar("urgency").default("medium"), // 'high' | 'medium' | 'low'
+  status: varchar("status").default("new"), // 'new' | 'viewed' | 'replied' | 'dismissed'
+  keywordsMatched: text("keywords_matched").array(),
+  postedAt: timestamp("posted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type SocialLead = typeof socialLeads.$inferSelect;
+export type InsertSocialLead = typeof socialLeads.$inferInsert;

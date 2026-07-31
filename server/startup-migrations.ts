@@ -446,6 +446,31 @@ const REQUIRED_TABLES: string[] = [
     "created_at" timestamp DEFAULT now()
   )`,
 
+  // AI Marketing Robot — social leads from Reddit / Hacker News
+  `CREATE TABLE IF NOT EXISTS "social_leads" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "platform" varchar NOT NULL,
+    "source_id" varchar NOT NULL,
+    "title" varchar(500) NOT NULL,
+    "body" text,
+    "url" text NOT NULL,
+    "author" varchar,
+    "subreddit" varchar,
+    "platform_score" integer DEFAULT 0,
+    "comments_count" integer DEFAULT 0,
+    "relevance_score" integer DEFAULT 0,
+    "ai_summary" text,
+    "suggested_reply" text,
+    "category" varchar DEFAULT 'web_development',
+    "urgency" varchar DEFAULT 'medium',
+    "status" varchar DEFAULT 'new',
+    "keywords_matched" text[],
+    "posted_at" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    CONSTRAINT "social_leads_platform_source_unique" UNIQUE ("platform", "source_id")
+  )`,
+
   // Referral commissions — earnings from product, course, and invite referrals
   `CREATE TABLE IF NOT EXISTS "referral_commissions" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),

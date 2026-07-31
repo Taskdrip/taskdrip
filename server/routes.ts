@@ -12017,6 +12017,97 @@ Instructions:
   registerSeoIntelligenceRoutes(app);
   startAutoBloggerAutopilot();
 
+  // ── AI Marketing Robot — Social Leads ──────────────────────────────────────
+  app.get('/api/social-leads', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (user?.userType !== 'admin' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin only' });
+      }
+      const { platform, urgency, status } = req.query as Record<string, string>;
+      let query = `SELECT * FROM social_leads WHERE 1=1`;
+      const params: any[] = [];
+      let p = 1;
+      if (platform && platform !== 'all') { query += ` AND platform = $${p++}`; params.push(platform); }
+      if (urgency && urgency !== 'all') { query += ` AND urgency = $${p++}`; params.push(urgency); }
+      if (status && status !== 'all') { query += ` AND status = $${p++}`; params.push(status); }
+      query += ` ORDER BY relevance_score DESC, created_at DESC LIMIT 200`;
+      const { pool } = await import('./db');
+      const result = await pool.query(query, params);
+      // camelCase transform
+      const rows = result.rows.map((r: any) => ({
+        id: r.id, platform: r.platform, sourceId: r.source_id,
+        title: r.title, body: r.body, url: r.url, author: r.author,
+        subreddit: r.subreddit, platformScore: r.platform_score,
+        commentsCount: r.comments_count, relevanceScore: r.relevance_score,
+        aiSummary: r.ai_summary, suggestedReply: r.suggested_reply,
+        category: r.category, urgency: r.urgency, status: r.status,
+        keywordsMatched: r.keywords_matched, postedAt: r.posted_at,
+        createdAt: r.created_at, updatedAt: r.updated_at,
+      }));
+      res.json(rows);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/social-leads/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (user?.userType !== 'admin' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin only' });
+      }
+      const { pool } = await import('./db');
+      const [total, newToday, highPriority, byPlatform] = await Promise.all([
+        pool.query(`SELECT COUNT(*)::int AS n FROM social_leads`),
+        pool.query(`SELECT COUNT(*)::int AS n FROM social_leads WHERE created_at >= NOW() - INTERVAL '24 hours'`),
+        pool.query(`SELECT COUNT(*)::int AS n FROM social_leads WHERE urgency = 'high' AND status != 'dismissed'`),
+        pool.query(`SELECT platform, COUNT(*)::int AS n FROM social_leads GROUP BY platform`),
+      ]);
+      const platforms: Record<string, number> = {};
+      byPlatform.rows.forEach((r: any) => { platforms[r.platform] = r.n; });
+      res.json({
+        total: total.rows[0].n,
+        newToday: newToday.rows[0].n,
+        highPriority: highPriority.rows[0].n,
+        platforms: { reddit: platforms.reddit ?? 0, hackernews: platforms.hackernews ?? 0 },
+      });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post('/api/social-leads/crawl', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (user?.userType !== 'admin' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin only' });
+      }
+      // Run async — don't wait for it to finish (can take 30-90s)
+      import('./social-crawler').then(({ runSocialCrawler }) => {
+        runSocialCrawler().catch(console.error);
+      });
+      res.json({ message: 'Crawl started — check back in a minute for new leads.' });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/social-leads/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user as any;
+      if (user?.userType !== 'admin' && user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Admin only' });
+      }
+      const { id } = req.params;
+      const { status } = req.body;
+      const validStatuses = ['new', 'viewed', 'replied', 'dismissed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Invalid status' });
+      }
+      const { pool } = await import('./db');
+      await pool.query(
+        `UPDATE social_leads SET status = $1, updated_at = NOW() WHERE id = $2`,
+        [status, id]
+      );
+      res.json({ ok: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   const httpServer = existingServer ?? createServer(app);
   return httpServer;
 }

@@ -98,6 +98,7 @@ const LegalPageTemplate = lazy(() =>
   import("@/pages/legal-page").then((m) => ({ default: m.LegalPageTemplate }))
 );
 const MyTraining = lazy(() => import("@/pages/my-training"));
+const AiMarketingBot = lazy(() => import("@/pages/ai-marketing-bot"));
 
 const PageFallback = () => (
   <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -276,6 +277,7 @@ function Router() {
             <Route path="/admin/url-shortener" component={AdminUrlShortenerPage} />
             <Route path="/admin/keyword-analytics" component={AdminKeywordAnalyticsPage} />
             <Route path="/admin/auto-blogger" component={AdminAutoBloggerPage} />
+            <Route path="/admin/ai-marketing-bot" component={() => <AdminErrorBoundary><AiMarketingBot /></AdminErrorBoundary>} />
           </>
         ) : (
           <>
