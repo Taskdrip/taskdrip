@@ -57,7 +57,7 @@ export async function getEmailStatus(): Promise<{
   return {
     configured: activeProvider !== "none",
     provider: activeProvider,
-    smtpHost: settings?.smtpHost,
+    smtpHost: settings?.smtpHost ?? undefined,
     sendgridAvailable: sendgridOk,
     resendAvailable: resendOk,
     preferredProvider: pref || undefined,
@@ -301,17 +301,56 @@ export async function blastCampaign(campaignId: string): Promise<{ sent: number;
 
   await db.update(emailCampaigns).set({ status: "sending" }).where(eq(emailCampaigns.id, campaignId));
 
+  const seg = campaign.targetSegment;
+
+  // For newsletter segment, query subscribers separately
+  if (seg === "newsletter") {
+    const { newsletterSubscribers } = await import("@shared/schema");
+    const nsRows = await db.select().from(newsletterSubscribers);
+    const activeSubs = nsRows.filter((s: any) => s.status === "active");
+    let sent = 0, failed = 0;
+    const errors: string[] = [];
+    for (const sub of activeSubs) {
+      const vars: Record<string, string> = { first_name: (sub as any).name || "", last_name: "", full_name: (sub as any).name || "", email: sub.email, username: sub.email, user_type: "newsletter" };
+      const html = interpolate(campaign.htmlBody, vars);
+      const subject = interpolate(campaign.subject, vars);
+      const result = await sendEmail({ to: sub.email, toName: (sub as any).name || undefined, subject, html, campaignId });
+      if (result.success) sent++; else { failed++; errors.push(`${sub.email}: ${result.error}`); }
+    }
+    await db.update(emailCampaigns).set({ status: "sent", sentAt: new Date(), totalRecipients: activeSubs.length, sent, bounced: failed }).where(eq(emailCampaigns.id, campaignId));
+    return { sent, failed, errors };
+  }
+
   let allUsers = await db.select().from(users);
 
-  const seg = campaign.targetSegment;
-  if (seg === "influencers") allUsers = allUsers.filter(u => u.userType === "creator");
-  else if (seg === "brands") allUsers = allUsers.filter(u => u.userType === "brand");
-  else if (seg === "verified") allUsers = allUsers.filter(u => u.isVerified);
-  else if (seg === "unverified") allUsers = allUsers.filter(u => !u.isVerified);
-  else if (seg?.startsWith("tier_")) {
+  // For student/customer segments, resolve the user IDs first
+  if (seg === "students") {
+    const { courseEnrollments, breedskoolRegistrations } = await import("@shared/schema");
+    const enrollmentRows = await db.selectDistinct({ userId: courseEnrollments.userId }).from(courseEnrollments);
+    const breedskoolRows = await db.selectDistinct({ userId: breedskoolRegistrations.userId }).from(breedskoolRegistrations);
+    const studentIds = new Set([
+      ...enrollmentRows.map((r: any) => r.userId),
+      ...breedskoolRows.map((r: any) => r.userId).filter(Boolean),
+    ]);
+    allUsers = allUsers.filter(u => studentIds.has(u.id));
+  } else if (seg === "shop_customers") {
+    const { purchases } = await import("@shared/schema");
+    const purchaseRows = await db.selectDistinct({ userId: purchases.userId }).from(purchases);
+    const customerIds = new Set(purchaseRows.map((r: any) => r.userId));
+    allUsers = allUsers.filter(u => customerIds.has(u.id));
+  } else if (seg === "influencers" || seg === "creators") {
+    allUsers = allUsers.filter(u => u.userType === "creator");
+  } else if (seg === "brands") {
+    allUsers = allUsers.filter(u => u.userType === "brand");
+  } else if (seg === "verified") {
+    allUsers = allUsers.filter(u => u.isVerified);
+  } else if (seg === "unverified") {
+    allUsers = allUsers.filter(u => !u.isVerified);
+  } else if (seg?.startsWith("tier_")) {
     const tier = seg.replace("tier_", "");
     allUsers = allUsers.filter(u => u.creatorTier === tier);
   }
+  // seg === "all" uses allUsers unfiltered
 
   let sent = 0;
   let failed = 0;

@@ -76,8 +76,12 @@ interface Contact {
 
 const SEGMENTS = [
   { value: "all", label: "All Users" },
+  { value: "creators", label: "Influencers & Creators" },
   { value: "influencers", label: "Influencers Only" },
   { value: "brands", label: "Brands Only" },
+  { value: "students", label: "Course Students" },
+  { value: "shop_customers", label: "Shop Customers" },
+  { value: "newsletter", label: "Newsletter Subscribers" },
   { value: "verified", label: "Verified Users" },
   { value: "unverified", label: "Unverified Users" },
   { value: "tier_rising_sparks", label: "Rising Sparks (10K–100K)" },
@@ -884,6 +888,7 @@ export default function AdminEmail() {
 
   // ── Segments state
   const [segmentFilter, setSegmentFilter] = useState<string | null>(null);
+  const [segmentSearch, setSegmentSearch] = useState("");
 
   // ── Queries
   const { data: settingsData } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email/settings"] });
@@ -1481,10 +1486,11 @@ export default function AdminEmail() {
 
         {/* ─────────────── SEGMENTS ─────────────── */}
         <TabsContent value="segments">
-          <div className="flex items-center justify-between mb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Audience Segments</h2>
-              <p className="text-sm text-gray-500">Understand your audience and send targeted emails to each group</p>
+              <p className="text-sm text-gray-500">Understand your audience — click any segment to browse members and send targeted emails</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => refetchSegments()} className="gap-1"><RefreshCw className="h-3.5 w-3.5" />Refresh</Button>
           </div>
@@ -1493,40 +1499,73 @@ export default function AdminEmail() {
             <div className="text-center py-16 text-gray-400"><RefreshCw className="h-8 w-8 mx-auto mb-3 animate-spin opacity-30" /><p>Loading segments…</p></div>
           ) : (
             <>
-              {/* Segment cards */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {/* ── Stats summary bar ── */}
+              {(() => {
+                const totalUsers = segmentsData.segments.find(s => s.key === 'all')?.count ?? 0;
+                const totalReachable = segmentsData.segments.filter(s => s.key !== 'all').reduce((acc, s) => acc + s.count, 0);
+                const configured = emailStatus?.configured;
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    {[
+                      { label: "Total Users", value: totalUsers, color: "text-gray-900", bg: "bg-gray-50 border-gray-200" },
+                      { label: "Reachable via Email", value: configured ? totalReachable : "—", color: "text-green-700", bg: "bg-green-50 border-green-200" },
+                      { label: "Active Provider", value: configured ? (emailStatus!.provider.toUpperCase()) : "None", color: configured ? "text-purple-700" : "text-red-600", bg: configured ? "bg-purple-50 border-purple-200" : "bg-red-50 border-red-200" },
+                      { label: "Segments", value: segmentsData.segments.length, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
+                    ].map(stat => (
+                      <div key={stat.label} className={`rounded-xl border px-4 py-3 ${stat.bg}`}>
+                        <p className="text-xs text-gray-500 mb-0.5">{stat.label}</p>
+                        <p className={`text-xl font-bold ${stat.color}`}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* ── Segment cards ── */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {segmentsData.segments.map(seg => {
                   const iconMap: Record<string, any> = { users: Users, building: Building2, book: GraduationCap, package: ShoppingBag, bell: Bell, globe: Globe };
-                  const colorMap: Record<string, string> = { blue: "bg-blue-600", purple: "bg-purple-600", green: "bg-green-600", orange: "bg-orange-500", pink: "bg-pink-600", gray: "bg-gray-600" };
-                  const bgMap: Record<string, string> = { blue: "from-blue-50 to-blue-100 border-blue-200", purple: "from-purple-50 to-purple-100 border-purple-200", green: "from-green-50 to-green-100 border-green-200", orange: "from-orange-50 to-orange-100 border-orange-200", pink: "from-pink-50 to-pink-100 border-pink-200", gray: "from-gray-50 to-gray-100 border-gray-200" };
+                  const colorMap: Record<string, string> = { blue: "bg-blue-600", purple: "bg-purple-600", green: "bg-green-600", orange: "bg-orange-500", pink: "bg-pink-600", gray: "bg-gray-700" };
+                  const ringMap: Record<string, string> = { blue: "ring-blue-200", purple: "ring-purple-200", green: "ring-green-200", orange: "ring-orange-200", pink: "ring-pink-200", gray: "ring-gray-200" };
+                  const bgMap: Record<string, string> = { blue: "from-blue-50 to-white border-blue-200", purple: "from-purple-50 to-white border-purple-200", green: "from-green-50 to-white border-green-200", orange: "from-orange-50 to-white border-orange-200", pink: "from-pink-50 to-white border-pink-200", gray: "from-gray-50 to-white border-gray-200" };
                   const textMap: Record<string, string> = { blue: "text-blue-900", purple: "text-purple-900", green: "text-green-900", orange: "text-orange-900", pink: "text-pink-900", gray: "text-gray-900" };
+                  const countTextMap: Record<string, string> = { blue: "text-blue-600", purple: "text-purple-600", green: "text-green-600", orange: "text-orange-500", pink: "text-pink-600", gray: "text-gray-600" };
                   const Icon = iconMap[seg.icon] || Users;
+                  const isActive = segmentFilter === seg.key;
+                  // Map segment key to blast target key (all segment keys now supported in backend)
+                  const blastTarget = seg.key;
                   return (
-                    <Card key={seg.key} className={`border bg-gradient-to-br ${bgMap[seg.color] || bgMap.gray} cursor-pointer hover:shadow-md transition-shadow`}
-                      onClick={() => setSegmentFilter(segmentFilter === seg.key ? null : seg.key)}>
+                    <Card key={seg.key}
+                      className={`border bg-gradient-to-br ${bgMap[seg.color] || bgMap.gray} cursor-pointer transition-all hover:shadow-md ${isActive ? `ring-2 ${ringMap[seg.color] || ringMap.gray} shadow-md` : ''}`}
+                      onClick={() => { setSegmentFilter(isActive ? null : seg.key); setSegmentSearch(""); }}>
                       <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className={`p-2.5 rounded-xl ${colorMap[seg.color] || colorMap.gray}`}>
+                        <div className="flex items-start justify-between mb-4">
+                          <div className={`p-2.5 rounded-xl ${colorMap[seg.color] || colorMap.gray} shadow-sm`}>
                             <Icon className="h-5 w-5 text-white" />
                           </div>
-                          <Badge className={`text-xs border-0 ${colorMap[seg.color]} text-white`}>{seg.count.toLocaleString()}</Badge>
+                          {isActive && <Badge className="bg-white border text-gray-600 text-xs gap-0.5"><CheckCircle className="h-3 w-3 text-green-500" />Selected</Badge>}
                         </div>
-                        <h3 className={`font-bold text-base ${textMap[seg.color] || textMap.gray} mb-1`}>{seg.label}</h3>
-                        <p className="text-xs text-gray-500 mb-3">{seg.description}</p>
+                        <div className="mb-1">
+                          <span className={`text-3xl font-extrabold ${countTextMap[seg.color] || 'text-gray-600'}`}>{seg.count.toLocaleString()}</span>
+                        </div>
+                        <h3 className={`font-bold text-sm ${textMap[seg.color] || textMap.gray} mb-0.5`}>{seg.label}</h3>
+                        <p className="text-xs text-gray-500 mb-4 leading-relaxed">{seg.description}</p>
                         <div className="flex gap-2">
-                          <Button size="sm" className={`${colorMap[seg.color]} text-white hover:opacity-90 text-xs h-8 flex-1 gap-1`}
+                          <Button size="sm"
+                            className={`${colorMap[seg.color] || colorMap.gray} text-white hover:opacity-90 text-xs h-8 flex-1 gap-1`}
                             disabled={seg.count === 0 || !emailStatus?.configured}
                             onClick={e => {
                               e.stopPropagation();
-                              setEditCampaign({ targetSegment: seg.key === 'creators' ? 'influencers' : seg.key === 'shop_customers' ? 'all' : seg.key, status: "draft", htmlBody: "", name: `Campaign to ${seg.label}` });
+                              setEditCampaign({ targetSegment: blastTarget, status: "draft", htmlBody: "", name: `Campaign to ${seg.label}` });
                               setCampaignModal(true);
                               setActiveTab("campaigns");
                             }}>
                             <Send className="h-3 w-3" />Campaign Blast
                           </Button>
-                          <Button size="sm" variant="outline" className="text-xs h-8 gap-1"
-                            onClick={e => { e.stopPropagation(); setSegmentFilter(seg.key); }}>
-                            <Eye className="h-3 w-3" />View
+                          <Button size="sm" variant="outline"
+                            className={`text-xs h-8 gap-1 ${isActive ? 'bg-gray-100' : ''}`}
+                            onClick={e => { e.stopPropagation(); setSegmentFilter(isActive ? null : seg.key); setSegmentSearch(""); }}>
+                            <Eye className="h-3 w-3" />{isActive ? 'Hide' : 'View'}
                           </Button>
                         </div>
                       </CardContent>
@@ -1535,42 +1574,95 @@ export default function AdminEmail() {
                 })}
               </div>
 
-              {/* Segment member list */}
+              {/* ── Segment member list ── */}
               {segmentFilter && (() => {
                 const seg = segmentsData.segments.find(s => s.key === segmentFilter);
                 if (!seg) return null;
+                const iconMap: Record<string, any> = { users: Users, building: Building2, book: GraduationCap, package: ShoppingBag, bell: Bell, globe: Globe };
+                const colorMap: Record<string, string> = { blue: "bg-blue-600", purple: "bg-purple-600", green: "bg-green-600", orange: "bg-orange-500", pink: "bg-pink-600", gray: "bg-gray-700" };
+                const SegIcon = iconMap[seg.icon] || Users;
+                const q = segmentSearch.toLowerCase();
+                const filtered = seg.members.filter(m =>
+                  !q || m.email.toLowerCase().includes(q) ||
+                  `${m.firstName} ${m.lastName}`.toLowerCase().includes(q) ||
+                  (m.companyName || "").toLowerCase().includes(q)
+                );
                 return (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base font-semibold flex items-center gap-2">
-                          <Users className="h-4 w-4 text-purple-600" />
-                          {seg.label} — {seg.count} member{seg.count !== 1 ? 's' : ''}
-                        </CardTitle>
-                        <Button variant="ghost" size="sm" onClick={() => setSegmentFilter(null)}><X className="h-4 w-4" /></Button>
+                  <Card className="border shadow-sm">
+                    <CardHeader className="pb-0 pt-4 px-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`p-2 rounded-lg ${colorMap[seg.color] || colorMap.gray} shrink-0`}>
+                            <SegIcon className="h-4 w-4 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <CardTitle className="text-base font-semibold text-gray-900 truncate">{seg.label}</CardTitle>
+                            <p className="text-xs text-gray-500 mt-0.5">{seg.count.toLocaleString()} member{seg.count !== 1 ? 's' : ''}{q ? ` · ${filtered.length} matching` : ''}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button size="sm"
+                            className={`${colorMap[seg.color] || colorMap.gray} text-white hover:opacity-90 text-xs h-8 gap-1`}
+                            disabled={seg.count === 0 || !emailStatus?.configured}
+                            onClick={() => {
+                              setEditCampaign({ targetSegment: seg.key, status: "draft", htmlBody: "", name: `Campaign to ${seg.label}` });
+                              setCampaignModal(true);
+                              setActiveTab("campaigns");
+                            }}>
+                            <Send className="h-3 w-3" />Blast to All
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setSegmentFilter(null); setSegmentSearch(""); }}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Search bar */}
+                      <div className="relative mt-3 mb-1">
+                        <input
+                          type="text"
+                          placeholder="Search by name, email, or company…"
+                          value={segmentSearch}
+                          onChange={e => setSegmentSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-300"
+                        />
+                        <AtSign className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
                       </div>
                     </CardHeader>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto mt-2">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b">
+                        <thead className="bg-gray-50 border-b border-t">
                           <tr>
-                            {["Name", "Email", "Type", ""].map(h => (
-                              <th key={h} className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">{h}</th>
-                            ))}
+                            <th className="text-left px-5 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide">Name</th>
+                            <th className="text-left px-5 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide">Email</th>
+                            <th className="text-left px-5 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide hidden sm:table-cell">Type</th>
+                            <th className="text-left px-5 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide hidden md:table-cell">Details</th>
+                            <th className="px-5 py-2.5 w-24"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y">
-                          {seg.members.slice(0, 100).map(m => (
-                            <tr key={m.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 font-medium text-gray-900">{m.firstName} {m.lastName}</td>
-                              <td className="px-4 py-3 text-gray-600 text-sm">{m.email}</td>
-                              <td className="px-4 py-3">
-                                <Badge className={`text-xs border-0 ${m.userType === 'creator' ? 'bg-blue-50 text-blue-700' : m.userType === 'brand' ? 'bg-purple-50 text-purple-700' : m.userType === 'newsletter' ? 'bg-pink-50 text-pink-700' : 'bg-gray-100 text-gray-700'}`}>
+                        <tbody className="divide-y divide-gray-50">
+                          {filtered.slice(0, 150).map(m => (
+                            <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-5 py-3 font-medium text-gray-900 whitespace-nowrap">
+                                {m.firstName || m.lastName ? `${m.firstName} ${m.lastName}`.trim() : <span className="text-gray-400 italic">—</span>}
+                              </td>
+                              <td className="px-5 py-3 text-gray-600 text-xs font-mono">{m.email}</td>
+                              <td className="px-5 py-3 hidden sm:table-cell">
+                                <Badge className={`text-xs border-0 ${
+                                  m.userType === 'creator' ? 'bg-blue-100 text-blue-700' :
+                                  m.userType === 'brand'   ? 'bg-purple-100 text-purple-700' :
+                                  m.userType === 'newsletter' ? 'bg-pink-100 text-pink-700' :
+                                  m.userType === 'admin'   ? 'bg-red-100 text-red-700' :
+                                  'bg-gray-100 text-gray-600'}`}>
                                   {m.userType || seg.key}
                                 </Badge>
                               </td>
-                              <td className="px-4 py-3">
-                                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                              <td className="px-5 py-3 hidden md:table-cell text-xs text-gray-500">
+                                {m.companyName && <span className="font-medium text-gray-700">{m.companyName}</span>}
+                                {m.creatorTier && <Badge className="ml-1 text-xs bg-blue-50 text-blue-600 border-0">{m.creatorTier.replace(/_/g, ' ')}</Badge>}
+                                {m.isVerified && <Badge className="ml-1 text-xs bg-green-50 text-green-600 border-0">✓ Verified</Badge>}
+                              </td>
+                              <td className="px-5 py-3">
+                                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 w-full"
                                   disabled={!emailStatus?.configured || m.userType === 'newsletter'}
                                   onClick={() => {
                                     setEmailContactUser({ id: m.id, name: `${m.firstName} ${m.lastName}`.trim() || m.email, email: m.email });
@@ -1584,14 +1676,17 @@ export default function AdminEmail() {
                           ))}
                         </tbody>
                       </table>
-                      {seg.members.length === 0 && (
+                      {filtered.length === 0 && (
                         <div className="text-center py-12 text-gray-400">
                           <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                          <p>No members in this segment yet</p>
+                          <p className="text-sm">{q ? `No members match "${q}"` : 'No members in this segment yet'}</p>
                         </div>
                       )}
-                      {seg.members.length > 100 && (
-                        <p className="text-xs text-gray-400 text-center py-3">Showing first 100 of {seg.members.length} members</p>
+                      {filtered.length > 150 && (
+                        <p className="text-xs text-gray-400 text-center py-3 border-t">Showing first 150 of {filtered.length} matching members</p>
+                      )}
+                      {seg.members.length > 150 && !q && (
+                        <p className="text-xs text-gray-400 text-center py-3 border-t">Showing first 150 of {seg.members.length} members · use search to narrow results</p>
                       )}
                     </div>
                   </Card>
