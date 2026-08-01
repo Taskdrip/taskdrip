@@ -15,7 +15,8 @@
 ```bash
 npm run dev       # starts both frontend (Vite) and backend (tsx server/index.ts)
 npm run build     # production build
-npm run db:push   # apply schema changes to database
+npm run db:migrate  # apply all SQL migrations non-interactively (use this on fresh DBs)
+npm run db:push   # interactive schema push via drizzle-kit (requires a TTY)
 ```
 
 The dev server runs on port 5000.
