@@ -10392,6 +10392,16 @@ Instructions:
     } catch (e) { res.status(500).json({ message: 'Failed to delete template' }); }
   });
 
+  // Upload an image for use inside an email template / campaign body
+  app.post('/api/admin/email/upload-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ url });
+    } catch (e: any) { res.status(500).json({ message: e.message || 'Upload failed' }); }
+  });
+
   // Email Campaigns
   app.get('/api/admin/email/campaigns', isAuthenticated, async (req: any, res) => {
     try {

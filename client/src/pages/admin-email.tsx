@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { EmailBodyEditor } from "@/components/email-body-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2430,11 +2431,13 @@ export default function AdminEmail() {
             </div>
 
             <div>
-              <Label className="text-xs font-medium">HTML Body</Label>
-              <p className="text-xs text-gray-400 mb-1">Available variables: {"{{first_name}}"} {"{{email}}"} {"{{username}}"} {"{{user_type}}"}</p>
-              <Textarea placeholder="<h2>Hello {{first_name}}!</h2><p>Your email content here...</p>"
-                rows={12} className="mt-1 font-mono text-xs"
-                value={editCampaign?.htmlBody || ""} onChange={e => setEditCampaign(p => ({ ...p, htmlBody: e.target.value }))} />
+              <Label className="text-xs font-medium mb-1.5 block">HTML Body</Label>
+              <EmailBodyEditor
+                value={editCampaign?.htmlBody || ""}
+                onChange={v => setEditCampaign(p => ({ ...p, htmlBody: v }))}
+                rows={14}
+                placeholder="<h2>Hello {{first_name}}!</h2><p>Your email content here...</p>"
+              />
             </div>
             <div>
               <Label className="text-xs font-medium">Schedule (optional)</Label>
@@ -2478,9 +2481,12 @@ export default function AdminEmail() {
               <Input className="mt-1" value={editTemplate?.subject || ""} onChange={e => setEditTemplate(p => ({ ...p, subject: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-xs font-medium">HTML Body</Label>
-              <Textarea rows={14} className="mt-1 font-mono text-xs"
-                value={editTemplate?.htmlBody || ""} onChange={e => setEditTemplate(p => ({ ...p, htmlBody: e.target.value }))} />
+              <Label className="text-xs font-medium mb-1.5 block">HTML Body</Label>
+              <EmailBodyEditor
+                value={editTemplate?.htmlBody || ""}
+                onChange={v => setEditTemplate(p => ({ ...p, htmlBody: v }))}
+                rows={16}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={!!editTemplate?.isActive} onCheckedChange={v => setEditTemplate(p => ({ ...p, isActive: v }))} />
@@ -2538,10 +2544,13 @@ export default function AdminEmail() {
               <Input className="mt-1" value={editAr?.subject || ""} onChange={e => setEditAr(p => ({ ...p, subject: e.target.value }))} />
             </div>
             <div>
-              <Label className="text-xs font-medium">HTML Body</Label>
-              <p className="text-xs text-gray-400 mb-1">Variables: {"{{first_name}}"} {"{{email}}"} {"{{user_type}}"}</p>
-              <Textarea rows={12} className="mt-1 font-mono text-xs"
-                value={editAr?.htmlBody || ""} onChange={e => setEditAr(p => ({ ...p, htmlBody: e.target.value }))} />
+              <Label className="text-xs font-medium mb-1.5 block">HTML Body</Label>
+              <EmailBodyEditor
+                value={editAr?.htmlBody || ""}
+                onChange={v => setEditAr(p => ({ ...p, htmlBody: v }))}
+                rows={14}
+                variables={["{{first_name}}", "{{last_name}}", "{{email}}", "{{user_type}}", "{{site_url}}"]}
+              />
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -2579,11 +2588,14 @@ export default function AdminEmail() {
               <Input className="mt-1" placeholder="Email subject…" value={composeSubject} onChange={e => setComposeSubject(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs font-medium">Message (HTML supported)</Label>
-              <Textarea className="mt-1 font-mono text-xs" rows={12}
+              <Label className="text-xs font-medium mb-1.5 block">Message (HTML supported)</Label>
+              <EmailBodyEditor
+                value={composeHtml}
+                onChange={setComposeHtml}
+                rows={12}
                 placeholder={`<h2>Hello ${emailContactUser?.name?.split(' ')[0] || 'there'},</h2>\n<p>Your message here…</p>`}
-                value={composeHtml} onChange={e => setComposeHtml(e.target.value)} />
-              <p className="text-xs text-gray-400 mt-1">Tip: paste plain text or HTML. Wrap in a &lt;div&gt; for basic formatting.</p>
+                variables={["{{first_name}}", "{{email}}", "{{user_type}}"]}
+              />
             </div>
             {/* Quick templates */}
             <div>

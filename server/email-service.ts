@@ -143,9 +143,12 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
     return { success: false, error: "No email provider configured. Add RESEND_API_KEY to your secrets or set up SMTP." };
   }
 
-  // When using Resend: prefer RESEND_FROM_EMAIL env var (verified sender), then DB settings, then default
-  const fromEmail = (resendKey ? process.env.RESEND_FROM_EMAIL : null)
-    || settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
+  // When using Resend: prefer RESEND_FROM_EMAIL env var (verified sender), then DB smtpFromEmail,
+  // then fall back to Resend's built-in onboarding sender which works with any API key for testing.
+  // Never fall back to a non-verified custom domain or Resend will reject the send.
+  const fromEmail = (resendKey
+    ? (process.env.RESEND_FROM_EMAIL || settings?.smtpFromEmail || "onboarding@resend.dev")
+    : (settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online"));
   const fromName = (opts as any).fromName || settings?.smtpFromName || "Taskdrip";
 
   // Build provider list respecting admin's explicit preference
