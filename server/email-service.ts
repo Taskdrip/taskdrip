@@ -34,17 +34,23 @@ export function buildTransporter(settings: any) {
   });
 }
 
-export async function getEmailStatus(): Promise<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean; preferredProvider?: string }> {
+export async function getEmailStatus(): Promise<{
+  configured: boolean; provider: string; smtpHost?: string;
+  sendgridAvailable: boolean; resendAvailable: boolean;
+  preferredProvider?: string; smtpIsBrevo?: boolean; resendKeyPresent: boolean;
+}> {
   const settings = await getEmailSettings();
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
   const resendOk = !!process.env.RESEND_API_KEY;
   const pref = (settings as any)?.preferredProvider || "";
+  const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
 
   // Respect admin's explicit provider preference, then fall back to auto-priority
+  // Special rule: if Resend key is present and pref is "smtp" with brevo host, auto-switch to Resend
   let activeProvider: string;
   if (pref === "resend" && resendOk) activeProvider = "resend";
-  else if (pref === "smtp" && smtpOk) activeProvider = "smtp";
+  else if (pref === "smtp" && smtpOk && !smtpIsBrevo) activeProvider = "smtp";
   else if (pref === "sendgrid" && sendgridOk) activeProvider = "sendgrid";
   else activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
 
@@ -55,7 +61,36 @@ export async function getEmailStatus(): Promise<{ configured: boolean; provider:
     sendgridAvailable: sendgridOk,
     resendAvailable: resendOk,
     preferredProvider: pref || undefined,
+    smtpIsBrevo,
+    resendKeyPresent: resendOk,
   };
+}
+
+/** Call on startup: if RESEND_API_KEY is present and preferred provider is not already set
+ *  to a non-brevo SMTP, set preferred to "resend" automatically. */
+export async function activateResendIfAvailable(): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    const settings = await getEmailSettings();
+    const pref = (settings as any)?.preferredProvider || "";
+    const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
+    // If not set, or currently pointing to brevo SMTP, switch to resend
+    if (!pref || pref === "resend" || smtpIsBrevo) {
+      await db.insert(emailSettings).values({
+        id: "singleton",
+        preferredProvider: "resend",
+        smtpHost: smtpIsBrevo ? null : (settings?.smtpHost ?? null),
+        smtpUser: smtpIsBrevo ? null : (settings?.smtpUser ?? null),
+        smtpPass: smtpIsBrevo ? null : (settings?.smtpPass ?? null),
+      } as any).onConflictDoUpdate({
+        target: (emailSettings as any).id,
+        set: { preferredProvider: "resend", ...(smtpIsBrevo ? { smtpHost: null, smtpUser: null, smtpPass: null } : {}) },
+      });
+      console.log("[email] RESEND_API_KEY detected — Resend set as preferred email provider.");
+    }
+  } catch (e: any) {
+    console.warn("[email] Could not auto-activate Resend:", e.message);
+  }
 }
 
 async function sendViaResend(opts: EmailOptions, fromEmail: string, fromName: string): Promise<void> {

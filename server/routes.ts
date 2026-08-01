@@ -7,7 +7,7 @@ import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
 import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blogger";
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
-import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail } from "./email-service";
+import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
@@ -10261,6 +10261,21 @@ Instructions:
   // Email Marketing CRM
   // ──────────────────────────────────────────────────────────────
   const { sendEmail, testSmtpConnection, blastCampaign, AI_TEMPLATES, buildDefaultEmailHtml, getEmailStatus, sendWelcomeEmail } = await import("./email-service");
+
+  // Auto-activate Resend on startup if key is present
+  activateResendIfAvailable().catch(() => {});
+
+  // Activate Resend as preferred provider (called from admin UI)
+  app.post('/api/admin/email/activate-resend', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { emailSettings: emailSettingsTable } = await import('@shared/schema');
+      const { db: dbInst } = await import('./db');
+      await dbInst.insert(emailSettingsTable).values({ id: 'singleton', preferredProvider: 'resend' } as any)
+        .onConflictDoUpdate({ target: (emailSettingsTable as any).id, set: { preferredProvider: 'resend', smtpHost: null, smtpUser: null, smtpPass: null } });
+      res.json({ success: true, message: 'Resend activated as default provider' });
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
 
   // Email Status
   app.get('/api/admin/email/status', isAuthenticated, async (req: any, res) => {

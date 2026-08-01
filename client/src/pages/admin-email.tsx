@@ -887,7 +887,7 @@ export default function AdminEmail() {
 
   // ── Queries
   const { data: settingsData } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email/settings"] });
-  const { data: emailStatus, refetch: refetchStatus } = useQuery<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean }>({ queryKey: ["/api/admin/email/status"], refetchInterval: 30000 });
+  const { data: emailStatus, refetch: refetchStatus } = useQuery<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean; smtpIsBrevo?: boolean; resendKeyPresent: boolean; preferredProvider?: string }>({ queryKey: ["/api/admin/email/status"], refetchInterval: 30000 });
   const { data: campaigns = [] } = useQuery<EmailCampaign[]>({ queryKey: ["/api/admin/email/campaigns"] });
   const { data: templates = [] } = useQuery<EmailTemplate[]>({ queryKey: ["/api/admin/email/templates"] });
   const { data: autoResponders = [] } = useQuery<EmailAutoResponder[]>({ queryKey: ["/api/admin/email/auto-responders"] });
@@ -1102,33 +1102,70 @@ export default function AdminEmail() {
         {/* ─────────────── OVERVIEW ─────────────── */}
         <TabsContent value="overview">
           {/* Email provider status banner */}
+          {/* ── Not configured banner ── */}
           {emailStatus && !emailStatus.configured && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <p className="font-semibold text-red-800 text-sm">Email not configured — welcome emails won't be sent!</p>
-                <p className="text-red-700 text-xs mt-1">New users who register will NOT receive a welcome email until you set up an email provider. Go to <strong>SMTP / IMAP / Domain</strong> tab to configure your SMTP server, or add a <code className="bg-red-100 px-1 rounded">SENDGRID_API_KEY</code> environment variable.</p>
+                <p className="text-red-700 text-xs mt-1">
+                  The recommended provider is <strong>Resend</strong> (3,000 free emails/month, best deliverability).
+                  Add <code className="bg-red-100 px-1 rounded font-mono">RESEND_API_KEY</code> to your Replit Secrets, then refresh this page — it will activate automatically.
+                </p>
+                <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-red-700 underline hover:text-red-900">
+                  Get a free Resend API key →
+                </a>
               </div>
-              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-xs shrink-0" onClick={() => setActiveTab("settings")}>Configure Now</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-xs shrink-0" onClick={() => setActiveTab("settings")}>Settings</Button>
             </div>
           )}
-          {emailStatus?.configured && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+
+          {/* ── Brevo SMTP still active warning ── */}
+          {emailStatus?.configured && emailStatus.smtpIsBrevo && emailStatus.provider === "smtp" && (
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="font-semibold text-green-800 text-sm">Email is active — welcome emails will be sent automatically</p>
-                <p className="text-green-700 text-xs mt-0.5">
+                <p className="font-semibold text-amber-900 text-sm">Brevo (smtp-relay.brevo.com) is your active provider</p>
+                <p className="text-amber-700 text-xs mt-1">
+                  Brevo's free tier only allows 300 emails/day with limited deliverability.
+                  Switch to <strong>Resend</strong> for 3,000 free emails/month and better inbox rates.
+                  Add <code className="bg-amber-100 px-1 rounded font-mono">RESEND_API_KEY</code> to Replit Secrets and click below.
+                </p>
+              </div>
+              <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs shrink-0 whitespace-nowrap" onClick={async () => {
+                try {
+                  const r = await fetch('/api/admin/email/activate-resend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
+                  if (r.ok) { refetchStatus(); toast({ title: '✅ Resend set as default provider' }); }
+                  else toast({ title: 'Failed to switch', variant: 'destructive' });
+                } catch { toast({ title: 'Error switching provider', variant: 'destructive' }); }
+              }}>Switch to Resend</Button>
+            </div>
+          )}
+
+          {/* ── Active provider banner ── */}
+          {emailStatus?.configured && !(emailStatus.smtpIsBrevo && emailStatus.provider === "smtp") && (
+            <div className={`border rounded-xl p-4 mb-4 flex items-center gap-3 ${emailStatus.provider === "resend" ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}`}>
+              <CheckCircle className={`h-5 w-5 shrink-0 ${emailStatus.provider === "resend" ? "text-green-600" : "text-blue-600"}`} />
+              <div className="flex-1">
+                <p className={`font-semibold text-sm ${emailStatus.provider === "resend" ? "text-green-800" : "text-blue-800"}`}>
+                  {emailStatus.provider === "resend" ? "✉️ Resend is active — emails will be sent automatically" : "Email is active — welcome emails will be sent automatically"}
+                </p>
+                <p className={`text-xs mt-0.5 ${emailStatus.provider === "resend" ? "text-green-700" : "text-blue-700"}`}>
                   Provider: <strong>
                     {emailStatus.provider === "smtp" ? `SMTP (${emailStatus.smtpHost})` :
-                     emailStatus.provider === "resend" ? "Resend" :
+                     emailStatus.provider === "resend" ? "Resend (API)" :
                      emailStatus.provider === "sendgrid" ? "SendGrid" :
                      emailStatus.provider.toUpperCase()}
                   </strong> · All new registrations will trigger the welcome email flow.
                 </p>
               </div>
-              <Badge className="bg-green-100 text-green-700 border-0 text-xs">{emailStatus.provider.toUpperCase()}</Badge>
+              <Badge className={`border-0 text-xs ${emailStatus.provider === "resend" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                {emailStatus.provider.toUpperCase()}
+              </Badge>
             </div>
           )}
+
           {/* Resend domain verification warning */}
           {emailStatus?.provider === "resend" && (
             <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-6">
@@ -1208,7 +1245,8 @@ export default function AdminEmail() {
                 </Button>
               </div>
               {!emailStatus?.configured && <p className="text-xs text-red-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Configure Resend, SMTP, or SendGrid first before sending test emails.</p>}
-              {emailStatus?.provider === "resend" && <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Resend requires domain verification — see the warning above to set up <strong>taskdrip.online</strong> in Resend before test emails will deliver.</p>}
+              {emailStatus?.provider === "resend" && <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Resend requires domain verification at <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline font-semibold">resend.com/domains</a> — add <strong>taskdrip.online</strong> as a sender domain before emails will deliver.</p>}
+              {!emailStatus?.resendKeyPresent && <p className="text-xs text-purple-700 mt-2 flex items-center gap-1"><Key className="h-3 w-3" />Add <code className="bg-purple-100 px-1 rounded font-mono">RESEND_API_KEY</code> to Replit Secrets to enable Resend (recommended).</p>}
             </CardContent>
           </Card>
 
@@ -1769,6 +1807,40 @@ export default function AdminEmail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Resend setup CTA when key not present */}
+              {!emailStatus?.resendKeyPresent && (
+                <div className="rounded-xl border border-purple-300 bg-white p-4 flex items-start gap-3 mb-2">
+                  <Key className="h-5 w-5 text-purple-500 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-purple-900 text-sm">⚡ Activate Resend — Recommended</p>
+                    <p className="text-purple-700 text-xs mt-1">
+                      Resend gives you 3,000 free emails/month with excellent deliverability — far better than Brevo or SMTP.
+                      To enable it:
+                    </p>
+                    <ol className="list-decimal list-inside text-xs text-purple-800 mt-2 space-y-1">
+                      <li>Go to <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline font-semibold">resend.com/api-keys</a> → create a key</li>
+                      <li>In Replit: open <strong>Secrets</strong> → add <code className="bg-purple-100 px-1 rounded font-mono">RESEND_API_KEY</code></li>
+                      <li>Also add <code className="bg-purple-100 px-1 rounded font-mono">RESEND_FROM_EMAIL</code> = <code className="bg-purple-100 px-1 rounded font-mono">noreply@taskdrip.online</code></li>
+                      <li>Restart the server — Resend activates automatically</li>
+                    </ol>
+                  </div>
+                  <a href="https://resend.com/signup" target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs shrink-0 whitespace-nowrap">Get API Key</Button>
+                  </a>
+                </div>
+              )}
+              {/* Resend is active: show activate button to set DB preference */}
+              {emailStatus?.resendKeyPresent && emailStatus?.provider !== "resend" && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-3 flex items-center gap-3 mb-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                  <p className="text-sm text-green-800 flex-1">RESEND_API_KEY is set! Click to make Resend the active default provider.</p>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-xs" onClick={async () => {
+                    const r = await fetch('/api/admin/email/activate-resend', { method: 'POST', credentials: 'include' });
+                    if (r.ok) { refetchStatus(); toast({ title: '✅ Resend is now the active provider' }); }
+                    else toast({ title: 'Failed', variant: 'destructive' });
+                  }}>Activate Resend</Button>
+                </div>
+              )}
               <div className="grid sm:grid-cols-3 gap-3">
                 {[
                   { key: "resend", label: "Resend", desc: "3,000/mo free · Best deliverability", available: emailStatus?.resendAvailable, icon: "⚡" },

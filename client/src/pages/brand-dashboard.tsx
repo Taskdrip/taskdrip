@@ -21,7 +21,8 @@ import {
   Plus, Users, DollarSign, TrendingUp, Eye, MessageCircle, CheckCircle, ChevronDown, ChevronUp, 
   Clock, AlertCircle, Calendar, Star, Award, BarChart3, Target, Building2, Pencil,
   Briefcase, ChevronRight, Package, Coins, Upload, Trash2, PlusCircle,
-  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X, Wallet, Lock, Undo2, Loader2, Code2
+  ShieldCheck, ExternalLink, Image as ImageIcon, Link2, X, Wallet, Lock, Undo2, Loader2, Code2,
+  Mail, Send
 } from "lucide-react";
 import { DevProjectsTab } from "@/components/DevProjectsTab";
 import { format } from "date-fns";
@@ -109,6 +110,16 @@ export default function BrandDashboard() {
   const [editingMicroTask, setEditingMicroTask] = useState<any | null>(null);
   const [editMicroTaskForm, setEditMicroTaskForm] = useState<any>({});
   const [expandedApplications, setExpandedApplications] = useState<Record<string, boolean>>({});
+  // Brand email feature
+  const [brandEmailModal, setBrandEmailModal] = useState(false);
+  const [brandEmailTarget, setBrandEmailTarget] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [brandEmailSubject, setBrandEmailSubject] = useState("");
+  const [brandEmailMessage, setBrandEmailMessage] = useState("");
+  const [brandEmailSending, setBrandEmailSending] = useState(false);
+  const openBrandEmail = (user: { id: string; firstName?: string; lastName?: string; email: string }) => {
+    setBrandEmailTarget({ id: user.id, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email, email: user.email });
+    setBrandEmailSubject(""); setBrandEmailMessage(""); setBrandEmailModal(true);
+  };
   type CampaignTaskDraft = {
     task: string;
     platform: string;
@@ -1706,6 +1717,16 @@ export default function BrandDashboard() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                onClick={() => application.user && openBrandEmail({ id: application.user.id, firstName: application.user.firstName, lastName: application.user.lastName, email: application.user.email })}
+                                className="whitespace-nowrap text-purple-700 border-purple-200 hover:bg-purple-50"
+                                data-testid={`button-email-applicant-${application.id}`}
+                              >
+                                <Mail className="h-4 w-4 mr-1" />
+                                Email
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => setLocation(`/profile/${application.user?.id}`)}
                                 className="whitespace-nowrap"
                                 data-testid={`button-view-profile-${application.id}`}
@@ -2934,6 +2955,93 @@ function InfluencerNetworkPanel() {
                 </Link>
               </div>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Brand Email Compose Modal ── */}
+      <Dialog open={brandEmailModal} onOpenChange={setBrandEmailModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-purple-600" />
+              Send Email to {brandEmailTarget?.name}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              This email will be sent from your company name via Taskdrip. The recipient sees your brand identity.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">To</label>
+              <div className="flex items-center gap-2 bg-gray-50 border rounded-lg px-3 py-2 text-sm text-gray-700">
+                <Mail className="h-3.5 w-3.5 text-gray-400" />
+                <span>{brandEmailTarget?.name} &lt;{brandEmailTarget?.email}&gt;</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Subject</label>
+              <Input
+                placeholder="e.g. Collaboration opportunity with our brand"
+                value={brandEmailSubject}
+                onChange={e => setBrandEmailSubject(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Message</label>
+              <Textarea
+                placeholder={`Hi ${brandEmailTarget?.name?.split(' ')[0] || 'there'},\n\nWe'd love to discuss a collaboration...\n\nBest regards`}
+                value={brandEmailMessage}
+                onChange={e => setBrandEmailMessage(e.target.value)}
+                rows={7}
+                className="text-sm resize-none"
+              />
+            </div>
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <Building2 className="h-3 w-3" />
+              Sent as: {(user as any)?.companyName || `${(user as any)?.firstName} ${(user as any)?.lastName}`} via Taskdrip
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={() => setBrandEmailModal(false)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 gap-1"
+              disabled={brandEmailSending || !brandEmailSubject.trim() || !brandEmailMessage.trim()}
+              onClick={async () => {
+                if (!brandEmailTarget || !brandEmailSubject || !brandEmailMessage) return;
+                setBrandEmailSending(true);
+                try {
+                  const res = await fetch('/api/brand/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      userId: brandEmailTarget.id,
+                      subject: brandEmailSubject,
+                      message: brandEmailMessage,
+                      fromCompanyName: (user as any)?.companyName,
+                    }),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    toast({ title: '✅ Email sent!', description: `Delivered to ${brandEmailTarget.email}` });
+                    setBrandEmailModal(false);
+                  } else {
+                    toast({ title: 'Failed to send', description: data.error || 'Unknown error', variant: 'destructive' });
+                  }
+                } catch {
+                  toast({ title: 'Error sending email', variant: 'destructive' });
+                } finally {
+                  setBrandEmailSending(false);
+                }
+              }}
+            >
+              {brandEmailSending
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Sending…</>
+                : <><Send className="h-3.5 w-3.5" />Send Email</>}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
