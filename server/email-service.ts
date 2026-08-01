@@ -34,16 +34,34 @@ export function buildTransporter(settings: any) {
   });
 }
 
-export async function getEmailStatus(): Promise<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean }> {
+export async function getEmailStatus(): Promise<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean }> {
   const settings = await getEmailSettings();
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
+  const resendOk = !!process.env.RESEND_API_KEY;
+  const activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
   return {
-    configured: smtpOk || sendgridOk,
-    provider: smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none",
+    configured: resendOk || smtpOk || sendgridOk,
+    provider: activeProvider,
     smtpHost: settings?.smtpHost,
     sendgridAvailable: sendgridOk,
+    resendAvailable: resendOk,
   };
+}
+
+async function sendViaResend(opts: EmailOptions, fromEmail: string, fromName: string): Promise<void> {
+  const { Resend } = await import("resend");
+  const client = new Resend(process.env.RESEND_API_KEY!);
+  const result = await client.emails.send({
+    from: `${fromName} <${fromEmail}>`,
+    to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
+  });
+  if (result.error) {
+    throw new Error((result.error as any).message || JSON.stringify(result.error));
+  }
 }
 
 async function sendViaSendGrid(opts: EmailOptions, fromEmail: string, fromName: string): Promise<void> {
@@ -62,9 +80,10 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
   const settings = await getEmailSettings();
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridKey = process.env.SENDGRID_API_KEY;
+  const resendKey = process.env.RESEND_API_KEY;
 
-  if (!smtpOk && !sendgridKey) {
-    console.warn("[email] No email provider configured — SMTP settings not set and SENDGRID_API_KEY not found.");
+  if (!resendKey && !smtpOk && !sendgridKey) {
+    console.warn("[email] No email provider configured — set RESEND_API_KEY, configure SMTP, or set SENDGRID_API_KEY.");
     await db.insert(emailLogs).values({
       id: crypto.randomUUID(),
       campaignId: opts.campaignId || null,
@@ -73,25 +92,33 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
       recipientName: opts.toName || null,
       subject: opts.subject,
       status: "failed",
-      errorMessage: "No email provider configured. Configure SMTP in Admin → Email → Settings or set SENDGRID_API_KEY.",
+      errorMessage: "No email provider configured. Set RESEND_API_KEY or configure SMTP in Admin → Email → Settings.",
       sentAt: new Date(),
     });
-    return { success: false, error: "No email provider configured. Set up SMTP or SendGrid in Admin → Email → Settings." };
+    return { success: false, error: "No email provider configured. Add RESEND_API_KEY to your secrets or set up SMTP." };
   }
 
-  try {
-    const fromEmail = settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
-    const fromName = settings?.smtpFromName || "Taskdrip";
+  const fromEmail = settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
+  const fromName = settings?.smtpFromName || "Taskdrip";
 
-    if (smtpOk) {
-      const transporter = buildTransporter(settings);
-      await transporter.sendMail({
-        from: `"${fromName}" <${fromEmail}>`,
-        to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
-      });
+  // Provider priority: Resend → SMTP → SendGrid
+  const providers: Array<{ name: string; fn: () => Promise<void> }> = [];
+  if (resendKey) providers.push({ name: "resend", fn: () => sendViaResend(opts, fromEmail, fromName) });
+  if (smtpOk) providers.push({ name: "smtp", fn: async () => {
+    const transporter = buildTransporter(settings);
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
+    });
+  }});
+  if (sendgridKey) providers.push({ name: "sendgrid", fn: () => sendViaSendGrid(opts, fromEmail, fromName) });
+
+  for (const provider of providers) {
+    try {
+      await provider.fn();
       await db.insert(emailLogs).values({
         id: crypto.randomUUID(),
         campaignId: opts.campaignId || null,
@@ -102,36 +129,27 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
         status: "sent",
         sentAt: new Date(),
       });
-      return { success: true, provider: "smtp" };
-    } else {
-      await sendViaSendGrid(opts, fromEmail, fromName);
-      await db.insert(emailLogs).values({
-        id: crypto.randomUUID(),
-        campaignId: opts.campaignId || null,
-        autoResponderId: opts.autoResponderId || null,
-        recipientEmail: opts.to,
-        recipientName: opts.toName || null,
-        subject: opts.subject,
-        status: "sent",
-        sentAt: new Date(),
-      });
-      return { success: true, provider: "sendgrid" };
+      return { success: true, provider: provider.name };
+    } catch (err: any) {
+      console.error(`[email] ${provider.name} send failed:`, err.message);
+      // Try next provider
     }
-  } catch (err: any) {
-    console.error("[email] Send failed:", err.message);
-    await db.insert(emailLogs).values({
-      id: crypto.randomUUID(),
-      campaignId: opts.campaignId || null,
-      autoResponderId: opts.autoResponderId || null,
-      recipientEmail: opts.to,
-      recipientName: opts.toName || null,
-      subject: opts.subject,
-      status: "failed",
-      errorMessage: err.message,
-      sentAt: new Date(),
-    });
-    return { success: false, error: err.message };
   }
+
+  // All providers failed
+  const errMsg = "All email providers failed. Check RESEND_API_KEY / SMTP credentials.";
+  await db.insert(emailLogs).values({
+    id: crypto.randomUUID(),
+    campaignId: opts.campaignId || null,
+    autoResponderId: opts.autoResponderId || null,
+    recipientEmail: opts.to,
+    recipientName: opts.toName || null,
+    subject: opts.subject,
+    status: "failed",
+    errorMessage: errMsg,
+    sentAt: new Date(),
+  });
+  return { success: false, error: errMsg };
 }
 
 export async function sendWelcomeEmail(user: { email: string; firstName: string; lastName?: string; userType: string }): Promise<void> {
@@ -313,35 +331,226 @@ export function buildDefaultEmailHtml(content: string, fromName = "Taskdrip", si
 
 export const AI_TEMPLATES: Record<string, { subject: string; body: string }> = {
   welcome_creator: {
-    subject: "Welcome to Taskdrip, {{first_name}}! 🚀",
-    body: buildDefaultEmailHtml(`
-      <h2>Welcome aboard, {{first_name}}! 🎉</h2>
-      <p>You've just joined the #1 Web3 Influencer Marketplace. We're thrilled to have you as a verified influencer.</p>
-      <p><strong>What's next?</strong></p>
-      <ul>
-        <li>Complete your influencer profile</li>
-        <li>Browse live brand campaigns</li>
-        <li>Start earning crypto for your influence</li>
-      </ul>
-      <a href="{{site_url}}/campaigns" class="btn">Browse Campaigns →</a>
-      <p>Got questions? Reply to this email — we're here to help.</p>
-      <p>The Taskdrip Team</p>
-    `),
+    subject: "Welcome to Taskdrip, {{first_name}}! Your creator account is live 🚀",
+    body: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to Taskdrip</title></head>
+<body style="margin:0;padding:0;background:#0d0d1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0d0d1a"><tr><td align="center" style="padding:32px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#1a1a2e;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+
+  <!-- Hero Header -->
+  <tr><td bgcolor="#7c3aed" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:40px 40px 0;text-align:center;">
+        <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 18px;margin-bottom:20px;">
+          <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:1px;">⚡ TASKDRIP</span>
+        </div>
+      </td></tr>
+      <tr><td style="padding:0 40px 40px;text-align:center;">
+        <h1 style="color:#fff;font-size:30px;font-weight:800;margin:0 0 10px;line-height:1.25;">You're in, {{first_name}}! 🎉</h1>
+        <p style="color:rgba(255,255,255,0.85);font-size:16px;margin:0;line-height:1.6;">Your creator account is <strong>live</strong> on the #1 Web3 Influencer Marketplace. Brands are waiting for you right now.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Stats Strip -->
+  <tr><td bgcolor="#6d28d9" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">15K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Creators</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">3.5K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Campaigns</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">$650K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Paid Out</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="padding:40px;background:#1a1a2e;">
+    <p style="color:#cbd5e1;font-size:15px;line-height:1.7;margin:0 0 28px;">Hey <strong style="color:#a78bfa;">{{first_name}}</strong> 👋 — here's what to do to start earning crypto from your social media influence:</p>
+
+    <!-- Step 1 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td width="36" valign="top" style="padding-top:2px;">
+        <div style="background:#7c3aed;color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:800;font-size:13px;">1</div>
+      </td>
+      <td style="padding-left:14px;background:#0f172a;border-radius:10px;padding:14px 14px 14px 14px;">
+        <div style="display:flex;align-items:flex-start;">
+          <div style="margin-left:0;">
+            <div style="color:#f1f5f9;font-weight:700;font-size:15px;margin-bottom:4px;">🧑‍💼 Complete your creator profile</div>
+            <div style="color:#94a3b8;font-size:13px;line-height:1.5;">Add your social handles, follower counts, niche, and a bio. Brands filter by these — a complete profile gets 3× more invites.</div>
+          </div>
+        </div>
+      </td>
+    </tr></table>
+
+    <!-- Step 2 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td width="36" valign="top" style="padding-top:2px;">
+        <div style="background:#7c3aed;color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:800;font-size:13px;">2</div>
+      </td>
+      <td style="padding-left:14px;background:#0f172a;border-radius:10px;padding:14px;">
+        <div style="color:#f1f5f9;font-weight:700;font-size:15px;margin-bottom:4px;">🔍 Browse live brand campaigns</div>
+        <div style="color:#94a3b8;font-size:13px;line-height:1.5;">Hundreds of paid campaigns are live right now across TikTok, YouTube, Instagram, X, and Telegram. Apply with one click.</div>
+      </td>
+    </tr></table>
+
+    <!-- Step 3 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td width="36" valign="top" style="padding-top:2px;">
+        <div style="background:#7c3aed;color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:800;font-size:13px;">3</div>
+      </td>
+      <td style="padding-left:14px;background:#0f172a;border-radius:10px;padding:14px;">
+        <div style="color:#f1f5f9;font-weight:700;font-size:15px;margin-bottom:4px;">💰 Submit your work and get paid in USDT</div>
+        <div style="color:#94a3b8;font-size:13px;line-height:1.5;">Post the content, upload proof, and get paid directly to your crypto wallet — no middlemen, no delays.</div>
+      </td>
+    </tr></table>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 28px;"><tr><td align="center">
+      <a href="{{site_url}}/campaigns" style="display:inline-block;background:#7c3aed;color:#fff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">Browse Campaigns Now →</a>
+    </td></tr></table>
+
+    <!-- Tip box -->
+    <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#1e1b4b;border-left:4px solid #7c3aed;border-radius:8px;padding:16px 20px;">
+      <p style="margin:0;color:#a78bfa;font-weight:700;font-size:13px;">💡 Pro Tip</p>
+      <p style="margin:6px 0 0;color:#c4b5fd;font-size:13px;line-height:1.5;">Creators who complete KYC verification unlock <strong>premium, higher-paying campaigns</strong> and get the ✅ Verified badge on their profile. It takes less than 5 minutes.</p>
+    </td></tr></table>
+
+    <p style="color:#64748b;font-size:13px;margin:28px 0 0;line-height:1.6;">Questions? Just reply to this email — our team reads every message. 🙌</p>
+    <p style="color:#94a3b8;font-size:14px;margin:8px 0 0;">The <strong style="color:#a78bfa;">Taskdrip</strong> Team</p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td bgcolor="#0d0d1a" style="padding:24px 40px;text-align:center;">
+    <p style="color:#475569;font-size:12px;margin:0 0 8px;">Follow us for campaign alerts &amp; tips</p>
+    <p style="margin:0 0 16px;">
+      <a href="https://t.me/taskdrip" style="color:#7c3aed;text-decoration:none;font-size:12px;margin:0 8px;">Telegram</a>
+      <a href="https://x.com/taskdrip" style="color:#7c3aed;text-decoration:none;font-size:12px;margin:0 8px;">X (Twitter)</a>
+      <a href="https://instagram.com/taskdrip" style="color:#7c3aed;text-decoration:none;font-size:12px;margin:0 8px;">Instagram</a>
+    </p>
+    <p style="color:#334155;font-size:11px;margin:0;">© ${new Date().getFullYear()} Taskdrip. All rights reserved.<br>
+    <a href="{{site_url}}/unsubscribe?email={{email}}" style="color:#475569;text-decoration:underline;">Unsubscribe</a></p>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body>
+</html>`,
   },
+
   welcome_brand: {
-    subject: "Welcome to Taskdrip, {{first_name}}! Let's launch your first campaign 🚀",
-    body: buildDefaultEmailHtml(`
-      <h2>Great to have you, {{first_name}}! 🎯</h2>
-      <p>Your brand account is ready. You now have access to 10,000+ verified Web3 influencers across TikTok, YouTube, Instagram, and more.</p>
-      <p><strong>Launch your first campaign in 3 steps:</strong></p>
-      <ol>
-        <li>Set up your campaign brief</li>
-        <li>Choose your target influencer tier</li>
-        <li>Fund the campaign and go live</li>
-      </ol>
-      <a href="{{site_url}}/campaigns/create" class="btn">Create a Campaign →</a>
-      <p>The Taskdrip Team</p>
-    `),
+    subject: "Welcome to Taskdrip, {{first_name}}! Let's launch your first campaign 🎯",
+    body: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to Taskdrip Brands</title></head>
+<body style="margin:0;padding:0;background:#0a0f1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a0f1e"><tr><td align="center" style="padding:32px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#111827;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+
+  <!-- Hero Header -->
+  <tr><td bgcolor="#4f46e5" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:40px 40px 0;text-align:center;">
+        <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 18px;margin-bottom:20px;">
+          <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:1px;">⚡ TASKDRIP BRANDS</span>
+        </div>
+      </td></tr>
+      <tr><td style="padding:0 40px 40px;text-align:center;">
+        <h1 style="color:#fff;font-size:28px;font-weight:800;margin:0 0 10px;line-height:1.25;">Your brand just got 15,000+ creators, {{first_name}} 🎯</h1>
+        <p style="color:rgba(255,255,255,0.85);font-size:15px;margin:0;line-height:1.6;">Your brand account is <strong>active</strong>. Launch your first influencer campaign in minutes and reach millions.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Stats Strip -->
+  <tr><td bgcolor="#4338ca" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">15K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Verified Creators</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">5</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Platforms</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">8.4%</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Avg Engagement</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="padding:40px;background:#111827;">
+    <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 28px;">Hello <strong style="color:#818cf8;">{{first_name}}</strong> 👋 — you're now connected to thousands of creators across TikTok, YouTube, Instagram, X, and Telegram. Here's how to run your first campaign:</p>
+
+    <!-- Step 1 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td style="background:#1f2937;border-radius:10px;padding:16px;border-left:4px solid #4f46e5;">
+        <div style="color:#f9fafb;font-weight:700;font-size:15px;margin-bottom:4px;">📋 Step 1 — Create your campaign brief</div>
+        <div style="color:#9ca3af;font-size:13px;line-height:1.5;">Set your budget, target platform, content requirements, and payout. Takes about 5 minutes — we'll guide you through every field.</div>
+      </td>
+    </tr></table>
+
+    <!-- Step 2 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td style="background:#1f2937;border-radius:10px;padding:16px;border-left:4px solid #4f46e5;">
+        <div style="color:#f9fafb;font-weight:700;font-size:15px;margin-bottom:4px;">🎯 Step 2 — Creators apply to your campaign</div>
+        <div style="color:#9ca3af;font-size:13px;line-height:1.5;">Influencers across your chosen platform will see and apply to your campaign. You control who gets approved — filter by tier, follower count, or engagement rate.</div>
+      </td>
+    </tr></table>
+
+    <!-- Step 3 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td style="background:#1f2937;border-radius:10px;padding:16px;border-left:4px solid #4f46e5;">
+        <div style="color:#f9fafb;font-weight:700;font-size:15px;margin-bottom:4px;">✅ Step 3 — Review, approve, and pay instantly</div>
+        <div style="color:#9ca3af;font-size:13px;line-height:1.5;">Creators submit their content for your review. Approve what you love — payment is released automatically in USDT. No invoices, no wire transfers.</div>
+      </td>
+    </tr></table>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 28px;"><tr><td align="center">
+      <a href="{{site_url}}/brand-dashboard" style="display:inline-block;background:#4f46e5;color:#fff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">Launch Your First Campaign →</a>
+    </td></tr></table>
+
+    <!-- Info box -->
+    <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#1e1b4b;border-left:4px solid #4f46e5;border-radius:8px;padding:16px 20px;">
+      <p style="margin:0;color:#818cf8;font-weight:700;font-size:13px;">📊 What to expect</p>
+      <p style="margin:6px 0 0;color:#a5b4fc;font-size:13px;line-height:1.5;">Most brands receive their first campaign applications <strong>within 24 hours</strong>. Start with a modest budget to test the platform — you can scale up once you see results.</p>
+    </td></tr></table>
+
+    <p style="color:#6b7280;font-size:13px;margin:28px 0 0;line-height:1.6;">Need help setting up? Reply to this email — our team will personally walk you through your first campaign. 🚀</p>
+    <p style="color:#9ca3af;font-size:14px;margin:8px 0 0;">The <strong style="color:#818cf8;">Taskdrip</strong> Team</p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td bgcolor="#0a0f1e" style="padding:24px 40px;text-align:center;">
+    <p style="color:#374151;font-size:12px;margin:0 0 8px;">Taskdrip — The Web3 Influencer Marketplace</p>
+    <p style="margin:0 0 16px;">
+      <a href="https://t.me/taskdrip" style="color:#4f46e5;text-decoration:none;font-size:12px;margin:0 8px;">Telegram</a>
+      <a href="https://x.com/taskdrip" style="color:#4f46e5;text-decoration:none;font-size:12px;margin:0 8px;">X (Twitter)</a>
+      <a href="https://instagram.com/taskdrip" style="color:#4f46e5;text-decoration:none;font-size:12px;margin:0 8px;">Instagram</a>
+    </p>
+    <p style="color:#1f2937;font-size:11px;margin:0;">© ${new Date().getFullYear()} Taskdrip. All rights reserved.<br>
+    <a href="{{site_url}}/unsubscribe?email={{email}}" style="color:#374151;text-decoration:underline;">Unsubscribe</a></p>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body>
+</html>`,
   },
   campaign_approved: {
     subject: "Your campaign submission was approved! 💰",
