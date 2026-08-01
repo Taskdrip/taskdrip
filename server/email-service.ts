@@ -34,18 +34,27 @@ export function buildTransporter(settings: any) {
   });
 }
 
-export async function getEmailStatus(): Promise<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean }> {
+export async function getEmailStatus(): Promise<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean; preferredProvider?: string }> {
   const settings = await getEmailSettings();
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
   const resendOk = !!process.env.RESEND_API_KEY;
-  const activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
+  const pref = (settings as any)?.preferredProvider || "";
+
+  // Respect admin's explicit provider preference, then fall back to auto-priority
+  let activeProvider: string;
+  if (pref === "resend" && resendOk) activeProvider = "resend";
+  else if (pref === "smtp" && smtpOk) activeProvider = "smtp";
+  else if (pref === "sendgrid" && sendgridOk) activeProvider = "sendgrid";
+  else activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
+
   return {
-    configured: resendOk || smtpOk || sendgridOk,
+    configured: activeProvider !== "none",
     provider: activeProvider,
     smtpHost: settings?.smtpHost,
     sendgridAvailable: sendgridOk,
     resendAvailable: resendOk,
+    preferredProvider: pref || undefined,
   };
 }
 
@@ -81,6 +90,7 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
+  const pref = (settings as any)?.preferredProvider || "";
 
   if (!resendKey && !smtpOk && !sendgridKey) {
     console.warn("[email] No email provider configured — set RESEND_API_KEY, configure SMTP, or set SENDGRID_API_KEY.");
@@ -101,12 +111,10 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
   // When using Resend: prefer RESEND_FROM_EMAIL env var (verified sender), then DB settings, then default
   const fromEmail = (resendKey ? process.env.RESEND_FROM_EMAIL : null)
     || settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
-  const fromName = settings?.smtpFromName || "Taskdrip";
+  const fromName = (opts as any).fromName || settings?.smtpFromName || "Taskdrip";
 
-  // Provider priority: Resend → SMTP → SendGrid
-  const providers: Array<{ name: string; fn: () => Promise<void> }> = [];
-  if (resendKey) providers.push({ name: "resend", fn: () => sendViaResend(opts, fromEmail, fromName) });
-  if (smtpOk) providers.push({ name: "smtp", fn: async () => {
+  // Build provider list respecting admin's explicit preference
+  const smtpProvider = { name: "smtp", fn: async () => {
     const transporter = buildTransporter(settings);
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
@@ -115,8 +123,20 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
       html: opts.html,
       text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
     });
-  }});
-  if (sendgridKey) providers.push({ name: "sendgrid", fn: () => sendViaSendGrid(opts, fromEmail, fromName) });
+  }};
+  const resendProvider = { name: "resend", fn: () => sendViaResend(opts, fromEmail, fromName) };
+  const sgProvider = { name: "sendgrid", fn: () => sendViaSendGrid(opts, fromEmail, fromName) };
+
+  // Respect admin preference, then fall back to auto-priority (Resend → SMTP → SendGrid)
+  let providers: Array<{ name: string; fn: () => Promise<void> }> = [];
+  if (pref === "resend" && resendKey) providers = [resendProvider, ...(smtpOk ? [smtpProvider] : []), ...(sendgridKey ? [sgProvider] : [])];
+  else if (pref === "smtp" && smtpOk) providers = [smtpProvider, ...(resendKey ? [resendProvider] : []), ...(sendgridKey ? [sgProvider] : [])];
+  else if (pref === "sendgrid" && sendgridKey) providers = [sgProvider, ...(resendKey ? [resendProvider] : []), ...(smtpOk ? [smtpProvider] : [])];
+  else {
+    if (resendKey) providers.push(resendProvider);
+    if (smtpOk) providers.push(smtpProvider);
+    if (sendgridKey) providers.push(sgProvider);
+  }
 
   for (const provider of providers) {
     try {

@@ -1691,6 +1691,8 @@ export const emailSettings = pgTable("email_settings", {
   spfRecord: text("spf_record"),
   dkimPublicKey: text("dkim_public_key"),
   dmarcRecord: text("dmarc_record"),
+  // Provider preference (resend | smtp | sendgrid — empty = auto)
+  preferredProvider: varchar("preferred_provider"),
   // Status
   isVerified: boolean("is_verified").default(false),
   lastTestedAt: timestamp("last_tested_at"),

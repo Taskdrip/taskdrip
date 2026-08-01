@@ -17,7 +17,8 @@ import {
   Play, Eye, Edit, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw,
   Server, Shield, Globe, Key, TestTube, Inbox, Bot, ChevronRight,
   ArrowLeft, Copy, Info, Layers, BookOpen, ExternalLink, Terminal, Lock,
-  Database, HelpCircle, Package, Bell, Download
+  Database, HelpCircle, Package, Bell, Download, LayoutGrid, GraduationCap,
+  ShoppingBag, Building2, UserCheck, PieChart, AtSign, X
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,6 +30,17 @@ interface EmailSettings {
   siteUrl?: string; domain?: string; unsubscribeUrl?: string; logoUrl?: string;
   spfRecord?: string; dkimPublicKey?: string; dmarcRecord?: string;
   isVerified?: boolean; lastTestedAt?: string;
+  preferredProvider?: string;
+}
+
+interface SegmentMember {
+  id: string; email: string; firstName: string; lastName: string;
+  userType?: string; creatorTier?: string; companyName?: string; isVerified?: boolean;
+}
+
+interface Segment {
+  key: string; label: string; description: string; count: number;
+  color: string; icon: string; members: SegmentMember[];
 }
 
 interface EmailCampaign {
@@ -863,6 +875,16 @@ export default function AdminEmail() {
   const [arModal, setArModal] = useState(false);
   const [editAr, setEditAr] = useState<Partial<EmailAutoResponder> | null>(null);
 
+  // ── Individual contact email state
+  const [emailContactModal, setEmailContactModal] = useState(false);
+  const [emailContactUser, setEmailContactUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeHtml, setComposeHtml] = useState("");
+  const [sendingContactEmail, setSendingContactEmail] = useState(false);
+
+  // ── Segments state
+  const [segmentFilter, setSegmentFilter] = useState<string | null>(null);
+
   // ── Queries
   const { data: settingsData } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email/settings"] });
   const { data: emailStatus, refetch: refetchStatus } = useQuery<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean }>({ queryKey: ["/api/admin/email/status"], refetchInterval: 30000 });
@@ -873,6 +895,7 @@ export default function AdminEmail() {
   const { data: contacts = [] } = useQuery<Contact[]>({ queryKey: ["/api/admin/email/contacts"] });
   const { data: aiTemplates = {} } = useQuery<Record<string, any>>({ queryKey: ["/api/admin/email/ai-templates"] });
   const { data: newsletterSubs = [], refetch: refetchSubs } = useQuery<any[]>({ queryKey: ["/api/admin/newsletter-subscribers"] });
+  const { data: segmentsData, refetch: refetchSegments } = useQuery<{ segments: Segment[] }>({ queryKey: ["/api/admin/email/segments"] });
 
   const updateSubStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => apiRequest("PATCH", `/api/admin/newsletter-subscribers/${id}/status`, { status }),
@@ -1000,6 +1023,23 @@ export default function AdminEmail() {
     else createAr.mutate(editAr as any);
   };
 
+  const handleSendContactEmail = async () => {
+    if (!emailContactUser || !composeSubject || !composeHtml) {
+      toast({ title: "Subject and message body are required", variant: "destructive" }); return;
+    }
+    setSendingContactEmail(true);
+    try {
+      const res = await apiRequest("POST", `/api/admin/email/contacts/${emailContactUser.id}/send`, { subject: composeSubject, html: composeHtml });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: `Email sent to ${emailContactUser.name}`, description: `Delivered via ${data.provider || "email provider"}` });
+        setEmailContactModal(false);
+        setComposeSubject(""); setComposeHtml("");
+      } else toast({ title: `Failed: ${data.error}`, variant: "destructive" });
+    } catch { toast({ title: "Failed to send", variant: "destructive" }); }
+    setSendingContactEmail(false);
+  };
+
   const handleLoadAiTemplate = (key: string) => {
     const t = (aiTemplates as any)[key];
     if (!t) return;
@@ -1046,6 +1086,7 @@ export default function AdminEmail() {
             { value: "templates", icon: FileText, label: "Templates" },
             { value: "auto-responders", icon: Bot, label: "Auto-Responders" },
             { value: "newsletter", icon: Bell, label: "Newsletter Subscribers" },
+            { value: "segments", icon: PieChart, label: "Segments" },
             { value: "contacts", icon: Users, label: "Contacts" },
             { value: "logs", icon: Inbox, label: "Email Logs" },
             { value: "settings", icon: Settings, label: "SMTP / IMAP" },
@@ -1400,6 +1441,128 @@ export default function AdminEmail() {
           </div>
         </TabsContent>
 
+        {/* ─────────────── SEGMENTS ─────────────── */}
+        <TabsContent value="segments">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Audience Segments</h2>
+              <p className="text-sm text-gray-500">Understand your audience and send targeted emails to each group</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetchSegments()} className="gap-1"><RefreshCw className="h-3.5 w-3.5" />Refresh</Button>
+          </div>
+
+          {!segmentsData ? (
+            <div className="text-center py-16 text-gray-400"><RefreshCw className="h-8 w-8 mx-auto mb-3 animate-spin opacity-30" /><p>Loading segments…</p></div>
+          ) : (
+            <>
+              {/* Segment cards */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {segmentsData.segments.map(seg => {
+                  const iconMap: Record<string, any> = { users: Users, building: Building2, book: GraduationCap, package: ShoppingBag, bell: Bell, globe: Globe };
+                  const colorMap: Record<string, string> = { blue: "bg-blue-600", purple: "bg-purple-600", green: "bg-green-600", orange: "bg-orange-500", pink: "bg-pink-600", gray: "bg-gray-600" };
+                  const bgMap: Record<string, string> = { blue: "from-blue-50 to-blue-100 border-blue-200", purple: "from-purple-50 to-purple-100 border-purple-200", green: "from-green-50 to-green-100 border-green-200", orange: "from-orange-50 to-orange-100 border-orange-200", pink: "from-pink-50 to-pink-100 border-pink-200", gray: "from-gray-50 to-gray-100 border-gray-200" };
+                  const textMap: Record<string, string> = { blue: "text-blue-900", purple: "text-purple-900", green: "text-green-900", orange: "text-orange-900", pink: "text-pink-900", gray: "text-gray-900" };
+                  const Icon = iconMap[seg.icon] || Users;
+                  return (
+                    <Card key={seg.key} className={`border bg-gradient-to-br ${bgMap[seg.color] || bgMap.gray} cursor-pointer hover:shadow-md transition-shadow`}
+                      onClick={() => setSegmentFilter(segmentFilter === seg.key ? null : seg.key)}>
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className={`p-2.5 rounded-xl ${colorMap[seg.color] || colorMap.gray}`}>
+                            <Icon className="h-5 w-5 text-white" />
+                          </div>
+                          <Badge className={`text-xs border-0 ${colorMap[seg.color]} text-white`}>{seg.count.toLocaleString()}</Badge>
+                        </div>
+                        <h3 className={`font-bold text-base ${textMap[seg.color] || textMap.gray} mb-1`}>{seg.label}</h3>
+                        <p className="text-xs text-gray-500 mb-3">{seg.description}</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" className={`${colorMap[seg.color]} text-white hover:opacity-90 text-xs h-8 flex-1 gap-1`}
+                            disabled={seg.count === 0 || !emailStatus?.configured}
+                            onClick={e => {
+                              e.stopPropagation();
+                              setEditCampaign({ targetSegment: seg.key === 'creators' ? 'influencers' : seg.key === 'shop_customers' ? 'all' : seg.key, status: "draft", htmlBody: "", name: `Campaign to ${seg.label}` });
+                              setCampaignModal(true);
+                              setActiveTab("campaigns");
+                            }}>
+                            <Send className="h-3 w-3" />Campaign Blast
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-xs h-8 gap-1"
+                            onClick={e => { e.stopPropagation(); setSegmentFilter(seg.key); }}>
+                            <Eye className="h-3 w-3" />View
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Segment member list */}
+              {segmentFilter && (() => {
+                const seg = segmentsData.segments.find(s => s.key === segmentFilter);
+                if (!seg) return null;
+                return (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                          <Users className="h-4 w-4 text-purple-600" />
+                          {seg.label} — {seg.count} member{seg.count !== 1 ? 's' : ''}
+                        </CardTitle>
+                        <Button variant="ghost" size="sm" onClick={() => setSegmentFilter(null)}><X className="h-4 w-4" /></Button>
+                      </div>
+                    </CardHeader>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 border-b">
+                          <tr>
+                            {["Name", "Email", "Type", ""].map(h => (
+                              <th key={h} className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {seg.members.slice(0, 100).map(m => (
+                            <tr key={m.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 font-medium text-gray-900">{m.firstName} {m.lastName}</td>
+                              <td className="px-4 py-3 text-gray-600 text-sm">{m.email}</td>
+                              <td className="px-4 py-3">
+                                <Badge className={`text-xs border-0 ${m.userType === 'creator' ? 'bg-blue-50 text-blue-700' : m.userType === 'brand' ? 'bg-purple-50 text-purple-700' : m.userType === 'newsletter' ? 'bg-pink-50 text-pink-700' : 'bg-gray-100 text-gray-700'}`}>
+                                  {m.userType || seg.key}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                                  disabled={!emailStatus?.configured || m.userType === 'newsletter'}
+                                  onClick={() => {
+                                    setEmailContactUser({ id: m.id, name: `${m.firstName} ${m.lastName}`.trim() || m.email, email: m.email });
+                                    setComposeSubject(""); setComposeHtml("");
+                                    setEmailContactModal(true);
+                                  }}>
+                                  <Mail className="h-3 w-3" />Email
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {seg.members.length === 0 && (
+                        <div className="text-center py-12 text-gray-400">
+                          <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                          <p>No members in this segment yet</p>
+                        </div>
+                      )}
+                      {seg.members.length > 100 && (
+                        <p className="text-xs text-gray-400 text-center py-3">Showing first 100 of {seg.members.length} members</p>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })()}
+            </>
+          )}
+        </TabsContent>
+
         {/* ─────────────── CONTACTS ─────────────── */}
         {/* ─────────────── NEWSLETTER SUBSCRIBERS ─────────────── */}
         <TabsContent value="newsletter">
@@ -1478,17 +1641,13 @@ export default function AdminEmail() {
               <h2 className="text-lg font-semibold text-gray-900">Contacts</h2>
               <p className="text-sm text-gray-500">{contacts.length} registered users</p>
             </div>
-            <div className="flex gap-2">
-              {SEGMENTS.map(s => (
-                <Badge key={s.value} className="bg-gray-100 text-gray-700 border-0 text-xs cursor-default">
-                  {s.label}: {
-                    s.value === "all" ? contacts.length :
-                    s.value === "influencers" ? contacts.filter(c => c.userType === "creator").length :
-                    s.value === "brands" ? contacts.filter(c => c.userType === "brand").length :
-                    s.value === "verified" ? contacts.filter(c => c.isVerified).length :
-                    s.value.startsWith("tier_") ? contacts.filter(c => c.creatorTier === s.value.replace("tier_", "")).length : 0
-                  }
-                </Badge>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "Creators", count: contacts.filter(c => c.userType === "creator").length, color: "bg-blue-50 text-blue-700" },
+                { label: "Brands", count: contacts.filter(c => c.userType === "brand").length, color: "bg-purple-50 text-purple-700" },
+                { label: "Verified", count: contacts.filter(c => c.isVerified).length, color: "bg-green-50 text-green-700" },
+              ].map(s => (
+                <Badge key={s.label} className={`${s.color} border-0 text-xs`}>{s.label}: {s.count}</Badge>
               ))}
             </div>
           </div>
@@ -1497,7 +1656,7 @@ export default function AdminEmail() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    {["Name", "Email", "Type", "Tier", "Followers", "Verified"].map(h => (
+                    {["Name", "Email", "Type", "Tier", "Followers", "Verified", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -1506,7 +1665,7 @@ export default function AdminEmail() {
                   {contacts.map(c => (
                     <tr key={c.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{c.firstName} {c.lastName}</td>
-                      <td className="px-4 py-3 text-gray-600">{c.email}</td>
+                      <td className="px-4 py-3 text-gray-600 text-xs">{c.email}</td>
                       <td className="px-4 py-3">
                         <Badge className={`text-xs border-0 ${c.userType === "creator" ? "bg-blue-50 text-blue-700" : c.userType === "brand" ? "bg-purple-50 text-purple-700" : "bg-gray-100 text-gray-700"}`}>
                           {c.userType}
@@ -1517,11 +1676,27 @@ export default function AdminEmail() {
                       <td className="px-4 py-3">
                         {c.isVerified ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-gray-300" />}
                       </td>
+                      <td className="px-4 py-3">
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                          disabled={!emailStatus?.configured}
+                          onClick={() => {
+                            setEmailContactUser({ id: c.id, name: `${c.firstName} ${c.lastName}`.trim() || c.email, email: c.email });
+                            setComposeSubject(""); setComposeHtml("");
+                            setEmailContactModal(true);
+                          }}>
+                          <Mail className="h-3 w-3" />Email
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {contacts.length === 0 && <p className="text-gray-400 text-sm p-6 text-center">No contacts yet</p>}
+              {!emailStatus?.configured && (
+                <div className="p-4 border-t bg-amber-50 text-xs text-amber-700 flex gap-2 items-center">
+                  <AlertCircle className="h-4 w-4 shrink-0" />Configure an email provider first to enable individual contact emails.
+                </div>
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -1573,16 +1748,60 @@ export default function AdminEmail() {
               <p className="font-semibold text-amber-800 text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4" />Email is not active — choose an option below to enable welcome emails and campaigns</p>
               <div className="mt-3 grid sm:grid-cols-2 gap-3">
                 <div className="bg-white border border-amber-100 rounded-lg p-3">
-                  <p className="font-semibold text-gray-800 text-xs mb-1">⚡ Option 1 — SendGrid (Fastest)</p>
-                  <p className="text-xs text-gray-600">Create a free SendGrid account at <strong>sendgrid.com</strong>, get your API key, then add it as <code className="bg-gray-100 px-1 rounded text-xs">SENDGRID_API_KEY</code> in your environment variables. No SMTP config needed.</p>
+                  <p className="font-semibold text-gray-800 text-xs mb-1">⚡ Option 1 — Resend (Recommended)</p>
+                  <p className="text-xs text-gray-600">Create a free Resend account at <strong>resend.com</strong>, get your API key, then add <code className="bg-gray-100 px-1 rounded text-xs">RESEND_API_KEY</code> in Replit Secrets. No SMTP setup needed. 3,000 emails/month free.</p>
                 </div>
                 <div className="bg-white border border-amber-100 rounded-lg p-3">
                   <p className="font-semibold text-gray-800 text-xs mb-1">🔧 Option 2 — SMTP Server</p>
-                  <p className="text-xs text-gray-600">Fill in the SMTP form below with your email provider credentials (Gmail App Password, Namecheap Private Email, Brevo, Mailgun, etc.).</p>
+                  <p className="text-xs text-gray-600">Fill in the SMTP form below with your email provider credentials (Gmail App Password, Namecheap Private Email, Mailgun, etc.).</p>
                 </div>
               </div>
             </div>
           )}
+
+          {/* ── Active Email Provider Card ── */}
+          <Card className="mb-6 border-2 border-purple-200 bg-purple-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <AtSign className="h-4 w-4 text-purple-600" />
+                Active Email Provider
+                {emailStatus?.configured && <Badge className="bg-green-100 text-green-700 border-0 text-xs ml-auto">Active: {(emailStatus.preferredProvider || emailStatus.provider || "auto").toUpperCase()}</Badge>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid sm:grid-cols-3 gap-3">
+                {[
+                  { key: "resend", label: "Resend", desc: "3,000/mo free · Best deliverability", available: emailStatus?.resendAvailable, icon: "⚡" },
+                  { key: "smtp", label: "SMTP", desc: "Custom SMTP server (Brevo, Gmail, etc.)", available: !!(settings.smtpHost && settings.smtpUser), icon: "🔧" },
+                  { key: "sendgrid", label: "SendGrid", desc: "100/day free · Simple API", available: emailStatus?.sendgridAvailable, icon: "📧" },
+                ].map(p => {
+                  const isActive = (settings.preferredProvider || "") === p.key || (!settings.preferredProvider && emailStatus?.provider === p.key);
+                  return (
+                    <div key={p.key}
+                      className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all ${isActive ? "border-purple-500 bg-white shadow-md" : p.available ? "border-gray-200 bg-white hover:border-purple-300" : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"}`}
+                      onClick={() => {
+                        if (!p.available) return;
+                        setSettings(prev => ({ ...prev, preferredProvider: p.key }));
+                        setSettingsDirty(true);
+                      }}>
+                      {isActive && <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-purple-500 rounded-full" />}
+                      <p className="text-lg mb-1">{p.icon}</p>
+                      <p className="font-semibold text-sm text-gray-900">{p.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
+                      {!p.available && <p className="text-xs text-red-500 mt-1">Not configured</p>}
+                      {p.available && isActive && <p className="text-xs text-purple-600 font-semibold mt-1">✓ Currently active</p>}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-400">Select your preferred provider. The system falls back to the next available provider if the selected one fails. Resend requires <code className="bg-gray-100 px-1 rounded">RESEND_API_KEY</code> in Replit Secrets.</p>
+              {settingsDirty && (
+                <Button onClick={() => saveSettings.mutate(settings)} className="bg-purple-600 hover:bg-purple-700 w-full" size="sm">
+                  Save Provider Preference
+                </Button>
+              )}
+            </CardContent>
+          </Card>
           <div className="grid lg:grid-cols-2 gap-6">
             {/* SMTP */}
             <Card>
@@ -2172,6 +2391,55 @@ export default function AdminEmail() {
             <Button variant="outline" onClick={() => { setArModal(false); setEditAr(null); }}>Cancel</Button>
             <Button onClick={handleSaveAr} disabled={createAr.isPending || updateAr.isPending} className="bg-purple-600 hover:bg-purple-700">
               {editAr?.id ? "Update" : "Create"} Auto-Responder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─────────────── INDIVIDUAL CONTACT EMAIL ─────────────── */}
+      <Dialog open={emailContactModal} onOpenChange={v => { if (!v) { setEmailContactModal(false); setEmailContactUser(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-purple-600" />
+              Send Email to {emailContactUser?.name}
+            </DialogTitle>
+            {emailContactUser && <p className="text-xs text-gray-500 mt-1">{emailContactUser.email}</p>}
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs font-medium">Subject</Label>
+              <Input className="mt-1" placeholder="Email subject…" value={composeSubject} onChange={e => setComposeSubject(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Message (HTML supported)</Label>
+              <Textarea className="mt-1 font-mono text-xs" rows={12}
+                placeholder={`<h2>Hello ${emailContactUser?.name?.split(' ')[0] || 'there'},</h2>\n<p>Your message here…</p>`}
+                value={composeHtml} onChange={e => setComposeHtml(e.target.value)} />
+              <p className="text-xs text-gray-400 mt-1">Tip: paste plain text or HTML. Wrap in a &lt;div&gt; for basic formatting.</p>
+            </div>
+            {/* Quick templates */}
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-2">Quick Templates</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Welcome Message", subj: "Welcome to Taskdrip!", body: `<h2>Welcome, ${emailContactUser?.name?.split(' ')[0] || 'there'}! 🎉</h2><p>We're thrilled to have you on Taskdrip. Here's everything you need to get started…</p>` },
+                  { label: "Campaign Invite", subj: "You're Invited to a New Campaign", body: `<h2>You've Been Selected! 🚀</h2><p>Hi ${emailContactUser?.name?.split(' ')[0] || 'there'}, we'd love to invite you to participate in our latest campaign.</p>` },
+                  { label: "Important Update", subj: "Important Update from Taskdrip", body: `<h2>Important Notice</h2><p>Hi ${emailContactUser?.name?.split(' ')[0] || 'there'}, we're reaching out with an important update regarding your account…</p>` },
+                  { label: "Follow-up", subj: "Following Up", body: `<p>Hi ${emailContactUser?.name?.split(' ')[0] || 'there'}, just following up on our recent interaction. We'd love to connect!</p>` },
+                ].map(t => (
+                  <button key={t.label} onClick={() => { setComposeSubject(t.subj); setComposeHtml(t.body); }}
+                    className="text-left p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-lg text-xs font-medium text-gray-700 hover:text-purple-700 transition-colors">
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEmailContactModal(false); setEmailContactUser(null); }}>Cancel</Button>
+            <Button onClick={handleSendContactEmail} disabled={sendingContactEmail || !composeSubject || !composeHtml} className="bg-purple-600 hover:bg-purple-700 gap-1">
+              {sendingContactEmail ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" />Sending…</> : <><Send className="h-3.5 w-3.5" />Send Email</>}
             </Button>
           </DialogFooter>
         </DialogContent>

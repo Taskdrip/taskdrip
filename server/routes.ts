@@ -10488,6 +10488,161 @@ Instructions:
     } catch (e) { res.status(500).json({ message: 'Failed to fetch contacts' }); }
   });
 
+  // Send email to individual contact (admin)
+  app.post('/api/admin/email/contacts/:userId/send', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const { userId } = req.params;
+      const { subject, html, fromName } = req.body;
+      if (!subject || !html) return res.status(400).json({ message: 'subject and html required' });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      const result = await sendEmail({
+        to: user.email,
+        toName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
+        subject,
+        html,
+        ...(fromName ? { fromName } : {}),
+      } as any);
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  // User segments for email marketing
+  app.get('/api/admin/email/segments', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const allUsers = await storage.getAllUsers?.() || [];
+      const { courseEnrollments, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations } = await import('@shared/schema');
+      const { db: dbInst } = await import('./db');
+      const { eq, sql: sqlFn } = await import('drizzle-orm');
+
+      // Count course students (from both courseEnrollments and breedskoolRegistrations)
+      const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments.userId }).from(courseEnrollments);
+      const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations.userId }).from(breedskoolRegistrations);
+      const studentUserIds = new Set([
+        ...enrollmentRows.map((r: any) => r.userId),
+        ...breedskoolRows.map((r: any) => r.userId).filter(Boolean),
+      ]);
+
+      // Count shop customers
+      const purchaseRows = await dbInst.selectDistinct({ userId: shopPurchases.userId }).from(shopPurchases);
+      const shopCustomerIds = new Set(purchaseRows.map((r: any) => r.userId));
+
+      // Newsletter subscribers
+      const nsRows = await dbInst.select().from(nsSubs);
+      const activeNsSubs = nsRows.filter((s: any) => s.status === 'active');
+
+      const creators = allUsers.filter((u: any) => u.userType === 'creator');
+      const brands = allUsers.filter((u: any) => u.userType === 'brand');
+      const students = allUsers.filter((u: any) => studentUserIds.has(u.id));
+      const shopCustomers = allUsers.filter((u: any) => shopCustomerIds.has(u.id));
+
+      res.json({
+        segments: [
+          {
+            key: 'creators',
+            label: 'Influencers & Creators',
+            description: 'Registered influencer/creator accounts',
+            count: creators.length,
+            color: 'blue',
+            icon: 'users',
+            members: creators.map((u: any) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, creatorTier: u.creatorTier, isVerified: u.isVerified })),
+          },
+          {
+            key: 'brands',
+            label: 'Brands',
+            description: 'Registered brand accounts running campaigns',
+            count: brands.length,
+            color: 'purple',
+            icon: 'building',
+            members: brands.map((u: any) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, companyName: u.companyName, isVerified: u.isVerified })),
+          },
+          {
+            key: 'students',
+            label: 'Course Students',
+            description: 'Users enrolled in BreedSkool courses',
+            count: students.length,
+            color: 'green',
+            icon: 'book',
+            members: students.map((u: any) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, userType: u.userType })),
+          },
+          {
+            key: 'shop_customers',
+            label: 'Shop Customers',
+            description: 'Users who have purchased shop products',
+            count: shopCustomers.length,
+            color: 'orange',
+            icon: 'package',
+            members: shopCustomers.map((u: any) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, userType: u.userType })),
+          },
+          {
+            key: 'newsletter',
+            label: 'Newsletter Subscribers',
+            description: 'Footer opt-in newsletter subscribers',
+            count: activeNsSubs.length,
+            color: 'pink',
+            icon: 'bell',
+            members: activeNsSubs.map((s: any) => ({ id: s.id, email: s.email, firstName: s.name || '', lastName: '', userType: 'newsletter' })),
+          },
+          {
+            key: 'all',
+            label: 'All Users',
+            description: 'Every registered account on the platform',
+            count: allUsers.length,
+            color: 'gray',
+            icon: 'globe',
+            members: allUsers.map((u: any) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, userType: u.userType })),
+          },
+        ],
+      });
+    } catch (e: any) { res.status(500).json({ message: 'Failed to fetch segments', error: e.message }); }
+  });
+
+  // Brand sends a personalised email to an individual user
+  app.post('/api/brand/send-email', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+      const { userId, subject, message, fromCompanyName } = req.body;
+      if (!userId || !subject || !message) return res.status(400).json({ message: 'userId, subject, and message are required' });
+
+      const [sender, recipient] = await Promise.all([
+        storage.getUser(req.user.id),
+        storage.getUser(userId),
+      ]);
+      if (!sender) return res.status(403).json({ message: 'Sender not found' });
+      if (!recipient) return res.status(404).json({ message: 'Recipient not found' });
+
+      const companyName = fromCompanyName || (sender as any).companyName || `${sender.firstName} ${sender.lastName}`.trim() || 'A Brand on Taskdrip';
+      const fromDisplay = `${companyName} via Taskdrip`;
+      const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
+          <div style="background: linear-gradient(135deg, #7c3aed, #4f46e5); padding: 24px; border-radius: 12px 12px 0 0; color: white; text-align: center;">
+            <h1 style="margin: 0; font-size: 22px;">${companyName}</h1>
+            <p style="margin: 6px 0 0; opacity: 0.85; font-size: 13px;">Sent via Taskdrip</p>
+          </div>
+          <div style="background: #fff; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; padding: 28px;">
+            <p style="font-size: 15px; margin: 0 0 16px;">Hi ${recipient.firstName || 'there'},</p>
+            <div style="font-size: 15px; line-height: 1.7; color: #374151; white-space: pre-line;">${message}</div>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+            <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+              This email was sent by <strong>${companyName}</strong> through the Taskdrip platform. 
+              If you believe this was sent in error, please contact support@taskdrip.online.
+            </p>
+          </div>
+        </div>`;
+
+      const result = await sendEmail({
+        to: recipient.email,
+        toName: `${recipient.firstName || ''} ${recipient.lastName || ''}`.trim() || undefined,
+        subject: `${subject} — ${companyName}`,
+        html: htmlBody,
+        fromName: fromDisplay,
+      } as any);
+      res.json(result);
+    } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
   // ── $TDRIP Points System ─────────────────────────────────────
   app.get('/api/points/me', isAuthenticated, async (req: any, res) => {
     try {
