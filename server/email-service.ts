@@ -98,7 +98,9 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
     return { success: false, error: "No email provider configured. Add RESEND_API_KEY to your secrets or set up SMTP." };
   }
 
-  const fromEmail = settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
+  // When using Resend: prefer RESEND_FROM_EMAIL env var (verified sender), then DB settings, then default
+  const fromEmail = (resendKey ? process.env.RESEND_FROM_EMAIL : null)
+    || settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
   const fromName = settings?.smtpFromName || "Taskdrip";
 
   // Provider priority: Resend → SMTP → SendGrid

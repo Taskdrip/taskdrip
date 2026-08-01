@@ -169,7 +169,7 @@ function StepCard({ step, title, icon: Icon, color, children }: { step: number; 
 }
 
 function SetupGuide({ domain }: { domain: string }) {
-  const [section, setSection] = useState<"namecheap" | "vps" | "newbiz">("namecheap");
+  const [section, setSection] = useState<"resend" | "namecheap" | "vps" | "newbiz">("resend");
 
   const spf = `v=spf1 include:privateemail.com ~all`;
   const dmarc = `v=DMARC1; p=quarantine; rua=mailto:dmarc@${domain}; adkim=s; aspf=s`;
@@ -188,6 +188,7 @@ function SetupGuide({ domain }: { domain: string }) {
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
           {[
+            { key: "resend", label: "🚀 Resend Domain Verify" },
             { key: "namecheap", label: "Namecheap DNS Setup" },
             { key: "vps", label: "GitHub → Railway Deployment" },
             { key: "newbiz", label: "New Business Checklist" },
@@ -199,6 +200,130 @@ function SetupGuide({ domain }: { domain: string }) {
           ))}
         </div>
       </div>
+
+      {/* ── RESEND DOMAIN VERIFICATION ── */}
+      {section === "resend" && (
+        <div className="space-y-5">
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <p className="font-semibold mb-1">Why this is required</p>
+              <p>Resend will reject all outgoing emails (welcome emails + campaign blasts) until the sending domain is verified. This takes about 10 minutes and requires adding 3 DNS records to your domain registrar.</p>
+            </div>
+          </div>
+
+          <StepCard step={1} title="Add Your Domain in Resend" icon={Globe} color="bg-purple-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Go to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-semibold">resend.com/domains</a> and log in to your Resend account</li>
+                <li>Click <strong>Add Domain</strong></li>
+                <li>Enter <code className="bg-gray-100 px-1 rounded font-mono">{domain}</code> as the domain name</li>
+                <li>Choose the DNS region closest to your users (e.g. <strong>US East</strong>)</li>
+                <li>Click <strong>Add</strong> — Resend will show you the DNS records to add</li>
+              </ol>
+            </div>
+          </StepCard>
+
+          <StepCard step={2} title="Add the 3 DNS Records to Your Registrar" icon={Shield} color="bg-blue-600">
+            <div className="space-y-4 text-sm text-gray-700">
+              <p>Resend will give you exactly <strong>3 records</strong> to add. Go to your domain registrar (Namecheap → Advanced DNS, or Cloudflare → DNS) and add them:</p>
+              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-semibold">Record Type</th>
+                      <th className="text-left px-4 py-2 font-semibold">Host / Name</th>
+                      <th className="text-left px-4 py-2 font-semibold">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["TXT", "@  (root domain)", "v=spf1 include:amazonses.com ~all"],
+                      ["CNAME", "resend._domainkey", "<shown in Resend dashboard>"],
+                      ["MX (optional)", "send", "feedback-smtp.us-east-1.amazonses.com  (priority 10)"],
+                    ].map(([type, host, val]) => (
+                      <tr key={type} className="border-t border-gray-100">
+                        <td className="px-4 py-2 font-semibold text-purple-700">{type}</td>
+                        <td className="px-4 py-2 font-mono text-gray-700">{host}</td>
+                        <td className="px-4 py-2 text-gray-600 break-all">{val}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+                <p className="font-semibold mb-1">ℹ️ Use the exact values from your Resend dashboard</p>
+                <p>The table above shows the format — always copy the actual DKIM CNAME value from Resend, as it is unique to your account.</p>
+              </div>
+              <p className="text-xs text-gray-500">For <strong>Namecheap</strong>: go to Domain List → Manage → Advanced DNS → Add New Record. For <strong>Cloudflare</strong>: go to DNS → Records → Add Record.</p>
+            </div>
+          </StepCard>
+
+          <StepCard step={3} title="Verify the Domain in Resend" icon={CheckCircle} color="bg-green-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Return to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-semibold">resend.com/domains</a></li>
+                <li>Find <code className="bg-gray-100 px-1 rounded font-mono">{domain}</code> in your domains list</li>
+                <li>Click <strong>Verify DNS Records</strong></li>
+                <li>DNS propagation takes <strong>5–30 minutes</strong> — if it fails, wait a few minutes and try again</li>
+                <li>Once you see a <strong>✅ Verified</strong> badge, emails will immediately start delivering</li>
+              </ol>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                <div className="text-xs text-green-800">
+                  <p className="font-semibold">After verification</p>
+                  <p className="mt-0.5">Welcome emails will send to <strong>Influencers</strong> and <strong>Brands</strong> automatically on every registration. You can test via the Overview tab → "Test Welcome Email" panel. Campaign blasts from the Campaigns tab will also work immediately.</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-700">
+                <p className="font-semibold mb-1">Optional: Configure your "From" email address</p>
+                <p>By default, emails send from <code className="bg-gray-100 px-1 rounded font-mono">noreply@{domain}</code>. You can change this in <strong>SMTP / IMAP / Domain</strong> tab → <em>From Email</em> field. Or set the <code className="bg-gray-100 px-1 rounded font-mono">RESEND_FROM_EMAIL</code> Replit Secret to any address on a verified domain.</p>
+              </div>
+            </div>
+          </StepCard>
+
+          <StepCard step={4} title="Check DNS Propagation with MXToolbox" icon={Globe} color="bg-indigo-600">
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>If verification fails, check whether your DNS records have propagated using these tools:</p>
+              <div className="space-y-2">
+                <a href={`https://mxtoolbox.com/SuperTool.aspx?action=txt%3a${domain}&run=toolpage`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 transition-colors">
+                  <ExternalLink className="h-4 w-4" />
+                  Check SPF/TXT record for {domain} on MXToolbox
+                </a>
+                <a href={`https://dnschecker.org/#TXT/${domain}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 transition-colors">
+                  <ExternalLink className="h-4 w-4" />
+                  Check global DNS propagation on DNSChecker.org
+                </a>
+              </div>
+              <p className="text-xs text-gray-500">DNS changes can take 5 minutes to 1 hour to propagate globally. Once the TXT record appears in the check tools, Resend verification will succeed.</p>
+            </div>
+          </StepCard>
+
+          <Card className="border-2 border-purple-200 bg-purple-50">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <CheckCircle className="h-6 w-6 text-purple-600" />
+                <h3 className="font-bold text-purple-900 text-base">Resend Setup Checklist</h3>
+              </div>
+              <div className="space-y-2 text-xs text-purple-800">
+                {[
+                  "✅ RESEND_API_KEY added to Replit Secrets",
+                  `✅ ${domain} added as domain in resend.com/domains`,
+                  "✅ SPF TXT record added to DNS registrar",
+                  "✅ DKIM CNAME record added to DNS registrar",
+                  "✅ Domain verified in Resend (green ✅ badge)",
+                  "✅ Test welcome email sent from Overview tab",
+                  "✅ Welcome email received in inbox (not spam)",
+                ].map(item => (
+                  <div key={item} className="flex items-center gap-2">{item}</div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ── NAMECHEAP SECTION ── */}
       {section === "namecheap" && (
@@ -740,7 +865,7 @@ export default function AdminEmail() {
 
   // ── Queries
   const { data: settingsData } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email/settings"] });
-  const { data: emailStatus, refetch: refetchStatus } = useQuery<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean }>({ queryKey: ["/api/admin/email/status"], refetchInterval: 30000 });
+  const { data: emailStatus, refetch: refetchStatus } = useQuery<{ configured: boolean; provider: string; smtpHost?: string; sendgridAvailable: boolean; resendAvailable: boolean }>({ queryKey: ["/api/admin/email/status"], refetchInterval: 30000 });
   const { data: campaigns = [] } = useQuery<EmailCampaign[]>({ queryKey: ["/api/admin/email/campaigns"] });
   const { data: templates = [] } = useQuery<EmailTemplate[]>({ queryKey: ["/api/admin/email/templates"] });
   const { data: autoResponders = [] } = useQuery<EmailAutoResponder[]>({ queryKey: ["/api/admin/email/auto-responders"] });
@@ -947,13 +1072,53 @@ export default function AdminEmail() {
             </div>
           )}
           {emailStatus?.configured && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
               <div className="flex-1">
                 <p className="font-semibold text-green-800 text-sm">Email is active — welcome emails will be sent automatically</p>
-                <p className="text-green-700 text-xs mt-0.5">Provider: <strong>{emailStatus.provider === "smtp" ? `SMTP (${emailStatus.smtpHost})` : "SendGrid"}</strong> · All new registrations will trigger the welcome email flow.</p>
+                <p className="text-green-700 text-xs mt-0.5">
+                  Provider: <strong>
+                    {emailStatus.provider === "smtp" ? `SMTP (${emailStatus.smtpHost})` :
+                     emailStatus.provider === "resend" ? "Resend" :
+                     emailStatus.provider === "sendgrid" ? "SendGrid" :
+                     emailStatus.provider.toUpperCase()}
+                  </strong> · All new registrations will trigger the welcome email flow.
+                </p>
               </div>
               <Badge className="bg-green-100 text-green-700 border-0 text-xs">{emailStatus.provider.toUpperCase()}</Badge>
+            </div>
+          )}
+          {/* Resend domain verification warning */}
+          {emailStatus?.provider === "resend" && (
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-900 text-sm">⚠️ Action required: Verify your sending domain in Resend</p>
+                  <p className="text-amber-800 text-xs mt-1 leading-relaxed">
+                    Your RESEND_API_KEY is active, but <strong>taskdrip.online</strong> must be verified as a sender domain before emails will deliver.
+                    Until verified, all welcome emails and campaign blasts will fail with a 403 error.
+                  </p>
+                  <div className="mt-3 bg-white border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-2">
+                    <p className="font-semibold">How to verify your domain (takes ~10 min):</p>
+                    <ol className="list-decimal list-inside space-y-1.5 text-amber-800">
+                      <li>Go to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-amber-700 hover:text-amber-900">resend.com/domains</a> → click <strong>Add Domain</strong></li>
+                      <li>Enter <code className="bg-amber-100 px-1 rounded font-mono">taskdrip.online</code> and choose your DNS region</li>
+                      <li>Resend will show you <strong>3 DNS records</strong> to add (SPF, DKIM ×2)</li>
+                      <li>Log in to your domain registrar (Namecheap, Cloudflare, etc.) → Advanced DNS</li>
+                      <li>Add all 3 TXT/CNAME records exactly as shown in Resend</li>
+                      <li>Click <strong>Verify DNS Records</strong> in Resend — propagation takes 5–30 min</li>
+                      <li>Once verified ✅, emails will deliver immediately with no code changes needed</li>
+                    </ol>
+                  </div>
+                  <p className="text-amber-700 text-xs mt-2">
+                    💡 <strong>Tip:</strong> While waiting for DNS propagation, you can set <code className="bg-amber-100 px-1 rounded">RESEND_FROM_EMAIL</code> in Replit Secrets to an email address on an already-verified domain (e.g. if you have another verified domain in Resend).
+                  </p>
+                </div>
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-xs shrink-0 whitespace-nowrap" onClick={() => window.open("https://resend.com/domains", "_blank")}>
+                  Open Resend Domains →
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1001,7 +1166,8 @@ export default function AdminEmail() {
                   {sendingWelcomeTest ? <><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Sending…</> : <><Send className="h-3 w-3 mr-1" />Send Welcome Email Test</>}
                 </Button>
               </div>
-              {!emailStatus?.configured && <p className="text-xs text-red-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Configure SMTP or SendGrid first before sending test emails.</p>}
+              {!emailStatus?.configured && <p className="text-xs text-red-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Configure Resend, SMTP, or SendGrid first before sending test emails.</p>}
+              {emailStatus?.provider === "resend" && <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertCircle className="h-3 w-3" />Resend requires domain verification — see the warning above to set up <strong>taskdrip.online</strong> in Resend before test emails will deliver.</p>}
             </CardContent>
           </Card>
 
