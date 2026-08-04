@@ -6704,6 +6704,8 @@ Instructions:
       if (body.isFree !== undefined) body.isFree = body.isFree === 'true' || body.isFree === true;
       if (body.isPublished !== undefined) body.isPublished = body.isPublished === 'true' || body.isPublished === true;
       if (body.isFeatured !== undefined) body.isFeatured = body.isFeatured === 'true' || body.isFeatured === true;
+      if (body.saleDeadline && body.saleDeadline !== '') { body.saleDeadline = new Date(body.saleDeadline); } else { body.saleDeadline = null; }
+      if (!body.salePrice || body.salePrice === '') body.salePrice = null;
       const course = await storage.createCourse({ ...body, instructorId: u.id });
       res.status(201).json(course);
     } catch (error: any) {
@@ -6733,6 +6735,8 @@ Instructions:
       if (body.isFree !== undefined) body.isFree = body.isFree === 'true' || body.isFree === true;
       if (body.isPublished !== undefined) body.isPublished = body.isPublished === 'true' || body.isPublished === true;
       if (body.isFeatured !== undefined) body.isFeatured = body.isFeatured === 'true' || body.isFeatured === true;
+      if (body.saleDeadline && body.saleDeadline !== '') { body.saleDeadline = new Date(body.saleDeadline); } else { body.saleDeadline = null; }
+      if (!body.salePrice || body.salePrice === '') body.salePrice = null;
       const updated = await storage.updateCourse(req.params.id, body);
       res.json(updated);
     } catch (error: any) {
