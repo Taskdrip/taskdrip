@@ -39,7 +39,7 @@ import {
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Code2, Layers, KeyRound, UserCog, Coins,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
-  Briefcase, Store, Trophy, Gift, Award, Crown, MessageCircle
+  Briefcase, Store, Trophy, Gift, Award, Crown, MessageCircle, ChevronRight
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -2080,6 +2080,8 @@ export default function AdminMaster() {
 
   // Proof preview modal state
   const [proofModal, setProofModal] = useState<{open: boolean; url?: string; txHash?: string; network?: string; amount?: string; label?: string}>({ open: false });
+  // Shop analytics drill-down
+  const [shopAnalyticsProduct, setShopAnalyticsProduct] = useState<any>(null);
 
   // Forms
   const blogForm = useForm({
@@ -3077,6 +3079,57 @@ export default function AdminMaster() {
                 <FileText className="w-10 h-10 mx-auto mb-3 text-gray-600" />
                 <p className="text-sm">No proof details available</p>
               </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── SHOP ANALYTICS DETAIL MODAL ── */}
+      <Dialog open={!!shopAnalyticsProduct} onOpenChange={(o) => { if (!o) setShopAnalyticsProduct(null); }}>
+        <DialogContent className="max-w-2xl w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-indigo-600" />
+              {shopAnalyticsProduct?.title} — All Orders
+            </DialogTitle>
+            <DialogDescription>
+              {shopAnalyticsProduct?._orders?.length || 0} order{shopAnalyticsProduct?._orders?.length !== 1 ? "s" : ""} · ${(shopAnalyticsProduct?._revenue || 0).toFixed(2)} total revenue
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2 py-2">
+            {shopAnalyticsProduct?._orders?.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <ShoppingBag className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No orders yet for this product</p>
+              </div>
+            ) : (
+              shopAnalyticsProduct?._orders?.map((order: any) => (
+                <div key={order.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                  {order.buyer?.profileImage ? (
+                    <img src={order.buyer.profileImage} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 flex-shrink-0">
+                      {(order.buyer?.username || order.buyer?.email || "?")[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-gray-900 truncate">{order.buyer?.fullName || order.buyer?.username || "Unknown buyer"}</p>
+                    <p className="text-xs text-gray-500 truncate">{order.buyer?.email}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-gray-900">${order.totalAmount}</p>
+                    <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+                    order.status === "delivered" ? "bg-green-100 text-green-700" :
+                    order.status === "pending"   ? "bg-amber-100 text-amber-700" :
+                    order.status === "paid"      ? "bg-blue-100 text-blue-700"  :
+                    "bg-gray-100 text-gray-600"
+                  }`}>
+                    {order.status}
+                  </span>
+                </div>
+              ))
             )}
           </div>
         </DialogContent>
@@ -6554,9 +6607,12 @@ export default function AdminMaster() {
                               {/* Payment proof */}
                               {order.paymentProof && (
                                 <div className="mb-3">
-                                  <a href={order.paymentProof} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline bg-indigo-50 px-2 py-1 rounded-lg">
+                                  <button
+                                    onClick={() => setProofModal({ open: true, url: order.paymentProof, label: order.product?.title || "Shop Order" })}
+                                    className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors"
+                                  >
                                     <Eye className="h-3 w-3" /> View Payment Proof
-                                  </a>
+                                  </button>
                                 </div>
                               )}
 
@@ -6820,6 +6876,95 @@ export default function AdminMaster() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* ═══ SHOP PRODUCT ANALYTICS ═══ */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingBag className="h-5 w-5 text-indigo-600" />
+                      Shop Product Sales
+                    </CardTitle>
+                    <CardDescription>Revenue &amp; sales by product — click any row to see all buyers</CardDescription>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                  {[
+                    { label: "Total Orders",   count: adminPurchases.length, color: "text-indigo-600", bg: "bg-indigo-50" },
+                    { label: "Delivered",       count: adminPurchases.filter((p: any) => p.status === "delivered").length,  color: "text-green-600",  bg: "bg-green-50" },
+                    { label: "Pending",         count: adminPurchases.filter((p: any) => p.status === "pending").length,    color: "text-amber-600",  bg: "bg-amber-50"  },
+                    {
+                      label: "Shop Revenue",
+                      count: `$${adminPurchases.filter((p: any) => p.status !== "cancelled").reduce((acc: number, p: any) => acc + (parseFloat(p.totalAmount) || 0), 0).toFixed(2)}`,
+                      color: "text-green-700",  bg: "bg-emerald-50",
+                    },
+                  ].map((s) => (
+                    <div key={s.label} className={`${s.bg} rounded-xl p-3`}>
+                      <p className={`text-xl font-bold ${s.color}`}>{s.count}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {shopProducts.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <ShoppingBag className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No products yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(shopProducts as any[])
+                      .map((product: any) => {
+                        const productOrders = (adminPurchases as any[]).filter(
+                          (p: any) => p.productId === product.id || p.product?.id === product.id
+                        );
+                        const revenue = productOrders
+                          .filter((p: any) => p.status !== "cancelled")
+                          .reduce((sum: number, p: any) => sum + (parseFloat(p.totalAmount) || 0), 0);
+                        const delivered = productOrders.filter((p: any) => p.status === "delivered").length;
+                        return { ...product, _orders: productOrders, _revenue: revenue, _delivered: delivered };
+                      })
+                      .sort((a: any, b: any) => b._orders.length - a._orders.length)
+                      .map((product: any) => (
+                        <button
+                          key={product.id}
+                          onClick={() => setShopAnalyticsProduct(product)}
+                          className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/60 transition-all text-left group"
+                        >
+                          {product.featuredImage ? (
+                            <img src={product.featuredImage} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                              <Package className="h-5 w-5 text-indigo-500" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm truncate">{product.title}</p>
+                            <p className="text-xs text-gray-500">{product.category} · {product.isFree ? "Free" : `$${product.price}`}</p>
+                          </div>
+                          <div className="flex items-center gap-5 flex-shrink-0">
+                            <div className="text-center hidden sm:block">
+                              <p className="text-sm font-bold text-indigo-600">{product._orders.length}</p>
+                              <p className="text-xs text-gray-400">orders</p>
+                            </div>
+                            <div className="text-center hidden sm:block">
+                              <p className="text-sm font-bold text-emerald-600">{product._delivered}</p>
+                              <p className="text-xs text-gray-400">delivered</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-bold text-gray-800">${product._revenue.toFixed(0)}</p>
+                              <p className="text-xs text-gray-400">revenue</p>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">

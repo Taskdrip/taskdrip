@@ -60,7 +60,7 @@ function AnimatedPromoNote({ deadline }: { deadline: string | null }) {
 
   return (
     <div
-      className="flex items-center gap-2 rounded-xl px-4 py-2.5 mt-4"
+      className="flex items-center gap-2 rounded-xl px-4 py-2.5 mt-4 min-w-0 overflow-hidden"
       style={{ background: "linear-gradient(90deg,#fff7ed,#fef2f2,#fdf4ff)", border: "1px solid #fed7aa" }}
     >
       <PartyPopper
@@ -68,7 +68,7 @@ function AnimatedPromoNote({ deadline }: { deadline: string | null }) {
         style={{ animation: "bounce 1s infinite" }}
       />
       <p
-        className="text-sm font-medium text-orange-800 transition-opacity duration-700"
+        className="text-sm font-medium text-orange-800 transition-opacity duration-700 break-words min-w-0"
         style={{ opacity: visible ? 1 : 0.35 }}
       >
         🎉 You're enjoying access to this course at the{" "}
@@ -99,7 +99,7 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
       {/* Animated top ticker */}
       <div className="flex items-center gap-2 px-5 py-2.5 overflow-hidden" style={{ background: "rgba(0,0,0,0.18)" }}>
         <Flame className="h-4 w-4 text-white flex-shrink-0 animate-pulse" />
-        <div className="overflow-hidden flex-1">
+        <div className="overflow-hidden flex-1 min-w-0">
           <p className="text-white font-bold text-xs uppercase tracking-widest whitespace-nowrap"
              style={{ animation: "marquee 18s linear infinite" }}>
             🔥 LIMITED-TIME PROMO PRICE &nbsp;·&nbsp; OFFER ENDS {deadlineStr.toUpperCase()} &nbsp;·&nbsp; LOCK IN YOUR SAVINGS NOW &nbsp;·&nbsp; 🔥 LIMITED-TIME PROMO PRICE &nbsp;·&nbsp; OFFER ENDS {deadlineStr.toUpperCase()} &nbsp;·&nbsp; LOCK IN YOUR SAVINGS NOW &nbsp;·&nbsp;
@@ -122,9 +122,9 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
 
           <div className="flex flex-col sm:flex-row sm:items-start gap-5">
             {/* Pricing */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-5xl font-extrabold text-gray-900" style={{ letterSpacing: "-0.03em" }}>
+                <span className="text-4xl sm:text-5xl font-extrabold text-gray-900" style={{ letterSpacing: "-0.03em" }}>
                   ${salePrice.toFixed(0)}
                 </span>
                 <div className="flex flex-col">
