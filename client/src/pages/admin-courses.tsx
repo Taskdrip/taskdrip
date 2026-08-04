@@ -32,6 +32,8 @@ const courseFormSchema = z.object({
   shortDescription: z.string().optional(),
   category: z.string().min(1, "Category is required"),
   price: z.string().optional(),
+  salePrice: z.string().optional(),
+  saleDeadline: z.string().optional(),
   isFree: z.boolean().default(false),
   level: z.string().default("beginner"),
   duration: z.string().optional(),
@@ -541,6 +543,10 @@ export default function AdminCourses() {
       if (data.duration) fd.append("duration", data.duration);
       fd.append("isPublished", String(data.isPublished));
       fd.append("isFeatured", String(data.isFeatured));
+      if (data.salePrice) fd.append("salePrice", data.salePrice);
+      else fd.append("salePrice", "");
+      if (data.saleDeadline) fd.append("saleDeadline", data.saleDeadline);
+      else fd.append("saleDeadline", "");
       const whatYouLearn = (data.whatYouLearn || "").split("\n").filter(Boolean);
       const requirements = (data.requirements || "").split("\n").filter(Boolean);
       fd.append("whatYouLearn", JSON.stringify(whatYouLearn));
@@ -611,6 +617,10 @@ export default function AdminCourses() {
       requirements: (course.requirements || []).join("\n"),
       isPublished: course.isPublished,
       isFeatured: course.isFeatured,
+      salePrice: course.salePrice || "",
+      saleDeadline: course.saleDeadline
+        ? new Date(course.saleDeadline).toISOString().slice(0, 16)
+        : "",
     });
     setOpen(true);
   };
@@ -710,6 +720,26 @@ export default function AdminCourses() {
                     <div>
                       <Label>Price (USDT)</Label>
                       <Input {...form.register("price")} placeholder="29.99" />
+                    </div>
+                  )}
+                  {!form.watch("isFree") && (
+                    <div className="col-span-2 border border-orange-200 bg-orange-50 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-orange-600 text-sm font-bold">🔥 Promo / Sale Price (optional)</span>
+                        <span className="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">Countdown timer shown to students</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-gray-600">Promo Price (USDT)</Label>
+                          <Input {...form.register("salePrice")} placeholder="e.g. 49.00" className="bg-white" />
+                          <p className="text-xs text-gray-400 mt-1">Leave blank to disable promo</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600">Promo Ends On</Label>
+                          <Input type="datetime-local" {...form.register("saleDeadline")} className="bg-white" />
+                          <p className="text-xs text-gray-400 mt-1">Countdown timer disappears after this date</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                   <div className="col-span-2">

@@ -101,6 +101,11 @@ html, body {
 }
 
 /* ── Premium upgrade animations ─────────────────────────────────────────── */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 @keyframes glow-pulse-purple {
   0%, 100% {
     box-shadow: 0 0 8px 3px rgba(139, 92, 246, 0.45),
