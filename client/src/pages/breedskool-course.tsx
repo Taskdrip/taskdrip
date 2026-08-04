@@ -96,12 +96,12 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: "linear-gradient(135deg,#f97316,#ef4444,#ec4899)" }}>
-      {/* Animated top ticker */}
-      <div className="flex items-center gap-2 px-3 py-2 overflow-hidden" style={{ background: "rgba(0,0,0,0.18)" }}>
+      {/* Animated top ticker — text is absolutely positioned to prevent layout overflow */}
+      <div className="flex items-center gap-2 px-3 py-2" style={{ background: "rgba(0,0,0,0.18)", overflow: "hidden" }}>
         <Flame className="h-3.5 w-3.5 text-white flex-shrink-0 animate-pulse" />
-        <div className="overflow-hidden flex-1 min-w-0" style={{ contain: "paint" }}>
-          <p className="text-white font-bold text-xs uppercase tracking-wide whitespace-nowrap"
-             style={{ animation: "marquee 18s linear infinite", display: "inline-block" }}>
+        <div style={{ position: "relative", overflow: "hidden", flex: 1, minWidth: 0, height: "1rem" }}>
+          <p className="text-white font-bold text-xs uppercase tracking-wide"
+             style={{ position: "absolute", top: 0, left: 0, whiteSpace: "nowrap", animation: "marquee 18s linear infinite" }}>
             🔥 LIMITED-TIME PROMO PRICE &nbsp;·&nbsp; OFFER ENDS {deadlineStr.toUpperCase()} &nbsp;·&nbsp; LOCK IN YOUR SAVINGS NOW &nbsp;·&nbsp; 🔥 LIMITED-TIME PROMO PRICE &nbsp;·&nbsp; OFFER ENDS {deadlineStr.toUpperCase()} &nbsp;·&nbsp; LOCK IN YOUR SAVINGS NOW &nbsp;·&nbsp;
           </p>
         </div>
@@ -404,7 +404,7 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
         <div className="mb-6 bg-gray-900 rounded-2xl overflow-hidden">
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div>
-              <p className="text-white font-semibold text-sm whitespace-normal break-anywhere">{selectedLesson.title}</p>
+              <p className="text-white font-semibold text-sm break-words">{selectedLesson.title}</p>
               {selectedLesson.isPreview && <Badge className="bg-green-500 text-white text-xs mt-1">Free Preview</Badge>}
             </div>
             <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white" onClick={() => setSelectedLesson(null)}>
@@ -471,8 +471,8 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
                 }`}>
                   {accessible ? <Play className={`h-3 w-3 ${isSelected ? "fill-white" : "fill-violet-700"}`} /> : idx + 1}
                 </div>
-                <div className="min-w-0 flex-1 basis-0">
-                  <p className={`w-full font-medium text-sm leading-5 whitespace-normal break-anywhere ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
+                <div className="min-w-0 flex-1 basis-0 overflow-hidden">
+                  <p className={`font-medium text-sm leading-5 break-words overflow-wrap-anywhere ${isSelected ? "text-violet-700" : "text-gray-900"}`}>
                     {lesson.title}
                   </p>
                   {(lesson.isPreview || lesson.videoLink) && (
@@ -482,7 +482,7 @@ function LessonsSection({ courseId, isEnrolled, isInstructor }: { courseId: stri
                     </div>
                   )}
                   {lesson.description && (
-                    <p className="text-xs text-gray-400 mt-1 whitespace-normal break-anywhere">{lesson.description}</p>
+                    <p className="text-xs text-gray-400 mt-1 break-words">{lesson.description}</p>
                   )}
                 </div>
                 {!accessible && <Lock className="h-4 w-4 text-gray-300 flex-shrink-0" />}
@@ -832,9 +832,9 @@ export default function BreedSkoolCourse() {
                 </h2>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {whatYouLearn.map((item: string, i: number) => (
-                    <div key={i} className="flex items-start gap-2">
+                    <div key={i} className="flex items-start gap-2 min-w-0">
                       <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-gray-700">{item}</span>
+                      <span className="text-sm text-gray-700 break-words min-w-0 flex-1">{item}</span>
                     </div>
                   ))}
                 </div>
