@@ -3801,6 +3801,129 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Payment Analytics Dashboard — per-category totals + drilldown records ──
+  app.get('/api/admin/payments-analytics', isAuthenticated, async (req: any, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+
+      const admin = await storage.getAdminUser();
+      const adminId = admin?.id;
+
+      // Fetch all sources in parallel
+      const [
+        subRows, purchaseRows, enrollRows, hireRows,
+        escrowRows, p2pRows, payoutRows, allUsers, allCourses, allProducts,
+      ] = await Promise.all([
+        db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt)),
+        db.select().from(purchases).orderBy(desc(purchases.createdAt)),
+        db.select().from(courseEnrollments).orderBy(desc(courseEnrollments.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc(directHireOffers.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc(escrowPayments.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt)),
+        db.select().from(payoutRequests).orderBy(desc(payoutRequests.createdAt)),
+        db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users),
+        db.select({ id: courses.id, title: courses.title }).from(courses),
+        db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts),
+      ]);
+
+      const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+      const courseMap = new Map(allCourses.map((c: any) => [c.id, c]));
+      const productMap = new Map(allProducts.map((p: any) => [p.id, p]));
+      const u = (id: string | null | undefined) => (id ? userMap.get(id) || null : null);
+
+      const summarise = (rows: any[], amountFn: (r: any) => number, statusFn: (r: any) => string) => {
+        let total = 0, pending = 0, completed = 0, count = 0;
+        for (const r of rows) {
+          const amt = amountFn(r);
+          const st = statusFn(r);
+          total += amt;
+          count++;
+          if (['active', 'approved', 'completed', 'paid', 'released', 'verified', 'delivered'].includes(st)) completed += amt;
+          else pending += amt;
+        }
+        return { total: +total.toFixed(2), pending: +pending.toFixed(2), completed: +completed.toFixed(2), count };
+      };
+
+      // ── 1. Subscriptions ───────────────────────────────────────────────────
+      const subscriptionRecords = (subRows as any[]).map(r => ({
+        id: r.id, amount: +r.amount, status: r.status, createdAt: r.createdAt,
+        plan: r.plan, network: r.network || r.paymentMethodLabel,
+        transactionHash: r.transactionHash,
+        user: u(r.userId),
+      }));
+
+      // ── 2. Shop Orders ─────────────────────────────────────────────────────
+      const shopRecords = (purchaseRows as any[]).map(r => ({
+        id: r.id, amount: +r.totalAmount || +r.amount, status: r.status, createdAt: r.createdAt,
+        paymentMethod: r.paymentMethod, transactionHash: r.transactionHash,
+        product: productMap.get(r.productId) || { title: 'Unknown Product' },
+        user: u(r.userId),
+      }));
+
+      // ── 3. Course Enrollments ──────────────────────────────────────────────
+      const courseRecords = (enrollRows as any[]).map(r => {
+        const st = r.isPaid && r.status === 'active' ? 'paid' : r.status === 'pending_payment' ? 'pending' : r.status || 'pending';
+        return {
+          id: r.id, amount: +r.amount || 0, status: st, createdAt: r.createdAt,
+          paymentMethod: r.paymentMethod, transactionHash: r.transactionHash,
+          course: courseMap.get(r.courseId) || { title: 'Unknown Course' },
+          user: u(r.userId),
+        };
+      });
+
+      // ── 4. Hire Developer (user→admin) ─────────────────────────────────────
+      const hireDevRecords = (hireRows as any[])
+        .filter((r: any) => r.influencerId === adminId)
+        .map(r => ({
+          id: r.id, amount: +r.budget, status: r.status, createdAt: r.createdAt,
+          title: r.title, transactionHash: r.transactionHash,
+          agreedBudget: r.agreedBudget, invoiceNumber: r.invoiceNumber,
+          user: u(r.brandId),
+        }));
+
+      // ── 5. Direct Hires (brand→influencer) ────────────────────────────────
+      const directHireRecords = (hireRows as any[])
+        .filter((r: any) => r.influencerId !== adminId)
+        .map(r => ({
+          id: r.id, amount: +r.budget, status: r.status, createdAt: r.createdAt,
+          title: r.title, transactionHash: r.transactionHash,
+          brand: u(r.brandId), influencer: u(r.influencerId),
+        }));
+
+      // ── 6. Campaign Escrow ─────────────────────────────────────────────────
+      const escrowRecords = (escrowRows as any[]).map(r => ({
+        id: r.id, amount: +r.amount, status: r.status, createdAt: r.createdAt,
+        network: r.network, transactionHash: r.transactionHash,
+        campaignId: r.campaignId, user: u(r.brandId),
+      }));
+
+      // ── 7. Payout Requests ────────────────────────────────────────────────
+      const payoutRecords = (payoutRows as any[]).map(r => ({
+        id: r.id, amount: +r.amount, status: r.status, createdAt: r.createdAt,
+        network: r.network, walletAddress: r.walletAddress, transactionHash: r.transactionHash,
+        user: u(r.userId),
+      }));
+
+      const categories = {
+        subscriptions: { ...summarise(subscriptionRecords, r => r.amount, r => r.status), records: subscriptionRecords },
+        shopOrders: { ...summarise(shopRecords, r => r.amount, r => r.status), records: shopRecords },
+        courseEnrollments: { ...summarise(courseRecords, r => r.amount, r => r.status), records: courseRecords },
+        hireDeveloper: { ...summarise(hireDevRecords, r => r.amount, r => r.status), records: hireDevRecords },
+        directHires: { ...summarise(directHireRecords, r => r.amount, r => r.status), records: directHireRecords },
+        campaignEscrow: { ...summarise(escrowRecords, r => r.amount, r => r.status), records: escrowRecords },
+        payouts: { ...summarise(payoutRecords, r => r.amount, r => r.status), records: payoutRecords },
+      };
+
+      const grandTotal = Object.values(categories).reduce((s, c) => s + c.total, 0);
+
+      res.json({ categories, grandTotal: +grandTotal.toFixed(2) });
+    } catch (error) {
+      console.error('Error fetching payments analytics:', error);
+      res.status(500).json({ message: 'Failed to fetch payments analytics' });
+    }
+  });
+
   // Brand profile routes
 
   app.post('/api/users/:id/like', isAuthenticated, async (req: any, res) => {

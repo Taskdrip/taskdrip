@@ -26,6 +26,7 @@ import { ContentEditorPanel } from "@/components/ContentEditorPanel";
 import { AdminPayoutsCenter } from "@/components/AdminPayoutsCenter";
 import { AdminConversationDrawer } from "@/components/AdminConversationDrawer";
 import { OrderDeliveryAccessPanel } from "@/components/admin/OrderDeliveryAccessPanel";
+import { PaymentAnalyticsDashboard } from "@/components/admin/PaymentAnalyticsDashboard";
 import { ImageUpload } from "@/components/ImageUpload";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -4934,58 +4935,8 @@ export default function AdminMaster() {
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-6">
-            {/* ── Header & summary stats ───────────────────────────────────── */}
-            <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-950 via-purple-950/40 to-gray-950 p-5 sm:p-6 shadow-xl">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-fuchsia-900/40">
-                    <DollarSign className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Payment Management</h2>
-                    <p className="text-xs sm:text-sm text-gray-400">Review proofs, approve subscriptions, fund campaign escrow.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                {[
-                  {
-                    label: "Subs pending",
-                    value: subscriptionPayments.filter((s: any) => s.status === "pending").length,
-                    icon: Crown,
-                    color: "from-violet-500 to-purple-600",
-                  },
-                  {
-                    label: "Escrow pending",
-                    value: escrowPayments.filter((e: any) => e.status === "submitted").length,
-                    icon: AlertTriangle,
-                    color: "from-amber-500 to-orange-600",
-                  },
-                  {
-                    label: "Total transactions",
-                    value: transactions.length,
-                    icon: Activity,
-                    color: "from-blue-500 to-indigo-600",
-                  },
-                  {
-                    label: "Approved subs",
-                    value: subscriptionPayments.filter((s: any) => s.status === "active").length,
-                    icon: CheckCircle,
-                    color: "from-emerald-500 to-teal-600",
-                  },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[10px] sm:text-xs font-medium text-gray-400 uppercase tracking-wider truncate">{s.label}</p>
-                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center flex-shrink-0`}>
-                        <s.icon className="h-3.5 w-3.5 text-white" />
-                      </div>
-                    </div>
-                    <p className="text-xl sm:text-2xl font-extrabold text-white tabular-nums">{s.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* ── Payment Analytics Dashboard ───────────────────────────────── */}
+            <PaymentAnalyticsDashboard />
 
             {/* ── Subscription Payment Reviews ──────────────────────────────── */}
             <Card className="border-violet-200 dark:border-violet-900/40 overflow-hidden shadow-sm">
