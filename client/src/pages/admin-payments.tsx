@@ -53,7 +53,7 @@ const TYPE_ICONS: Record<string, any> = {
 const SOURCE_LABEL: Record<string, string> = {
   transaction: "Transaction", p2p: "P2P", purchase: "Shop",
   escrow: "Escrow", deposit: "Deposit", subscription: "Subscription",
-  course_enrollment: "Course",
+  course_enrollment: "Course", direct_hire: "Hire Dev",
 };
 
 const SOURCE_TONE: Record<string, string> = {
@@ -64,6 +64,7 @@ const SOURCE_TONE: Record<string, string> = {
   deposit: "bg-amber-50 text-amber-700",
   subscription: "bg-rose-50 text-rose-700",
   course_enrollment: "bg-indigo-50 text-indigo-700",
+  direct_hire: "bg-orange-50 text-orange-700",
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -269,6 +270,8 @@ export default function AdminPayments() {
   const [reviewItem, setReviewItem] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [reviewMessage, setReviewMessage] = useState("");
+  const [deliveryDetails, setDeliveryDetails] = useState({ downloadUrl: "", accessUrl: "", licenseKey: "", accessNotes: "" });
+  const [showDeliveryForm, setShowDeliveryForm] = useState(false);
 
   const { data: methods = [], isLoading: methodsLoading } = useQuery<any[]>({ queryKey: ["/api/admin/payment-methods"] });
   const { data: toggles = [] } = useQuery<any[]>({ queryKey: ["/api/admin/payment-feature-toggles"] });
@@ -304,6 +307,11 @@ export default function AdminPayments() {
     if (item.source === "escrow") return { method: "PUT", url: `/api/admin/escrow-payments/${item.rawId}/${action}` };
     if (item.source === "subscription") return { method: "PATCH", url: `/api/admin/subscriptions/${item.rawId}/${action}` };
     if (item.source === "course_enrollment" && action === "approve") return { method: "POST", url: `/api/courses/enrollments/${item.rawId}/approve` };
+    if (item.source === "course_enrollment" && action === "reject") return { method: "POST", url: `/api/courses/enrollments/${item.rawId}/reject` };
+    if (item.source === "purchase" && action === "approve") return { method: "PATCH", url: `/api/admin/purchases/${item.rawId}/approve` };
+    if (item.source === "purchase" && action === "reject") return { method: "PATCH", url: `/api/admin/purchases/${item.rawId}/disapprove` };
+    if (item.source === "direct_hire" && action === "approve") return { method: "PATCH", url: `/api/admin/direct-hire/${item.rawId}/activate` };
+    if (item.source === "direct_hire" && action === "reject") return { method: "PATCH", url: `/api/admin/direct-hire/${item.rawId}/reject-payment` };
     return null;
   }
 
@@ -311,7 +319,9 @@ export default function AdminPayments() {
     mutationFn: async ({ item, action, notes }: { item: any; action: "approve" | "reject"; notes: string }) => {
       const ep = endpointFor(item, action);
       if (!ep) throw new Error("This payment type can't be reviewed here.");
-      const res = await apiRequest(ep.method, ep.url, { adminNotes: notes, notes });
+      // direct_hire activate uses { note } not { adminNotes }
+      const body = item.source === "direct_hire" ? { note: notes } : { adminNotes: notes, notes };
+      const res = await apiRequest(ep.method, ep.url, body);
       return res.json();
     },
     onSuccess: (_, vars) => {
@@ -329,6 +339,22 @@ export default function AdminPayments() {
     },
     onSuccess: () => { toast({ title: "Message sent" }); setReviewMessage(""); },
     onError: () => toast({ title: "Failed to send message", variant: "destructive" }),
+  });
+
+  const deliverMutation = useMutation({
+    mutationFn: async ({ id, details, notes }: { id: string; details: typeof deliveryDetails; notes: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/purchases/${id}/deliver`, {
+        ...details, status: "delivered", adminNotes: notes,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/payments-unified"] });
+      toast({ title: "Order delivered & user notified" });
+      setReviewItem(null); setShowDeliveryForm(false);
+      setDeliveryDetails({ downloadUrl: "", accessUrl: "", licenseKey: "", accessNotes: "" });
+    },
+    onError: (e: any) => toast({ title: "Delivery failed", description: e?.message, variant: "destructive" }),
   });
 
   const openAdd = () => { setEditingMethod(null); setForm(EMPTY_METHOD); setDialogOpen(true); };

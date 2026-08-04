@@ -9,7 +9,7 @@ import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
@@ -3626,13 +3626,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
 
-      const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, allUsers] = await Promise.all([
+      const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
         db.select().from(transactions).orderBy(desc(transactions.createdAt)),
         db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt)),
         db.select().from(purchases).orderBy(desc(purchases.createdAt)),
         db.select().from(escrowPayments).orderBy(desc(escrowPayments.createdAt)),
         db.select().from(paymentDeposits).orderBy(desc(paymentDeposits.createdAt)),
         db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users),
       ]);
 
@@ -3663,13 +3664,18 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         });
       }
       for (const t of purchaseRows as any[]) {
+        const isPendingPurchase = ['pending', 'pending_payment'].includes(String(t.status));
         unified.push({
-          id: `pur_${t.id}`, source: 'purchase', kind: 'shop_purchase',
+          id: `pur_${t.id}`, rawId: t.id, source: 'purchase', kind: 'shop_purchase',
           amount: Number(t.totalAmount || t.amount || 0), currency: 'USD', status: t.status,
           createdAt: t.createdAt, reference: t.transactionHash || t.id,
           method: t.paymentMethod || null,
           fromUser: u(t.userId), toUser: null, approvedBy: null,
-          description: `Shop purchase • product ${t.productId}`,
+          description: `Shop purchase`,
+          proofImageUrl: t.paymentProof || null,
+          adminNotes: t.adminNotes || null,
+          reviewable: isPendingPurchase,
+          productId: t.productId,
         });
       }
       for (const t of escrows as any[]) {
@@ -3709,6 +3715,30 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           proofImageUrl: t.proofImageUrl || t.paymentScreenshot || null,
           adminNotes: t.adminNotes || null,
           reviewable: true,
+        });
+      }
+
+      // Direct hire / hire-developer requests
+      for (const t of hireRows as any[]) {
+        const hireStatus = t.status === 'pending_payment' ? 'pending'
+          : t.status === 'active' ? 'active'
+          : t.status === 'completed' ? 'completed'
+          : t.status === 'accepted' ? 'submitted'
+          : t.status || 'pending';
+        const isPendingHire = t.status === 'pending_payment';
+        unified.push({
+          id: `hire_${t.id}`, rawId: t.id, source: 'direct_hire', kind: t.isDevHire ? 'hire_developer' : 'direct_hire',
+          amount: Number(t.agreedBudget || t.budget || 0), currency: 'USD', status: hireStatus,
+          createdAt: t.createdAt, reference: t.transactionHash || t.invoiceNumber || t.id,
+          method: t.paymentNetwork || null,
+          fromUser: u(t.brandId), toUser: u(t.influencerId), approvedBy: null,
+          description: t.title || 'Hire Developer Request',
+          proofImageUrl: t.paymentProof || null,
+          adminNotes: t.adminNote || null,
+          reviewable: isPendingHire,
+          hireTitle: t.title,
+          invoiceNumber: t.invoiceNumber,
+          invoiceDueDate: t.invoiceDueDate,
         });
       }
 
