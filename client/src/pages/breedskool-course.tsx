@@ -764,6 +764,56 @@ export default function BreedSkoolCourse() {
         </div>
       </div>
 
+      {/* Mobile price strip — visible only on small screens, below hero */}
+      <div className="lg:hidden border-b border-gray-100 bg-white px-4 py-4">
+        {!isEnrolled && !isPending && (
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              {course.isFree ? (
+                <p className="text-2xl font-extrabold text-green-600">FREE</p>
+              ) : hasSalePromo ? (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-extrabold text-orange-600">${effectivePrice}</span>
+                  <span className="text-sm text-gray-400 line-through">${course.price} USDT</span>
+                  <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {Math.round(((parseFloat(course.price || "0") - parseFloat(effectivePrice)) / parseFloat(course.price || "1")) * 100)}% OFF
+                  </span>
+                </div>
+              ) : (
+                <p className="text-2xl font-extrabold text-gray-900">${course.price} <span className="text-sm font-normal text-gray-400">USDT</span></p>
+              )}
+              {hasSalePromo && course.saleDeadline && (
+                <p className="text-xs text-orange-600 font-medium mt-0.5 flex items-center gap-1">
+                  <Flame className="h-3 w-3" /> Promo ends {new Date(course.saleDeadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => isAuthenticated ? setShowEnrollModal(true) : setLocation("/login")}
+              className="flex-shrink-0 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md"
+              style={{ background: hasSalePromo ? "linear-gradient(90deg,#f97316,#ef4444)" : "linear-gradient(90deg,#7c3aed,#6366f1)" }}
+            >
+              {course.isFree ? "Enroll Free" : "Enroll Now"}
+            </button>
+          </div>
+        )}
+        {isEnrolled && (
+          <button
+            onClick={() => setLocation(`/breedskool/${course.id}/learn`)}
+            className="w-full text-white font-bold py-3 rounded-xl text-sm"
+            style={{ background: "linear-gradient(90deg,#7c3aed,#6366f1)" }}
+          >
+            {(enrollment?.progress || 0) > 0 ? "Continue Learning" : "Start Learning"}
+          </button>
+        )}
+        {isPending && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+            <span className="text-amber-800 text-sm font-medium">Payment pending approval</span>
+          </div>
+        )}
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left: Course Details */}
