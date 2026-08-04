@@ -467,13 +467,18 @@ function PaymentDetailDialog({ enrollment, onApprove, approving }: { enrollment:
             {enrollment.paymentProof && (
               <div className="bg-violet-50 border border-violet-100 rounded-lg p-3">
                 <p className="text-xs text-violet-600 font-medium mb-2">Payment Proof</p>
-                {enrollment.paymentProof.startsWith("http") ? (
+                {(enrollment.paymentProof.startsWith("http") || enrollment.paymentProof.startsWith("/")) ? (
                   <div className="space-y-2">
                     <img
                       src={enrollment.paymentProof}
                       alt="Payment proof"
-                      className="w-full rounded-lg object-cover max-h-48"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      className="w-full rounded-lg object-contain max-h-64 bg-white"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        img.style.display = "none";
+                        const link = img.nextElementSibling as HTMLElement;
+                        if (link) link.style.display = "flex";
+                      }}
                     />
                     <a href={enrollment.paymentProof} target="_blank" rel="noreferrer"
                       className="text-xs text-violet-600 hover:underline flex items-center gap-1">

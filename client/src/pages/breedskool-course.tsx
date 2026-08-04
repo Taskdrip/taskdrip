@@ -60,15 +60,15 @@ function AnimatedPromoNote({ deadline }: { deadline: string | null }) {
 
   return (
     <div
-      className="flex items-center gap-2 rounded-xl px-4 py-2.5 mt-4 min-w-0 overflow-hidden"
+      className="flex items-start gap-2 rounded-xl px-3 py-2.5 mt-3 w-full overflow-hidden"
       style={{ background: "linear-gradient(90deg,#fff7ed,#fef2f2,#fdf4ff)", border: "1px solid #fed7aa" }}
     >
       <PartyPopper
-        className="h-4 w-4 text-orange-500 flex-shrink-0"
+        className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5"
         style={{ animation: "bounce 1s infinite" }}
       />
       <p
-        className="text-sm font-medium text-orange-800 transition-opacity duration-700 break-words min-w-0"
+        className="text-xs sm:text-sm font-medium text-orange-800 transition-opacity duration-700 break-words overflow-hidden min-w-0 flex-1"
         style={{ opacity: visible ? 1 : 0.35 }}
       >
         🎉 You're enjoying access to this course at the{" "}
@@ -97,21 +97,21 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
   return (
     <div className="rounded-2xl overflow-hidden shadow-xl" style={{ background: "linear-gradient(135deg,#f97316,#ef4444,#ec4899)" }}>
       {/* Animated top ticker */}
-      <div className="flex items-center gap-2 px-5 py-2.5 overflow-hidden" style={{ background: "rgba(0,0,0,0.18)" }}>
-        <Flame className="h-4 w-4 text-white flex-shrink-0 animate-pulse" />
-        <div className="overflow-hidden flex-1 min-w-0">
-          <p className="text-white font-bold text-xs uppercase tracking-widest whitespace-nowrap"
-             style={{ animation: "marquee 18s linear infinite" }}>
+      <div className="flex items-center gap-2 px-3 py-2 overflow-hidden" style={{ background: "rgba(0,0,0,0.18)" }}>
+        <Flame className="h-3.5 w-3.5 text-white flex-shrink-0 animate-pulse" />
+        <div className="overflow-hidden flex-1 min-w-0" style={{ contain: "paint" }}>
+          <p className="text-white font-bold text-xs uppercase tracking-wide whitespace-nowrap"
+             style={{ animation: "marquee 18s linear infinite", display: "inline-block" }}>
             🔥 LIMITED-TIME PROMO PRICE &nbsp;·&nbsp; OFFER ENDS {deadlineStr.toUpperCase()} &nbsp;·&nbsp; LOCK IN YOUR SAVINGS NOW &nbsp;·&nbsp; 🔥 LIMITED-TIME PROMO PRICE &nbsp;·&nbsp; OFFER ENDS {deadlineStr.toUpperCase()} &nbsp;·&nbsp; LOCK IN YOUR SAVINGS NOW &nbsp;·&nbsp;
           </p>
         </div>
-        <Flame className="h-4 w-4 text-white flex-shrink-0 animate-pulse" />
+        <Flame className="h-3.5 w-3.5 text-white flex-shrink-0 animate-pulse" />
       </div>
 
       <div className="bg-white mx-1 mb-1 rounded-xl overflow-hidden">
-        <div className="px-6 py-5">
+        <div className="px-4 py-4 sm:px-6 sm:py-5">
           {/* Savings badge */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center gap-1">
               <Zap className="h-3 w-3" /> {Math.round((savings / parseFloat(course.price)) * 100)}% OFF
             </span>
@@ -120,45 +120,40 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-            {/* Pricing */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-4xl sm:text-5xl font-extrabold text-gray-900" style={{ letterSpacing: "-0.03em" }}>
-                  ${salePrice.toFixed(0)}
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-xl text-gray-400 line-through">${parseFloat(course.price).toFixed(0)} USDT</span>
-                  <span className="text-xs text-gray-400 font-medium">original price</span>
-                </div>
-              </div>
-              <AnimatedPromoNote deadline={deadline} />
-            </div>
+          {/* Pricing row */}
+          <div className="flex items-baseline gap-2 flex-wrap mb-1">
+            <span className="text-3xl sm:text-4xl font-extrabold text-gray-900" style={{ letterSpacing: "-0.03em" }}>
+              ${salePrice.toFixed(0)}
+            </span>
+            <span className="text-base text-gray-400 line-through">${parseFloat(course.price).toFixed(0)} USDT</span>
+            <span className="text-xs text-gray-400 font-medium">original price</span>
+          </div>
 
-            {/* Countdown timer */}
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-2">⏳ Offer ends in</p>
-              <div className="flex gap-2">
-                {[
-                  { val: days, label: "Days" },
-                  { val: hours, label: "Hrs" },
-                  { val: minutes, label: "Min" },
-                  { val: seconds, label: "Sec" },
-                ].map(({ val, label }) => (
-                  <div key={label} className="flex flex-col items-center">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-md text-white text-xl font-extrabold tabular-nums"
-                         style={{ background: "linear-gradient(135deg,#f97316,#ef4444)" }}>
-                      {String(val).padStart(2, "0")}
-                    </div>
-                    <span className="text-xs text-gray-400 mt-1 font-medium">{label}</span>
+          <AnimatedPromoNote deadline={deadline} />
+
+          {/* Countdown timer */}
+          <div className="mt-4">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">⏳ Offer ends in</p>
+            <div className="flex gap-2">
+              {[
+                { val: days, label: "Days" },
+                { val: hours, label: "Hrs" },
+                { val: minutes, label: "Min" },
+                { val: seconds, label: "Sec" },
+              ].map(({ val, label }) => (
+                <div key={label} className="flex flex-col items-center flex-1">
+                  <div className="w-full max-w-[64px] aspect-square rounded-xl flex items-center justify-center shadow-md text-white text-lg sm:text-xl font-extrabold tabular-nums"
+                       style={{ background: "linear-gradient(135deg,#f97316,#ef4444)" }}>
+                    {String(val).padStart(2, "0")}
                   </div>
-                ))}
-              </div>
+                  <span className="text-xs text-gray-400 mt-1 font-medium">{label}</span>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* CTA */}
-          <div className="mt-5">
+          <div className="mt-4">
             {isEnrolled ? (
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
