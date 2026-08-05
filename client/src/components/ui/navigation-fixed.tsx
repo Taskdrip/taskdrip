@@ -177,10 +177,18 @@ export function NavigationFixed() {
   const getNavStructure = () => {
     if (!isAuthenticated) {
       return {
-        primary: publicMainItems, // all 6 items including BreedSkool
+        primary: [
+          { href: "/", label: "Home" },
+          { href: "/tasks", label: "Tasks" },
+          { href: "/shop", label: "Shop" },
+          { href: "/influencers", label: "Influencers" },
+          { href: "/brands", label: "Brands" },
+        ],
         grouped: {
-          "Marketplace": [
+          "Explore": [
+            { href: "/breedskool", label: "BreedSkool" },
             { href: "/p2p-hub", label: "P2P Market" },
+            { href: "/blog", label: "Blog" },
           ],
           "Earn": [
             { href: "/referrals", label: "Referral Program" },
@@ -253,12 +261,12 @@ export function NavigationFixed() {
         { href: "/tasks", label: "Tasks" },
         { href: "/dashboard", label: "Dashboard" },
         { href: "/brands", label: "Brands" },
-        { href: "/breedskool", label: "BreedSkool" },
         { href: "/referrals", label: "Referrals 💰" },
       ],
       grouped: {
         "Marketplace": [
           { href: "/shop", label: "Shop" },
+          { href: "/breedskool", label: "BreedSkool" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/influencers", label: "Influencers" },
           { href: "/feed", label: "Feed" },
