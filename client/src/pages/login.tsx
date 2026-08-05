@@ -242,7 +242,7 @@ export default function Login() {
                 </div>
 
                 <div className="mt-6">
-                  <Link href="/signup">
+                  <Link href={redirectTo ? `/signup?redirect=${encodeURIComponent(redirectTo)}` : '/signup'}>
                     <Button variant="outline" className="w-full">
                       Create new account
                     </Button>

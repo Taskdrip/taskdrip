@@ -79,6 +79,34 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "breedskool_course_pricing", column: "accepted_payments", definition: "text[] DEFAULT ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']" },
   // Legal pages — last_updated_by added after initial schema
   { table: "legal_pages", column: "last_updated_by", definition: "varchar" },
+  // direct_hire_offers — columns added after initial deploy (schema drift fix)
+  { table: "direct_hire_offers", column: "brand_platform_fee", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "brand_total_charge", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "platform_fee_amount", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "influencer_payout", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "rejection_reason", definition: "text" },
+  { table: "direct_hire_offers", column: "payment_proof", definition: "varchar" },
+  { table: "direct_hire_offers", column: "payment_network", definition: "varchar" },
+  { table: "direct_hire_offers", column: "transaction_hash", definition: "varchar" },
+  { table: "direct_hire_offers", column: "admin_note", definition: "text" },
+  { table: "direct_hire_offers", column: "work_submission_url", definition: "varchar(500)" },
+  { table: "direct_hire_offers", column: "work_submission_note", definition: "text" },
+  { table: "direct_hire_offers", column: "work_submitted_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "revision_note", definition: "text" },
+  { table: "direct_hire_offers", column: "activated_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "completed_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "invoice_number", definition: "varchar" },
+  { table: "direct_hire_offers", column: "invoice_generated_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "invoice_due_date", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "invoice_note", definition: "text" },
+  { table: "direct_hire_offers", column: "agreed_budget", definition: "decimal(10,2)" },
+  { table: "direct_hire_offers", column: "deadline", definition: "timestamp" },
+  // course_enrollments — extra tracking columns that may be missing on older DBs
+  { table: "course_enrollments", column: "amount", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "course_enrollments", column: "is_paid", definition: "boolean DEFAULT false" },
+  { table: "course_enrollments", column: "transaction_hash", definition: "varchar" },
+  { table: "course_enrollments", column: "progress", definition: "integer DEFAULT 0" },
+  { table: "course_enrollments", column: "updated_at", definition: "timestamp DEFAULT now()" },
 ];
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot

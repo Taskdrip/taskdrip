@@ -3810,21 +3810,23 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const admin = await storage.getAdminUser();
       const adminId = admin?.id;
 
-      // Fetch all sources in parallel
+      // Fetch all sources in parallel — each query catches individually so one
+      // missing table/column never kills the whole analytics response.
+      const safeSelect = async (q: Promise<any[]>) => q.catch(() => [] as any[]);
       const [
         subRows, purchaseRows, enrollRows, hireRows,
         escrowRows, p2pRows, payoutRows, allUsers, allCourses, allProducts,
       ] = await Promise.all([
-        db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt)),
-        db.select().from(purchases).orderBy(desc(purchases.createdAt)),
-        db.select().from(courseEnrollments).orderBy(desc(courseEnrollments.createdAt)),
-        db.select().from(directHireOffers).orderBy(desc(directHireOffers.createdAt)),
-        db.select().from(escrowPayments).orderBy(desc(escrowPayments.createdAt)),
-        db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt)),
-        db.select().from(payoutRequests).orderBy(desc(payoutRequests.createdAt)),
-        db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users),
-        db.select({ id: courses.id, title: courses.title }).from(courses),
-        db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts),
+        safeSelect(db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc(payoutRequests.createdAt))),
+        safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
+        safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
+        safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts)),
       ]);
 
       const userMap = new Map(allUsers.map((u: any) => [u.id, u]));

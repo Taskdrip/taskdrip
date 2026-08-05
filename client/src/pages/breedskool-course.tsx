@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AuthModal } from "@/components/ui/auth-modal";
 import {
   BookOpen, Users, Star, Clock, Play, CheckCircle2, Lock,
   Heart, MessageCircle, Send, ChevronDown, ChevronUp, Award,
@@ -510,6 +511,7 @@ export default function BreedSkoolCourse() {
   const { toast } = useToast();
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [enrollStep, setEnrollStep] = useState<"choose" | "pay" | "confirm" | "done">("choose");
   const [redirectCountdown, setRedirectCountdown] = useState(3);
   const [paymentMethodId, setPaymentMethodId] = useState("");
@@ -784,7 +786,7 @@ export default function BreedSkoolCourse() {
               )}
             </div>
             <button
-              onClick={() => isAuthenticated ? setShowEnrollModal(true) : setLocation("/login")}
+              onClick={() => isAuthenticated ? setShowEnrollModal(true) : setShowAuthModal(true)}
               className="flex-shrink-0 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md"
               style={{ background: hasSalePromo ? "linear-gradient(90deg,#f97316,#ef4444)" : "linear-gradient(90deg,#7c3aed,#6366f1)" }}
             >
@@ -1069,7 +1071,7 @@ export default function BreedSkoolCourse() {
                   ) : (
                     <Button
                       className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold py-3 shadow-lg shadow-violet-200"
-                      onClick={() => isAuthenticated ? setShowEnrollModal(true) : setLocation("/login")}
+                      onClick={() => isAuthenticated ? setShowEnrollModal(true) : setShowAuthModal(true)}
                     >
                       {isAuthenticated ? (course.isFree ? "Enroll for Free" : "Enroll Now") : (
                         <span className="flex items-center gap-2"><Lock className="h-4 w-4" />Sign In to Enroll</span>
@@ -1449,6 +1451,18 @@ export default function BreedSkoolCourse() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Inline auth modal — appears when unauthenticated user clicks Enroll */}
+      <AuthModal
+        open={showAuthModal}
+        onOpenChange={setShowAuthModal}
+        title="Sign in to enroll"
+        subtitle="Create an account or sign in to access this course."
+        onSuccess={() => {
+          // After login, open the enroll flow automatically
+          setShowEnrollModal(true);
+        }}
+      />
 
       <Footer />
     </div>

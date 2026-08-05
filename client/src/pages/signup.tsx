@@ -62,6 +62,9 @@ export default function Signup() {
   const [activeTab, setActiveTab] = useState('influencer');
   const { toast } = useToast();
 
+  // Read ?redirect and ?type from URL
+  const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '';
+
   // Check URL parameters to set the initial tab
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -121,7 +124,7 @@ export default function Signup() {
         description: 'Your profile has been created successfully. You can now start joining campaigns.',
       });
       triggerSocialTasksModal();
-      window.location.href = '/';
+      window.location.href = redirectTo || '/';
     },
     onError: (error) => {
       toast({
@@ -146,7 +149,7 @@ export default function Signup() {
         title: 'Brand Profile Created!',
         description: 'Your brand profile has been created successfully. You can now create campaigns.',
       });
-      window.location.href = '/';
+      window.location.href = redirectTo || '/brand-dashboard';
     },
     onError: (error) => {
       toast({
