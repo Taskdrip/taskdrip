@@ -4938,6 +4938,153 @@ export default function AdminMaster() {
             {/* ── Payment Analytics Dashboard ───────────────────────────────── */}
             <PaymentAnalyticsDashboard />
 
+            {/* ── Quick link to full unified payment center ─────────────────── */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-2xl px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Full Payment Center</p>
+                <p className="text-xs text-gray-400 mt-0.5">View and review all transactions — shop orders, courses, hires, subscriptions, escrow — in one unified table with approve/reject controls.</p>
+              </div>
+              <a
+                href="/admin/payments"
+                className="flex-shrink-0 inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+              >
+                Open Payment Center →
+              </a>
+            </div>
+
+            {/* ── Pending Course Enrollment Payments ────────────────────────── */}
+            {courseEnrollments.filter((e: any) => e.status === "pending_payment").length > 0 && (
+              <Card className="border-indigo-200 dark:border-indigo-900/40 overflow-hidden shadow-sm">
+                <CardHeader className="bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 dark:from-indigo-950/30 dark:via-purple-950/30 dark:to-indigo-950/30 border-b border-indigo-100 dark:border-indigo-900/40 py-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md flex-shrink-0">
+                        <BookOpen className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-bold text-indigo-900 dark:text-indigo-200">Course Enrollment Payments</CardTitle>
+                        <CardDescription className="text-xs text-indigo-700/80 dark:text-indigo-300/70 mt-0.5">Review and approve pending course payment submissions.</CardDescription>
+                      </div>
+                    </div>
+                    <Badge className="bg-indigo-600 text-white text-xs font-bold">
+                      {courseEnrollments.filter((e: any) => e.status === "pending_payment").length} pending
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-5">
+                  <div className="space-y-3">
+                    {courseEnrollments.filter((e: any) => e.status === "pending_payment").map((e: any) => (
+                      <div key={e.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{e.course?.title || e.courseId}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{e.user?.firstName} {e.user?.lastName} · {e.user?.email}</p>
+                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">${e.amount}</span>
+                              {e.paymentMethod && <span className="text-xs text-gray-500">{e.paymentMethod}</span>}
+                              {e.transactionHash && <span className="text-xs font-mono text-gray-400 truncate max-w-[120px]">{e.transactionHash}</span>}
+                            </div>
+                          </div>
+                          {e.paymentProof && (
+                            <a href={e.paymentProof.startsWith("http") ? e.paymentProof : `/${e.paymentProof}`} target="_blank" rel="noreferrer" className="text-xs text-violet-600 underline flex-shrink-0">
+                              View proof ↗
+                            </a>
+                          )}
+                          <div className="flex gap-2 flex-shrink-0">
+                            <EnrollmentPaymentDialog
+                              enrollment={e}
+                              onApprove={() => approveEnrollmentMutation.mutate(e.id)}
+                              approving={approveEnrollmentMutation.isPending}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Pending Shop Order Payment Proofs ─────────────────────────── */}
+            {adminPurchases.filter((p: any) => p.status === "pending").length > 0 && (
+              <Card className="border-blue-200 dark:border-blue-900/40 overflow-hidden shadow-sm">
+                <CardHeader className="bg-gradient-to-r from-blue-50 via-sky-50 to-blue-50 dark:from-blue-950/30 dark:via-sky-950/30 dark:to-blue-950/30 border-b border-blue-100 dark:border-blue-900/40 py-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md flex-shrink-0">
+                        <ShoppingBag className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-bold text-blue-900 dark:text-blue-200">Shop Order Payments</CardTitle>
+                        <CardDescription className="text-xs text-blue-700/80 dark:text-blue-300/70 mt-0.5">Review pending shop order payment proofs. Approve to mark as paid, then deliver access.</CardDescription>
+                      </div>
+                    </div>
+                    <Badge className="bg-blue-600 text-white text-xs font-bold">
+                      {adminPurchases.filter((p: any) => p.status === "pending").length} pending
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-5">
+                  <div className="space-y-3">
+                    {adminPurchases.filter((p: any) => p.status === "pending").map((p: any) => (
+                      <div key={p.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{p.product?.title || "Shop product"}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{p.user?.firstName} {p.user?.lastName} · {p.user?.email}</p>
+                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">${p.totalAmount || p.amount}</span>
+                              {p.paymentMethod && <span className="text-xs text-gray-500">{p.paymentMethod}</span>}
+                              {p.transactionHash && <span className="text-xs font-mono text-gray-400 truncate max-w-[120px]">{p.transactionHash}</span>}
+                            </div>
+                          </div>
+                          {p.paymentProof && (
+                            <a href={p.paymentProof.startsWith("http") ? p.paymentProof : `/${p.paymentProof}`} target="_blank" rel="noreferrer" className="text-xs text-violet-600 underline flex-shrink-0">
+                              View proof ↗
+                            </a>
+                          )}
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"
+                              onClick={async () => {
+                                try {
+                                  await apiRequest("PATCH", `/api/admin/purchases/${p.id}/approve`, {});
+                                  queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+                                  queryClient.invalidateQueries({ queryKey: ["/api/admin/payments-unified"] });
+                                  toast({ title: "Order approved — now deliver access via the Order Delivery panel below." });
+                                } catch {
+                                  toast({ title: "Failed to approve", variant: "destructive" });
+                                }
+                              }}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-600 hover:bg-red-50 h-8 text-xs"
+                              onClick={async () => {
+                                try {
+                                  await apiRequest("PATCH", `/api/admin/purchases/${p.id}/disapprove`, {});
+                                  queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+                                  toast({ title: "Order rejected." });
+                                } catch {
+                                  toast({ title: "Failed to reject", variant: "destructive" });
+                                }
+                              }}
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* ── Subscription Payment Reviews ──────────────────────────────── */}
             <Card className="border-violet-200 dark:border-violet-900/40 overflow-hidden shadow-sm">
               <CardHeader className="bg-gradient-to-r from-violet-50 via-fuchsia-50 to-violet-50 dark:from-violet-950/30 dark:via-fuchsia-950/30 dark:to-violet-950/30 border-b border-violet-100 dark:border-violet-900/40 py-4 sm:py-5">

@@ -207,12 +207,14 @@ function DrillDown({
   data: any;
 }) {
   const [q, setQ] = useState("");
-  if (!category || !data) return null;
-  const cat = data.categories?.[category.key];
+  if (!category) return null;
+
+  const isLoading = !data;
+  const cat = data?.categories?.[category.key];
   const Icon = category.icon;
   const records: any[] = cat?.records || [];
 
-  const filtered = q.trim()
+  const filtered = q.trim() && !isLoading
     ? records.filter(r => {
         const row = category.renderRow(r);
         const hay = [row.title, row.subtitle, row.user?.email, row.user?.firstName, row.user?.lastName, row.tx].join(" ").toLowerCase();
@@ -263,7 +265,18 @@ function DrillDown({
 
         {/* Records list */}
         <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 bg-gray-900/60 border border-gray-800 rounded-xl p-3 animate-pulse">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-white/10 rounded w-2/3" />
+                  <div className="h-3 bg-white/5 rounded w-1/2" />
+                </div>
+                <div className="h-4 bg-white/10 rounded w-16 flex-shrink-0" />
+              </div>
+            ))
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-500">
               <DollarSign className="h-10 w-10 mb-3 opacity-30" />
               <p className="text-sm font-medium">{q ? "No matches" : "No records yet"}</p>
