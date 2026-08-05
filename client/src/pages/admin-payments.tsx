@@ -261,6 +261,7 @@ export default function AdminPayments() {
   const { user } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [activePayTab, setActivePayTab] = useState("overview");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMethod, setEditingMethod] = useState<any>(null);
   const [form, setForm] = useState<any>(EMPTY_METHOD);
@@ -358,6 +359,16 @@ export default function AdminPayments() {
     onError: (e: any) => toast({ title: "Delivery failed", description: e?.message, variant: "destructive" }),
   });
 
+  // Analytics card → navigate to transactions tab with source filter
+  const handleNavigateToSource = (txSource: string) => {
+    if (txSource === "__payouts__") {
+      setActivePayTab("payouts");
+    } else {
+      setTxSourceFilter(txSource || "all");
+      setActivePayTab("transactions");
+    }
+  };
+
   const openAdd = () => { setEditingMethod(null); setForm(EMPTY_METHOD); setDialogOpen(true); };
   const openEdit = (m: any) => { setEditingMethod(m); setForm({ ...EMPTY_METHOD, ...m }); setDialogOpen(true); };
   const handleSave = () => {
@@ -419,7 +430,7 @@ export default function AdminPayments() {
           </div>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activePayTab} onValueChange={setActivePayTab} className="space-y-6">
           <TabsList className="bg-transparent p-0 h-auto border-b border-slate-200 rounded-none w-full justify-start gap-4 overflow-x-auto flex-nowrap">
             <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-slate-900 data-[state=active]:border-slate-900 border-b-2 border-transparent rounded-none px-0 pb-3 text-sm font-medium text-slate-500 gap-2 whitespace-nowrap">
               <BarChart2 className="h-4 w-4" /> Overview
@@ -441,7 +452,7 @@ export default function AdminPayments() {
           {/* ── OVERVIEW ─────────────────────────────────────────────────────── */}
           <TabsContent value="overview" className="mt-6 space-y-6">
             {/* ── Full Analytics Dashboard ────────────────────────────────── */}
-            <PaymentAnalyticsDashboard />
+            <PaymentAnalyticsDashboard onNavigateToSource={handleNavigateToSource} />
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "Total Volume", value: fmtMoney(totals.gross), icon: DollarSign, color: "from-violet-500 to-purple-600", sub: `${totals.count} payments` },
