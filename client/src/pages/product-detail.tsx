@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { 
@@ -8,8 +8,9 @@ import {
   Package, Shield, CheckCircle, MessageCircle, Share2, Flag,
   Heart, Eye, Calendar, Tag, ArrowRight, PlayCircle,
   ThumbsUp, ThumbsDown, Briefcase, Zap, Crown, Rocket,
-  BadgeCheck, Globe, Code, Sparkles, Users, Building2
+  BadgeCheck, Globe, Code, Sparkles, Users, Building2, ChevronDown
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReportDialog } from "@/components/ui/report-dialog";
 import { ShareButton } from "@/components/ui/share-panel";
 import { shareItem } from "@/lib/share";
@@ -129,11 +130,14 @@ function PricingTierCard({
 
 export default function ProductDetail() {
   const [, params] = useRoute("/shop/product/:id");
+  const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [chosenPlanId, setChosenPlanId] = useState<string>("");
 
   const productId = params?.id;
 
@@ -450,12 +454,28 @@ export default function ProductDetail() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Link href={`/shop/checkout/${product.id}`} className="block w-full">
-                <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+              {/* When product has subscription plans, open a plan picker first */}
+              {(product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 ? (
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  onClick={() => {
+                    // Pre-select first plan if none chosen
+                    if (!chosenPlanId) setChosenPlanId((product as any).serviceAddons[0]?.id || "");
+                    setPlanDialogOpen(true);
+                  }}
+                >
                   <ShoppingCart className="w-5 h-5 mr-2" />
-                  {product.isFree ? "Get Free" : "Buy Now"}
+                  {product.isFree ? "Get Free — Choose Plan" : "Buy Now — Select Plan"}
                 </Button>
-              </Link>
+              ) : (
+                <Link href={`/shop/checkout/${product.id}`} className="block w-full">
+                  <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    {product.isFree ? "Get Free" : "Buy Now"}
+                  </Button>
+                </Link>
+              )}
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1">
                   <Heart className="w-5 h-5" />
@@ -551,6 +571,75 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+
+        {/* Plan Picker Dialog — shown when "Buy Now" is clicked on a product with subscription plans */}
+        {(product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 && (
+          <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Choose Your Plan</DialogTitle>
+                <p className="text-sm text-gray-500 mt-1">Select the plan that fits your needs, then proceed to checkout.</p>
+              </DialogHeader>
+
+              <div className="space-y-3 mt-2">
+                {((product as any).serviceAddons as { id: string; title: string; description: string; price: number }[]).map((addon, i) => {
+                  const isSelected = chosenPlanId === addon.id;
+                  const isFree = addon.price === 0;
+                  return (
+                    <button
+                      key={addon.id}
+                      onClick={() => setChosenPlanId(addon.id)}
+                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50 shadow-md"
+                          : "border-gray-200 hover:border-indigo-300 bg-white"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                        isSelected ? "border-indigo-600 bg-indigo-600" : "border-gray-300"
+                      }`}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-bold text-gray-900 text-sm">{addon.title.split("—")[0].trim()}</p>
+                          <span className={`font-extrabold flex-shrink-0 ${isFree ? "text-green-600" : "text-indigo-700"}`}>
+                            {isFree ? "FREE" : `$${Number(addon.price).toLocaleString()}`}
+                          </span>
+                        </div>
+                        {addon.title.includes("—") && (
+                          <p className="text-xs text-gray-500 mt-0.5">{addon.title.split("—")[1]?.trim()}</p>
+                        )}
+                        {addon.description && (
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">{addon.description}</p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2">
+                <Button
+                  disabled={!chosenPlanId}
+                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl gap-2"
+                  onClick={() => {
+                    if (chosenPlanId) {
+                      setPlanDialogOpen(false);
+                      navigate(`/shop/checkout/${product.id}?plan=${chosenPlanId}`);
+                    }
+                  }}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Continue to Checkout
+                </Button>
+                <button onClick={() => setPlanDialogOpen(false)} className="text-sm text-gray-400 hover:text-gray-600 text-center">
+                  Cancel
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Pricing Tiers — shown when product has subscription plans (serviceAddons) */}
         {(product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 && (

@@ -294,22 +294,24 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">
-            <TabsTrigger value="overview" className="flex-1 min-w-[80px]">Overview</TabsTrigger>
-            <TabsTrigger value="messages" className="flex-1 min-w-[80px]">Messages</TabsTrigger>
-            <TabsTrigger value="dev-projects" className="flex-1 min-w-[100px]" data-testid="tab-dev-projects">
-              <Code2 className="w-4 h-4 mr-1" /> Dev Projects
-            </TabsTrigger>
-            <TabsTrigger value="portfolio" className="flex-1 min-w-[80px]" data-testid="tab-portfolio">
-              <Briefcase className="w-4 h-4 mr-1" /> Portfolio
-            </TabsTrigger>
-            <TabsTrigger value="reviews" className="flex-1 min-w-[80px]" data-testid="tab-reviews">
-              <Star className="w-4 h-4 mr-1" /> Reviews
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex-1 min-w-[80px]">Profile</TabsTrigger>
-            <TabsTrigger value="activity" className="flex-1 min-w-[80px]">Activity</TabsTrigger>
-            <TabsTrigger value="earnings" className="flex-1 min-w-[80px]">Earnings</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-0.5">
+            <TabsList className="inline-flex h-10 w-max min-w-full gap-0.5 p-1 rounded-lg">
+              <TabsTrigger value="overview" className="whitespace-nowrap px-4">Overview</TabsTrigger>
+              <TabsTrigger value="messages" className="whitespace-nowrap px-4">Messages</TabsTrigger>
+              <TabsTrigger value="dev-projects" className="whitespace-nowrap px-4 gap-1.5" data-testid="tab-dev-projects">
+                <Code2 className="w-3.5 h-3.5" /> Dev Projects
+              </TabsTrigger>
+              <TabsTrigger value="portfolio" className="whitespace-nowrap px-4 gap-1.5" data-testid="tab-portfolio">
+                <Briefcase className="w-3.5 h-3.5" /> Portfolio
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="whitespace-nowrap px-4 gap-1.5" data-testid="tab-reviews">
+                <Star className="w-3.5 h-3.5" /> Reviews
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="whitespace-nowrap px-4">Profile</TabsTrigger>
+              <TabsTrigger value="activity" className="whitespace-nowrap px-4">Activity</TabsTrigger>
+              <TabsTrigger value="earnings" className="whitespace-nowrap px-4">Earnings</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">

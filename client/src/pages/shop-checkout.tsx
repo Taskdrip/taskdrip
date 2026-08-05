@@ -229,12 +229,39 @@ function MethodDetails({ method, amount }: { method: any; amount: string }) {
   }
 
   if (method.type === 'paystack' || method.type === 'stripe') {
+    const gatewayName = method.type === 'paystack' ? 'Paystack' : 'Stripe';
+    const paymentLink = method.paymentUrl || method.checkoutUrl || method.paystackPublicKey || null;
     return (
-      <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-5 mt-4 text-center">
-        <div className="text-4xl mb-2">{method.type === 'paystack' ? '🟢' : '💳'}</div>
-        <p className="text-white font-semibold mb-1">Pay ${amount} via {method.type === 'paystack' ? 'Paystack' : 'Stripe'}</p>
-        <p className="text-purple-200 text-xs">You'll be redirected to complete your payment securely.</p>
-        {method.instructions && <p className="text-amber-300 text-xs mt-2">{method.instructions}</p>}
+      <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-5 mt-4">
+        <div className="text-center mb-4">
+          <div className="text-4xl mb-2">{method.type === 'paystack' ? '🟢' : '💳'}</div>
+          <p className="text-white font-semibold">Pay ${amount} via {gatewayName}</p>
+          {method.instructions && <p className="text-amber-300 text-xs mt-2">{method.instructions}</p>}
+        </div>
+        <div className="space-y-3">
+          <div className="bg-white/10 rounded-xl p-3 text-sm text-purple-200 space-y-1.5">
+            <p className="font-semibold text-white text-xs uppercase tracking-wide mb-1">How to pay:</p>
+            <p>1️⃣ Click <strong className="text-white">Pay Now</strong> below to open {gatewayName}</p>
+            <p>2️⃣ Complete your payment of <strong className="text-white">${amount}</strong></p>
+            <p>3️⃣ Copy the <strong className="text-white">confirmation / reference number</strong> from your receipt</p>
+            <p>4️⃣ Paste it in the reference field on the next screen</p>
+          </div>
+          {paymentLink ? (
+            <a
+              href={paymentLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-purple-800 font-bold text-sm hover:bg-purple-50 transition-colors shadow-lg"
+            >
+              Pay ${amount} on {gatewayName} →
+            </a>
+          ) : (
+            <div className="flex items-center justify-center gap-2 text-xs text-amber-300 bg-amber-900/30 rounded-xl p-3">
+              <Shield className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>Complete your payment on {gatewayName}, then click "I've Sent the Payment" and paste your reference number.</span>
+            </div>
+          )}
+        </div>
         <div className="mt-3 flex items-center justify-center gap-2 text-xs text-green-300">
           <Shield className="h-3 w-3" /> Secured & encrypted payment
         </div>
@@ -952,8 +979,10 @@ export default function ShopCheckout() {
                 <Label className="text-sm font-semibold text-gray-900 mb-2 block">
                   {selectedMethod?.type === 'bank' ? 'Reference / Transfer Code' :
                    selectedMethod?.type === 'paypal' ? 'PayPal Transaction ID' :
-                    selectedMethod?.type === 'manual' ? 'Payment Reference / Note' :
-                    'Transaction Hash'} <span className="text-red-500">*</span>
+                   selectedMethod?.type === 'manual' ? 'Payment Reference / Note' :
+                   selectedMethod?.type === 'paystack' || selectedMethod?.type === 'stripe' ? 'Confirmation / Reference Number' :
+                   'Transaction Hash'}
+                  {' '}<span className="text-gray-400 font-normal text-xs">(or upload screenshot below)</span>
                 </Label>
                 <Input
                   value={txHash}
@@ -962,18 +991,35 @@ export default function ShopCheckout() {
                     selectedMethod?.type === 'bank' ? 'Enter transfer reference...' :
                     selectedMethod?.type === 'paypal' ? 'PayPal transaction ID...' :
                     selectedMethod?.type === 'manual' ? 'Enter receipt reference or payment note...' :
+                    selectedMethod?.type === 'paystack' || selectedMethod?.type === 'stripe' ? 'Paste your payment confirmation number...' :
                     'Enter transaction hash (e.g. 0xabc123...)'
                   }
                   className="font-mono text-sm h-12 bg-gray-50 border-gray-200"
                 />
-                <p className="text-xs text-gray-400 mt-1.5">Find this in your {selectedMethod?.type === 'bank' ? 'bank statement' : selectedMethod?.type === 'paypal' ? 'PayPal activity' : selectedMethod?.type === 'manual' ? 'receipt or transfer confirmation' : 'crypto wallet or blockchain explorer (the tx hash after sending)'}</p>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  {selectedMethod?.type === 'bank' ? 'Find this in your bank statement or transfer confirmation.' :
+                   selectedMethod?.type === 'paypal' ? 'Find this in your PayPal activity page.' :
+                   selectedMethod?.type === 'manual' ? 'Enter any reference from your receipt or payment confirmation.' :
+                   selectedMethod?.type === 'paystack' || selectedMethod?.type === 'stripe' ? 'Copy the reference from your payment confirmation email.' :
+                   'Find this in your crypto wallet or blockchain explorer after sending.'}
+                </p>
               </div>
 
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold text-gray-900 mb-2 block">Payment Screenshot <span className="text-gray-400 font-normal">(recommended — speeds up review)</span></Label>
+                <Label className="text-sm font-semibold text-gray-900 mb-2 block">
+                  Payment Screenshot <span className="text-gray-400 font-normal">(required if no reference above)</span>
+                </Label>
                 <ProofUpload onUpload={(url) => setProofUrl(url)} />
               </div>
             </div>
+
+            {/* Hint: at least one proof is needed */}
+            {!txHash.trim() && !proofUrl && (
+              <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700">Please enter a reference number <strong>or</strong> upload a payment screenshot to submit.</p>
+              </div>
+            )}
 
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4">
               <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -986,7 +1032,7 @@ export default function ShopCheckout() {
             <Button
               className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2 shadow-lg shadow-violet-200"
               onClick={() => purchaseMutation.mutate()}
-              disabled={!txHash.trim() || purchaseMutation.isPending}
+              disabled={(!txHash.trim() && !proofUrl) || purchaseMutation.isPending}
             >
               {purchaseMutation.isPending ? (
                 <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /> Processing...</>
