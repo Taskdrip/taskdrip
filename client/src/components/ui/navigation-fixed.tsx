@@ -195,14 +195,14 @@ export function NavigationFixed() {
         primary: [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
-          { href: "/influencers", label: "Find Influencers" },
+          { href: "/influencers", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
-          { href: "/breedskool", label: "BreedSkool" },
           { href: "/referrals", label: "Referrals 💰" },
         ],
         grouped: {
           "Marketplace": [
             { href: "/shop", label: "Shop" },
+            { href: "/breedskool", label: "BreedSkool" },
             { href: "/p2p-hub", label: "P2P Market" },
             { href: "/feed", label: "Feed" },
             { href: "/chat", label: "Messages" },
