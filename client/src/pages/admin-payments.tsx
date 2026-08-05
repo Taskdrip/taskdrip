@@ -27,6 +27,7 @@ import {
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { ZoomableImage } from "@/components/ui/image-lightbox";
+import { PaymentAnalyticsDashboard } from "@/components/admin/PaymentAnalyticsDashboard";
 
 const FEATURES = [
   { key: "shop", label: "Shop", icon: ShoppingCart },
@@ -439,6 +440,8 @@ export default function AdminPayments() {
 
           {/* ── OVERVIEW ─────────────────────────────────────────────────────── */}
           <TabsContent value="overview" className="mt-6 space-y-6">
+            {/* ── Full Analytics Dashboard ────────────────────────────────── */}
+            <PaymentAnalyticsDashboard />
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "Total Volume", value: fmtMoney(totals.gross), icon: DollarSign, color: "from-violet-500 to-purple-600", sub: `${totals.count} payments` },

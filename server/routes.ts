@@ -2191,6 +2191,26 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       });
 
       const purchase = await storage.createPurchase(validatedData);
+
+      // Notify admin of new shop order
+      try {
+        const adminForPurchase = await storage.getAdminUser();
+        if (adminForPurchase) {
+          const buyer = await storage.getUser(userId);
+          const productTitle = purchase.productId
+            ? (await storage.getShopProductById(purchase.productId))?.title || 'item'
+            : 'item';
+          await storage.createNotification({
+            userId: adminForPurchase.id,
+            type: 'order',
+            title: `🛒 New Shop Order — ${productTitle}`,
+            content: `${buyer?.firstName || 'A user'} ${buyer?.lastName || ''} placed an order for "${productTitle}" (${finalTotal} USD). Review & approve in Admin → Payments.`,
+            priority: 'high',
+            actionUrl: '/admin/payments',
+          } as any);
+        }
+      } catch (_e) { /* non-fatal */ }
+
       res.json(purchase);
     } catch (error) {
       console.error("Error creating purchase:", error);
@@ -3790,7 +3810,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         acc.gross += Number(t.amount) || 0;
         if (['completed', 'released', 'paid', 'approved', 'active'].includes(String(t.status))) acc.settled += Number(t.amount) || 0;
         if (['pending', 'funded', 'delivered', 'submitted'].includes(String(t.status))) acc.pending += Number(t.amount) || 0;
-        acc.bySource[t.source] = (acc.bySource[t.source] || 0) + 1;
+        acc.bySource[t.source] = (acc.bySource[t.source] || 0) + (Number(t.amount) || 0);
         return acc;
       }, { count: 0, gross: 0, settled: 0, pending: 0, bySource: {} as Record<string, number> });
 
@@ -3808,11 +3828,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (me?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
 
       const admin = await storage.getAdminUser();
-      const adminId = admin?.id;
 
       // Fetch all sources in parallel — each query catches individually so one
       // missing table/column never kills the whole analytics response.
-      const safeSelect = async (q: Promise<any[]>) => q.catch(() => [] as any[]);
+      const safeSelect = async (q: Promise<any[]>) => q.catch((e) => { console.error('[analytics safeSelect]', e?.message || e); return [] as any[]; });
       const [
         subRows, purchaseRows, enrollRows, hireRows,
         escrowRows, p2pRows, payoutRows, allUsers, allCourses, allProducts,
@@ -3874,11 +3893,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         };
       });
 
+      // Determine admin IDs reliably from allUsers (avoids null adminId)
+      const adminIdSet = new Set(
+        (allUsers as any[]).filter((u: any) => u.userType === 'admin').map((u: any) => u.id)
+      );
+      if (admin?.id) adminIdSet.add(admin.id);
+
       // ── 4. Hire Developer (user→admin) ─────────────────────────────────────
       const hireDevRecords = (hireRows as any[])
-        .filter((r: any) => r.influencerId === adminId)
+        .filter((r: any) => adminIdSet.has(r.influencerId))
         .map(r => ({
-          id: r.id, amount: +r.budget, status: r.status, createdAt: r.createdAt,
+          id: r.id, amount: +(r.agreedBudget || r.budget || 0), status: r.status, createdAt: r.createdAt,
           title: r.title, transactionHash: r.transactionHash,
           agreedBudget: r.agreedBudget, invoiceNumber: r.invoiceNumber,
           user: u(r.brandId),
@@ -3886,7 +3911,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       // ── 5. Direct Hires (brand→influencer) ────────────────────────────────
       const directHireRecords = (hireRows as any[])
-        .filter((r: any) => r.influencerId !== adminId)
+        .filter((r: any) => !adminIdSet.has(r.influencerId))
         .map(r => ({
           id: r.id, amount: +r.budget, status: r.status, createdAt: r.createdAt,
           title: r.title, transactionHash: r.transactionHash,
@@ -7337,6 +7362,24 @@ Instructions:
         } as any);
       } catch (pointsErr) {
         console.error('Failed to award course enroll points:', pointsErr);
+      }
+
+      // Notify admin of new paid course enrollment
+      if (!course.isFree && !isPayLater) {
+        try {
+          const adminForEnroll = await storage.getAdminUser();
+          if (adminForEnroll) {
+            const student = await storage.getUser(req.user.id);
+            await storage.createNotification({
+              userId: adminForEnroll.id,
+              type: 'course_enrollment',
+              title: `📚 New Course Enrollment — ${course.title || 'Course'}`,
+              content: `${student?.firstName || 'A user'} ${student?.lastName || ''} enrolled in "${course.title || 'a course'}" (${effectivePrice} USD). Review & approve in Admin → Payments.`,
+              priority: 'high',
+              actionUrl: '/admin/payments',
+            } as any);
+          }
+        } catch (_e) { /* non-fatal */ }
       }
 
       res.status(201).json(enrollment);
@@ -11618,13 +11661,19 @@ Instructions:
         }));
       }
 
-      // Direct hire offers
-      let directHireOrders: any[] = [];
-      if (user.userType === 'brand') {
-        directHireOrders = await storage.getDirectHireOffersByBrand(userId);
-      } else if (user.userType === 'influencer') {
-        directHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
+      // Direct hire offers — always fetch brand-side (covers hire-developer requests
+      // submitted by any user type, since they're stored with brandId = userId)
+      const brandHireOrders = await storage.getDirectHireOffersByBrand(userId);
+      let influencerHireOrders: any[] = [];
+      if (user.userType === 'influencer' || user.userType === 'admin') {
+        influencerHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
       }
+      // Merge, deduplicate by id
+      const hireMap = new Map<string, any>();
+      for (const o of [...brandHireOrders, ...influencerHireOrders]) hireMap.set(o.id, o);
+      const directHireOrders = Array.from(hireMap.values()).sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
 
       const adApplications = user.email
         ? await db

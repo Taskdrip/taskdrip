@@ -199,17 +199,19 @@ const CATEGORIES = [
 // ─── DrillDown Modal ─────────────────────────────────────────────────────────
 
 function DrillDown({
-  open, onClose, category, data,
+  open, onClose, category, data, isQueryLoading, queryError,
 }: {
   open: boolean;
   onClose: () => void;
   category: (typeof CATEGORIES)[number] | null;
   data: any;
+  isQueryLoading?: boolean;
+  queryError?: any;
 }) {
   const [q, setQ] = useState("");
   if (!category) return null;
 
-  const isLoading = !data;
+  const isLoading = isQueryLoading || !data;
   const cat = data?.categories?.[category.key];
   const Icon = category.icon;
   const records: any[] = cat?.records || [];
@@ -224,7 +226,7 @@ function DrillDown({
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-gray-950 border-gray-800 text-white p-0">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-gray-950 border-gray-800 text-white p-0 z-[99999]">
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-gray-800 flex-shrink-0">
           <div className="flex items-center justify-between gap-3">
@@ -265,7 +267,13 @@ function DrillDown({
 
         {/* Records list */}
         <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
-          {isLoading ? (
+          {queryError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-rose-400">
+              <AlertCircle className="h-10 w-10 mb-3 opacity-60" />
+              <p className="text-sm font-medium">Failed to load data</p>
+              <p className="text-xs text-gray-500 mt-1">Refresh the page and try again</p>
+            </div>
+          ) : isLoading ? (
             [...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-3 bg-gray-900/60 border border-gray-800 rounded-xl p-3 animate-pulse">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex-shrink-0" />
@@ -431,6 +439,8 @@ export function PaymentAnalyticsDashboard() {
         onClose={() => setSelected(null)}
         category={selected}
         data={data}
+        isQueryLoading={isLoading}
+        queryError={error}
       />
     </div>
   );
