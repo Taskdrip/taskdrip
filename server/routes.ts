@@ -8730,6 +8730,55 @@ Instructions:
     }
   });
 
+  // Admin: send email to dev-hire client via Resend / configured provider
+  app.post('/api/admin/direct-hire/:id/send-email', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: 'Offer not found' });
+
+      const { subject, body, alsoPostInChat } = req.body || {};
+      if (!subject || !body) return res.status(400).json({ message: 'subject and body are required' });
+
+      const client = await storage.getUser(offer.brandId);
+      if (!client?.email) return res.status(400).json({ message: 'Client has no email address' });
+
+      const { sendEmail, buildDefaultEmailHtml } = await import('./email-service');
+
+      const bodyHtml = body.replace(/\n/g, "<br>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      const html = buildDefaultEmailHtml
+        ? buildDefaultEmailHtml(`<h2 style="color:#1f2937;margin:0 0 16px">${subject}</h2><div style="line-height:1.7">${bodyHtml}</div>`, "Taskdrip Dev Team")
+        : `<div style="font-family:sans-serif;max-width:600px;margin:auto"><h2>${subject}</h2><div>${bodyHtml}</div><hr><p style="font-size:12px;color:#888">Sent via Taskdrip Dev Team</p></div>`;
+
+      const result = await sendEmail({
+        to: client.email,
+        toName: [client.firstName, client.lastName].filter(Boolean).join(' ') || undefined,
+        subject,
+        html,
+      });
+
+      if (!result.success) return res.status(500).json({ message: result.error || 'Email failed to send' });
+
+      // Optionally also post in project chat
+      if (alsoPostInChat) {
+        await storage.createMessage({
+          senderId: req.user.id,
+          receiverId: offer.brandId,
+          subject: `Direct hire: ${offer.title}`,
+          content: `📧 Email sent to client:\n\n**${subject}**\n\n${body}`,
+          messageType: 'direct_hire',
+          referenceType: 'direct_hire',
+          referenceId: offer.id,
+        } as any);
+      }
+
+      res.json({ success: true, provider: result.provider, to: client.email });
+    } catch (e: any) {
+      console.error('Error sending hire email:', e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   // Admin: list all direct hire offers
   app.get('/api/admin/direct-hire', isAuthenticated, async (req: any, res) => {
     try {
@@ -8917,8 +8966,40 @@ Instructions:
         const receiver = await storage.getUser(m.receiverId);
         return { ...m, sender: sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType } : null, receiver: receiver ? { id: receiver.id, firstName: receiver.firstName, lastName: receiver.lastName, userType: receiver.userType } : null };
       }));
+      // Parse phone/whatsapp from description (stored by hire-developer form)
+      const descPhone = (() => {
+        const m = (offer.description || '').match(/📞 Phone\/WhatsApp:\s*([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+      const descTelegram = (() => {
+        const m = (offer.description || '').match(/✈️ Telegram:\s*@?([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+      const descEmail = (() => {
+        const m = (offer.description || '').match(/📧 Email:\s*([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+      const preferredContact = (() => {
+        const m = (offer.description || '').match(/⭐ Preferred contact:\s*([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+
       res.json({
-        offer: { ...offer, brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, email: brand.email } : null, influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName, email: influencer.email } : null },
+        offer: {
+          ...offer,
+          brand: brand ? {
+            firstName: brand.firstName,
+            lastName: brand.lastName,
+            companyName: brand.companyName,
+            email: brand.email,
+            phone: (brand as any).phoneNumber || descPhone || null,
+            whatsapp: descPhone || (brand as any).phoneNumber || null,
+            telegram: descTelegram,
+            contactEmail: descEmail || brand.email,
+            preferredContact,
+          } : null,
+          influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName, email: influencer.email } : null,
+        },
         messages: enrichedMessages,
       });
     } catch (e: any) { res.status(500).json({ message: e.message }); }

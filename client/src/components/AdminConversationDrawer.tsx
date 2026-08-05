@@ -10,10 +10,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   MessageSquare, Users, ExternalLink, Shield,
   AlertTriangle, Briefcase, Send, Loader2,
   FileText, DollarSign, Calendar, CheckCircle,
+  Mail, Phone, MessageCircle, Zap, Copy, Check,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
 
 interface Props {
@@ -41,15 +46,15 @@ function initials(first?: string, last?: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
-    pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800" },
-    active: { label: "Active", className: "bg-green-100 text-green-800" },
-    completed: { label: "Completed", className: "bg-blue-100 text-blue-800" },
-    rejected: { label: "Rejected", className: "bg-red-100 text-red-800" },
+    pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" },
+    active: { label: "Active", className: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+    completed: { label: "Completed", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+    rejected: { label: "Rejected", className: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
     cancelled: { label: "Cancelled", className: "bg-gray-100 text-gray-700" },
-    work_submitted: { label: "Work Submitted", className: "bg-purple-100 text-purple-800" },
-    payment_submitted: { label: "Payment Submitted", className: "bg-indigo-100 text-indigo-800" },
-    accepted: { label: "Accepted", className: "bg-teal-100 text-teal-800" },
-    approved: { label: "Approved", className: "bg-green-100 text-green-800" },
+    work_submitted: { label: "Work Submitted", className: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+    payment_submitted: { label: "Payment Submitted", className: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300" },
+    accepted: { label: "Accepted", className: "bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300" },
+    approved: { label: "Approved", className: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
   };
   const s = map[status] || { label: status, className: "bg-gray-100 text-gray-700" };
   return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.className}`}>{s.label}</span>;
@@ -69,13 +74,13 @@ function MessageBubble({ msg }: { msg: any }) {
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold text-gray-900">{msg.sender?.firstName} {msg.sender?.lastName}</span>
+          <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{msg.sender?.firstName} {msg.sender?.lastName}</span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${isSenderAdmin ? "bg-purple-100 text-purple-700" : isSenderBrand ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}>
             {senderLabel}
           </span>
           <span className="text-[10px] text-gray-400">{msg.createdAt ? timeAgo(msg.createdAt) : ""}</span>
         </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-xl rounded-tl-sm px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl rounded-tl-sm px-3 py-2 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
           {msg.content}
         </div>
       </div>
@@ -83,6 +88,326 @@ function MessageBubble({ msg }: { msg: any }) {
   );
 }
 
+// ── Quick email templates ──────────────────────────────────────────────────────
+const EMAIL_TEMPLATES = [
+  {
+    label: "📋 Project Received",
+    subject: "Your project request has been received — Taskdrip Dev Team",
+    body: `Hi {name},
+
+Thank you for submitting your project request through Taskdrip! We've reviewed your requirements and our dev team is on it.
+
+We'll get back to you within 24 hours with a detailed quote and timeline. In the meantime, feel free to reply to this email or message us in-app if you have questions.
+
+Best,
+Taskdrip Dev Team`,
+  },
+  {
+    label: "💰 Invoice Ready",
+    subject: "Your Invoice is Ready — {title}",
+    body: `Hi {name},
+
+Your invoice for "{title}" has been generated and is ready for review.
+
+You can view, download, and print the invoice directly from your project page. Once you've reviewed it, please proceed with the payment as outlined.
+
+Need help? Reply here or chat with us in-app anytime.
+
+Best,
+Taskdrip Dev Team`,
+  },
+  {
+    label: "🚀 Project Started",
+    subject: "Development has started on your project!",
+    body: `Hi {name},
+
+Great news — your payment has been confirmed and development on "{title}" has officially started!
+
+We'll keep you updated on progress through the project chat. Feel free to drop questions or feedback there anytime.
+
+Estimated timeline: as discussed in our quote.
+
+Best,
+Taskdrip Dev Team`,
+  },
+  {
+    label: "🔄 Update Needed",
+    subject: "We need more info about your project",
+    body: `Hi {name},
+
+We're making progress on "{title}" and have a few questions to keep things moving.
+
+Could you please clarify:
+- [Add your question here]
+
+You can reply directly to this email or message us in the project chat.
+
+Best,
+Taskdrip Dev Team`,
+  },
+  {
+    label: "✅ Project Delivered",
+    subject: "Your project is ready for review!",
+    body: `Hi {name},
+
+We're excited to let you know that "{title}" is complete and ready for your review!
+
+Please check the delivered work on your project page and let us know if anything needs adjustment. Once you're happy, you can mark it as complete.
+
+It's been a pleasure working with you!
+
+Best,
+Taskdrip Dev Team`,
+  },
+];
+
+function applyTemplate(template: typeof EMAIL_TEMPLATES[number], offer: any, brand: any) {
+  const name = [brand?.firstName, brand?.lastName].filter(Boolean).join(" ") || "there";
+  const title = offer?.title || "your project";
+  return {
+    subject: template.subject.replace(/{name}/g, name).replace(/{title}/g, title),
+    body: template.body.replace(/{name}/g, name).replace(/{title}/g, title),
+  };
+}
+
+// ── Reach-Out Tab ─────────────────────────────────────────────────────────────
+function ReachOutTab({
+  id, offer, isDevHire,
+}: {
+  id: string;
+  offer: any;
+  isDevHire: boolean;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const brand = offer?.brand;
+  const phone = brand?.whatsapp || brand?.phone;
+  const email = brand?.contactEmail || brand?.email;
+  const telegram = brand?.telegram;
+  const preferredContact = brand?.preferredContact;
+
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [alsoPostInChat, setAlsoPostInChat] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const sendEmailMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/admin/direct-hire/${id}/send-email`, {
+        subject: emailSubject,
+        body: emailBody,
+        alsoPostInChat,
+      }).then(r => r.json()),
+    onSuccess: (data) => {
+      toast({ title: "Email sent ✅", description: `Delivered to ${data.to} via ${data.provider}` });
+      setEmailSubject("");
+      setEmailBody("");
+      if (alsoPostInChat) qc.invalidateQueries({ queryKey: ["/api/admin/direct-hire", id, "thread"] });
+    },
+    onError: (e: any) => toast({ title: "Email failed", description: e.message, variant: "destructive" }),
+  });
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
+  const waLink = phone
+    ? `https://wa.me/${phone.replace(/[^\d+]/g, "").replace(/^\+/, "")}`
+    : null;
+
+  const telegramLink = telegram
+    ? `https://t.me/${telegram.replace(/^@/, "")}`
+    : null;
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="px-4 py-4 space-y-5">
+
+        {/* ── Contact Quick Actions ── */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Client Contact
+          </p>
+          {preferredContact && (
+            <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-lg px-3 py-1.5">
+              ⭐ Preferred: {preferredContact}
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-2">
+            {/* Email */}
+            {email && (
+              <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">
+                <Mail className="w-4 h-4 text-violet-500 shrink-0" />
+                <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{email}</span>
+                <button
+                  onClick={() => copyToClipboard(email, "email")}
+                  className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  {copied === "email" ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                <a
+                  href={`mailto:${email}`}
+                  className="text-xs text-violet-600 dark:text-violet-400 hover:underline font-medium"
+                  target="_blank" rel="noopener noreferrer"
+                >
+                  Open
+                </a>
+              </div>
+            )}
+            {/* WhatsApp */}
+            {phone && (
+              <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">
+                <Phone className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{phone}</span>
+                <button
+                  onClick={() => copyToClipboard(phone, "phone")}
+                  className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  {copied === "phone" ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                {waLink && (
+                  <a
+                    href={waLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors"
+                  >
+                    <MessageCircle className="w-3 h-3" /> WhatsApp
+                  </a>
+                )}
+              </div>
+            )}
+            {/* Telegram */}
+            {telegram && (
+              <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">
+                <Send className="w-4 h-4 text-blue-500 shrink-0" />
+                <span className="text-xs text-gray-700 dark:text-gray-300 flex-1">@{telegram.replace(/^@/, "")}</span>
+                {telegramLink && (
+                  <a
+                    href={telegramLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors"
+                  >
+                    Open
+                  </a>
+                )}
+              </div>
+            )}
+            {!email && !phone && !telegram && (
+              <div className="text-xs text-gray-400 text-center py-4 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl">
+                No contact details on record.
+                <br />Check the description tab for info submitted in the form.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* ── Email Composer ── */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-violet-500" /> Send Email via Resend
+            </p>
+            <button
+              onClick={() => setTemplateOpen(o => !o)}
+              className="inline-flex items-center gap-1 text-[11px] text-violet-600 dark:text-violet-400 hover:underline font-medium"
+            >
+              <Zap className="w-3 h-3" /> Templates
+              {templateOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+          </div>
+
+          {/* Template picker */}
+          {templateOpen && (
+            <div className="space-y-1.5 bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/50 rounded-xl p-3">
+              <p className="text-[10px] text-violet-600 dark:text-violet-400 font-semibold mb-2">Click to load template</p>
+              {EMAIL_TEMPLATES.map((t) => (
+                <button
+                  key={t.label}
+                  onClick={() => {
+                    const applied = applyTemplate(t, offer, brand);
+                    setEmailSubject(applied.subject);
+                    setEmailBody(applied.body);
+                    setTemplateOpen(false);
+                  }}
+                  className="w-full text-left text-xs bg-white dark:bg-gray-800 border border-violet-100 dark:border-violet-800/50 rounded-lg px-3 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-300 transition-all font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {email && (
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 rounded-lg px-3 py-1.5">
+                To: <strong className="text-gray-700 dark:text-gray-300">{email}</strong>
+                {brand?.firstName && <span className="ml-1">({[brand.firstName, brand.lastName].filter(Boolean).join(" ")})</span>}
+              </div>
+            )}
+            <Input
+              placeholder="Subject"
+              value={emailSubject}
+              onChange={e => setEmailSubject(e.target.value)}
+              className="text-sm"
+            />
+            <Textarea
+              placeholder="Write your message here…"
+              value={emailBody}
+              onChange={e => setEmailBody(e.target.value)}
+              rows={7}
+              className="text-sm resize-none font-mono"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Switch
+              id="also-post-in-chat"
+              checked={alsoPostInChat}
+              onCheckedChange={setAlsoPostInChat}
+            />
+            <Label htmlFor="also-post-in-chat" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+              Also post in project chat
+            </Label>
+          </div>
+
+          <Button
+            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold"
+            onClick={() => sendEmailMutation.mutate()}
+            disabled={!emailSubject.trim() || !emailBody.trim() || sendEmailMutation.isPending || !email}
+          >
+            {sendEmailMutation.isPending
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
+              : <><Mail className="w-4 h-4 mr-2" /> Send Email</>}
+          </Button>
+          {!email && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 text-center">
+              ⚠️ No email address on file for this client.
+            </p>
+          )}
+          {sendEmailMutation.isError && (
+            <p className="text-xs text-red-600 text-center">Failed to send. Try again or use a manual method.</p>
+          )}
+          {sendEmailMutation.isSuccess && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center flex items-center justify-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" /> Email sent successfully!
+            </p>
+          )}
+        </div>
+      </div>
+    </ScrollArea>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 export function AdminConversationDrawer({ open, onClose, type, id, title, isDevHire }: Props) {
   const [activeTab, setActiveTab] = useState("messages");
   const [msgText, setMsgText] = useState("");
@@ -90,6 +415,7 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
   const [invoiceSuccess, setInvoiceSuccess] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   const { data: campaignThread, isLoading: loadingCampaign } = useQuery<any>({
     queryKey: ["/api/admin/campaigns", id, "thread"],
@@ -121,10 +447,11 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
     }
   }, [messages.length]);
 
-  // Reset invoice success when offer changes
+  // Reset invoice success and form when offer changes
   useEffect(() => {
     setInvoiceSuccess(false);
     setInvoiceForm({ agreedBudget: "", dueDate: "", note: "" });
+    setActiveTab("messages");
   }, [id]);
 
   // Send message mutation
@@ -136,6 +463,7 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
       refetchDH();
       qc.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
     },
+    onError: (e: any) => toast({ title: "Failed to send message", description: e.message, variant: "destructive" }),
   });
 
   // Generate invoice mutation
@@ -151,7 +479,9 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
       refetchDH();
       qc.invalidateQueries({ queryKey: ["/api/admin/direct-hire"] });
       qc.invalidateQueries({ queryKey: ["/api/hire-developer/my-requests"] });
+      toast({ title: "Invoice sent ✅", description: "Client has been notified." });
     },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const handleSend = () => {
@@ -167,16 +497,19 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
     }
   };
 
+  // Tab count for display
+  const tabCount = isDevHire ? 4 : 2;
+
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
-        <SheetHeader className="px-5 py-4 border-b bg-gray-50">
+        <SheetHeader className="px-5 py-4 border-b bg-gray-50 dark:bg-gray-900">
           <div className="flex items-start gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${type === "campaign" ? "bg-violet-100" : "bg-blue-100"}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${type === "campaign" ? "bg-violet-100 dark:bg-violet-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
               {type === "campaign" ? <Briefcase className="w-5 h-5 text-violet-600" /> : <Users className="w-5 h-5 text-blue-600" />}
             </div>
             <div className="flex-1 min-w-0">
-              <SheetTitle className="text-sm font-bold text-gray-900 truncate">
+              <SheetTitle className="text-sm font-bold text-gray-900 dark:text-white truncate">
                 {title || (type === "campaign" ? campaign?.title : offer?.title) || "Conversation Thread"}
               </SheetTitle>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -185,7 +518,7 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                 </Badge>
                 {(campaign?.status || offer?.status) && <StatusBadge status={campaign?.status || offer?.status} />}
                 {offer?.invoiceNumber && (
-                  <Badge className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0">
+                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-2 py-0">
                     🧾 {offer.invoiceNumber}
                   </Badge>
                 )}
@@ -213,10 +546,15 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className={`mx-4 mt-3 mb-0 h-8 ${isDevHire ? "grid grid-cols-3" : "grid grid-cols-2"}`}>
+            <TabsList className={`mx-4 mt-3 mb-0 h-8 grid grid-cols-${tabCount}`}>
               <TabsTrigger value="messages" className="text-xs">
-                <MessageSquare className="w-3 h-3 mr-1" /> Messages ({messages.length})
+                <MessageSquare className="w-3 h-3 mr-1" /> Chat ({messages.length})
               </TabsTrigger>
+              {isDevHire && (
+                <TabsTrigger value="reach-out" className="text-xs">
+                  <Mail className="w-3 h-3 mr-1" /> Reach Out
+                </TabsTrigger>
+              )}
               {isDevHire && (
                 <TabsTrigger value="invoice" className="text-xs">
                   <FileText className="w-3 h-3 mr-1" /> Invoice
@@ -265,31 +603,48 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
 
               {/* Message input — only for direct hire threads */}
               {type === "direct_hire" && (
-                <div className="border-t bg-white px-4 py-3 space-y-2">
+                <div className="border-t bg-white dark:bg-gray-900 px-4 py-3 space-y-2">
                   <div className="flex gap-2">
-                    <Input
+                    <Textarea
                       value={msgText}
                       onChange={e => setMsgText(e.target.value)}
                       onKeyDown={handleKey}
-                      placeholder="Reply to client..."
-                      className="flex-1 text-sm"
+                      placeholder="Reply to client… (Enter to send, Shift+Enter for newline)"
+                      className="flex-1 text-sm min-h-[60px] max-h-[120px] resize-none"
                       disabled={sendMsgMutation.isPending}
                     />
                     <Button
                       size="sm"
                       onClick={handleSend}
                       disabled={!msgText.trim() || sendMsgMutation.isPending}
-                      className="bg-purple-600 hover:bg-purple-700 px-3"
+                      className="bg-purple-600 hover:bg-purple-700 px-3 self-end"
                     >
                       {sendMsgMutation.isPending
                         ? <Loader2 className="w-4 h-4 animate-spin" />
                         : <Send className="w-4 h-4" />}
                     </Button>
                   </div>
-                  <p className="text-[10px] text-gray-400">Press Enter to send · Replies appear in the client's Dev Projects tab</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-gray-400">Replies appear in client's Dev Projects tab</p>
+                    {isDevHire && (
+                      <button
+                        onClick={() => setActiveTab("reach-out")}
+                        className="text-[10px] text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 font-medium flex items-center gap-1"
+                      >
+                        <Mail className="w-3 h-3" /> Send email or WhatsApp
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </TabsContent>
+
+            {/* ── Reach Out Tab (dev hire only) ── */}
+            {isDevHire && id && (
+              <TabsContent value="reach-out" className="flex-1 overflow-hidden mt-0">
+                <ReachOutTab id={id} offer={offer} isDevHire={!!isDevHire} />
+              </TabsContent>
+            )}
 
             {/* ── Invoice Tab (dev hire only) ── */}
             {isDevHire && (
@@ -298,10 +653,10 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                   <div className="px-4 py-4 space-y-4">
                     {/* Existing invoice info */}
                     {offer?.invoiceNumber ? (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-2">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 space-y-2">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-5 h-5 text-emerald-600" />
-                          <p className="font-semibold text-emerald-800">Invoice Generated</p>
+                          <p className="font-semibold text-emerald-800 dark:text-emerald-300">Invoice Generated</p>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div><span className="text-gray-500">Number:</span> <strong>{offer.invoiceNumber}</strong></div>
@@ -313,31 +668,31 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                             <div className="col-span-2"><span className="text-gray-500">Note:</span> {offer.invoiceNote}</div>
                           )}
                         </div>
-                        <p className="text-xs text-emerald-700 mt-1">The client has been notified and can view/print this invoice from their project page.</p>
+                        <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">Client has been notified and can view/print from their project page.</p>
                       </div>
                     ) : invoiceSuccess ? (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 text-center">
                         <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                        <p className="font-semibold text-emerald-800">Invoice sent to client!</p>
-                        <p className="text-xs text-emerald-700 mt-1">A notification and chat message have been sent. The client can view and print the invoice from their project page.</p>
+                        <p className="font-semibold text-emerald-800 dark:text-emerald-300">Invoice sent to client!</p>
+                        <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">Notification and chat message sent. Client can view and print from project page.</p>
                       </div>
                     ) : null}
 
                     {/* Generate / re-generate invoice form */}
-                    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                       <div className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-violet-600" />
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-white">
                           {offer?.invoiceNumber ? "Re-generate Invoice" : "Generate Invoice"}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        Generating an invoice will notify the client and post a message in the project chat. The offer status moves to "accepted" so payment gates open.
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Generating sends a notification + chat message to the client and moves status to "accepted" so payment gates open.
                       </p>
 
                       <div className="space-y-3">
                         <div>
-                          <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1 mb-1.5">
                             <DollarSign className="w-3 h-3" /> Agreed Budget (USD)
                           </label>
                           <Input
@@ -347,11 +702,11 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                             onChange={e => setInvoiceForm(f => ({ ...f, agreedBudget: e.target.value }))}
                             className="text-sm"
                           />
-                          <p className="text-[10px] text-gray-400 mt-1">Leave blank to use the original budget estimate</p>
+                          <p className="text-[10px] text-gray-400 mt-1">Leave blank to use original budget estimate</p>
                         </div>
 
                         <div>
-                          <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1 mb-1.5">
                             <Calendar className="w-3 h-3" /> Invoice Due Date
                           </label>
                           <Input
@@ -363,7 +718,7 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                         </div>
 
                         <div>
-                          <label className="text-xs font-medium text-gray-700 flex items-center gap-1 mb-1.5">
+                          <label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1 mb-1.5">
                             <MessageSquare className="w-3 h-3" /> Invoice Note (optional)
                           </label>
                           <Textarea
@@ -400,18 +755,18 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                 <div className="px-4 py-3 space-y-3">
                   {type === "campaign" ? (
                     <>
-                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Campaign Participants</div>
+                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Campaign Participants</div>
                       {participations.length === 0 ? (
                         <div className="text-center py-8 text-gray-400 text-sm">No participants yet</div>
                       ) : participations.map((p: any) => (
-                        <div key={p.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div key={p.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-100 dark:border-gray-700">
                           <Avatar className="w-9 h-9">
                             <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-bold">
                               {initials(p.user?.firstName, p.user?.lastName)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900">{p.user?.firstName} {p.user?.lastName}</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{p.user?.firstName} {p.user?.lastName}</p>
                             <p className="text-xs text-gray-500">{p.user?.email}</p>
                           </div>
                           <div className="flex flex-col items-end gap-1">
@@ -422,42 +777,45 @@ export function AdminConversationDrawer({ open, onClose, type, id, title, isDevH
                     </>
                   ) : (
                     <>
-                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                         {isDevHire ? "Dev Hire Parties" : "Direct Hire Parties"}
                       </div>
                       {[
-                        { label: isDevHire ? "Client" : "Brand", data: offer?.brand, color: "bg-blue-100 text-blue-700" },
-                        { label: isDevHire ? "Developer" : "Influencer", data: offer?.influencer, color: "bg-purple-100 text-purple-700" },
+                        { label: isDevHire ? "Client" : "Brand", data: offer?.brand, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+                        { label: isDevHire ? "Developer" : "Influencer", data: offer?.influencer, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
                       ].map(({ label, data, color }) => (
-                        <div key={label} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div key={label} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-100 dark:border-gray-700">
                           <Avatar className="w-9 h-9">
                             <AvatarFallback className={`${color} text-xs font-bold`}>
                               {initials(data?.firstName, data?.lastName)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
                               {data?.firstName} {data?.lastName}
                               {data?.companyName ? ` (${data.companyName})` : ""}
                             </p>
                             <p className="text-xs text-gray-500">{data?.email}</p>
+                            {label === (isDevHire ? "Client" : "Brand") && data?.phone && (
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400">{data.phone}</p>
+                            )}
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${color}`}>{label}</span>
                         </div>
                       ))}
                       {offer && (
-                        <div className="mt-4 p-3 bg-violet-50 rounded-xl border border-violet-100 space-y-2">
-                          <p className="text-xs font-semibold text-violet-700">Project Details</p>
-                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                            <div><span className="text-gray-400">Budget:</span> <strong>${parseFloat(offer.agreedBudget || offer.budget || 0).toFixed(2)}</strong></div>
+                        <div className="mt-4 p-3 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-800/50 space-y-2">
+                          <p className="text-xs font-semibold text-violet-700 dark:text-violet-400">Project Details</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                            <div><span className="text-gray-400">Budget:</span> <strong className="text-gray-800 dark:text-gray-200">${parseFloat(offer.agreedBudget || offer.budget || 0).toFixed(2)}</strong></div>
                             <div><span className="text-gray-400">Status:</span> <StatusBadge status={offer.status} /></div>
                             {offer.deadline && <div><span className="text-gray-400">Deadline:</span> {new Date(offer.deadline).toLocaleDateString()}</div>}
-                            {offer.invoiceNumber && <div><span className="text-gray-400">Invoice:</span> <strong className="text-emerald-700">{offer.invoiceNumber}</strong></div>}
+                            {offer.invoiceNumber && <div><span className="text-gray-400">Invoice:</span> <strong className="text-emerald-700 dark:text-emerald-400">{offer.invoiceNumber}</strong></div>}
                           </div>
                           {offer.description && (
                             <div>
                               <p className="text-xs text-gray-400 mb-1">Description:</p>
-                              <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed max-h-32 overflow-y-auto">{offer.description}</p>
+                              <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed max-h-32 overflow-y-auto">{offer.description}</p>
                             </div>
                           )}
                           {offer.workSubmissionUrl && (
