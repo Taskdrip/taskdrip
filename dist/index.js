@@ -44,7 +44,7 @@ __export(schema_exports, {
   courseLikes: () => courseLikes,
   courseMessages: () => courseMessages,
   courseReviews: () => courseReviews,
-  courses: () => courses2,
+  courses: () => courses,
   directHireOffers: () => directHireOffers,
   emailAutoResponders: () => emailAutoResponders,
   emailCampaigns: () => emailCampaigns,
@@ -176,6 +176,7 @@ __export(schema_exports, {
   shortenerSettings: () => shortenerSettings,
   siteContent: () => siteContent,
   siteSocialLinks: () => siteSocialLinks,
+  socialLeads: () => socialLeads,
   socialPlatforms: () => socialPlatforms,
   socialQuickTasks: () => socialQuickTasks,
   sponsoredAds: () => sponsoredAds,
@@ -208,7 +209,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, productLikes, messages, blockedUsers, taskSubmissions, notifications, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses2, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, productLikes, messages, blockedUsers, taskSubmissions, notifications, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -1249,7 +1250,7 @@ var init_schema = __esm({
       createdAt: true,
       updatedAt: true
     });
-    courses2 = pgTable("courses", {
+    courses = pgTable("courses", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       title: varchar("title").notNull(),
       description: text("description").notNull(),
@@ -1277,12 +1278,14 @@ var init_schema = __esm({
       status: varchar("status").default("draft"),
       isPublished: boolean("is_published").default(false),
       isFeatured: boolean("is_featured").default(false),
+      salePrice: decimal("sale_price", { precision: 10, scale: 2 }),
+      saleDeadline: timestamp("sale_deadline"),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
     courseEnrollments = pgTable("course_enrollments", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       status: varchar("status").default("active"),
       progress: integer("progress").default(0),
@@ -1298,7 +1301,7 @@ var init_schema = __esm({
     });
     courseReviews = pgTable("course_reviews", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       rating: integer("rating").notNull(),
       comment: text("comment"),
@@ -1306,7 +1309,7 @@ var init_schema = __esm({
     });
     courseComments = pgTable("course_comments", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       content: text("content").notNull(),
       parentId: varchar("parent_id"),
@@ -1314,13 +1317,13 @@ var init_schema = __esm({
     });
     courseLikes = pgTable("course_likes", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       createdAt: timestamp("created_at").defaultNow()
     });
     courseLessons = pgTable("course_lessons", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       title: varchar("title").notNull(),
       description: text("description"),
       videoUrl: varchar("video_url"),
@@ -1333,7 +1336,7 @@ var init_schema = __esm({
     });
     courseMessages = pgTable("course_messages", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       senderId: varchar("sender_id").notNull().references(() => users.id),
       recipientId: varchar("recipient_id").references(() => users.id),
       // null = group chat, set = private DM
@@ -1344,7 +1347,7 @@ var init_schema = __esm({
     courseLessonProgress = pgTable("course_lesson_progress", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       lessonId: varchar("lesson_id").notNull().references(() => courseLessons.id, { onDelete: "cascade" }),
       completedAt: timestamp("completed_at").defaultNow()
     });
@@ -1366,7 +1369,7 @@ var init_schema = __esm({
     });
     courseAssignments = pgTable("course_assignments", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       lessonId: varchar("lesson_id").references(() => courseLessons.id, { onDelete: "set null" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       title: varchar("title").notNull(),
@@ -1385,7 +1388,7 @@ var init_schema = __esm({
       certCode: varchar("cert_code").notNull().unique(),
       // e.g. BS-X9K2-A4M7
       userId: varchar("user_id").notNull().references(() => users.id),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       studentName: varchar("student_name").notNull(),
       courseTitle: varchar("course_title").notNull(),
       instructorName: varchar("instructor_name"),
@@ -1393,7 +1396,7 @@ var init_schema = __esm({
     });
     courseCommunityPosts = pgTable("course_community_posts", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-      courseId: varchar("course_id").notNull().references(() => courses2.id, { onDelete: "cascade" }),
+      courseId: varchar("course_id").notNull().references(() => courses.id, { onDelete: "cascade" }),
       userId: varchar("user_id").notNull().references(() => users.id),
       message: text("message").notNull(),
       replyToId: varchar("reply_to_id"),
@@ -1562,7 +1565,7 @@ var init_schema = __esm({
       isActive: boolean("is_active").default(true)
     });
     insertFooterColumnSchema = createInsertSchema(footerColumns).omit({ id: true });
-    insertCourseSchema = createInsertSchema(courses2).omit({ id: true, createdAt: true, updatedAt: true });
+    insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
     insertCourseEnrollmentSchema = createInsertSchema(courseEnrollments).omit({ id: true, createdAt: true, updatedAt: true });
     insertCourseReviewSchema = createInsertSchema(courseReviews).omit({ id: true, createdAt: true });
     insertCourseCommentSchema = createInsertSchema(courseComments).omit({ id: true, createdAt: true });
@@ -1670,6 +1673,8 @@ var init_schema = __esm({
       spfRecord: text("spf_record"),
       dkimPublicKey: text("dkim_public_key"),
       dmarcRecord: text("dmarc_record"),
+      // Provider preference (resend | smtp | sendgrid — empty = auto)
+      preferredProvider: varchar("preferred_provider"),
       // Status
       isVerified: boolean("is_verified").default(false),
       lastTestedAt: timestamp("last_tested_at"),
@@ -2142,7 +2147,7 @@ var init_schema = __esm({
       duration: varchar("duration"),
       isActive: boolean("is_active").default(true),
       acceptedPayments: text("accepted_payments").array().default(sql`ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']`),
-      linkedCourseId: varchar("linked_course_id").references(() => courses2.id),
+      linkedCourseId: varchar("linked_course_id").references(() => courses.id),
       // linked platform course for enrollment
       updatedAt: timestamp("updated_at").defaultNow()
     });
@@ -2214,6 +2219,33 @@ var init_schema = __esm({
       createdAt: timestamp("created_at").defaultNow(),
       approvedAt: timestamp("approved_at"),
       paidAt: timestamp("paid_at")
+    });
+    socialLeads = pgTable("social_leads", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      platform: varchar("platform").notNull(),
+      // 'reddit' | 'hackernews'
+      sourceId: varchar("source_id").notNull(),
+      // external post/comment ID
+      title: varchar("title", { length: 500 }).notNull(),
+      body: text("body"),
+      url: text("url").notNull(),
+      author: varchar("author"),
+      subreddit: varchar("subreddit"),
+      platformScore: integer("platform_score").default(0),
+      commentsCount: integer("comments_count").default(0),
+      relevanceScore: integer("relevance_score").default(0),
+      // 0–100 AI score
+      aiSummary: text("ai_summary"),
+      suggestedReply: text("suggested_reply"),
+      category: varchar("category").default("web_development"),
+      urgency: varchar("urgency").default("medium"),
+      // 'high' | 'medium' | 'low'
+      status: varchar("status").default("new"),
+      // 'new' | 'viewed' | 'replied' | 'dismissed'
+      keywordsMatched: text("keywords_matched").array(),
+      postedAt: timestamp("posted_at"),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
     });
   }
 });
@@ -2294,6 +2326,7 @@ var init_db = __esm({
 var email_service_exports = {};
 __export(email_service_exports, {
   AI_TEMPLATES: () => AI_TEMPLATES,
+  activateResendIfAvailable: () => activateResendIfAvailable,
   blastCampaign: () => blastCampaign,
   buildDefaultEmailHtml: () => buildDefaultEmailHtml,
   buildTransporter: () => buildTransporter,
@@ -2331,12 +2364,61 @@ async function getEmailStatus() {
   const settings = await getEmailSettings();
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
+  const resendOk = !!process.env.RESEND_API_KEY;
+  const pref = settings?.preferredProvider || "";
+  const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
+  let activeProvider;
+  if (pref === "resend" && resendOk) activeProvider = "resend";
+  else if (pref === "smtp" && smtpOk && !smtpIsBrevo) activeProvider = "smtp";
+  else if (pref === "sendgrid" && sendgridOk) activeProvider = "sendgrid";
+  else activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
   return {
-    configured: smtpOk || sendgridOk,
-    provider: smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none",
-    smtpHost: settings?.smtpHost,
-    sendgridAvailable: sendgridOk
+    configured: activeProvider !== "none",
+    provider: activeProvider,
+    smtpHost: settings?.smtpHost ?? void 0,
+    sendgridAvailable: sendgridOk,
+    resendAvailable: resendOk,
+    preferredProvider: pref || void 0,
+    smtpIsBrevo,
+    resendKeyPresent: resendOk
   };
+}
+async function activateResendIfAvailable() {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    const settings = await getEmailSettings();
+    const pref = settings?.preferredProvider || "";
+    const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
+    if (!pref || pref === "resend" || smtpIsBrevo) {
+      await db.insert(emailSettings).values({
+        id: "singleton",
+        preferredProvider: "resend",
+        smtpHost: smtpIsBrevo ? null : settings?.smtpHost ?? null,
+        smtpUser: smtpIsBrevo ? null : settings?.smtpUser ?? null,
+        smtpPass: smtpIsBrevo ? null : settings?.smtpPass ?? null
+      }).onConflictDoUpdate({
+        target: emailSettings.id,
+        set: { preferredProvider: "resend", ...smtpIsBrevo ? { smtpHost: null, smtpUser: null, smtpPass: null } : {} }
+      });
+      console.log("[email] RESEND_API_KEY detected \u2014 Resend set as preferred email provider.");
+    }
+  } catch (e) {
+    console.warn("[email] Could not auto-activate Resend:", e.message);
+  }
+}
+async function sendViaResend(opts, fromEmail, fromName) {
+  const { Resend } = await import("resend");
+  const client = new Resend(process.env.RESEND_API_KEY);
+  const result = await client.emails.send({
+    from: `${fromName} <${fromEmail}>`,
+    to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text || opts.html.replace(/<[^>]+>/g, "")
+  });
+  if (result.error) {
+    throw new Error(result.error.message || JSON.stringify(result.error));
+  }
 }
 async function sendViaSendGrid(opts, fromEmail, fromName) {
   const sgMail = (await import("@sendgrid/mail")).default;
@@ -2353,8 +2435,10 @@ async function sendEmail(opts) {
   const settings = await getEmailSettings();
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridKey = process.env.SENDGRID_API_KEY;
-  if (!smtpOk && !sendgridKey) {
-    console.warn("[email] No email provider configured \u2014 SMTP settings not set and SENDGRID_API_KEY not found.");
+  const resendKey = process.env.RESEND_API_KEY;
+  const pref = settings?.preferredProvider || "";
+  if (!resendKey && !smtpOk && !sendgridKey) {
+    console.warn("[email] No email provider configured \u2014 set RESEND_API_KEY, configure SMTP, or set SENDGRID_API_KEY.");
     await db.insert(emailLogs).values({
       id: crypto.randomUUID(),
       campaignId: opts.campaignId || null,
@@ -2363,23 +2447,37 @@ async function sendEmail(opts) {
       recipientName: opts.toName || null,
       subject: opts.subject,
       status: "failed",
-      errorMessage: "No email provider configured. Configure SMTP in Admin \u2192 Email \u2192 Settings or set SENDGRID_API_KEY.",
+      errorMessage: "No email provider configured. Set RESEND_API_KEY or configure SMTP in Admin \u2192 Email \u2192 Settings.",
       sentAt: /* @__PURE__ */ new Date()
     });
-    return { success: false, error: "No email provider configured. Set up SMTP or SendGrid in Admin \u2192 Email \u2192 Settings." };
+    return { success: false, error: "No email provider configured. Add RESEND_API_KEY to your secrets or set up SMTP." };
   }
-  try {
-    const fromEmail = settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
-    const fromName = settings?.smtpFromName || "Taskdrip";
-    if (smtpOk) {
-      const transporter = buildTransporter(settings);
-      await transporter.sendMail({
-        from: `"${fromName}" <${fromEmail}>`,
-        to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text || opts.html.replace(/<[^>]+>/g, "")
-      });
+  const fromEmail = resendKey ? process.env.RESEND_FROM_EMAIL || settings?.smtpFromEmail || "onboarding@resend.dev" : settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
+  const fromName = opts.fromName || settings?.smtpFromName || "Taskdrip";
+  const smtpProvider = { name: "smtp", fn: async () => {
+    const transporter = buildTransporter(settings);
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text || opts.html.replace(/<[^>]+>/g, "")
+    });
+  } };
+  const resendProvider = { name: "resend", fn: () => sendViaResend(opts, fromEmail, fromName) };
+  const sgProvider = { name: "sendgrid", fn: () => sendViaSendGrid(opts, fromEmail, fromName) };
+  let providers = [];
+  if (pref === "resend" && resendKey) providers = [resendProvider, ...smtpOk ? [smtpProvider] : [], ...sendgridKey ? [sgProvider] : []];
+  else if (pref === "smtp" && smtpOk) providers = [smtpProvider, ...resendKey ? [resendProvider] : [], ...sendgridKey ? [sgProvider] : []];
+  else if (pref === "sendgrid" && sendgridKey) providers = [sgProvider, ...resendKey ? [resendProvider] : [], ...smtpOk ? [smtpProvider] : []];
+  else {
+    if (resendKey) providers.push(resendProvider);
+    if (smtpOk) providers.push(smtpProvider);
+    if (sendgridKey) providers.push(sgProvider);
+  }
+  for (const provider of providers) {
+    try {
+      await provider.fn();
       await db.insert(emailLogs).values({
         id: crypto.randomUUID(),
         campaignId: opts.campaignId || null,
@@ -2390,36 +2488,24 @@ async function sendEmail(opts) {
         status: "sent",
         sentAt: /* @__PURE__ */ new Date()
       });
-      return { success: true, provider: "smtp" };
-    } else {
-      await sendViaSendGrid(opts, fromEmail, fromName);
-      await db.insert(emailLogs).values({
-        id: crypto.randomUUID(),
-        campaignId: opts.campaignId || null,
-        autoResponderId: opts.autoResponderId || null,
-        recipientEmail: opts.to,
-        recipientName: opts.toName || null,
-        subject: opts.subject,
-        status: "sent",
-        sentAt: /* @__PURE__ */ new Date()
-      });
-      return { success: true, provider: "sendgrid" };
+      return { success: true, provider: provider.name };
+    } catch (err) {
+      console.error(`[email] ${provider.name} send failed:`, err.message);
     }
-  } catch (err) {
-    console.error("[email] Send failed:", err.message);
-    await db.insert(emailLogs).values({
-      id: crypto.randomUUID(),
-      campaignId: opts.campaignId || null,
-      autoResponderId: opts.autoResponderId || null,
-      recipientEmail: opts.to,
-      recipientName: opts.toName || null,
-      subject: opts.subject,
-      status: "failed",
-      errorMessage: err.message,
-      sentAt: /* @__PURE__ */ new Date()
-    });
-    return { success: false, error: err.message };
   }
+  const errMsg = "All email providers failed. Check RESEND_API_KEY / SMTP credentials.";
+  await db.insert(emailLogs).values({
+    id: crypto.randomUUID(),
+    campaignId: opts.campaignId || null,
+    autoResponderId: opts.autoResponderId || null,
+    recipientEmail: opts.to,
+    recipientName: opts.toName || null,
+    subject: opts.subject,
+    status: "failed",
+    errorMessage: errMsg,
+    sentAt: /* @__PURE__ */ new Date()
+  });
+  return { success: false, error: errMsg };
 }
 async function sendWelcomeEmail(user) {
   try {
@@ -2495,13 +2581,51 @@ async function blastCampaign(campaignId) {
   const [campaign] = await db.select().from(emailCampaigns).where(eq2(emailCampaigns.id, campaignId));
   if (!campaign) return { sent: 0, failed: 0, errors: ["Campaign not found"] };
   await db.update(emailCampaigns).set({ status: "sending" }).where(eq2(emailCampaigns.id, campaignId));
-  let allUsers = await db.select().from(users);
   const seg = campaign.targetSegment;
-  if (seg === "influencers") allUsers = allUsers.filter((u) => u.userType === "creator");
-  else if (seg === "brands") allUsers = allUsers.filter((u) => u.userType === "brand");
-  else if (seg === "verified") allUsers = allUsers.filter((u) => u.isVerified);
-  else if (seg === "unverified") allUsers = allUsers.filter((u) => !u.isVerified);
-  else if (seg?.startsWith("tier_")) {
+  if (seg === "newsletter") {
+    const { newsletterSubscribers: newsletterSubscribers2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+    const nsRows = await db.select().from(newsletterSubscribers2);
+    const activeSubs = nsRows.filter((s) => s.status === "active");
+    let sent2 = 0, failed2 = 0;
+    const errors2 = [];
+    for (const sub of activeSubs) {
+      const vars = { first_name: sub.name || "", last_name: "", full_name: sub.name || "", email: sub.email, username: sub.email, user_type: "newsletter" };
+      const html = interpolate(campaign.htmlBody, vars);
+      const subject = interpolate(campaign.subject, vars);
+      const result = await sendEmail({ to: sub.email, toName: sub.name || void 0, subject, html, campaignId });
+      if (result.success) sent2++;
+      else {
+        failed2++;
+        errors2.push(`${sub.email}: ${result.error}`);
+      }
+    }
+    await db.update(emailCampaigns).set({ status: "sent", sentAt: /* @__PURE__ */ new Date(), totalRecipients: activeSubs.length, sent: sent2, bounced: failed2 }).where(eq2(emailCampaigns.id, campaignId));
+    return { sent: sent2, failed: failed2, errors: errors2 };
+  }
+  let allUsers = await db.select().from(users);
+  if (seg === "students") {
+    const { courseEnrollments: courseEnrollments2, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+    const enrollmentRows = await db.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
+    const breedskoolRows = await db.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
+    const studentIds = /* @__PURE__ */ new Set([
+      ...enrollmentRows.map((r) => r.userId),
+      ...breedskoolRows.map((r) => r.userId).filter(Boolean)
+    ]);
+    allUsers = allUsers.filter((u) => studentIds.has(u.id));
+  } else if (seg === "shop_customers") {
+    const { purchases: purchases2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+    const purchaseRows = await db.selectDistinct({ userId: purchases2.userId }).from(purchases2);
+    const customerIds = new Set(purchaseRows.map((r) => r.userId));
+    allUsers = allUsers.filter((u) => customerIds.has(u.id));
+  } else if (seg === "influencers" || seg === "creators") {
+    allUsers = allUsers.filter((u) => u.userType === "creator");
+  } else if (seg === "brands") {
+    allUsers = allUsers.filter((u) => u.userType === "brand");
+  } else if (seg === "verified") {
+    allUsers = allUsers.filter((u) => u.isVerified);
+  } else if (seg === "unverified") {
+    allUsers = allUsers.filter((u) => !u.isVerified);
+  } else if (seg?.startsWith("tier_")) {
     const tier = seg.replace("tier_", "");
     allUsers = allUsers.filter((u) => u.creatorTier === tier);
   }
@@ -2598,35 +2722,225 @@ var init_email_service = __esm({
     init_schema();
     AI_TEMPLATES = {
       welcome_creator: {
-        subject: "Welcome to Taskdrip, {{first_name}}! \u{1F680}",
-        body: buildDefaultEmailHtml(`
-      <h2>Welcome aboard, {{first_name}}! \u{1F389}</h2>
-      <p>You've just joined the #1 Web3 Influencer Marketplace. We're thrilled to have you as a verified influencer.</p>
-      <p><strong>What's next?</strong></p>
-      <ul>
-        <li>Complete your influencer profile</li>
-        <li>Browse live brand campaigns</li>
-        <li>Start earning crypto for your influence</li>
-      </ul>
-      <a href="{{site_url}}/campaigns" class="btn">Browse Campaigns \u2192</a>
-      <p>Got questions? Reply to this email \u2014 we're here to help.</p>
-      <p>The Taskdrip Team</p>
-    `)
+        subject: "Welcome to Taskdrip, {{first_name}}! Your creator account is live \u{1F680}",
+        body: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to Taskdrip</title></head>
+<body style="margin:0;padding:0;background:#0d0d1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0d0d1a"><tr><td align="center" style="padding:32px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#1a1a2e;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+
+  <!-- Hero Header -->
+  <tr><td bgcolor="#7c3aed" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:40px 40px 0;text-align:center;">
+        <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 18px;margin-bottom:20px;">
+          <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:1px;">\u26A1 TASKDRIP</span>
+        </div>
+      </td></tr>
+      <tr><td style="padding:0 40px 40px;text-align:center;">
+        <h1 style="color:#fff;font-size:30px;font-weight:800;margin:0 0 10px;line-height:1.25;">You're in, {{first_name}}! \u{1F389}</h1>
+        <p style="color:rgba(255,255,255,0.85);font-size:16px;margin:0;line-height:1.6;">Your creator account is <strong>live</strong> on the #1 Web3 Influencer Marketplace. Brands are waiting for you right now.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Stats Strip -->
+  <tr><td bgcolor="#6d28d9" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">15K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Creators</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">3.5K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Campaigns</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">$650K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Paid Out</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="padding:40px;background:#1a1a2e;">
+    <p style="color:#cbd5e1;font-size:15px;line-height:1.7;margin:0 0 28px;">Hey <strong style="color:#a78bfa;">{{first_name}}</strong> \u{1F44B} \u2014 here's what to do to start earning crypto from your social media influence:</p>
+
+    <!-- Step 1 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td width="36" valign="top" style="padding-top:2px;">
+        <div style="background:#7c3aed;color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:800;font-size:13px;">1</div>
+      </td>
+      <td style="padding-left:14px;background:#0f172a;border-radius:10px;padding:14px 14px 14px 14px;">
+        <div style="display:flex;align-items:flex-start;">
+          <div style="margin-left:0;">
+            <div style="color:#f1f5f9;font-weight:700;font-size:15px;margin-bottom:4px;">\u{1F9D1}\u200D\u{1F4BC} Complete your creator profile</div>
+            <div style="color:#94a3b8;font-size:13px;line-height:1.5;">Add your social handles, follower counts, niche, and a bio. Brands filter by these \u2014 a complete profile gets 3\xD7 more invites.</div>
+          </div>
+        </div>
+      </td>
+    </tr></table>
+
+    <!-- Step 2 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td width="36" valign="top" style="padding-top:2px;">
+        <div style="background:#7c3aed;color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:800;font-size:13px;">2</div>
+      </td>
+      <td style="padding-left:14px;background:#0f172a;border-radius:10px;padding:14px;">
+        <div style="color:#f1f5f9;font-weight:700;font-size:15px;margin-bottom:4px;">\u{1F50D} Browse live brand campaigns</div>
+        <div style="color:#94a3b8;font-size:13px;line-height:1.5;">Hundreds of paid campaigns are live right now across TikTok, YouTube, Instagram, X, and Telegram. Apply with one click.</div>
+      </td>
+    </tr></table>
+
+    <!-- Step 3 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td width="36" valign="top" style="padding-top:2px;">
+        <div style="background:#7c3aed;color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:800;font-size:13px;">3</div>
+      </td>
+      <td style="padding-left:14px;background:#0f172a;border-radius:10px;padding:14px;">
+        <div style="color:#f1f5f9;font-weight:700;font-size:15px;margin-bottom:4px;">\u{1F4B0} Submit your work and get paid in USDT</div>
+        <div style="color:#94a3b8;font-size:13px;line-height:1.5;">Post the content, upload proof, and get paid directly to your crypto wallet \u2014 no middlemen, no delays.</div>
+      </td>
+    </tr></table>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 28px;"><tr><td align="center">
+      <a href="{{site_url}}/campaigns" style="display:inline-block;background:#7c3aed;color:#fff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">Browse Campaigns Now \u2192</a>
+    </td></tr></table>
+
+    <!-- Tip box -->
+    <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#1e1b4b;border-left:4px solid #7c3aed;border-radius:8px;padding:16px 20px;">
+      <p style="margin:0;color:#a78bfa;font-weight:700;font-size:13px;">\u{1F4A1} Pro Tip</p>
+      <p style="margin:6px 0 0;color:#c4b5fd;font-size:13px;line-height:1.5;">Creators who complete KYC verification unlock <strong>premium, higher-paying campaigns</strong> and get the \u2705 Verified badge on their profile. It takes less than 5 minutes.</p>
+    </td></tr></table>
+
+    <p style="color:#64748b;font-size:13px;margin:28px 0 0;line-height:1.6;">Questions? Just reply to this email \u2014 our team reads every message. \u{1F64C}</p>
+    <p style="color:#94a3b8;font-size:14px;margin:8px 0 0;">The <strong style="color:#a78bfa;">Taskdrip</strong> Team</p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td bgcolor="#0d0d1a" style="padding:24px 40px;text-align:center;">
+    <p style="color:#475569;font-size:12px;margin:0 0 8px;">Follow us for campaign alerts &amp; tips</p>
+    <p style="margin:0 0 16px;">
+      <a href="https://t.me/taskdrip" style="color:#7c3aed;text-decoration:none;font-size:12px;margin:0 8px;">Telegram</a>
+      <a href="https://x.com/taskdrip" style="color:#7c3aed;text-decoration:none;font-size:12px;margin:0 8px;">X (Twitter)</a>
+      <a href="https://instagram.com/taskdrip" style="color:#7c3aed;text-decoration:none;font-size:12px;margin:0 8px;">Instagram</a>
+    </p>
+    <p style="color:#334155;font-size:11px;margin:0;">\xA9 ${(/* @__PURE__ */ new Date()).getFullYear()} Taskdrip. All rights reserved.<br>
+    <a href="{{site_url}}/unsubscribe?email={{email}}" style="color:#475569;text-decoration:underline;">Unsubscribe</a></p>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body>
+</html>`
       },
       welcome_brand: {
-        subject: "Welcome to Taskdrip, {{first_name}}! Let's launch your first campaign \u{1F680}",
-        body: buildDefaultEmailHtml(`
-      <h2>Great to have you, {{first_name}}! \u{1F3AF}</h2>
-      <p>Your brand account is ready. You now have access to 10,000+ verified Web3 influencers across TikTok, YouTube, Instagram, and more.</p>
-      <p><strong>Launch your first campaign in 3 steps:</strong></p>
-      <ol>
-        <li>Set up your campaign brief</li>
-        <li>Choose your target influencer tier</li>
-        <li>Fund the campaign and go live</li>
-      </ol>
-      <a href="{{site_url}}/campaigns/create" class="btn">Create a Campaign \u2192</a>
-      <p>The Taskdrip Team</p>
-    `)
+        subject: "Welcome to Taskdrip, {{first_name}}! Let's launch your first campaign \u{1F3AF}",
+        body: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to Taskdrip Brands</title></head>
+<body style="margin:0;padding:0;background:#0a0f1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a0f1e"><tr><td align="center" style="padding:32px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#111827;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+
+  <!-- Hero Header -->
+  <tr><td bgcolor="#4f46e5" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:40px 40px 0;text-align:center;">
+        <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 18px;margin-bottom:20px;">
+          <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:1px;">\u26A1 TASKDRIP BRANDS</span>
+        </div>
+      </td></tr>
+      <tr><td style="padding:0 40px 40px;text-align:center;">
+        <h1 style="color:#fff;font-size:28px;font-weight:800;margin:0 0 10px;line-height:1.25;">Your brand just got 15,000+ creators, {{first_name}} \u{1F3AF}</h1>
+        <p style="color:rgba(255,255,255,0.85);font-size:15px;margin:0;line-height:1.6;">Your brand account is <strong>active</strong>. Launch your first influencer campaign in minutes and reach millions.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- Stats Strip -->
+  <tr><td bgcolor="#4338ca" style="padding:0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">15K+</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Verified Creators</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;border-right:1px solid rgba(255,255,255,0.2);">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">5</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Platforms</div>
+        </td>
+        <td width="33%" style="padding:18px 12px;text-align:center;">
+          <div style="color:#fff;font-size:24px;font-weight:800;line-height:1;">8.4%</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-top:4px;">Avg Engagement</div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="padding:40px;background:#111827;">
+    <p style="color:#d1d5db;font-size:15px;line-height:1.7;margin:0 0 28px;">Hello <strong style="color:#818cf8;">{{first_name}}</strong> \u{1F44B} \u2014 you're now connected to thousands of creators across TikTok, YouTube, Instagram, X, and Telegram. Here's how to run your first campaign:</p>
+
+    <!-- Step 1 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td style="background:#1f2937;border-radius:10px;padding:16px;border-left:4px solid #4f46e5;">
+        <div style="color:#f9fafb;font-weight:700;font-size:15px;margin-bottom:4px;">\u{1F4CB} Step 1 \u2014 Create your campaign brief</div>
+        <div style="color:#9ca3af;font-size:13px;line-height:1.5;">Set your budget, target platform, content requirements, and payout. Takes about 5 minutes \u2014 we'll guide you through every field.</div>
+      </td>
+    </tr></table>
+
+    <!-- Step 2 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td style="background:#1f2937;border-radius:10px;padding:16px;border-left:4px solid #4f46e5;">
+        <div style="color:#f9fafb;font-weight:700;font-size:15px;margin-bottom:4px;">\u{1F3AF} Step 2 \u2014 Creators apply to your campaign</div>
+        <div style="color:#9ca3af;font-size:13px;line-height:1.5;">Influencers across your chosen platform will see and apply to your campaign. You control who gets approved \u2014 filter by tier, follower count, or engagement rate.</div>
+      </td>
+    </tr></table>
+
+    <!-- Step 3 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;"><tr>
+      <td style="background:#1f2937;border-radius:10px;padding:16px;border-left:4px solid #4f46e5;">
+        <div style="color:#f9fafb;font-weight:700;font-size:15px;margin-bottom:4px;">\u2705 Step 3 \u2014 Review, approve, and pay instantly</div>
+        <div style="color:#9ca3af;font-size:13px;line-height:1.5;">Creators submit their content for your review. Approve what you love \u2014 payment is released automatically in USDT. No invoices, no wire transfers.</div>
+      </td>
+    </tr></table>
+
+    <!-- CTA -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 28px;"><tr><td align="center">
+      <a href="{{site_url}}/brand-dashboard" style="display:inline-block;background:#4f46e5;color:#fff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">Launch Your First Campaign \u2192</a>
+    </td></tr></table>
+
+    <!-- Info box -->
+    <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#1e1b4b;border-left:4px solid #4f46e5;border-radius:8px;padding:16px 20px;">
+      <p style="margin:0;color:#818cf8;font-weight:700;font-size:13px;">\u{1F4CA} What to expect</p>
+      <p style="margin:6px 0 0;color:#a5b4fc;font-size:13px;line-height:1.5;">Most brands receive their first campaign applications <strong>within 24 hours</strong>. Start with a modest budget to test the platform \u2014 you can scale up once you see results.</p>
+    </td></tr></table>
+
+    <p style="color:#6b7280;font-size:13px;margin:28px 0 0;line-height:1.6;">Need help setting up? Reply to this email \u2014 our team will personally walk you through your first campaign. \u{1F680}</p>
+    <p style="color:#9ca3af;font-size:14px;margin:8px 0 0;">The <strong style="color:#818cf8;">Taskdrip</strong> Team</p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td bgcolor="#0a0f1e" style="padding:24px 40px;text-align:center;">
+    <p style="color:#374151;font-size:12px;margin:0 0 8px;">Taskdrip \u2014 The Web3 Influencer Marketplace</p>
+    <p style="margin:0 0 16px;">
+      <a href="https://t.me/taskdrip" style="color:#4f46e5;text-decoration:none;font-size:12px;margin:0 8px;">Telegram</a>
+      <a href="https://x.com/taskdrip" style="color:#4f46e5;text-decoration:none;font-size:12px;margin:0 8px;">X (Twitter)</a>
+      <a href="https://instagram.com/taskdrip" style="color:#4f46e5;text-decoration:none;font-size:12px;margin:0 8px;">Instagram</a>
+    </p>
+    <p style="color:#1f2937;font-size:11px;margin:0;">\xA9 ${(/* @__PURE__ */ new Date()).getFullYear()} Taskdrip. All rights reserved.<br>
+    <a href="{{site_url}}/unsubscribe?email={{email}}" style="color:#374151;text-decoration:underline;">Unsubscribe</a></p>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body>
+</html>`
       },
       campaign_approved: {
         subject: "Your campaign submission was approved! \u{1F4B0}",
@@ -2829,6 +3143,900 @@ var init_analytics_injector = __esm({
       ts: 0
     };
     FORBIDDEN = /<\s*\/?(html|head|body)\b[^>]*>/i;
+  }
+});
+
+// server/seed-breedskool-courses.ts
+var seed_breedskool_courses_exports = {};
+__export(seed_breedskool_courses_exports, {
+  seedBreedskoolCourses: () => seedBreedskoolCourses
+});
+import { eq as eq9, sql as sql7 } from "drizzle-orm";
+async function seedBreedskoolCourses(adminId) {
+  let created = 0;
+  let linked = 0;
+  for (const course of BREEDSKOOL_PLATFORM_COURSES) {
+    try {
+      const tagToFind = `breedskool_${course.courseKey}`;
+      const existing = await db.select({ id: courses.id }).from(courses).where(sql7`${courses.tags} @> ARRAY[${tagToFind}]::text[]`).limit(1);
+      let courseId;
+      if (existing.length > 0) {
+        courseId = existing[0].id;
+      } else {
+        const [newCourse] = await db.insert(courses).values({
+          title: course.title,
+          description: course.description,
+          shortDescription: course.shortDescription,
+          category: course.category,
+          instructorId: adminId,
+          price: course.price,
+          isFree: false,
+          level: course.level,
+          duration: course.duration,
+          status: "published",
+          isPublished: true,
+          isFeatured: false,
+          tags: course.tags,
+          whatYouLearn: course.whatYouLearn,
+          requirements: course.requirements,
+          syllabus: course.syllabus
+        }).returning({ id: courses.id });
+        courseId = newCourse.id;
+        created++;
+      }
+      const existingLessons = await db.select({ id: courseLessons.id }).from(courseLessons).where(eq9(courseLessons.courseId, courseId)).limit(1);
+      if (existingLessons.length === 0 && course.lessons?.length) {
+        for (const lesson of course.lessons) {
+          await db.insert(courseLessons).values({
+            courseId,
+            title: lesson.title,
+            content: lesson.content,
+            isPreview: lesson.isPreview,
+            order: lesson.order
+          });
+        }
+        await db.execute(
+          sql7`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
+        );
+      }
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq9(breedskoolCoursePricing.courseKey, course.courseKey));
+      linked++;
+    } catch (e) {
+      console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
+    }
+  }
+  return { created, linked };
+}
+var BREEDSKOOL_PLATFORM_COURSES;
+var init_seed_breedskool_courses = __esm({
+  "server/seed-breedskool-courses.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    BREEDSKOOL_PLATFORM_COURSES = [
+      {
+        courseKey: "webdev",
+        title: "Web Development & Vibe Coding",
+        description: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment in this 8-week intensive bootcamp. Collaborate with fellow students in group chat and get private support from your tutor.",
+        shortDescription: "Build modern websites, web apps, and vibe-coded digital products from scratch.",
+        category: "branding",
+        level: "beginner",
+        duration: "8 Weeks",
+        price: "90.91",
+        tags: ["breedskool_webdev", "web development", "javascript", "react", "breedskool"],
+        whatYouLearn: ["HTML, CSS & JavaScript fundamentals", "React & Node.js", "Deployment & hosting", "Vibe coding with AI tools"],
+        requirements: ["Basic computer skills", "Stable internet connection", "Laptop or desktop computer"],
+        syllabus: [
+          { week: "Week 1\u20132", topic: "HTML, CSS & Git" },
+          { week: "Week 3\u20134", topic: "JavaScript & DOM" },
+          { week: "Week 5\u20136", topic: "React & Component Architecture" },
+          { week: "Week 7", topic: "Node.js & APIs" },
+          { week: "Week 8", topic: "Deployment & Portfolio Projects" }
+        ],
+        lessons: [
+          { title: "Welcome to Web Development & Vibe Coding", content: "Welcome to the course! In this orientation lesson you'll meet your tutor, understand the course structure, and set up your development environment (VS Code, Node.js, Git).\n\nAfter this lesson you will:\n\u2022 Have VS Code installed and configured\n\u2022 Understand what we'll build together\n\u2022 Be connected to the group chat\n\nUse the Group Chat tab to introduce yourself to your fellow students!", isPreview: true, order: 1 },
+          { title: "HTML Foundations \u2014 Structure of the Web", content: "HTML is the skeleton of every webpage. In this lesson we cover:\n\u2022 Document structure (html, head, body)\n\u2022 Headings, paragraphs, links, images\n\u2022 Lists and tables\n\u2022 Semantic HTML5 elements (nav, main, section, article, footer)\n\nPractice: Build a personal bio page with your name, photo, and a short introduction.", isPreview: false, order: 2 },
+          { title: "CSS Styling \u2014 Make It Look Good", content: "CSS is how we make websites beautiful. Topics:\n\u2022 Selectors, properties, and values\n\u2022 Box model (margin, padding, border)\n\u2022 Flexbox layout\n\u2022 Colors, fonts, and Google Fonts\n\u2022 Responsive design basics with media queries\n\nPractice: Style your bio page from lesson 2 to look professional.", isPreview: false, order: 3 },
+          { title: "JavaScript Basics \u2014 Making Pages Interactive", content: "JavaScript brings your pages to life. We cover:\n\u2022 Variables (let, const), data types, functions\n\u2022 DOM manipulation \u2014 changing page content with JS\n\u2022 Event listeners (click, submit, keyup)\n\u2022 Fetch API \u2014 loading data from the internet\n\nPractice: Build a to-do list app that saves items in the browser.", isPreview: false, order: 4 },
+          { title: "React \u2014 Modern Frontend Development", content: "React is the world's most popular frontend library. In this lesson:\n\u2022 What is a component?\n\u2022 JSX syntax\n\u2022 Props and state with useState\n\u2022 useEffect hook\n\u2022 Building a weather app with a public API\n\nBy the end you will have built a real React app!", isPreview: false, order: 5 },
+          { title: "Node.js & Express \u2014 Your First Backend", content: "The backend is where your data lives. Topics:\n\u2022 What is Node.js?\n\u2022 Setting up an Express server\n\u2022 Routes (GET, POST, PUT, DELETE)\n\u2022 Connecting to a database (PostgreSQL basics)\n\u2022 Deploying your server to Railway\n\nPractice: Build a simple REST API for your portfolio.", isPreview: false, order: 6 },
+          { title: "Vibe Coding with AI Tools", content: "Modern developers use AI to move 10x faster. This lesson covers:\n\u2022 Using ChatGPT & GitHub Copilot for coding\n\u2022 Debugging with AI assistance\n\u2022 Building an entire app with Cursor / Replit AI\n\u2022 When to use AI and when to code manually\n\nChallenge: Build a mini SaaS product idea using AI tools in 2 hours!", isPreview: false, order: 7 },
+          { title: "Deployment & Portfolio Building", content: "Congratulations \u2014 you're almost done! In this final lesson:\n\u2022 Deploying frontend apps to Vercel / Netlify\n\u2022 Deploying backend to Railway\n\u2022 Custom domain setup\n\u2022 Building your developer portfolio website\n\u2022 How to get your first freelance client\n\nSubmit your portfolio link in the group chat for feedback from your tutor!", isPreview: false, order: 8 }
+        ]
+      },
+      {
+        courseKey: "ai_content",
+        title: "AI Content Creation & Video Editing",
+        description: "Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms in this 6-week program. Connect with your cohort and get real-time tutor support.",
+        shortDescription: "Use AI tools to create viral content and earn from multiple platforms.",
+        category: "content_creation",
+        level: "beginner",
+        duration: "6 Weeks",
+        price: "108.48",
+        tags: ["breedskool_ai_content", "ai", "content creation", "video editing", "breedskool"],
+        whatYouLearn: ["ChatGPT & Prompt Engineering", "Midjourney & AI image generation", "AI video tools (Runway, Sora)", "Multi-platform monetization strategies"],
+        requirements: ["Basic smartphone or laptop", "Active social media account"],
+        syllabus: [
+          { week: "Week 1", topic: "AI Tools Overview & ChatGPT Mastery" },
+          { week: "Week 2", topic: "Midjourney & AI Image Generation" },
+          { week: "Week 3", topic: "AI Video Production" },
+          { week: "Week 4", topic: "Content Strategy & Scheduling" },
+          { week: "Week 5", topic: "Platform Monetization Setup" },
+          { week: "Week 6", topic: "Final Projects & Launch" }
+        ],
+        lessons: [
+          { title: "Welcome & Your AI Content Toolkit", content: "Welcome to AI Content Creation! In this orientation:\n\u2022 Meet your tutor and fellow students\n\u2022 Overview of all the AI tools you'll master\n\u2022 Setting up your accounts (ChatGPT, Midjourney, CapCut)\n\u2022 The creator economy in 2025 \u2014 income opportunities\n\nJoin the group chat and share what type of content you want to create!", isPreview: true, order: 1 },
+          { title: "ChatGPT Mastery \u2014 Content & Prompting", content: "ChatGPT is your AI writing assistant. This lesson covers:\n\u2022 What makes a great prompt (context, tone, format)\n\u2022 Writing viral hooks and captions\n\u2022 Generating content calendars for 30 days\n\u2022 Repurposing one idea into 10 pieces of content\n\u2022 Using GPT-4 for research, scripts, and email sequences\n\nPractice: Create a 30-day content calendar for your niche using ChatGPT.", isPreview: false, order: 2 },
+          { title: "Midjourney \u2014 AI Image Generation for Creators", content: "Create stunning visuals without design skills. Topics:\n\u2022 Setting up Midjourney on Discord\n\u2022 Prompt engineering for images\n\u2022 Creating consistent character art\n\u2022 Thumbnails that get clicks\n\u2022 Selling AI art and illustrations\n\nChallenge: Design 5 professional thumbnails for your niche.", isPreview: false, order: 3 },
+          { title: "AI Video Production \u2014 Runway, CapCut & More", content: "Video is king. Learn to create with AI:\n\u2022 CapCut AI features (auto-captions, templates, effects)\n\u2022 Runway ML for AI video generation\n\u2022 HeyGen for AI avatar videos (no face required!)\n\u2022 ElevenLabs for AI voiceovers\n\u2022 Editing a viral short-form video from scratch\n\nPractice: Create a 60-second product review video using only AI tools.", isPreview: false, order: 4 },
+          { title: "Content Strategy \u2014 Go Viral Consistently", content: "Posting randomly doesn't work. This lesson:\n\u2022 The algorithm explained (TikTok, Instagram, YouTube)\n\u2022 Hook \u2192 story \u2192 CTA framework\n\u2022 Best posting times and frequencies\n\u2022 Cross-platform repurposing system\n\u2022 Using analytics to double down on what works\n\nAction: Post your first AI-generated piece of content this week!", isPreview: false, order: 5 },
+          { title: "Monetization \u2014 Turning Followers into Income", content: "This is what it's all about. Income streams covered:\n\u2022 Brand deals and sponsorships ($100\u2013$10,000+ per post)\n\u2022 Digital products (ebooks, presets, templates)\n\u2022 Paid communities and memberships\n\u2022 UGC (User Generated Content) for brands\n\u2022 Affiliate marketing setup\n\nAction: Apply for your first brand deal or UGC gig this week!", isPreview: false, order: 6 }
+        ]
+      },
+      {
+        courseKey: "social_monetize",
+        title: "Social Media & Web Assets Monetization",
+        description: "Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams in this 6-week program. Share wins and get feedback from peers and your tutor.",
+        shortDescription: "Monetize your social media and digital assets for multiple income streams.",
+        category: "monetization",
+        level: "intermediate",
+        duration: "6 Weeks",
+        price: "193.94",
+        tags: ["breedskool_social_monetize", "social media", "monetization", "instagram", "tiktok", "breedskool"],
+        whatYouLearn: ["Instagram growth strategies", "TikTok & YouTube monetization", "Website & digital asset income", "Brand deals & sponsorships"],
+        requirements: ["Active social media presence", "Smartphone with good camera"],
+        syllabus: [
+          { week: "Week 1", topic: "Platform Selection & Strategy" },
+          { week: "Week 2", topic: "Content & Growth Hacks" },
+          { week: "Week 3", topic: "Monetization Setup" },
+          { week: "Week 4", topic: "Brand Partnerships & Deals" },
+          { week: "Week 5", topic: "Digital Assets & Passive Income" },
+          { week: "Week 6", topic: "Scaling Your Income" }
+        ],
+        lessons: [
+          { title: "Welcome \u2014 Your Social Monetization Blueprint", content: "Welcome! This course is for people ready to turn their online presence into real income. In this orientation:\n\u2022 Your tutor's income story (proof this works)\n\u2022 Platform selection: which is right for you?\n\u2022 Your monetization goal \u2014 set your 6-week income target\n\u2022 Join the group chat and post your goal!\n\nHomework: Write down your niche, your target audience, and your income goal.", isPreview: true, order: 1 },
+          { title: "Instagram Growth \u2014 0 to 10K Strategy", content: "Instagram still pays massive dividends in 2025. Topics:\n\u2022 Niche selection and profile optimization\n\u2022 Content pillars (educational, entertainment, personal)\n\u2022 Reels vs. carousels vs. stories \u2014 what works when\n\u2022 Hashtag strategy and SEO in captions\n\u2022 How to grow 1,000 followers in 30 days organically\n\nAction: Optimize your Instagram profile using the checklist provided.", isPreview: false, order: 2 },
+          { title: "TikTok & YouTube Shorts \u2014 Viral Short-Form", content: "Short-form video is the fastest path to growth. This lesson:\n\u2022 TikTok algorithm secrets for 2025\n\u2022 YouTube Shorts monetization requirements\n\u2022 The 3-second hook formula\n\u2022 Trending audio and effect strategies\n\u2022 Turning viral videos into paying customers\n\nChallenge: Post 3 short-form videos this week and report back in the group chat.", isPreview: false, order: 3 },
+          { title: "Turning Followers into Cash \u2014 Monetization Basics", content: "A big following means nothing without monetization. Learn:\n\u2022 The 1,000 True Fans model\n\u2022 Setting up your first digital product (Gumroad/Selar)\n\u2022 Affiliate marketing accounts to join (Amazon, ShareASale, Impact)\n\u2022 Instagram Shopping and link-in-bio tools\n\u2022 How to pitch to brands even with 1,000 followers\n\nAction: Set up your first affiliate link or digital product today.", isPreview: false, order: 4 },
+          { title: "Brand Deals \u2014 How to Get Sponsored", content: "Brand deals are where the big money is. Topics covered:\n\u2022 How to write a media kit (template provided)\n\u2022 Finding and reaching out to brands (email script included)\n\u2022 Negotiating rates \u2014 what to charge at each follower level\n\u2022 UGC (User Generated Content) \u2014 earn without a big following\n\u2022 Platforms: AspireIQ, Creator.co, Collabs, Taskdrip\n\nAction: Send 5 brand partnership pitches this week!", isPreview: false, order: 5 },
+          { title: "Web Assets & Passive Income \u2014 Scale to $5K/month", content: "Build assets that earn while you sleep:\n\u2022 Niche websites and Google AdSense income\n\u2022 Newsletter monetization (Substack, Beehiiv)\n\u2022 Digital product funnels\n\u2022 Paid communities (Telegram, Discord, WhatsApp)\n\u2022 YouTube AdSense (monetization requirements & strategy)\n\nFinal Project: Present your multi-stream income plan in the group chat for feedback!", isPreview: false, order: 6 }
+        ]
+      },
+      {
+        courseKey: "trading",
+        title: "Pocket Option Trading",
+        description: "Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom in this 8-week program. Discuss trades and strategies with your group and get private coaching from your tutor.",
+        shortDescription: "Master binary trading, chart analysis, and consistent income strategies.",
+        category: "general",
+        level: "beginner",
+        duration: "8 Weeks",
+        price: "169.09",
+        tags: ["breedskool_trading", "trading", "binary options", "pocket option", "breedskool"],
+        whatYouLearn: ["Binary options basics on Pocket Option", "Chart reading & technical analysis", "Risk management strategies", "Building consistent trading systems"],
+        requirements: ["Stable internet connection", "Practice account capital ($10 minimum)"],
+        syllabus: [
+          { week: "Week 1\u20132", topic: "Platform Setup & Trading Basics" },
+          { week: "Week 3\u20134", topic: "Chart Analysis & Indicators" },
+          { week: "Week 5\u20136", topic: "Strategy Development & Backtesting" },
+          { week: "Week 7", topic: "Risk Management & Psychology" },
+          { week: "Week 8", topic: "Live Trading Practice & Review" }
+        ],
+        lessons: [
+          { title: "Welcome to Pocket Option Trading", content: "Welcome, future trader! Before we start risking any money, let's build a solid foundation:\n\u2022 What is binary options trading and how does Pocket Option work?\n\u2022 Creating your Pocket Option demo account (free \u2014 trade with $10,000 virtual money)\n\u2022 Understanding the trading interface\n\u2022 Why most traders fail (and how to be in the 5% who succeed)\n\u2022 Course rules: NO live trading until Week 5!\n\nJoin the group chat and introduce yourself \u2014 share your trading experience level.", isPreview: true, order: 1 },
+          { title: "How Binary Options Work \u2014 The Mechanics", content: "Understanding exactly what you're trading is critical. This lesson:\n\u2022 Call vs. Put options \u2014 how you profit\n\u2022 Expiry times (1 min, 5 min, 15 min, 1 hour)\n\u2022 Payout percentages and what they mean\n\u2022 Asset types: currencies, stocks, commodities, indices\n\u2022 How the broker makes money (and why it matters)\n\nPractice: Place 20 demo trades and record the results in your trading journal.", isPreview: false, order: 2 },
+          { title: "Reading Candlestick Charts \u2014 The Language of Markets", content: "Every chart tells a story. Learn to read it:\n\u2022 What a candlestick shows (open, high, low, close)\n\u2022 Key candlestick patterns: Doji, Engulfing, Hammer, Shooting Star\n\u2022 Support and resistance levels\n\u2022 Trend lines and how to draw them\n\u2022 The 4 phases of a market: accumulation, markup, distribution, decline\n\nPractice: Identify 5 key patterns on historical charts (screenshots shared in group chat).", isPreview: false, order: 3 },
+          { title: "Technical Indicators \u2014 RSI, MACD, Bollinger Bands", content: "Indicators confirm what the chart is telling you:\n\u2022 RSI (Relative Strength Index) \u2014 overbought and oversold\n\u2022 MACD \u2014 trend direction and momentum\n\u2022 Bollinger Bands \u2014 volatility and breakouts\n\u2022 Moving Averages (SMA & EMA)\n\u2022 How to combine 2 indicators for a high-probability signal\n\nPractice: Demo trade ONLY when you see 2 indicators align. Record 30 trades.", isPreview: false, order: 4 },
+          { title: "Your Trading Strategy \u2014 Build It & Backtest It", content: "A strategy with no edge is just gambling. This lesson:\n\u2022 The components of a profitable strategy\n\u2022 Our BreedSkool base strategy (taught live)\n\u2022 How to backtest on historical data\n\u2022 Win rate calculation and expected value\n\u2022 When to trade and when to walk away\n\nHomework: Backtest your strategy on 100 historical trades and share your results.", isPreview: false, order: 5 },
+          { title: "Risk Management \u2014 Protect Your Capital", content: "The difference between a trader and a gambler is risk management:\n\u2022 The 1\u20132% rule (never risk more than 2% per trade)\n\u2022 Martingale strategy \u2014 why it destroys accounts\n\u2022 Daily loss limits \u2014 mandatory stop for the day\n\u2022 Profit target rules \u2014 when to stop after a win\n\u2022 Emotional trading and how to stop it\n\nThis is the most important lesson in the course. Reread it twice.", isPreview: false, order: 6 },
+          { title: "Live Trading \u2014 Going Live Safely", content: "It's time to trade with real money (minimum $10). Rules:\n\u2022 Start with your minimum deposit only\n\u2022 Maximum trade size: $1 per trade (until you hit 60% win rate consistently)\n\u2022 Use the same strategy you backtested \u2014 no improvising\n\u2022 Keep your trading journal updated daily\n\u2022 Post your daily P&L in the group chat for accountability\n\nPost your first live trade result in the group chat!", isPreview: false, order: 7 },
+          { title: "Scaling Up & Long-Term Trading Career", content: "Congratulations on completing the course! Next steps:\n\u2022 When and how to increase your trade size\n\u2022 Withdrawing profits regularly\n\u2022 Reinvesting in your trading account\n\u2022 Advanced strategies to explore next (Forex, Crypto)\n\u2022 Building a trading routine (morning analysis, session timing)\n\nFinal action: Share your 8-week trading journey summary in the group chat!", isPreview: false, order: 8 }
+        ]
+      },
+      {
+        courseKey: "home_lesson",
+        title: "Tech Home Lessons for Kids",
+        description: "One-on-one tech lessons delivered at your home by a certified tutor. Covering coding, AI tools, and digital skills for ages 6\u201317. This course hub connects all home lesson students with their assigned tutor for group discussion, session updates, and private tutor chat.",
+        shortDescription: "One-on-one tech lessons for kids (ages 6\u201317) delivered at your home.",
+        category: "general",
+        level: "beginner",
+        duration: "Per Session",
+        price: "51.52",
+        tags: ["breedskool_home_lesson", "kids", "home lesson", "coding for kids", "breedskool"],
+        whatYouLearn: ["Scratch & block coding", "Basic Python & HTML", "AI tools for kids", "Digital skills & online safety"],
+        requirements: ["Ages 6\u201317", "Laptop or tablet at home", "Parent/guardian available during sessions"],
+        syllabus: [
+          { week: "Session 1\u20134", topic: "Intro to Computers & Digital Safety" },
+          { week: "Session 5\u20138", topic: "Scratch & Block Coding" },
+          { week: "Session 9\u201312", topic: "Basic Python / HTML" },
+          { week: "Session 13+", topic: "AI Tools for Kids & Personal Projects" }
+        ],
+        lessons: [
+          { title: "Welcome \u2014 Getting Started with Your Tutor", content: "Welcome to BreedSkool Home Lessons! This is your student hub where:\n\u2022 Your tutor will post session updates and homework\n\u2022 You can message your tutor privately (use 'Message Tutor' tab)\n\u2022 You can connect with other home lesson students\n\n\u{1F4C5} Your tutor will contact you within 24 hours to schedule your first session.\n\nParents: Use the group chat to ask questions about the program. Your tutor will respond here!", isPreview: true, order: 1 },
+          { title: "Session 1\u20132: Computers, the Internet & Digital Safety", content: "What we cover in the first sessions:\n\u2022 What is a computer and how does it work?\n\u2022 Understanding files, folders, and the desktop\n\u2022 Safe internet use \u2014 what to share and what to keep private\n\u2022 Creating strong passwords\n\u2022 Fun keyboard shortcuts to work faster\n\n\u{1F3AE} Fun activity: Type a short story about your favourite animal using the keyboard!", isPreview: false, order: 2 },
+          { title: "Session 3\u20134: Introduction to Scratch \u2014 Block Coding", content: "Scratch (scratch.mit.edu) is where most programmers start!\n\u2022 Creating a free Scratch account\n\u2022 Understanding sprites, costumes, and backgrounds\n\u2022 Moving characters with blocks\n\u2022 Using 'if' blocks to make decisions\n\u2022 Loops \u2014 making things repeat\n\n\u{1F3AE} Project: Build a simple game where a cat chases a ball!", isPreview: false, order: 3 },
+          { title: "Session 5\u20138: Python Basics for Kids", content: "Python is the #1 beginner programming language in the world!\n\u2022 Installing Python and IDLE\n\u2022 print() and input() commands\n\u2022 Variables \u2014 storing information\n\u2022 if / else \u2014 making decisions\n\u2022 Loops \u2014 for and while\n\u2022 Drawing shapes with the turtle module\n\n\u{1F40D} Project: Build a quiz game that asks 5 questions and gives a score!", isPreview: false, order: 4 },
+          { title: "Session 9+: AI Tools for Kids & Personal Projects", content: "AI is the future \u2014 let's learn it early!\n\u2022 What is Artificial Intelligence? (Kid-friendly explanation)\n\u2022 Using ChatGPT to help with homework and creative writing\n\u2022 Canva AI for making posters and art\n\u2022 Building your own simple chatbot with Python\n\u2022 Planning and building a personal project of your choice\n\n\u{1F680} Graduation project: Build something YOU are proud of and present it to the group!", isPreview: false, order: 5 }
+        ]
+      },
+      {
+        courseKey: "onsite_training",
+        title: "Onsite Group Training \u2014 Ikorodu Lagos",
+        description: "Join our hands-on classroom sessions at TootoOba Estate, Ijede, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support. This course hub connects all onsite students for group discussions, announcements, and private tutor messaging.",
+        shortDescription: "Hands-on classroom training at our Ikorodu Lagos campus.",
+        category: "general",
+        level: "beginner",
+        duration: "6\u20138 Weeks",
+        price: "78.79",
+        tags: ["breedskool_onsite_training", "onsite", "classroom", "lagos", "ikorodu", "breedskool"],
+        whatYouLearn: ["Hands-on practical skills with tutor guidance", "Peer collaboration & networking", "Daily structured learning environment", "Portfolio projects to show employers"],
+        requirements: ["Lagos or nearby location", "Laptop optional (provided in class)", "Commitment to attend sessions"],
+        syllabus: [
+          { week: "Week 1\u20132", topic: "Foundations & Environment Setup" },
+          { week: "Week 3\u20134", topic: "Core Skills Training" },
+          { week: "Week 5\u20136", topic: "Projects & Peer Collaboration" },
+          { week: "Week 7\u20138", topic: "Portfolio Building & Graduation" }
+        ],
+        lessons: [
+          { title: "Welcome to Onsite Training \u2014 Your Student Hub", content: "Welcome to BreedSkool Onsite Training! \u{1F389}\n\nThis is your online hub for the physical classroom program at:\n\u{1F4CD} TootoOba Estate, Ijede, Ikorodu, Lagos\n\nHow to use this hub:\n\u2022 Check here daily for class announcements, schedule updates, and homework\n\u2022 Use the Group Chat to connect with your classmates between sessions\n\u2022 Use 'Message Tutor' privately if you have personal questions\n\u2022 Resources and materials from class will be posted here after each session\n\n\u{1F4C5} Your first class is on the date your tutor will confirm via WhatsApp. Please arrive 10 minutes early!", isPreview: true, order: 1 },
+          { title: "Week 1 \u2014 Environment Setup & Foundations", content: "In your first week at the campus, we cover:\n\u2022 Setting up your laptop (or using the lab computers)\n\u2022 Installing VS Code, Node.js, Git, and Chrome DevTools\n\u2022 Introduction to the command line / terminal\n\u2022 Your first HTML page\n\u2022 Git basics \u2014 saving your work online (GitHub setup)\n\n\u{1F4DD} Homework: Complete the HTML bio page exercise from class and push it to GitHub.", isPreview: false, order: 2 },
+          { title: "Week 2\u20133 \u2014 Core Skills Intensive", content: "Classroom sessions this week focus on:\n\u2022 CSS layouts with Flexbox and Grid\n\u2022 JavaScript fundamentals\n\u2022 Debugging techniques\n\u2022 Peer code reviews \u2014 learn from each other\n\u2022 Mini hackathon: build a landing page in 2 hours!\n\n\u{1F4DD} Weekly project: Submit your mini landing page to the group chat for feedback from the tutor.", isPreview: false, order: 3 },
+          { title: "Week 4\u20135 \u2014 Group Projects & Collaboration", content: "You'll be assigned to project teams this week!\n\u2022 Teams of 2\u20133 students build a real web application together\n\u2022 Daily standups in class (just like a real tech company)\n\u2022 Tutor mentorship sessions (30 mins per team)\n\u2022 Version control workflow (branches, pull requests, reviews)\n\n\u{1F91D} Use the group chat to coordinate with your teammates outside class hours!", isPreview: false, order: 4 },
+          { title: "Week 6\u20138 \u2014 Portfolio Building & Graduation", content: "Final stretch \u2014 get job/client ready:\n\u2022 Build your personal portfolio website\n\u2022 Write your developer bio and case studies\n\u2022 LinkedIn and GitHub profile optimization\n\u2022 Job search / freelancing strategies for Nigerian developers\n\u2022 Graduation ceremony \u2014 present your project to the class!\n\n\u{1F393} After graduation you receive your BreedSkool certificate and lifelong access to this course hub and the alumni group chat.", isPreview: false, order: 5 }
+        ]
+      },
+      // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
+      {
+        courseKey: "saas_masterclass",
+        title: "Full Stack SaaS Web App Development & Monetization Masterclass",
+        description: "The most complete course on building, launching, and monetizing full stack SaaS web applications. Master AI-agent development, GitHub version control, cloud deployment, in-app marketing systems, SEO, Google Analytics, paid growth, subscription & product monetization, and social media channel monetization \u2014 from zero to paying customers in 12 weeks. Taught by founders who've built products generating real revenue. This is not theory \u2014 every module ships a real feature or revenue stream.",
+        shortDescription: "Build, launch, and monetize a full stack SaaS app from scratch \u2014 AI agents, GitHub, cloud deployment, SEO, growth, and $0-to-MRR in 12 weeks.",
+        category: "development",
+        level: "intermediate",
+        duration: "12 Weeks",
+        price: "290.00",
+        tags: ["breedskool_saas_masterclass", "saas", "full stack", "monetization", "ai agents", "github", "deployment", "seo", "analytics", "breedskool", "bestseller"],
+        whatYouLearn: [
+          "Build a production-ready SaaS app with React, Node.js & PostgreSQL using AI agents",
+          "Master GitHub & CI/CD workflows used by professional engineering teams",
+          "Deploy to cloud servers (Railway, Vercel, VPS) with zero downtime",
+          "Build in-app email sequences, push notifications & referral systems",
+          "Set up Google Search Console & rank on page 1 for target keywords",
+          "Configure Google Analytics 4 \u2014 funnels, cohorts & churn tracking",
+          "Attract your ideal target audience with organic growth systems",
+          "Implement Stripe subscriptions, one-time products & service upsells",
+          "Monetize YouTube, TikTok, Instagram & X alongside your SaaS",
+          "Build a personal brand that drives 40%+ of your SaaS signups",
+          "Launch with pre-orders and get paying customers before you finish building",
+          "Scale MRR to $5,000+ and understand your exit strategy"
+        ],
+        requirements: [
+          "Basic computer skills (no prior coding experience required)",
+          "Laptop or desktop with stable internet connection",
+          "Willingness to build and ship real products",
+          "A business idea OR willingness to validate one in Week 1"
+        ],
+        syllabus: [
+          { week: "Week 1", topic: "SaaS Idea Validation & Market Research" },
+          { week: "Week 2", topic: "Building with AI Agents \u2014 Replit, Cursor & v0" },
+          { week: "Week 3", topic: "Full Stack Architecture \u2014 React + Node.js + PostgreSQL" },
+          { week: "Week 4", topic: "GitHub & Version Control \u2014 Branches, PRs & CI/CD" },
+          { week: "Week 5", topic: "Cloud Deployment \u2014 Railway, Vercel & VPS" },
+          { week: "Week 6", topic: "In-App Marketing \u2014 Email, Push & Referrals" },
+          { week: "Week 7", topic: "SEO & Google Search Console Mastery" },
+          { week: "Week 8", topic: "Analytics \u2014 GA4, Mixpanel & Conversion Funnels" },
+          { week: "Week 9", topic: "User Acquisition \u2014 Organic Growth Systems" },
+          { week: "Week 10", topic: "Monetization \u2014 Stripe Subscriptions, Products & Services" },
+          { week: "Week 11", topic: "Social Media Monetization \u2014 YouTube, TikTok, Instagram & X" },
+          { week: "Week 12", topic: "Scaling MRR, Fundraising & Exit Strategy" }
+        ],
+        lessons: [
+          {
+            title: "Welcome to the Masterclass \u2014 Your Roadmap to $5K MRR",
+            content: "Welcome! This is the course that turns ideas into income-generating SaaS businesses.\n\n\u{1F3AF} What you'll build:\nA fully functional, deployed, monetized SaaS web application \u2014 with real paying users \u2014 by Week 12.\n\n\u{1F4E6} What's included:\n\u2022 12 weeks of structured modules\n\u2022 Group community chat with founders from 30+ countries\n\u2022 Private tutor sessions\n\u2022 Access to all templates, code repositories, and tools used in lessons\n\n\u{1F510} Important: Course content unlocks progressively after payment is confirmed and access is granted by your instructor.\n\n\u{1F4CC} Action for today:\n1. Introduce yourself in the Group Chat (country, idea, goal)\n2. Complete the Idea Validation Worksheet (pinned in resources)\n3. Book your Week 1 orientation call\n\nYou are now part of a global cohort of builders. Let's ship.",
+            isPreview: true,
+            order: 1
+          },
+          {
+            title: "Week 1 \u2014 SaaS Idea Validation & Niche Selection",
+            content: "Before writing one line of code, you need to validate that people will pay for your idea.\n\n\u2705 This week you'll learn:\n\u2022 The $0-to-validation framework (interviews, landing page, waitlist)\n\u2022 How to identify a painful problem people pay to solve\n\u2022 Niche vs. horizontal SaaS \u2014 which to build first\n\u2022 Competitor analysis using SEMrush, Ahrefs free tools & Reddit\n\u2022 Pricing psychology \u2014 why $49/month > $1/day in SaaS\n\u2022 How to get your first 10 LOIs (Letters of Intent) before building\n\n\u{1F6E0} Tools used: Notion, Typeform, Carrd, Google Trends, Reddit, Twitter/X\n\n\u{1F4DD} Assignment: Post your validated idea + 3 paying prospect names in the group chat by end of week.",
+            isPreview: false,
+            order: 2
+          },
+          {
+            title: "Week 2 \u2014 AI-Agent Development with Replit, Cursor & v0",
+            content: "This module changes how you build forever. AI agents let a single founder build what previously needed a team of 5.\n\n\u2705 What you'll master:\n\u2022 Setting up Cursor with Claude Sonnet as your pair programmer\n\u2022 Replit AI \u2014 spin up a full stack app in 20 minutes\n\u2022 v0 by Vercel \u2014 generate production-grade React UI from prompts\n\u2022 Prompt engineering for code: specificity, context, iteration\n\u2022 GitHub Copilot for autocompletion while you build\n\u2022 When to trust AI output and when to review carefully\n\u2022 Debugging AI-generated code (the critical skill most miss)\n\n\u{1F6E0} Stack: Cursor IDE, Replit, v0.dev, GitHub Copilot\n\n\u{1F3D7} Build: Your SaaS MVP landing page + authentication system using AI agents.\n\n\u{1F4DD} Assignment: Share your Replit deployment link in the group chat.",
+            isPreview: false,
+            order: 3
+          },
+          {
+            title: "Week 3 \u2014 Full Stack Architecture (React + Node.js + PostgreSQL)",
+            content: "Now we build the core of your SaaS \u2014 the stack that scales from 10 to 10,000 users without rewriting.\n\n\u2705 Architecture deep-dive:\n\u2022 React 18 + TypeScript \u2014 component architecture, hooks, state\n\u2022 Node.js + Express \u2014 REST API design, authentication middleware\n\u2022 PostgreSQL + Drizzle ORM \u2014 schema design for SaaS (users, subscriptions, billing)\n\u2022 File uploads, image storage, and CDN integration\n\u2022 API rate limiting, input validation, and security basics\n\u2022 Environment variables and secrets management\n\u2022 Error handling \u2014 never let your SaaS fail silently\n\n\u{1F5C4} Database patterns covered:\n\u2022 Multi-tenant schema design\n\u2022 Soft deletes & audit trails\n\u2022 Indexing for performance\n\n\u{1F4DD} Assignment: Deploy your first API endpoint with authentication to production.",
+            isPreview: false,
+            order: 4
+          },
+          {
+            title: "Week 4 \u2014 GitHub & Version Control for SaaS Founders",
+            content: "Professional version control is what separates hobbyist projects from real products.\n\n\u2705 GitHub mastery:\n\u2022 Git fundamentals \u2014 commit, branch, merge, rebase\n\u2022 Feature branch workflow \u2014 how teams ship without breaking production\n\u2022 Pull Requests & code review best practices\n\u2022 GitHub Actions \u2014 automate tests & deployment on every push\n\u2022 Protecting main branch \u2014 no more accidental deployments\n\u2022 Semantic versioning (v1.0.0, v1.1.0) for SaaS products\n\u2022 Open source your marketing: use GitHub as social proof\n\u2022 Monorepo vs. multi-repo \u2014 which is right for your SaaS\n\n\u{1F916} CI/CD Pipeline you'll build:\nPush to GitHub \u2192 run tests \u2192 deploy to Railway in under 3 minutes.\n\n\u{1F4DD} Assignment: Set up your GitHub Actions workflow and show it deploying successfully.",
+            isPreview: false,
+            order: 5
+          },
+          {
+            title: "Week 5 \u2014 Cloud Deployment (Railway, Vercel, VPS)",
+            content: "Your app isn't a business until it's deployed on a domain you own.\n\n\u2705 Deployment options compared:\n\u2022 Vercel \u2014 best for frontend-heavy SaaS (free tier, CDN, analytics)\n\u2022 Railway \u2014 best for full stack Node.js apps with databases\n\u2022 Render \u2014 budget-friendly with free PostgreSQL\n\u2022 DigitalOcean / Hetzner VPS \u2014 when you need full control\n\u2022 Coolify \u2014 self-hosted Heroku replacement\n\n\u2705 What you'll implement:\n\u2022 Custom domain setup with SSL (HTTPS) on all platforms\n\u2022 Environment-specific configs (dev, staging, production)\n\u2022 Database migrations in production (zero downtime)\n\u2022 Server monitoring \u2014 uptime alerts, error tracking with Sentry\n\u2022 Scaling: when to upgrade, how to handle traffic spikes\n\u2022 Backup strategy \u2014 never lose your user data\n\n\u{1F4DD} Assignment: Your SaaS live on a custom domain with SSL and automated deployments.",
+            isPreview: false,
+            order: 6
+          },
+          {
+            title: "Week 6 \u2014 In-App Marketing Systems (Email, Push & Referrals)",
+            content: "The best SaaS products have marketing systems built into the product itself \u2014 not bolted on after.\n\n\u2705 What you'll build:\n\u2022 Transactional email sequences (onboarding, activation, win-back)\n\u2022 Automated drip campaigns \u2014 7-day, 14-day, 30-day\n\u2022 In-app push notification system (web push via VAPID)\n\u2022 Referral program \u2014 viral loop that grows your user base for free\n\u2022 In-app announcements & feature release banners\n\u2022 NPS surveys at the right moment in the user journey\n\u2022 Intercom-style live chat (free with Crisp or Tawk.to)\n\n\u{1F6E0} Tools: SendGrid / Resend, web-push, custom referral logic\n\n\u{1F4CA} The numbers:\nStudents who implement the referral loop average 2.3 new users per existing user \u2014 a viral coefficient > 1 is free growth forever.\n\n\u{1F4DD} Assignment: Send your first automated email sequence to 5 test accounts.",
+            isPreview: false,
+            order: 7
+          },
+          {
+            title: "Week 7 \u2014 SEO & Google Search Console Mastery",
+            content: "SEO is the highest-ROI marketing channel for SaaS. Most competitors do it wrong \u2014 you won't.\n\n\u2705 Complete SEO playbook:\n\u2022 Technical SEO: sitemap, robots.txt, canonical tags, Core Web Vitals\n\u2022 Google Search Console setup \u2014 verified in 10 minutes\n\u2022 Keyword research: finding the 'buying intent' keywords competitors miss\n\u2022 On-page SEO: title tags, meta descriptions, H1\u2013H6 structure\n\u2022 Content-led SEO: blog strategy that ranks and converts\n\u2022 Internal linking architecture for SaaS landing pages\n\u2022 Schema markup \u2014 FAQ, Article, SoftwareApplication\n\u2022 Backlink strategy: guest posts, directories, HARO\n\u2022 Local SEO if your SaaS targets a specific geography\n\n\u{1F4C8} Real outcome:\nStudents in this cohort have ranked on page 1 of Google for competitive keywords within 6\u20138 weeks by following this exact framework.\n\n\u{1F4DD} Assignment: Submit your first 3 optimized blog posts and show Google indexing them.",
+            isPreview: false,
+            order: 8
+          },
+          {
+            title: "Week 8 \u2014 Analytics: GA4, Mixpanel & Conversion Funnels",
+            content: "If you can't measure it, you can't improve it. This week you learn to make data-driven decisions like a growth team.\n\n\u2705 Analytics stack you'll set up:\n\u2022 Google Analytics 4 \u2014 events, conversions, audiences\n\u2022 GA4 Funnel Exploration \u2014 see exactly where users drop off\n\u2022 Cohort analysis \u2014 retention curves, D1/D7/D30 retention\n\u2022 Google Tag Manager \u2014 deploy tracking without touching code\n\u2022 Mixpanel (free tier) \u2014 event tracking for SaaS product metrics\n\u2022 Hotjar \u2014 heatmaps and session recordings\n\u2022 Custom dashboard: 5 KPIs every SaaS founder must track daily\n\n\u{1F4CA} The 5 metrics that predict SaaS success:\n1. Activation rate (goal: >40%)\n2. D7 retention (goal: >25%)\n3. MRR growth rate (goal: >15%/month)\n4. CAC payback period (goal: <6 months)\n5. NPS score (goal: >40)\n\n\u{1F4DD} Assignment: Share your GA4 funnel screenshot showing your signup-to-activation flow.",
+            isPreview: false,
+            order: 9
+          },
+          {
+            title: "Week 9 \u2014 User Acquisition: Organic Growth Systems",
+            content: "This module covers how to attract your ideal target audience without spending money on ads.\n\n\u2705 Organic acquisition channels:\n\u2022 Content seeding \u2014 one piece of content \u2192 8 platforms in 30 minutes\n\u2022 Reddit & niche communities \u2014 authentic presence that converts\n\u2022 Product Hunt launch strategy (week-by-week preparation guide)\n\u2022 Hacker News 'Show HN' \u2014 when and how to post for maximum impact\n\u2022 LinkedIn thought leadership for B2B SaaS\n\u2022 YouTube tutorial strategy \u2014 help content that attracts buyers\n\u2022 Discord & Slack community building around your product\n\u2022 Cold email for B2B outbound (templates that get replies)\n\n\u{1F4CC} The Content Flywheel:\n1 long-form article \u2192 3 LinkedIn posts \u2192 5 tweets \u2192 2 YouTube Shorts \u2192 1 newsletter issue\n\n\u{1F4CA} Real outcome from cohort data:\nStudents who implement the content flywheel average 890 new monthly visitors within 60 days \u2014 with $0 in ad spend.\n\n\u{1F4DD} Assignment: Launch your first content flywheel and report traffic results end of week.",
+            isPreview: false,
+            order: 10
+          },
+          {
+            title: "Week 10 \u2014 Monetization: Stripe Subscriptions, Products & Services",
+            content: "This is where your SaaS becomes a business. We cover every revenue model you can implement.\n\n\u2705 Monetization stack:\n\u2022 Stripe setup \u2014 live mode, webhooks, testing\n\u2022 Subscription tiers \u2014 how to price Starter / Pro / Enterprise\n\u2022 Free trial vs. freemium \u2014 data on which converts better for your niche\n\u2022 One-time products in-app \u2014 templates, exports, data packs\n\u2022 Service upsells \u2014 'Done for You' premium tier\n\u2022 Annual plan discounts \u2014 how to increase cash flow and LTV\n\u2022 Coupons & promotional codes \u2014 conversion triggers that work\n\u2022 Failed payment recovery \u2014 dunning sequences that save 30% of churned revenue\n\u2022 Revenue recognition & accounting basics for SaaS founders\n\n\u{1F4B3} Stripe integrations built in this module:\n\u2022 Checkout (hosted + embedded)\n\u2022 Customer Portal (self-serve billing)\n\u2022 Billing webhooks (subscription created/updated/canceled)\n\n\u{1F4DD} Assignment: First live Stripe payment from a real customer or test account.",
+            isPreview: false,
+            order: 11
+          },
+          {
+            title: "Week 11 \u2014 Social Media Monetization (YouTube, TikTok, Instagram & X)",
+            content: "Your SaaS and your personal brand grow each other. This module shows you how to monetize every channel.\n\n\u2705 Channel-by-channel strategy:\n\n\u{1F3A5} YouTube:\n\u2022 Tutorial content strategy for SaaS (show the product solving problems)\n\u2022 YouTube AdSense + channel memberships + Super Thanks\n\u2022 Merch shelf + digital product integration\n\u2022 SEO for YouTube \u2014 ranking how-to videos for your niche\n\n\u{1F4F1} TikTok:\n\u2022 TikTok Creator Fund + Series (paid gated content)\n\u2022 TikTok Shop for digital products\n\u2022 Viral hooks that showcase your SaaS in 15 seconds\n\n\u{1F4F8} Instagram:\n\u2022 Broadcast Channels for product updates & exclusive content\n\u2022 Instagram Subscriptions \u2014 $4.99/month from your followers\n\u2022 Reels + Story funnels that drive trial signups\n\n\u{1D54F} Twitter/X:\n\u2022 X Premium subscription \u2014 convert followers to paid subscribers\n\u2022 Pinned link strategy for SaaS trial signups\n\u2022 Thread strategy that builds authority and drives organic signups\n\n\u{1F4CA} Cross-channel monetization target: 20\u201330% of MRR from social channels by Month 6.\n\n\u{1F4DD} Assignment: Post your first channel-native piece of content and track sign-up attribution.",
+            isPreview: false,
+            order: 12
+          },
+          {
+            title: "Week 12 \u2014 Scaling MRR, Fundraising & Exit Strategy",
+            content: "Congratulations \u2014 you've built a real product with real users and real revenue. Now we think bigger.\n\n\u2705 Scaling systems:\n\u2022 Hiring your first contractor vs. employee (when and who)\n\u2022 Customer success at scale \u2014 automating support with AI\n\u2022 Affiliate program \u2014 let others sell your SaaS for commission\n\u2022 API & integrations marketplace \u2014 expanding your product's value\n\u2022 White-label & reseller programs for B2B\n\n\u{1F4B0} Fundraising (if you choose to raise):\n\u2022 Bootstrapping vs. VC \u2014 pros, cons, and the right choice for you\n\u2022 Pre-seed fundraising \u2014 what investors look for at $0 to $100K MRR\n\u2022 Revenue-based financing for SaaS (Clearco, Capchase)\n\u2022 Pitch deck for SaaS: 10 slides, what to include on each\n\n\u{1F3C1} Exit strategy:\n\u2022 MicroAcquire / Acquire.com \u2014 sell your SaaS for 3\u20135x ARR\n\u2022 Strategic acquisition \u2014 how to position for a buyer from Day 1\n\u2022 Building enterprise value vs. lifestyle income \u2014 both are valid\n\n\u{1F393} Graduation & Certificate:\nSubmit your final project (deployed SaaS with at least 1 paying customer) to receive your Masterclass certificate.\n\n\u{1F4CC} You're not just a student anymore. You're a founder.",
+            isPreview: false,
+            order: 13
+          }
+        ]
+      }
+    ];
+  }
+});
+
+// server/seed-breedskool.ts
+var seed_breedskool_exports = {};
+__export(seed_breedskool_exports, {
+  fixVerifiedBreedskoolEnrollments: () => fixVerifiedBreedskoolEnrollments,
+  seedBreedskoolPaymentSettings: () => seedBreedskoolPaymentSettings,
+  seedBreedskoolPricing: () => seedBreedskoolPricing
+});
+import { eq as eq10, inArray as inArray6, and as and6 } from "drizzle-orm";
+async function seedBreedskoolPaymentSettings() {
+  for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
+    try {
+      const existing = await db.select().from(appSettings).where(eq10(appSettings.key, key)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
+      }
+    } catch (e) {
+      console.error(`[seedBreedskoolPaymentSettings] Error for ${key}:`, e?.message);
+    }
+  }
+}
+async function seedBreedskoolPricing() {
+  let upserted = 0;
+  let skipped = 0;
+  for (const course of BREEDSKOOL_COURSES) {
+    try {
+      const existing = await db.select().from(breedskoolCoursePricing).where(eq10(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(breedskoolCoursePricing).values({
+          ...course,
+          // Keep older imported databases compatible with the legacy required
+          // pricing columns that predate the current title/price fields.
+          courseTitle: course.title,
+          priceNgn: course.discountPrice,
+          updatedAt: /* @__PURE__ */ new Date()
+        });
+        upserted++;
+      } else {
+        await db.update(breedskoolCoursePricing).set({
+          title: course.title,
+          courseTitle: course.title,
+          shortDescription: course.shortDescription,
+          regularPrice: course.regularPrice,
+          discountPrice: course.discountPrice,
+          priceNgn: course.discountPrice,
+          duration: course.duration,
+          isActive: course.isActive,
+          acceptedPayments: course.acceptedPayments,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq10(breedskoolCoursePricing.courseKey, course.courseKey));
+        skipped++;
+      }
+    } catch (e) {
+      console.error(`[seedBreedskoolPricing] Error for ${course.courseKey}:`, e?.message);
+    }
+  }
+  return { upserted, skipped };
+}
+async function fixVerifiedBreedskoolEnrollments() {
+  let fixed = 0, skipped = 0, noLink = 0;
+  try {
+    const verified = await db.select().from(breedskoolRegistrations).where(inArray6(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
+    for (const reg of verified) {
+      let resolvedUserId = reg.userId;
+      if (!resolvedUserId && reg.email) {
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq10(users.email, reg.email.toLowerCase().trim())).limit(1);
+        if (matchedUser) {
+          resolvedUserId = matchedUser.id;
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq10(breedskoolRegistrations.id, reg.id));
+        }
+      }
+      if (!resolvedUserId) {
+        noLink++;
+        continue;
+      }
+      let courseId = reg.linkedCourseId;
+      if (!courseId && reg.selectedCourseKey) {
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq10(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        courseId = pricing?.linkedCourseId || null;
+      }
+      if (!courseId) {
+        noLink++;
+        continue;
+      }
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and6(
+        eq10(courseEnrollments.courseId, courseId),
+        eq10(courseEnrollments.userId, reg.userId)
+      )).limit(1);
+      if (existing) {
+        if (existing.status !== "active") {
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq10(courseEnrollments.id, existing.id));
+          fixed++;
+        } else {
+          skipped++;
+        }
+      } else {
+        await db.insert(courseEnrollments).values({
+          courseId,
+          userId: reg.userId,
+          status: "active",
+          isPaid: true,
+          paymentMethod: reg.paymentMethod || null,
+          amount: String(reg.amountNgn || 0)
+        });
+        fixed++;
+      }
+      if (!reg.linkedCourseId && courseId) {
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq10(breedskoolRegistrations.id, reg.id));
+      }
+    }
+  } catch (e) {
+    console.error("[fixVerifiedBreedskoolEnrollments]", e?.message);
+  }
+  return { fixed, skipped, noLink };
+}
+var BREEDSKOOL_PAYMENT_DEFAULTS, BREEDSKOOL_COURSES;
+var init_seed_breedskool = __esm({
+  "server/seed-breedskool.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    BREEDSKOOL_PAYMENT_DEFAULTS = [
+      { key: "breedskool_bank_name", value: "GTBank" },
+      { key: "breedskool_bank_account_number", value: "0273575556" },
+      { key: "breedskool_bank_account_name", value: "BREEDSKOOL GALAXY LTD" },
+      { key: "breedskool_bank_country", value: "Nigeria (Naira Account)" },
+      { key: "breedskool_payment_instructions", value: "After transfer, enter your transaction reference number below and optionally upload your payment screenshot as proof." }
+    ];
+    BREEDSKOOL_COURSES = [
+      {
+        courseKey: "webdev",
+        title: "Web Development & Vibe Coding",
+        shortDescription: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment.",
+        regularPrice: 22e4,
+        discountPrice: 15e4,
+        duration: "8 Weeks",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      {
+        courseKey: "ai_content",
+        title: "AI Content Creation & Video Editing",
+        shortDescription: "Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms.",
+        regularPrice: 27e4,
+        discountPrice: 179e3,
+        duration: "6 Weeks",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      {
+        courseKey: "social_monetize",
+        title: "Social Media & Web Assets Monetization",
+        shortDescription: "Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams.",
+        regularPrice: 4e5,
+        discountPrice: 32e4,
+        duration: "6 Weeks",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      {
+        courseKey: "trading",
+        title: "Pocket Option Trading",
+        shortDescription: "Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom.",
+        regularPrice: 32e4,
+        discountPrice: 279e3,
+        duration: "8 Weeks",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      {
+        courseKey: "home_lesson",
+        title: "Tech Home Lessons for Kids",
+        shortDescription: "One-on-one tech lessons delivered at your home by a certified tutor. Book flexible sessions for your child (ages 6\u201317) covering coding, AI tools, digital skills, and more.",
+        regularPrice: 12e4,
+        discountPrice: 85e3,
+        duration: "Per Session",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      {
+        courseKey: "onsite_training",
+        title: "Onsite Group Training",
+        shortDescription: "Join our hands-on classroom sessions at TootoOba Estate, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support.",
+        regularPrice: 18e4,
+        discountPrice: 13e4,
+        duration: "6\u20138 Weeks",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
+      // Regular: $290 USD (~435,000 NGN) | August 2026 promo: $145 USD (~217,500 NGN)
+      {
+        courseKey: "saas_masterclass",
+        title: "Full Stack SaaS Web App Development & Monetization Masterclass",
+        shortDescription: "Build, launch, and monetize a full stack SaaS app from scratch \u2014 AI agents, GitHub, cloud deployment, SEO, growth, and $0-to-MRR in 12 weeks.",
+        regularPrice: 435e3,
+        discountPrice: 217500,
+        duration: "12 Weeks",
+        isActive: true,
+        acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      }
+    ];
+  }
+});
+
+// server/social-crawler.ts
+var social_crawler_exports = {};
+__export(social_crawler_exports, {
+  runSocialCrawler: () => runSocialCrawler
+});
+import { sql as sql9 } from "drizzle-orm";
+async function fetchReddit2(endpoint) {
+  try {
+    const res = await fetch(`https://www.reddit.com${endpoint}`, {
+      headers: {
+        "User-Agent": "TaskdripMarketingBot/1.0 (contact: admin@taskdrip.online)",
+        "Accept": "application/json"
+      },
+      signal: AbortSignal.timeout(1e4)
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const children = json?.data?.children ?? [];
+    return children.filter((c) => c.kind === "t3").map((c) => {
+      const d = c.data;
+      return {
+        platform: "reddit",
+        sourceId: d.id,
+        title: d.title || "",
+        body: (d.selftext || "").slice(0, 1e3),
+        url: d.url?.startsWith("http") ? d.url : `https://reddit.com${d.permalink}`,
+        author: d.author || "",
+        subreddit: d.subreddit || "",
+        platformScore: d.score ?? 0,
+        commentsCount: d.num_comments ?? 0,
+        postedAt: new Date((d.created_utc ?? Date.now() / 1e3) * 1e3)
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+async function crawlReddit() {
+  const results = [];
+  for (const sub of SUBREDDITS) {
+    const posts2 = await fetchReddit2(`/r/${sub}/new.json?limit=25&raw_json=1`);
+    results.push(...posts2);
+    await sleep(1200);
+  }
+  for (const query of REDDIT_QUERIES) {
+    const encoded = encodeURIComponent(query);
+    const posts2 = await fetchReddit2(
+      `/search.json?q=${encoded}&sort=new&limit=20&t=week&raw_json=1`
+    );
+    results.push(...posts2);
+    await sleep(1200);
+  }
+  return dedup(results, "sourceId");
+}
+async function crawlHackerNews() {
+  const results = [];
+  const since = Math.floor(Date.now() / 1e3) - 7 * 24 * 3600;
+  for (const query of HN_QUERIES) {
+    try {
+      const encoded = encodeURIComponent(query);
+      const res = await fetch(
+        `https://hn.algolia.com/api/v1/search_by_date?query=${encoded}&tags=(story,comment)&numericFilters=created_at_i>${since}&hitsPerPage=20`,
+        { signal: AbortSignal.timeout(1e4) }
+      );
+      if (!res.ok) continue;
+      const json = await res.json();
+      for (const hit of json.hits ?? []) {
+        const id = hit.objectID ?? hit.story_id;
+        if (!id) continue;
+        results.push({
+          platform: "hackernews",
+          sourceId: String(id),
+          title: hit.title || hit.story_title || hit.comment_text?.slice(0, 120) || "HN Post",
+          body: (hit.story_text || hit.comment_text || "").slice(0, 1e3),
+          url: hit.url || `https://news.ycombinator.com/item?id=${id}`,
+          author: hit.author || "",
+          subreddit: void 0,
+          platformScore: hit.points ?? 0,
+          commentsCount: hit.num_comments ?? 0,
+          postedAt: new Date(hit.created_at || Date.now())
+        });
+      }
+      await sleep(500);
+    } catch {
+      continue;
+    }
+  }
+  return dedup(results, "sourceId");
+}
+function passesKeywordFilter(post) {
+  const text2 = `${post.title} ${post.body}`.toLowerCase();
+  return TRIGGER_KEYWORDS.some((kw) => text2.includes(kw));
+}
+async function scoreWithAI(posts2) {
+  if (!posts2.length) return [];
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return posts2.map((p) => {
+      const text2 = `${p.title} ${p.body}`.toLowerCase();
+      const matched = TRIGGER_KEYWORDS.filter((kw) => text2.includes(kw));
+      return {
+        ...p,
+        relevanceScore: Math.min(100, matched.length * 15),
+        urgency: matched.length >= 3 ? "high" : matched.length >= 1 ? "medium" : "low",
+        aiSummary: p.title,
+        suggestedReply: "Hi! I noticed you're looking for web development help. Taskdrip has a pool of vetted developers \u2014 check us out at taskdrip.online",
+        category: "web_development",
+        keywordsMatched: matched
+      };
+    });
+  }
+  const results = [];
+  for (let i = 0; i < posts2.length; i += 8) {
+    const batch = posts2.slice(i, i + 8);
+    try {
+      const batchInput = batch.map(
+        (p, idx) => `[${idx}] PLATFORM: ${p.platform} | SUBREDDIT: ${p.subreddit || "n/a"}
+TITLE: ${p.title}
+BODY: ${p.body?.slice(0, 400) || "(no body)"}`
+      ).join("\n---\n");
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content: `You are a marketing AI for Taskdrip, a platform connecting web developers with clients. 
+Analyze social media posts and identify web development business opportunities.
+Respond ONLY with a JSON array. Each element must match this shape exactly:
+{
+  "relevanceScore": 0-100,
+  "urgency": "high"|"medium"|"low",
+  "category": "web_development"|"mobile_app"|"ecommerce"|"bug_fix"|"design"|"other",
+  "aiSummary": "1-sentence summary of what they need",
+  "suggestedReply": "A friendly, helpful 2-3 sentence reply that introduces Taskdrip as a solution (mention taskdrip.online)",
+  "keywordsMatched": ["array", "of", "matched", "intent", "keywords"]
+}
+Score 80-100 if they're clearly looking to hire a developer or have an urgent website problem.
+Score 50-79 if they might need development help.
+Score 0-49 if it's just a discussion or not a real client opportunity.`
+            },
+            {
+              role: "user",
+              content: `Analyze these ${batch.length} posts and return a JSON array of ${batch.length} scored objects:
+
+${batchInput}`
+            }
+          ],
+          max_tokens: 1200,
+          temperature: 0.3
+        }),
+        signal: AbortSignal.timeout(25e3)
+      });
+      if (!response.ok) throw new Error(`Groq error: ${response.status}`);
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content || "[]";
+      const jsonMatch = raw.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("No JSON array in response");
+      const scored = JSON.parse(jsonMatch[0]);
+      batch.forEach((post, idx) => {
+        const s = scored[idx] || {};
+        const text2 = `${post.title} ${post.body}`.toLowerCase();
+        const matched = TRIGGER_KEYWORDS.filter((kw) => text2.includes(kw));
+        results.push({
+          ...post,
+          relevanceScore: Number(s.relevanceScore ?? 50),
+          urgency: ["high", "medium", "low"].includes(s.urgency) ? s.urgency : "medium",
+          aiSummary: s.aiSummary || post.title,
+          suggestedReply: s.suggestedReply || "Hey! I saw your post \u2014 Taskdrip might be able to help. Check us out at taskdrip.online",
+          category: s.category || "web_development",
+          keywordsMatched: s.keywordsMatched?.length ? s.keywordsMatched : matched
+        });
+      });
+    } catch (err) {
+      console.error("[social-crawler] AI scoring error:", err?.message);
+      batch.forEach((post) => {
+        const text2 = `${post.title} ${post.body}`.toLowerCase();
+        const matched = TRIGGER_KEYWORDS.filter((kw) => text2.includes(kw));
+        results.push({
+          ...post,
+          relevanceScore: Math.min(100, matched.length * 15),
+          urgency: matched.length >= 3 ? "high" : "medium",
+          aiSummary: post.title,
+          suggestedReply: "Hi! Taskdrip connects clients with vetted web developers. Visit taskdrip.online to learn more!",
+          category: "web_development",
+          keywordsMatched: matched
+        });
+      });
+    }
+    await sleep(1e3);
+  }
+  return results;
+}
+async function savePosts(posts2) {
+  let saved = 0;
+  for (const post of posts2) {
+    try {
+      const result = await db.execute(sql9`
+        INSERT INTO social_leads (
+          platform, source_id, title, body, url, author, subreddit,
+          platform_score, comments_count, relevance_score, ai_summary,
+          suggested_reply, category, urgency, keywords_matched, posted_at
+        ) VALUES (
+          ${post.platform}, ${post.sourceId}, ${post.title},
+          ${post.body || null}, ${post.url}, ${post.author || null},
+          ${post.subreddit || null}, ${post.platformScore}, ${post.commentsCount},
+          ${post.relevanceScore}, ${post.aiSummary || null},
+          ${post.suggestedReply || null}, ${post.category}, ${post.urgency},
+          ${post.keywordsMatched}, ${post.postedAt}
+        )
+        ON CONFLICT (platform, source_id) DO NOTHING
+      `);
+      if (result?.rowCount > 0) saved++;
+    } catch (err) {
+      if (!err?.message?.includes("unique") && !err?.message?.includes("duplicate")) {
+        console.error("[social-crawler] DB save error:", err?.message);
+      }
+    }
+  }
+  return saved;
+}
+async function runSocialCrawler() {
+  try {
+    console.log("[social-crawler] Starting crawl\u2026");
+    const [redditPosts, hnPosts] = await Promise.all([
+      crawlReddit(),
+      crawlHackerNews()
+    ]);
+    const allPosts = [...redditPosts, ...hnPosts];
+    console.log(`[social-crawler] Fetched ${allPosts.length} raw posts`);
+    const filtered = allPosts.filter(passesKeywordFilter);
+    console.log(`[social-crawler] ${filtered.length} passed keyword filter`);
+    if (!filtered.length) return { found: 0, saved: 0 };
+    const scored = await scoreWithAI(filtered);
+    const qualified = scored.filter((p) => p.relevanceScore >= 30);
+    console.log(`[social-crawler] ${qualified.length} qualified for saving`);
+    const saved = await savePosts(qualified);
+    console.log(`[social-crawler] Saved ${saved} new leads`);
+    return { found: filtered.length, saved };
+  } catch (err) {
+    console.error("[social-crawler] Fatal error:", err?.message);
+    return { found: 0, saved: 0, error: err?.message };
+  }
+}
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+function dedup(arr, key) {
+  const seen = /* @__PURE__ */ new Set();
+  return arr.filter((item) => {
+    if (seen.has(item[key])) return false;
+    seen.add(item[key]);
+    return true;
+  });
+}
+var TRIGGER_KEYWORDS, SUBREDDITS, REDDIT_QUERIES, HN_QUERIES;
+var init_social_crawler = __esm({
+  "server/social-crawler.ts"() {
+    "use strict";
+    init_db();
+    TRIGGER_KEYWORDS = [
+      "need a web developer",
+      "looking for a developer",
+      "need a website",
+      "hire a developer",
+      "hire developer",
+      "web developer needed",
+      "website help",
+      "need someone to build",
+      "need a site built",
+      "build my website",
+      "web development help",
+      "website problem",
+      "website not working",
+      "website crashed",
+      "need a programmer",
+      "freelance developer",
+      "web app help",
+      "website redesign",
+      "need a web app",
+      "ecommerce website",
+      "wordpress help",
+      "react developer needed",
+      "need a coder",
+      "software developer needed",
+      "site is broken",
+      "need tech help",
+      "build an app",
+      "mobile app developer",
+      "web development project",
+      "dev needed",
+      "developer for hire"
+    ];
+    SUBREDDITS = [
+      "forhire",
+      "webdev",
+      "entrepreneur",
+      "smallbusiness",
+      "startups",
+      "learnprogramming",
+      "webdevelopment"
+    ];
+    REDDIT_QUERIES = [
+      "need web developer",
+      "looking for developer",
+      "website help needed",
+      "hire freelance developer",
+      "web development project"
+    ];
+    HN_QUERIES = [
+      "web developer needed",
+      "need someone to build website",
+      "looking for developer"
+    ];
   }
 });
 
@@ -3172,8 +4380,8 @@ var DatabaseStorage = class {
     await db.delete(users).where(eq(users.id, id));
   }
   async resetUserPassword(id, newPassword) {
-    const bcrypt6 = await import("bcryptjs");
-    const hashedPassword = await bcrypt6.hash(newPassword, 10);
+    const bcrypt7 = await import("bcryptjs");
+    const hashedPassword = await bcrypt7.hash(newPassword, 10);
     await db.update(users).set({ password: hashedPassword, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, id));
   }
   async getCreators() {
@@ -4003,7 +5211,7 @@ var DatabaseStorage = class {
   }
   // ── BreedSkool ────────────────────────────────────────────────
   async getAllCourses(publishedOnly = false) {
-    const rows = await db.select().from(courses2).orderBy(desc(courses2.createdAt));
+    const rows = await db.select().from(courses).orderBy(desc(courses.createdAt));
     const filtered = publishedOnly ? rows.filter((c) => c.isPublished) : rows;
     const result = await Promise.all(filtered.map(async (c) => {
       const [instructor] = await db.select({
@@ -4019,7 +5227,7 @@ var DatabaseStorage = class {
     return result;
   }
   async getCourseById(id) {
-    const [course] = await db.select().from(courses2).where(eq(courses2.id, id));
+    const [course] = await db.select().from(courses).where(eq(courses.id, id));
     if (!course) return void 0;
     const [instructor] = await db.select({
       id: users.id,
@@ -4032,15 +5240,15 @@ var DatabaseStorage = class {
     return { ...course, instructor: instructor || {} };
   }
   async createCourse(course) {
-    const [created] = await db.insert(courses2).values(course).returning();
+    const [created] = await db.insert(courses).values(course).returning();
     return created;
   }
   async updateCourse(id, updates) {
-    const [updated] = await db.update(courses2).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq(courses2.id, id)).returning();
+    const [updated] = await db.update(courses).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq(courses.id, id)).returning();
     return updated;
   }
   async deleteCourse(id) {
-    await db.delete(courses2).where(eq(courses2.id, id));
+    await db.delete(courses).where(eq(courses.id, id));
   }
   async getCourseEnrollment(courseId, userId) {
     const [enrollment] = await db.select().from(courseEnrollments).where(and(eq(courseEnrollments.courseId, courseId), eq(courseEnrollments.userId, userId)));
@@ -4049,14 +5257,14 @@ var DatabaseStorage = class {
   async getMyEnrollments(userId) {
     const enrollments = await db.select().from(courseEnrollments).where(eq(courseEnrollments.userId, userId));
     return Promise.all(enrollments.map(async (e) => {
-      const [course] = await db.select().from(courses2).where(eq(courses2.id, e.courseId));
+      const [course] = await db.select().from(courses).where(eq(courses.id, e.courseId));
       return { ...e, course, sellerId: course?.instructorId || null };
     }));
   }
   async getAllEnrollments() {
     const enrollments = await db.select().from(courseEnrollments).orderBy(desc(courseEnrollments.createdAt));
     return Promise.all(enrollments.map(async (e) => {
-      const [course] = await db.select({ id: courses2.id, title: courses2.title }).from(courses2).where(eq(courses2.id, e.courseId));
+      const [course] = await db.select({ id: courses.id, title: courses.title }).from(courses).where(eq(courses.id, e.courseId));
       const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email }).from(users).where(eq(users.id, e.userId));
       return { ...e, course: course || {}, user: user || {} };
     }));
@@ -4075,7 +5283,7 @@ var DatabaseStorage = class {
       amount: data.amount || "0.00"
     }).returning();
     if (data.isFree) {
-      await db.update(courses2).set({ studentsCount: sql2`${courses2.studentsCount} + 1` }).where(eq(courses2.id, data.courseId));
+      await db.update(courses).set({ studentsCount: sql2`${courses.studentsCount} + 1` }).where(eq(courses.id, data.courseId));
     }
     return enrollment;
   }
@@ -4089,7 +5297,7 @@ var DatabaseStorage = class {
       updatedAt: /* @__PURE__ */ new Date()
     }).where(eq(courseEnrollments.id, id)).returning();
     if (existing && existing.status !== "active") {
-      await db.update(courses2).set({ studentsCount: sql2`${courses2.studentsCount} + 1` }).where(eq(courses2.id, existing.courseId));
+      await db.update(courses).set({ studentsCount: sql2`${courses.studentsCount} + 1` }).where(eq(courses.id, existing.courseId));
     }
     return updated;
   }
@@ -4104,7 +5312,7 @@ var DatabaseStorage = class {
     const [review] = await db.insert(courseReviews).values(data).returning();
     const allReviews = await db.select().from(courseReviews).where(eq(courseReviews.courseId, data.courseId));
     const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
-    await db.update(courses2).set({ reviewsCount: allReviews.length, averageRating: avg.toFixed(2) }).where(eq(courses2.id, data.courseId));
+    await db.update(courses).set({ reviewsCount: allReviews.length, averageRating: avg.toFixed(2) }).where(eq(courses.id, data.courseId));
     return review;
   }
   async getCourseComments(courseId) {
@@ -4116,7 +5324,7 @@ var DatabaseStorage = class {
   }
   async createCourseComment(data) {
     const [comment] = await db.insert(courseComments).values(data).returning();
-    await db.update(courses2).set({ commentsCount: sql2`${courses2.commentsCount} + 1` }).where(eq(courses2.id, data.courseId));
+    await db.update(courses).set({ commentsCount: sql2`${courses.commentsCount} + 1` }).where(eq(courses.id, data.courseId));
     return comment;
   }
   async getCourseLike(courseId, userId) {
@@ -4127,11 +5335,11 @@ var DatabaseStorage = class {
     const existing = await this.getCourseLike(courseId, userId);
     if (existing) {
       await db.delete(courseLikes).where(and(eq(courseLikes.courseId, courseId), eq(courseLikes.userId, userId)));
-      await db.update(courses2).set({ likesCount: sql2`GREATEST(${courses2.likesCount} - 1, 0)` }).where(eq(courses2.id, courseId));
+      await db.update(courses).set({ likesCount: sql2`GREATEST(${courses.likesCount} - 1, 0)` }).where(eq(courses.id, courseId));
       return false;
     } else {
       await db.insert(courseLikes).values({ courseId, userId });
-      await db.update(courses2).set({ likesCount: sql2`${courses2.likesCount} + 1` }).where(eq(courses2.id, courseId));
+      await db.update(courses).set({ likesCount: sql2`${courses.likesCount} + 1` }).where(eq(courses.id, courseId));
       return true;
     }
   }
@@ -4150,7 +5358,7 @@ var DatabaseStorage = class {
       lessonFiles: data.lessonFiles ?? [],
       isPreview: data.isPreview ?? false
     }).returning();
-    await db.update(courses2).set({ lessonsCount: sql2`${courses2.lessonsCount} + 1` }).where(eq(courses2.id, data.courseId));
+    await db.update(courses).set({ lessonsCount: sql2`${courses.lessonsCount} + 1` }).where(eq(courses.id, data.courseId));
     return lesson;
   }
   async updateLesson(lessonId, updates) {
@@ -4161,7 +5369,7 @@ var DatabaseStorage = class {
     const [lesson] = await db.select().from(courseLessons).where(eq(courseLessons.id, lessonId));
     if (lesson) {
       await db.delete(courseLessons).where(eq(courseLessons.id, lessonId));
-      await db.update(courses2).set({ lessonsCount: sql2`GREATEST(${courses2.lessonsCount} - 1, 0)` }).where(eq(courses2.id, lesson.courseId));
+      await db.update(courses).set({ lessonsCount: sql2`GREATEST(${courses.lessonsCount} - 1, 0)` }).where(eq(courses.id, lesson.courseId));
     }
   }
   async getCourseMessages(courseId, opts) {
@@ -4254,7 +5462,7 @@ var DatabaseStorage = class {
     const existing = await this.getCertificateByUserCourse(data.userId, data.courseId);
     if (existing) return existing;
     const [user] = await db.select().from(users).where(eq(users.id, data.userId));
-    const [course] = await db.select().from(courses2).where(eq(courses2.id, data.courseId));
+    const [course] = await db.select().from(courses).where(eq(courses.id, data.courseId));
     if (!course) throw new Error("Course not found");
     const [instructor] = course.instructorId ? await db.select({ firstName: users.firstName, lastName: users.lastName }).from(users).where(eq(users.id, course.instructorId)) : [null];
     const studentName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Student";
@@ -8467,7 +9675,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       db.select({ c: sql5`count(*)::int` }).from(posts),
       db.select({ c: sql5`count(*)::int` }).from(blogPosts),
       db.select({ c: sql5`count(*)::int` }).from(shopProducts),
-      db.select({ c: sql5`count(*)::int` }).from(courses2)
+      db.select({ c: sql5`count(*)::int` }).from(courses)
     ]);
     res.json({
       users: u[0]?.c ?? 0,
@@ -8799,9 +10007,9 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
   app2.get("/api/admin/demo/courses-lookup", isAuthenticated2, async (req, res) => {
     if (!await guard(req, res)) return;
     const rows = await db.select({
-      id: courses2.id,
-      title: courses2.title
-    }).from(courses2).orderBy(desc5(courses2.createdAt)).limit(60);
+      id: courses.id,
+      title: courses.title
+    }).from(courses).orderBy(desc5(courses.createdAt)).limit(60);
     res.json(rows);
   });
   app2.post("/api/admin/demo/reset-user", isAuthenticated2, async (req, res) => {
@@ -9065,7 +10273,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         db.select({ n: count2() }).from(blogPosts).where(eq7(blogPosts.isPublished, true)),
         db.select({ n: count2() }).from(shopProducts),
         db.select({ n: count2() }).from(users),
-        db.select({ n: count2() }).from(courses2).where(eq7(courses2.isPublished, true)),
+        db.select({ n: count2() }).from(courses).where(eq7(courses.isPublished, true)),
         db.select({ n: count2() }).from(campaigns),
         db.select().from(pageSeoSettings),
         db.select().from(pwaSettings).limit(1)
@@ -9108,7 +10316,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         db.select({ n: count2() }).from(blogPosts).where(eq7(blogPosts.isPublished, true)),
         db.select({ n: count2() }).from(shopProducts),
         db.select({ n: count2() }).from(users).where(eq7(users.userType, "creator")),
-        db.select({ n: count2() }).from(courses2).where(eq7(courses2.isPublished, true)),
+        db.select({ n: count2() }).from(courses).where(eq7(courses.isPublished, true)),
         db.select({ n: count2() }).from(campaigns)
       ]);
       const staticCount = 21;
@@ -9644,7 +10852,7 @@ async function bulkSms(opts) {
 
 // server/routes.ts
 init_db();
-import { desc as desc7, sql as sql7, eq as eq9, and as and6, count as count3, gte as gte2, inArray as inArray6 } from "drizzle-orm";
+import { desc as desc7, sql as sql10, eq as eq11, and as and7, count as count3, gte as gte2, inArray as inArray7 } from "drizzle-orm";
 import multer from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid } from "nanoid";
@@ -9817,7 +11025,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq9(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq11(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -9879,7 +11087,7 @@ async function enrichP2PListing(listing) {
 }
 async function enrichP2PTransaction(tx) {
   const [listing, buyer, seller, admin] = await Promise.all([
-    db.select().from(p2pListings).where(eq9(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+    db.select().from(p2pListings).where(eq11(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -10408,7 +11616,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and6(eq9(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and7(eq11(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -10427,7 +11635,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and6(eq9(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and7(eq11(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -10723,7 +11931,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count3() }).from(campaigns).where(eq9(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count3() }).from(campaigns).where(eq11(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -11562,7 +12770,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         username: users.username,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray6(users.id, uniqueIds)) : [];
+      }).from(users).where(inArray7(users.id, uniqueIds)) : [];
       const userMap = {};
       for (const u of userRows) userMap[u.id] = u;
       const enrichedMessages = msgs.map((msg) => ({
@@ -11745,7 +12953,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq9(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq11(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -11845,10 +13053,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and6(eq9(campaignMicroTasks.campaignId, req.params.id), eq9(campaignMicroTasks.isActive, true))).orderBy(desc7(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and7(eq11(campaignMicroTasks.campaignId, req.params.id), eq11(campaignMicroTasks.isActive, true))).orderBy(desc7(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and6(eq9(microTaskSubmissions.campaignId, req.params.id), eq9(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.campaignId, req.params.id), eq11(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -11866,7 +13074,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq9(campaignMicroTasks.campaignId, campaigns.id)).where(eq9(campaignMicroTasks.brandId, userId)).orderBy(desc7(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq11(campaignMicroTasks.campaignId, campaigns.id)).where(eq11(campaignMicroTasks.brandId, userId)).orderBy(desc7(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -11924,7 +13132,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq9(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq11(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -11950,7 +13158,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql7`count(*)::int` }).from(microTaskSubmissions).where(and6(eq9(microTaskSubmissions.microTaskId, task.id), eq9(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql10`count(*)::int` }).from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.microTaskId, task.id), eq11(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -11974,7 +13182,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq9(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq11(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -11985,7 +13193,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq9(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq11(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -11994,11 +13202,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and6(eq9(microTaskSubmissions.microTaskId, task.id), eq9(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.microTaskId, task.id), eq11(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql7`count(*)` }).from(microTaskSubmissions).where(and6(eq9(microTaskSubmissions.microTaskId, task.id), eq9(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql10`count(*)` }).from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.microTaskId, task.id), eq11(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -12034,7 +13242,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq9(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq9(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq9(microTaskSubmissions.userId, users.id)).where(eq9(campaignMicroTasks.brandId, userId)).orderBy(desc7(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq11(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq11(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq11(microTaskSubmissions.userId, users.id)).where(eq11(campaignMicroTasks.brandId, userId)).orderBy(desc7(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -12050,14 +13258,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin] = await db.select().from(users).where(eq9(users.id, userId));
+      const [admin] = await db.select().from(users).where(eq11(users.id, userId));
       if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq9(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq9(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq9(microTaskSubmissions.userId, users.id)).orderBy(desc7(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq11(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq11(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq11(microTaskSubmissions.userId, users.id)).orderBy(desc7(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -12073,9 +13281,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq9(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq11(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq9(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq11(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -12090,7 +13298,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq11(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -12208,7 +13416,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and6(eq9(userReviews.referenceType, "campaign_participation"), eq9(userReviews.referenceId, participation.id))).orderBy(desc7(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "campaign_participation"), eq11(userReviews.referenceId, participation.id))).orderBy(desc7(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -12228,7 +13436,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and6(eq9(userReviews.referenceType, "campaign_participation"), eq9(userReviews.referenceId, participation.id), eq9(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "campaign_participation"), eq11(userReviews.referenceId, participation.id), eq11(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -12239,8 +13447,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql7`AVG(${userReviews.rating})` }).from(userReviews).where(eq9(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq9(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql10`AVG(${userReviews.rating})` }).from(userReviews).where(eq11(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -12584,8 +13792,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq16 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq16(transactions3.id, id));
+            const { eq: eq17 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq17(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -12743,13 +13951,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, allUsers] = await Promise.all([
+      const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
         db.select().from(transactions).orderBy(desc7(transactions.createdAt)),
         db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt)),
         db.select().from(purchases).orderBy(desc7(purchases.createdAt)),
         db.select().from(escrowPayments).orderBy(desc7(escrowPayments.createdAt)),
         db.select().from(paymentDeposits).orderBy(desc7(paymentDeposits.createdAt)),
         db.select().from(subscriptions).orderBy(desc7(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc7(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)
       ]);
       const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
@@ -12791,8 +14000,10 @@ async function registerRoutes(app2, existingServer) {
         });
       }
       for (const t of purchaseRows) {
+        const isPendingPurchase = ["pending", "pending_payment"].includes(String(t.status));
         unified.push({
           id: `pur_${t.id}`,
+          rawId: t.id,
           source: "purchase",
           kind: "shop_purchase",
           amount: Number(t.totalAmount || t.amount || 0),
@@ -12804,7 +14015,11 @@ async function registerRoutes(app2, existingServer) {
           fromUser: u(t.userId),
           toUser: null,
           approvedBy: null,
-          description: `Shop purchase \u2022 product ${t.productId}`
+          description: `Shop purchase`,
+          proofImageUrl: t.paymentProof || null,
+          adminNotes: t.adminNotes || null,
+          reviewable: isPendingPurchase,
+          productId: t.productId
         });
       }
       for (const t of escrows) {
@@ -12870,6 +14085,71 @@ async function registerRoutes(app2, existingServer) {
           reviewable: true
         });
       }
+      for (const t of hireRows) {
+        const hireStatus = t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status === "completed" ? "completed" : t.status === "accepted" ? "submitted" : t.status || "pending";
+        const isPendingHire = t.status === "pending_payment";
+        unified.push({
+          id: `hire_${t.id}`,
+          rawId: t.id,
+          source: "direct_hire",
+          kind: t.isDevHire ? "hire_developer" : "direct_hire",
+          amount: Number(t.agreedBudget || t.budget || 0),
+          currency: "USD",
+          status: hireStatus,
+          createdAt: t.createdAt,
+          reference: t.transactionHash || t.invoiceNumber || t.id,
+          method: t.paymentNetwork || null,
+          fromUser: u(t.brandId),
+          toUser: u(t.influencerId),
+          approvedBy: null,
+          description: t.title || "Hire Developer Request",
+          proofImageUrl: t.paymentProof || null,
+          adminNotes: t.adminNote || null,
+          reviewable: isPendingHire,
+          hireTitle: t.title,
+          invoiceNumber: t.invoiceNumber,
+          invoiceDueDate: t.invoiceDueDate
+        });
+      }
+      const enrollmentRows = await db.select({
+        id: courseEnrollments.id,
+        courseId: courseEnrollments.courseId,
+        userId: courseEnrollments.userId,
+        status: courseEnrollments.status,
+        amount: courseEnrollments.amount,
+        paymentMethod: courseEnrollments.paymentMethod,
+        paymentProof: courseEnrollments.paymentProof,
+        transactionHash: courseEnrollments.transactionHash,
+        isPaid: courseEnrollments.isPaid,
+        approvedBy: courseEnrollments.approvedBy,
+        approvedAt: courseEnrollments.approvedAt,
+        createdAt: courseEnrollments.createdAt,
+        courseTitle: courses.title
+      }).from(courseEnrollments).leftJoin(courses, eq11(courseEnrollments.courseId, courses.id)).orderBy(desc7(courseEnrollments.createdAt));
+      for (const t of enrollmentRows) {
+        const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
+        unified.push({
+          id: `enr_${t.id}`,
+          rawId: t.id,
+          source: "course_enrollment",
+          kind: "course_purchase",
+          amount: Number(t.amount || 0),
+          currency: "USD",
+          status: enrollStatus,
+          createdAt: t.createdAt,
+          reference: t.transactionHash || t.id,
+          method: t.paymentMethod || null,
+          fromUser: u(t.userId),
+          toUser: null,
+          approvedBy: u(t.approvedBy),
+          description: `Course enrollment \u2014 ${t.courseTitle || t.courseId}`,
+          proofImageUrl: t.paymentProof || null,
+          adminNotes: null,
+          reviewable: enrollStatus === "pending",
+          courseId: t.courseId,
+          courseTitle: t.courseTitle
+        });
+      }
       unified.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       const totals = unified.reduce((acc, t) => {
         acc.count++;
@@ -12883,6 +14163,142 @@ async function registerRoutes(app2, existingServer) {
     } catch (error) {
       console.error("Error fetching unified payments:", error);
       res.status(500).json({ message: "Failed to fetch unified payments" });
+    }
+  });
+  app2.get("/api/admin/payments-analytics", isAuthenticated, async (req, res) => {
+    try {
+      const me = await storage.getUser(req.user.id);
+      if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
+      const admin = await storage.getAdminUser();
+      const adminId = admin?.id;
+      const safeSelect = async (q) => q.catch(() => []);
+      const [
+        subRows,
+        purchaseRows,
+        enrollRows,
+        hireRows,
+        escrowRows,
+        p2pRows,
+        payoutRows,
+        allUsers,
+        allCourses,
+        allProducts
+      ] = await Promise.all([
+        safeSelect(db.select().from(subscriptions).orderBy(desc7(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc7(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc7(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc7(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc7(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc7(payoutRequests.createdAt))),
+        safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
+        safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
+        safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts))
+      ]);
+      const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
+      const courseMap = new Map(allCourses.map((c) => [c.id, c]));
+      const productMap = new Map(allProducts.map((p) => [p.id, p]));
+      const u = (id) => id ? userMap.get(id) || null : null;
+      const summarise = (rows, amountFn, statusFn) => {
+        let total = 0, pending = 0, completed = 0, count4 = 0;
+        for (const r of rows) {
+          const amt = amountFn(r);
+          const st = statusFn(r);
+          total += amt;
+          count4++;
+          if (["active", "approved", "completed", "paid", "released", "verified", "delivered"].includes(st)) completed += amt;
+          else pending += amt;
+        }
+        return { total: +total.toFixed(2), pending: +pending.toFixed(2), completed: +completed.toFixed(2), count: count4 };
+      };
+      const subscriptionRecords = subRows.map((r) => ({
+        id: r.id,
+        amount: +r.amount,
+        status: r.status,
+        createdAt: r.createdAt,
+        plan: r.plan,
+        network: r.network || r.paymentMethodLabel,
+        transactionHash: r.transactionHash,
+        user: u(r.userId)
+      }));
+      const shopRecords = purchaseRows.map((r) => ({
+        id: r.id,
+        amount: +r.totalAmount || +r.amount,
+        status: r.status,
+        createdAt: r.createdAt,
+        paymentMethod: r.paymentMethod,
+        transactionHash: r.transactionHash,
+        product: productMap.get(r.productId) || { title: "Unknown Product" },
+        user: u(r.userId)
+      }));
+      const courseRecords = enrollRows.map((r) => {
+        const st = r.isPaid && r.status === "active" ? "paid" : r.status === "pending_payment" ? "pending" : r.status || "pending";
+        return {
+          id: r.id,
+          amount: +r.amount || 0,
+          status: st,
+          createdAt: r.createdAt,
+          paymentMethod: r.paymentMethod,
+          transactionHash: r.transactionHash,
+          course: courseMap.get(r.courseId) || { title: "Unknown Course" },
+          user: u(r.userId)
+        };
+      });
+      const hireDevRecords = hireRows.filter((r) => r.influencerId === adminId).map((r) => ({
+        id: r.id,
+        amount: +r.budget,
+        status: r.status,
+        createdAt: r.createdAt,
+        title: r.title,
+        transactionHash: r.transactionHash,
+        agreedBudget: r.agreedBudget,
+        invoiceNumber: r.invoiceNumber,
+        user: u(r.brandId)
+      }));
+      const directHireRecords = hireRows.filter((r) => r.influencerId !== adminId).map((r) => ({
+        id: r.id,
+        amount: +r.budget,
+        status: r.status,
+        createdAt: r.createdAt,
+        title: r.title,
+        transactionHash: r.transactionHash,
+        brand: u(r.brandId),
+        influencer: u(r.influencerId)
+      }));
+      const escrowRecords = escrowRows.map((r) => ({
+        id: r.id,
+        amount: +r.amount,
+        status: r.status,
+        createdAt: r.createdAt,
+        network: r.network,
+        transactionHash: r.transactionHash,
+        campaignId: r.campaignId,
+        user: u(r.brandId)
+      }));
+      const payoutRecords = payoutRows.map((r) => ({
+        id: r.id,
+        amount: +r.amount,
+        status: r.status,
+        createdAt: r.createdAt,
+        network: r.network,
+        walletAddress: r.walletAddress,
+        transactionHash: r.transactionHash,
+        user: u(r.userId)
+      }));
+      const categories = {
+        subscriptions: { ...summarise(subscriptionRecords, (r) => r.amount, (r) => r.status), records: subscriptionRecords },
+        shopOrders: { ...summarise(shopRecords, (r) => r.amount, (r) => r.status), records: shopRecords },
+        courseEnrollments: { ...summarise(courseRecords, (r) => r.amount, (r) => r.status), records: courseRecords },
+        hireDeveloper: { ...summarise(hireDevRecords, (r) => r.amount, (r) => r.status), records: hireDevRecords },
+        directHires: { ...summarise(directHireRecords, (r) => r.amount, (r) => r.status), records: directHireRecords },
+        campaignEscrow: { ...summarise(escrowRecords, (r) => r.amount, (r) => r.status), records: escrowRecords },
+        payouts: { ...summarise(payoutRecords, (r) => r.amount, (r) => r.status), records: payoutRecords }
+      };
+      const grandTotal = Object.values(categories).reduce((s, c) => s + c.total, 0);
+      res.json({ categories, grandTotal: +grandTotal.toFixed(2) });
+    } catch (error) {
+      console.error("Error fetching payments analytics:", error);
+      res.status(500).json({ message: "Failed to fetch payments analytics" });
     }
   });
   app2.post("/api/users/:id/like", isAuthenticated, async (req, res) => {
@@ -13631,7 +15047,7 @@ async function registerRoutes(app2, existingServer) {
       }
       const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
       try {
-        const admins = await db.select().from(users).where(eq9(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq11(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -13665,14 +15081,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq9(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq11(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq11(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -13694,13 +15110,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq9(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq11(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq11(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -13761,7 +15177,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq9(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq11(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -13795,7 +15211,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq9(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq11(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -14082,12 +15498,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq9(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq11(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq9(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -14123,8 +15539,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq9(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq9(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq11(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -14176,7 +15592,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq9(referralCommissions.referrerId, req.user.id)).orderBy(desc7(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, req.user.id)).orderBy(desc7(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -14218,7 +15634,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq9(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -14233,7 +15649,7 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq9(users.userType, "admin")).limit(3);
+      const adminUsers = await db.select().from(users).where(eq11(users.userType, "admin")).limit(3);
       for (const admin of adminUsers) {
         await storage.createNotification({
           userId: admin.id,
@@ -14258,6 +15674,69 @@ async function registerRoutes(app2, existingServer) {
       res.status(500).json({ message: "Failed to fetch referral stats" });
     }
   });
+  app2.get("/api/admin/referral-commissions", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const referrerAlias = users;
+      const commissions = await db.select({
+        id: referralCommissions.id,
+        referrerId: referralCommissions.referrerId,
+        referrerFirstName: referrerAlias.firstName,
+        referrerLastName: referrerAlias.lastName,
+        referrerUsername: referrerAlias.username,
+        referrerEmail: referrerAlias.email,
+        itemType: referralCommissions.itemType,
+        itemTitle: referralCommissions.itemTitle,
+        saleAmount: referralCommissions.saleAmount,
+        commissionRate: referralCommissions.commissionRate,
+        commissionAmount: referralCommissions.commissionAmount,
+        status: referralCommissions.status,
+        createdAt: referralCommissions.createdAt
+      }).from(referralCommissions).leftJoin(referrerAlias, eq11(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc7(referralCommissions.createdAt)).limit(200);
+      const referralPayouts = await db.select({
+        id: payoutRequests.id,
+        userId: payoutRequests.userId,
+        amount: payoutRequests.amount,
+        status: payoutRequests.status,
+        adminNotes: payoutRequests.adminNotes,
+        transactionHash: payoutRequests.transactionHash,
+        createdAt: payoutRequests.createdAt,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        email: users.email
+      }).from(payoutRequests).leftJoin(users, eq11(payoutRequests.userId, users.id)).where(sql10`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc7(payoutRequests.createdAt)).limit(100);
+      const filteredPayouts = referralPayouts.filter(
+        (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
+      );
+      const [totalComm] = await db.select({
+        totalPending: sql10`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'pending' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalApproved: sql10`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'approved' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalPaid: sql10`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'paid' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalAll: sql10`COALESCE(SUM(${referralCommissions.commissionAmount}::numeric), 0)`
+      }).from(referralCommissions);
+      res.json({ commissions, referralPayouts: filteredPayouts, totals: totalComm });
+    } catch (error) {
+      console.error("Admin referral commissions error:", error);
+      res.status(500).json({ message: "Failed to fetch referral commissions" });
+    }
+  });
+  app2.patch("/api/admin/referral-commissions/:id", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!["approved", "paid", "pending"].includes(status)) return res.status(400).json({ message: "Invalid status" });
+      const updateData = { status };
+      if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
+      if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq11(referralCommissions.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: "Commission not found" });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update commission" });
+    }
+  });
   app2.get("/api/conversations", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user.id;
@@ -14266,7 +15745,7 @@ async function registerRoutes(app2, existingServer) {
       if (isAdmin5) {
         allMessages = await db.select().from(messages).orderBy(desc7(messages.createdAt));
       } else {
-        allMessages = await db.select().from(messages).where(sql7`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc7(messages.createdAt));
+        allMessages = await db.select().from(messages).where(sql10`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc7(messages.createdAt));
       }
       const convMap = {};
       for (const msg of allMessages) {
@@ -14294,8 +15773,8 @@ async function registerRoutes(app2, existingServer) {
         Object.values(convMap).map((conv) => conv.campaignId).filter(Boolean)
       )];
       const [participantRows, campaignRows] = await Promise.all([
-        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray6(users.id, allParticipantIds)) : [],
-        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray6(campaigns.id, allCampaignIds)) : []
+        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray7(users.id, allParticipantIds)) : [],
+        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray7(campaigns.id, allCampaignIds)) : []
       ]);
       const participantMap = {};
       for (const u of participantRows) participantMap[u.id] = u;
@@ -14324,7 +15803,7 @@ async function registerRoutes(app2, existingServer) {
       let rawMessages;
       if (convKey.startsWith("direct_")) {
         const parts = convKey.replace("direct_", "").split("_");
-        rawMessages = await db.select().from(messages).where(sql7`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).orderBy(messages.createdAt);
+        rawMessages = await db.select().from(messages).where(sql10`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).orderBy(messages.createdAt);
         rawMessages = rawMessages.filter((m) => {
           const pair = `direct_${[m.senderId, m.receiverId].sort().join("_")}`;
           return pair === convKey;
@@ -14344,7 +15823,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         companyName: users.companyName,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray6(users.id, senderIds)) : [];
+      }).from(users).where(inArray7(users.id, senderIds)) : [];
       const senderMap = {};
       for (const s of senderRows) senderMap[s.id] = s;
       const enriched = rawMessages.map((msg) => ({ ...msg, sender: senderMap[msg.senderId] || null }));
@@ -14358,7 +15837,7 @@ async function registerRoutes(app2, existingServer) {
       });
       const unreadIds = rawMessages.filter((m) => m.receiverId === userId && !m.isRead).map((m) => m.id);
       if (unreadIds.length > 0) {
-        await db.update(messages).set({ isRead: true }).where(inArray6(messages.id, unreadIds));
+        await db.update(messages).set({ isRead: true }).where(inArray7(messages.id, unreadIds));
       }
       res.json(deduplicated);
     } catch (error) {
@@ -14373,7 +15852,7 @@ async function registerRoutes(app2, existingServer) {
       const { content, subject, targetUserId } = req.body;
       if (!content?.trim()) return res.status(400).json({ message: "Content required" });
       if (convKey.startsWith("direct_")) {
-        const existingMsgs = await db.select().from(messages).where(sql7`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).limit(10);
+        const existingMsgs = await db.select().from(messages).where(sql10`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).limit(10);
         const matchMsg = existingMsgs.find((m) => {
           const pair = `direct_${[m.senderId, m.receiverId].sort().join("_")}`;
           return pair === convKey;
@@ -14499,7 +15978,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and6(eq9(blockedUsers.blockerId, blockerId), eq9(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and7(eq11(blockedUsers.blockerId, blockerId), eq11(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -14511,7 +15990,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and6(eq9(blockedUsers.blockerId, blockerId), eq9(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and7(eq11(blockedUsers.blockerId, blockerId), eq11(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -14521,8 +16000,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and6(eq9(blockedUsers.blockerId, myId), eq9(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and6(eq9(blockedUsers.blockerId, otherId), eq9(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and7(eq11(blockedUsers.blockerId, myId), eq11(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and7(eq11(blockedUsers.blockerId, otherId), eq11(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -14869,7 +16348,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq9(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -14914,18 +16393,18 @@ Instructions:
       let userId = null;
       let newUser = null;
       let loginUser = null;
-      const bcrypt6 = await import("bcryptjs");
+      const bcrypt7 = await import("bcryptjs");
       const existing = await storage.getUserByEmail(email);
       if (existing) {
         userId = existing.id;
         if (password && existing.password) {
-          const passwordOk = await bcrypt6.compare(password, existing.password);
+          const passwordOk = await bcrypt7.compare(password, existing.password);
           if (passwordOk) {
             loginUser = existing;
           }
         }
       } else if (!isOnsiteContactOnly) {
-        const hashed = await bcrypt6.hash(password, 10);
+        const hashed = await bcrypt7.hash(password, 10);
         const nameParts = fullName.trim().split(" ");
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(" ") || "";
@@ -14978,13 +16457,13 @@ Instructions:
       const [reg] = await db.insert(breedskoolRegistrations).values(insertValues).returning();
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq9(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         if (pricing?.linkedCourseId) {
           linkedCourseId = pricing.linkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and6(
-            eq9(courseEnrollments.courseId, linkedCourseId),
-            eq9(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and7(
+            eq11(courseEnrollments.courseId, linkedCourseId),
+            eq11(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -14999,7 +16478,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId }).where(eq9(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId }).where(eq11(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -15023,6 +16502,21 @@ Instructions:
       });
     } catch (e) {
       res.status(500).json({ message: e.message });
+    }
+  });
+  app2.post("/api/admin/reseed-courses", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    try {
+      const { seedBreedskoolCourses: seedBreedskoolCourses2 } = await Promise.resolve().then(() => (init_seed_breedskool_courses(), seed_breedskool_courses_exports));
+      const { seedBreedskoolPricing: seedBreedskoolPricing2 } = await Promise.resolve().then(() => (init_seed_breedskool(), seed_breedskool_exports));
+      await seedBreedskoolPricing2();
+      const result = await seedBreedskoolCourses2(req.user.id);
+      res.json({ ok: true, created: result.created, linked: result.linked, message: `Reseeded: ${result.created} course(s) created, ${result.linked} linked to pricing` });
+    } catch (e) {
+      console.error("[reseed-courses]", e);
+      res.status(500).json({ ok: false, message: e?.message || "Reseed failed" });
     }
   });
   app2.get("/api/admin/breedskool/pricing", isAuthenticated, async (req, res) => {
@@ -15067,7 +16561,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq9(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq11(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -15089,29 +16583,29 @@ Instructions:
       const updateData = { updatedAt: /* @__PURE__ */ new Date() };
       if (paymentStatus !== void 0) updateData.paymentStatus = paymentStatus;
       if (notes !== void 0) updateData.notes = notes;
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq9(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq11(breedskoolRegistrations.id, req.params.id)).returning();
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq9(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq11(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq9(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq11(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq9(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and6(
-              eq9(courseEnrollments.courseId, courseIdToActivate),
-              eq9(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and7(
+              eq11(courseEnrollments.courseId, courseIdToActivate),
+              eq11(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq9(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq11(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -15123,7 +16617,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq9(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq11(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -15137,16 +16631,16 @@ Instructions:
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
       const regId = req.params.id;
-      const regResult = await db.execute(sql7`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
+      const regResult = await db.execute(sql10`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
       const row = regResult.rows[0];
       if (!row) return res.status(404).json({ message: "Registration not found" });
       let resolvedUserId = row.user_id || null;
       if (!resolvedUserId && row.email) {
-        const userResult = await db.execute(sql7`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
+        const userResult = await db.execute(sql10`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
         const matchedUser = userResult.rows[0];
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.execute(sql7`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
+          await db.execute(sql10`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
         }
       }
       if (!resolvedUserId) {
@@ -15156,18 +16650,18 @@ Instructions:
       }
       let courseId = row.linked_course_id || null;
       if (!courseId && row.selected_course_key) {
-        const pricingResult = await db.execute(sql7`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
+        const pricingResult = await db.execute(sql10`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
         const pricing = pricingResult.rows[0];
         courseId = pricing?.linked_course_id || null;
       }
       if (!courseId && row.selected_course_key) {
         const tag = `breedskool_${row.selected_course_key}`;
-        const tagResult = await db.execute(sql7`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
+        const tagResult = await db.execute(sql10`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
         const tagCourse = tagResult.rows[0];
         courseId = tagCourse?.id || null;
       }
       if (!courseId && row.selected_course_title) {
-        const titleResult = await db.execute(sql7`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
+        const titleResult = await db.execute(sql10`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
         const titleCourse = titleResult.rows[0];
         courseId = titleCourse?.id || null;
       }
@@ -15177,20 +16671,20 @@ Instructions:
         });
       }
       if (row.selected_course_key && courseId) {
-        await db.execute(sql7`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
+        await db.execute(sql10`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
         });
       }
-      const existingResult = await db.execute(sql7`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
+      const existingResult = await db.execute(sql10`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
       const existing = existingResult.rows[0];
       if (existing) {
-        await db.execute(sql7`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
+        await db.execute(sql10`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
       } else {
         const amount = String(row.amount_ngn || 0);
         const payMethod = row.payment_method || null;
-        await db.execute(sql7`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
+        await db.execute(sql10`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
       }
       if (!row.linked_course_id) {
-        await db.execute(sql7`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
+        await db.execute(sql10`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
       }
       res.json({ success: true, courseId, message: "Enrollment activated successfully" });
     } catch (e) {
@@ -15202,7 +16696,7 @@ Instructions:
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
       const regId = req.params.id;
-      const result = await db.execute(sql7`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
+      const result = await db.execute(sql10`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
       if (!result.rows.length) return res.status(404).json({ message: "Registration not found" });
       res.json({ success: true, message: "Registration deleted" });
     } catch (e) {
@@ -15222,7 +16716,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray6(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray7(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json(settings);
@@ -15243,7 +16737,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray6(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray7(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json(settings);
@@ -15275,7 +16769,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq9(courseAssignments.userId, req.user.id)).orderBy(desc7(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq11(courseAssignments.userId, req.user.id)).orderBy(desc7(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -15283,7 +16777,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq9(breedskoolRegistrations.userId, req.user.id)).orderBy(desc7(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq11(breedskoolRegistrations.userId, req.user.id)).orderBy(desc7(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -15291,8 +16785,8 @@ Instructions:
   });
   app2.get("/api/courses", async (req, res) => {
     try {
-      const courses3 = await storage.getAllCourses(true);
-      res.json(courses3);
+      const courses2 = await storage.getAllCourses(true);
+      res.json(courses2);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch courses" });
     }
@@ -15302,8 +16796,8 @@ Instructions:
       if (req.user.userType !== "admin" && req.user.role !== "admin") {
         return res.status(403).json({ message: "Unauthorized" });
       }
-      const courses3 = await storage.getAllCourses(false);
-      res.json(courses3);
+      const courses2 = await storage.getAllCourses(false);
+      res.json(courses2);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch courses" });
     }
@@ -15364,6 +16858,12 @@ Instructions:
       if (body.isFree !== void 0) body.isFree = body.isFree === "true" || body.isFree === true;
       if (body.isPublished !== void 0) body.isPublished = body.isPublished === "true" || body.isPublished === true;
       if (body.isFeatured !== void 0) body.isFeatured = body.isFeatured === "true" || body.isFeatured === true;
+      if (body.saleDeadline && body.saleDeadline !== "") {
+        body.saleDeadline = new Date(body.saleDeadline);
+      } else {
+        body.saleDeadline = null;
+      }
+      if (!body.salePrice || body.salePrice === "") body.salePrice = null;
       const course = await storage.createCourse({ ...body, instructorId: u.id });
       res.status(201).json(course);
     } catch (error) {
@@ -15399,6 +16899,12 @@ Instructions:
       if (body.isFree !== void 0) body.isFree = body.isFree === "true" || body.isFree === true;
       if (body.isPublished !== void 0) body.isPublished = body.isPublished === "true" || body.isPublished === true;
       if (body.isFeatured !== void 0) body.isFeatured = body.isFeatured === "true" || body.isFeatured === true;
+      if (body.saleDeadline && body.saleDeadline !== "") {
+        body.saleDeadline = new Date(body.saleDeadline);
+      } else {
+        body.saleDeadline = null;
+      }
+      if (!body.salePrice || body.salePrice === "") body.salePrice = null;
       const updated = await storage.updateCourse(req.params.id, body);
       res.json(updated);
     } catch (error) {
@@ -15440,9 +16946,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq9(courseEnrollments.userId, users.id)).where(and6(
-        eq9(courseEnrollments.courseId, courseId),
-        eq9(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq11(courseEnrollments.userId, users.id)).where(and7(
+        eq11(courseEnrollments.courseId, courseId),
+        eq11(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -15478,11 +16984,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq9(courseCommunityPosts.userId, users.id)).where(and6(
-        eq9(courseCommunityPosts.courseId, courseId),
-        eq9(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq11(courseCommunityPosts.userId, users.id)).where(and7(
+        eq11(courseCommunityPosts.courseId, courseId),
+        eq11(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq9(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq11(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -15507,7 +17013,7 @@ Instructions:
           }
         }
       }
-      const postRows = await db.execute(sql7`
+      const postRows = await db.execute(sql10`
         INSERT INTO course_community_posts (course_id, user_id, message, reply_to_id, topic)
         VALUES (${courseId}, ${u.id}, ${message.trim()}, ${replyToId || null}, ${topic || "General"})
         RETURNING *
@@ -15525,29 +17031,29 @@ Instructions:
       const postId = req.params.postId;
       const isAdmin5 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin5) {
-        const [course] = await db.select().from(courses).where(eq9(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq11(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and6(eq9(courseEnrollments.courseId, courseId), eq9(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and7(eq11(courseEnrollments.courseId, courseId), eq11(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and6(eq9(courseCommunityPosts.id, postId), eq9(courseCommunityPosts.courseId, courseId), eq9(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and7(eq11(courseCommunityPosts.id, postId), eq11(courseCommunityPosts.courseId, courseId), eq11(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and6(eq9(courseCommunityLikes.postId, postId), eq9(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and7(eq11(courseCommunityLikes.postId, postId), eq11(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and6(
-          eq9(courseCommunityLikes.postId, postId),
-          eq9(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and7(
+          eq11(courseCommunityLikes.postId, postId),
+          eq11(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql7`GREATEST(like_count - 1, 0)` }).where(eq9(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql10`GREATEST(like_count - 1, 0)` }).where(eq11(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
-        await db.execute(sql7`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
-        await db.execute(sql7`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
+        await db.execute(sql10`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
+        await db.execute(sql10`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
         res.json({ liked: true });
       }
     } catch (e) {
@@ -15559,15 +17065,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and6(eq9(courseCommunityPosts.id, postId), eq9(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and7(eq11(courseCommunityPosts.id, postId), eq11(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
       const isAdmin5 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin5 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq9(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq11(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq9(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq11(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -15576,7 +17082,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq9(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq11(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -15592,8 +17098,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq9(courseCommunityPosts.userId, users.id)).where(and6(inArray6(courseCommunityPosts.courseId, courseIds), eq9(courseCommunityPosts.isDeleted, false))).orderBy(desc7(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq9(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq11(courseCommunityPosts.userId, users.id)).where(and7(inArray7(courseCommunityPosts.courseId, courseIds), eq11(courseCommunityPosts.isDeleted, false))).orderBy(desc7(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq11(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -15603,7 +17109,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq9(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq11(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -15614,7 +17120,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq9(courseEnrollments.userId, users.id)).where(and6(inArray6(courseEnrollments.courseId, courseIds), sql7`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq11(courseEnrollments.userId, users.id)).where(and7(inArray7(courseEnrollments.courseId, courseIds), sql10`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -15643,6 +17149,13 @@ Instructions:
       if (existing) return res.status(400).json({ message: "Already enrolled in this course" });
       const proofPath = req.file ? `/uploads/${req.file.filename}` : req.body.paymentProofUrl || req.body.paymentProof || null;
       const isPayLater = req.body.payLater === "true" || req.body.payLater === true;
+      let effectivePrice = course.isFree ? "0.00" : course.price || "0.00";
+      if (!course.isFree && course.salePrice && course.saleDeadline) {
+        const deadline = new Date(course.saleDeadline);
+        if (deadline > /* @__PURE__ */ new Date()) {
+          effectivePrice = String(course.salePrice);
+        }
+      }
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
@@ -15650,7 +17163,7 @@ Instructions:
         paymentMethod: req.body.paymentMethod,
         paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
-        amount: course.isFree ? "0.00" : course.price || "0.00"
+        amount: effectivePrice
       });
       try {
         const pts = course.isFree ? 20 : 50;
@@ -15882,9 +17395,9 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and6(
-        eq9(courseAssignments.courseId, req.params.id),
-        eq9(courseAssignments.userId, req.user.id)
+      const rows = await db.select().from(courseAssignments).where(and7(
+        eq11(courseAssignments.courseId, req.params.id),
+        eq11(courseAssignments.userId, req.user.id)
       )).orderBy(desc7(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
@@ -15899,7 +17412,7 @@ Instructions:
       const primaryFile = files[0] || null;
       const allFilePaths = files.map((f) => `/uploads/${f.filename}`);
       const fileUrlValue = allFilePaths.length > 1 ? JSON.stringify(allFilePaths) : primaryFile ? `/uploads/${primaryFile.filename}` : null;
-      const assignRows = await db.execute(sql7`
+      const assignRows = await db.execute(sql10`
         INSERT INTO course_assignments (course_id, user_id, lesson_id, title, description, file_url, file_name, file_type, status)
         VALUES (
           ${req.params.id},
@@ -15940,7 +17453,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq9(courseAssignments.userId, users.id)).orderBy(desc7(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq11(courseAssignments.userId, users.id)).orderBy(desc7(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -15952,7 +17465,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq9(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq11(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -16000,13 +17513,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq16, desc: desc8 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq16(courseMessages2.courseId, req.params.id)).orderBy(desc8(courseMessages2.createdAt));
+      const { eq: eq17, desc: desc8 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq17(courseMessages2.courseId, req.params.id)).orderBy(desc8(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq16(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq17(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq16(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq17(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -16039,8 +17552,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq16, and: and8 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and8(eq16(productLikes2.productId, req.params.id), eq16(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq17, and: and9 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and9(eq17(productLikes2.productId, req.params.id), eq17(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -16050,26 +17563,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq16, and: and8, sql: sql12 } = await import("drizzle-orm");
+      const { eq: eq17, and: and9, sql: sql14 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and8(eq16(productLikes2.productId, req.params.id), eq16(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and9(eq17(productLikes2.productId, req.params.id), eq17(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq16(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq17(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            [type === "like" ? "likesCount" : "dislikesCount"]: sql12`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq16(shopProducts2.id, req.params.id));
+            [type === "like" ? "likesCount" : "dislikesCount"]: sql14`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
+          }).where(eq17(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq16(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq17(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            likesCount: sql12`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
-            dislikesCount: sql12`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq16(shopProducts2.id, req.params.id));
+            likesCount: sql14`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
+            dislikesCount: sql14`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
+          }).where(eq17(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -16079,8 +17592,8 @@ Instructions:
           type
         });
         await db2.update(shopProducts2).set({
-          [type === "like" ? "likesCount" : "dislikesCount"]: sql12`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq16(shopProducts2.id, req.params.id));
+          [type === "like" ? "likesCount" : "dislikesCount"]: sql14`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
+        }).where(eq17(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -16093,8 +17606,8 @@ Instructions:
         return res.status(403).json({ message: "Admin only" });
       }
       const { newEmail, newPassword, currentPassword } = req.body;
-      const bcrypt6 = await import("bcryptjs");
-      const valid = await bcrypt6.compare(currentPassword, req.user.password);
+      const bcrypt7 = await import("bcryptjs");
+      const valid = await bcrypt7.compare(currentPassword, req.user.password);
       if (!valid) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
@@ -16110,7 +17623,7 @@ Instructions:
         if (newPassword.length < 8) {
           return res.status(400).json({ message: "New password must be at least 8 characters" });
         }
-        updates.password = await bcrypt6.hash(newPassword, 12);
+        updates.password = await bcrypt7.hash(newPassword, 12);
       }
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ message: "No changes provided" });
@@ -16398,7 +17911,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and6(eq9(messages.referenceType, "direct_hire"), eq9(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and7(eq11(messages.referenceType, "direct_hire"), eq11(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16501,12 +18014,12 @@ Instructions:
       const brandFee = 0;
       const updated = await storage.updateDirectHireOffer(offer.id, { status: "completed", completedAt: /* @__PURE__ */ new Date() });
       await db.update(users).set({
-        availableBalance: sql7`${users.availableBalance} + ${payout}`,
-        pendingBalance: sql7`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
-        totalEarned: sql7`${users.totalEarned} + ${payout}`,
-        completedCampaigns: sql7`${users.completedCampaigns} + 1`,
+        availableBalance: sql10`${users.availableBalance} + ${payout}`,
+        pendingBalance: sql10`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
+        totalEarned: sql10`${users.totalEarned} + ${payout}`,
+        completedCampaigns: sql10`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(users.id, offer.influencerId));
+      }).where(eq11(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -16532,10 +18045,10 @@ Instructions:
       if (primaryAdmin) {
         const platformRevenue = platformFee + brandFee;
         await db.update(users).set({
-          availableBalance: sql7`${users.availableBalance} + ${platformRevenue}`,
-          totalEarned: sql7`${users.totalEarned} + ${platformRevenue}`,
+          availableBalance: sql10`${users.availableBalance} + ${platformRevenue}`,
+          totalEarned: sql10`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq9(users.id, primaryAdmin.id));
+        }).where(eq11(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -16575,7 +18088,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and6(eq9(userReviews.referenceType, "direct_hire"), eq9(userReviews.referenceId, offer.id))).orderBy(desc7(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "direct_hire"), eq11(userReviews.referenceId, offer.id))).orderBy(desc7(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16591,7 +18104,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and6(eq9(userReviews.referenceType, "direct_hire"), eq9(userReviews.referenceId, offer.id), eq9(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "direct_hire"), eq11(userReviews.referenceId, offer.id), eq11(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -16601,8 +18114,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql7`AVG(${userReviews.rating})`, count: sql7`COUNT(*)` }).from(userReviews).where(eq9(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq9(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql10`AVG(${userReviews.rating})`, count: sql10`COUNT(*)` }).from(userReviews).where(eq11(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16744,9 +18257,9 @@ Instructions:
       const payout = +(authoritative - platformFee).toFixed(2);
       const brandTotalCharge = authoritative;
       await db.update(users).set({
-        pendingBalance: sql7`${users.pendingBalance} + ${payout}`,
+        pendingBalance: sql10`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(users.id, offer.influencerId));
+      }).where(eq11(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -16888,8 +18401,8 @@ Instructions:
               approvedAt: /* @__PURE__ */ new Date()
             });
             await storage.updateUserProfile(referrerId, {
-              availableBalance: sql7`${users.availableBalance} + ${parseFloat(commissionAmount)}`,
-              referralBonusEarned: sql7`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}`
+              availableBalance: sql10`${users.availableBalance} + ${parseFloat(commissionAmount)}`,
+              referralBonusEarned: sql10`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}`
             });
             await storage.createNotification({
               userId: referrerId,
@@ -16934,8 +18447,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq9(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq9(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq11(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq11(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -16946,7 +18459,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq9(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq11(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -16955,7 +18468,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq9(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq11(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -17041,6 +18554,46 @@ Please proceed to the payment section when ready.`,
       res.json(updated);
     } catch (e) {
       console.error("Error generating invoice:", e);
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.post("/api/admin/direct-hire/:id/send-email", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
+      const offer = await storage.getDirectHireOffer(req.params.id);
+      if (!offer) return res.status(404).json({ message: "Offer not found" });
+      const { subject, body, alsoPostInChat } = req.body || {};
+      if (!subject || !body) return res.status(400).json({ message: "subject and body are required" });
+      const client = await storage.getUser(offer.brandId);
+      if (!client?.email) return res.status(400).json({ message: "Client has no email address" });
+      const { sendEmail: sendEmail3, buildDefaultEmailHtml: buildDefaultEmailHtml3 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
+      const bodyHtml = body.replace(/\n/g, "<br>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      const html = buildDefaultEmailHtml3 ? buildDefaultEmailHtml3(`<h2 style="color:#1f2937;margin:0 0 16px">${subject}</h2><div style="line-height:1.7">${bodyHtml}</div>`, "Taskdrip Dev Team") : `<div style="font-family:sans-serif;max-width:600px;margin:auto"><h2>${subject}</h2><div>${bodyHtml}</div><hr><p style="font-size:12px;color:#888">Sent via Taskdrip Dev Team</p></div>`;
+      const result = await sendEmail3({
+        to: client.email,
+        toName: [client.firstName, client.lastName].filter(Boolean).join(" ") || void 0,
+        subject,
+        html
+      });
+      if (!result.success) return res.status(500).json({ message: result.error || "Email failed to send" });
+      if (alsoPostInChat) {
+        await storage.createMessage({
+          senderId: req.user.id,
+          receiverId: offer.brandId,
+          subject: `Direct hire: ${offer.title}`,
+          content: `\u{1F4E7} Email sent to client:
+
+**${subject}**
+
+${body}`,
+          messageType: "direct_hire",
+          referenceType: "direct_hire",
+          referenceId: offer.id
+        });
+      }
+      res.json({ success: true, provider: result.provider, to: client.email });
+    } catch (e) {
+      console.error("Error sending hire email:", e);
       res.status(500).json({ message: e.message });
     }
   });
@@ -17213,8 +18766,38 @@ Notes: ${adminNotes}` : ""}`
         const receiver = await storage.getUser(m.receiverId);
         return { ...m, sender: sender ? { id: sender.id, firstName: sender.firstName, lastName: sender.lastName, userType: sender.userType } : null, receiver: receiver ? { id: receiver.id, firstName: receiver.firstName, lastName: receiver.lastName, userType: receiver.userType } : null };
       }));
+      const descPhone = (() => {
+        const m = (offer.description || "").match(/📞 Phone\/WhatsApp:\s*([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+      const descTelegram = (() => {
+        const m = (offer.description || "").match(/✈️ Telegram:\s*@?([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+      const descEmail = (() => {
+        const m = (offer.description || "").match(/📧 Email:\s*([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
+      const preferredContact = (() => {
+        const m = (offer.description || "").match(/⭐ Preferred contact:\s*([^\n]+)/);
+        return m ? m[1].trim() : null;
+      })();
       res.json({
-        offer: { ...offer, brand: brand ? { firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, email: brand.email } : null, influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName, email: influencer.email } : null },
+        offer: {
+          ...offer,
+          brand: brand ? {
+            firstName: brand.firstName,
+            lastName: brand.lastName,
+            companyName: brand.companyName,
+            email: brand.email,
+            phone: brand.phoneNumber || descPhone || null,
+            whatsapp: descPhone || brand.phoneNumber || null,
+            telegram: descTelegram,
+            contactEmail: descEmail || brand.email,
+            preferredContact
+          } : null,
+          influencer: influencer ? { firstName: influencer.firstName, lastName: influencer.lastName, email: influencer.email } : null
+        },
         messages: enrichedMessages
       });
     } catch (e) {
@@ -17223,7 +18806,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and6(eq9(p2pListings.status, "approved"), eq9(p2pListings.isFeatured, true))).orderBy(desc7(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and7(eq11(p2pListings.status, "approved"), eq11(p2pListings.isFeatured, true))).orderBy(desc7(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17231,7 +18814,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq9(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -17248,12 +18831,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq9(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq9(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq9(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq9(p2pListings.country, country));
-      if (currency) conditions.push(eq9(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and6(...conditions)).orderBy(desc7(p2pListings.createdAt));
+      let conditions = [eq11(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq11(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq11(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq11(p2pListings.country, country));
+      if (currency) conditions.push(eq11(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and7(...conditions)).orderBy(desc7(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -17330,7 +18913,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq9(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -17346,7 +18929,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and6(eq9(p2pTaskAddonSubmissions.listingId, req.params.id), eq9(p2pTaskAddonSubmissions.userId, req.user.id), eq9(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and7(eq11(p2pTaskAddonSubmissions.listingId, req.params.id), eq11(p2pTaskAddonSubmissions.userId, req.user.id), eq11(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -17380,12 +18963,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq9(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq9(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq11(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17393,7 +18976,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq9(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq11(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17401,9 +18984,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq9(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq11(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq9(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -17416,7 +18999,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq11(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -17437,12 +19020,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq9(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq11(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
       const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
-        inArray6(p2pTaskAddonSubmissions.listingId, listingIds)
+        inArray7(p2pTaskAddonSubmissions.listingId, listingIds)
       ).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
       const submissionsWithTitle = submissions.map((s) => ({ ...s, listingTitle: listingTitleMap[s.listingId] || "" }));
       res.json(submissionsWithTitle);
@@ -17468,11 +19051,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq9(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
-      const active = await db.select().from(p2pTransactions).where(sql7`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
+      const active = await db.select().from(p2pTransactions).where(sql10`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
       if (active.length) return res.status(400).json({ message: "You already have an active deal for this listing" });
       const admins = await storage.getUsersByType("admin");
       const seller = await storage.getUser(listing.sellerId);
@@ -17542,7 +19125,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions", isAuthenticated, async (req, res) => {
     try {
-      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql7`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc7(p2pTransactions.createdAt));
+      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql10`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc7(p2pTransactions.createdAt));
       res.json(await Promise.all(rows.map(enrichP2PTransaction)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17550,7 +19133,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -17560,10 +19143,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq9(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq11(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17571,7 +19154,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -17589,7 +19172,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -17598,7 +19181,7 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
@@ -17612,10 +19195,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -17625,11 +19208,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -17639,11 +19222,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
@@ -17656,11 +19239,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
@@ -17674,11 +19257,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql7`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql7`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql10`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql10`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -17691,10 +19274,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -17715,7 +19298,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq9(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq11(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -17741,7 +19324,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq9(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq11(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -17758,14 +19341,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq9(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq9(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq9(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq11(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -17792,7 +19375,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq9(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq11(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -17863,7 +19446,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq9(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq11(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17873,7 +19456,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq9(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq11(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -17885,9 +19468,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq9(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq11(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq9(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq11(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -18252,7 +19835,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq9(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq11(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -18456,7 +20039,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq9(adAnalytics.adId, req.params.id)).orderBy(desc7(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq11(adAnalytics.adId, req.params.id)).orderBy(desc7(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -18598,7 +20181,7 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const apps = await storage.getAllAdvertiseApplications();
-      const payments = await db.select().from(paymentDeposits).where(sql7`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc7(paymentDeposits.createdAt));
+      const payments = await db.select().from(paymentDeposits).where(sql10`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc7(paymentDeposits.createdAt));
       res.json(apps.map((app22) => ({
         ...app22,
         payment: payments.find((payment) => String(payment.adminNotes || "").includes(`ads_application:${app22.id}`)) || null
@@ -18617,6 +20200,19 @@ ${body}`,
     }
   });
   const { sendEmail: sendEmail2, testSmtpConnection: testSmtpConnection2, blastCampaign: blastCampaign2, AI_TEMPLATES: AI_TEMPLATES2, buildDefaultEmailHtml: buildDefaultEmailHtml2, getEmailStatus: getEmailStatus2, sendWelcomeEmail: sendWelcomeEmail2 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
+  activateResendIfAvailable().catch(() => {
+  });
+  app2.post("/api/admin/email/activate-resend", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const { emailSettings: emailSettingsTable } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+      const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
+      await dbInst.insert(emailSettingsTable).values({ id: "singleton", preferredProvider: "resend" }).onConflictDoUpdate({ target: emailSettingsTable.id, set: { preferredProvider: "resend", smtpHost: null, smtpUser: null, smtpPass: null } });
+      res.json({ success: true, message: "Resend activated as default provider" });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
   app2.get("/api/admin/email/status", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
@@ -18737,6 +20333,16 @@ ${body}`,
       res.status(500).json({ message: "Failed to delete template" });
     }
   });
+  app2.post("/api/admin/email/upload-image", isAuthenticated, upload.single("image"), async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+      const url = `/uploads/${req.file.filename}`;
+      res.json({ url });
+    } catch (e) {
+      res.status(500).json({ message: e.message || "Upload failed" });
+    }
+  });
   app2.get("/api/admin/email/campaigns", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
@@ -18855,6 +20461,150 @@ ${body}`,
       res.status(500).json({ message: "Failed to fetch contacts" });
     }
   });
+  app2.post("/api/admin/email/contacts/:userId/send", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const { userId } = req.params;
+      const { subject, html, fromName } = req.body;
+      if (!subject || !html) return res.status(400).json({ message: "subject and html required" });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const result = await sendEmail2({
+        to: user.email,
+        toName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || void 0,
+        subject,
+        html,
+        ...fromName ? { fromName } : {}
+      });
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+  app2.get("/api/admin/email/segments", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const allUsers = await storage.getAllUsers?.() || [];
+      const { courseEnrollments: courseEnrollments2, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+      const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { eq: eq17, sql: sqlFn } = await import("drizzle-orm");
+      const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
+      const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
+      const studentUserIds = /* @__PURE__ */ new Set([
+        ...enrollmentRows.map((r) => r.userId),
+        ...breedskoolRows.map((r) => r.userId).filter(Boolean)
+      ]);
+      const purchaseRows = await dbInst.selectDistinct({ userId: shopPurchases.userId }).from(shopPurchases);
+      const shopCustomerIds = new Set(purchaseRows.map((r) => r.userId));
+      const nsRows = await dbInst.select().from(nsSubs);
+      const activeNsSubs = nsRows.filter((s) => s.status === "active");
+      const creators = allUsers.filter((u) => u.userType === "creator");
+      const brands = allUsers.filter((u) => u.userType === "brand");
+      const students = allUsers.filter((u) => studentUserIds.has(u.id));
+      const shopCustomers = allUsers.filter((u) => shopCustomerIds.has(u.id));
+      res.json({
+        segments: [
+          {
+            key: "creators",
+            label: "Influencers & Creators",
+            description: "Registered influencer/creator accounts",
+            count: creators.length,
+            color: "blue",
+            icon: "users",
+            members: creators.map((u) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, creatorTier: u.creatorTier, isVerified: u.isVerified }))
+          },
+          {
+            key: "brands",
+            label: "Brands",
+            description: "Registered brand accounts running campaigns",
+            count: brands.length,
+            color: "purple",
+            icon: "building",
+            members: brands.map((u) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, companyName: u.companyName, isVerified: u.isVerified }))
+          },
+          {
+            key: "students",
+            label: "Course Students",
+            description: "Users enrolled in BreedSkool courses",
+            count: students.length,
+            color: "green",
+            icon: "book",
+            members: students.map((u) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, userType: u.userType }))
+          },
+          {
+            key: "shop_customers",
+            label: "Shop Customers",
+            description: "Users who have purchased shop products",
+            count: shopCustomers.length,
+            color: "orange",
+            icon: "package",
+            members: shopCustomers.map((u) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, userType: u.userType }))
+          },
+          {
+            key: "newsletter",
+            label: "Newsletter Subscribers",
+            description: "Footer opt-in newsletter subscribers",
+            count: activeNsSubs.length,
+            color: "pink",
+            icon: "bell",
+            members: activeNsSubs.map((s) => ({ id: s.id, email: s.email, firstName: s.name || "", lastName: "", userType: "newsletter" }))
+          },
+          {
+            key: "all",
+            label: "All Users",
+            description: "Every registered account on the platform",
+            count: allUsers.length,
+            color: "gray",
+            icon: "globe",
+            members: allUsers.map((u) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, userType: u.userType }))
+          }
+        ]
+      });
+    } catch (e) {
+      res.status(500).json({ message: "Failed to fetch segments", error: e.message });
+    }
+  });
+  app2.post("/api/brand/send-email", isAuthenticated, async (req, res) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+      const { userId, subject, message, fromCompanyName } = req.body;
+      if (!userId || !subject || !message) return res.status(400).json({ message: "userId, subject, and message are required" });
+      const [sender, recipient] = await Promise.all([
+        storage.getUser(req.user.id),
+        storage.getUser(userId)
+      ]);
+      if (!sender) return res.status(403).json({ message: "Sender not found" });
+      if (!recipient) return res.status(404).json({ message: "Recipient not found" });
+      const companyName = fromCompanyName || sender.companyName || `${sender.firstName} ${sender.lastName}`.trim() || "A Brand on Taskdrip";
+      const fromDisplay = `${companyName} via Taskdrip`;
+      const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
+          <div style="background: linear-gradient(135deg, #7c3aed, #4f46e5); padding: 24px; border-radius: 12px 12px 0 0; color: white; text-align: center;">
+            <h1 style="margin: 0; font-size: 22px;">${companyName}</h1>
+            <p style="margin: 6px 0 0; opacity: 0.85; font-size: 13px;">Sent via Taskdrip</p>
+          </div>
+          <div style="background: #fff; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; padding: 28px;">
+            <p style="font-size: 15px; margin: 0 0 16px;">Hi ${recipient.firstName || "there"},</p>
+            <div style="font-size: 15px; line-height: 1.7; color: #374151; white-space: pre-line;">${message}</div>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+            <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+              This email was sent by <strong>${companyName}</strong> through the Taskdrip platform. 
+              If you believe this was sent in error, please contact support@taskdrip.online.
+            </p>
+          </div>
+        </div>`;
+      const result = await sendEmail2({
+        to: recipient.email,
+        toName: `${recipient.firstName || ""} ${recipient.lastName || ""}`.trim() || void 0,
+        subject: `${subject} \u2014 ${companyName}`,
+        html: htmlBody,
+        fromName: fromDisplay
+      });
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
   app2.get("/api/points/me", isAuthenticated, async (req, res) => {
     try {
       const points = await storage.getUserPoints(req.user.id);
@@ -18923,7 +20673,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq9(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq11(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -19213,8 +20963,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq16, and: and8 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and8(eq16(pageHeroBackgrounds2.page, req.params.page), eq16(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq17, and: and9 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and9(eq17(pageHeroBackgrounds2.page, req.params.page), eq17(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19236,12 +20986,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq16 } = await import("drizzle-orm");
+      const { eq: eq17 } = await import("drizzle-orm");
       const page = req.params.page;
       const data = { ...req.body, page, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq16(pageHeroBackgrounds2.page, page));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq17(pageHeroBackgrounds2.page, page));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq16(pageHeroBackgrounds2.page, page)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq17(pageHeroBackgrounds2.page, page)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -19255,8 +21005,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq16 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq16(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq17 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq17(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19362,7 +21112,7 @@ ${body}`,
       if (!user) return res.status(404).json({ message: "User not found" });
       const shopOrders = await storage.getUserPurchases(userId);
       const courseOrders = await storage.getMyEnrollments(userId);
-      const p2pRows = await db.select().from(p2pTransactions).where(sql7`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc7(p2pTransactions.createdAt));
+      const p2pRows = await db.select().from(p2pTransactions).where(sql10`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc7(p2pTransactions.createdAt));
       const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
       let escrowOrders = [];
       if (user.userType === "brand" || user.userType === "admin") {
@@ -19382,12 +21132,12 @@ ${body}`,
       } else if (user.userType === "influencer") {
         directHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
       }
-      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql7`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc7(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and6(
-        eq9(paymentDeposits.brandId, userId),
-        sql7`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
+      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql10`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc7(advertiseApplications.createdAt)) : [];
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and7(
+        eq11(paymentDeposits.brandId, userId),
+        sql10`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
       )).orderBy(desc7(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq9(subscriptions.userId, userId)).orderBy(desc7(subscriptions.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq11(subscriptions.userId, userId)).orderBy(desc7(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -19409,14 +21159,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq9(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq9(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq11(users.id, sellerId));
         seller = s || null;
       }
       res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? "seller" : "buyer" });
@@ -19428,7 +21178,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq9(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -19523,7 +21273,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq9(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq11(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -19604,7 +21354,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq9(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq11(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -19621,7 +21371,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq9(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq11(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -19638,7 +21388,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq9(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq11(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -19655,7 +21405,7 @@ ${body}`,
   });
   app2.get("/api/admin/social-task-stats", isAuthenticated, async (req, res) => {
     if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql7`count(*)` }).from(userSocialTaskCompletions).groupBy(userSocialTaskCompletions.taskId);
+    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql10`count(*)` }).from(userSocialTaskCompletions).groupBy(userSocialTaskCompletions.taskId);
     res.json(stats);
   });
   app2.get("/api/seo/pages", async (_req, res) => {
@@ -19668,7 +21418,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page] = await db.select().from(pageSeoSettings).where(eq9(pageSeoSettings.pageSlug, req.params.slug));
+      const [page] = await db.select().from(pageSeoSettings).where(eq11(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19679,9 +21429,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq9(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq11(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -19746,7 +21496,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq9(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq11(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19755,7 +21505,7 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq9(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq11(footerColumns.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19825,7 +21575,7 @@ ${body}`,
 `;
       }
       try {
-        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq9(posts.status, "published")).limit(500);
+        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq11(posts.status, "published")).limit(500);
         for (const post of blogPostsList) {
           if (post.slug) {
             const lm = post.updatedAt ? new Date(post.updatedAt).toISOString().split("T")[0] : today;
@@ -19844,7 +21594,7 @@ ${body}`,
       } catch {
       }
       try {
-        const creatorList = await db.select({ id: users.id }).from(users).where(eq9(users.userType, "influencer")).limit(500);
+        const creatorList = await db.select({ id: users.id }).from(users).where(eq11(users.userType, "influencer")).limit(500);
         for (const c of creatorList) {
           xml += `  <url><loc>${domain}/influencers/${c.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
@@ -19852,7 +21602,7 @@ ${body}`,
       } catch {
       }
       try {
-        const brandList = await db.select({ id: users.id }).from(users).where(eq9(users.userType, "brand")).limit(500);
+        const brandList = await db.select({ id: users.id }).from(users).where(eq11(users.userType, "brand")).limit(500);
         for (const b of brandList) {
           xml += `  <url><loc>${domain}/brand/${b.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
@@ -19894,24 +21644,24 @@ ${body}`,
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
       const totalRows = await db.select({ c: count3() }).from(pageViews).where(gte2(pageViews.createdAt, since));
       const total = Number(totalRows[0]?.c || 0);
-      const uniqueVisitorRows = await db.execute(sql7`
+      const uniqueVisitorRows = await db.execute(sql10`
         SELECT COUNT(DISTINCT COALESCE(session_id, user_id, user_agent)) AS c
         FROM page_views WHERE created_at >= ${since}
       `);
       const uniqueVisitors = Number(uniqueVisitorRows.rows?.[0]?.c || 0);
-      const topPagesRows = await db.execute(sql7`
+      const topPagesRows = await db.execute(sql10`
         SELECT path, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY path ORDER BY views DESC LIMIT 15
       `);
       const topPages = topPagesRows.rows || [];
-      const topReferrersRows = await db.execute(sql7`
+      const topReferrersRows = await db.execute(sql10`
         SELECT COALESCE(NULLIF(referrer, ''), 'direct') AS referrer, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY referrer ORDER BY views DESC LIMIT 10
       `);
       const topReferrers = topReferrersRows.rows || [];
-      const dailyRows = await db.execute(sql7`
+      const dailyRows = await db.execute(sql10`
         SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY day ORDER BY day ASC
@@ -19920,7 +21670,7 @@ ${body}`,
         day: new Date(r.day).toISOString().split("T")[0],
         views: Number(r.views)
       }));
-      const deviceRows = await db.execute(sql7`
+      const deviceRows = await db.execute(sql10`
         SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY device ORDER BY views DESC
@@ -19957,21 +21707,21 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq9(leads.kind, String(kind)));
-      if (niche) conds.push(sql7`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-      if (businessType) conds.push(sql7`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq9(leads.country, String(country)));
-      if (city) conds.push(sql7`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq9(leads.status, String(status)));
+      if (kind) conds.push(eq11(leads.kind, String(kind)));
+      if (niche) conds.push(sql10`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+      if (businessType) conds.push(sql10`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
+      if (country) conds.push(eq11(leads.country, String(country)));
+      if (city) conds.push(sql10`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
+      if (status) conds.push(eq11(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
-        conds.push(sql7`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+        conds.push(sql10`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
       }
-      if (minFollowers) conds.push(sql7`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
-      if (hasPhone === "true") conds.push(sql7`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
-      if (hasWebsite === "true") conds.push(sql7`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
-      if (hasEmail === "true") conds.push(sql7`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and6(...conds) : void 0;
+      if (minFollowers) conds.push(sql10`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
+      if (hasPhone === "true") conds.push(sql10`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
+      if (hasWebsite === "true") conds.push(sql10`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
+      if (hasEmail === "true") conds.push(sql10`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
+      const where = conds.length ? and7(...conds) : void 0;
       const rows = await db.select().from(leads).where(where).orderBy(desc7(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count3() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
@@ -19982,10 +21732,10 @@ ${body}`,
   app2.get("/api/admin/leads/stats", isAuthenticated, requireAdmin2, async (_req, res) => {
     try {
       const [byKind, byStatus, byCountry, byNiche, totalRow] = await Promise.all([
-        db.execute(sql7`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
-        db.execute(sql7`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
-        db.execute(sql7`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
-        db.execute(sql7`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
+        db.execute(sql10`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
+        db.execute(sql10`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
+        db.execute(sql10`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
+        db.execute(sql10`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
         db.select({ c: count3() }).from(leads)
       ]);
       res.json({
@@ -20001,9 +21751,9 @@ ${body}`,
   });
   app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq9(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq11(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq9(leadMessages.leadId, lead.id)).orderBy(desc7(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq11(leadMessages.leadId, lead.id)).orderBy(desc7(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -20015,7 +21765,7 @@ ${body}`,
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq9(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq11(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -20023,8 +21773,8 @@ ${body}`,
   });
   app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq9(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq9(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq11(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq11(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -20064,7 +21814,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq9(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq11(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -20093,10 +21843,10 @@ ${body}`,
   });
   app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq9(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq11(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -20106,7 +21856,7 @@ ${body}`,
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq9(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq11(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -20131,7 +21881,7 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq9(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq11(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
@@ -20145,10 +21895,10 @@ ${body}`,
       let ids = Array.isArray(leadIds) ? leadIds : [];
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
-        if (niche) conds.push(sql7`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq9(leads.country, String(country)));
-        if (kind) conds.push(eq9(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and6(...conds)).limit(2e3);
+        if (niche) conds.push(sql10`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq11(leads.country, String(country)));
+        if (kind) conds.push(eq11(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and7(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -20164,7 +21914,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq9(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq11(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -20177,13 +21927,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq9(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq11(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq9(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq11(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -20204,10 +21954,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq9(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq11(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq9(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq11(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           return res.json({ message: "Welcome back! You have been re-subscribed." });
@@ -20237,7 +21987,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq9(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq11(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -20292,6 +22042,121 @@ ${body}`,
   registerAdminDemoRoutes(app2, isAuthenticated);
   registerSeoIntelligenceRoutes(app2);
   startAutoBloggerAutopilot();
+  app2.get("/api/social-leads", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.userType !== "admin" && user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin only" });
+      }
+      const { platform, urgency, status } = req.query;
+      let query = `SELECT * FROM social_leads WHERE 1=1`;
+      const params = [];
+      let p = 1;
+      if (platform && platform !== "all") {
+        query += ` AND platform = $${p++}`;
+        params.push(platform);
+      }
+      if (urgency && urgency !== "all") {
+        query += ` AND urgency = $${p++}`;
+        params.push(urgency);
+      }
+      if (status && status !== "all") {
+        query += ` AND status = $${p++}`;
+        params.push(status);
+      }
+      query += ` ORDER BY relevance_score DESC, created_at DESC LIMIT 200`;
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const result = await pool3.query(query, params);
+      const rows = result.rows.map((r) => ({
+        id: r.id,
+        platform: r.platform,
+        sourceId: r.source_id,
+        title: r.title,
+        body: r.body,
+        url: r.url,
+        author: r.author,
+        subreddit: r.subreddit,
+        platformScore: r.platform_score,
+        commentsCount: r.comments_count,
+        relevanceScore: r.relevance_score,
+        aiSummary: r.ai_summary,
+        suggestedReply: r.suggested_reply,
+        category: r.category,
+        urgency: r.urgency,
+        status: r.status,
+        keywordsMatched: r.keywords_matched,
+        postedAt: r.posted_at,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+      }));
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/social-leads/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.userType !== "admin" && user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin only" });
+      }
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const [total, newToday, highPriority, byPlatform] = await Promise.all([
+        pool3.query(`SELECT COUNT(*)::int AS n FROM social_leads`),
+        pool3.query(`SELECT COUNT(*)::int AS n FROM social_leads WHERE created_at >= NOW() - INTERVAL '24 hours'`),
+        pool3.query(`SELECT COUNT(*)::int AS n FROM social_leads WHERE urgency = 'high' AND status != 'dismissed'`),
+        pool3.query(`SELECT platform, COUNT(*)::int AS n FROM social_leads GROUP BY platform`)
+      ]);
+      const platforms = {};
+      byPlatform.rows.forEach((r) => {
+        platforms[r.platform] = r.n;
+      });
+      res.json({
+        total: total.rows[0].n,
+        newToday: newToday.rows[0].n,
+        highPriority: highPriority.rows[0].n,
+        platforms: { reddit: platforms.reddit ?? 0, hackernews: platforms.hackernews ?? 0 }
+      });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.post("/api/social-leads/crawl", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.userType !== "admin" && user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin only" });
+      }
+      Promise.resolve().then(() => (init_social_crawler(), social_crawler_exports)).then(({ runSocialCrawler: runSocialCrawler2 }) => {
+        runSocialCrawler2().catch(console.error);
+      });
+      res.json({ message: "Crawl started \u2014 check back in a minute for new leads." });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.patch("/api/social-leads/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (user?.userType !== "admin" && user?.role !== "admin") {
+        return res.status(403).json({ message: "Admin only" });
+      }
+      const { id } = req.params;
+      const { status } = req.body;
+      const validStatuses = ["new", "viewed", "replied", "dismissed"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      await pool3.query(
+        `UPDATE social_leads SET status = $1, updated_at = NOW() WHERE id = $2`,
+        [status, id]
+      );
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
   const httpServer = existingServer ?? createServer(app2);
   return httpServer;
 }
@@ -20304,7 +22169,7 @@ import path3 from "path";
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { eq as eq10 } from "drizzle-orm";
+import { eq as eq12 } from "drizzle-orm";
 var escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
@@ -20441,7 +22306,7 @@ async function lookupRoute(origin, pathname) {
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug2 = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(eq10(blogPosts.slug, slug2));
+    const [post] = await db.select().from(blogPosts).where(eq12(blogPosts.slug, slug2));
     if (post) {
       const image = post.featuredImage || ogImageFromHtml(post.content);
       return {
@@ -20455,7 +22320,7 @@ async function lookupRoute(origin, pathname) {
   const campaignMatch = pathname.match(/^\/campaigns\/([^/?#]+)/);
   if (campaignMatch) {
     const id = decodeURIComponent(campaignMatch[1]);
-    const [c] = await db.select().from(campaigns).where(eq10(campaigns.id, id));
+    const [c] = await db.select().from(campaigns).where(eq12(campaigns.id, id));
     if (c) {
       return {
         title: `${c.title} | Taskdrip`,
@@ -20467,11 +22332,11 @@ async function lookupRoute(origin, pathname) {
   const shopMatch = pathname.match(/^\/shop\/product\/([^/?#]+)/);
   if (shopMatch) {
     const key = decodeURIComponent(shopMatch[1]);
-    const [p] = await db.select().from(shopProducts).where(eq10(shopProducts.id, key)) || [];
+    const [p] = await db.select().from(shopProducts).where(eq12(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
       try {
-        const [bySlug] = await db.select().from(shopProducts).where(eq10(shopProducts.slug, key));
+        const [bySlug] = await db.select().from(shopProducts).where(eq12(shopProducts.slug, key));
         product = bySlug;
       } catch {
       }
@@ -20489,13 +22354,13 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(profileMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq10(users.id, key));
+      const [byId] = await db.select().from(users).where(eq12(users.id, key));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq10(users.username, key));
+        const [byUsername] = await db.select().from(users).where(eq12(users.username, key));
         user = byUsername || null;
       } catch {
       }
@@ -20517,7 +22382,7 @@ async function lookupRoute(origin, pathname) {
   if (courseMatch) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
-      const [course] = await db.select().from(courseEnrollments).where(eq10(courseEnrollments.id, key));
+      const [course] = await db.select().from(courseEnrollments).where(eq12(courseEnrollments.id, key));
       if (course) {
         return {
           title: `${course.title || "Course"} | BreedSkool`,
@@ -20532,7 +22397,7 @@ async function lookupRoute(origin, pathname) {
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq10(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, id));
       if (listing) {
         return {
           title: `${listing.title || "P2P listing"} | Taskdrip`,
@@ -20546,7 +22411,7 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page] = await db.select().from(pageSeoSettings).where(eq10(pageSeoSettings.pageSlug, slug));
+      const [page] = await db.select().from(pageSeoSettings).where(eq12(pageSeoSettings.pageSlug, slug));
       if (page) {
         return {
           title: page.metaTitle || page.pageTitle,
@@ -20704,11 +22569,11 @@ function serveStatic(app2) {
 // server/seed-demo.ts
 init_db();
 init_schema();
-import { eq as eq11, sql as sql8 } from "drizzle-orm";
+import { eq as eq13, sql as sql11 } from "drizzle-orm";
 import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
-    await db.execute(sql8`
+    await db.execute(sql11`
       UPDATE users SET
         total_followers = COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
           + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
@@ -20756,9 +22621,10 @@ var DEMO_COURSES = [
     isFree: false,
     level: "beginner",
     duration: "8h 45m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
-    tags: ["saas", "vibecoding", "replit", "github", "railway", "no-code", "monetization", "bestseller"],
+    tags: ["breedskool_vibecoding", "saas", "vibecoding", "replit", "github", "railway", "no-code", "monetization", "bestseller", "breedskool"],
     whatYouLearn: [
       "Build a real, working SaaS app from a single prompt \u2014 zero coding background required",
       "Use Replit as your AI-powered development studio with VibeCoding workflows",
@@ -20805,8 +22671,10 @@ var DEMO_COURSES = [
     isFree: false,
     level: "beginner",
     duration: "6h 30m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
+    tags: ["breedskool_instagram", "instagram", "social media", "breedskool"],
     whatYouLearn: [
       "Master the Instagram algorithm to maximize reach",
       "Create a consistent brand aesthetic that attracts followers",
@@ -20838,8 +22706,10 @@ var DEMO_COURSES = [
     isFree: true,
     level: "beginner",
     duration: "4h 15m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
+    tags: ["breedskool_tiktok", "tiktok", "short form video", "breedskool"],
     whatYouLearn: [
       "Create a TikTok hook in the first 3 seconds",
       "Find trending audio before it peaks",
@@ -20869,8 +22739,10 @@ var DEMO_COURSES = [
     isFree: false,
     level: "intermediate",
     duration: "8h 45m",
+    status: "published",
     isPublished: true,
     isFeatured: false,
+    tags: ["breedskool_youtube", "youtube", "monetization", "breedskool"],
     whatYouLearn: [
       "Set up a channel that stands out in any niche",
       "Write click-worthy titles and thumbnails",
@@ -20903,8 +22775,10 @@ var DEMO_COURSES = [
     isFree: false,
     level: "intermediate",
     duration: "5h 20m",
+    status: "published",
     isPublished: true,
     isFeatured: true,
+    tags: ["breedskool_crypto", "crypto", "web3", "monetization", "breedskool"],
     whatYouLearn: [
       "Set up USDT (TRC20 & BEP20) and TON wallets",
       "Accept crypto payments from brands and fans",
@@ -21399,20 +23273,21 @@ var DEMO_P2P_LISTINGS = [
 ];
 async function seedDemoData(adminUserId) {
   try {
-    const existingCourses = await db.select({ id: courses2.id }).from(courses2).limit(1);
+    const existingCourses = await db.select({ id: courses.id }).from(courses).limit(1);
     const existingProducts = await db.select({ id: shopProducts.id }).from(shopProducts).limit(1);
     const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
     const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
+    await db.execute(sql11`UPDATE courses SET status = 'published' WHERE is_published = true AND status = 'draft'`);
     {
       const existingTitles = new Set(
-        (await db.select({ title: courses2.title }).from(courses2)).map((r) => r.title)
+        (await db.select({ title: courses.title }).from(courses)).map((r) => r.title)
       );
       const toCreate = DEMO_COURSES.filter((c) => !existingTitles.has(c.title));
       if (toCreate.length > 0) {
         console.log(`[seed] Adding ${toCreate.length} new demo course(s)...`);
         for (const courseData of toCreate) {
           const { lessons, ...courseFields } = courseData;
-          const [course] = await db.insert(courses2).values({
+          const [course] = await db.insert(courses).values({
             ...courseFields,
             instructorId: adminUserId,
             lessonsCount: lessons.length,
@@ -21451,7 +23326,7 @@ async function seedDemoData(adminUserId) {
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
     }
-    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq11(p2pListings.sellerId, adminUserId)).limit(1);
+    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq13(p2pListings.sellerId, adminUserId)).limit(1);
     if (existingP2P.length === 0) {
       console.log("[seed] Seeding demo P2P listings...");
       for (const listing of DEMO_P2P_LISTINGS) {
@@ -21572,12 +23447,12 @@ async function seedDemoData(adminUserId) {
       console.log(`[seed] Created ${DEMO_CAMPAIGNS_DATA.length} demo campaigns.`);
     } else {
       for (const c of DEMO_CAMPAIGNS_DATA) {
-        await db.update(campaigns).set({ featureImage: c.featuredImage }).where(sql8`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
+        await db.update(campaigns).set({ featureImage: c.featuredImage }).where(sql11`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
       }
     }
     let networksCreated = 0;
     for (const net of PAYMENT_NETWORKS_DATA) {
-      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq11(paymentNetworks.networkKey, net.networkKey)).limit(1);
+      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq13(paymentNetworks.networkKey, net.networkKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net);
         networksCreated++;
@@ -21825,7 +23700,7 @@ async function seedCmsContent() {
 // server/seed-legal.ts
 init_db();
 init_schema();
-import { eq as eq12 } from "drizzle-orm";
+import { eq as eq14 } from "drizzle-orm";
 var LEGAL_CONTENT = [
   {
     slug: "terms",
@@ -22181,7 +24056,7 @@ Website: <a href="https://taskdrip.online">taskdrip.online</a></p>`
 async function seedLegalPages() {
   try {
     for (const page of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq12(legalPages.slug, page.slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq14(legalPages.slug, page.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
           slug: page.slug,
@@ -22191,7 +24066,7 @@ async function seedLegalPages() {
         console.log(`[seed-legal] Seeded legal page: ${page.slug}`);
       }
     }
-    const demoSub = await db.select().from(newsletterSubscribers).where(eq12(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
+    const demoSub = await db.select().from(newsletterSubscribers).where(eq14(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
     if (!demoSub.length) {
       await db.insert(newsletterSubscribers).values({
         email: "newsletter.demo@taskdrip.online",
@@ -22206,426 +24081,197 @@ async function seedLegalPages() {
   }
 }
 
-// server/seed-breedskool.ts
+// server/index.ts
+init_seed_breedskool();
+init_seed_breedskool_courses();
+
+// server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq13, inArray as inArray7, and as and7 } from "drizzle-orm";
-var BREEDSKOOL_PAYMENT_DEFAULTS = [
-  { key: "breedskool_bank_name", value: "GTBank" },
-  { key: "breedskool_bank_account_number", value: "0273575556" },
-  { key: "breedskool_bank_account_name", value: "BREEDSKOOL GALAXY LTD" },
-  { key: "breedskool_bank_country", value: "Nigeria (Naira Account)" },
-  { key: "breedskool_payment_instructions", value: "After transfer, enter your transaction reference number below and optionally upload your payment screenshot as proof." }
+import { eq as eq15, sql as sql12, and as and8 } from "drizzle-orm";
+import bcrypt5 from "bcryptjs";
+var DEMO_STUDENTS = [
+  { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
+  { firstName: "Amara", lastName: "Okafor", email: "amara.o.saas@demo.td", country: "Nigeria", avatar: "https://i.pravatar.cc/150?img=47" },
+  { firstName: "Liam", lastName: "Thompson", email: "liam.t.saas@demo.td", country: "United Kingdom", avatar: "https://i.pravatar.cc/150?img=13" },
+  { firstName: "Priya", lastName: "Sharma", email: "priya.s.saas@demo.td", country: "India", avatar: "https://i.pravatar.cc/150?img=49" },
+  { firstName: "Carlos", lastName: "Mendoza", email: "carlos.m.saas@demo.td", country: "Mexico", avatar: "https://i.pravatar.cc/150?img=15" },
+  { firstName: "Aisha", lastName: "Rahman", email: "aisha.r.saas@demo.td", country: "Bangladesh", avatar: "https://i.pravatar.cc/150?img=44" },
+  { firstName: "Noah", lastName: "Anderson", email: "noah.a.saas@demo.td", country: "Canada", avatar: "https://i.pravatar.cc/150?img=17" },
+  { firstName: "Fatima", lastName: "Al-Zahra", email: "fatima.z.saas@demo.td", country: "UAE", avatar: "https://i.pravatar.cc/150?img=46" },
+  { firstName: "Lucas", lastName: "Oliveira", email: "lucas.o.saas@demo.td", country: "Brazil", avatar: "https://i.pravatar.cc/150?img=19" },
+  { firstName: "Yuki", lastName: "Tanaka", email: "yuki.t.saas@demo.td", country: "Japan", avatar: "https://i.pravatar.cc/150?img=42" },
+  { firstName: "James", lastName: "Kofi", email: "james.k.saas@demo.td", country: "Ghana", avatar: "https://i.pravatar.cc/150?img=21" },
+  { firstName: "Sofia", lastName: "Garcia", email: "sofia.g.saas@demo.td", country: "Spain", avatar: "https://i.pravatar.cc/150?img=45" },
+  { firstName: "Mohammed", lastName: "Al-Rashid", email: "moh.ar.saas@demo.td", country: "Saudi Arabia", avatar: "https://i.pravatar.cc/150?img=23" },
+  { firstName: "Chloe", lastName: "Dupont", email: "chloe.d.saas@demo.td", country: "France", avatar: "https://i.pravatar.cc/150?img=43" },
+  { firstName: "David", lastName: "Kim", email: "david.k.saas@demo.td", country: "South Korea", avatar: "https://i.pravatar.cc/150?img=25" },
+  { firstName: "Zara", lastName: "Nkosi", email: "zara.n.saas@demo.td", country: "South Africa", avatar: "https://i.pravatar.cc/150?img=41" },
+  { firstName: "Alex", lastName: "Petrov", email: "alex.p.saas@demo.td", country: "Russia", avatar: "https://i.pravatar.cc/150?img=27" },
+  { firstName: "Mei", lastName: "Chen", email: "mei.c.saas@demo.td", country: "China", avatar: "https://i.pravatar.cc/150?img=40" },
+  { firstName: "Ibrahim", lastName: "Musa", email: "ibrahim.m.saas@demo.td", country: "Kenya", avatar: "https://i.pravatar.cc/150?img=29" },
+  { firstName: "Emma", lastName: "Johansson", email: "emma.j.saas@demo.td", country: "Sweden", avatar: "https://i.pravatar.cc/150?img=39" },
+  { firstName: "Raj", lastName: "Patel", email: "raj.p.saas@demo.td", country: "India", avatar: "https://i.pravatar.cc/150?img=31" },
+  { firstName: "Layla", lastName: "Hassan", email: "layla.h.saas@demo.td", country: "Egypt", avatar: "https://i.pravatar.cc/150?img=38" },
+  { firstName: "Tyler", lastName: "Jackson", email: "tyler.j.saas@demo.td", country: "Australia", avatar: "https://i.pravatar.cc/150?img=33" },
+  { firstName: "Valeria", lastName: "Rossi", email: "valeria.r.saas@demo.td", country: "Italy", avatar: "https://i.pravatar.cc/150?img=37" },
+  { firstName: "Kwame", lastName: "Asante", email: "kwame.a.saas@demo.td", country: "Ghana", avatar: "https://i.pravatar.cc/150?img=35" },
+  { firstName: "Natalia", lastName: "Silva", email: "natalia.s.saas@demo.td", country: "Colombia", avatar: "https://i.pravatar.cc/150?img=36" },
+  { firstName: "Mikael", lastName: "Berg", email: "mikael.b.saas@demo.td", country: "Norway", avatar: "https://i.pravatar.cc/150?img=52" },
+  { firstName: "Adaeze", lastName: "Eze", email: "adaeze.e.saas@demo.td", country: "Nigeria", avatar: "https://i.pravatar.cc/150?img=54" },
+  { firstName: "Hamid", lastName: "Karimi", email: "hamid.k.saas@demo.td", country: "Iran", avatar: "https://i.pravatar.cc/150?img=56" },
+  { firstName: "Grace", lastName: "Wanjiru", email: "grace.w.saas@demo.td", country: "Kenya", avatar: "https://i.pravatar.cc/150?img=58" },
+  { firstName: "Omar", lastName: "Diallo", email: "omar.d.saas@demo.td", country: "Senegal", avatar: "https://i.pravatar.cc/150?img=60" },
+  { firstName: "Hannah", lastName: "Muller", email: "hannah.mu.saas@demo.td", country: "Germany", avatar: "https://i.pravatar.cc/150?img=62" }
 ];
-async function seedBreedskoolPaymentSettings() {
-  for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
-    try {
-      const existing = await db.select().from(appSettings).where(eq13(appSettings.key, key)).limit(1);
-      if (existing.length === 0) {
-        await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
-      }
-    } catch (e) {
-      console.error(`[seedBreedskoolPaymentSettings] Error for ${key}:`, e?.message);
-    }
-  }
-}
-var BREEDSKOOL_COURSES = [
-  {
-    courseKey: "webdev",
-    title: "Web Development & Vibe Coding",
-    shortDescription: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment.",
-    regularPrice: 22e4,
-    discountPrice: 15e4,
-    duration: "8 Weeks",
-    isActive: true,
-    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
-  },
-  {
-    courseKey: "ai_content",
-    title: "AI Content Creation & Video Editing",
-    shortDescription: "Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms.",
-    regularPrice: 27e4,
-    discountPrice: 179e3,
-    duration: "6 Weeks",
-    isActive: true,
-    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
-  },
-  {
-    courseKey: "social_monetize",
-    title: "Social Media & Web Assets Monetization",
-    shortDescription: "Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams.",
-    regularPrice: 4e5,
-    discountPrice: 32e4,
-    duration: "6 Weeks",
-    isActive: true,
-    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
-  },
-  {
-    courseKey: "trading",
-    title: "Pocket Option Trading",
-    shortDescription: "Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom.",
-    regularPrice: 32e4,
-    discountPrice: 279e3,
-    duration: "8 Weeks",
-    isActive: true,
-    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
-  },
-  {
-    courseKey: "home_lesson",
-    title: "Tech Home Lessons for Kids",
-    shortDescription: "One-on-one tech lessons delivered at your home by a certified tutor. Book flexible sessions for your child (ages 6\u201317) covering coding, AI tools, digital skills, and more.",
-    regularPrice: 12e4,
-    discountPrice: 85e3,
-    duration: "Per Session",
-    isActive: true,
-    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
-  },
-  {
-    courseKey: "onsite_training",
-    title: "Onsite Group Training",
-    shortDescription: "Join our hands-on classroom sessions at TootoOba Estate, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support.",
-    regularPrice: 18e4,
-    discountPrice: 13e4,
-    duration: "6\u20138 Weeks",
-    isActive: true,
-    acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
-  }
+var DEMO_REVIEWS = [
+  { email: "ethan.w.saas@demo.td", rating: 5, comment: "This is hands-down the most comprehensive SaaS course I've ever taken. Within 3 weeks of finishing I had my first paying customer at $49/month. The AI-agent building module alone is worth $290." },
+  { email: "amara.o.saas@demo.td", rating: 5, comment: "As someone with zero coding background, I was nervous. But the step-by-step approach made everything click. I built and deployed my first SaaS in 10 weeks. Already made $580 in pre-sales. Worth every penny!" },
+  { email: "liam.t.saas@demo.td", rating: 5, comment: "The deployment module using Railway saved me weeks of headache. The GitHub workflow section is exactly what enterprise teams use. I got a $4,000/month freelance contract from a client who saw my portfolio." },
+  { email: "priya.s.saas@demo.td", rating: 4, comment: "Excellent content on SEO and Google Search Console. My SaaS app went from 0 to 1,200 monthly organic visitors in 8 weeks by following the strategies here. Would love more on paid ads but still 5 stars." },
+  { email: "carlos.m.saas@demo.td", rating: 5, comment: "The subscription monetization section is pure gold. I implemented Stripe exactly as shown and had my first subscriber within 48 hours of launching. This course pays for itself 10x over." },
+  { email: "aisha.r.saas@demo.td", rating: 5, comment: "The section on monetizing social media channels alongside your SaaS changed my whole strategy. My TikTok now drives 40% of my trial signups. Incredible value. Highly recommend to anyone serious about building online." },
+  { email: "noah.a.saas@demo.td", rating: 5, comment: "I've bought 12 online courses in the past 2 years. This is the only one where I actually shipped a real product. The AI-agent coding module with Cursor and Replit is unlike anything else online." },
+  { email: "fatima.z.saas@demo.td", rating: 4, comment: "Very thorough on the technical side. The in-app marketing systems module (email sequences + push notifications) helped me 3x my free-to-paid conversion rate. Instructor explains everything clearly with no fluff." },
+  { email: "lucas.o.saas@demo.td", rating: 5, comment: "From Brazil \u2014 finding a course this good in English that covers everything from idea validation to exit strategy is rare. The community support is also amazing. My SaaS made R$3,200 in its first month." },
+  { email: "yuki.t.saas@demo.td", rating: 5, comment: "The Google Analytics 4 setup walkthrough is incredibly detailed. I now track user cohorts, conversion funnels, and churn \u2014 all data I use to make product decisions. This course teaches you to think like a proper founder." },
+  { email: "james.k.saas@demo.td", rating: 5, comment: "Best investment I made this year. Launched my SaaS targeting SMEs in Ghana and West Africa. Already at $1,100 MRR in 2 months following the target audience acquisition strategies from Module 9." },
+  { email: "sofia.g.saas@demo.td", rating: 4, comment: "The version control with GitHub module finally made Git click for me after years of avoiding it. Now I deploy confidently using CI/CD. The course is dense but every module delivers real value." },
+  { email: "moh.ar.saas@demo.td", rating: 5, comment: "I was skeptical about an online course delivering this much. But the cloud deployment section (Railway + Vercel) is so well-structured that I shipped my first app in a weekend. Now I have 47 paying users." },
+  { email: "chloe.d.saas@demo.td", rating: 5, comment: "The referral system and in-app marketing modules gave me frameworks I'd normally pay a consultant thousands for. My user acquisition cost dropped by 60% after applying these techniques." },
+  { email: "david.k.saas@demo.td", rating: 5, comment: "From Korea \u2014 the AI agent development section using Replit and Cursor is legitimately next-level. I built a B2B SaaS tool in 3 weeks that I'm now selling at $99/month. This course is a cheat code." },
+  { email: "zara.n.saas@demo.td", rating: 4, comment: "Solid course. The social media monetization section is especially good for creators who want to build SaaS as a product-led business. Growing my X account alongside my app has been a game changer for organic growth." },
+  { email: "alex.p.saas@demo.td", rating: 5, comment: "The exit strategy module in Week 12 was eye-opening. I never thought about building to sell from day one. Now every decision I make is positioning the product for acquisition. Genuinely changed my mindset." },
+  { email: "mei.c.saas@demo.td", rating: 5, comment: "Module 10 on selling subscriptions, services AND products in-app is something no other course covers. I added a one-time digital product to my SaaS and made $2,300 in the first launch week." },
+  { email: "ibrahim.m.saas@demo.td", rating: 5, comment: "The Search Console setup guide is so detailed \u2014 I ranked on page 1 of Google for 3 competitive keywords within 6 weeks by following the SEO module exactly. Organic traffic now converts at 8.4% to free trial." },
+  { email: "emma.j.saas@demo.td", rating: 4, comment: "The cloud server deployment section covers VPS, Railway, and Render with real comparisons. I went from shared hosting to a proper cloud setup without spending hours on YouTube. Saves so much time." },
+  { email: "raj.p.saas@demo.td", rating: 5, comment: "Top 3 best purchases I've made online. The user acquisition module shows exactly how to attract your target audience without spending on ads \u2014 content strategy, SEO, community building. My CAC is essentially $0." },
+  { email: "layla.h.saas@demo.td", rating: 5, comment: "I was building a SaaS as a side project for 8 months and going nowhere. After taking this course I restructured everything \u2014 idea validation, go-to-market, pricing \u2014 and had 15 paying customers within 5 weeks of relaunch." },
+  { email: "tyler.j.saas@demo.td", rating: 5, comment: "The in-app marketing systems (push notifications, drip email sequences, referrals) alone saved me from buying 4 separate tools. Everything is built into the app you build in the course. Incredible value." },
+  { email: "valeria.r.saas@demo.td", rating: 4, comment: "Really solid course from technical setup to business strategy. The section on YouTube channel monetization alongside a SaaS product is something I wish I'd found 2 years ago. My channel now drives 25% of all new signups." },
+  { email: "kwame.a.saas@demo.td", rating: 5, comment: "Built for builders who want to actually make money. Not just theory \u2014 every module has real implementation. My SaaS is now at $3,400 MRR after 3 months. This course was the best $290 I've ever spent." },
+  { email: "natalia.s.saas@demo.td", rating: 5, comment: "The Google Analytics 4 + Search Console combination module is incredible. I now see exactly where users drop off in my funnel and have improved my activation rate from 18% to 41% by fixing those exact points." },
+  { email: "mikael.b.saas@demo.td", rating: 5, comment: "Coming from a backend dev background I thought the business sections would bore me. They were the most valuable parts. The subscription pricing strategy module changed how I package and price my products completely." },
+  { email: "adaeze.e.saas@demo.td", rating: 5, comment: "As a woman in tech in Nigeria, seeing a course that covers both technical building AND monetization is refreshing. I launched my ed-tech SaaS targeting African students and have 230 subscribers at N4,999/month. The system works!" },
+  { email: "hamid.k.saas@demo.td", rating: 4, comment: "Very well structured course. The AI-agent development workflow is cutting-edge \u2014 using Cursor + GitHub Copilot together as shown here makes you 5x faster. The monetization strategies are immediately actionable." },
+  { email: "grace.w.saas@demo.td", rating: 5, comment: "I followed the exact organic user acquisition strategy in Module 9 and grew from 0 to 890 users in 60 days without spending a single dollar on ads. The content seeding system is genius." },
+  { email: "omar.d.saas@demo.td", rating: 5, comment: "The section on in-app product sales alongside subscriptions is brilliant. I sell my SaaS at $29/month but also upsell a one-time setup service for $199. Added $3,800 in revenue in the first quarter." },
+  { email: "hannah.mu.saas@demo.td", rating: 5, comment: "Exceptional depth on every topic. The deployment pipeline section saved me days of DevOps research. I now ship updates to production in under 2 minutes using the GitHub Actions workflow from the course." }
 ];
-async function seedBreedskoolPricing() {
-  let upserted = 0;
-  let skipped = 0;
-  for (const course of BREEDSKOOL_COURSES) {
-    try {
-      const existing = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
-      if (existing.length === 0) {
-        await db.insert(breedskoolCoursePricing).values({
-          ...course,
-          // Keep older imported databases compatible with the legacy required
-          // pricing columns that predate the current title/price fields.
-          courseTitle: course.title,
-          priceNgn: course.discountPrice,
-          updatedAt: /* @__PURE__ */ new Date()
-        });
-        upserted++;
-      } else {
-        await db.update(breedskoolCoursePricing).set({
-          title: course.title,
-          courseTitle: course.title,
-          shortDescription: course.shortDescription,
-          regularPrice: course.regularPrice,
-          discountPrice: course.discountPrice,
-          priceNgn: course.discountPrice,
-          duration: course.duration,
-          isActive: course.isActive,
-          acceptedPayments: course.acceptedPayments,
-          updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey));
-        skipped++;
-      }
-    } catch (e) {
-      console.error(`[seedBreedskoolPricing] Error for ${course.courseKey}:`, e?.message);
-    }
-  }
-  return { upserted, skipped };
+function randomDate(start, end) {
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
-async function fixVerifiedBreedskoolEnrollments() {
-  let fixed = 0, skipped = 0, noLink = 0;
+async function seedSaasCourseDemo() {
+  let studentsCreated = 0;
+  let enrollmentsCreated = 0;
+  let reviewsCreated = 0;
   try {
-    const verified = await db.select().from(breedskoolRegistrations).where(inArray7(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
-    for (const reg of verified) {
-      let resolvedUserId = reg.userId;
-      if (!resolvedUserId && reg.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq13(users.email, reg.email.toLowerCase().trim())).limit(1);
-        if (matchedUser) {
-          resolvedUserId = matchedUser.id;
-          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq13(breedskoolRegistrations.id, reg.id));
-        }
-      }
-      if (!resolvedUserId) {
-        noLink++;
-        continue;
-      }
-      let courseId = reg.linkedCourseId;
-      if (!courseId && reg.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
-        courseId = pricing?.linkedCourseId || null;
-      }
-      if (!courseId) {
-        noLink++;
-        continue;
-      }
-      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and7(
-        eq13(courseEnrollments.courseId, courseId),
-        eq13(courseEnrollments.userId, reg.userId)
-      )).limit(1);
-      if (existing) {
-        if (existing.status !== "active") {
-          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq13(courseEnrollments.id, existing.id));
-          fixed++;
+    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
+    const courseId = pricing?.linkedCourseId;
+    if (!courseId) {
+      console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
+      return { students: 0, enrollments: 0, reviews: 0 };
+    }
+    const passwordHash = await bcrypt5.hash("DemoStudent@2024", 10);
+    const purchaseStart = /* @__PURE__ */ new Date("2025-09-01");
+    const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
+    for (const student of DEMO_STUDENTS) {
+      try {
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq15(users.email, student.email)).limit(1);
+        let userId;
+        if (existing) {
+          userId = existing.id;
         } else {
-          skipped++;
+          const newId = crypto.randomUUID();
+          const [newUser] = await db.insert(users).values({
+            id: newId,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email,
+            password: passwordHash,
+            userType: "user",
+            profileImageUrl: student.avatar
+          }).returning({ id: users.id });
+          userId = newUser.id;
+          studentsCreated++;
         }
-      } else {
-        await db.insert(courseEnrollments).values({
-          courseId,
-          userId: reg.userId,
-          status: "active",
-          isPaid: true,
-          paymentMethod: reg.paymentMethod || null,
-          amount: String(reg.amountNgn || 0)
-        });
-        fixed++;
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and8(
+          eq15(courseEnrollments.courseId, courseId),
+          eq15(courseEnrollments.userId, userId)
+        )).limit(1);
+        if (!existingEnroll) {
+          const paidAt = randomDate(purchaseStart, purchaseEnd);
+          await db.insert(courseEnrollments).values({
+            courseId,
+            userId,
+            status: "active",
+            isPaid: true,
+            paymentMethod: "crypto_usdt",
+            amount: "290.00",
+            approvedAt: paidAt,
+            createdAt: paidAt,
+            updatedAt: paidAt
+          });
+          enrollmentsCreated++;
+        }
+      } catch (e) {
+        console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
-      if (!reg.linkedCourseId && courseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq13(breedskoolRegistrations.id, reg.id));
+    }
+    const [countResult] = await db.select({ cnt: sql12`count(*)::int` }).from(courseEnrollments).where(and8(
+      eq15(courseEnrollments.courseId, courseId),
+      eq15(courseEnrollments.isPaid, true),
+      eq15(courseEnrollments.status, "active")
+    ));
+    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq15(courses.id, courseId));
+    for (const rev of DEMO_REVIEWS) {
+      try {
+        const [userRow] = await db.select({ id: users.id }).from(users).where(eq15(users.email, rev.email)).limit(1);
+        if (!userRow) continue;
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and8(
+          eq15(courseReviews.courseId, courseId),
+          eq15(courseReviews.userId, userRow.id)
+        )).limit(1);
+        if (!existingReview) {
+          const reviewDate = randomDate(/* @__PURE__ */ new Date("2025-09-15"), /* @__PURE__ */ new Date("2026-07-28"));
+          await db.insert(courseReviews).values({
+            courseId,
+            userId: userRow.id,
+            rating: rev.rating,
+            comment: rev.comment,
+            createdAt: reviewDate
+          });
+          reviewsCreated++;
+        }
+      } catch (e) {
+        console.error(`[seed-saas-demo] Error for review ${rev.email}:`, e?.message);
       }
+    }
+    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq15(courseReviews.courseId, courseId));
+    if (allReviews.length > 0) {
+      const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+      await db.update(courses).set({
+        reviewsCount: allReviews.length,
+        averageRating: avg.toFixed(2),
+        isFeatured: true
+      }).where(eq15(courses.id, courseId));
+    } else {
+      await db.update(courses).set({ isFeatured: true }).where(eq15(courses.id, courseId));
     }
   } catch (e) {
-    console.error("[fixVerifiedBreedskoolEnrollments]", e?.message);
+    console.error("[seed-saas-demo] Fatal error:", e?.message);
   }
-  return { fixed, skipped, noLink };
-}
-
-// server/seed-breedskool-courses.ts
-init_db();
-init_schema();
-import { eq as eq14, sql as sql10 } from "drizzle-orm";
-var BREEDSKOOL_PLATFORM_COURSES = [
-  {
-    courseKey: "webdev",
-    title: "Web Development & Vibe Coding",
-    description: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment in this 8-week intensive bootcamp. Collaborate with fellow students in group chat and get private support from your tutor.",
-    shortDescription: "Build modern websites, web apps, and vibe-coded digital products from scratch.",
-    category: "branding",
-    level: "beginner",
-    duration: "8 Weeks",
-    price: "90.91",
-    tags: ["breedskool_webdev", "web development", "javascript", "react", "breedskool"],
-    whatYouLearn: ["HTML, CSS & JavaScript fundamentals", "React & Node.js", "Deployment & hosting", "Vibe coding with AI tools"],
-    requirements: ["Basic computer skills", "Stable internet connection", "Laptop or desktop computer"],
-    syllabus: [
-      { week: "Week 1\u20132", topic: "HTML, CSS & Git" },
-      { week: "Week 3\u20134", topic: "JavaScript & DOM" },
-      { week: "Week 5\u20136", topic: "React & Component Architecture" },
-      { week: "Week 7", topic: "Node.js & APIs" },
-      { week: "Week 8", topic: "Deployment & Portfolio Projects" }
-    ],
-    lessons: [
-      { title: "Welcome to Web Development & Vibe Coding", content: "Welcome to the course! In this orientation lesson you'll meet your tutor, understand the course structure, and set up your development environment (VS Code, Node.js, Git).\n\nAfter this lesson you will:\n\u2022 Have VS Code installed and configured\n\u2022 Understand what we'll build together\n\u2022 Be connected to the group chat\n\nUse the Group Chat tab to introduce yourself to your fellow students!", isPreview: true, order: 1 },
-      { title: "HTML Foundations \u2014 Structure of the Web", content: "HTML is the skeleton of every webpage. In this lesson we cover:\n\u2022 Document structure (html, head, body)\n\u2022 Headings, paragraphs, links, images\n\u2022 Lists and tables\n\u2022 Semantic HTML5 elements (nav, main, section, article, footer)\n\nPractice: Build a personal bio page with your name, photo, and a short introduction.", isPreview: false, order: 2 },
-      { title: "CSS Styling \u2014 Make It Look Good", content: "CSS is how we make websites beautiful. Topics:\n\u2022 Selectors, properties, and values\n\u2022 Box model (margin, padding, border)\n\u2022 Flexbox layout\n\u2022 Colors, fonts, and Google Fonts\n\u2022 Responsive design basics with media queries\n\nPractice: Style your bio page from lesson 2 to look professional.", isPreview: false, order: 3 },
-      { title: "JavaScript Basics \u2014 Making Pages Interactive", content: "JavaScript brings your pages to life. We cover:\n\u2022 Variables (let, const), data types, functions\n\u2022 DOM manipulation \u2014 changing page content with JS\n\u2022 Event listeners (click, submit, keyup)\n\u2022 Fetch API \u2014 loading data from the internet\n\nPractice: Build a to-do list app that saves items in the browser.", isPreview: false, order: 4 },
-      { title: "React \u2014 Modern Frontend Development", content: "React is the world's most popular frontend library. In this lesson:\n\u2022 What is a component?\n\u2022 JSX syntax\n\u2022 Props and state with useState\n\u2022 useEffect hook\n\u2022 Building a weather app with a public API\n\nBy the end you will have built a real React app!", isPreview: false, order: 5 },
-      { title: "Node.js & Express \u2014 Your First Backend", content: "The backend is where your data lives. Topics:\n\u2022 What is Node.js?\n\u2022 Setting up an Express server\n\u2022 Routes (GET, POST, PUT, DELETE)\n\u2022 Connecting to a database (PostgreSQL basics)\n\u2022 Deploying your server to Railway\n\nPractice: Build a simple REST API for your portfolio.", isPreview: false, order: 6 },
-      { title: "Vibe Coding with AI Tools", content: "Modern developers use AI to move 10x faster. This lesson covers:\n\u2022 Using ChatGPT & GitHub Copilot for coding\n\u2022 Debugging with AI assistance\n\u2022 Building an entire app with Cursor / Replit AI\n\u2022 When to use AI and when to code manually\n\nChallenge: Build a mini SaaS product idea using AI tools in 2 hours!", isPreview: false, order: 7 },
-      { title: "Deployment & Portfolio Building", content: "Congratulations \u2014 you're almost done! In this final lesson:\n\u2022 Deploying frontend apps to Vercel / Netlify\n\u2022 Deploying backend to Railway\n\u2022 Custom domain setup\n\u2022 Building your developer portfolio website\n\u2022 How to get your first freelance client\n\nSubmit your portfolio link in the group chat for feedback from your tutor!", isPreview: false, order: 8 }
-    ]
-  },
-  {
-    courseKey: "ai_content",
-    title: "AI Content Creation & Video Editing",
-    description: "Leverage ChatGPT, Midjourney & AI video tools to create viral content, professional videos, and earn from multiple platforms in this 6-week program. Connect with your cohort and get real-time tutor support.",
-    shortDescription: "Use AI tools to create viral content and earn from multiple platforms.",
-    category: "content_creation",
-    level: "beginner",
-    duration: "6 Weeks",
-    price: "108.48",
-    tags: ["breedskool_ai_content", "ai", "content creation", "video editing", "breedskool"],
-    whatYouLearn: ["ChatGPT & Prompt Engineering", "Midjourney & AI image generation", "AI video tools (Runway, Sora)", "Multi-platform monetization strategies"],
-    requirements: ["Basic smartphone or laptop", "Active social media account"],
-    syllabus: [
-      { week: "Week 1", topic: "AI Tools Overview & ChatGPT Mastery" },
-      { week: "Week 2", topic: "Midjourney & AI Image Generation" },
-      { week: "Week 3", topic: "AI Video Production" },
-      { week: "Week 4", topic: "Content Strategy & Scheduling" },
-      { week: "Week 5", topic: "Platform Monetization Setup" },
-      { week: "Week 6", topic: "Final Projects & Launch" }
-    ],
-    lessons: [
-      { title: "Welcome & Your AI Content Toolkit", content: "Welcome to AI Content Creation! In this orientation:\n\u2022 Meet your tutor and fellow students\n\u2022 Overview of all the AI tools you'll master\n\u2022 Setting up your accounts (ChatGPT, Midjourney, CapCut)\n\u2022 The creator economy in 2025 \u2014 income opportunities\n\nJoin the group chat and share what type of content you want to create!", isPreview: true, order: 1 },
-      { title: "ChatGPT Mastery \u2014 Content & Prompting", content: "ChatGPT is your AI writing assistant. This lesson covers:\n\u2022 What makes a great prompt (context, tone, format)\n\u2022 Writing viral hooks and captions\n\u2022 Generating content calendars for 30 days\n\u2022 Repurposing one idea into 10 pieces of content\n\u2022 Using GPT-4 for research, scripts, and email sequences\n\nPractice: Create a 30-day content calendar for your niche using ChatGPT.", isPreview: false, order: 2 },
-      { title: "Midjourney \u2014 AI Image Generation for Creators", content: "Create stunning visuals without design skills. Topics:\n\u2022 Setting up Midjourney on Discord\n\u2022 Prompt engineering for images\n\u2022 Creating consistent character art\n\u2022 Thumbnails that get clicks\n\u2022 Selling AI art and illustrations\n\nChallenge: Design 5 professional thumbnails for your niche.", isPreview: false, order: 3 },
-      { title: "AI Video Production \u2014 Runway, CapCut & More", content: "Video is king. Learn to create with AI:\n\u2022 CapCut AI features (auto-captions, templates, effects)\n\u2022 Runway ML for AI video generation\n\u2022 HeyGen for AI avatar videos (no face required!)\n\u2022 ElevenLabs for AI voiceovers\n\u2022 Editing a viral short-form video from scratch\n\nPractice: Create a 60-second product review video using only AI tools.", isPreview: false, order: 4 },
-      { title: "Content Strategy \u2014 Go Viral Consistently", content: "Posting randomly doesn't work. This lesson:\n\u2022 The algorithm explained (TikTok, Instagram, YouTube)\n\u2022 Hook \u2192 story \u2192 CTA framework\n\u2022 Best posting times and frequencies\n\u2022 Cross-platform repurposing system\n\u2022 Using analytics to double down on what works\n\nAction: Post your first AI-generated piece of content this week!", isPreview: false, order: 5 },
-      { title: "Monetization \u2014 Turning Followers into Income", content: "This is what it's all about. Income streams covered:\n\u2022 Brand deals and sponsorships ($100\u2013$10,000+ per post)\n\u2022 Digital products (ebooks, presets, templates)\n\u2022 Paid communities and memberships\n\u2022 UGC (User Generated Content) for brands\n\u2022 Affiliate marketing setup\n\nAction: Apply for your first brand deal or UGC gig this week!", isPreview: false, order: 6 }
-    ]
-  },
-  {
-    courseKey: "social_monetize",
-    title: "Social Media & Web Assets Monetization",
-    description: "Build and monetize Instagram, TikTok & YouTube channels, websites, and digital assets to unlock multiple income streams in this 6-week program. Share wins and get feedback from peers and your tutor.",
-    shortDescription: "Monetize your social media and digital assets for multiple income streams.",
-    category: "monetization",
-    level: "intermediate",
-    duration: "6 Weeks",
-    price: "193.94",
-    tags: ["breedskool_social_monetize", "social media", "monetization", "instagram", "tiktok", "breedskool"],
-    whatYouLearn: ["Instagram growth strategies", "TikTok & YouTube monetization", "Website & digital asset income", "Brand deals & sponsorships"],
-    requirements: ["Active social media presence", "Smartphone with good camera"],
-    syllabus: [
-      { week: "Week 1", topic: "Platform Selection & Strategy" },
-      { week: "Week 2", topic: "Content & Growth Hacks" },
-      { week: "Week 3", topic: "Monetization Setup" },
-      { week: "Week 4", topic: "Brand Partnerships & Deals" },
-      { week: "Week 5", topic: "Digital Assets & Passive Income" },
-      { week: "Week 6", topic: "Scaling Your Income" }
-    ],
-    lessons: [
-      { title: "Welcome \u2014 Your Social Monetization Blueprint", content: "Welcome! This course is for people ready to turn their online presence into real income. In this orientation:\n\u2022 Your tutor's income story (proof this works)\n\u2022 Platform selection: which is right for you?\n\u2022 Your monetization goal \u2014 set your 6-week income target\n\u2022 Join the group chat and post your goal!\n\nHomework: Write down your niche, your target audience, and your income goal.", isPreview: true, order: 1 },
-      { title: "Instagram Growth \u2014 0 to 10K Strategy", content: "Instagram still pays massive dividends in 2025. Topics:\n\u2022 Niche selection and profile optimization\n\u2022 Content pillars (educational, entertainment, personal)\n\u2022 Reels vs. carousels vs. stories \u2014 what works when\n\u2022 Hashtag strategy and SEO in captions\n\u2022 How to grow 1,000 followers in 30 days organically\n\nAction: Optimize your Instagram profile using the checklist provided.", isPreview: false, order: 2 },
-      { title: "TikTok & YouTube Shorts \u2014 Viral Short-Form", content: "Short-form video is the fastest path to growth. This lesson:\n\u2022 TikTok algorithm secrets for 2025\n\u2022 YouTube Shorts monetization requirements\n\u2022 The 3-second hook formula\n\u2022 Trending audio and effect strategies\n\u2022 Turning viral videos into paying customers\n\nChallenge: Post 3 short-form videos this week and report back in the group chat.", isPreview: false, order: 3 },
-      { title: "Turning Followers into Cash \u2014 Monetization Basics", content: "A big following means nothing without monetization. Learn:\n\u2022 The 1,000 True Fans model\n\u2022 Setting up your first digital product (Gumroad/Selar)\n\u2022 Affiliate marketing accounts to join (Amazon, ShareASale, Impact)\n\u2022 Instagram Shopping and link-in-bio tools\n\u2022 How to pitch to brands even with 1,000 followers\n\nAction: Set up your first affiliate link or digital product today.", isPreview: false, order: 4 },
-      { title: "Brand Deals \u2014 How to Get Sponsored", content: "Brand deals are where the big money is. Topics covered:\n\u2022 How to write a media kit (template provided)\n\u2022 Finding and reaching out to brands (email script included)\n\u2022 Negotiating rates \u2014 what to charge at each follower level\n\u2022 UGC (User Generated Content) \u2014 earn without a big following\n\u2022 Platforms: AspireIQ, Creator.co, Collabs, Taskdrip\n\nAction: Send 5 brand partnership pitches this week!", isPreview: false, order: 5 },
-      { title: "Web Assets & Passive Income \u2014 Scale to $5K/month", content: "Build assets that earn while you sleep:\n\u2022 Niche websites and Google AdSense income\n\u2022 Newsletter monetization (Substack, Beehiiv)\n\u2022 Digital product funnels\n\u2022 Paid communities (Telegram, Discord, WhatsApp)\n\u2022 YouTube AdSense (monetization requirements & strategy)\n\nFinal Project: Present your multi-stream income plan in the group chat for feedback!", isPreview: false, order: 6 }
-    ]
-  },
-  {
-    courseKey: "trading",
-    title: "Pocket Option Trading",
-    description: "Master Pocket Option binary trading, chart analysis, risk management, and consistent income strategies for financial freedom in this 8-week program. Discuss trades and strategies with your group and get private coaching from your tutor.",
-    shortDescription: "Master binary trading, chart analysis, and consistent income strategies.",
-    category: "general",
-    level: "beginner",
-    duration: "8 Weeks",
-    price: "169.09",
-    tags: ["breedskool_trading", "trading", "binary options", "pocket option", "breedskool"],
-    whatYouLearn: ["Binary options basics on Pocket Option", "Chart reading & technical analysis", "Risk management strategies", "Building consistent trading systems"],
-    requirements: ["Stable internet connection", "Practice account capital ($10 minimum)"],
-    syllabus: [
-      { week: "Week 1\u20132", topic: "Platform Setup & Trading Basics" },
-      { week: "Week 3\u20134", topic: "Chart Analysis & Indicators" },
-      { week: "Week 5\u20136", topic: "Strategy Development & Backtesting" },
-      { week: "Week 7", topic: "Risk Management & Psychology" },
-      { week: "Week 8", topic: "Live Trading Practice & Review" }
-    ],
-    lessons: [
-      { title: "Welcome to Pocket Option Trading", content: "Welcome, future trader! Before we start risking any money, let's build a solid foundation:\n\u2022 What is binary options trading and how does Pocket Option work?\n\u2022 Creating your Pocket Option demo account (free \u2014 trade with $10,000 virtual money)\n\u2022 Understanding the trading interface\n\u2022 Why most traders fail (and how to be in the 5% who succeed)\n\u2022 Course rules: NO live trading until Week 5!\n\nJoin the group chat and introduce yourself \u2014 share your trading experience level.", isPreview: true, order: 1 },
-      { title: "How Binary Options Work \u2014 The Mechanics", content: "Understanding exactly what you're trading is critical. This lesson:\n\u2022 Call vs. Put options \u2014 how you profit\n\u2022 Expiry times (1 min, 5 min, 15 min, 1 hour)\n\u2022 Payout percentages and what they mean\n\u2022 Asset types: currencies, stocks, commodities, indices\n\u2022 How the broker makes money (and why it matters)\n\nPractice: Place 20 demo trades and record the results in your trading journal.", isPreview: false, order: 2 },
-      { title: "Reading Candlestick Charts \u2014 The Language of Markets", content: "Every chart tells a story. Learn to read it:\n\u2022 What a candlestick shows (open, high, low, close)\n\u2022 Key candlestick patterns: Doji, Engulfing, Hammer, Shooting Star\n\u2022 Support and resistance levels\n\u2022 Trend lines and how to draw them\n\u2022 The 4 phases of a market: accumulation, markup, distribution, decline\n\nPractice: Identify 5 key patterns on historical charts (screenshots shared in group chat).", isPreview: false, order: 3 },
-      { title: "Technical Indicators \u2014 RSI, MACD, Bollinger Bands", content: "Indicators confirm what the chart is telling you:\n\u2022 RSI (Relative Strength Index) \u2014 overbought and oversold\n\u2022 MACD \u2014 trend direction and momentum\n\u2022 Bollinger Bands \u2014 volatility and breakouts\n\u2022 Moving Averages (SMA & EMA)\n\u2022 How to combine 2 indicators for a high-probability signal\n\nPractice: Demo trade ONLY when you see 2 indicators align. Record 30 trades.", isPreview: false, order: 4 },
-      { title: "Your Trading Strategy \u2014 Build It & Backtest It", content: "A strategy with no edge is just gambling. This lesson:\n\u2022 The components of a profitable strategy\n\u2022 Our BreedSkool base strategy (taught live)\n\u2022 How to backtest on historical data\n\u2022 Win rate calculation and expected value\n\u2022 When to trade and when to walk away\n\nHomework: Backtest your strategy on 100 historical trades and share your results.", isPreview: false, order: 5 },
-      { title: "Risk Management \u2014 Protect Your Capital", content: "The difference between a trader and a gambler is risk management:\n\u2022 The 1\u20132% rule (never risk more than 2% per trade)\n\u2022 Martingale strategy \u2014 why it destroys accounts\n\u2022 Daily loss limits \u2014 mandatory stop for the day\n\u2022 Profit target rules \u2014 when to stop after a win\n\u2022 Emotional trading and how to stop it\n\nThis is the most important lesson in the course. Reread it twice.", isPreview: false, order: 6 },
-      { title: "Live Trading \u2014 Going Live Safely", content: "It's time to trade with real money (minimum $10). Rules:\n\u2022 Start with your minimum deposit only\n\u2022 Maximum trade size: $1 per trade (until you hit 60% win rate consistently)\n\u2022 Use the same strategy you backtested \u2014 no improvising\n\u2022 Keep your trading journal updated daily\n\u2022 Post your daily P&L in the group chat for accountability\n\nPost your first live trade result in the group chat!", isPreview: false, order: 7 },
-      { title: "Scaling Up & Long-Term Trading Career", content: "Congratulations on completing the course! Next steps:\n\u2022 When and how to increase your trade size\n\u2022 Withdrawing profits regularly\n\u2022 Reinvesting in your trading account\n\u2022 Advanced strategies to explore next (Forex, Crypto)\n\u2022 Building a trading routine (morning analysis, session timing)\n\nFinal action: Share your 8-week trading journey summary in the group chat!", isPreview: false, order: 8 }
-    ]
-  },
-  {
-    courseKey: "home_lesson",
-    title: "Tech Home Lessons for Kids",
-    description: "One-on-one tech lessons delivered at your home by a certified tutor. Covering coding, AI tools, and digital skills for ages 6\u201317. This course hub connects all home lesson students with their assigned tutor for group discussion, session updates, and private tutor chat.",
-    shortDescription: "One-on-one tech lessons for kids (ages 6\u201317) delivered at your home.",
-    category: "general",
-    level: "beginner",
-    duration: "Per Session",
-    price: "51.52",
-    tags: ["breedskool_home_lesson", "kids", "home lesson", "coding for kids", "breedskool"],
-    whatYouLearn: ["Scratch & block coding", "Basic Python & HTML", "AI tools for kids", "Digital skills & online safety"],
-    requirements: ["Ages 6\u201317", "Laptop or tablet at home", "Parent/guardian available during sessions"],
-    syllabus: [
-      { week: "Session 1\u20134", topic: "Intro to Computers & Digital Safety" },
-      { week: "Session 5\u20138", topic: "Scratch & Block Coding" },
-      { week: "Session 9\u201312", topic: "Basic Python / HTML" },
-      { week: "Session 13+", topic: "AI Tools for Kids & Personal Projects" }
-    ],
-    lessons: [
-      { title: "Welcome \u2014 Getting Started with Your Tutor", content: "Welcome to BreedSkool Home Lessons! This is your student hub where:\n\u2022 Your tutor will post session updates and homework\n\u2022 You can message your tutor privately (use 'Message Tutor' tab)\n\u2022 You can connect with other home lesson students\n\n\u{1F4C5} Your tutor will contact you within 24 hours to schedule your first session.\n\nParents: Use the group chat to ask questions about the program. Your tutor will respond here!", isPreview: true, order: 1 },
-      { title: "Session 1\u20132: Computers, the Internet & Digital Safety", content: "What we cover in the first sessions:\n\u2022 What is a computer and how does it work?\n\u2022 Understanding files, folders, and the desktop\n\u2022 Safe internet use \u2014 what to share and what to keep private\n\u2022 Creating strong passwords\n\u2022 Fun keyboard shortcuts to work faster\n\n\u{1F3AE} Fun activity: Type a short story about your favourite animal using the keyboard!", isPreview: false, order: 2 },
-      { title: "Session 3\u20134: Introduction to Scratch \u2014 Block Coding", content: "Scratch (scratch.mit.edu) is where most programmers start!\n\u2022 Creating a free Scratch account\n\u2022 Understanding sprites, costumes, and backgrounds\n\u2022 Moving characters with blocks\n\u2022 Using 'if' blocks to make decisions\n\u2022 Loops \u2014 making things repeat\n\n\u{1F3AE} Project: Build a simple game where a cat chases a ball!", isPreview: false, order: 3 },
-      { title: "Session 5\u20138: Python Basics for Kids", content: "Python is the #1 beginner programming language in the world!\n\u2022 Installing Python and IDLE\n\u2022 print() and input() commands\n\u2022 Variables \u2014 storing information\n\u2022 if / else \u2014 making decisions\n\u2022 Loops \u2014 for and while\n\u2022 Drawing shapes with the turtle module\n\n\u{1F40D} Project: Build a quiz game that asks 5 questions and gives a score!", isPreview: false, order: 4 },
-      { title: "Session 9+: AI Tools for Kids & Personal Projects", content: "AI is the future \u2014 let's learn it early!\n\u2022 What is Artificial Intelligence? (Kid-friendly explanation)\n\u2022 Using ChatGPT to help with homework and creative writing\n\u2022 Canva AI for making posters and art\n\u2022 Building your own simple chatbot with Python\n\u2022 Planning and building a personal project of your choice\n\n\u{1F680} Graduation project: Build something YOU are proud of and present it to the group!", isPreview: false, order: 5 }
-    ]
-  },
-  {
-    courseKey: "onsite_training",
-    title: "Onsite Group Training \u2014 Ikorodu Lagos",
-    description: "Join our hands-on classroom sessions at TootoOba Estate, Ijede, Ikorodu Lagos. Work alongside fellow students in a structured environment with daily tutor support. This course hub connects all onsite students for group discussions, announcements, and private tutor messaging.",
-    shortDescription: "Hands-on classroom training at our Ikorodu Lagos campus.",
-    category: "general",
-    level: "beginner",
-    duration: "6\u20138 Weeks",
-    price: "78.79",
-    tags: ["breedskool_onsite_training", "onsite", "classroom", "lagos", "ikorodu", "breedskool"],
-    whatYouLearn: ["Hands-on practical skills with tutor guidance", "Peer collaboration & networking", "Daily structured learning environment", "Portfolio projects to show employers"],
-    requirements: ["Lagos or nearby location", "Laptop optional (provided in class)", "Commitment to attend sessions"],
-    syllabus: [
-      { week: "Week 1\u20132", topic: "Foundations & Environment Setup" },
-      { week: "Week 3\u20134", topic: "Core Skills Training" },
-      { week: "Week 5\u20136", topic: "Projects & Peer Collaboration" },
-      { week: "Week 7\u20138", topic: "Portfolio Building & Graduation" }
-    ],
-    lessons: [
-      { title: "Welcome to Onsite Training \u2014 Your Student Hub", content: "Welcome to BreedSkool Onsite Training! \u{1F389}\n\nThis is your online hub for the physical classroom program at:\n\u{1F4CD} TootoOba Estate, Ijede, Ikorodu, Lagos\n\nHow to use this hub:\n\u2022 Check here daily for class announcements, schedule updates, and homework\n\u2022 Use the Group Chat to connect with your classmates between sessions\n\u2022 Use 'Message Tutor' privately if you have personal questions\n\u2022 Resources and materials from class will be posted here after each session\n\n\u{1F4C5} Your first class is on the date your tutor will confirm via WhatsApp. Please arrive 10 minutes early!", isPreview: true, order: 1 },
-      { title: "Week 1 \u2014 Environment Setup & Foundations", content: "In your first week at the campus, we cover:\n\u2022 Setting up your laptop (or using the lab computers)\n\u2022 Installing VS Code, Node.js, Git, and Chrome DevTools\n\u2022 Introduction to the command line / terminal\n\u2022 Your first HTML page\n\u2022 Git basics \u2014 saving your work online (GitHub setup)\n\n\u{1F4DD} Homework: Complete the HTML bio page exercise from class and push it to GitHub.", isPreview: false, order: 2 },
-      { title: "Week 2\u20133 \u2014 Core Skills Intensive", content: "Classroom sessions this week focus on:\n\u2022 CSS layouts with Flexbox and Grid\n\u2022 JavaScript fundamentals\n\u2022 Debugging techniques\n\u2022 Peer code reviews \u2014 learn from each other\n\u2022 Mini hackathon: build a landing page in 2 hours!\n\n\u{1F4DD} Weekly project: Submit your mini landing page to the group chat for feedback from the tutor.", isPreview: false, order: 3 },
-      { title: "Week 4\u20135 \u2014 Group Projects & Collaboration", content: "You'll be assigned to project teams this week!\n\u2022 Teams of 2\u20133 students build a real web application together\n\u2022 Daily standups in class (just like a real tech company)\n\u2022 Tutor mentorship sessions (30 mins per team)\n\u2022 Version control workflow (branches, pull requests, reviews)\n\n\u{1F91D} Use the group chat to coordinate with your teammates outside class hours!", isPreview: false, order: 4 },
-      { title: "Week 6\u20138 \u2014 Portfolio Building & Graduation", content: "Final stretch \u2014 get job/client ready:\n\u2022 Build your personal portfolio website\n\u2022 Write your developer bio and case studies\n\u2022 LinkedIn and GitHub profile optimization\n\u2022 Job search / freelancing strategies for Nigerian developers\n\u2022 Graduation ceremony \u2014 present your project to the class!\n\n\u{1F393} After graduation you receive your BreedSkool certificate and lifelong access to this course hub and the alumni group chat.", isPreview: false, order: 5 }
-    ]
-  }
-];
-async function seedBreedskoolCourses(adminId) {
-  let created = 0;
-  let linked = 0;
-  for (const course of BREEDSKOOL_PLATFORM_COURSES) {
-    try {
-      const tagToFind = `breedskool_${course.courseKey}`;
-      const existing = await db.select({ id: courses2.id }).from(courses2).where(sql10`${courses2.tags} @> ARRAY[${tagToFind}]::text[]`).limit(1);
-      let courseId;
-      if (existing.length > 0) {
-        courseId = existing[0].id;
-      } else {
-        const [newCourse] = await db.insert(courses2).values({
-          title: course.title,
-          description: course.description,
-          shortDescription: course.shortDescription,
-          category: course.category,
-          instructorId: adminId,
-          price: course.price,
-          isFree: false,
-          level: course.level,
-          duration: course.duration,
-          status: "published",
-          isPublished: true,
-          isFeatured: false,
-          tags: course.tags,
-          whatYouLearn: course.whatYouLearn,
-          requirements: course.requirements,
-          syllabus: course.syllabus
-        }).returning({ id: courses2.id });
-        courseId = newCourse.id;
-        created++;
-      }
-      const existingLessons = await db.select({ id: courseLessons.id }).from(courseLessons).where(eq14(courseLessons.courseId, courseId)).limit(1);
-      if (existingLessons.length === 0 && course.lessons?.length) {
-        for (const lesson of course.lessons) {
-          await db.insert(courseLessons).values({
-            courseId,
-            title: lesson.title,
-            content: lesson.content,
-            isPreview: lesson.isPreview,
-            order: lesson.order
-          });
-        }
-        await db.execute(
-          sql10`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
-        );
-      }
-      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey));
-      linked++;
-    } catch (e) {
-      console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
-    }
-  }
-  return { created, linked };
+  return { students: studentsCreated, enrollments: enrollmentsCreated, reviews: reviewsCreated };
 }
 
 // server/seed-lawcolab.ts
 init_db();
 init_schema();
-import { eq as eq15 } from "drizzle-orm";
+import { eq as eq16 } from "drizzle-orm";
 var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
 async function seedLawcolab() {
   try {
-    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq15(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq16(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
     if (existing.length > 0) {
       return { inserted: false, skipped: true };
     }
@@ -23177,7 +24823,7 @@ async function seedPageSeo() {
 
 // server/startup-migrations.ts
 init_db();
-import { sql as sql11 } from "drizzle-orm";
+import { sql as sql13 } from "drizzle-orm";
 var REQUIRED_COLUMNS = [
   { table: "users", column: "brand_tier", definition: "varchar DEFAULT 'startup'" },
   { table: "users", column: "brand_rank", definition: "varchar DEFAULT 'bronze'" },
@@ -23249,9 +24895,108 @@ var REQUIRED_COLUMNS = [
   { table: "breedskool_course_pricing", column: "duration", definition: "varchar" },
   { table: "breedskool_course_pricing", column: "accepted_payments", definition: "text[] DEFAULT ARRAY['bank_transfer','usdt_tron','usdt_ton','usdt_bnb']" },
   // Legal pages — last_updated_by added after initial schema
-  { table: "legal_pages", column: "last_updated_by", definition: "varchar" }
+  { table: "legal_pages", column: "last_updated_by", definition: "varchar" },
+  // direct_hire_offers — columns added after initial deploy (schema drift fix)
+  { table: "direct_hire_offers", column: "brand_platform_fee", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "brand_total_charge", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "platform_fee_amount", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "influencer_payout", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "direct_hire_offers", column: "rejection_reason", definition: "text" },
+  { table: "direct_hire_offers", column: "payment_proof", definition: "varchar" },
+  { table: "direct_hire_offers", column: "payment_network", definition: "varchar" },
+  { table: "direct_hire_offers", column: "transaction_hash", definition: "varchar" },
+  { table: "direct_hire_offers", column: "admin_note", definition: "text" },
+  { table: "direct_hire_offers", column: "work_submission_url", definition: "varchar(500)" },
+  { table: "direct_hire_offers", column: "work_submission_note", definition: "text" },
+  { table: "direct_hire_offers", column: "work_submitted_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "revision_note", definition: "text" },
+  { table: "direct_hire_offers", column: "activated_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "completed_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "invoice_number", definition: "varchar" },
+  { table: "direct_hire_offers", column: "invoice_generated_at", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "invoice_due_date", definition: "timestamp" },
+  { table: "direct_hire_offers", column: "invoice_note", definition: "text" },
+  { table: "direct_hire_offers", column: "agreed_budget", definition: "decimal(10,2)" },
+  { table: "direct_hire_offers", column: "deadline", definition: "timestamp" },
+  // course_enrollments — extra tracking columns that may be missing on older DBs
+  { table: "course_enrollments", column: "amount", definition: "decimal(10,2) DEFAULT '0.00'" },
+  { table: "course_enrollments", column: "is_paid", definition: "boolean DEFAULT false" },
+  { table: "course_enrollments", column: "transaction_hash", definition: "varchar" },
+  { table: "course_enrollments", column: "progress", definition: "integer DEFAULT 0" },
+  { table: "course_enrollments", column: "updated_at", definition: "timestamp DEFAULT now()" }
 ];
 var REQUIRED_TABLES = [
+  // Core courses table — must exist before course_lessons and any seeding
+  `CREATE TABLE IF NOT EXISTS "courses" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "title" varchar NOT NULL,
+    "description" text NOT NULL,
+    "short_description" varchar,
+    "category" varchar NOT NULL,
+    "thumbnail" varchar,
+    "preview_video_url" varchar,
+    "intro_video_url" varchar,
+    "service_addons" jsonb DEFAULT '[]'::jsonb,
+    "instructor_id" varchar NOT NULL REFERENCES "users"("id"),
+    "price" decimal(10,2) DEFAULT '0.00',
+    "is_free" boolean DEFAULT false,
+    "level" varchar DEFAULT 'beginner',
+    "duration" varchar,
+    "lessons_count" integer DEFAULT 0,
+    "students_count" integer DEFAULT 0,
+    "likes_count" integer DEFAULT 0,
+    "comments_count" integer DEFAULT 0,
+    "reviews_count" integer DEFAULT 0,
+    "average_rating" decimal(3,2) DEFAULT '0.00',
+    "syllabus" jsonb DEFAULT '[]'::jsonb,
+    "requirements" text[],
+    "what_you_learn" text[],
+    "tags" text[],
+    "status" varchar DEFAULT 'draft',
+    "is_published" boolean DEFAULT false,
+    "is_featured" boolean DEFAULT false,
+    "sale_price" decimal(10,2),
+    "sale_deadline" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  // Course lessons — must exist before course_lesson_progress and assignments
+  `CREATE TABLE IF NOT EXISTS "course_lessons" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "title" varchar NOT NULL,
+    "description" text,
+    "video_url" varchar,
+    "video_link" varchar,
+    "content" text,
+    "order" integer DEFAULT 0,
+    "lesson_files" jsonb DEFAULT '[]'::jsonb,
+    "is_preview" boolean DEFAULT false,
+    "created_at" timestamp DEFAULT now()
+  )`,
+  // Course enrollments
+  `CREATE TABLE IF NOT EXISTS "course_enrollments" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id"),
+    "status" varchar DEFAULT 'active',
+    "payment_proof" varchar,
+    "payment_amount" decimal(10,2),
+    "payment_method" varchar,
+    "payment_status" varchar DEFAULT 'pending',
+    "enrolled_at" timestamp DEFAULT now(),
+    "completed_at" timestamp
+  )`,
+  // Course messages (group chat + private DMs)
+  `CREATE TABLE IF NOT EXISTS "course_messages" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "course_id" varchar NOT NULL REFERENCES "courses"("id") ON DELETE CASCADE,
+    "sender_id" varchar NOT NULL REFERENCES "users"("id"),
+    "recipient_id" varchar REFERENCES "users"("id"),
+    "message" text NOT NULL,
+    "is_deleted" boolean DEFAULT false,
+    "created_at" timestamp DEFAULT now()
+  )`,
   // P2P task addon proof submissions
   `CREATE TABLE IF NOT EXISTS "p2p_task_addon_submissions" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23519,6 +25264,30 @@ var REQUIRED_TABLES = [
     "user_agent" varchar,
     "created_at" timestamp DEFAULT now()
   )`,
+  // AI Marketing Robot — social leads from Reddit / Hacker News
+  `CREATE TABLE IF NOT EXISTS "social_leads" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "platform" varchar NOT NULL,
+    "source_id" varchar NOT NULL,
+    "title" varchar(500) NOT NULL,
+    "body" text,
+    "url" text NOT NULL,
+    "author" varchar,
+    "subreddit" varchar,
+    "platform_score" integer DEFAULT 0,
+    "comments_count" integer DEFAULT 0,
+    "relevance_score" integer DEFAULT 0,
+    "ai_summary" text,
+    "suggested_reply" text,
+    "category" varchar DEFAULT 'web_development',
+    "urgency" varchar DEFAULT 'medium',
+    "status" varchar DEFAULT 'new',
+    "keywords_matched" text[],
+    "posted_at" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now(),
+    CONSTRAINT "social_leads_platform_source_unique" UNIQUE ("platform", "source_id")
+  )`,
   // Referral commissions — earnings from product, course, and invite referrals
   `CREATE TABLE IF NOT EXISTS "referral_commissions" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23541,7 +25310,7 @@ var REQUIRED_TABLES = [
 async function runStartupMigrations() {
   for (const ddl of REQUIRED_TABLES) {
     try {
-      await db.execute(sql11.raw(ddl));
+      await db.execute(sql13.raw(ddl));
     } catch (err) {
       console.error(`[startup-migration] Table creation error: ${err?.message}`);
     }
@@ -23549,7 +25318,7 @@ async function runStartupMigrations() {
   for (const fix of REQUIRED_COLUMNS) {
     try {
       await db.execute(
-        sql11.raw(
+        sql13.raw(
           `ALTER TABLE IF EXISTS "${fix.table}" ADD COLUMN IF NOT EXISTS "${fix.column}" ${fix.definition};`
         )
       );
@@ -23562,7 +25331,7 @@ async function runStartupMigrations() {
 }
 
 // server/index.ts
-import bcrypt5 from "bcryptjs";
+import bcrypt6 from "bcryptjs";
 process.on("uncaughtException", (err) => {
   console.error("[uncaughtException]", err);
 });
@@ -23744,7 +25513,7 @@ async function ensureAdminExists() {
     const adminEmail = "demo@taskdrip.online";
     const existing = await storage.getUserByEmail(adminEmail);
     if (!existing) {
-      const hashed = await bcrypt5.hash("Admin@2024", 12);
+      const hashed = await bcrypt6.hash("Admin@2024", 12);
       const genCode = (prefix) => `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
       await storage.createUser({
         id: `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -23801,10 +25570,21 @@ server.listen({
   } catch (err) {
     console.error("[startup] Static serving setup error:", err);
   }
+  try {
+    await ensureAdminExists();
+    const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
+    if (adminUser) {
+      await seedBreedskoolPricing().then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`)).catch((e) => console.error("seedBreedskoolPricing:", e));
+      await seedBreedskoolCourses(adminUser.id).then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`)).catch((e) => console.error("seedBreedskoolCourses:", e));
+    } else {
+      console.error("[startup] WARNING: admin user not found \u2014 BreedSkool courses not seeded");
+    }
+  } catch (e) {
+    console.error("[startup] Critical seed error:", e);
+  }
   if (!startupError) appReady = true;
   setImmediate(async () => {
     try {
-      await ensureAdminExists();
       const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
       if (adminUser) {
         await seedDemoData(adminUser.id).catch((e) => console.error("seedDemoData:", e));
@@ -23813,11 +25593,8 @@ server.listen({
       await seedCmsContent().catch((e) => console.error("seedCmsContent:", e));
       await seedLegalPages().catch((e) => console.error("seedLegalPages:", e));
       await backfillCreatorTiers().catch((e) => console.error("backfillCreatorTiers:", e));
-      await seedBreedskoolPricing().then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`)).catch((e) => console.error("seedBreedskoolPricing:", e));
       await seedBreedskoolPaymentSettings().catch((e) => console.error("seedBreedskoolPaymentSettings:", e));
-      if (adminUser) {
-        await seedBreedskoolCourses(adminUser.id).then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`)).catch((e) => console.error("seedBreedskoolCourses:", e));
-      }
+      await seedSaasCourseDemo().then((r) => log(`[SaaS Demo] students: ${r.students}, enrollments: ${r.enrollments}, reviews: ${r.reviews}`)).catch((e) => console.error("seedSaasCourseDemo:", e));
       await fixVerifiedBreedskoolEnrollments().then((r) => log(`[BreedSkool] Enrollment fix: ${r.fixed} activated, ${r.skipped} already active, ${r.noLink} with no course link`)).catch((e) => console.error("fixVerifiedBreedskoolEnrollments:", e));
       await seedLawcolab().then((r) => log(`[LAWCOLAB] Shop product: ${r.inserted ? "inserted" : "already exists"}`)).catch((e) => console.error("seedLawcolab:", e));
       await seedPageSeo().then((r) => log(`[SEO] Page SEO: ${r.upserted} pages upserted`)).catch((e) => console.error("seedPageSeo:", e));
@@ -23837,4 +25614,19 @@ server.listen({
   };
   runExpiryCheck();
   setInterval(runExpiryCheck, 30 * 60 * 1e3);
+  const { runSocialCrawler: runSocialCrawler2 } = await Promise.resolve().then(() => (init_social_crawler(), social_crawler_exports));
+  setTimeout(async () => {
+    try {
+      await runSocialCrawler2();
+    } catch (e) {
+      console.error("[social-crawler] boot crawl error:", e);
+    }
+  }, 2 * 60 * 1e3);
+  setInterval(async () => {
+    try {
+      await runSocialCrawler2();
+    } catch (e) {
+      console.error("[social-crawler] scheduled crawl error:", e);
+    }
+  }, 60 * 60 * 1e3);
 })();

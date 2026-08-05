@@ -4302,6 +4302,19 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
             isRead: false,
             priority: 'high',
           }).catch(() => {});
+          // Notify admin of new shop order
+          storage.getAdminUser().then(adminUser => {
+            if (adminUser) {
+              storage.createNotification({
+                userId: adminUser.id,
+                type: 'order',
+                title: `🛒 New Shop Order: ${product.title}`,
+                content: `${buyer.firstName || 'A customer'} ${buyer.lastName || ''} placed an order. Review and approve in Admin → Shop tab.`,
+                priority: 'high',
+                actionUrl: '/admin-dashboard',
+              }).catch(() => {});
+            }
+          }).catch(() => {});
         }
         return res.status(201).json(purchase);
       }
@@ -4371,6 +4384,21 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           isRead: false,
           priority: 'high',
         }).catch(() => {});
+        // Notify admin of new paid shop order
+        if (!product.isFree) {
+          storage.getAdminUser().then(adminUser => {
+            if (adminUser) {
+              storage.createNotification({
+                userId: adminUser.id,
+                type: 'order',
+                title: `🛒 New Shop Order: ${product.title}`,
+                content: `${buyer.firstName || 'A customer'} ${buyer.lastName || ''} placed an order for $${purchase.amount}. Review and approve in Admin → Shop tab.`,
+                priority: 'high',
+                actionUrl: '/admin-dashboard',
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }
       }
 
       res.status(201).json(purchase);
@@ -4712,6 +4740,23 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         actionUrl: '/subscription',
       });
 
+      // Notify admin of new subscription payment
+      try {
+        const adminForSub = await storage.getAdminUser();
+        if (adminForSub) {
+          const u = await storage.getUser(req.user.id);
+          const label = plan.includes('brand') ? 'Brand Pro' : 'Premium';
+          await storage.createNotification({
+            userId: adminForSub.id,
+            type: 'subscription',
+            title: `💳 New Subscription Payment — ${label}`,
+            content: `${u?.firstName || 'A user'} ${u?.lastName || ''} submitted a ${periodLabel} ${label} payment proof (${plan}). Review and approve in Admin → Subscriptions.`,
+            priority: 'high',
+            actionUrl: '/admin-dashboard',
+          });
+        }
+      } catch (_e) { /* non-fatal */ }
+
       res.status(201).json(sub);
     } catch (error) {
       console.error("Error creating subscription:", error);
@@ -4963,6 +5008,69 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.json(sub);
     } catch (error) {
       res.status(500).json({ message: "Failed to approve subscription" });
+    }
+  });
+
+  // ── Admin: Hire Developer Requests ────────────────────────────────
+  app.get('/api/admin/hire-requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const offers = await storage.getAllDirectHireOffers();
+      const enriched = await Promise.all(offers.map(async (o: any) => {
+        const client = o.brandId ? await storage.getUser(o.brandId) : null;
+        return {
+          ...o,
+          client: client ? {
+            id: client.id,
+            firstName: client.firstName,
+            lastName: client.lastName,
+            email: client.email,
+            profileImageUrl: (client as any).profileImageUrl,
+          } : null,
+        };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error('Error listing hire requests:', error);
+      res.status(500).json({ message: 'Failed to list hire requests' });
+    }
+  });
+
+  app.patch('/api/admin/hire-requests/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Admin only' });
+      const { status, adminNote } = req.body || {};
+      const validStatuses = ['pending', 'accepted', 'in_progress', 'payment_window', 'completed', 'rejected', 'cancelled'];
+      if (!validStatuses.includes(status)) return res.status(400).json({ message: 'Invalid status' });
+      const [updated] = await db.update(directHireOffers as any)
+        .set({ status, updatedAt: new Date() } as any)
+        .where(eq((directHireOffers as any).id, req.params.id))
+        .returning();
+      if (!updated) return res.status(404).json({ message: 'Hire request not found' });
+      // Notify client of status change
+      if ((updated as any).brandId) {
+        const statusLabels: Record<string, string> = {
+          accepted: 'Accepted ✅', in_progress: 'In Progress 🔨', payment_window: 'Payment Required 💳',
+          completed: 'Completed 🎉', rejected: 'Rejected ❌', cancelled: 'Cancelled',
+        };
+        const label = statusLabels[status];
+        if (label) {
+          storage.createNotification({
+            userId: (updated as any).brandId,
+            type: 'direct_hire',
+            title: `Dev Project ${label}`,
+            content: adminNote || `Your project "${(updated as any).title}" status has been updated to ${label}.`,
+            priority: status === 'rejected' || status === 'completed' ? 'high' : 'normal',
+            actionUrl: `/direct-hire/${req.params.id}`,
+          }).catch(() => {});
+        }
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating hire request status:', error);
+      res.status(500).json({ message: 'Failed to update hire request status' });
     }
   });
 

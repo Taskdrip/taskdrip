@@ -48,6 +48,13 @@ import {
   TrendingUp,
   Link2,
   Coins,
+  CreditCard,
+  Hammer,
+  Code2,
+  UserCheck,
+  ChevronDown,
+  ChevronUp,
+  FileText,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -112,6 +119,16 @@ export default function AdminDashboard() {
   const [screenshotZoom, setScreenshotZoom] = useState<string | null>(null);
   const [expandedPayoutId, setExpandedPayoutId] = useState<string | null>(null);
 
+  // ── Subscriptions state ──
+  const [rejectSubDialog, setRejectSubDialog] = useState<{ open: boolean; id: string; reason: string }>({ open: false, id: "", reason: "" });
+  const [subProofZoom, setSubProofZoom] = useState<string | null>(null);
+  const [subFilter, setSubFilter] = useState<"all" | "pending" | "active" | "rejected">("all");
+
+  // ── Hire Requests state ──
+  const [hireStatusDialog, setHireStatusDialog] = useState<{ open: boolean; id: string; status: string; note: string }>({ open: false, id: "", status: "", note: "" });
+  const [hireFilter, setHireFilter] = useState<"all" | "pending" | "accepted" | "in_progress" | "completed" | "rejected">("all");
+  const [expandedHireId, setExpandedHireId] = useState<string | null>(null);
+
   // ── Platform Branding Settings ──
   const [brandingSettings, setBrandingSettings] = useState({
     show_platform_badge: "false",
@@ -152,6 +169,18 @@ export default function AdminDashboard() {
   const { data: adminUsers = [] } = useQuery<any[]>({ queryKey: ["/api/admin/users"] });
   const { data: referralStats } = useQuery<any>({ queryKey: ["/api/admin/referral-stats"] });
   const { data: referralCommData, refetch: refetchReferralComm } = useQuery<any>({ queryKey: ["/api/admin/referral-commissions"] });
+
+  // ── Subscriptions ──
+  const { data: adminSubscriptions = [], isLoading: subsLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/subscriptions"],
+    enabled: isAuthenticated,
+  });
+
+  // ── Hire Requests ──
+  const { data: adminHireRequests = [], isLoading: hiresLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/hire-requests"],
+    enabled: isAuthenticated,
+  });
 
   // ── Shop Orders ──
   const [shopSubTab, setShopSubTab] = useState<"orders" | "products">("orders");
@@ -336,6 +365,46 @@ export default function AdminDashboard() {
     onError: () => toast({ title: "Failed to update commission", variant: "destructive" }),
   });
 
+  // ── Subscription mutations ──
+  const approveSubMutation = useMutation({
+    mutationFn: async (sub: any) => {
+      const r = await apiRequest("PATCH", `/api/admin/subscriptions/${sub.id}/approve`, { plan: sub.plan });
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/subscriptions"] });
+      toast({ title: "Subscription Approved ✅", description: "User has been notified and access granted." });
+    },
+    onError: (e: any) => toast({ title: "Failed to approve", description: e.message, variant: "destructive" }),
+  });
+
+  const rejectSubMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const r = await apiRequest("PATCH", `/api/admin/subscriptions/${id}/reject`, { reason });
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/subscriptions"] });
+      setRejectSubDialog({ open: false, id: "", reason: "" });
+      toast({ title: "Subscription Rejected", description: "User has been notified." });
+    },
+    onError: (e: any) => toast({ title: "Failed to reject", description: e.message, variant: "destructive" }),
+  });
+
+  // ── Hire Request mutation ──
+  const updateHireStatusMutation = useMutation({
+    mutationFn: async ({ id, status, note }: { id: string; status: string; note: string }) => {
+      const r = await apiRequest("PATCH", `/api/admin/hire-requests/${id}/status`, { status, adminNote: note });
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hire-requests"] });
+      setHireStatusDialog({ open: false, id: "", status: "", note: "" });
+      toast({ title: "Hire Request Updated ✅", description: "Client has been notified of the status change." });
+    },
+    onError: (e: any) => toast({ title: "Failed to update", description: e.message, variant: "destructive" }),
+  });
+
   const approveRefPayoutMutation = useMutation({
     mutationFn: async ({ id, txHash, notes }: { id: string; txHash: string; notes: string }) => {
       const res = await apiRequest("PATCH", `/api/payout-requests/${id}`, {
@@ -405,6 +474,8 @@ export default function AdminDashboard() {
   const pendingCampaigns = escrowPayments?.filter((e: any) => e.status === "payment_window" || e.status === "pending").length || 0;
   const pendingPayouts = payoutRequests?.filter((r: any) => r.status === "pending").length || 0;
   const pendingParticipations = allParticipations?.filter((p: any) => p.status === "pending").length || 0;
+  const pendingSubscriptions = (adminSubscriptions as any[]).filter((s: any) => s.status === "pending").length;
+  const pendingHireRequests = (adminHireRequests as any[]).filter((h: any) => h.status === "pending").length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -423,13 +494,15 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-8">
             {[
               { label: "Total Campaigns", value: totalCampaigns, color: "text-blue-300" },
               { label: "Active Campaigns", value: activeCampaigns, color: "text-green-300" },
-              { label: "Pending Approval", value: pendingCampaigns, color: "text-amber-300" },
+              { label: "Pending Escrow", value: pendingCampaigns, color: "text-amber-300" },
               { label: "Pending Payouts", value: pendingPayouts, color: "text-rose-300" },
               { label: "Open Applications", value: pendingParticipations, color: "text-purple-300" },
+              { label: "Pending Subs", value: pendingSubscriptions, color: "text-cyan-300" },
+              { label: "Pending Hires", value: pendingHireRequests, color: "text-orange-300" },
             ].map((stat) => (
               <div key={stat.label} className="bg-white/10 rounded-xl p-4 border border-white/10">
                 <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
@@ -441,52 +514,70 @@ export default function AdminDashboard() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="campaigns" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 h-auto">
-            <TabsTrigger value="campaigns" className="relative py-2 text-xs sm:text-sm">
-              Campaigns
-              {pendingCampaigns > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {pendingCampaigns}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="payouts" className="relative py-2 text-xs sm:text-sm">
-              Payouts
-              {pendingPayouts > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {pendingPayouts}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="overview" className="py-2 text-xs sm:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="users" className="py-2 text-xs sm:text-sm">Users</TabsTrigger>
-            <TabsTrigger value="shop" className="relative py-2 text-xs sm:text-sm">
-              Shop
-              {pendingShopOrders.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {pendingShopOrders.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="breedskool" className="relative py-2 text-xs sm:text-sm">
-              BreedSkool
-              {pendingCoursePayments.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {pendingCoursePayments.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="referrals" className="relative py-2 text-xs sm:text-sm">
-              Referrals
-              {(referralCommData?.referralPayouts?.filter((p: any) => p.status === 'pending').length ?? 0) > 0 && (
-                <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {referralCommData.referralPayouts.filter((p: any) => p.status === 'pending').length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="py-2 text-xs sm:text-sm">Profile</TabsTrigger>
-            <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm">Settings</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="inline-flex h-auto min-w-full gap-0.5 p-1">
+              <TabsTrigger value="campaigns" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                Campaigns
+                {pendingCampaigns > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingCampaigns}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="payouts" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                Payouts
+                {pendingPayouts > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingPayouts}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="subscriptions" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                Subscriptions
+                {pendingSubscriptions > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-cyan-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingSubscriptions}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="overview" className="py-2 px-3 text-xs sm:text-sm whitespace-nowrap">Overview</TabsTrigger>
+              <TabsTrigger value="users" className="py-2 px-3 text-xs sm:text-sm whitespace-nowrap">Users</TabsTrigger>
+              <TabsTrigger value="shop" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                Shop
+                {pendingShopOrders.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingShopOrders.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="breedskool" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                BreedSkool
+                {pendingCoursePayments.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingCoursePayments.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="hires" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                Hires
+                {pendingHireRequests > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingHireRequests}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="referrals" className="relative py-2 px-3 text-xs sm:text-sm whitespace-nowrap">
+                Referrals
+                {(referralCommData?.referralPayouts?.filter((p: any) => p.status === 'pending').length ?? 0) > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {referralCommData.referralPayouts.filter((p: any) => p.status === 'pending').length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="py-2 px-3 text-xs sm:text-sm whitespace-nowrap">Profile</TabsTrigger>
+              <TabsTrigger value="settings" className="py-2 px-3 text-xs sm:text-sm whitespace-nowrap">Settings</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ── CAMPAIGNS TAB ── */}
           <TabsContent value="campaigns" className="space-y-6">
@@ -1719,6 +1810,223 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ── SUBSCRIPTIONS TAB ── */}
+          <TabsContent value="subscriptions" className="space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-cyan-600">{adminSubscriptions.length}</div><div className="text-sm text-gray-500">Total Subscriptions</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-amber-600">{pendingSubscriptions}</div><div className="text-sm text-gray-500">Pending Review</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-green-600">{(adminSubscriptions as any[]).filter((s: any) => s.status === "active").length}</div><div className="text-sm text-gray-500">Active</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-red-600">{(adminSubscriptions as any[]).filter((s: any) => s.status === "rejected").length}</div><div className="text-sm text-gray-500">Rejected</div></CardContent></Card>
+            </div>
+
+            {/* Filter */}
+            <div className="flex gap-2 flex-wrap">
+              {(["all", "pending", "active", "rejected"] as const).map(f => (
+                <button key={f} onClick={() => setSubFilter(f)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${subFilter === f ? "bg-cyan-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  {f} {f !== "all" ? `(${(adminSubscriptions as any[]).filter((s: any) => s.status === f).length})` : `(${adminSubscriptions.length})`}
+                </button>
+              ))}
+            </div>
+
+            {subsLoading ? (
+              <div className="text-center py-12 text-gray-400">Loading subscriptions...</div>
+            ) : (adminSubscriptions as any[]).filter((s: any) => subFilter === "all" || s.status === subFilter).length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p>No {subFilter !== "all" ? subFilter : ""} subscriptions found.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(adminSubscriptions as any[])
+                  .filter((s: any) => subFilter === "all" || s.status === subFilter)
+                  .sort((a: any, b: any) => {
+                    // Pending first
+                    if (a.status === "pending" && b.status !== "pending") return -1;
+                    if (b.status === "pending" && a.status !== "pending") return 1;
+                    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+                  })
+                  .map((sub: any) => (
+                    <Card key={sub.id} className={`border ${sub.status === "pending" ? "border-amber-200 bg-amber-50" : sub.status === "active" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
+                      <CardContent className="py-4 px-4">
+                        <div className="flex items-start gap-3 flex-wrap">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm">{sub.user?.firstName} {sub.user?.lastName}</span>
+                              <StatusBadge status={sub.status || "pending"} />
+                              <Badge variant="outline" className="text-xs capitalize bg-white">
+                                {sub.plan?.replace(/_/g, " ") || "—"}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">{sub.user?.email}</div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 mt-2 text-xs text-gray-600">
+                              <span><span className="font-medium">Amount:</span> ${sub.amount || "—"}</span>
+                              <span><span className="font-medium">Network:</span> {sub.network || "—"}</span>
+                              <span><span className="font-medium">Submitted:</span> {sub.createdAt ? formatDistanceToNow(new Date(sub.createdAt), { addSuffix: true }) : "—"}</span>
+                              {sub.startDate && <span><span className="font-medium">Start:</span> {new Date(sub.startDate).toLocaleDateString()}</span>}
+                              {sub.endDate && <span><span className="font-medium">Expires:</span> {new Date(sub.endDate).toLocaleDateString()}</span>}
+                            </div>
+                            {sub.transactionHash && (
+                              <div className="mt-1.5">
+                                <span className="text-xs text-gray-500">Tx Hash: </span>
+                                <code className="text-xs bg-white border rounded px-1.5 py-0.5 break-all">{sub.transactionHash}</code>
+                              </div>
+                            )}
+                            {sub.paymentProof && (
+                              <button
+                                onClick={() => setSubProofZoom(sub.paymentProof.startsWith("/") ? sub.paymentProof : `/${sub.paymentProof}`)}
+                                className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 underline"
+                              >
+                                <Eye className="w-3 h-3" /> View Payment Proof
+                              </button>
+                            )}
+                          </div>
+                          {sub.status === "pending" && (
+                            <div className="flex flex-col gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => approveSubMutation.mutate(sub)}
+                                disabled={approveSubMutation.isPending}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-200 text-red-600 hover:bg-red-50"
+                                onClick={() => setRejectSubDialog({ open: true, id: sub.id, reason: "" })}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                          {sub.status === "active" && (
+                            <Badge className="bg-green-600 text-white shrink-0">Active</Badge>
+                          )}
+                          {sub.status === "rejected" && (
+                            <Badge className="bg-red-100 text-red-700 border-red-200 shrink-0">Rejected</Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ── HIRES TAB ── */}
+          <TabsContent value="hires" className="space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-orange-600">{adminHireRequests.length}</div><div className="text-sm text-gray-500">Total Requests</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-amber-600">{pendingHireRequests}</div><div className="text-sm text-gray-500">Pending</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-blue-600">{(adminHireRequests as any[]).filter((h: any) => h.status === "in_progress" || h.status === "accepted").length}</div><div className="text-sm text-gray-500">In Progress</div></CardContent></Card>
+              <Card><CardContent className="pt-4"><div className="text-2xl font-bold text-green-600">{(adminHireRequests as any[]).filter((h: any) => h.status === "completed").length}</div><div className="text-sm text-gray-500">Completed</div></CardContent></Card>
+            </div>
+
+            {/* Filter */}
+            <div className="flex gap-2 flex-wrap">
+              {(["all", "pending", "accepted", "in_progress", "completed", "rejected"] as const).map(f => (
+                <button key={f} onClick={() => setHireFilter(f)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${hireFilter === f ? "bg-orange-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  {f.replace(/_/g, " ")} {f !== "all" ? `(${(adminHireRequests as any[]).filter((h: any) => h.status === f).length})` : `(${adminHireRequests.length})`}
+                </button>
+              ))}
+            </div>
+
+            {hiresLoading ? (
+              <div className="text-center py-12 text-gray-400">Loading hire requests...</div>
+            ) : (adminHireRequests as any[]).filter((h: any) => hireFilter === "all" || h.status === hireFilter).length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <Hammer className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p>No {hireFilter !== "all" ? hireFilter.replace(/_/g, " ") : ""} hire requests found.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(adminHireRequests as any[])
+                  .filter((h: any) => hireFilter === "all" || h.status === hireFilter)
+                  .sort((a: any, b: any) => {
+                    if (a.status === "pending" && b.status !== "pending") return -1;
+                    if (b.status === "pending" && a.status !== "pending") return 1;
+                    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+                  })
+                  .map((hire: any) => {
+                    const isExpanded = expandedHireId === hire.id;
+                    return (
+                      <Card key={hire.id} className={`border ${hire.status === "pending" ? "border-amber-200 bg-amber-50" : hire.status === "completed" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
+                        <CardContent className="py-4 px-4">
+                          <div className="flex items-start gap-3 flex-wrap">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm truncate">{hire.title}</span>
+                                <StatusBadge status={hire.status || "pending"} />
+                              </div>
+                              <div className="text-xs text-gray-600 mt-1">
+                                <span className="font-medium">Client:</span> {hire.client?.firstName} {hire.client?.lastName}
+                                {hire.client?.email && <span className="text-gray-400 ml-1">({hire.client.email})</span>}
+                              </div>
+                              <div className="flex gap-4 mt-1 text-xs text-gray-500 flex-wrap">
+                                {hire.budget && <span><span className="font-medium">Budget:</span> ${hire.budget}</span>}
+                                {hire.createdAt && <span><span className="font-medium">Submitted:</span> {formatDistanceToNow(new Date(hire.createdAt), { addSuffix: true })}</span>}
+                              </div>
+                              {isExpanded && hire.description && (
+                                <div className="mt-3 p-3 bg-white rounded-lg border text-xs text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                  {hire.description}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-2 shrink-0 items-end">
+                              <div className="flex gap-1.5 flex-wrap justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => setExpandedHireId(isExpanded ? null : hire.id)}
+                                >
+                                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                  {isExpanded ? "Less" : "Details"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => window.open(`/direct-hire/${hire.id}`, "_blank")}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1" /> Chat
+                                </Button>
+                              </div>
+                              <Select
+                                value={hire.status || "pending"}
+                                onValueChange={(newStatus) => {
+                                  setHireStatusDialog({ open: true, id: hire.id, status: newStatus, note: "" });
+                                }}
+                              >
+                                <SelectTrigger className="h-7 text-xs w-36">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                  <SelectItem value="accepted">Accepted</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="payment_window">Payment Required</SelectItem>
+                                  <SelectItem value="completed">Completed</SelectItem>
+                                  <SelectItem value="rejected">Rejected</SelectItem>
+                                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            )}
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -1824,6 +2132,74 @@ export default function AdminDashboard() {
                 {rejectPayoutMutation.isPending ? "Rejecting..." : "Reject & Refund Influencer"}
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => setRejectPayoutDialog(p => ({ ...p, open: false }))}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Payment Proof Zoom */}
+      <Dialog open={!!subProofZoom} onOpenChange={() => setSubProofZoom(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Subscription Payment Proof</DialogTitle></DialogHeader>
+          {subProofZoom && (
+            <img src={subProofZoom} alt="Payment proof" className="w-full rounded-xl border object-contain max-h-[70vh]" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Subscription Dialog */}
+      <Dialog open={rejectSubDialog.open} onOpenChange={open => !open && setRejectSubDialog(p => ({ ...p, open: false }))}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reject Subscription Payment</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">This will reject the subscription payment and notify the user. Provide a clear reason so they know how to resubmit correctly.</p>
+            <Textarea
+              placeholder="Reason (e.g. payment proof is unclear, transaction hash not found, wrong amount)"
+              value={rejectSubDialog.reason}
+              onChange={e => setRejectSubDialog(p => ({ ...p, reason: e.target.value }))}
+              rows={4}
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => rejectSubMutation.mutate({ id: rejectSubDialog.id, reason: rejectSubDialog.reason })}
+                disabled={rejectSubMutation.isPending}
+              >
+                {rejectSubMutation.isPending ? "Rejecting..." : "Reject Payment"}
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => setRejectSubDialog(p => ({ ...p, open: false }))}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Hire Request Status Dialog */}
+      <Dialog open={hireStatusDialog.open} onOpenChange={open => !open && setHireStatusDialog(p => ({ ...p, open: false }))}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Update Hire Request Status</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Changing status to <span className="font-semibold capitalize">{hireStatusDialog.status.replace(/_/g, " ")}</span>. The client will be notified.
+            </p>
+            <div>
+              <Label>Note to Client (optional)</Label>
+              <Textarea
+                placeholder="e.g. We've reviewed your request and are ready to start. We'll be in touch shortly..."
+                value={hireStatusDialog.note}
+                onChange={e => setHireStatusDialog(p => ({ ...p, note: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                onClick={() => updateHireStatusMutation.mutate({ id: hireStatusDialog.id, status: hireStatusDialog.status, note: hireStatusDialog.note })}
+                disabled={updateHireStatusMutation.isPending}
+              >
+                {updateHireStatusMutation.isPending ? "Updating..." : "Confirm Status Update"}
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => setHireStatusDialog(p => ({ ...p, open: false }))}>Cancel</Button>
             </div>
           </div>
         </DialogContent>
