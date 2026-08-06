@@ -412,18 +412,29 @@ export default function AdminInfluencerCRM() {
     : outreachForm.body;
 
   return (
-    <div className="min-h-screen text-white" style={{
-      background: "radial-gradient(ellipse 80% 50% at 20% 10%, rgba(109,40,217,0.25) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(76,29,149,0.20) 0%, transparent 55%), radial-gradient(ellipse 70% 60% at 50% 50%, rgba(17,10,36,0.95) 0%, #030712 100%)",
-      backgroundColor: "#030712",
+    <div className="min-h-screen text-white relative" style={{
+      backgroundColor: "#040610",
+      backgroundImage: [
+        "radial-gradient(ellipse 90% 60% at 10% 5%, rgba(130,40,220,0.50) 0%, transparent 55%)",
+        "radial-gradient(ellipse 70% 55% at 90% 90%, rgba(60,20,190,0.40) 0%, transparent 55%)",
+        "radial-gradient(ellipse 55% 45% at 85% 10%, rgba(100,20,200,0.30) 0%, transparent 45%)",
+        "radial-gradient(ellipse 60% 55% at 15% 90%, rgba(70,10,160,0.25) 0%, transparent 50%)",
+        "radial-gradient(ellipse 40% 40% at 50% 50%, rgba(80,30,180,0.12) 0%, transparent 60%)",
+      ].join(", "),
     }}>
 
-      {/* Subtle grid overlay */}
-      <div className="pointer-events-none fixed inset-0 opacity-[0.04]" style={{
-        backgroundImage: "linear-gradient(rgba(139,92,246,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.8) 1px, transparent 1px)",
-        backgroundSize: "60px 60px",
+      {/* Dot grid overlay — creates the dark "image background" texture */}
+      <div className="pointer-events-none fixed inset-0 z-0" style={{
+        backgroundImage: "radial-gradient(rgba(180,150,255,0.16) 1px, transparent 1px)",
+        backgroundSize: "40px 40px",
+      }} />
+      {/* Subtle line grid on top */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.03]" style={{
+        backgroundImage: "linear-gradient(rgba(139,92,246,1) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,1) 1px, transparent 1px)",
+        backgroundSize: "80px 80px",
       }} />
 
-      <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
 
         {/* ── Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">

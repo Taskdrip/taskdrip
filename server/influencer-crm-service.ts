@@ -6,7 +6,7 @@ import { db } from "./db";
 import { leads, leadMessages, type InsertLead, type Lead } from "@shared/schema";
 import { eq, inArray, and, sql, desc } from "drizzle-orm";
 import { sendEmail, buildDefaultEmailHtml } from "./email-service";
-import { persistLeads } from "./lead-service";
+import { persistLeads, generateInfluencersBuiltin } from "./lead-service";
 
 const YOUTUBE_KEY = process.env.YOUTUBE_API_KEY || "";
 const GROQ_KEY = process.env.GROQ_API_KEY || "";
@@ -263,6 +263,24 @@ export async function crawlInfluencersAI(opts: {
       });
       allItems.push(...groqResults);
     } catch { /* skip */ }
+  }
+
+  // Step 2c: Built-in fallback — works with zero API keys
+  if (allItems.length === 0) {
+    sourcesUsed.push("builtin");
+    const builtinResults = generateInfluencersBuiltin({
+      query: niche,
+      country,
+      maxResults: maxPerQuery,
+    });
+    // Apply tier filtering if requested
+    const filtered = targetTiers?.length
+      ? builtinResults.filter(r => {
+          const tier = classifyTier(r.followers);
+          return targetTiers.includes(tier);
+        })
+      : builtinResults;
+    allItems.push(...filtered);
   }
 
   // Step 3: Include internal Taskdrip creators
