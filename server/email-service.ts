@@ -96,15 +96,35 @@ export async function activateResendIfAvailable(): Promise<void> {
 async function sendViaResend(opts: EmailOptions, fromEmail: string, fromName: string): Promise<void> {
   const { Resend } = await import("resend");
   const client = new Resend(process.env.RESEND_API_KEY!);
-  const result = await client.emails.send({
-    from: `${fromName} <${fromEmail}>`,
-    to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
-    subject: opts.subject,
-    html: opts.html,
-    text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
-  });
-  if (result.error) {
-    throw new Error((result.error as any).message || JSON.stringify(result.error));
+
+  const trySend = async (from: string) => {
+    const result = await client.emails.send({
+      from: `${fromName} <${from}>`,
+      to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
+    });
+    if (result.error) {
+      throw new Error((result.error as any).message || JSON.stringify(result.error));
+    }
+  };
+
+  try {
+    await trySend(fromEmail);
+  } catch (err: any) {
+    // If the sender domain is not verified, fall back to Resend's onboarding sender
+    const msg = (err.message || "").toLowerCase();
+    if (
+      fromEmail !== "onboarding@resend.dev" &&
+      (msg.includes("domain") || msg.includes("sender") || msg.includes("from address") ||
+       msg.includes("not verified") || msg.includes("invalid") || msg.includes("not found"))
+    ) {
+      console.warn(`[email] Resend: sender domain not verified for ${fromEmail}, retrying with onboarding@resend.dev`);
+      await trySend("onboarding@resend.dev");
+    } else {
+      throw err;
+    }
   }
 }
 
