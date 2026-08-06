@@ -48,6 +48,8 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "purchases", column: "referral_code", definition: "varchar" },
   { table: "purchases", column: "selected_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "purchases", column: "addons_total", definition: "decimal(10,2) DEFAULT '0.00'" },
+  // Email provider preference (Resend / SMTP / SendGrid selector)
+  { table: "email_settings", column: "preferred_provider", definition: "varchar" },
   // Subscription period / expiry tracking
   { table: "subscriptions", column: "period_days", definition: "integer" },
   { table: "subscriptions", column: "expiry_reminder_sent", definition: "boolean DEFAULT false" },

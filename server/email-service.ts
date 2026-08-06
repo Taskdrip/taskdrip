@@ -39,7 +39,12 @@ export async function getEmailStatus(): Promise<{
   sendgridAvailable: boolean; resendAvailable: boolean;
   preferredProvider?: string; smtpIsBrevo?: boolean; resendKeyPresent: boolean;
 }> {
-  const settings = await getEmailSettings();
+  let settings: any = null;
+  try {
+    settings = await getEmailSettings();
+  } catch (e: any) {
+    console.warn("[email] getEmailStatus: could not read email_settings:", e.message);
+  }
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
   const resendOk = !!process.env.RESEND_API_KEY;
@@ -71,21 +76,28 @@ export async function getEmailStatus(): Promise<{
 export async function activateResendIfAvailable(): Promise<void> {
   if (!process.env.RESEND_API_KEY) return;
   try {
-    const settings = await getEmailSettings();
-    const pref = (settings as any)?.preferredProvider || "";
+    let settings: any = null;
+    try { settings = await getEmailSettings(); } catch (_) { /* column may not exist yet */ }
+    const pref = settings?.preferredProvider || "";
     const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
     // If not set, or currently pointing to brevo SMTP, switch to resend
     if (!pref || pref === "resend" || smtpIsBrevo) {
-      await db.insert(emailSettings).values({
-        id: "singleton",
-        preferredProvider: "resend",
-        smtpHost: smtpIsBrevo ? null : (settings?.smtpHost ?? null),
-        smtpUser: smtpIsBrevo ? null : (settings?.smtpUser ?? null),
-        smtpPass: smtpIsBrevo ? null : (settings?.smtpPass ?? null),
-      } as any).onConflictDoUpdate({
-        target: (emailSettings as any).id,
-        set: { preferredProvider: "resend", ...(smtpIsBrevo ? { smtpHost: null, smtpUser: null, smtpPass: null } : {}) },
-      });
+      try {
+        await db.insert(emailSettings).values({
+          id: "singleton",
+          preferredProvider: "resend",
+          smtpHost: smtpIsBrevo ? null : (settings?.smtpHost ?? null),
+          smtpUser: smtpIsBrevo ? null : (settings?.smtpUser ?? null),
+          smtpPass: smtpIsBrevo ? null : (settings?.smtpPass ?? null),
+        } as any).onConflictDoUpdate({
+          target: (emailSettings as any).id,
+          set: { preferredProvider: "resend", ...(smtpIsBrevo ? { smtpHost: null, smtpUser: null, smtpPass: null } : {}) },
+        });
+      } catch (dbErr: any) {
+        // Column may not exist yet — startup migrations will add it; it'll self-correct on next boot
+        console.warn("[email] Could not write preferred_provider (will retry after migration):", dbErr.message);
+        return;
+      }
       console.log("[email] RESEND_API_KEY detected — Resend set as preferred email provider.");
     }
   } catch (e: any) {
