@@ -412,35 +412,54 @@ export default function AdminInfluencerCRM() {
     : outreachForm.body;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/10 to-gray-950 text-white">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
+    <div className="min-h-screen text-white" style={{
+      background: "radial-gradient(ellipse 80% 50% at 20% 10%, rgba(109,40,217,0.25) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 80%, rgba(76,29,149,0.20) 0%, transparent 55%), radial-gradient(ellipse 70% 60% at 50% 50%, rgba(17,10,36,0.95) 0%, #030712 100%)",
+      backgroundColor: "#030712",
+    }}>
+
+      {/* Subtle grid overlay */}
+      <div className="pointer-events-none fixed inset-0 opacity-[0.04]" style={{
+        backgroundImage: "linear-gradient(rgba(139,92,246,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.8) 1px, transparent 1px)",
+        backgroundSize: "60px 60px",
+      }} />
+
+      <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
 
         {/* ── Header */}
         <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-violet-700 flex items-center justify-center shadow-lg shadow-purple-900/40">
-                <Bot className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-4">
+            {/* Glowing robot icon */}
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 rounded-2xl bg-purple-600 blur-xl opacity-40" />
+              <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center shadow-xl shadow-purple-900/60 border border-purple-400/30">
+                <Bot className="w-7 h-7 text-white" />
               </div>
-              Influencer CRM
-            </h1>
-            <p className="text-sm text-gray-400 mt-1 ml-14">
-              AI-powered robot · Tier-based segmentation · Direct outreach hub
-            </p>
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-gray-950 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">
+                Influencer CRM
+              </h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300">🤖 Groq AI</span>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-300">Tier Segmentation</span>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-300">Direct Outreach</span>
+              </div>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={exportCsv} className="border-gray-700 text-gray-300">
+            <Button variant="outline" size="sm" onClick={exportCsv} className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 hover:text-white backdrop-blur-sm">
               <Download className="w-4 h-4 mr-2" />Export
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)} className="border-gray-700 text-gray-300">
+            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)} className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10 hover:text-white backdrop-blur-sm">
               <Plus className="w-4 h-4 mr-2" />Add Manually
             </Button>
             {selected.size > 0 && (
-              <Button size="sm" onClick={() => { setBulkForm(f => ({ ...f, body: MESSAGE_TEMPLATES[0].body, subject: MESSAGE_TEMPLATES[0].subject })); setBulkOpen(true); }} className="bg-purple-600 hover:bg-purple-700">
+              <Button size="sm" onClick={() => { setBulkForm(f => ({ ...f, body: MESSAGE_TEMPLATES[0].body, subject: MESSAGE_TEMPLATES[0].subject })); setBulkOpen(true); }} className="bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-900/40">
                 <Send className="w-4 h-4 mr-2" />Blast {selected.size} Selected
               </Button>
             )}
-            <Button size="sm" onClick={() => setCrawlOpen(true)} className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 shadow-lg shadow-purple-900/30">
+            <Button size="sm" onClick={() => setCrawlOpen(true)} className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 shadow-lg shadow-purple-900/50 border border-purple-400/30">
               <Bot className="w-4 h-4 mr-2" />AI Robot Crawl
             </Button>
           </div>
@@ -451,22 +470,22 @@ export default function AdminInfluencerCRM() {
           {/* All card */}
           <button
             onClick={() => setActiveTier("all")}
-            className={`rounded-2xl border p-4 text-left transition-all ${
+            className={`rounded-2xl border p-4 text-left transition-all backdrop-blur-sm ${
               activeTier === "all"
-                ? "bg-purple-600/20 border-purple-500/60 ring-1 ring-purple-500/30"
-                : "bg-gray-900/60 border-gray-800 hover:border-gray-700"
+                ? "bg-purple-600/25 border-purple-400/60 ring-1 ring-purple-400/40 shadow-lg shadow-purple-900/30"
+                : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20"
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-2 text-gray-300"><Users className="w-4 h-4" /><span className="text-xs font-semibold uppercase tracking-wide">All</span></div>
-            <p className="text-2xl font-black">{infData?.total ?? "—"}</p>
-            <p className="text-xs text-gray-500 mt-0.5">influencers</p>
+            <div className="flex items-center gap-1.5 mb-2.5 text-purple-300"><Users className="w-4 h-4" /><span className="text-[11px] font-bold uppercase tracking-widest">All</span></div>
+            <p className="text-3xl font-black text-white">{infData?.total ?? "—"}</p>
+            <p className="text-xs text-gray-400 mt-1 font-medium">influencers</p>
           </button>
 
           {tiersLoading
             ? Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="rounded-2xl bg-gray-900/60 border border-gray-800 p-4 animate-pulse">
-                  <div className="h-3 bg-gray-800 rounded w-2/3 mb-3" />
-                  <div className="h-6 bg-gray-800 rounded w-1/2" />
+                <div key={i} className="rounded-2xl bg-white/5 border border-white/10 p-4 animate-pulse backdrop-blur-sm">
+                  <div className="h-3 bg-white/10 rounded w-2/3 mb-3" />
+                  <div className="h-7 bg-white/10 rounded w-1/2" />
                 </div>
               ))
             : (tierStats || []).filter(t => t.id !== "unknown").map(tier => {
@@ -476,14 +495,14 @@ export default function AdminInfluencerCRM() {
                   <button
                     key={tier.id}
                     onClick={() => setActiveTier(isActive ? "all" : tier.id)}
-                    className={`rounded-2xl bg-gradient-to-br ${meta.bg} border ${meta.border} p-4 text-left transition-all hover:scale-[1.02] ${isActive ? "ring-2 ring-white/20" : ""}`}
+                    className={`rounded-2xl bg-gradient-to-br ${meta.bg} border ${meta.border} p-4 text-left transition-all hover:scale-[1.02] backdrop-blur-sm ${isActive ? "ring-2 ring-white/30 shadow-lg" : ""}`}
                   >
-                    <div className={`flex items-center gap-1.5 mb-2 ${meta.text}`}>
+                    <div className={`flex items-center gap-1.5 mb-2.5 ${meta.text}`}>
                       {meta.icon}
-                      <span className="text-xs font-semibold uppercase tracking-wide truncate">{tier.emoji} {tier.label}</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest truncate">{tier.emoji} {tier.label}</span>
                     </div>
-                    <p className="text-2xl font-black">{tier.count || 0}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{tier.contacted || 0} contacted</p>
+                    <p className="text-3xl font-black text-white">{tier.count || 0}</p>
+                    <p className="text-xs text-gray-400 mt-1 font-medium">{tier.contacted || 0} contacted</p>
                   </button>
                 );
               })
@@ -491,9 +510,9 @@ export default function AdminInfluencerCRM() {
         </div>
 
         {/* ── Filter bar */}
-        <div className="rounded-2xl bg-gray-900/60 border border-gray-800 p-4">
-          <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-300">
-            <Filter className="w-4 h-4" />Filters
+        <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-4">
+          <div className="flex items-center gap-2 mb-3 text-sm font-bold text-white">
+            <Filter className="w-4 h-4 text-purple-400" />Filters
             {activeTier !== "all" && (
               <Badge className={TIER_META[activeTier as TierId]?.badge || ""}>
                 {tierStats?.find(t => t.id === activeTier)?.emoji} {tierStats?.find(t => t.id === activeTier)?.label}
@@ -501,16 +520,16 @@ export default function AdminInfluencerCRM() {
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Input placeholder="Search name, email…" value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))} className="bg-gray-800 border-gray-700" />
+            <Input placeholder="Search name, email…" value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))} className="bg-black/30 border-white/15 text-white placeholder:text-gray-500 focus:border-purple-500/60" />
             <Select value={filters.niche || "all"} onValueChange={v => setFilters(f => ({ ...f, niche: v === "all" ? "" : v }))}>
-              <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Niche" /></SelectTrigger>
+              <SelectTrigger className="bg-black/30 border-white/15 text-white"><SelectValue placeholder="Any niche" /></SelectTrigger>
               <SelectContent className="bg-gray-900 border-gray-700">
                 <SelectItem value="all">Any niche</SelectItem>
                 {NICHES.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filters.status || "all"} onValueChange={v => setFilters(f => ({ ...f, status: v === "all" ? "" : v }))}>
-              <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="bg-black/30 border-white/15 text-white"><SelectValue placeholder="Any status" /></SelectTrigger>
               <SelectContent className="bg-gray-900 border-gray-700">
                 <SelectItem value="all">Any status</SelectItem>
                 <SelectItem value="new">New</SelectItem>
@@ -520,94 +539,97 @@ export default function AdminInfluencerCRM() {
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
-            <Input placeholder="Country (e.g. NG, US)" value={filters.country} onChange={e => setFilters(f => ({ ...f, country: e.target.value }))} className="bg-gray-800 border-gray-700" />
+            <Input placeholder="Country (e.g. NG, US)" value={filters.country} onChange={e => setFilters(f => ({ ...f, country: e.target.value }))} className="bg-black/30 border-white/15 text-white placeholder:text-gray-500 focus:border-purple-500/60" />
           </div>
           <div className="flex justify-between items-center mt-3">
-            <p className="text-xs text-gray-500">{influencers.length} shown{infData?.total ? ` of ${infData.total}` : ""}</p>
-            <Button variant="ghost" size="sm" onClick={() => setFilters({ search: "", niche: "", country: "", status: "" })} className="text-gray-400 text-xs">Clear filters</Button>
+            <p className="text-xs text-gray-400 font-medium">{influencers.length} shown{infData?.total ? ` of ${infData.total}` : ""}</p>
+            <Button variant="ghost" size="sm" onClick={() => setFilters({ search: "", niche: "", country: "", status: "" })} className="text-gray-400 hover:text-white text-xs">Clear filters</Button>
           </div>
         </div>
 
         {/* ── Bulk action bar */}
         {selected.size > 0 && (
-          <div className="rounded-xl bg-purple-600/15 border border-purple-500/30 p-3 flex flex-wrap items-center gap-3">
-            <span className="text-sm font-semibold">{selected.size} selected</span>
-            <Button size="sm" onClick={() => setBulkOpen(true)} className="bg-purple-600 hover:bg-purple-700">
+          <div className="rounded-xl bg-purple-600/20 border border-purple-400/40 backdrop-blur-sm p-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-bold text-white">{selected.size} selected</span>
+            <Button size="sm" onClick={() => setBulkOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-900/40">
               <Send className="w-3 h-3 mr-1.5" />Bulk Outreach
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} className="border-gray-600 text-gray-300">Clear</Button>
-            <Button size="sm" variant="ghost" onClick={exportCsv} className="text-gray-400">
+            <Button size="sm" variant="outline" onClick={() => setSelected(new Set())} className="border-white/20 text-gray-200 hover:bg-white/10">Clear</Button>
+            <Button size="sm" variant="ghost" onClick={exportCsv} className="text-gray-300 hover:text-white">
               <Download className="w-3 h-3 mr-1.5" />Export Selected
             </Button>
           </div>
         )}
 
         {/* ── Influencer Table */}
-        <div className="rounded-2xl bg-gray-900/60 border border-gray-800 overflow-hidden">
+        <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm overflow-hidden">
           {listLoading ? (
             <div className="p-12 text-center">
-              <Loader2 className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">Loading influencers…</p>
+              <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-3" />
+              <p className="text-gray-400 text-sm font-medium">Loading influencers…</p>
             </div>
           ) : influencers.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center mx-auto">
-                <Bot className="w-8 h-8 text-purple-400" />
+            <div className="p-16 text-center space-y-4">
+              <div className="relative w-20 h-20 mx-auto">
+                <div className="absolute inset-0 rounded-2xl bg-purple-600 blur-xl opacity-30" />
+                <div className="relative w-20 h-20 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
+                  <Bot className="w-10 h-10 text-purple-400" />
+                </div>
               </div>
-              <p className="text-white font-semibold">No influencers yet</p>
-              <p className="text-gray-400 text-sm">Use the <b>AI Robot Crawl</b> to discover creators, or add them manually.</p>
-              <Button onClick={() => setCrawlOpen(true)} className="mt-2 bg-purple-600 hover:bg-purple-700">
+              <p className="text-white text-xl font-black">No influencers yet</p>
+              <p className="text-gray-400 text-sm max-w-sm mx-auto">Use the <span className="text-purple-400 font-semibold">AI Robot Crawl</span> to auto-discover creators by niche, or add them manually.</p>
+              <Button onClick={() => setCrawlOpen(true)} className="mt-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 shadow-lg shadow-purple-900/40 border border-purple-400/30">
                 <Bot className="w-4 h-4 mr-2" />Launch AI Crawler
               </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-800/60 text-xs uppercase text-gray-400 border-b border-gray-800">
+                <thead className="bg-purple-950/40 text-[11px] uppercase tracking-widest text-gray-300 border-b border-white/10 font-bold">
                   <tr>
-                    <th className="p-3 text-left w-10"><input type="checkbox" checked={selected.size === influencers.length && influencers.length > 0} onChange={toggleAll} className="rounded" /></th>
-                    <th className="p-3 text-left">Creator</th>
-                    <th className="p-3 text-left">Tier</th>
-                    <th className="p-3 text-left">Niche</th>
-                    <th className="p-3 text-left">Followers</th>
-                    <th className="p-3 text-left">Platforms</th>
-                    <th className="p-3 text-left">Contact</th>
-                    <th className="p-3 text-left">Status</th>
-                    <th className="p-3 text-right">Actions</th>
+                    <th className="p-3.5 text-left w-10"><input type="checkbox" checked={selected.size === influencers.length && influencers.length > 0} onChange={toggleAll} className="rounded accent-purple-500" /></th>
+                    <th className="p-3.5 text-left">Creator</th>
+                    <th className="p-3.5 text-left">Tier</th>
+                    <th className="p-3.5 text-left">Niche</th>
+                    <th className="p-3.5 text-left">Followers</th>
+                    <th className="p-3.5 text-left">Platforms</th>
+                    <th className="p-3.5 text-left">Contact</th>
+                    <th className="p-3.5 text-left">Status</th>
+                    <th className="p-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/60">
+                <tbody className="divide-y divide-white/5">
                   {influencers.map(inf => {
                     const tier = inf.computedTier || "unknown";
                     const meta = TIER_META[tier];
                     const tierDef = tierStats?.find(t => t.id === tier);
                     return (
-                      <tr key={inf.id} className="hover:bg-gray-800/30 transition-colors group">
-                        <td className="p-3"><input type="checkbox" checked={selected.has(inf.id)} onChange={() => toggleSel(inf.id)} /></td>
-                        <td className="p-3 min-w-[180px]">
+                      <tr key={inf.id} className="hover:bg-white/5 transition-colors group">
+                        <td className="p-3.5"><input type="checkbox" checked={selected.has(inf.id)} onChange={() => toggleSel(inf.id)} className="accent-purple-500" /></td>
+                        <td className="p-3.5 min-w-[200px]">
                           <div className="flex items-center gap-3">
                             {/* Avatar */}
-                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.bg} border ${meta.border} flex items-center justify-center flex-shrink-0 text-sm font-bold ${meta.text}`}>
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${meta.bg} border ${meta.border} flex items-center justify-center flex-shrink-0 text-base font-black ${meta.text}`}>
                               {inf.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <button onClick={() => openDetail(inf)} className="font-semibold text-white hover:text-purple-300 truncate block text-left max-w-[160px]">
+                              <button onClick={() => openDetail(inf)} className="font-bold text-white hover:text-purple-300 truncate block text-left max-w-[160px] text-[13px]">
                                 {inf.name}
                               </button>
-                              {inf.aiSummary && <p className="text-xs text-gray-500 line-clamp-1 max-w-[160px]">{inf.aiSummary}</p>}
-                              {inf.country && <p className="text-xs text-gray-600">{inf.country}</p>}
+                              {inf.aiSummary && <p className="text-xs text-gray-400 line-clamp-1 max-w-[160px] mt-0.5">{inf.aiSummary}</p>}
+                              {inf.country && <p className="text-xs text-gray-500 mt-0.5">{inf.country}</p>}
                             </div>
                           </div>
                         </td>
-                        <td className="p-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${meta.badge}`}>
+                        <td className="p-3.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${meta.badge}`}>
                             {meta.icon}
                             {tierDef?.emoji} {tierDef?.label || tier}
                           </span>
                         </td>
-                        <td className="p-3 text-gray-300">{inf.niche || "—"}</td>
-                        <td className="p-3">
-                          <span className={`font-semibold ${meta.text}`}>{fmtFollowers(inf.followers)}</span>
+                        <td className="p-3.5 text-gray-200 font-medium">{inf.niche || "—"}</td>
+                        <td className="p-3.5">
+                          <span className={`font-black text-base ${meta.text}`}>{fmtFollowers(inf.followers)}</span>
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-1.5">
@@ -625,43 +647,43 @@ export default function AdminInfluencerCRM() {
                             )}
                           </div>
                         </td>
-                        <td className="p-3">
-                          <div className="space-y-0.5 text-xs">
+                        <td className="p-3.5">
+                          <div className="space-y-1 text-xs">
                             {inf.email && (
-                              <a href={`mailto:${inf.email}`} className="flex items-center gap-1 text-purple-400 hover:text-purple-300 truncate max-w-[140px]">
+                              <a href={`mailto:${inf.email}`} className="flex items-center gap-1.5 text-purple-300 hover:text-purple-200 truncate max-w-[150px] font-medium">
                                 <Mail className="w-3 h-3 flex-shrink-0" />{inf.email}
                               </a>
                             )}
-                            {inf.phone && <a href={`tel:${inf.phone}`} className="flex items-center gap-1 text-blue-400 hover:text-blue-300"><Phone className="w-3 h-3" />{inf.phone}</a>}
-                            {!inf.email && !inf.phone && <span className="text-gray-600">No contact</span>}
+                            {inf.phone && <a href={`tel:${inf.phone}`} className="flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-medium"><Phone className="w-3 h-3" />{inf.phone}</a>}
+                            {!inf.email && !inf.phone && <span className="text-gray-600 italic">No contact</span>}
                           </div>
                         </td>
-                        <td className="p-3">
+                        <td className="p-3.5">
                           <Select value={inf.status || "new"} onValueChange={v => statusMutation.mutate({ id: inf.id, status: v })}>
-                            <SelectTrigger className={`h-7 text-xs px-2 border rounded-full w-[110px] ${STATUS_COLORS[inf.status || "new"] || STATUS_COLORS.new}`}>
+                            <SelectTrigger className={`h-7 text-xs px-2.5 border rounded-full w-[115px] font-semibold ${STATUS_COLORS[inf.status || "new"] || STATUS_COLORS.new}`}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-gray-900 border-gray-700 text-xs">
                               {["new","contacted","replied","converted","archived"].map(s => (
-                                <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                                <SelectItem key={s} value={s} className="capitalize font-medium">{s}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3.5 text-right">
                           <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button size="sm" variant="ghost" onClick={() => openDetail(inf)} title="View profile" className="h-7 w-7 p-0 text-gray-400 hover:text-white">
+                            <Button size="sm" variant="ghost" onClick={() => openDetail(inf)} title="View profile" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg">
                               <Eye className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => openOutreach(inf)} title="Reach out" className="h-7 w-7 p-0 text-purple-400 hover:text-purple-300">
+                            <Button size="sm" variant="ghost" onClick={() => openOutreach(inf)} title="Reach out" className="h-8 w-8 p-0 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg">
                               <Send className="w-3.5 h-3.5" />
                             </Button>
                             {inf.whatsapp && (
                               <a href={`https://wa.me/${inf.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noreferrer">
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-400 hover:text-emerald-300"><MessageCircle className="w-3.5 h-3.5" /></Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></Button>
                               </a>
                             )}
-                            <Button size="sm" variant="ghost" onClick={() => { if (confirm(`Delete ${inf.name}?`)) deleteMutation.mutate(inf.id); }} className="h-7 w-7 p-0 text-red-400 hover:text-red-300">
+                            <Button size="sm" variant="ghost" onClick={() => { if (confirm(`Delete ${inf.name}?`)) deleteMutation.mutate(inf.id); }} className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg">
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>

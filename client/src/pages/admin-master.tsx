@@ -3656,7 +3656,7 @@ export default function AdminMaster() {
                       setCrawlRunning(true);
                       setCrawlResult(null);
                       try {
-                        const res = await apiRequest("POST", "/api/admin/influencer-crm/crawl", { limit: 20 });
+                        const res = await apiRequest("POST", "/api/admin/influencer-crm/crawl", { niche: "Social Media", platforms: ["instagram", "tiktok", "youtube"], maxPerQuery: 20 });
                         const data = await res.json();
                         setCrawlResult({ discovered: data.discovered ?? data.added ?? 0, added: data.added ?? 0 });
                       } catch (e) {
