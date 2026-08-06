@@ -2080,7 +2080,19 @@ export default function AdminMaster() {
   const [feedPostForm, setFeedPostForm] = useState({ content: "", imageUrl: "", videoUrl: "" });
 
   // Proof preview modal state
-  const [proofModal, setProofModal] = useState<{open: boolean; url?: string; txHash?: string; network?: string; amount?: string; label?: string}>({ open: false });
+  const [proofModal, setProofModal] = useState<{
+    open: boolean;
+    url?: string;
+    txHash?: string;
+    network?: string;
+    amount?: string;
+    label?: string;
+    /** Which payment type this proof belongs to — drives Approve/Reject buttons */
+    type?: "course" | "shop" | "subscription" | "escrow";
+    itemId?: string;
+    plan?: string;
+    itemStatus?: string;
+  }>({ open: false });
   // Shop analytics drill-down
   const [shopAnalyticsProduct, setShopAnalyticsProduct] = useState<any>(null);
 
@@ -2611,6 +2623,7 @@ export default function AdminMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/escrow-payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
       toast({ title: "✅ Approved!", description: "Payment verified and campaign activated" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -2637,6 +2650,7 @@ export default function AdminMaster() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
       toast({ title: "✅ Subscription activated!", description: "User has been notified and premium features enabled." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -2853,6 +2867,7 @@ export default function AdminMaster() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
       toast({ title: "Enrollment approved!" });
     },
   });
@@ -3079,6 +3094,64 @@ export default function AdminMaster() {
               <div className="text-center py-8 text-gray-500">
                 <FileText className="w-10 h-10 mx-auto mb-3 text-gray-600" />
                 <p className="text-sm">No proof details available</p>
+              </div>
+            )}
+
+            {/* Approve / Reject actions — shown for pending payments */}
+            {proofModal.type && proofModal.itemId && proofModal.itemStatus !== "active" && proofModal.itemStatus !== "verified" && proofModal.itemStatus !== "paid" && (
+              <div className="flex gap-3 pt-4 border-t border-gray-700">
+                <Button
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  disabled={approveEnrollmentMutation.isPending || approveSubscription.isPending || approveEscrow.isPending}
+                  onClick={() => {
+                    const { type, itemId, plan } = proofModal;
+                    if (type === "course") approveEnrollmentMutation.mutate(itemId!);
+                    else if (type === "shop") {
+                      apiRequest("PATCH", `/api/admin/purchases/${itemId}/approve`, {})
+                        .then(() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/admin/payments-unified"] });
+                          toast({ title: "Order approved — now deliver access via the Order Delivery panel." });
+                        })
+                        .catch(() => toast({ title: "Failed to approve", variant: "destructive" }));
+                    }
+                    else if (type === "subscription") approveSubscription.mutate({ id: itemId!, plan });
+                    else if (type === "escrow") approveEscrow.mutate(itemId!);
+                    setProofModal(m => ({ ...m, open: false }));
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {approveEnrollmentMutation.isPending || approveSubscription.isPending || approveEscrow.isPending ? "Approving..." : "Approve Payment"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-rose-600 text-rose-400 hover:bg-rose-950/40 font-semibold"
+                  disabled={rejectEscrow.isPending || rejectSubscription.isPending}
+                  onClick={() => {
+                    const { type, itemId } = proofModal;
+                    const reason = prompt("Rejection reason (optional):") || "Payment proof could not be verified.";
+                    if (type === "course") {
+                      apiRequest("POST", `/api/courses/enrollments/${itemId}/reject`, { reason })
+                        .then(() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] });
+                          toast({ title: "Enrollment rejected" });
+                        })
+                        .catch(() => toast({ title: "Failed to reject", variant: "destructive" }));
+                    } else if (type === "shop") {
+                      apiRequest("PATCH", `/api/admin/purchases/${itemId}/disapprove`, {})
+                        .then(() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+                          toast({ title: "Order rejected." });
+                        })
+                        .catch(() => toast({ title: "Failed to reject", variant: "destructive" }));
+                    } else if (type === "subscription") rejectSubscription.mutate({ id: itemId!, reason });
+                    else if (type === "escrow") rejectEscrow.mutate({ id: itemId!, reason });
+                    setProofModal(m => ({ ...m, open: false }));
+                  }}
+                >
+                  <XCircle className="w-4 h-4 mr-2" /> Reject
+                </Button>
               </div>
             )}
           </div>
@@ -4986,9 +5059,22 @@ export default function AdminMaster() {
                             </div>
                           </div>
                           {e.paymentProof && (
-                            <a href={e.paymentProof.startsWith("http") ? e.paymentProof : `/${e.paymentProof}`} target="_blank" rel="noreferrer" className="text-xs text-violet-600 underline flex-shrink-0">
-                              View proof ↗
-                            </a>
+                            <button
+                              className="text-xs text-violet-600 underline flex-shrink-0 hover:text-violet-800 flex items-center gap-1"
+                              onClick={() => setProofModal({
+                                open: true,
+                                url: e.paymentProof.startsWith("http") ? e.paymentProof : `/${e.paymentProof}`,
+                                txHash: e.transactionHash,
+                                network: e.paymentMethod,
+                                amount: e.amount,
+                                label: e.course?.title || "Course Enrollment",
+                                type: "course",
+                                itemId: e.id,
+                                itemStatus: e.status,
+                              })}
+                            >
+                              <Eye className="w-3 h-3" /> View proof
+                            </button>
                           )}
                           <div className="flex gap-2 flex-shrink-0">
                             <EnrollmentPaymentDialog
@@ -5039,9 +5125,22 @@ export default function AdminMaster() {
                             </div>
                           </div>
                           {p.paymentProof && (
-                            <a href={p.paymentProof.startsWith("http") ? p.paymentProof : `/${p.paymentProof}`} target="_blank" rel="noreferrer" className="text-xs text-violet-600 underline flex-shrink-0">
-                              View proof ↗
-                            </a>
+                            <button
+                              className="text-xs text-violet-600 underline flex-shrink-0 hover:text-violet-800 flex items-center gap-1"
+                              onClick={() => setProofModal({
+                                open: true,
+                                url: p.paymentProof.startsWith("http") ? p.paymentProof : `/${p.paymentProof}`,
+                                txHash: p.transactionHash,
+                                network: p.paymentMethod,
+                                amount: p.totalAmount || p.amount,
+                                label: p.product?.title || "Shop Order",
+                                type: "shop",
+                                itemId: p.id,
+                                itemStatus: p.status,
+                              })}
+                            >
+                              <Eye className="w-3 h-3" /> View proof
+                            </button>
                           )}
                           <div className="flex gap-2 flex-shrink-0">
                             <Button
@@ -5195,6 +5294,10 @@ export default function AdminMaster() {
                                     network: sp.network,
                                     amount: sp.amount,
                                     label: `${planLabel} — ${sp.user?.email || "subscription"}`,
+                                    type: "subscription",
+                                    itemId: sp.id,
+                                    plan: sp.plan,
+                                    itemStatus: sp.status,
                                   })}
                                   data-testid={`btn-view-subscription-${sp.id}`}
                                 >
@@ -5353,6 +5456,9 @@ export default function AdminMaster() {
                                     network: ep.network,
                                     amount: ep.amount,
                                     label: ep.campaign?.title || "Campaign Payment",
+                                    type: "escrow",
+                                    itemId: ep.id,
+                                    itemStatus: ep.status,
                                   })}
                                 >
                                   <Eye className="h-4 w-4 mr-1.5" /> View Proof
@@ -6157,9 +6263,17 @@ export default function AdminMaster() {
                           {bsViewReg.paymentProof && (
                             <div>
                               <p className="text-xs text-gray-500 font-medium mb-1">Payment Proof</p>
-                              <a href={bsViewReg.paymentProof} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline text-xs flex items-center gap-1">
-                                <ExternalLink className="h-3 w-3" /> View payment proof
-                              </a>
+                              <button
+                                className="text-violet-600 hover:underline text-xs flex items-center gap-1"
+                                onClick={() => setProofModal({
+                                  open: true,
+                                  url: bsViewReg.paymentProof.startsWith("http") ? bsViewReg.paymentProof : `/${bsViewReg.paymentProof}`,
+                                  amount: bsViewReg.amountUsd ? String(bsViewReg.amountUsd) : undefined,
+                                  label: `${bsViewReg.user?.firstName || ""} ${bsViewReg.user?.lastName || ""} — BreedSkool Registration`,
+                                })}
+                              >
+                                <Eye className="h-3 w-3" /> View payment proof
+                              </button>
                             </div>
                           )}
                           <div>

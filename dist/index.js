@@ -12730,6 +12730,22 @@ async function registerRoutes(app2, existingServer) {
         addonsTotal: addonsTotal.toFixed(2)
       });
       const purchase = await storage.createPurchase(validatedData);
+      try {
+        const adminForPurchase = await storage.getAdminUser();
+        if (adminForPurchase) {
+          const buyer = await storage.getUser(userId);
+          const productTitle = purchase.productId ? (await storage.getShopProductById(purchase.productId))?.title || "item" : "item";
+          await storage.createNotification({
+            userId: adminForPurchase.id,
+            type: "order",
+            title: `\u{1F6D2} New Shop Order \u2014 ${productTitle}`,
+            content: `${buyer?.firstName || "A user"} ${buyer?.lastName || ""} placed an order for "${productTitle}" (${finalTotal} USD). Review & approve in Admin \u2192 Payments.`,
+            priority: "high",
+            actionUrl: "/admin/payments"
+          });
+        }
+      } catch (_e) {
+      }
       res.json(purchase);
     } catch (error) {
       console.error("Error creating purchase:", error);
@@ -13840,6 +13856,36 @@ async function registerRoutes(app2, existingServer) {
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
+  app2.get("/api/admin/platform-funds", isAuthenticated, async (req, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Access denied" });
+      const allEscrow = await storage.getAllEscrowPayments();
+      const escrowTotal = allEscrow.filter((e) => e.status === "verified").reduce((s, e) => s + parseFloat(e.amount || "0"), 0);
+      const allPurchases = await storage.getAllPurchases();
+      const shopTotal = allPurchases.filter((p) => p.status === "paid" || p.status === "delivered").reduce((s, p) => s + parseFloat(p.totalAmount || "0"), 0);
+      const allEnrollments = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status, paymentStatus: courseEnrollments.paymentStatus, courseId: courseEnrollments.courseId }).from(courseEnrollments);
+      const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
+      let courseTotal = 0;
+      for (const e of approvedEnrollmentIds) {
+        const course = await db.select({ price: courses.price }).from(courses).where(eq11(courses.id, e.courseId)).limit(1);
+        courseTotal += parseFloat(course[0]?.price || "0");
+      }
+      const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
+      const subTotal = allSubs.filter((s) => s.status === "active").reduce((sum, s) => sum + parseFloat(s.amount || "0"), 0);
+      const grandTotal = escrowTotal + shopTotal + courseTotal + subTotal;
+      res.json({
+        total: grandTotal.toFixed(2),
+        escrow: escrowTotal.toFixed(2),
+        shop: shopTotal.toFixed(2),
+        courses: courseTotal.toFixed(2),
+        subscriptions: subTotal.toFixed(2)
+      });
+    } catch (error) {
+      console.error("Error fetching platform funds:", error);
+      res.status(500).json({ message: "Failed to fetch platform funds" });
+    }
+  });
   app2.get("/api/admin/campaigns", isAuthenticated, async (req, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
@@ -14156,7 +14202,7 @@ async function registerRoutes(app2, existingServer) {
         acc.gross += Number(t.amount) || 0;
         if (["completed", "released", "paid", "approved", "active"].includes(String(t.status))) acc.settled += Number(t.amount) || 0;
         if (["pending", "funded", "delivered", "submitted"].includes(String(t.status))) acc.pending += Number(t.amount) || 0;
-        acc.bySource[t.source] = (acc.bySource[t.source] || 0) + 1;
+        acc.bySource[t.source] = (acc.bySource[t.source] || 0) + (Number(t.amount) || 0);
         return acc;
       }, { count: 0, gross: 0, settled: 0, pending: 0, bySource: {} });
       res.json({ items: unified, totals });
@@ -14170,8 +14216,10 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const admin = await storage.getAdminUser();
-      const adminId = admin?.id;
-      const safeSelect = async (q) => q.catch(() => []);
+      const safeSelect = async (q) => q.catch((e) => {
+        console.error("[analytics safeSelect]", e?.message || e);
+        return [];
+      });
       const [
         subRows,
         purchaseRows,
@@ -14244,9 +14292,13 @@ async function registerRoutes(app2, existingServer) {
           user: u(r.userId)
         };
       });
-      const hireDevRecords = hireRows.filter((r) => r.influencerId === adminId).map((r) => ({
+      const adminIdSet = new Set(
+        allUsers.filter((u2) => u2.userType === "admin").map((u2) => u2.id)
+      );
+      if (admin?.id) adminIdSet.add(admin.id);
+      const hireDevRecords = hireRows.filter((r) => adminIdSet.has(r.influencerId)).map((r) => ({
         id: r.id,
-        amount: +r.budget,
+        amount: +(r.agreedBudget || r.budget || 0),
         status: r.status,
         createdAt: r.createdAt,
         title: r.title,
@@ -14255,7 +14307,7 @@ async function registerRoutes(app2, existingServer) {
         invoiceNumber: r.invoiceNumber,
         user: u(r.brandId)
       }));
-      const directHireRecords = hireRows.filter((r) => r.influencerId !== adminId).map((r) => ({
+      const directHireRecords = hireRows.filter((r) => !adminIdSet.has(r.influencerId)).map((r) => ({
         id: r.id,
         amount: +r.budget,
         status: r.status,
@@ -14622,6 +14674,20 @@ async function registerRoutes(app2, existingServer) {
             priority: "high"
           }).catch(() => {
           });
+          storage.getAdminUser().then((adminUser) => {
+            if (adminUser) {
+              storage.createNotification({
+                userId: adminUser.id,
+                type: "order",
+                title: `\u{1F6D2} New Shop Order: ${product.title}`,
+                content: `${buyer2.firstName || "A customer"} ${buyer2.lastName || ""} placed an order. Review and approve in Admin \u2192 Shop tab.`,
+                priority: "high",
+                actionUrl: "/admin-dashboard"
+              }).catch(() => {
+              });
+            }
+          }).catch(() => {
+          });
         }
         return res.status(201).json(purchase2);
       }
@@ -14681,6 +14747,22 @@ async function registerRoutes(app2, existingServer) {
           priority: "high"
         }).catch(() => {
         });
+        if (!product.isFree) {
+          storage.getAdminUser().then((adminUser) => {
+            if (adminUser) {
+              storage.createNotification({
+                userId: adminUser.id,
+                type: "order",
+                title: `\u{1F6D2} New Shop Order: ${product.title}`,
+                content: `${buyer.firstName || "A customer"} ${buyer.lastName || ""} placed an order for $${purchase.amount}. Review and approve in Admin \u2192 Shop tab.`,
+                priority: "high",
+                actionUrl: "/admin-dashboard"
+              }).catch(() => {
+              });
+            }
+          }).catch(() => {
+          });
+        }
       }
       res.status(201).json(purchase);
     } catch (error) {
@@ -14983,6 +15065,22 @@ async function registerRoutes(app2, existingServer) {
         priority: "normal",
         actionUrl: "/subscription"
       });
+      try {
+        const adminForSub = await storage.getAdminUser();
+        if (adminForSub) {
+          const u = await storage.getUser(req.user.id);
+          const label = plan.includes("brand") ? "Brand Pro" : "Premium";
+          await storage.createNotification({
+            userId: adminForSub.id,
+            type: "subscription",
+            title: `\u{1F4B3} New Subscription Payment \u2014 ${label}`,
+            content: `${u?.firstName || "A user"} ${u?.lastName || ""} submitted a ${periodLabel} ${label} payment proof (${plan}). Review and approve in Admin \u2192 Subscriptions.`,
+            priority: "high",
+            actionUrl: "/admin-dashboard"
+          });
+        }
+      } catch (_e) {
+      }
       res.status(201).json(sub);
     } catch (error) {
       console.error("Error creating subscription:", error);
@@ -15227,6 +15325,67 @@ async function registerRoutes(app2, existingServer) {
       res.json(sub);
     } catch (error) {
       res.status(500).json({ message: "Failed to approve subscription" });
+    }
+  });
+  app2.get("/api/admin/hire-requests", isAuthenticated, async (req, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
+      const offers = await storage.getAllDirectHireOffers();
+      const enriched = await Promise.all(offers.map(async (o) => {
+        const client = o.brandId ? await storage.getUser(o.brandId) : null;
+        return {
+          ...o,
+          client: client ? {
+            id: client.id,
+            firstName: client.firstName,
+            lastName: client.lastName,
+            email: client.email,
+            profileImageUrl: client.profileImageUrl
+          } : null
+        };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error listing hire requests:", error);
+      res.status(500).json({ message: "Failed to list hire requests" });
+    }
+  });
+  app2.patch("/api/admin/hire-requests/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
+      const { status, adminNote } = req.body || {};
+      const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
+      if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(directHireOffers.id, req.params.id)).returning();
+      if (!updated) return res.status(404).json({ message: "Hire request not found" });
+      if (updated.brandId) {
+        const statusLabels = {
+          accepted: "Accepted \u2705",
+          in_progress: "In Progress \u{1F528}",
+          payment_window: "Payment Required \u{1F4B3}",
+          completed: "Completed \u{1F389}",
+          rejected: "Rejected \u274C",
+          cancelled: "Cancelled"
+        };
+        const label = statusLabels[status];
+        if (label) {
+          storage.createNotification({
+            userId: updated.brandId,
+            type: "direct_hire",
+            title: `Dev Project ${label}`,
+            content: adminNote || `Your project "${updated.title}" status has been updated to ${label}.`,
+            priority: status === "rejected" || status === "completed" ? "high" : "normal",
+            actionUrl: `/direct-hire/${req.params.id}`
+          }).catch(() => {
+          });
+        }
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating hire request status:", error);
+      res.status(500).json({ message: "Failed to update hire request status" });
     }
   });
   app2.get("/api/payout-requests", isAuthenticated, async (req, res) => {
@@ -17178,6 +17337,23 @@ Instructions:
         });
       } catch (pointsErr) {
         console.error("Failed to award course enroll points:", pointsErr);
+      }
+      if (!course.isFree && !isPayLater) {
+        try {
+          const adminForEnroll = await storage.getAdminUser();
+          if (adminForEnroll) {
+            const student = await storage.getUser(req.user.id);
+            await storage.createNotification({
+              userId: adminForEnroll.id,
+              type: "course_enrollment",
+              title: `\u{1F4DA} New Course Enrollment \u2014 ${course.title || "Course"}`,
+              content: `${student?.firstName || "A user"} ${student?.lastName || ""} enrolled in "${course.title || "a course"}" (${effectivePrice} USD). Review & approve in Admin \u2192 Payments.`,
+              priority: "high",
+              actionUrl: "/admin/payments"
+            });
+          }
+        } catch (_e) {
+        }
       }
       res.status(201).json(enrollment);
     } catch (error) {
@@ -21126,12 +21302,16 @@ ${body}`,
           };
         }));
       }
-      let directHireOrders = [];
-      if (user.userType === "brand") {
-        directHireOrders = await storage.getDirectHireOffersByBrand(userId);
-      } else if (user.userType === "influencer") {
-        directHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
+      const brandHireOrders = await storage.getDirectHireOffersByBrand(userId);
+      let influencerHireOrders = [];
+      if (user.userType === "influencer" || user.userType === "admin") {
+        influencerHireOrders = await storage.getDirectHireOffersByInfluencer(userId);
       }
+      const hireMap = /* @__PURE__ */ new Map();
+      for (const o of [...brandHireOrders, ...influencerHireOrders]) hireMap.set(o.id, o);
+      const directHireOrders = Array.from(hireMap.values()).sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
       const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql10`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc7(advertiseApplications.createdAt)) : [];
       const adPaymentDeposits = await db.select().from(paymentDeposits).where(and7(
         eq11(paymentDeposits.brandId, userId),
