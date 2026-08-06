@@ -121,7 +121,6 @@ export default function AdminDashboard() {
 
   // ── Subscriptions state ──
   const [rejectSubDialog, setRejectSubDialog] = useState<{ open: boolean; id: string; reason: string }>({ open: false, id: "", reason: "" });
-  const [subProofZoom, setSubProofZoom] = useState<string | null>(null);
   const [subFilter, setSubFilter] = useState<"all" | "pending" | "active" | "rejected">("all");
 
   // ── Hire Requests state ──
@@ -169,6 +168,7 @@ export default function AdminDashboard() {
   const { data: adminUsers = [] } = useQuery<any[]>({ queryKey: ["/api/admin/users"] });
   const { data: referralStats } = useQuery<any>({ queryKey: ["/api/admin/referral-stats"] });
   const { data: referralCommData, refetch: refetchReferralComm } = useQuery<any>({ queryKey: ["/api/admin/referral-commissions"] });
+  const { data: platformFunds } = useQuery<any>({ queryKey: ["/api/admin/platform-funds"], enabled: isAuthenticated });
 
   // ── Subscriptions ──
   const { data: adminSubscriptions = [], isLoading: subsLoading } = useQuery<any[]>({
@@ -185,8 +185,15 @@ export default function AdminDashboard() {
   // ── Shop Orders ──
   const [shopSubTab, setShopSubTab] = useState<"orders" | "products">("orders");
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [shopProofZoom, setShopProofZoom] = useState<string | null>(null);
   const [deliverDialog, setDeliverDialog] = useState<{ open: boolean; id: string; downloadUrl: string; accessUrl: string; accessNotes: string }>({ open: false, id: "", downloadUrl: "", accessUrl: "", accessNotes: "" });
+
+  // ── Unified payment proof modal (shop / course / subscription) ──
+  const [paymentProofModal, setPaymentProofModal] = useState<{
+    url: string;
+    type: "shop" | "course" | "subscription";
+    id: string;
+    plan?: string;
+  } | null>(null);
 
   const { data: adminPurchases = [], isLoading: purchasesLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/purchases"],
@@ -197,7 +204,12 @@ export default function AdminDashboard() {
 
   const approveShopOrderMutation = useMutation({
     mutationFn: async (id: string) => { const r = await apiRequest("PATCH", `/api/admin/purchases/${id}/approve`); return r.json(); },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] }); setSelectedOrder(null); toast({ title: "Order Approved ✅", description: "Customer has been notified." }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
+      setSelectedOrder(null);
+      toast({ title: "Order Approved ✅", description: "Customer has been notified." });
+    },
     onError: (e: any) => toast({ title: "Failed to approve", description: e.message, variant: "destructive" }),
   });
 
@@ -249,7 +261,11 @@ export default function AdminDashboard() {
 
   const approveEnrollmentMutation = useMutation({
     mutationFn: async (id: string) => { const r = await apiRequest("POST", `/api/courses/enrollments/${id}/approve`); return r.json(); },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] }); toast({ title: "Enrollment Approved! ✅" }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
+      toast({ title: "Enrollment Approved! ✅" });
+    },
     onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
   });
 
@@ -301,6 +317,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/escrow-payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
       toast({ title: "Campaign Approved! 🎉", description: "Campaign is now live and influencers notified." });
     },
     onError: () => toast({ title: "Failed to approve", variant: "destructive" }),
@@ -373,6 +390,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/platform-funds"] });
       toast({ title: "Subscription Approved ✅", description: "User has been notified and access granted." });
     },
     onError: (e: any) => toast({ title: "Failed to approve", description: e.message, variant: "destructive" }),
@@ -494,7 +512,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mt-8">
             {[
               { label: "Total Campaigns", value: totalCampaigns, color: "text-blue-300" },
               { label: "Active Campaigns", value: activeCampaigns, color: "text-green-300" },
@@ -503,6 +521,7 @@ export default function AdminDashboard() {
               { label: "Open Applications", value: pendingParticipations, color: "text-purple-300" },
               { label: "Pending Subs", value: pendingSubscriptions, color: "text-cyan-300" },
               { label: "Pending Hires", value: pendingHireRequests, color: "text-orange-300" },
+              { label: "Pending Orders", value: pendingShopOrders.length, color: "text-orange-300" },
             ].map((stat) => (
               <div key={stat.label} className="bg-white/10 rounded-xl p-4 border border-white/10">
                 <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
@@ -510,6 +529,27 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+
+          {/* Funds Received Summary */}
+          {platformFunds && (
+            <div className="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="col-span-2 md:col-span-1 bg-emerald-500/20 border border-emerald-400/30 rounded-xl p-4">
+                <div className="text-xs text-emerald-300 font-medium mb-1">💰 Total Funds Received</div>
+                <div className="text-2xl font-bold text-emerald-300">${parseFloat(platformFunds.total).toFixed(2)}</div>
+              </div>
+              {[
+                { label: "Campaigns (Escrow)", value: platformFunds.escrow },
+                { label: "Shop Orders", value: platformFunds.shop },
+                { label: "Courses", value: platformFunds.courses },
+                { label: "Subscriptions", value: platformFunds.subscriptions },
+              ].map(item => (
+                <div key={item.label} className="bg-white/10 rounded-xl p-3 border border-white/10">
+                  <div className="text-xs text-slate-400 mb-1">{item.label}</div>
+                  <div className="text-lg font-bold text-white">${parseFloat(item.value).toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Main Tabs */}
@@ -1099,7 +1139,11 @@ export default function AdminDashboard() {
                           {order.paymentProof && (
                             <button
                               className="mt-2 text-xs text-blue-600 underline flex items-center gap-1 hover:text-blue-800"
-                              onClick={() => setShopProofZoom(order.paymentProof)}
+                              onClick={() => setPaymentProofModal({
+                                url: order.paymentProof.startsWith("/") ? order.paymentProof : `/${order.paymentProof}`,
+                                type: "shop",
+                                id: order.id,
+                              })}
                             >
                               <Eye className="w-3 h-3" /> View Payment Proof
                             </button>
@@ -1296,7 +1340,16 @@ export default function AdminDashboard() {
                             </div>
                           )}
                           {e.paymentProof && (
-                            <a href={e.paymentProof} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1 block">View Payment Proof</a>
+                            <button
+                              onClick={() => setPaymentProofModal({
+                                url: e.paymentProof.startsWith("/") ? e.paymentProof : `/${e.paymentProof}`,
+                                type: "course",
+                                id: e.id,
+                              })}
+                              className="mt-1 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 underline"
+                            >
+                              <Eye className="w-3 h-3" /> View Payment Proof
+                            </button>
                           )}
                           <div className="text-xs text-gray-400 mt-1">{e.enrolledAt ? formatDistanceToNow(new Date(e.enrolledAt), { addSuffix: true }) : ""}</div>
                         </div>
@@ -1876,7 +1929,12 @@ export default function AdminDashboard() {
                             )}
                             {sub.paymentProof && (
                               <button
-                                onClick={() => setSubProofZoom(sub.paymentProof.startsWith("/") ? sub.paymentProof : `/${sub.paymentProof}`)}
+                                onClick={() => setPaymentProofModal({
+                                  url: sub.paymentProof.startsWith("/") ? sub.paymentProof : `/${sub.paymentProof}`,
+                                  type: "subscription",
+                                  id: sub.id,
+                                  plan: sub.plan,
+                                })}
                                 className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 underline"
                               >
                                 <Eye className="w-3 h-3" /> View Payment Proof
@@ -2137,16 +2195,6 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Subscription Payment Proof Zoom */}
-      <Dialog open={!!subProofZoom} onOpenChange={() => setSubProofZoom(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Subscription Payment Proof</DialogTitle></DialogHeader>
-          {subProofZoom && (
-            <img src={subProofZoom} alt="Payment proof" className="w-full rounded-xl border object-contain max-h-[70vh]" />
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Reject Subscription Dialog */}
       <Dialog open={rejectSubDialog.open} onOpenChange={open => !open && setRejectSubDialog(p => ({ ...p, open: false }))}>
         <DialogContent>
@@ -2205,12 +2253,52 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Shop Payment Proof Zoom */}
-      <Dialog open={!!shopProofZoom} onOpenChange={() => setShopProofZoom(null)}>
+      {/* Unified Payment Proof Modal — shop, course, subscription */}
+      <Dialog open={!!paymentProofModal} onOpenChange={() => setPaymentProofModal(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Payment Proof</DialogTitle></DialogHeader>
-          {shopProofZoom && (
-            <img src={shopProofZoom} alt="Payment proof" className="w-full rounded-xl border object-contain max-h-[70vh]" />
+          <DialogHeader>
+            <DialogTitle>
+              {paymentProofModal?.type === "shop" ? "Shop Order" : paymentProofModal?.type === "course" ? "Course Enrollment" : "Subscription"} — Payment Proof
+            </DialogTitle>
+          </DialogHeader>
+          {paymentProofModal && (
+            <div className="space-y-4">
+              <img
+                src={paymentProofModal.url}
+                alt="Payment proof"
+                className="w-full rounded-xl border object-contain max-h-[55vh]"
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="flex gap-3 pt-2 border-t">
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={approveShopOrderMutation.isPending || approveEnrollmentMutation.isPending || approveSubMutation.isPending}
+                  onClick={() => {
+                    const { type, id, plan } = paymentProofModal;
+                    if (type === "shop") approveShopOrderMutation.mutate(id);
+                    else if (type === "course") approveEnrollmentMutation.mutate(id);
+                    else if (type === "subscription") approveSubMutation.mutate({ id, plan });
+                    setPaymentProofModal(null);
+                  }}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  {approveShopOrderMutation.isPending || approveEnrollmentMutation.isPending || approveSubMutation.isPending ? "Approving..." : "Approve Payment"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => {
+                    const { type, id } = paymentProofModal;
+                    if (type === "shop") rejectShopOrderMutation.mutate(id);
+                    else if (type === "course") rejectEnrollmentMutation.mutate(id);
+                    else if (type === "subscription") setRejectSubDialog({ open: true, id, reason: "" });
+                    setPaymentProofModal(null);
+                  }}
+                >
+                  <XCircle className="w-4 h-4 mr-2" /> Reject
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>

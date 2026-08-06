@@ -3516,6 +3516,57 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // ── Admin: aggregate platform funds received from all payment types ──
+  app.get('/api/admin/platform-funds', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.id);
+      if (adminUser?.userType !== 'admin') return res.status(403).json({ message: 'Access denied' });
+
+      // Escrow (campaign) funds — verified
+      const allEscrow = await (storage as any).getAllEscrowPayments();
+      const escrowTotal = allEscrow
+        .filter((e: any) => e.status === 'verified')
+        .reduce((s: number, e: any) => s + parseFloat(e.amount || '0'), 0);
+
+      // Shop order funds — paid or delivered
+      const allPurchases = await storage.getAllPurchases();
+      const shopTotal = (allPurchases as any[])
+        .filter((p: any) => p.status === 'paid' || p.status === 'delivered')
+        .reduce((s: number, p: any) => s + parseFloat(p.totalAmount || '0'), 0);
+
+      // Course enrollment funds — active enrollments joined with course price
+      const allEnrollments = await db
+        .select({ id: courseEnrollments.id, status: courseEnrollments.status, paymentStatus: courseEnrollments.paymentStatus, courseId: courseEnrollments.courseId })
+        .from(courseEnrollments);
+      const approvedEnrollmentIds = (allEnrollments as any[])
+        .filter((e: any) => e.status === 'active' || e.paymentStatus === 'approved');
+      let courseTotal = 0;
+      for (const e of approvedEnrollmentIds) {
+        const course = await db.select({ price: courses.price }).from(courses).where(eq(courses.id, e.courseId)).limit(1);
+        courseTotal += parseFloat((course[0] as any)?.price || '0');
+      }
+
+      // Subscription funds — active subscriptions with an amount
+      const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
+      const subTotal = (allSubs as any[])
+        .filter((s: any) => s.status === 'active')
+        .reduce((sum: number, s: any) => sum + parseFloat(s.amount || '0'), 0);
+
+      const grandTotal = escrowTotal + shopTotal + courseTotal + subTotal;
+
+      res.json({
+        total: grandTotal.toFixed(2),
+        escrow: escrowTotal.toFixed(2),
+        shop: shopTotal.toFixed(2),
+        courses: courseTotal.toFixed(2),
+        subscriptions: subTotal.toFixed(2),
+      });
+    } catch (error) {
+      console.error('Error fetching platform funds:', error);
+      res.status(500).json({ message: 'Failed to fetch platform funds' });
+    }
+  });
+
   app.get('/api/admin/campaigns', isAuthenticated, async (req: any, res) => {
     try {
       const adminUser = await storage.getUser(req.user.id);
