@@ -3146,6 +3146,220 @@ var init_analytics_injector = __esm({
   }
 });
 
+// server/lead-service.ts
+import { eq as eq8, inArray as inArray5 } from "drizzle-orm";
+async function searchBusinessesGoogle(opts) {
+  if (!GOOGLE_PLACES_KEY) throw new Error("GOOGLE_PLACES_API_KEY not configured");
+  const q = `${opts.query}${opts.location ? " in " + opts.location : ""}${opts.country ? " " + opts.country : ""}`.trim();
+  const max = Math.min(20, Math.max(1, opts.maxResults || 20));
+  const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": GOOGLE_PLACES_KEY,
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.primaryType,places.editorialSummary,places.businessStatus,places.googleMapsUri"
+    },
+    body: JSON.stringify({ textQuery: q, maxResultCount: max, regionCode: opts.country || void 0 })
+  });
+  if (!r.ok) throw new Error(`Places API error ${r.status}: ${await r.text()}`);
+  const j = await r.json();
+  const places = j.places || [];
+  return places.map((p) => {
+    const phone = p.internationalPhoneNumber || p.nationalPhoneNumber || null;
+    return {
+      kind: "business",
+      source: "google_places",
+      externalId: p.id,
+      name: p.displayName?.text || "Unnamed",
+      businessType: p.primaryType || (Array.isArray(p.types) ? p.types[0] : null),
+      address: p.formattedAddress || null,
+      latitude: p.location?.latitude != null ? String(p.location.latitude) : null,
+      longitude: p.location?.longitude != null ? String(p.location.longitude) : null,
+      country: opts.country || null,
+      city: opts.location || null,
+      phone,
+      whatsapp: phone ? phone.replace(/[^\d+]/g, "") : null,
+      website: p.websiteUri || null,
+      rating: p.rating != null ? String(p.rating) : null,
+      reviewCount: p.userRatingCount || null,
+      description: p.editorialSummary?.text || null,
+      raw: p
+    };
+  });
+}
+async function searchInfluencersYouTube(opts) {
+  if (!YOUTUBE_KEY) throw new Error("YOUTUBE_API_KEY not configured");
+  const max = Math.min(25, Math.max(1, opts.maxResults || 15));
+  const sParams = new URLSearchParams({
+    key: YOUTUBE_KEY,
+    part: "snippet",
+    type: "channel",
+    q: opts.query,
+    maxResults: String(max)
+  });
+  if (opts.country) sParams.set("regionCode", opts.country);
+  const sr = await fetch(`https://www.googleapis.com/youtube/v3/search?${sParams}`);
+  if (!sr.ok) throw new Error(`YouTube search error ${sr.status}`);
+  const sj = await sr.json();
+  const ids = (sj.items || []).map((i) => i.snippet?.channelId).filter(Boolean);
+  if (!ids.length) return [];
+  const cParams = new URLSearchParams({ key: YOUTUBE_KEY, part: "snippet,statistics,brandingSettings", id: ids.join(",") });
+  const cr = await fetch(`https://www.googleapis.com/youtube/v3/channels?${cParams}`);
+  if (!cr.ok) throw new Error(`YouTube channel error ${cr.status}`);
+  const cj = await cr.json();
+  return (cj.items || []).map((c) => ({
+    kind: "influencer",
+    source: "youtube",
+    externalId: c.id,
+    name: c.snippet?.title || "Unknown",
+    niche: opts.query,
+    country: c.snippet?.country || opts.country || null,
+    description: c.snippet?.description || null,
+    website: `https://www.youtube.com/channel/${c.id}`,
+    socialLinks: { youtube: `https://www.youtube.com/channel/${c.id}` },
+    followers: parseInt(c.statistics?.subscriberCount || "0", 10) || null,
+    raw: c
+  }));
+}
+async function persistLeads(items) {
+  if (!items.length) return [];
+  const saved = [];
+  for (const it of items) {
+    if (!it.name) continue;
+    if (it.externalId && it.source) {
+      const existing = await db.select().from(leads).where(eq8(leads.externalId, it.externalId)).limit(1);
+      if (existing.length) {
+        saved.push(existing[0]);
+        continue;
+      }
+    }
+    const [row] = await db.insert(leads).values(it).returning();
+    saved.push(row);
+  }
+  return saved;
+}
+async function generateAiReport(lead) {
+  if (!OPENAI_KEY) {
+    const lines = [];
+    lines.push(`**${lead.name}** is a ${lead.kind === "business" ? lead.businessType || "business" : "creator"}${lead.country ? " based in " + (lead.city || "") + " " + lead.country : ""}.`);
+    if (lead.kind === "influencer" && lead.followers) lines.push(`Audience: ~${lead.followers.toLocaleString()} followers.`);
+    if (lead.rating && lead.reviewCount) lines.push(`Reputation: ${lead.rating}\u2605 from ${lead.reviewCount} reviews.`);
+    lines.push("");
+    lines.push("### Growth opportunities on Taskdrip");
+    lines.push("- Run targeted micro-campaigns to verified creators in their niche.");
+    lines.push("- Use $TDRIP boosts to amplify launches and convert engaged users.");
+    lines.push("- Set up an escrow-protected ambassador programme to scale UGC volume.");
+    lines.push("- List products in the Taskdrip Shop with USDT/TON checkout to capture crypto-native buyers.");
+    lines.push("");
+    lines.push("### Suggested first outreach");
+    lines.push(`Hi ${lead.name.split(" ")[0]}, we'd love to help you reach a wider crypto-native audience through Taskdrip's verified influencer marketplace. Open to a 15-min chat?`);
+    const report = lines.join("\n");
+    return { summary: lines[0], report };
+  }
+  const sys = "You are a senior growth strategist at Taskdrip, a Web3 SocialFi influencer marketplace. Produce concise, action-oriented growth reports for a prospect.";
+  const usr = `Prospect (${lead.kind}): ${JSON.stringify({
+    name: lead.name,
+    niche: lead.niche,
+    type: lead.businessType,
+    country: lead.country,
+    city: lead.city,
+    website: lead.website,
+    followers: lead.followers,
+    rating: lead.rating,
+    reviewCount: lead.reviewCount,
+    description: lead.description,
+    social: lead.socialLinks
+  })}
+
+Write:
+1. A 1-sentence summary.
+2. A markdown growth report covering: current positioning, 3 growth opportunities via Taskdrip's marketplace (campaigns, $TDRIP, P2P, shop, ambassador programmes), risks to address, and a personalized 3-line outreach message.
+Return JSON: {"summary":"...","report":"...markdown..."}`;
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_KEY}` },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
+      temperature: 0.6
+    })
+  });
+  if (!r.ok) throw new Error(`OpenAI error ${r.status}: ${await r.text()}`);
+  const j = await r.json();
+  const content = j.choices?.[0]?.message?.content || "{}";
+  try {
+    const parsed = JSON.parse(content);
+    return { summary: parsed.summary || "", report: parsed.report || content };
+  } catch {
+    return { summary: "", report: content };
+  }
+}
+async function sendSmsTwilio(to, body) {
+  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
+    return { error: "Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM." };
+  }
+  const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64");
+  const params = new URLSearchParams({ To: to, From: TWILIO_FROM, Body: body });
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
+    method: "POST",
+    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString()
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return { error: j.message || `Twilio HTTP ${r.status}` };
+  return { sid: j.sid };
+}
+async function bulkSms(opts) {
+  if (!opts.leadIds.length) return [];
+  const all = await db.select().from(leads).where(inArray5(leads.id, opts.leadIds));
+  const results = [];
+  for (const lead of all) {
+    const phone = lead.phone || lead.whatsapp;
+    if (!phone) {
+      await db.insert(leadMessages).values({ leadId: lead.id, channel: "sms", direction: "outbound", body: opts.body, status: "failed", provider: "twilio", error: "No phone", sentBy: opts.sentBy, campaignId: opts.campaignId });
+      results.push({ leadId: lead.id, status: "failed", error: "No phone" });
+      continue;
+    }
+    const out = await sendSmsTwilio(phone, opts.body);
+    await db.insert(leadMessages).values({
+      leadId: lead.id,
+      channel: "sms",
+      direction: "outbound",
+      body: opts.body,
+      status: out.error ? "failed" : "sent",
+      provider: "twilio",
+      providerId: out.sid || null,
+      error: out.error || null,
+      sentBy: opts.sentBy,
+      campaignId: opts.campaignId
+    });
+    if (!out.error) await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq8(leads.id, lead.id));
+    results.push({ leadId: lead.id, ...out });
+  }
+  return results;
+}
+var GOOGLE_PLACES_KEY, YOUTUBE_KEY, OPENAI_KEY, TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM, providerStatus;
+var init_lead_service = __esm({
+  "server/lead-service.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    GOOGLE_PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
+    YOUTUBE_KEY = process.env.YOUTUBE_API_KEY || "";
+    OPENAI_KEY = process.env.OPENAI_API_KEY || "";
+    TWILIO_SID = process.env.TWILIO_ACCOUNT_SID || "";
+    TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
+    TWILIO_FROM = process.env.TWILIO_FROM || process.env.TWILIO_PHONE_NUMBER || "";
+    providerStatus = () => ({
+      googlePlaces: !!GOOGLE_PLACES_KEY,
+      youtube: !!YOUTUBE_KEY,
+      openai: !!OPENAI_KEY,
+      twilio: !!(TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM)
+    });
+  }
+});
+
 // server/seed-breedskool-courses.ts
 var seed_breedskool_courses_exports = {};
 __export(seed_breedskool_courses_exports, {
@@ -4036,6 +4250,351 @@ var init_social_crawler = __esm({
       "web developer needed",
       "need someone to build website",
       "looking for developer"
+    ];
+  }
+});
+
+// server/influencer-crm-service.ts
+var influencer_crm_service_exports = {};
+__export(influencer_crm_service_exports, {
+  TIERS: () => TIERS,
+  bulkInfluencerOutreach: () => bulkInfluencerOutreach,
+  classifyTier: () => classifyTier,
+  crawlInfluencersAI: () => crawlInfluencersAI,
+  getInfluencerTierStats: () => getInfluencerTierStats,
+  getTierInfo: () => getTierInfo,
+  sendInfluencerOutreach: () => sendInfluencerOutreach
+});
+import { eq as eq11, inArray as inArray7 } from "drizzle-orm";
+function classifyTier(followers) {
+  if (!followers || followers <= 0) return "unknown";
+  for (const t of TIERS) {
+    if (t.id === "unknown") continue;
+    if (followers >= t.min && followers <= t.max) return t.id;
+  }
+  return "unknown";
+}
+function getTierInfo(tierId) {
+  return TIERS.find((t) => t.id === tierId) || TIERS[TIERS.length - 1];
+}
+async function generateSearchQueries(niche, platforms) {
+  if (!GROQ_KEY) return [niche];
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: 'You are an influencer marketing expert. Generate 4 concise YouTube search queries to find creators in a given niche. Return JSON array only: ["query1","query2","query3","query4"]'
+          },
+          {
+            role: "user",
+            content: `Niche: "${niche}". Platforms: ${platforms.join(", ")}. Goal: find real creators for outreach. Return 4 search queries as JSON array.`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 200
+      })
+    });
+    if (!r.ok) return [niche];
+    const j = await r.json();
+    const content = j.choices?.[0]?.message?.content || "[]";
+    const cleaned = content.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return Array.isArray(parsed) ? parsed.slice(0, 4) : [niche];
+  } catch {
+    return [niche];
+  }
+}
+async function searchYouTubeCreators(opts) {
+  if (!YOUTUBE_KEY2) return [];
+  const max = Math.min(25, Math.max(1, opts.maxResults || 15));
+  const sParams = new URLSearchParams({
+    key: YOUTUBE_KEY2,
+    part: "snippet",
+    type: "channel",
+    q: opts.query,
+    maxResults: String(max)
+  });
+  if (opts.country) sParams.set("regionCode", opts.country);
+  const sr = await fetch(`https://www.googleapis.com/youtube/v3/search?${sParams}`);
+  if (!sr.ok) return [];
+  const sj = await sr.json();
+  const ids = (sj.items || []).map((i) => i.snippet?.channelId).filter(Boolean);
+  if (!ids.length) return [];
+  const cParams = new URLSearchParams({ key: YOUTUBE_KEY2, part: "snippet,statistics,brandingSettings", id: ids.join(",") });
+  const cr = await fetch(`https://www.googleapis.com/youtube/v3/channels?${cParams}`);
+  if (!cr.ok) return [];
+  const cj = await cr.json();
+  return (cj.items || []).map((c) => {
+    const followers = parseInt(c.statistics?.subscriberCount || "0", 10) || 0;
+    const tier = classifyTier(followers);
+    if (opts.targetTiers?.length && !opts.targetTiers.includes(tier)) return null;
+    return {
+      kind: "influencer",
+      source: "youtube",
+      externalId: c.id,
+      name: c.snippet?.title || "Unknown",
+      niche: opts.query,
+      country: c.snippet?.country || opts.country || null,
+      description: c.snippet?.description?.slice(0, 300) || null,
+      website: `https://www.youtube.com/channel/${c.id}`,
+      socialLinks: { youtube: `https://www.youtube.com/channel/${c.id}` },
+      followers,
+      tags: [tier],
+      raw: c
+    };
+  }).filter(Boolean);
+}
+async function generateInfluencersViaGroq(opts) {
+  if (!GROQ_KEY) return [];
+  const tierContext = opts.targetTiers?.length ? `Focus on creators with: ${opts.targetTiers.map((t) => {
+    const tier = TIERS.find((x) => x.id === t);
+    return tier ? `${tier.label} (${tier.min.toLocaleString()}\u2013${tier.max === Infinity ? "10M+" : tier.max.toLocaleString()} followers)` : t;
+  }).join(", ")}` : "Mix of micro to mega creators across all follower tiers";
+  const platformList = opts.platforms.filter((p) => p !== "youtube").join(", ") || opts.platforms.join(", ");
+  const prompt = `Generate ${opts.count || 12} realistic social media influencer profiles for the "${opts.niche}" niche on ${platformList}.
+${tierContext}.
+${opts.country ? `Prefer creators from or relevant to ${opts.country}.` : "Include a global mix."}
+
+Return ONLY a valid JSON array \u2014 no markdown, no explanation:
+[{
+  "name": "Full creator name",
+  "platform": "instagram|tiktok|twitter|youtube|facebook|linkedin",
+  "handle": "@username",
+  "followers": 125000,
+  "niche": "${opts.niche}",
+  "country": "NG",
+  "email": "email@domain.com or null",
+  "phone": null,
+  "description": "Short bio under 120 chars",
+  "website": "https://... or null"
+}]
+
+Rules: vary follower counts realistically, use plausible real-sounding names, most emails should be null (real influencers rarely list emails), some may have websites.`;
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: "You are a data generator. Return only valid JSON arrays, no markdown, no extra text." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.85,
+        max_tokens: 2500
+      })
+    });
+    if (!r.ok) return [];
+    const j = await r.json();
+    const content = j.choices?.[0]?.message?.content || "[]";
+    const cleaned = content.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) return [];
+    const items = [];
+    for (const p of parsed) {
+      const followers = parseInt(String(p.followers || 0), 10) || 0;
+      const tier = classifyTier(followers);
+      if (opts.targetTiers?.length && !opts.targetTiers.includes(tier)) continue;
+      const platform = String(p.platform || opts.platforms[0] || "instagram").toLowerCase();
+      const handle = String(p.handle || "").replace(/^@/, "");
+      const profileUrl = handle ? platform === "twitter" ? `https://x.com/${handle}` : platform === "youtube" ? `https://youtube.com/@${handle}` : `https://${platform}.com/${handle}` : null;
+      items.push({
+        kind: "influencer",
+        source: "ai_generated",
+        externalId: `ai_${platform}_${handle || Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: String(p.name || "Unknown Creator"),
+        niche: String(p.niche || opts.niche),
+        country: p.country || opts.country || null,
+        email: p.email || null,
+        phone: p.phone || null,
+        description: p.description ? String(p.description).slice(0, 300) : null,
+        website: p.website || profileUrl,
+        followers,
+        tags: [tier],
+        socialLinks: profileUrl ? { [platform]: profileUrl } : {}
+      });
+    }
+    return items;
+  } catch {
+    return [];
+  }
+}
+async function crawlInfluencersAI(opts) {
+  const { niche, platforms, targetTiers, country, maxPerQuery = 15, includeInternal = false } = opts;
+  const queries = await generateSearchQueries(niche, platforms);
+  const allItems = [];
+  const sourcesUsed = [];
+  if (platforms.includes("youtube") && YOUTUBE_KEY2) {
+    sourcesUsed.push("youtube_api");
+    for (const q of queries) {
+      try {
+        const results = await searchYouTubeCreators({ query: q, country, maxResults: maxPerQuery, targetTiers });
+        allItems.push(...results);
+      } catch {
+      }
+    }
+  }
+  const nonYoutubePlatforms = platforms.filter((p) => p !== "youtube");
+  const needsGroqFallback = nonYoutubePlatforms.length > 0 || platforms.includes("youtube") && !YOUTUBE_KEY2;
+  if (needsGroqFallback && GROQ_KEY) {
+    const groqPlatforms = nonYoutubePlatforms.length > 0 ? nonYoutubePlatforms : platforms;
+    sourcesUsed.push("groq_ai");
+    try {
+      const groqResults = await generateInfluencersViaGroq({
+        niche,
+        platforms: groqPlatforms,
+        targetTiers,
+        country,
+        count: Math.min(maxPerQuery * Math.max(1, groqPlatforms.length), 30)
+      });
+      allItems.push(...groqResults);
+    } catch {
+    }
+  }
+  if (includeInternal) {
+    const { users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+    const internal = await db.select().from(users3).where(eq11(users3.userType, "influencer")).limit(100);
+    if (internal.length > 0) sourcesUsed.push("internal");
+    for (const u of internal) {
+      const followers = u.totalFollowers || 0;
+      const tier = classifyTier(followers);
+      if (targetTiers?.length && !targetTiers.includes(tier)) continue;
+      allItems.push({
+        kind: "influencer",
+        source: "internal",
+        externalId: `internal_${u.id}`,
+        name: u.displayName || u.username || u.firstName || "Creator",
+        niche: u.primaryNiche || niche || null,
+        country: u.country || country || null,
+        email: u.email || null,
+        followers,
+        tags: [tier],
+        socialLinks: {
+          instagram: u.instagramHandle ? `https://instagram.com/${u.instagramHandle}` : null,
+          tiktok: u.tiktokHandle ? `https://tiktok.com/@${u.tiktokHandle}` : null,
+          youtube: u.youtubeHandle ? `https://youtube.com/@${u.youtubeHandle}` : null,
+          x: u.twitterHandle ? `https://x.com/${u.twitterHandle}` : null
+        }
+      });
+    }
+  }
+  const unique = dedupeByExternalId(allItems);
+  const saved = await persistLeads(unique);
+  return {
+    queriesUsed: queries,
+    sourcesUsed,
+    found: unique.length,
+    saved: saved.length,
+    items: saved
+  };
+}
+function dedupeByExternalId(items) {
+  const seen = /* @__PURE__ */ new Set();
+  return items.filter((i) => {
+    const key = i.externalId ? `${i.source}:${i.externalId}` : `${i.name}:${i.niche}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+async function getInfluencerTierStats() {
+  const rows = await db.select().from(leads).where(eq11(leads.kind, "influencer"));
+  const tierCounts = {};
+  const tierContacted = {};
+  for (const r of rows) {
+    const tier = classifyTier(r.followers);
+    tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+    if (r.status === "contacted" || r.status === "replied" || r.status === "converted") {
+      tierContacted[tier] = (tierContacted[tier] || 0) + 1;
+    }
+  }
+  return TIERS.map((t) => ({
+    ...t,
+    count: tierCounts[t.id] || 0,
+    contacted: tierContacted[t.id] || 0
+  }));
+}
+async function sendInfluencerOutreach(opts) {
+  const { lead, subject, body, sentBy } = opts;
+  const personalized = interpolate2(body, {
+    name: lead.name,
+    niche: lead.niche || "your niche",
+    platform: getPrimaryPlatform(lead),
+    followers: lead.followers?.toLocaleString() || "your audience"
+  });
+  let status = "logged";
+  let provider = "manual";
+  let error;
+  if (lead.email) {
+    const html = buildDefaultEmailHtml(personalized.replace(/\n/g, "<br>"), "Taskdrip");
+    const result = await sendEmail({ to: lead.email, subject, html });
+    status = result.success ? "sent" : "failed";
+    provider = result.provider || "email";
+    error = result.error;
+  } else {
+    status = "logged";
+    provider = "manual";
+    error = "No email on file \u2014 message logged as note";
+  }
+  await db.insert(leadMessages).values({
+    leadId: lead.id,
+    channel: "email",
+    direction: "outbound",
+    body: personalized,
+    status,
+    provider,
+    error: error || null,
+    sentBy: sentBy || null
+  });
+  if (status === "sent" || status === "logged") {
+    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq11(leads.id, lead.id));
+  }
+  return { success: status !== "failed", channel: "email", error };
+}
+async function bulkInfluencerOutreach(opts) {
+  const all = await db.select().from(leads).where(inArray7(leads.id, opts.leadIds));
+  const results = [];
+  for (const lead of all) {
+    const r = await sendInfluencerOutreach({ lead, subject: opts.subject, body: opts.body, sentBy: opts.sentBy });
+    results.push({ leadId: lead.id, name: lead.name, ...r });
+  }
+  const sent = results.filter((r) => r.success).length;
+  return { attempted: results.length, sent, failed: results.length - sent, results };
+}
+function interpolate2(template, vars) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+}
+function getPrimaryPlatform(lead) {
+  const links = lead.socialLinks || {};
+  if (links.youtube) return "YouTube";
+  if (links.instagram) return "Instagram";
+  if (links.tiktok) return "TikTok";
+  if (links.x) return "X (Twitter)";
+  if (lead.source === "youtube") return "YouTube";
+  return "social media";
+}
+var YOUTUBE_KEY2, GROQ_KEY, TIERS;
+var init_influencer_crm_service = __esm({
+  "server/influencer-crm-service.ts"() {
+    "use strict";
+    init_db();
+    init_schema();
+    init_email_service();
+    init_lead_service();
+    YOUTUBE_KEY2 = process.env.YOUTUBE_API_KEY || "";
+    GROQ_KEY = process.env.GROQ_API_KEY || "";
+    TIERS = [
+      { id: "global_titans", label: "Global Titans", min: 1e7, max: Infinity, color: "amber", emoji: "\u{1F451}" },
+      { id: "power_influencers", label: "Power Influencers", min: 1e6, max: 9999999, color: "purple", emoji: "\u26A1" },
+      { id: "growth_engines", label: "Growth Engines", min: 1e5, max: 999999, color: "blue", emoji: "\u{1F680}" },
+      { id: "rising_sparks", label: "Rising Sparks", min: 1e4, max: 99999, color: "emerald", emoji: "\u2728" },
+      { id: "aspiring", label: "Aspiring Influencer", min: 1, max: 9999, color: "gray", emoji: "\u{1F331}" },
+      { id: "unknown", label: "Unclassified", min: 0, max: 0, color: "gray", emoji: "\u2753" }
     ];
   }
 });
@@ -10641,218 +11200,9 @@ function scanRequestBody(body, depth = 0) {
 
 // server/routes.ts
 init_schema();
-
-// server/lead-service.ts
+init_lead_service();
 init_db();
-init_schema();
-import { eq as eq8, inArray as inArray5 } from "drizzle-orm";
-var GOOGLE_PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
-var YOUTUBE_KEY = process.env.YOUTUBE_API_KEY || "";
-var OPENAI_KEY = process.env.OPENAI_API_KEY || "";
-var TWILIO_SID = process.env.TWILIO_ACCOUNT_SID || "";
-var TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
-var TWILIO_FROM = process.env.TWILIO_FROM || process.env.TWILIO_PHONE_NUMBER || "";
-var providerStatus = () => ({
-  googlePlaces: !!GOOGLE_PLACES_KEY,
-  youtube: !!YOUTUBE_KEY,
-  openai: !!OPENAI_KEY,
-  twilio: !!(TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM)
-});
-async function searchBusinessesGoogle(opts) {
-  if (!GOOGLE_PLACES_KEY) throw new Error("GOOGLE_PLACES_API_KEY not configured");
-  const q = `${opts.query}${opts.location ? " in " + opts.location : ""}${opts.country ? " " + opts.country : ""}`.trim();
-  const max = Math.min(20, Math.max(1, opts.maxResults || 20));
-  const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": GOOGLE_PLACES_KEY,
-      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.primaryType,places.editorialSummary,places.businessStatus,places.googleMapsUri"
-    },
-    body: JSON.stringify({ textQuery: q, maxResultCount: max, regionCode: opts.country || void 0 })
-  });
-  if (!r.ok) throw new Error(`Places API error ${r.status}: ${await r.text()}`);
-  const j = await r.json();
-  const places = j.places || [];
-  return places.map((p) => {
-    const phone = p.internationalPhoneNumber || p.nationalPhoneNumber || null;
-    return {
-      kind: "business",
-      source: "google_places",
-      externalId: p.id,
-      name: p.displayName?.text || "Unnamed",
-      businessType: p.primaryType || (Array.isArray(p.types) ? p.types[0] : null),
-      address: p.formattedAddress || null,
-      latitude: p.location?.latitude != null ? String(p.location.latitude) : null,
-      longitude: p.location?.longitude != null ? String(p.location.longitude) : null,
-      country: opts.country || null,
-      city: opts.location || null,
-      phone,
-      whatsapp: phone ? phone.replace(/[^\d+]/g, "") : null,
-      website: p.websiteUri || null,
-      rating: p.rating != null ? String(p.rating) : null,
-      reviewCount: p.userRatingCount || null,
-      description: p.editorialSummary?.text || null,
-      raw: p
-    };
-  });
-}
-async function searchInfluencersYouTube(opts) {
-  if (!YOUTUBE_KEY) throw new Error("YOUTUBE_API_KEY not configured");
-  const max = Math.min(25, Math.max(1, opts.maxResults || 15));
-  const sParams = new URLSearchParams({
-    key: YOUTUBE_KEY,
-    part: "snippet",
-    type: "channel",
-    q: opts.query,
-    maxResults: String(max)
-  });
-  if (opts.country) sParams.set("regionCode", opts.country);
-  const sr = await fetch(`https://www.googleapis.com/youtube/v3/search?${sParams}`);
-  if (!sr.ok) throw new Error(`YouTube search error ${sr.status}`);
-  const sj = await sr.json();
-  const ids = (sj.items || []).map((i) => i.snippet?.channelId).filter(Boolean);
-  if (!ids.length) return [];
-  const cParams = new URLSearchParams({ key: YOUTUBE_KEY, part: "snippet,statistics,brandingSettings", id: ids.join(",") });
-  const cr = await fetch(`https://www.googleapis.com/youtube/v3/channels?${cParams}`);
-  if (!cr.ok) throw new Error(`YouTube channel error ${cr.status}`);
-  const cj = await cr.json();
-  return (cj.items || []).map((c) => ({
-    kind: "influencer",
-    source: "youtube",
-    externalId: c.id,
-    name: c.snippet?.title || "Unknown",
-    niche: opts.query,
-    country: c.snippet?.country || opts.country || null,
-    description: c.snippet?.description || null,
-    website: `https://www.youtube.com/channel/${c.id}`,
-    socialLinks: { youtube: `https://www.youtube.com/channel/${c.id}` },
-    followers: parseInt(c.statistics?.subscriberCount || "0", 10) || null,
-    raw: c
-  }));
-}
-async function persistLeads(items) {
-  if (!items.length) return [];
-  const saved = [];
-  for (const it of items) {
-    if (!it.name) continue;
-    if (it.externalId && it.source) {
-      const existing = await db.select().from(leads).where(eq8(leads.externalId, it.externalId)).limit(1);
-      if (existing.length) {
-        saved.push(existing[0]);
-        continue;
-      }
-    }
-    const [row] = await db.insert(leads).values(it).returning();
-    saved.push(row);
-  }
-  return saved;
-}
-async function generateAiReport(lead) {
-  if (!OPENAI_KEY) {
-    const lines = [];
-    lines.push(`**${lead.name}** is a ${lead.kind === "business" ? lead.businessType || "business" : "creator"}${lead.country ? " based in " + (lead.city || "") + " " + lead.country : ""}.`);
-    if (lead.kind === "influencer" && lead.followers) lines.push(`Audience: ~${lead.followers.toLocaleString()} followers.`);
-    if (lead.rating && lead.reviewCount) lines.push(`Reputation: ${lead.rating}\u2605 from ${lead.reviewCount} reviews.`);
-    lines.push("");
-    lines.push("### Growth opportunities on Taskdrip");
-    lines.push("- Run targeted micro-campaigns to verified creators in their niche.");
-    lines.push("- Use $TDRIP boosts to amplify launches and convert engaged users.");
-    lines.push("- Set up an escrow-protected ambassador programme to scale UGC volume.");
-    lines.push("- List products in the Taskdrip Shop with USDT/TON checkout to capture crypto-native buyers.");
-    lines.push("");
-    lines.push("### Suggested first outreach");
-    lines.push(`Hi ${lead.name.split(" ")[0]}, we'd love to help you reach a wider crypto-native audience through Taskdrip's verified influencer marketplace. Open to a 15-min chat?`);
-    const report = lines.join("\n");
-    return { summary: lines[0], report };
-  }
-  const sys = "You are a senior growth strategist at Taskdrip, a Web3 SocialFi influencer marketplace. Produce concise, action-oriented growth reports for a prospect.";
-  const usr = `Prospect (${lead.kind}): ${JSON.stringify({
-    name: lead.name,
-    niche: lead.niche,
-    type: lead.businessType,
-    country: lead.country,
-    city: lead.city,
-    website: lead.website,
-    followers: lead.followers,
-    rating: lead.rating,
-    reviewCount: lead.reviewCount,
-    description: lead.description,
-    social: lead.socialLinks
-  })}
-
-Write:
-1. A 1-sentence summary.
-2. A markdown growth report covering: current positioning, 3 growth opportunities via Taskdrip's marketplace (campaigns, $TDRIP, P2P, shop, ambassador programmes), risks to address, and a personalized 3-line outreach message.
-Return JSON: {"summary":"...","report":"...markdown..."}`;
-  const r = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_KEY}` },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
-      temperature: 0.6
-    })
-  });
-  if (!r.ok) throw new Error(`OpenAI error ${r.status}: ${await r.text()}`);
-  const j = await r.json();
-  const content = j.choices?.[0]?.message?.content || "{}";
-  try {
-    const parsed = JSON.parse(content);
-    return { summary: parsed.summary || "", report: parsed.report || content };
-  } catch {
-    return { summary: "", report: content };
-  }
-}
-async function sendSmsTwilio(to, body) {
-  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
-    return { error: "Twilio not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM." };
-  }
-  const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64");
-  const params = new URLSearchParams({ To: to, From: TWILIO_FROM, Body: body });
-  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
-    method: "POST",
-    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString()
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) return { error: j.message || `Twilio HTTP ${r.status}` };
-  return { sid: j.sid };
-}
-async function bulkSms(opts) {
-  if (!opts.leadIds.length) return [];
-  const all = await db.select().from(leads).where(inArray5(leads.id, opts.leadIds));
-  const results = [];
-  for (const lead of all) {
-    const phone = lead.phone || lead.whatsapp;
-    if (!phone) {
-      await db.insert(leadMessages).values({ leadId: lead.id, channel: "sms", direction: "outbound", body: opts.body, status: "failed", provider: "twilio", error: "No phone", sentBy: opts.sentBy, campaignId: opts.campaignId });
-      results.push({ leadId: lead.id, status: "failed", error: "No phone" });
-      continue;
-    }
-    const out = await sendSmsTwilio(phone, opts.body);
-    await db.insert(leadMessages).values({
-      leadId: lead.id,
-      channel: "sms",
-      direction: "outbound",
-      body: opts.body,
-      status: out.error ? "failed" : "sent",
-      provider: "twilio",
-      providerId: out.sid || null,
-      error: out.error || null,
-      sentBy: opts.sentBy,
-      campaignId: opts.campaignId
-    });
-    if (!out.error) await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq8(leads.id, lead.id));
-    results.push({ leadId: lead.id, ...out });
-  }
-  return results;
-}
-
-// server/routes.ts
-init_db();
-import { desc as desc7, sql as sql10, eq as eq11, and as and7, count as count3, gte as gte2, inArray as inArray7 } from "drizzle-orm";
+import { desc as desc8, sql as sql11, eq as eq12, and as and8, count as count3, gte as gte2, inArray as inArray8 } from "drizzle-orm";
 import multer from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid } from "nanoid";
@@ -11025,7 +11375,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq11(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq12(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -11087,7 +11437,7 @@ async function enrichP2PListing(listing) {
 }
 async function enrichP2PTransaction(tx) {
   const [listing, buyer, seller, admin] = await Promise.all([
-    db.select().from(p2pListings).where(eq11(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+    db.select().from(p2pListings).where(eq12(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -11616,7 +11966,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and7(eq11(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and8(eq12(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -11635,7 +11985,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and7(eq11(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count3() }).from(posts).where(and8(eq12(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -11931,7 +12281,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count3() }).from(campaigns).where(eq11(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count3() }).from(campaigns).where(eq12(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -12786,7 +13136,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         username: users.username,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray7(users.id, uniqueIds)) : [];
+      }).from(users).where(inArray8(users.id, uniqueIds)) : [];
       const userMap = {};
       for (const u of userRows) userMap[u.id] = u;
       const enrichedMessages = msgs.map((msg) => ({
@@ -12969,7 +13319,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq11(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq12(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -13069,10 +13419,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and7(eq11(campaignMicroTasks.campaignId, req.params.id), eq11(campaignMicroTasks.isActive, true))).orderBy(desc7(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and8(eq12(campaignMicroTasks.campaignId, req.params.id), eq12(campaignMicroTasks.isActive, true))).orderBy(desc8(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.campaignId, req.params.id), eq11(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and8(eq12(microTaskSubmissions.campaignId, req.params.id), eq12(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -13090,7 +13440,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq11(campaignMicroTasks.campaignId, campaigns.id)).where(eq11(campaignMicroTasks.brandId, userId)).orderBy(desc7(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq12(campaignMicroTasks.campaignId, campaigns.id)).where(eq12(campaignMicroTasks.brandId, userId)).orderBy(desc8(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -13148,7 +13498,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq11(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq12(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -13174,7 +13524,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql10`count(*)::int` }).from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.microTaskId, task.id), eq11(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql11`count(*)::int` }).from(microTaskSubmissions).where(and8(eq12(microTaskSubmissions.microTaskId, task.id), eq12(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -13198,7 +13548,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq11(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq12(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -13209,7 +13559,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq11(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq12(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -13218,11 +13568,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.microTaskId, task.id), eq11(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and8(eq12(microTaskSubmissions.microTaskId, task.id), eq12(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql10`count(*)` }).from(microTaskSubmissions).where(and7(eq11(microTaskSubmissions.microTaskId, task.id), eq11(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql11`count(*)` }).from(microTaskSubmissions).where(and8(eq12(microTaskSubmissions.microTaskId, task.id), eq12(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -13258,7 +13608,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq11(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq11(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq11(microTaskSubmissions.userId, users.id)).where(eq11(campaignMicroTasks.brandId, userId)).orderBy(desc7(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq12(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq12(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq12(microTaskSubmissions.userId, users.id)).where(eq12(campaignMicroTasks.brandId, userId)).orderBy(desc8(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -13274,14 +13624,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin] = await db.select().from(users).where(eq11(users.id, userId));
+      const [admin] = await db.select().from(users).where(eq12(users.id, userId));
       if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq11(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq11(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq11(microTaskSubmissions.userId, users.id)).orderBy(desc7(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq12(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq12(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq12(microTaskSubmissions.userId, users.id)).orderBy(desc8(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -13297,9 +13647,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq11(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq12(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq11(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq12(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -13314,7 +13664,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq12(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -13432,7 +13782,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "campaign_participation"), eq11(userReviews.referenceId, participation.id))).orderBy(desc7(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and8(eq12(userReviews.referenceType, "campaign_participation"), eq12(userReviews.referenceId, participation.id))).orderBy(desc8(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -13452,7 +13802,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "campaign_participation"), eq11(userReviews.referenceId, participation.id), eq11(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and8(eq12(userReviews.referenceType, "campaign_participation"), eq12(userReviews.referenceId, participation.id), eq12(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -13463,8 +13813,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql10`AVG(${userReviews.rating})` }).from(userReviews).where(eq11(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql11`AVG(${userReviews.rating})` }).from(userReviews).where(eq12(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq12(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -13808,8 +14158,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq17 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq17(transactions3.id, id));
+            const { eq: eq18 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq18(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -13832,9 +14182,21 @@ async function registerRoutes(app2, existingServer) {
       const allCampaigns = await storage.getAllCampaignsAdmin();
       const allTransactions = await storage.getAllTransactions();
       const allEscrow = await storage.getAllEscrowPayments();
+      const allPurchases = await storage.getAllPurchases();
       const activeCampaigns = allCampaigns.filter((c) => c.isActive && c.status === "active");
-      const totalRevenue = allEscrow.filter((e) => e.status === "verified").reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0);
+      const escrowRevenue = allEscrow.filter((e) => e.status === "verified").reduce((sum, e) => sum + parseFloat(e.amount || "0"), 0);
+      const shopRevenue = allPurchases.filter((p) => p.status === "paid" || p.status === "delivered").reduce((sum, p) => sum + parseFloat(p.totalAmount || p.amount || "0"), 0);
+      const allEnrollmentRows = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status, paymentStatus: courseEnrollments.paymentStatus, courseId: courseEnrollments.courseId }).from(courseEnrollments);
+      let courseRevenue = 0;
+      for (const e of allEnrollmentRows) {
+        if (e.status === "active" || e.paymentStatus === "approved") {
+          const course = await db.select({ price: courses.price }).from(courses).where(eq12(courses.id, e.courseId)).limit(1);
+          courseRevenue += parseFloat(course[0]?.price || "0");
+        }
+      }
+      const totalRevenue = escrowRevenue + shopRevenue + courseRevenue;
       const pendingEscrow = allEscrow.filter((e) => e.status === "verifying" || e.status === "submitted");
+      const pendingShop = allPurchases.filter((p) => p.status === "pending");
       const creators = allUsers.filter((u) => u.userType === "creator");
       const brands = allUsers.filter((u) => u.userType === "brand");
       const totalRewardsDistributed = allTransactions.filter((t) => t.type === "reward" && t.status === "completed").reduce((sum, t) => sum + parseFloat(t.amount || "0"), 0);
@@ -13846,10 +14208,15 @@ async function registerRoutes(app2, existingServer) {
         activeCampaigns: activeCampaigns.length,
         pendingCampaigns: allCampaigns.filter((c) => c.status === "pending_payment").length,
         totalRevenue: totalRevenue.toFixed(2),
+        escrowRevenue: escrowRevenue.toFixed(2),
+        shopRevenue: shopRevenue.toFixed(2),
+        courseRevenue: courseRevenue.toFixed(2),
         totalRewardsDistributed: totalRewardsDistributed.toFixed(2),
-        pendingPayments: pendingEscrow.length,
+        pendingPayments: pendingEscrow.length + pendingShop.length,
         verifiedPayments: allEscrow.filter((e) => e.status === "verified").length,
-        totalTransactions: allTransactions.length
+        totalTransactions: allTransactions.length,
+        totalShopOrders: allPurchases.length,
+        paidShopOrders: allPurchases.filter((p) => p.status === "paid" || p.status === "delivered").length
       });
     } catch (error) {
       console.error("Error fetching admin stats:", error);
@@ -13868,7 +14235,7 @@ async function registerRoutes(app2, existingServer) {
       const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
       let courseTotal = 0;
       for (const e of approvedEnrollmentIds) {
-        const course = await db.select({ price: courses.price }).from(courses).where(eq11(courses.id, e.courseId)).limit(1);
+        const course = await db.select({ price: courses.price }).from(courses).where(eq12(courses.id, e.courseId)).limit(1);
         courseTotal += parseFloat(course[0]?.price || "0");
       }
       const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
@@ -13998,13 +14365,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
-        db.select().from(transactions).orderBy(desc7(transactions.createdAt)),
-        db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt)),
-        db.select().from(purchases).orderBy(desc7(purchases.createdAt)),
-        db.select().from(escrowPayments).orderBy(desc7(escrowPayments.createdAt)),
-        db.select().from(paymentDeposits).orderBy(desc7(paymentDeposits.createdAt)),
-        db.select().from(subscriptions).orderBy(desc7(subscriptions.createdAt)),
-        db.select().from(directHireOffers).orderBy(desc7(directHireOffers.createdAt)),
+        db.select().from(transactions).orderBy(desc8(transactions.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc8(p2pTransactions.createdAt)),
+        db.select().from(purchases).orderBy(desc8(purchases.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc8(escrowPayments.createdAt)),
+        db.select().from(paymentDeposits).orderBy(desc8(paymentDeposits.createdAt)),
+        db.select().from(subscriptions).orderBy(desc8(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc8(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)
       ]);
       const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
@@ -14171,7 +14538,7 @@ async function registerRoutes(app2, existingServer) {
         approvedAt: courseEnrollments.approvedAt,
         createdAt: courseEnrollments.createdAt,
         courseTitle: courses.title
-      }).from(courseEnrollments).leftJoin(courses, eq11(courseEnrollments.courseId, courses.id)).orderBy(desc7(courseEnrollments.createdAt));
+      }).from(courseEnrollments).leftJoin(courses, eq12(courseEnrollments.courseId, courses.id)).orderBy(desc8(courseEnrollments.createdAt));
       for (const t of enrollmentRows) {
         const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
         unified.push({
@@ -14232,13 +14599,13 @@ async function registerRoutes(app2, existingServer) {
         allCourses,
         allProducts
       ] = await Promise.all([
-        safeSelect(db.select().from(subscriptions).orderBy(desc7(subscriptions.createdAt))),
-        safeSelect(db.select().from(purchases).orderBy(desc7(purchases.createdAt))),
-        safeSelect(db.select().from(courseEnrollments).orderBy(desc7(courseEnrollments.createdAt))),
-        safeSelect(db.select().from(directHireOffers).orderBy(desc7(directHireOffers.createdAt))),
-        safeSelect(db.select().from(escrowPayments).orderBy(desc7(escrowPayments.createdAt))),
-        safeSelect(db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt))),
-        safeSelect(db.select().from(payoutRequests).orderBy(desc7(payoutRequests.createdAt))),
+        safeSelect(db.select().from(subscriptions).orderBy(desc8(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc8(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc8(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc8(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc8(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc8(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc8(payoutRequests.createdAt))),
         safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
         safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
         safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts))
@@ -15145,7 +15512,7 @@ async function registerRoutes(app2, existingServer) {
       }
       const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
       try {
-        const admins = await db.select().from(users).where(eq11(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq12(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -15169,7 +15536,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const list = await db.select().from(contentReports).orderBy(desc7(contentReports.createdAt));
+      const list = await db.select().from(contentReports).orderBy(desc8(contentReports.createdAt));
       res.json(list);
     } catch (error) {
       res.status(500).json({ message: "Failed to list reports" });
@@ -15179,14 +15546,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq11(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq12(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq12(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -15208,13 +15575,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq11(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq12(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq12(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -15275,7 +15642,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq11(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq12(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -15309,7 +15676,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq11(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq12(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -15358,7 +15725,7 @@ async function registerRoutes(app2, existingServer) {
       const { status, adminNote } = req.body || {};
       const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
       if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(directHireOffers.id, req.params.id)).returning();
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(directHireOffers.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Hire request not found" });
       if (updated.brandId) {
         const statusLabels = {
@@ -15657,12 +16024,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq11(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq12(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq12(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -15698,8 +16065,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq11(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq12(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq12(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -15751,7 +16118,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, req.user.id)).orderBy(desc7(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq12(referralCommissions.referrerId, req.user.id)).orderBy(desc8(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -15793,7 +16160,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq11(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq12(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -15808,7 +16175,7 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq11(users.userType, "admin")).limit(3);
+      const adminUsers = await db.select().from(users).where(eq12(users.userType, "admin")).limit(3);
       for (const admin of adminUsers) {
         await storage.createNotification({
           userId: admin.id,
@@ -15851,7 +16218,7 @@ async function registerRoutes(app2, existingServer) {
         commissionAmount: referralCommissions.commissionAmount,
         status: referralCommissions.status,
         createdAt: referralCommissions.createdAt
-      }).from(referralCommissions).leftJoin(referrerAlias, eq11(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc7(referralCommissions.createdAt)).limit(200);
+      }).from(referralCommissions).leftJoin(referrerAlias, eq12(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc8(referralCommissions.createdAt)).limit(200);
       const referralPayouts = await db.select({
         id: payoutRequests.id,
         userId: payoutRequests.userId,
@@ -15864,15 +16231,15 @@ async function registerRoutes(app2, existingServer) {
         lastName: users.lastName,
         username: users.username,
         email: users.email
-      }).from(payoutRequests).leftJoin(users, eq11(payoutRequests.userId, users.id)).where(sql10`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc7(payoutRequests.createdAt)).limit(100);
+      }).from(payoutRequests).leftJoin(users, eq12(payoutRequests.userId, users.id)).where(sql11`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc8(payoutRequests.createdAt)).limit(100);
       const filteredPayouts = referralPayouts.filter(
         (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
       );
       const [totalComm] = await db.select({
-        totalPending: sql10`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'pending' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
-        totalApproved: sql10`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'approved' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
-        totalPaid: sql10`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'paid' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
-        totalAll: sql10`COALESCE(SUM(${referralCommissions.commissionAmount}::numeric), 0)`
+        totalPending: sql11`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'pending' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalApproved: sql11`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'approved' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalPaid: sql11`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'paid' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalAll: sql11`COALESCE(SUM(${referralCommissions.commissionAmount}::numeric), 0)`
       }).from(referralCommissions);
       res.json({ commissions, referralPayouts: filteredPayouts, totals: totalComm });
     } catch (error) {
@@ -15889,7 +16256,7 @@ async function registerRoutes(app2, existingServer) {
       const updateData = { status };
       if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
       if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(referralCommissions).set(updateData).where(eq11(referralCommissions.id, id)).returning();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq12(referralCommissions.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Commission not found" });
       res.json(updated);
     } catch (error) {
@@ -15902,9 +16269,9 @@ async function registerRoutes(app2, existingServer) {
       const isAdmin5 = req.user.userType === "admin";
       let allMessages;
       if (isAdmin5) {
-        allMessages = await db.select().from(messages).orderBy(desc7(messages.createdAt));
+        allMessages = await db.select().from(messages).orderBy(desc8(messages.createdAt));
       } else {
-        allMessages = await db.select().from(messages).where(sql10`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc7(messages.createdAt));
+        allMessages = await db.select().from(messages).where(sql11`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc8(messages.createdAt));
       }
       const convMap = {};
       for (const msg of allMessages) {
@@ -15932,8 +16299,8 @@ async function registerRoutes(app2, existingServer) {
         Object.values(convMap).map((conv) => conv.campaignId).filter(Boolean)
       )];
       const [participantRows, campaignRows] = await Promise.all([
-        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray7(users.id, allParticipantIds)) : [],
-        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray7(campaigns.id, allCampaignIds)) : []
+        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray8(users.id, allParticipantIds)) : [],
+        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray8(campaigns.id, allCampaignIds)) : []
       ]);
       const participantMap = {};
       for (const u of participantRows) participantMap[u.id] = u;
@@ -15962,7 +16329,7 @@ async function registerRoutes(app2, existingServer) {
       let rawMessages;
       if (convKey.startsWith("direct_")) {
         const parts = convKey.replace("direct_", "").split("_");
-        rawMessages = await db.select().from(messages).where(sql10`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).orderBy(messages.createdAt);
+        rawMessages = await db.select().from(messages).where(sql11`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).orderBy(messages.createdAt);
         rawMessages = rawMessages.filter((m) => {
           const pair = `direct_${[m.senderId, m.receiverId].sort().join("_")}`;
           return pair === convKey;
@@ -15982,7 +16349,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         companyName: users.companyName,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray7(users.id, senderIds)) : [];
+      }).from(users).where(inArray8(users.id, senderIds)) : [];
       const senderMap = {};
       for (const s of senderRows) senderMap[s.id] = s;
       const enriched = rawMessages.map((msg) => ({ ...msg, sender: senderMap[msg.senderId] || null }));
@@ -15996,7 +16363,7 @@ async function registerRoutes(app2, existingServer) {
       });
       const unreadIds = rawMessages.filter((m) => m.receiverId === userId && !m.isRead).map((m) => m.id);
       if (unreadIds.length > 0) {
-        await db.update(messages).set({ isRead: true }).where(inArray7(messages.id, unreadIds));
+        await db.update(messages).set({ isRead: true }).where(inArray8(messages.id, unreadIds));
       }
       res.json(deduplicated);
     } catch (error) {
@@ -16011,7 +16378,7 @@ async function registerRoutes(app2, existingServer) {
       const { content, subject, targetUserId } = req.body;
       if (!content?.trim()) return res.status(400).json({ message: "Content required" });
       if (convKey.startsWith("direct_")) {
-        const existingMsgs = await db.select().from(messages).where(sql10`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).limit(10);
+        const existingMsgs = await db.select().from(messages).where(sql11`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).limit(10);
         const matchMsg = existingMsgs.find((m) => {
           const pair = `direct_${[m.senderId, m.receiverId].sort().join("_")}`;
           return pair === convKey;
@@ -16109,7 +16476,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/admin/conversations", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const allMessages = await db.select().from(messages).orderBy(desc7(messages.createdAt));
+      const allMessages = await db.select().from(messages).orderBy(desc8(messages.createdAt));
       const convMap = {};
       for (const msg of allMessages) {
         if (!msg.campaignId) continue;
@@ -16137,7 +16504,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and7(eq11(blockedUsers.blockerId, blockerId), eq11(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and8(eq12(blockedUsers.blockerId, blockerId), eq12(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -16149,7 +16516,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and7(eq11(blockedUsers.blockerId, blockerId), eq11(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and8(eq12(blockedUsers.blockerId, blockerId), eq12(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -16159,8 +16526,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and7(eq11(blockedUsers.blockerId, myId), eq11(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and7(eq11(blockedUsers.blockerId, otherId), eq11(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and8(eq12(blockedUsers.blockerId, myId), eq12(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and8(eq12(blockedUsers.blockerId, otherId), eq12(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -16507,7 +16874,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -16616,13 +16983,13 @@ Instructions:
       const [reg] = await db.insert(breedskoolRegistrations).values(insertValues).returning();
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         if (pricing?.linkedCourseId) {
           linkedCourseId = pricing.linkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and7(
-            eq11(courseEnrollments.courseId, linkedCourseId),
-            eq11(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and8(
+            eq12(courseEnrollments.courseId, linkedCourseId),
+            eq12(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -16637,7 +17004,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId }).where(eq11(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId }).where(eq12(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -16720,7 +17087,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq11(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq12(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16729,7 +17096,7 @@ Instructions:
   app2.get("/api/admin/breedskool/registrations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc7(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc8(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16742,29 +17109,29 @@ Instructions:
       const updateData = { updatedAt: /* @__PURE__ */ new Date() };
       if (paymentStatus !== void 0) updateData.paymentStatus = paymentStatus;
       if (notes !== void 0) updateData.notes = notes;
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq11(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq12(breedskoolRegistrations.id, req.params.id)).returning();
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq11(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq12(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq11(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq12(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and7(
-              eq11(courseEnrollments.courseId, courseIdToActivate),
-              eq11(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and8(
+              eq12(courseEnrollments.courseId, courseIdToActivate),
+              eq12(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq11(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq12(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -16776,7 +17143,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq11(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq12(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -16790,16 +17157,16 @@ Instructions:
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
       const regId = req.params.id;
-      const regResult = await db.execute(sql10`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
+      const regResult = await db.execute(sql11`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
       const row = regResult.rows[0];
       if (!row) return res.status(404).json({ message: "Registration not found" });
       let resolvedUserId = row.user_id || null;
       if (!resolvedUserId && row.email) {
-        const userResult = await db.execute(sql10`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
+        const userResult = await db.execute(sql11`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
         const matchedUser = userResult.rows[0];
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.execute(sql10`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
+          await db.execute(sql11`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
         }
       }
       if (!resolvedUserId) {
@@ -16809,18 +17176,18 @@ Instructions:
       }
       let courseId = row.linked_course_id || null;
       if (!courseId && row.selected_course_key) {
-        const pricingResult = await db.execute(sql10`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
+        const pricingResult = await db.execute(sql11`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
         const pricing = pricingResult.rows[0];
         courseId = pricing?.linked_course_id || null;
       }
       if (!courseId && row.selected_course_key) {
         const tag = `breedskool_${row.selected_course_key}`;
-        const tagResult = await db.execute(sql10`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
+        const tagResult = await db.execute(sql11`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
         const tagCourse = tagResult.rows[0];
         courseId = tagCourse?.id || null;
       }
       if (!courseId && row.selected_course_title) {
-        const titleResult = await db.execute(sql10`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
+        const titleResult = await db.execute(sql11`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
         const titleCourse = titleResult.rows[0];
         courseId = titleCourse?.id || null;
       }
@@ -16830,20 +17197,20 @@ Instructions:
         });
       }
       if (row.selected_course_key && courseId) {
-        await db.execute(sql10`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
+        await db.execute(sql11`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
         });
       }
-      const existingResult = await db.execute(sql10`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
+      const existingResult = await db.execute(sql11`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
       const existing = existingResult.rows[0];
       if (existing) {
-        await db.execute(sql10`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
+        await db.execute(sql11`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
       } else {
         const amount = String(row.amount_ngn || 0);
         const payMethod = row.payment_method || null;
-        await db.execute(sql10`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
+        await db.execute(sql11`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
       }
       if (!row.linked_course_id) {
-        await db.execute(sql10`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
+        await db.execute(sql11`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
       }
       res.json({ success: true, courseId, message: "Enrollment activated successfully" });
     } catch (e) {
@@ -16855,7 +17222,7 @@ Instructions:
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
       const regId = req.params.id;
-      const result = await db.execute(sql10`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
+      const result = await db.execute(sql11`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
       if (!result.rows.length) return res.status(404).json({ message: "Registration not found" });
       res.json({ success: true, message: "Registration deleted" });
     } catch (e) {
@@ -16875,7 +17242,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray7(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray8(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json(settings);
@@ -16896,7 +17263,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray7(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray8(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json(settings);
@@ -16928,7 +17295,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq11(courseAssignments.userId, req.user.id)).orderBy(desc7(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq12(courseAssignments.userId, req.user.id)).orderBy(desc8(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -16936,7 +17303,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq11(breedskoolRegistrations.userId, req.user.id)).orderBy(desc7(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq12(breedskoolRegistrations.userId, req.user.id)).orderBy(desc8(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17105,9 +17472,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq11(courseEnrollments.userId, users.id)).where(and7(
-        eq11(courseEnrollments.courseId, courseId),
-        eq11(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq12(courseEnrollments.userId, users.id)).where(and8(
+        eq12(courseEnrollments.courseId, courseId),
+        eq12(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -17143,11 +17510,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq11(courseCommunityPosts.userId, users.id)).where(and7(
-        eq11(courseCommunityPosts.courseId, courseId),
-        eq11(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq12(courseCommunityPosts.userId, users.id)).where(and8(
+        eq12(courseCommunityPosts.courseId, courseId),
+        eq12(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq11(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq12(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -17172,7 +17539,7 @@ Instructions:
           }
         }
       }
-      const postRows = await db.execute(sql10`
+      const postRows = await db.execute(sql11`
         INSERT INTO course_community_posts (course_id, user_id, message, reply_to_id, topic)
         VALUES (${courseId}, ${u.id}, ${message.trim()}, ${replyToId || null}, ${topic || "General"})
         RETURNING *
@@ -17190,29 +17557,29 @@ Instructions:
       const postId = req.params.postId;
       const isAdmin5 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin5) {
-        const [course] = await db.select().from(courses).where(eq11(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq12(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and7(eq11(courseEnrollments.courseId, courseId), eq11(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and8(eq12(courseEnrollments.courseId, courseId), eq12(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and7(eq11(courseCommunityPosts.id, postId), eq11(courseCommunityPosts.courseId, courseId), eq11(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and8(eq12(courseCommunityPosts.id, postId), eq12(courseCommunityPosts.courseId, courseId), eq12(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and7(eq11(courseCommunityLikes.postId, postId), eq11(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and8(eq12(courseCommunityLikes.postId, postId), eq12(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and7(
-          eq11(courseCommunityLikes.postId, postId),
-          eq11(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and8(
+          eq12(courseCommunityLikes.postId, postId),
+          eq12(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql10`GREATEST(like_count - 1, 0)` }).where(eq11(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql11`GREATEST(like_count - 1, 0)` }).where(eq12(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
-        await db.execute(sql10`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
-        await db.execute(sql10`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
+        await db.execute(sql11`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
+        await db.execute(sql11`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
         res.json({ liked: true });
       }
     } catch (e) {
@@ -17224,15 +17591,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and7(eq11(courseCommunityPosts.id, postId), eq11(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and8(eq12(courseCommunityPosts.id, postId), eq12(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
       const isAdmin5 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin5 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq11(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq12(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq11(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq12(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -17241,7 +17608,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq11(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq12(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -17257,8 +17624,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq11(courseCommunityPosts.userId, users.id)).where(and7(inArray7(courseCommunityPosts.courseId, courseIds), eq11(courseCommunityPosts.isDeleted, false))).orderBy(desc7(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq11(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq12(courseCommunityPosts.userId, users.id)).where(and8(inArray8(courseCommunityPosts.courseId, courseIds), eq12(courseCommunityPosts.isDeleted, false))).orderBy(desc8(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq12(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -17268,7 +17635,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq11(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq12(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -17279,7 +17646,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq11(courseEnrollments.userId, users.id)).where(and7(inArray7(courseEnrollments.courseId, courseIds), sql10`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq12(courseEnrollments.userId, users.id)).where(and8(inArray8(courseEnrollments.courseId, courseIds), sql11`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -17571,10 +17938,10 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and7(
-        eq11(courseAssignments.courseId, req.params.id),
-        eq11(courseAssignments.userId, req.user.id)
-      )).orderBy(desc7(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(and8(
+        eq12(courseAssignments.courseId, req.params.id),
+        eq12(courseAssignments.userId, req.user.id)
+      )).orderBy(desc8(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -17588,7 +17955,7 @@ Instructions:
       const primaryFile = files[0] || null;
       const allFilePaths = files.map((f) => `/uploads/${f.filename}`);
       const fileUrlValue = allFilePaths.length > 1 ? JSON.stringify(allFilePaths) : primaryFile ? `/uploads/${primaryFile.filename}` : null;
-      const assignRows = await db.execute(sql10`
+      const assignRows = await db.execute(sql11`
         INSERT INTO course_assignments (course_id, user_id, lesson_id, title, description, file_url, file_name, file_type, status)
         VALUES (
           ${req.params.id},
@@ -17629,7 +17996,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq11(courseAssignments.userId, users.id)).orderBy(desc7(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq12(courseAssignments.userId, users.id)).orderBy(desc8(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -17641,7 +18008,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq11(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq12(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -17689,13 +18056,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq17, desc: desc8 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq17(courseMessages2.courseId, req.params.id)).orderBy(desc8(courseMessages2.createdAt));
+      const { eq: eq18, desc: desc9 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq18(courseMessages2.courseId, req.params.id)).orderBy(desc9(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq17(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq18(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq17(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq18(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -17728,8 +18095,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq17, and: and9 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and9(eq17(productLikes2.productId, req.params.id), eq17(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq18, and: and10 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and10(eq18(productLikes2.productId, req.params.id), eq18(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -17739,26 +18106,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq17, and: and9, sql: sql14 } = await import("drizzle-orm");
+      const { eq: eq18, and: and10, sql: sql15 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and9(eq17(productLikes2.productId, req.params.id), eq17(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and10(eq18(productLikes2.productId, req.params.id), eq18(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq17(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq18(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            [type === "like" ? "likesCount" : "dislikesCount"]: sql14`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq17(shopProducts2.id, req.params.id));
+            [type === "like" ? "likesCount" : "dislikesCount"]: sql15`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
+          }).where(eq18(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq17(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq18(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            likesCount: sql14`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
-            dislikesCount: sql14`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq17(shopProducts2.id, req.params.id));
+            likesCount: sql15`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
+            dislikesCount: sql15`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
+          }).where(eq18(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -17768,8 +18135,8 @@ Instructions:
           type
         });
         await db2.update(shopProducts2).set({
-          [type === "like" ? "likesCount" : "dislikesCount"]: sql14`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq17(shopProducts2.id, req.params.id));
+          [type === "like" ? "likesCount" : "dislikesCount"]: sql15`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
+        }).where(eq18(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -18087,7 +18454,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and7(eq11(messages.referenceType, "direct_hire"), eq11(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and8(eq12(messages.referenceType, "direct_hire"), eq12(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -18190,12 +18557,12 @@ Instructions:
       const brandFee = 0;
       const updated = await storage.updateDirectHireOffer(offer.id, { status: "completed", completedAt: /* @__PURE__ */ new Date() });
       await db.update(users).set({
-        availableBalance: sql10`${users.availableBalance} + ${payout}`,
-        pendingBalance: sql10`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
-        totalEarned: sql10`${users.totalEarned} + ${payout}`,
-        completedCampaigns: sql10`${users.completedCampaigns} + 1`,
+        availableBalance: sql11`${users.availableBalance} + ${payout}`,
+        pendingBalance: sql11`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
+        totalEarned: sql11`${users.totalEarned} + ${payout}`,
+        completedCampaigns: sql11`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(users.id, offer.influencerId));
+      }).where(eq12(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -18221,10 +18588,10 @@ Instructions:
       if (primaryAdmin) {
         const platformRevenue = platformFee + brandFee;
         await db.update(users).set({
-          availableBalance: sql10`${users.availableBalance} + ${platformRevenue}`,
-          totalEarned: sql10`${users.totalEarned} + ${platformRevenue}`,
+          availableBalance: sql11`${users.availableBalance} + ${platformRevenue}`,
+          totalEarned: sql11`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq11(users.id, primaryAdmin.id));
+        }).where(eq12(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -18264,7 +18631,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "direct_hire"), eq11(userReviews.referenceId, offer.id))).orderBy(desc7(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and8(eq12(userReviews.referenceType, "direct_hire"), eq12(userReviews.referenceId, offer.id))).orderBy(desc8(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -18280,7 +18647,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and7(eq11(userReviews.referenceType, "direct_hire"), eq11(userReviews.referenceId, offer.id), eq11(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and8(eq12(userReviews.referenceType, "direct_hire"), eq12(userReviews.referenceId, offer.id), eq12(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -18290,8 +18657,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql10`AVG(${userReviews.rating})`, count: sql10`COUNT(*)` }).from(userReviews).where(eq11(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql11`AVG(${userReviews.rating})`, count: sql11`COUNT(*)` }).from(userReviews).where(eq12(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq12(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -18433,9 +18800,9 @@ Instructions:
       const payout = +(authoritative - platformFee).toFixed(2);
       const brandTotalCharge = authoritative;
       await db.update(users).set({
-        pendingBalance: sql10`${users.pendingBalance} + ${payout}`,
+        pendingBalance: sql11`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(users.id, offer.influencerId));
+      }).where(eq12(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -18577,8 +18944,8 @@ Instructions:
               approvedAt: /* @__PURE__ */ new Date()
             });
             await storage.updateUserProfile(referrerId, {
-              availableBalance: sql10`${users.availableBalance} + ${parseFloat(commissionAmount)}`,
-              referralBonusEarned: sql10`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}`
+              availableBalance: sql11`${users.availableBalance} + ${parseFloat(commissionAmount)}`,
+              referralBonusEarned: sql11`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}`
             });
             await storage.createNotification({
               userId: referrerId,
@@ -18623,8 +18990,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq11(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq11(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq12(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq12(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -18635,7 +19002,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq11(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq12(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -18644,7 +19011,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq11(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq12(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -18982,7 +19349,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and7(eq11(p2pListings.status, "approved"), eq11(p2pListings.isFeatured, true))).orderBy(desc7(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and8(eq12(p2pListings.status, "approved"), eq12(p2pListings.isFeatured, true))).orderBy(desc8(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -18990,7 +19357,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -19007,12 +19374,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq11(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq11(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq11(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq11(p2pListings.country, country));
-      if (currency) conditions.push(eq11(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and7(...conditions)).orderBy(desc7(p2pListings.createdAt));
+      let conditions = [eq12(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq12(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq12(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq12(p2pListings.country, country));
+      if (currency) conditions.push(eq12(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and8(...conditions)).orderBy(desc8(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -19089,7 +19456,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -19105,7 +19472,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and7(eq11(p2pTaskAddonSubmissions.listingId, req.params.id), eq11(p2pTaskAddonSubmissions.userId, req.user.id), eq11(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and8(eq12(p2pTaskAddonSubmissions.listingId, req.params.id), eq12(p2pTaskAddonSubmissions.userId, req.user.id), eq12(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -19139,12 +19506,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq11(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq12(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc8(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19152,7 +19519,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq11(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq12(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc8(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19160,9 +19527,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq11(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq12(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -19175,7 +19542,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq12(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -19196,13 +19563,13 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq11(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq12(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
       const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
-        inArray7(p2pTaskAddonSubmissions.listingId, listingIds)
-      ).orderBy(desc7(p2pTaskAddonSubmissions.createdAt));
+        inArray8(p2pTaskAddonSubmissions.listingId, listingIds)
+      ).orderBy(desc8(p2pTaskAddonSubmissions.createdAt));
       const submissionsWithTitle = submissions.map((s) => ({ ...s, listingTitle: listingTitleMap[s.listingId] || "" }));
       res.json(submissionsWithTitle);
     } catch (e) {
@@ -19227,11 +19594,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
-      const active = await db.select().from(p2pTransactions).where(sql10`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
+      const active = await db.select().from(p2pTransactions).where(sql11`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
       if (active.length) return res.status(400).json({ message: "You already have an active deal for this listing" });
       const admins = await storage.getUsersByType("admin");
       const seller = await storage.getUser(listing.sellerId);
@@ -19301,7 +19668,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions", isAuthenticated, async (req, res) => {
     try {
-      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql10`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc7(p2pTransactions.createdAt));
+      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc8(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql11`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc8(p2pTransactions.createdAt));
       res.json(await Promise.all(rows.map(enrichP2PTransaction)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19309,7 +19676,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -19319,10 +19686,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq11(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq12(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19330,7 +19697,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -19348,7 +19715,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -19357,7 +19724,7 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
@@ -19371,10 +19738,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -19384,11 +19751,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -19398,11 +19765,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
@@ -19415,11 +19782,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
@@ -19433,11 +19800,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql10`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql10`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql11`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql11`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -19450,10 +19817,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -19474,7 +19841,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq11(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq12(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -19500,7 +19867,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq11(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq12(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -19517,14 +19884,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq11(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq11(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq12(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq11(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq12(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -19551,7 +19918,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq11(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq12(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -19562,7 +19929,7 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-listings", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = (await db.select().from(p2pListings).orderBy(desc7(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = (await db.select().from(p2pListings).orderBy(desc8(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const enriched = await Promise.all(rows.map(enrichP2PListing));
       res.json(enriched);
     } catch (e) {
@@ -19572,8 +19939,8 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-transactions", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = await db.select().from(p2pTransactions).orderBy(desc7(p2pTransactions.createdAt));
-      const allListings = (await db.select().from(p2pListings).orderBy(desc7(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = await db.select().from(p2pTransactions).orderBy(desc8(p2pTransactions.createdAt));
+      const allListings = (await db.select().from(p2pListings).orderBy(desc8(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const revenue = rows.filter((r) => r.status === "completed").reduce((sum, r) => sum + Number(r.fee || 0), 0);
       res.json({
         stats: {
@@ -19622,7 +19989,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq11(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq12(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19632,7 +19999,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq11(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq12(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -19644,9 +20011,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq11(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq12(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq11(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq12(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -19928,7 +20295,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/all-submissions", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const submissions = await db.select().from(taskSubmissions).orderBy(desc7(taskSubmissions.submittedAt));
+      const submissions = await db.select().from(taskSubmissions).orderBy(desc8(taskSubmissions.submittedAt));
       const enriched = await Promise.all(submissions.map(async (s) => {
         const [creator, campaign] = await Promise.all([
           storage.getUser(s.userId),
@@ -20011,7 +20378,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq11(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq12(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -20215,7 +20582,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq11(adAnalytics.adId, req.params.id)).orderBy(desc7(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq12(adAnalytics.adId, req.params.id)).orderBy(desc8(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -20357,7 +20724,7 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const apps = await storage.getAllAdvertiseApplications();
-      const payments = await db.select().from(paymentDeposits).where(sql10`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc7(paymentDeposits.createdAt));
+      const payments = await db.select().from(paymentDeposits).where(sql11`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc8(paymentDeposits.createdAt));
       res.json(apps.map((app22) => ({
         ...app22,
         payment: payments.find((payment) => String(payment.adminNotes || "").includes(`ads_application:${app22.id}`)) || null
@@ -20663,7 +21030,7 @@ ${body}`,
       const allUsers = await storage.getAllUsers?.() || [];
       const { courseEnrollments: courseEnrollments2, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
       const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const { eq: eq17, sql: sqlFn } = await import("drizzle-orm");
+      const { eq: eq18, sql: sqlFn } = await import("drizzle-orm");
       const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
       const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
       const studentUserIds = /* @__PURE__ */ new Set([
@@ -20849,7 +21216,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq11(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq12(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -21139,8 +21506,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq17, and: and9 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and9(eq17(pageHeroBackgrounds2.page, req.params.page), eq17(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq18, and: and10 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and10(eq18(pageHeroBackgrounds2.page, req.params.page), eq18(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21162,12 +21529,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq17 } = await import("drizzle-orm");
+      const { eq: eq18 } = await import("drizzle-orm");
       const page = req.params.page;
       const data = { ...req.body, page, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq17(pageHeroBackgrounds2.page, page));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq18(pageHeroBackgrounds2.page, page));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq17(pageHeroBackgrounds2.page, page)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq18(pageHeroBackgrounds2.page, page)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -21181,8 +21548,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq17 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq17(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq18 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq18(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21288,7 +21655,7 @@ ${body}`,
       if (!user) return res.status(404).json({ message: "User not found" });
       const shopOrders = await storage.getUserPurchases(userId);
       const courseOrders = await storage.getMyEnrollments(userId);
-      const p2pRows = await db.select().from(p2pTransactions).where(sql10`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc7(p2pTransactions.createdAt));
+      const p2pRows = await db.select().from(p2pTransactions).where(sql11`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc8(p2pTransactions.createdAt));
       const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
       let escrowOrders = [];
       if (user.userType === "brand" || user.userType === "admin") {
@@ -21312,12 +21679,12 @@ ${body}`,
       const directHireOrders = Array.from(hireMap.values()).sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
-      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql10`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc7(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and7(
-        eq11(paymentDeposits.brandId, userId),
-        sql10`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
-      )).orderBy(desc7(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq11(subscriptions.userId, userId)).orderBy(desc7(subscriptions.createdAt));
+      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql11`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc8(advertiseApplications.createdAt)) : [];
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and8(
+        eq12(paymentDeposits.brandId, userId),
+        sql11`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
+      )).orderBy(desc8(paymentDeposits.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq12(subscriptions.userId, userId)).orderBy(desc8(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -21339,14 +21706,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq12(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq11(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq12(users.id, sellerId));
         seller = s || null;
       }
       res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? "seller" : "buyer" });
@@ -21358,7 +21725,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq12(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -21453,7 +21820,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq11(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq12(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -21534,7 +21901,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq11(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq12(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -21551,7 +21918,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq11(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq12(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -21568,7 +21935,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq11(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq12(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -21585,7 +21952,7 @@ ${body}`,
   });
   app2.get("/api/admin/social-task-stats", isAuthenticated, async (req, res) => {
     if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql10`count(*)` }).from(userSocialTaskCompletions).groupBy(userSocialTaskCompletions.taskId);
+    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql11`count(*)` }).from(userSocialTaskCompletions).groupBy(userSocialTaskCompletions.taskId);
     res.json(stats);
   });
   app2.get("/api/seo/pages", async (_req, res) => {
@@ -21598,7 +21965,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page] = await db.select().from(pageSeoSettings).where(eq11(pageSeoSettings.pageSlug, req.params.slug));
+      const [page] = await db.select().from(pageSeoSettings).where(eq12(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21609,9 +21976,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq11(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq12(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -21676,7 +22043,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq11(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq12(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21685,7 +22052,7 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq11(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq12(footerColumns.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21755,7 +22122,7 @@ ${body}`,
 `;
       }
       try {
-        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq11(posts.status, "published")).limit(500);
+        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq12(posts.status, "published")).limit(500);
         for (const post of blogPostsList) {
           if (post.slug) {
             const lm = post.updatedAt ? new Date(post.updatedAt).toISOString().split("T")[0] : today;
@@ -21774,7 +22141,7 @@ ${body}`,
       } catch {
       }
       try {
-        const creatorList = await db.select({ id: users.id }).from(users).where(eq11(users.userType, "influencer")).limit(500);
+        const creatorList = await db.select({ id: users.id }).from(users).where(eq12(users.userType, "influencer")).limit(500);
         for (const c of creatorList) {
           xml += `  <url><loc>${domain}/influencers/${c.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
@@ -21782,7 +22149,7 @@ ${body}`,
       } catch {
       }
       try {
-        const brandList = await db.select({ id: users.id }).from(users).where(eq11(users.userType, "brand")).limit(500);
+        const brandList = await db.select({ id: users.id }).from(users).where(eq12(users.userType, "brand")).limit(500);
         for (const b of brandList) {
           xml += `  <url><loc>${domain}/brand/${b.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
@@ -21824,24 +22191,24 @@ ${body}`,
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
       const totalRows = await db.select({ c: count3() }).from(pageViews).where(gte2(pageViews.createdAt, since));
       const total = Number(totalRows[0]?.c || 0);
-      const uniqueVisitorRows = await db.execute(sql10`
+      const uniqueVisitorRows = await db.execute(sql11`
         SELECT COUNT(DISTINCT COALESCE(session_id, user_id, user_agent)) AS c
         FROM page_views WHERE created_at >= ${since}
       `);
       const uniqueVisitors = Number(uniqueVisitorRows.rows?.[0]?.c || 0);
-      const topPagesRows = await db.execute(sql10`
+      const topPagesRows = await db.execute(sql11`
         SELECT path, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY path ORDER BY views DESC LIMIT 15
       `);
       const topPages = topPagesRows.rows || [];
-      const topReferrersRows = await db.execute(sql10`
+      const topReferrersRows = await db.execute(sql11`
         SELECT COALESCE(NULLIF(referrer, ''), 'direct') AS referrer, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY referrer ORDER BY views DESC LIMIT 10
       `);
       const topReferrers = topReferrersRows.rows || [];
-      const dailyRows = await db.execute(sql10`
+      const dailyRows = await db.execute(sql11`
         SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY day ORDER BY day ASC
@@ -21850,7 +22217,7 @@ ${body}`,
         day: new Date(r.day).toISOString().split("T")[0],
         views: Number(r.views)
       }));
-      const deviceRows = await db.execute(sql10`
+      const deviceRows = await db.execute(sql11`
         SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY device ORDER BY views DESC
@@ -21887,22 +22254,22 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq11(leads.kind, String(kind)));
-      if (niche) conds.push(sql10`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-      if (businessType) conds.push(sql10`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq11(leads.country, String(country)));
-      if (city) conds.push(sql10`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq11(leads.status, String(status)));
+      if (kind) conds.push(eq12(leads.kind, String(kind)));
+      if (niche) conds.push(sql11`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+      if (businessType) conds.push(sql11`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
+      if (country) conds.push(eq12(leads.country, String(country)));
+      if (city) conds.push(sql11`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
+      if (status) conds.push(eq12(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
-        conds.push(sql10`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+        conds.push(sql11`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
       }
-      if (minFollowers) conds.push(sql10`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
-      if (hasPhone === "true") conds.push(sql10`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
-      if (hasWebsite === "true") conds.push(sql10`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
-      if (hasEmail === "true") conds.push(sql10`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and7(...conds) : void 0;
-      const rows = await db.select().from(leads).where(where).orderBy(desc7(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
+      if (minFollowers) conds.push(sql11`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
+      if (hasPhone === "true") conds.push(sql11`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
+      if (hasWebsite === "true") conds.push(sql11`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
+      if (hasEmail === "true") conds.push(sql11`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
+      const where = conds.length ? and8(...conds) : void 0;
+      const rows = await db.select().from(leads).where(where).orderBy(desc8(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count3() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
     } catch (e) {
@@ -21912,10 +22279,10 @@ ${body}`,
   app2.get("/api/admin/leads/stats", isAuthenticated, requireAdmin2, async (_req, res) => {
     try {
       const [byKind, byStatus, byCountry, byNiche, totalRow] = await Promise.all([
-        db.execute(sql10`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
-        db.execute(sql10`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
-        db.execute(sql10`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
-        db.execute(sql10`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
+        db.execute(sql11`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
+        db.execute(sql11`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
+        db.execute(sql11`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
+        db.execute(sql11`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
         db.select({ c: count3() }).from(leads)
       ]);
       res.json({
@@ -21931,9 +22298,9 @@ ${body}`,
   });
   app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq11(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq12(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq11(leadMessages.leadId, lead.id)).orderBy(desc7(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq12(leadMessages.leadId, lead.id)).orderBy(desc8(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21945,7 +22312,7 @@ ${body}`,
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq11(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq12(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -21953,8 +22320,8 @@ ${body}`,
   });
   app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq11(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq11(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq12(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq12(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21994,7 +22361,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq11(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq12(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -22023,10 +22390,10 @@ ${body}`,
   });
   app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq11(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq12(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -22036,7 +22403,7 @@ ${body}`,
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq11(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq12(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -22061,7 +22428,7 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq11(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq12(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
@@ -22075,10 +22442,10 @@ ${body}`,
       let ids = Array.isArray(leadIds) ? leadIds : [];
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
-        if (niche) conds.push(sql10`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq11(leads.country, String(country)));
-        if (kind) conds.push(eq11(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and7(...conds)).limit(2e3);
+        if (niche) conds.push(sql11`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq12(leads.country, String(country)));
+        if (kind) conds.push(eq12(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and8(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -22094,7 +22461,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq11(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq12(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -22107,13 +22474,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq11(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq12(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq11(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq12(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -22134,10 +22501,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq11(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq12(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq11(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq12(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           return res.json({ message: "Welcome back! You have been re-subscribed." });
@@ -22156,7 +22523,7 @@ ${body}`,
   app2.get("/api/admin/newsletter-subscribers", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const rows = await db.select().from(newsletterSubscribers).orderBy(desc7(newsletterSubscribers.subscribedAt));
+      const rows = await db.select().from(newsletterSubscribers).orderBy(desc8(newsletterSubscribers.subscribedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -22167,7 +22534,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq11(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq12(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -22337,6 +22704,165 @@ ${body}`,
       res.status(500).json({ message: e.message });
     }
   });
+  {
+    const {
+      crawlInfluencersAI: crawlInfluencersAI2,
+      getInfluencerTierStats: getInfluencerTierStats2,
+      sendInfluencerOutreach: sendInfluencerOutreach2,
+      bulkInfluencerOutreach: bulkInfluencerOutreach2,
+      TIERS: TIERS2,
+      classifyTier: classifyTier2
+    } = await Promise.resolve().then(() => (init_influencer_crm_service(), influencer_crm_service_exports));
+    app2.get("/api/admin/influencer-crm/tier-stats", isAuthenticated, requireAdmin2, async (_req, res) => {
+      try {
+        const stats = await getInfluencerTierStats2();
+        res.json(stats);
+      } catch (e) {
+        res.status(500).json({ message: e.message });
+      }
+    });
+    app2.get("/api/admin/influencer-crm/tiers", isAuthenticated, requireAdmin2, (_req, res) => {
+      res.json(TIERS2);
+    });
+    app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
+        const conds = [eq12(leads.kind, "influencer")];
+        if (niche) conds.push(sql11`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq12(leads.country, String(country)));
+        if (status) conds.push(eq12(leads.status, String(status)));
+        if (search) {
+          const s = `%${String(search).toLowerCase()}%`;
+          conds.push(sql11`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+        }
+        if (tier && tier !== "all") {
+          const tierDef = TIERS2.find((t) => t.id === String(tier));
+          if (tierDef && tierDef.id !== "unknown") {
+            if (tierDef.max === Infinity) {
+              conds.push(sql11`${leads.followers} >= ${tierDef.min}`);
+            } else {
+              conds.push(sql11`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
+            }
+          } else if (tierDef?.id === "unknown") {
+            conds.push(sql11`${leads.followers} IS NULL OR ${leads.followers} = 0`);
+          }
+        }
+        const rows = await db.select().from(leads).where(and8(...conds)).orderBy(desc8(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
+        const totalRow = await db.select({ c: count3() }).from(leads).where(and8(...conds));
+        const items = rows.map((r) => ({ ...r, computedTier: classifyTier2(r.followers) }));
+        res.json({ items, total: Number(totalRow[0]?.c || 0) });
+      } catch (e) {
+        res.status(500).json({ message: e.message });
+      }
+    });
+    app2.post("/api/admin/influencer-crm/crawl", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const { niche, platforms, targetTiers, country, maxPerQuery, includeInternal } = req.body || {};
+        if (!niche) return res.status(400).json({ message: "niche required" });
+        const result = await crawlInfluencersAI2({
+          niche,
+          platforms: Array.isArray(platforms) ? platforms : ["youtube"],
+          targetTiers: Array.isArray(targetTiers) ? targetTiers : void 0,
+          country,
+          maxPerQuery: parseInt(String(maxPerQuery || "15"), 10) || 15,
+          includeInternal: !!includeInternal
+        });
+        res.json(result);
+      } catch (e) {
+        res.status(400).json({ message: e.message });
+      }
+    });
+    app2.post("/api/admin/influencer-crm/manual", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const body = req.body || {};
+        if (!body.name) return res.status(400).json({ message: "name required" });
+        const [row] = await db.insert(leads).values({ ...body, kind: "influencer", source: body.source || "manual" }).returning();
+        res.json(row);
+      } catch (e) {
+        res.status(400).json({ message: e.message });
+      }
+    });
+    app2.patch("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const allowed = {};
+        const fields = ["name", "niche", "country", "city", "email", "website", "phone", "whatsapp", "socialLinks", "followers", "description", "tags", "status", "aiSummary", "aiReport"];
+        for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
+        allowed.updatedAt = /* @__PURE__ */ new Date();
+        const [updated] = await db.update(leads).set(allowed).where(and8(eq12(leads.id, req.params.id), eq12(leads.kind, "influencer"))).returning();
+        res.json(updated);
+      } catch (e) {
+        res.status(400).json({ message: e.message });
+      }
+    });
+    app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        await db.delete(leadMessages).where(eq12(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq12(leads.id, req.params.id));
+        res.json({ ok: true });
+      } catch (e) {
+        res.status(500).json({ message: e.message });
+      }
+    });
+    app2.post("/api/admin/influencer-crm/:id/outreach", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const { subject, body, channel } = req.body || {};
+        if (!body) return res.status(400).json({ message: "body required" });
+        const [lead] = await db.select().from(leads).where(and8(eq12(leads.id, req.params.id), eq12(leads.kind, "influencer"))).limit(1);
+        if (!lead) return res.status(404).json({ message: "Influencer not found" });
+        if (channel === "email" || !channel) {
+          const result = await sendInfluencerOutreach2({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
+          return res.json(result);
+        }
+        const [msg] = await db.insert(leadMessages).values({
+          leadId: lead.id,
+          channel: channel || "note",
+          direction: "outbound",
+          body,
+          status: "logged",
+          provider: "manual",
+          sentBy: req.user?.id || null
+        }).returning();
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq12(leads.id, lead.id));
+        res.json({ success: true, channel, message: msg });
+      } catch (e) {
+        res.status(400).json({ message: e.message });
+      }
+    });
+    app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const msgs = await db.select().from(leadMessages).where(eq12(leadMessages.leadId, req.params.id)).orderBy(desc8(leadMessages.createdAt));
+        res.json(msgs);
+      } catch (e) {
+        res.status(500).json({ message: e.message });
+      }
+    });
+    app2.post("/api/admin/influencer-crm/bulk-outreach", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const { leadIds, subject, body, tier, niche } = req.body || {};
+        if (!body) return res.status(400).json({ message: "body required" });
+        let ids = Array.isArray(leadIds) ? leadIds : [];
+        if (!ids.length) {
+          const conds = [eq12(leads.kind, "influencer")];
+          if (niche) conds.push(sql11`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+          if (tier && tier !== "all") {
+            const tierDef = TIERS2.find((t) => t.id === String(tier));
+            if (tierDef && tierDef.id !== "unknown" && tierDef.max !== Infinity) {
+              conds.push(sql11`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
+            } else if (tierDef && tierDef.max === Infinity) {
+              conds.push(sql11`${leads.followers} >= ${tierDef.min}`);
+            }
+          }
+          const rows = await db.select({ id: leads.id }).from(leads).where(and8(...conds)).limit(500);
+          ids = rows.map((r) => r.id);
+        }
+        if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
+        const result = await bulkInfluencerOutreach2({ leadIds: ids, subject: subject || "Invitation to Taskdrip", body, sentBy: req.user?.id });
+        res.json(result);
+      } catch (e) {
+        res.status(400).json({ message: e.message });
+      }
+    });
+  }
   const httpServer = existingServer ?? createServer(app2);
   return httpServer;
 }
@@ -22349,7 +22875,7 @@ import path3 from "path";
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { eq as eq12 } from "drizzle-orm";
+import { eq as eq13 } from "drizzle-orm";
 var escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
@@ -22486,7 +23012,7 @@ async function lookupRoute(origin, pathname) {
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug2 = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(eq12(blogPosts.slug, slug2));
+    const [post] = await db.select().from(blogPosts).where(eq13(blogPosts.slug, slug2));
     if (post) {
       const image = post.featuredImage || ogImageFromHtml(post.content);
       return {
@@ -22500,7 +23026,7 @@ async function lookupRoute(origin, pathname) {
   const campaignMatch = pathname.match(/^\/campaigns\/([^/?#]+)/);
   if (campaignMatch) {
     const id = decodeURIComponent(campaignMatch[1]);
-    const [c] = await db.select().from(campaigns).where(eq12(campaigns.id, id));
+    const [c] = await db.select().from(campaigns).where(eq13(campaigns.id, id));
     if (c) {
       return {
         title: `${c.title} | Taskdrip`,
@@ -22512,11 +23038,11 @@ async function lookupRoute(origin, pathname) {
   const shopMatch = pathname.match(/^\/shop\/product\/([^/?#]+)/);
   if (shopMatch) {
     const key = decodeURIComponent(shopMatch[1]);
-    const [p] = await db.select().from(shopProducts).where(eq12(shopProducts.id, key)) || [];
+    const [p] = await db.select().from(shopProducts).where(eq13(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
       try {
-        const [bySlug] = await db.select().from(shopProducts).where(eq12(shopProducts.slug, key));
+        const [bySlug] = await db.select().from(shopProducts).where(eq13(shopProducts.slug, key));
         product = bySlug;
       } catch {
       }
@@ -22534,13 +23060,13 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(profileMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq12(users.id, key));
+      const [byId] = await db.select().from(users).where(eq13(users.id, key));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq12(users.username, key));
+        const [byUsername] = await db.select().from(users).where(eq13(users.username, key));
         user = byUsername || null;
       } catch {
       }
@@ -22562,7 +23088,7 @@ async function lookupRoute(origin, pathname) {
   if (courseMatch) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
-      const [course] = await db.select().from(courseEnrollments).where(eq12(courseEnrollments.id, key));
+      const [course] = await db.select().from(courseEnrollments).where(eq13(courseEnrollments.id, key));
       if (course) {
         return {
           title: `${course.title || "Course"} | BreedSkool`,
@@ -22577,7 +23103,7 @@ async function lookupRoute(origin, pathname) {
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq12(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, id));
       if (listing) {
         return {
           title: `${listing.title || "P2P listing"} | Taskdrip`,
@@ -22591,7 +23117,7 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page] = await db.select().from(pageSeoSettings).where(eq12(pageSeoSettings.pageSlug, slug));
+      const [page] = await db.select().from(pageSeoSettings).where(eq13(pageSeoSettings.pageSlug, slug));
       if (page) {
         return {
           title: page.metaTitle || page.pageTitle,
@@ -22749,11 +23275,11 @@ function serveStatic(app2) {
 // server/seed-demo.ts
 init_db();
 init_schema();
-import { eq as eq13, sql as sql11 } from "drizzle-orm";
+import { eq as eq14, sql as sql12 } from "drizzle-orm";
 import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
-    await db.execute(sql11`
+    await db.execute(sql12`
       UPDATE users SET
         total_followers = COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
           + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
@@ -23457,7 +23983,7 @@ async function seedDemoData(adminUserId) {
     const existingProducts = await db.select({ id: shopProducts.id }).from(shopProducts).limit(1);
     const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
     const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
-    await db.execute(sql11`UPDATE courses SET status = 'published' WHERE is_published = true AND status = 'draft'`);
+    await db.execute(sql12`UPDATE courses SET status = 'published' WHERE is_published = true AND status = 'draft'`);
     {
       const existingTitles = new Set(
         (await db.select({ title: courses.title }).from(courses)).map((r) => r.title)
@@ -23506,7 +24032,7 @@ async function seedDemoData(adminUserId) {
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
     }
-    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq13(p2pListings.sellerId, adminUserId)).limit(1);
+    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq14(p2pListings.sellerId, adminUserId)).limit(1);
     if (existingP2P.length === 0) {
       console.log("[seed] Seeding demo P2P listings...");
       for (const listing of DEMO_P2P_LISTINGS) {
@@ -23627,12 +24153,12 @@ async function seedDemoData(adminUserId) {
       console.log(`[seed] Created ${DEMO_CAMPAIGNS_DATA.length} demo campaigns.`);
     } else {
       for (const c of DEMO_CAMPAIGNS_DATA) {
-        await db.update(campaigns).set({ featureImage: c.featuredImage }).where(sql11`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
+        await db.update(campaigns).set({ featureImage: c.featuredImage }).where(sql12`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
       }
     }
     let networksCreated = 0;
     for (const net of PAYMENT_NETWORKS_DATA) {
-      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq13(paymentNetworks.networkKey, net.networkKey)).limit(1);
+      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq14(paymentNetworks.networkKey, net.networkKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net);
         networksCreated++;
@@ -23880,7 +24406,7 @@ async function seedCmsContent() {
 // server/seed-legal.ts
 init_db();
 init_schema();
-import { eq as eq14 } from "drizzle-orm";
+import { eq as eq15 } from "drizzle-orm";
 var LEGAL_CONTENT = [
   {
     slug: "terms",
@@ -24236,7 +24762,7 @@ Website: <a href="https://taskdrip.online">taskdrip.online</a></p>`
 async function seedLegalPages() {
   try {
     for (const page of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq14(legalPages.slug, page.slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq15(legalPages.slug, page.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
           slug: page.slug,
@@ -24246,7 +24772,7 @@ async function seedLegalPages() {
         console.log(`[seed-legal] Seeded legal page: ${page.slug}`);
       }
     }
-    const demoSub = await db.select().from(newsletterSubscribers).where(eq14(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
+    const demoSub = await db.select().from(newsletterSubscribers).where(eq15(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
     if (!demoSub.length) {
       await db.insert(newsletterSubscribers).values({
         email: "newsletter.demo@taskdrip.online",
@@ -24268,7 +24794,7 @@ init_seed_breedskool_courses();
 // server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq15, sql as sql12, and as and8 } from "drizzle-orm";
+import { eq as eq16, sql as sql13, and as and9 } from "drizzle-orm";
 import bcrypt5 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
@@ -24346,7 +24872,7 @@ async function seedSaasCourseDemo() {
   let enrollmentsCreated = 0;
   let reviewsCreated = 0;
   try {
-    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
+    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
     const courseId = pricing?.linkedCourseId;
     if (!courseId) {
       console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
@@ -24357,7 +24883,7 @@ async function seedSaasCourseDemo() {
     const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
     for (const student of DEMO_STUDENTS) {
       try {
-        const [existing] = await db.select({ id: users.id }).from(users).where(eq15(users.email, student.email)).limit(1);
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq16(users.email, student.email)).limit(1);
         let userId;
         if (existing) {
           userId = existing.id;
@@ -24375,9 +24901,9 @@ async function seedSaasCourseDemo() {
           userId = newUser.id;
           studentsCreated++;
         }
-        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and8(
-          eq15(courseEnrollments.courseId, courseId),
-          eq15(courseEnrollments.userId, userId)
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and9(
+          eq16(courseEnrollments.courseId, courseId),
+          eq16(courseEnrollments.userId, userId)
         )).limit(1);
         if (!existingEnroll) {
           const paidAt = randomDate(purchaseStart, purchaseEnd);
@@ -24398,19 +24924,19 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
     }
-    const [countResult] = await db.select({ cnt: sql12`count(*)::int` }).from(courseEnrollments).where(and8(
-      eq15(courseEnrollments.courseId, courseId),
-      eq15(courseEnrollments.isPaid, true),
-      eq15(courseEnrollments.status, "active")
+    const [countResult] = await db.select({ cnt: sql13`count(*)::int` }).from(courseEnrollments).where(and9(
+      eq16(courseEnrollments.courseId, courseId),
+      eq16(courseEnrollments.isPaid, true),
+      eq16(courseEnrollments.status, "active")
     ));
-    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq15(courses.id, courseId));
+    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq16(courses.id, courseId));
     for (const rev of DEMO_REVIEWS) {
       try {
-        const [userRow] = await db.select({ id: users.id }).from(users).where(eq15(users.email, rev.email)).limit(1);
+        const [userRow] = await db.select({ id: users.id }).from(users).where(eq16(users.email, rev.email)).limit(1);
         if (!userRow) continue;
-        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and8(
-          eq15(courseReviews.courseId, courseId),
-          eq15(courseReviews.userId, userRow.id)
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and9(
+          eq16(courseReviews.courseId, courseId),
+          eq16(courseReviews.userId, userRow.id)
         )).limit(1);
         if (!existingReview) {
           const reviewDate = randomDate(/* @__PURE__ */ new Date("2025-09-15"), /* @__PURE__ */ new Date("2026-07-28"));
@@ -24427,16 +24953,16 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for review ${rev.email}:`, e?.message);
       }
     }
-    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq15(courseReviews.courseId, courseId));
+    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq16(courseReviews.courseId, courseId));
     if (allReviews.length > 0) {
       const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
       await db.update(courses).set({
         reviewsCount: allReviews.length,
         averageRating: avg.toFixed(2),
         isFeatured: true
-      }).where(eq15(courses.id, courseId));
+      }).where(eq16(courses.id, courseId));
     } else {
-      await db.update(courses).set({ isFeatured: true }).where(eq15(courses.id, courseId));
+      await db.update(courses).set({ isFeatured: true }).where(eq16(courses.id, courseId));
     }
   } catch (e) {
     console.error("[seed-saas-demo] Fatal error:", e?.message);
@@ -24447,11 +24973,11 @@ async function seedSaasCourseDemo() {
 // server/seed-lawcolab.ts
 init_db();
 init_schema();
-import { eq as eq16 } from "drizzle-orm";
+import { eq as eq17 } from "drizzle-orm";
 var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
 async function seedLawcolab() {
   try {
-    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq16(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq17(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
     if (existing.length > 0) {
       return { inserted: false, skipped: true };
     }
@@ -25003,7 +25529,7 @@ async function seedPageSeo() {
 
 // server/startup-migrations.ts
 init_db();
-import { sql as sql13 } from "drizzle-orm";
+import { sql as sql14 } from "drizzle-orm";
 var REQUIRED_COLUMNS = [
   { table: "users", column: "brand_tier", definition: "varchar DEFAULT 'startup'" },
   { table: "users", column: "brand_rank", definition: "varchar DEFAULT 'bronze'" },
@@ -25490,7 +26016,7 @@ var REQUIRED_TABLES = [
 async function runStartupMigrations() {
   for (const ddl of REQUIRED_TABLES) {
     try {
-      await db.execute(sql13.raw(ddl));
+      await db.execute(sql14.raw(ddl));
     } catch (err) {
       console.error(`[startup-migration] Table creation error: ${err?.message}`);
     }
@@ -25498,7 +26024,7 @@ async function runStartupMigrations() {
   for (const fix of REQUIRED_COLUMNS) {
     try {
       await db.execute(
-        sql13.raw(
+        sql14.raw(
           `ALTER TABLE IF EXISTS "${fix.table}" ADD COLUMN IF NOT EXISTS "${fix.column}" ${fix.definition};`
         )
       );
