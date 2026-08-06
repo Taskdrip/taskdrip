@@ -15,7 +15,7 @@ import {
   ArrowLeft, Package, CheckCircle, Clock, Truck, XCircle, Download,
   MessageCircle, Star, ExternalLink, Copy, ShoppingBag, CreditCard,
   MapPin, Hash, Shield, User, AlertCircle, Zap, RefreshCw,
-  FileText, Receipt, ChevronRight, Info
+  FileText, Receipt, ChevronRight, Info, Printer
 } from "lucide-react";
 
 // ── Status Config ─────────────────────────────────────────────────────────────
@@ -190,6 +190,38 @@ export default function OrderDetailPage() {
   const productCategory = product.category || product.productType || "Digital Product";
   const hasDownload = !!delivery.downloadUrl;
   const hasTracking = !!(delivery.trackingNumber);
+  // Physical products (tangible goods) show shipping/tracking info; digital products use access grant flow
+  const isPhysical = (product.type || "").toLowerCase() === "physical";
+
+  // ── Print receipt ─────────────────────────────────────────────────────────
+  function printReceipt() {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const receiptNum = (id || "").slice(0, 8).toUpperCase();
+    win.document.write(`<html><head><title>Receipt #${receiptNum}</title><style>
+      body{font-family:sans-serif;padding:40px;max-width:480px;margin:auto}
+      h1{font-size:22px;font-weight:900;color:#7c3aed;margin:0}
+      .sub{font-size:12px;color:#6b7280;margin-bottom:24px}
+      .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px}
+      .label{color:#6b7280}.val{font-weight:600;color:#111827;text-align:right;max-width:60%}
+      .total{display:flex;justify-content:space-between;padding:12px 0;font-size:16px;font-weight:900;margin-top:8px}
+      .footer{text-align:center;font-size:11px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px}
+    </style></head><body>
+      <h1>Taskdrip</h1><p class="sub">Official Payment Receipt — #${receiptNum}</p>
+      <div class="row"><span class="label">Product</span><span class="val">${product.title || `Order #${receiptNum}`}</span></div>
+      <div class="row"><span class="label">Date</span><span class="val">${order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}</span></div>
+      <div class="row"><span class="label">Category</span><span class="val">${productCategory}</span></div>
+      ${order.paymentMethod ? `<div class="row"><span class="label">Payment Method</span><span class="val">${order.paymentMethod}</span></div>` : ""}
+      ${order.transactionId ? `<div class="row"><span class="label">Reference</span><span class="val" style="font-family:monospace;font-size:11px">${order.transactionId}</span></div>` : ""}
+      <div class="row"><span class="label">Status</span><span class="val">${cfg.label}</span></div>
+      <div class="total"><span>Total Paid</span><span style="color:#7c3aed">$${totalAmount.toFixed(2)}</span></div>
+      <p class="footer">Thank you for your purchase on Taskdrip.<br/>Keep this receipt for your records.</p>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">

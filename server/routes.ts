@@ -3487,11 +3487,30 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const allCampaigns = await (storage as any).getAllCampaignsAdmin();
       const allTransactions = await storage.getAllTransactions();
       const allEscrow = await (storage as any).getAllEscrowPayments();
+      const allPurchases = await storage.getAllPurchases();
       const activeCampaigns = allCampaigns.filter((c: any) => c.isActive && c.status === 'active');
-      const totalRevenue = allEscrow
+      // Escrow (campaign) revenue — verified payments only
+      const escrowRevenue = allEscrow
         .filter((e: any) => e.status === 'verified')
         .reduce((sum: number, e: any) => sum + parseFloat(e.amount || '0'), 0);
+      // Shop revenue — paid or delivered orders
+      const shopRevenue = (allPurchases as any[])
+        .filter((p: any) => p.status === 'paid' || p.status === 'delivered')
+        .reduce((sum: number, p: any) => sum + parseFloat(p.totalAmount || p.amount || '0'), 0);
+      // Course enrollment revenue — active enrollments
+      const allEnrollmentRows = await db
+        .select({ id: courseEnrollments.id, status: courseEnrollments.status, paymentStatus: courseEnrollments.paymentStatus, courseId: courseEnrollments.courseId })
+        .from(courseEnrollments);
+      let courseRevenue = 0;
+      for (const e of (allEnrollmentRows as any[])) {
+        if (e.status === 'active' || e.paymentStatus === 'approved') {
+          const course = await db.select({ price: courses.price }).from(courses).where(eq(courses.id, e.courseId)).limit(1);
+          courseRevenue += parseFloat((course[0] as any)?.price || '0');
+        }
+      }
+      const totalRevenue = escrowRevenue + shopRevenue + courseRevenue;
       const pendingEscrow = allEscrow.filter((e: any) => e.status === 'verifying' || e.status === 'submitted');
+      const pendingShop = (allPurchases as any[]).filter((p: any) => p.status === 'pending');
       const creators = allUsers.filter((u: any) => u.userType === 'creator');
       const brands = allUsers.filter((u: any) => u.userType === 'brand');
       const totalRewardsDistributed = allTransactions
@@ -3505,10 +3524,15 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         activeCampaigns: activeCampaigns.length,
         pendingCampaigns: allCampaigns.filter((c: any) => c.status === 'pending_payment').length,
         totalRevenue: totalRevenue.toFixed(2),
+        escrowRevenue: escrowRevenue.toFixed(2),
+        shopRevenue: shopRevenue.toFixed(2),
+        courseRevenue: courseRevenue.toFixed(2),
         totalRewardsDistributed: totalRewardsDistributed.toFixed(2),
-        pendingPayments: pendingEscrow.length,
+        pendingPayments: pendingEscrow.length + pendingShop.length,
         verifiedPayments: allEscrow.filter((e: any) => e.status === 'verified').length,
         totalTransactions: allTransactions.length,
+        totalShopOrders: (allPurchases as any[]).length,
+        paidShopOrders: (allPurchases as any[]).filter((p: any) => p.status === 'paid' || p.status === 'delivered').length,
       });
     } catch (error) {
       console.error('Error fetching admin stats:', error);

@@ -22,6 +22,7 @@ import {
   XCircle, AlertCircle, Truck, ReceiptText, FileSpreadsheet,
   CalendarRange, Filter, TrendingUp, DollarSign,
   Megaphone, Trophy, Home, School, MonitorPlay, Baby, MapPin, GraduationCap,
+  Printer, Receipt,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -118,6 +119,128 @@ function statusIcon(status: string) {
   if (["verifying", "payment_window"].includes(status))
     return <Clock className="h-4 w-4 text-amber-600" />;
   return <AlertCircle className="h-4 w-4 text-gray-400" />;
+}
+
+// Returns true only for physical (tangible) shop products that need shipping
+function isPhysicalShopOrder(order: UnifiedOrder): boolean {
+  if (order.type !== "shop") return false;
+  const t = (order.raw?.product?.type || "").toLowerCase();
+  return t === "physical";
+}
+
+// ── Payment Receipt Dialog ────────────────────────────────────────────────────
+function PaymentReceiptDialog({ order, open, onClose }: { order: UnifiedOrder; open: boolean; onClose: () => void }) {
+  const handlePrint = () => {
+    const el = document.getElementById("receipt-printable");
+    if (!el) return;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<html><head><title>Payment Receipt</title><style>
+      body { font-family: sans-serif; padding: 32px; max-width: 480px; margin: auto; }
+      .header { text-align: center; border-bottom: 2px solid #7c3aed; padding-bottom: 16px; margin-bottom: 24px; }
+      .logo { font-size: 22px; font-weight: 900; color: #7c3aed; }
+      .sub { font-size: 12px; color: #6b7280; }
+      .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+      .row .label { color: #6b7280; }
+      .row .val { font-weight: 600; color: #111827; }
+      .total-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 16px; font-weight: 900; }
+      .footer { text-align: center; font-size: 11px; color: #9ca3af; margin-top: 24px; }
+      .status-ok { color: #059669; }
+      .status-pending { color: #d97706; }
+    </style></head><body>${el.innerHTML}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  };
+
+  const receiptNum = order.id.slice(0, 8).toUpperCase();
+  const isPaid = ["paid", "delivered", "completed", "approved", "active"].includes(order.status);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-violet-600" /> Payment Receipt
+          </DialogTitle>
+          <DialogDescription>Receipt #{receiptNum}</DialogDescription>
+        </DialogHeader>
+
+        <div id="receipt-printable" className="space-y-4">
+          {/* Header */}
+          <div className="text-center border-b border-violet-100 pb-4">
+            <p className="text-2xl font-black text-violet-700">Taskdrip</p>
+            <p className="text-xs text-gray-500">Official Payment Receipt</p>
+            <p className="text-xs text-gray-400 mt-1">Receipt #{receiptNum}</p>
+          </div>
+
+          {/* Details */}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Item</span>
+              <span className="font-semibold text-gray-900 text-right max-w-[60%] leading-snug">{order.title}</span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Date</span>
+              <span className="font-medium text-gray-900">{format(new Date(order.date), "MMM d, yyyy · h:mm a")}</span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Order Type</span>
+              <span className="font-medium text-gray-900 capitalize">{typeLabel(order.type)}</span>
+            </div>
+            {order.paymentMethod && (
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500">Payment Method</span>
+                <span className="font-medium text-gray-900 capitalize">{order.paymentMethod}</span>
+              </div>
+            )}
+            {order.network && (
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500">Network</span>
+                <span className="font-medium text-gray-900">{order.network}</span>
+              </div>
+            )}
+            {order.transactionHash && (
+              <div className="flex justify-between items-start py-1.5 border-b border-gray-50 gap-2">
+                <span className="text-gray-500 shrink-0">Reference</span>
+                <span className="font-mono text-xs text-gray-700 break-all text-right">{order.transactionHash}</span>
+              </div>
+            )}
+            {order.paymentProof && order.paymentProof.startsWith("http") && (
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500">Payment Proof</span>
+                <a href={order.paymentProof} target="_blank" rel="noreferrer" className="text-violet-600 underline text-xs">View Screenshot</a>
+              </div>
+            )}
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Status</span>
+              <span className={`font-bold text-xs ${isPaid ? "text-emerald-600" : "text-amber-600"}`}>
+                {isPaid ? "✓ Payment Confirmed" : "⏳ Pending Verification"}
+              </span>
+            </div>
+            {/* Total */}
+            <div className="flex justify-between items-center pt-3 mt-1">
+              <span className="text-base font-bold text-gray-900">Total Paid</span>
+              <span className="text-xl font-black text-violet-700">{money(order.totalCharged)}</span>
+            </div>
+          </div>
+
+          <div className="text-center text-xs text-gray-400 pt-2 border-t">
+            Thank you for your purchase on Taskdrip.<br />
+            Keep this receipt for your records.
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button onClick={handlePrint} className="flex-1 bg-violet-600 hover:bg-violet-700 text-white gap-2">
+            <Printer className="h-4 w-4" /> Print Receipt
+          </Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Close</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ── Normalise raw API data into unified orders ────────────────────────────────
@@ -304,6 +427,8 @@ function filterByPeriod(orders: UnifiedOrder[], period: string) {
 
 // ── Order Detail Dialog ───────────────────────────────────────────────────────
 function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | null; open: boolean; onClose: () => void }) {
+  const [showReceipt, setShowReceipt] = useState(false);
+
   if (!order) return null;
 
   const raw = order.raw;
@@ -626,9 +751,17 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
           {/* Payment Details */}
           {(order.paymentMethod || order.transactionHash || order.network) && (
             <div>
-              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-gray-500" /> Payment Details
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-gray-500" /> Payment Details
+                </h3>
+                <button
+                  onClick={() => setShowReceipt(true)}
+                  className="inline-flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 font-semibold bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg px-2.5 py-1 transition-colors"
+                >
+                  <Receipt className="h-3 w-3" /> View Receipt
+                </button>
+              </div>
               <div className="rounded-xl border border-gray-100 bg-white divide-y divide-gray-50">
                 {order.paymentMethod && (
                   <div className="flex justify-between items-center px-4 py-3">
@@ -666,8 +799,8 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             </div>
           )}
 
-          {/* Shipping / Delivery */}
-          {order.type === "shop" && (
+          {/* Shipping / Delivery — only shown for physical/tangible products */}
+          {order.type === "shop" && isPhysicalShopOrder(order) && (
             <div>
               <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <Truck className="h-4 w-4 text-gray-500" /> Shipping & Delivery
@@ -734,7 +867,7 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
               )}
 
               {/* Seller controls: post a new tracking update */}
-              {role === "seller" && (
+              {role === "seller" && isPhysicalShopOrder(order) && (
                 <div className="mt-3 rounded-xl border border-purple-200 bg-purple-50 p-4">
                   <p className="text-xs font-bold text-purple-800 mb-3">Post a tracking update (visible to buyer in real time)</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -801,7 +934,7 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
                 ) : null}
               </div>
 
-              {isShop && !["delivered", "completed", "cancelled", "refunded"].includes(order.status) && (
+              {isShop && isPhysicalShopOrder(order) && !["delivered", "completed", "cancelled", "refunded"].includes(order.status) && (
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
                   <p className="text-xs text-gray-500">Got your package? Confirm delivery to close out the order and unlock your review.</p>
                   <Button
@@ -1009,6 +1142,15 @@ function OrderDetailDialog({ order, open, onClose }: { order: UnifiedOrder | nul
             </div>
           )}
         </div>
+
+        {/* Receipt dialog — triggered by "View Receipt" in Payment Details */}
+        {showReceipt && (
+          <PaymentReceiptDialog
+            order={order}
+            open={showReceipt}
+            onClose={() => setShowReceipt(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -1119,7 +1261,7 @@ export default function MyOrdersPage() {
 
   const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/my-orders"],
-    refetchInterval: 10000,
+    refetchInterval: 5000,
   });
 
   const allOrders = useMemo(() => normaliseOrders(data), [data]);
