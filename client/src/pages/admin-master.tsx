@@ -40,7 +40,8 @@ import {
   Copy, GraduationCap, ShoppingBag, Star, Package, Code, Code2, Layers, KeyRound, UserCog, Coins,
   Wallet, Sparkles, CreditCard, Building2, Landmark, Bell, Link2, Zap, Palette,
   Smartphone, RefreshCw, CheckSquare, ToggleLeft, ToggleRight, MonitorSmartphone, Megaphone,
-  Briefcase, Store, Trophy, Gift, Award, Crown, MessageCircle, ChevronRight
+  Briefcase, Store, Trophy, Gift, Award, Crown, MessageCircle, ChevronRight,
+  Bot, Loader2
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -1967,6 +1968,8 @@ export default function AdminMaster() {
   const hasDashboardAccess = allowedTabs.length > 0;
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
+  const [crawlRunning, setCrawlRunning] = useState(false);
+  const [crawlResult, setCrawlResult] = useState<{ discovered: number; added: number } | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
@@ -3618,6 +3621,80 @@ export default function AdminMaster() {
                   <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-amber-400 transition-colors flex-shrink-0" />
                 </div>
               </a>
+            </div>
+
+            {/* ── Influencer AI Robot Card ── */}
+            <div className="rounded-2xl border border-violet-500/40 bg-gradient-to-r from-violet-950/60 via-purple-900/30 to-indigo-950/60 p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                {/* Icon + label */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-violet-600/30 border border-violet-500/40 flex items-center justify-center flex-shrink-0 relative">
+                    <Bot className="w-7 h-7 text-violet-300" />
+                    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 border-2 border-gray-950 animate-pulse" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-white font-bold text-base">Influencer AI Robot</p>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-600/30 border border-violet-500/40 text-violet-300 uppercase tracking-wide">Groq-Powered</span>
+                    </div>
+                    <p className="text-gray-400 text-xs mt-0.5">
+                      Auto-discover creators from Reddit & social feeds, tier them by followers, and send AI-personalised outreach in one click.
+                    </p>
+                    {crawlResult && (
+                      <p className="text-green-400 text-xs mt-1.5 font-semibold">
+                        ✓ Last crawl: {crawlResult.discovered} discovered · {crawlResult.added} added to CRM
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <button
+                    disabled={crawlRunning}
+                    onClick={async () => {
+                      setCrawlRunning(true);
+                      setCrawlResult(null);
+                      try {
+                        const res = await apiRequest("POST", "/api/admin/influencer-crm/crawl", { limit: 20 });
+                        const data = await res.json();
+                        setCrawlResult({ discovered: data.discovered ?? data.added ?? 0, added: data.added ?? 0 });
+                      } catch (e) {
+                        console.error("Crawl error", e);
+                      } finally {
+                        setCrawlRunning(false);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors shadow-lg shadow-violet-900/40"
+                  >
+                    {crawlRunning ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Crawling…</>
+                    ) : (
+                      <><Bot className="w-4 h-4" /> Run AI Crawler</>
+                    )}
+                  </button>
+                  <a
+                    href="/admin/influencer-crm"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-sm font-semibold transition-colors"
+                  >
+                    Open CRM <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Stats strip */}
+              <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-violet-500/20">
+                {[
+                  { label: "Auto-crawls every", value: "60 min" },
+                  { label: "AI engine", value: "Groq LLaMA" },
+                  { label: "Outreach channels", value: "Email · WhatsApp" },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <div className="text-sm font-black text-violet-300">{s.value}</div>
+                    <div className="text-[11px] text-gray-600 mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
           </TabsContent>
