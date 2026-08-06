@@ -32,11 +32,12 @@ The dev server runs on port 5000.
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web push notifications | For push features |
 | `GEMINI_API_KEY` | Auto-blogger AI rewriting | For auto-blogger |
 | `GOOGLE_PLACES_API_KEY` | Lead gen — business discovery | For lead gen |
-| `YOUTUBE_API_KEY` | Lead gen — influencer discovery | For lead gen |
+| `YOUTUBE_API_KEY` | Lead gen + Influencer CRM robot | For influencer crawl |
 | `OPENAI_API_KEY` | Additional AI features | Optional |
 
 ## Key pages
 
+- `/admin/influencer-crm` — **Influencer CRM** — AI robot crawler, tier-based segments, outreach hub (NEW)
 - `/` — Landing page
 - `/campaigns` — Browse campaigns
 - `/influencers` — Creator marketplace

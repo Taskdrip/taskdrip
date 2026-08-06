@@ -12760,6 +12760,179 @@ Instructions:
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Influencer CRM — AI-powered robot + outreach dashboard
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    const {
+      crawlInfluencersAI,
+      getInfluencerTierStats,
+      sendInfluencerOutreach,
+      bulkInfluencerOutreach,
+      TIERS,
+      classifyTier,
+    } = await import("./influencer-crm-service");
+
+    // Tier stats
+    app.get('/api/admin/influencer-crm/tier-stats', isAuthenticated, requireAdmin, async (_req, res) => {
+      try {
+        const stats = await getInfluencerTierStats();
+        res.json(stats);
+      } catch (e: any) { res.status(500).json({ message: e.message }); }
+    });
+
+    // Tier definitions (for UI)
+    app.get('/api/admin/influencer-crm/tiers', isAuthenticated, requireAdmin, (_req, res) => {
+      res.json(TIERS);
+    });
+
+    // List influencers with tier filter
+    app.get('/api/admin/influencer-crm', isAuthenticated, requireAdmin, async (req: any, res) => {
+      try {
+        const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
+        const conds: any[] = [eq(leads.kind, "influencer")];
+        if (niche) conds.push(sql`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq(leads.country, String(country)));
+        if (status) conds.push(eq(leads.status, String(status)));
+        if (search) {
+          const s = `%${String(search).toLowerCase()}%`;
+          conds.push(sql`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+        }
+
+        // Tier filter via follower count ranges
+        if (tier && tier !== "all") {
+          const tierDef = TIERS.find((t: any) => t.id === String(tier));
+          if (tierDef && tierDef.id !== "unknown") {
+            if (tierDef.max === Infinity) {
+              conds.push(sql`${leads.followers} >= ${tierDef.min}`);
+            } else {
+              conds.push(sql`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
+            }
+          } else if (tierDef?.id === "unknown") {
+            conds.push(sql`${leads.followers} IS NULL OR ${leads.followers} = 0`);
+          }
+        }
+
+        const rows = await db.select().from(leads)
+          .where(and(...conds) as any)
+          .orderBy(desc(leads.followers))
+          .limit(Math.min(500, parseInt(String(limit), 10) || 200))
+          .offset(parseInt(String(offset), 10) || 0);
+
+        const totalRow = await db.select({ c: count() }).from(leads).where(and(...conds) as any);
+
+        // Add computed tier to each row
+        const items = rows.map((r: any) => ({ ...r, computedTier: classifyTier(r.followers) }));
+        res.json({ items, total: Number(totalRow[0]?.c || 0) });
+      } catch (e: any) { res.status(500).json({ message: e.message }); }
+    });
+
+    // AI Robot Crawl
+    app.post('/api/admin/influencer-crm/crawl', isAuthenticated, requireAdmin, async (req: any, res) => {
+      try {
+        const { niche, platforms, targetTiers, country, maxPerQuery, includeInternal } = req.body || {};
+        if (!niche) return res.status(400).json({ message: "niche required" });
+        const result = await crawlInfluencersAI({
+          niche,
+          platforms: Array.isArray(platforms) ? platforms : ["youtube"],
+          targetTiers: Array.isArray(targetTiers) ? targetTiers : undefined,
+          country,
+          maxPerQuery: parseInt(String(maxPerQuery || "15"), 10) || 15,
+          includeInternal: !!includeInternal,
+        });
+        res.json(result);
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
+    });
+
+    // Manual add influencer
+    app.post('/api/admin/influencer-crm/manual', isAuthenticated, requireAdmin, async (req, res) => {
+      try {
+        const body = req.body || {};
+        if (!body.name) return res.status(400).json({ message: "name required" });
+        const [row] = await db.insert(leads).values({ ...body, kind: "influencer", source: body.source || "manual" }).returning();
+        res.json(row);
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
+    });
+
+    // Update influencer
+    app.patch('/api/admin/influencer-crm/:id', isAuthenticated, requireAdmin, async (req, res) => {
+      try {
+        const allowed: any = {};
+        const fields = ["name","niche","country","city","email","website","phone","whatsapp","socialLinks","followers","description","tags","status","aiSummary","aiReport"];
+        for (const f of fields) if (f in req.body) allowed[f] = (req.body as any)[f];
+        allowed.updatedAt = new Date();
+        const [updated] = await db.update(leads).set(allowed).where(and(eq(leads.id, req.params.id), eq(leads.kind, "influencer")) as any).returning();
+        res.json(updated);
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
+    });
+
+    // Delete influencer
+    app.delete('/api/admin/influencer-crm/:id', isAuthenticated, requireAdmin, async (req, res) => {
+      try {
+        await db.delete(leadMessages).where(eq(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq(leads.id, req.params.id));
+        res.json({ ok: true });
+      } catch (e: any) { res.status(500).json({ message: e.message }); }
+    });
+
+    // Single outreach
+    app.post('/api/admin/influencer-crm/:id/outreach', isAuthenticated, requireAdmin, async (req: any, res) => {
+      try {
+        const { subject, body, channel } = req.body || {};
+        if (!body) return res.status(400).json({ message: "body required" });
+        const [lead] = await db.select().from(leads).where(and(eq(leads.id, req.params.id), eq(leads.kind, "influencer")) as any).limit(1);
+        if (!lead) return res.status(404).json({ message: "Influencer not found" });
+
+        if (channel === "email" || !channel) {
+          const result = await sendInfluencerOutreach({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
+          return res.json(result);
+        }
+
+        // Other channels (whatsapp/note/sms) — log only
+        const [msg] = await db.insert(leadMessages).values({
+          leadId: lead.id, channel: channel || "note", direction: "outbound", body,
+          status: "logged", provider: "manual", sentBy: req.user?.id || null,
+        }).returning();
+        await db.update(leads).set({ status: "contacted", lastContactedAt: new Date() }).where(eq(leads.id, lead.id));
+        res.json({ success: true, channel, message: msg });
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
+    });
+
+    // Get messages for an influencer
+    app.get('/api/admin/influencer-crm/:id/messages', isAuthenticated, requireAdmin, async (req, res) => {
+      try {
+        const msgs = await db.select().from(leadMessages).where(eq(leadMessages.leadId, req.params.id)).orderBy(desc(leadMessages.createdAt));
+        res.json(msgs);
+      } catch (e: any) { res.status(500).json({ message: e.message }); }
+    });
+
+    // Bulk outreach
+    app.post('/api/admin/influencer-crm/bulk-outreach', isAuthenticated, requireAdmin, async (req: any, res) => {
+      try {
+        const { leadIds, subject, body, tier, niche } = req.body || {};
+        if (!body) return res.status(400).json({ message: "body required" });
+        let ids: string[] = Array.isArray(leadIds) ? leadIds : [];
+        if (!ids.length) {
+          const conds: any[] = [eq(leads.kind, "influencer")];
+          if (niche) conds.push(sql`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+          if (tier && tier !== "all") {
+            const tierDef = TIERS.find((t: any) => t.id === String(tier));
+            if (tierDef && tierDef.id !== "unknown" && tierDef.max !== Infinity) {
+              conds.push(sql`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${(tierDef as any).max}`);
+            } else if (tierDef && tierDef.max === Infinity) {
+              conds.push(sql`${leads.followers} >= ${tierDef.min}`);
+            }
+          }
+          const rows = await db.select({ id: leads.id }).from(leads).where(and(...conds) as any).limit(500);
+          ids = rows.map(r => r.id);
+        }
+        if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
+        const result = await bulkInfluencerOutreach({ leadIds: ids, subject: subject || "Invitation to Taskdrip", body, sentBy: req.user?.id });
+        res.json(result);
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
+    });
+  }
+
   const httpServer = existingServer ?? createServer(app);
   return httpServer;
 }

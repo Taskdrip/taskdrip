@@ -94,6 +94,7 @@ const AdminSEO = lazy(() => import("@/pages/admin-seo"));
 const AdminSeoIntelligence = lazy(() => import("@/pages/admin-seo-intelligence"));
 const AdminLeads = lazy(() => import("@/pages/admin-leads"));
 const AdminLeadDetail = lazy(() => import("@/pages/admin-lead-detail"));
+const AdminInfluencerCRM = lazy(() => import("@/pages/admin-influencer-crm"));
 const LegalPageTemplate = lazy(() =>
   import("@/pages/legal-page").then((m) => ({ default: m.LegalPageTemplate }))
 );
@@ -278,6 +279,9 @@ function Router() {
             <Route path="/admin/keyword-analytics" component={AdminKeywordAnalyticsPage} />
             <Route path="/admin/auto-blogger" component={AdminAutoBloggerPage} />
             <Route path="/admin/ai-marketing-bot" component={() => <AdminErrorBoundary><AiMarketingBot /></AdminErrorBoundary>} />
+            <Route path="/admin/influencer-crm" component={() => <AdminErrorBoundary><AdminInfluencerCRM /></AdminErrorBoundary>} />
+            <Route path="/admin/leads" component={AdminLeads} />
+            <Route path="/admin/leads/:id" component={AdminLeadDetail} />
           </>
         ) : (
           <>
