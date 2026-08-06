@@ -294,6 +294,11 @@ function Router() {
             <Route path="/admin" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin')}`; return null; }} />
             <Route path="/admin-ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-ads')}`; return null; }} />
             <Route path="/admin/ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
+            <Route path="/admin/influencer-crm" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/influencer-crm')}`; return null; }} />
+            <Route path="/admin/ai-marketing-bot" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/ai-marketing-bot')}`; return null; }} />
+            <Route path="/admin/auto-blogger" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/auto-blogger')}`; return null; }} />
+            <Route path="/admin/leads" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
+            <Route path="/admin/leads/:id" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
             <Route path="/p2p-deals" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/p2p-deals')}`; return null; }} />
             <Route path="/p2p-deals/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
             <Route path="/my-training" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/my-training')}`; return null; }} />

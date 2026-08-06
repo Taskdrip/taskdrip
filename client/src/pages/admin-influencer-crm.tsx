@@ -206,7 +206,11 @@ export default function AdminInfluencerCRM() {
     maxPerQuery: 15,
     includeInternal: true,
   });
-  const [addForm, setAddForm] = useState({ name: "", niche: "", email: "", website: "", followers: "", country: "", description: "" });
+  const [addForm, setAddForm] = useState({
+    name: "", niche: "", email: "", website: "", followers: "", country: "", description: "",
+    phone: "", whatsapp: "",
+    instagram: "", tiktok: "", youtube: "", twitter: "", facebook: "",
+  });
   const [outreachForm, setOutreachForm] = useState({ templateId: "intro", subject: "", body: "", channel: "email" });
   const [bulkForm, setBulkForm] = useState({ templateId: "intro", subject: "", body: "", tier: "all" });
 
@@ -242,7 +246,13 @@ export default function AdminInfluencerCRM() {
     mutationFn: () => apiRequest("POST", "/api/admin/influencer-crm/crawl", crawlForm),
     onSuccess: async (r: any) => {
       const d = await r.json();
-      toast({ title: "🤖 AI Crawl complete", description: `Found ${d.found} influencers · Saved ${d.saved} new · Queries: ${d.queriesUsed?.join(", ")}` });
+      const sourceLabel = (d.sourcesUsed || []).map((s: string) =>
+        s === "youtube_api" ? "YouTube API" : s === "groq_ai" ? "Groq AI" : s === "internal" ? "Internal" : s
+      ).join(" + ") || "AI";
+      toast({
+        title: "🤖 AI Crawl complete",
+        description: `Found ${d.found} · Saved ${d.saved} new · Source: ${sourceLabel}`,
+      });
       qc.invalidateQueries({ queryKey: [queryKey] });
       qc.invalidateQueries({ queryKey: ["/api/admin/influencer-crm/tier-stats"] });
       setCrawlOpen(false);
@@ -251,16 +261,26 @@ export default function AdminInfluencerCRM() {
   });
 
   const addMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/admin/influencer-crm/manual", {
-      ...addForm,
-      followers: addForm.followers ? parseInt(addForm.followers) : undefined,
-    }),
+    mutationFn: () => {
+      const { instagram, tiktok, youtube: yt, twitter, facebook, ...rest } = addForm;
+      const socialLinks: Record<string, string> = {};
+      if (instagram) socialLinks.instagram = instagram.startsWith("http") ? instagram : `https://instagram.com/${instagram.replace(/^@/, "")}`;
+      if (tiktok) socialLinks.tiktok = tiktok.startsWith("http") ? tiktok : `https://tiktok.com/@${tiktok.replace(/^@/, "")}`;
+      if (yt) socialLinks.youtube = yt.startsWith("http") ? yt : `https://youtube.com/@${yt.replace(/^@/, "")}`;
+      if (twitter) socialLinks.x = twitter.startsWith("http") ? twitter : `https://x.com/${twitter.replace(/^@/, "")}`;
+      if (facebook) socialLinks.facebook = facebook.startsWith("http") ? facebook : `https://facebook.com/${facebook.replace(/^@/, "")}`;
+      return apiRequest("POST", "/api/admin/influencer-crm/manual", {
+        ...rest,
+        followers: rest.followers ? parseInt(rest.followers) : undefined,
+        socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
+      });
+    },
     onSuccess: () => {
-      toast({ title: "Influencer added" });
+      toast({ title: "✅ Influencer added" });
       qc.invalidateQueries({ queryKey: [queryKey] });
       qc.invalidateQueries({ queryKey: ["/api/admin/influencer-crm/tier-stats"] });
       setAddOpen(false);
-      setAddForm({ name: "", niche: "", email: "", website: "", followers: "", country: "", description: "" });
+      setAddForm({ name: "", niche: "", email: "", website: "", followers: "", country: "", description: "", phone: "", whatsapp: "", instagram: "", tiktok: "", youtube: "", twitter: "", facebook: "" });
     },
     onError: (e: any) => toast({ title: "Failed to add", description: e.message, variant: "destructive" }),
   });
@@ -745,9 +765,18 @@ export default function AdminInfluencerCRM() {
               </div>
             </div>
 
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 text-xs text-purple-300">
-              <Bot className="w-3.5 h-3.5 inline mr-1.5" />
-              The AI will generate smart search queries for <b>{crawlForm.niche || "your niche"}</b>, crawl selected platforms, classify by tier, and deduplicate results automatically.
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 text-xs text-purple-300 space-y-1.5">
+              <p><Bot className="w-3.5 h-3.5 inline mr-1.5" />The AI robot will discover creators in <b>{crawlForm.niche || "your niche"}</b>, classify by tier, and deduplicate automatically.</p>
+              <p className="text-purple-400/80">
+                {crawlForm.platforms.includes("youtube")
+                  ? "📡 YouTube: live channel search (requires YouTube API key)"
+                  : null}
+              </p>
+              <p className="text-purple-400/80">
+                {crawlForm.platforms.filter(p => p !== "youtube").length > 0 || !crawlForm.platforms.includes("youtube")
+                  ? `🤖 ${crawlForm.platforms.filter(p => p !== "youtube").join(", ") || crawlForm.platforms.join(", ")}: Groq AI generates realistic creator profiles for outreach (requires GROQ_API_KEY)`
+                  : null}
+              </p>
             </div>
 
             <Button
@@ -765,11 +794,13 @@ export default function AdminInfluencerCRM() {
           Manual Add Dialog
       ══════════════════════════════════════════════════════════════ */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Plus className="w-4 h-4" />Add Influencer Manually</DialogTitle>
+            <DialogDescription className="text-gray-400">Fill in what you know — at minimum a name. Tier is auto-computed from followers.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 pt-1">
+          <div className="space-y-4 pt-1">
+            {/* Core info */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-gray-300">Name *</Label>
@@ -777,29 +808,100 @@ export default function AdminInfluencerCRM() {
               </div>
               <div>
                 <Label className="text-gray-300">Niche</Label>
-                <Input value={addForm.niche} onChange={e => setAddForm(f => ({ ...f, niche: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="e.g. Crypto" />
-              </div>
-              <div>
-                <Label className="text-gray-300">Email</Label>
-                <Input type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" />
+                <Select value={addForm.niche || "custom"} onValueChange={v => { if (v !== "custom") setAddForm(f => ({ ...f, niche: v })); }}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 mt-1"><SelectValue placeholder="Select niche…" /></SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700">
+                    {NICHES.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                    <SelectItem value="custom">Custom…</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input value={addForm.niche} onChange={e => setAddForm(f => ({ ...f, niche: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="Or type custom niche" />
               </div>
               <div>
                 <Label className="text-gray-300">Followers</Label>
                 <Input type="number" value={addForm.followers} onChange={e => setAddForm(f => ({ ...f, followers: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="e.g. 50000" />
+                {addForm.followers && (
+                  <p className="text-xs mt-1" style={{ color: addForm.followers ? (() => {
+                    const n = parseInt(addForm.followers);
+                    if (n >= 10_000_000) return "#f59e0b";
+                    if (n >= 1_000_000) return "#a855f7";
+                    if (n >= 100_000) return "#3b82f6";
+                    if (n >= 10_000) return "#10b981";
+                    return "#6b7280";
+                  })() : "#6b7280" }}>
+                    {(() => {
+                      const n = parseInt(addForm.followers);
+                      if (n >= 10_000_000) return "👑 Global Titan";
+                      if (n >= 1_000_000) return "⚡ Power Influencer";
+                      if (n >= 100_000) return "🚀 Growth Engine";
+                      if (n >= 10_000) return "✨ Rising Spark";
+                      if (n >= 1) return "🌱 Aspiring Influencer";
+                      return "";
+                    })()}
+                  </p>
+                )}
               </div>
               <div>
-                <Label className="text-gray-300">Country</Label>
-                <Input value={addForm.country} onChange={e => setAddForm(f => ({ ...f, country: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="NG, US…" />
-              </div>
-              <div>
-                <Label className="text-gray-300">Website</Label>
-                <Input value={addForm.website} onChange={e => setAddForm(f => ({ ...f, website: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="https://…" />
+                <Label className="text-gray-300">Country (ISO-2)</Label>
+                <Input value={addForm.country} onChange={e => setAddForm(f => ({ ...f, country: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="NG, US, GB…" />
               </div>
             </div>
+
+            {/* Contact */}
             <div>
-              <Label className="text-gray-300">Description</Label>
-              <Textarea value={addForm.description} onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))} rows={2} className="bg-gray-800 border-gray-700 mt-1" />
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Contact Info</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-gray-300"><Mail className="w-3 h-3 inline mr-1" />Email</Label>
+                  <Input type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="contact@example.com" />
+                </div>
+                <div>
+                  <Label className="text-gray-300"><Phone className="w-3 h-3 inline mr-1" />Phone</Label>
+                  <Input value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="+234…" />
+                </div>
+                <div>
+                  <Label className="text-gray-300"><MessageCircle className="w-3 h-3 inline mr-1" />WhatsApp</Label>
+                  <Input value={addForm.whatsapp} onChange={e => setAddForm(f => ({ ...f, whatsapp: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="+234…" />
+                </div>
+                <div>
+                  <Label className="text-gray-300"><Globe className="w-3 h-3 inline mr-1" />Website</Label>
+                  <Input value={addForm.website} onChange={e => setAddForm(f => ({ ...f, website: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="https://…" />
+                </div>
+              </div>
             </div>
+
+            {/* Social handles */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Social Handles <span className="text-gray-600 normal-case">(username or full URL)</span></p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-gray-300"><Instagram className="w-3 h-3 inline mr-1" />Instagram</Label>
+                  <Input value={addForm.instagram} onChange={e => setAddForm(f => ({ ...f, instagram: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="@username" />
+                </div>
+                <div>
+                  <Label className="text-gray-300"><span className="text-[10px] font-bold mr-1">TT</span>TikTok</Label>
+                  <Input value={addForm.tiktok} onChange={e => setAddForm(f => ({ ...f, tiktok: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="@username" />
+                </div>
+                <div>
+                  <Label className="text-gray-300"><Youtube className="w-3 h-3 inline mr-1" />YouTube</Label>
+                  <Input value={addForm.youtube} onChange={e => setAddForm(f => ({ ...f, youtube: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="@channel or URL" />
+                </div>
+                <div>
+                  <Label className="text-gray-300"><Twitter className="w-3 h-3 inline mr-1" />X / Twitter</Label>
+                  <Input value={addForm.twitter} onChange={e => setAddForm(f => ({ ...f, twitter: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="@username" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-gray-300"><Globe className="w-3 h-3 inline mr-1" />Facebook</Label>
+                  <Input value={addForm.facebook} onChange={e => setAddForm(f => ({ ...f, facebook: e.target.value }))} className="bg-gray-800 border-gray-700 mt-1" placeholder="page-name or URL" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-gray-300">Bio / Description</Label>
+              <Textarea value={addForm.description} onChange={e => setAddForm(f => ({ ...f, description: e.target.value }))} rows={2} className="bg-gray-800 border-gray-700 mt-1" placeholder="Short bio or notes about this creator" />
+            </div>
+
             <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !addForm.name} className="w-full bg-purple-600 hover:bg-purple-700">
               {addMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
               Add Influencer

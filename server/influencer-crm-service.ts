@@ -121,6 +121,102 @@ async function searchYouTubeCreators(opts: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Groq — AI-generated influencer profiles (fallback / non-YouTube platforms)
+// ─────────────────────────────────────────────────────────────────────────────
+async function generateInfluencersViaGroq(opts: {
+  niche: string;
+  platforms: string[];
+  targetTiers?: string[];
+  country?: string;
+  count?: number;
+}): Promise<Partial<InsertLead>[]> {
+  if (!GROQ_KEY) return [];
+
+  const tierContext = opts.targetTiers?.length
+    ? `Focus on creators with: ${opts.targetTiers.map(t => {
+        const tier = TIERS.find(x => x.id === t);
+        return tier ? `${tier.label} (${tier.min.toLocaleString()}–${tier.max === Infinity ? "10M+" : tier.max.toLocaleString()} followers)` : t;
+      }).join(", ")}`
+    : "Mix of micro to mega creators across all follower tiers";
+
+  const platformList = opts.platforms.filter(p => p !== "youtube").join(", ") || opts.platforms.join(", ");
+
+  const prompt = `Generate ${opts.count || 12} realistic social media influencer profiles for the "${opts.niche}" niche on ${platformList}.
+${tierContext}.
+${opts.country ? `Prefer creators from or relevant to ${opts.country}.` : "Include a global mix."}
+
+Return ONLY a valid JSON array — no markdown, no explanation:
+[{
+  "name": "Full creator name",
+  "platform": "instagram|tiktok|twitter|youtube|facebook|linkedin",
+  "handle": "@username",
+  "followers": 125000,
+  "niche": "${opts.niche}",
+  "country": "NG",
+  "email": "email@domain.com or null",
+  "phone": null,
+  "description": "Short bio under 120 chars",
+  "website": "https://... or null"
+}]
+
+Rules: vary follower counts realistically, use plausible real-sounding names, most emails should be null (real influencers rarely list emails), some may have websites.`;
+
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: "You are a data generator. Return only valid JSON arrays, no markdown, no extra text." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.85,
+        max_tokens: 2500,
+      }),
+    });
+    if (!r.ok) return [];
+    const j: any = await r.json();
+    const content = j.choices?.[0]?.message?.content || "[]";
+    const cleaned = content.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (!Array.isArray(parsed)) return [];
+
+    const items: Partial<InsertLead>[] = [];
+    for (const p of parsed) {
+      const followers = parseInt(String(p.followers || 0), 10) || 0;
+      const tier = classifyTier(followers);
+      if (opts.targetTiers?.length && !opts.targetTiers.includes(tier)) continue;
+      const platform = String(p.platform || opts.platforms[0] || "instagram").toLowerCase();
+      const handle = String(p.handle || "").replace(/^@/, "");
+      const profileUrl = handle
+        ? platform === "twitter" ? `https://x.com/${handle}`
+        : platform === "youtube" ? `https://youtube.com/@${handle}`
+        : `https://${platform}.com/${handle}`
+        : null;
+      items.push({
+        kind: "influencer",
+        source: "ai_generated",
+        externalId: `ai_${platform}_${handle || Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: String(p.name || "Unknown Creator"),
+        niche: String(p.niche || opts.niche),
+        country: p.country || opts.country || null,
+        email: p.email || null,
+        phone: p.phone || null,
+        description: p.description ? String(p.description).slice(0, 300) : null,
+        website: p.website || profileUrl,
+        followers,
+        tags: [tier],
+        socialLinks: profileUrl ? { [platform]: profileUrl } : {},
+      } as Partial<InsertLead>);
+    }
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main AI Robot Crawl
 // ─────────────────────────────────────────────────────────────────────────────
 export async function crawlInfluencersAI(opts: {
@@ -137,9 +233,11 @@ export async function crawlInfluencersAI(opts: {
   const queries = await generateSearchQueries(niche, platforms);
 
   const allItems: Partial<InsertLead>[] = [];
+  const sourcesUsed: string[] = [];
 
-  // Step 2: YouTube crawl (live API)
+  // Step 2a: YouTube crawl (live API — requires YOUTUBE_API_KEY)
   if (platforms.includes("youtube") && YOUTUBE_KEY) {
+    sourcesUsed.push("youtube_api");
     for (const q of queries) {
       try {
         const results = await searchYouTubeCreators({ query: q, country, maxResults: maxPerQuery, targetTiers });
@@ -148,10 +246,30 @@ export async function crawlInfluencersAI(opts: {
     }
   }
 
+  // Step 2b: Groq AI generation for non-YouTube platforms (or all if no YouTube key)
+  const nonYoutubePlatforms = platforms.filter(p => p !== "youtube");
+  const needsGroqFallback = nonYoutubePlatforms.length > 0 || (platforms.includes("youtube") && !YOUTUBE_KEY);
+
+  if (needsGroqFallback && GROQ_KEY) {
+    const groqPlatforms = nonYoutubePlatforms.length > 0 ? nonYoutubePlatforms : platforms;
+    sourcesUsed.push("groq_ai");
+    try {
+      const groqResults = await generateInfluencersViaGroq({
+        niche,
+        platforms: groqPlatforms,
+        targetTiers,
+        country,
+        count: Math.min(maxPerQuery * Math.max(1, groqPlatforms.length), 30),
+      });
+      allItems.push(...groqResults);
+    } catch { /* skip */ }
+  }
+
   // Step 3: Include internal Taskdrip creators
   if (includeInternal) {
     const { users } = await import("@shared/schema");
     const internal = await db.select().from(users).where(eq(users.userType, "influencer")).limit(100);
+    if (internal.length > 0) sourcesUsed.push("internal");
     for (const u of internal) {
       const followers = (u as any).totalFollowers || 0;
       const tier = classifyTier(followers);
@@ -182,6 +300,7 @@ export async function crawlInfluencersAI(opts: {
 
   return {
     queriesUsed: queries,
+    sourcesUsed,
     found: unique.length,
     saved: saved.length,
     items: saved,
