@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "python-base-3.13"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -50,3 +50,4 @@ stack = "FULLSTACK_JS"
 
 [userenv.shared]
 PORT = "5000"
+RESEND_FROM_EMAIL = "noreply@taskdrip.online"
