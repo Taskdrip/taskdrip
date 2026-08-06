@@ -9,13 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import {
   ArrowLeft, Package, CheckCircle, Clock, Truck, XCircle, Download,
   MessageCircle, Star, ExternalLink, Copy, ShoppingBag, CreditCard,
   MapPin, Hash, Shield, User, AlertCircle, Zap, RefreshCw,
-  FileText, Receipt, ChevronRight, Info, Printer
+  FileText, Receipt, ChevronRight, Info, Printer, Eye,
 } from "lucide-react";
 
 // ── Status Config ─────────────────────────────────────────────────────────────
@@ -30,16 +31,31 @@ const STATUS_CONFIG: Record<string, {
   cancelled: { label: "Cancelled", color: "text-red-700",    bg: "bg-red-50",    border: "border-red-200",    icon: XCircle,     step: 0, gradient: "from-red-400 to-rose-500" },
 };
 
-const TIMELINE_STEPS = [
+const TIMELINE_STEPS_PHYSICAL = [
   { key: "placed",    label: "Order Placed",  icon: ShoppingBag },
   { key: "confirmed", label: "Confirmed",     icon: CheckCircle },
   { key: "shipped",   label: "Shipped",       icon: Truck },
   { key: "delivered", label: "Delivered",     icon: Package },
 ];
 
-function StatusTimeline({ status }: { status: string }) {
+const TIMELINE_STEPS_DIGITAL = [
+  { key: "placed",    label: "Order Placed",  icon: ShoppingBag },
+  { key: "confirmed", label: "Confirmed",     icon: CheckCircle },
+  { key: "delivered", label: "Access Granted", icon: Zap },
+];
+
+// Map status → digital step index (1-based)
+const DIGITAL_STATUS_STEP: Record<string, number> = {
+  pending:   1,
+  paid:      2,
+  delivered: 3,
+  cancelled: 0,
+};
+
+function StatusTimeline({ status, isPhysical }: { status: string; isPhysical: boolean }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
-  const currentStep = cfg.step;
+  const steps = isPhysical ? TIMELINE_STEPS_PHYSICAL : TIMELINE_STEPS_DIGITAL;
+  const currentStep = isPhysical ? cfg.step : (DIGITAL_STATUS_STEP[status] ?? 1);
 
   if (status === "cancelled") {
     return (
@@ -56,16 +72,15 @@ function StatusTimeline({ status }: { status: string }) {
   return (
     <div className="relative">
       <div className="flex items-start justify-between gap-2">
-        {TIMELINE_STEPS.map((step, i) => {
+        {steps.map((step, i) => {
           const stepNum = i + 1;
           const isCompleted = stepNum < currentStep;
           const isActive = stepNum === currentStep;
-          const isPending = stepNum > currentStep;
           const Icon = step.icon;
           return (
             <div key={step.key} className="flex flex-col items-center flex-1 relative">
               {/* Connector line */}
-              {i < TIMELINE_STEPS.length - 1 && (
+              {i < steps.length - 1 && (
                 <div className={`absolute top-4 left-1/2 right-0 h-0.5 -translate-y-1/2 z-0 ${isCompleted ? `bg-gradient-to-r ${cfg.gradient}` : 'bg-gray-200'}`}
                   style={{ width: 'calc(100% - 1rem)', left: 'calc(50% + 1rem)' }} />
               )}
@@ -113,6 +128,7 @@ export default function OrderDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [showReview, setShowReview] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const { data: order, isLoading, error } = useQuery<any>({
     queryKey: ["/api/my-orders/shop", id],
@@ -224,6 +240,7 @@ export default function OrderDetailPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <NavigationFixed />
 
@@ -308,7 +325,7 @@ export default function OrderDetailPage() {
               <h3 className="text-sm font-bold text-gray-700 mb-5 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500" /> Order Progress
               </h3>
-              <StatusTimeline status={status} />
+              <StatusTimeline status={status} isPhysical={isPhysical} />
             </CardContent>
           </Card>
         )}
@@ -348,11 +365,53 @@ export default function OrderDetailPage() {
                     </button>
                   </div>
                 )}
+                {order.transactionHash && !order.transactionId && (
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><Hash className="w-3 h-3" /> Reference</span>
+                    <button
+                      onClick={() => copyToClipboard(order.transactionHash, "Reference copied")}
+                      className="font-mono text-gray-700 hover:text-purple-600 flex items-center gap-1 transition-colors"
+                    >
+                      {(order.transactionHash as string).slice(0, 16)}… <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Status</span>
                   <Badge className={`text-[10px] ${cfg.bg} ${cfg.color} ${cfg.border} border`}>{cfg.label}</Badge>
                 </div>
               </div>
+
+              {/* Payment proof screenshot — visible to buyer, seller, admin */}
+              {order.paymentProof && (order.paymentProof as string).startsWith("http") && (
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 mb-2 font-medium">Payment Proof</p>
+                  <a
+                    href={order.paymentProof}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-xl overflow-hidden border border-gray-200 hover:border-purple-300 transition-colors group"
+                  >
+                    <img
+                      src={order.paymentProof}
+                      alt="Payment proof"
+                      className="w-full h-28 object-cover group-hover:opacity-90 transition-opacity"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-xs text-purple-600 font-medium">
+                      <Eye className="w-3 h-3" /> View full screenshot
+                    </div>
+                  </a>
+                </div>
+              )}
+
+              {/* Receipt button */}
+              <button
+                onClick={() => setShowReceipt(true)}
+                className="w-full mt-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-xs font-medium text-gray-600 hover:text-purple-700 transition-all"
+              >
+                <Printer className="w-3.5 h-3.5" /> View / Print Receipt
+              </button>
             </CardContent>
           </Card>
 
@@ -399,11 +458,14 @@ export default function OrderDetailPage() {
         </div>
 
         {/* ── Delivery / Download ────────────────────────── */}
-        {(hasDownload || hasTracking || delivery.address) && (
+        {(hasDownload || (isPhysical && (hasTracking || delivery.address))) && (
           <Card className="mb-5 shadow-sm border border-gray-100">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-violet-500" /> Delivery Details
+                {isPhysical
+                  ? <><Truck className="w-4 h-4 text-violet-500" /> Shipping & Delivery</>
+                  : <><Zap className="w-4 h-4 text-violet-500" /> Access & Download</>
+                }
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
@@ -419,14 +481,15 @@ export default function OrderDetailPage() {
                     <Download className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-purple-700 text-sm">Download Your Product</p>
+                    <p className="font-bold text-purple-700 text-sm">Download / Access Your Product</p>
                     <p className="text-xs text-purple-500 truncate">{delivery.downloadUrl}</p>
                   </div>
                   <ExternalLink className="w-4 h-4 text-purple-400 flex-shrink-0" />
                 </a>
               )}
 
-              {hasTracking && (
+              {/* Physical-only: tracking & address */}
+              {isPhysical && hasTracking && (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">Tracking Number</p>
@@ -444,11 +507,11 @@ export default function OrderDetailPage() {
                 </div>
               )}
 
-              {delivery.address && (
+              {isPhysical && delivery.address && (
                 <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                   <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-500 mb-0.5">Delivery Address</p>
+                    <p className="text-xs text-gray-500 mb-0.5">Shipping Address</p>
                     <p className="text-sm text-gray-700">{delivery.address}</p>
                     {delivery.estimatedDelivery && (
                       <p className="text-xs text-gray-400 mt-1">Est. delivery: {delivery.estimatedDelivery}</p>
@@ -456,12 +519,23 @@ export default function OrderDetailPage() {
                   </div>
                 </div>
               )}
+
+              {/* Digital: pending-access note */}
+              {!isPhysical && !hasDownload && status === "paid" && (
+                <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                  <Clock className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Access being prepared</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Your payment is confirmed. The seller will grant access shortly — usually within 24 hours.</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* ── Shipping Timeline ──────────────────────────── */}
-        {shippingUpdates.length > 0 && (
+        {/* ── Shipping Timeline — physical products only ─── */}
+        {isPhysical && shippingUpdates.length > 0 && (
           <Card className="mb-5 shadow-sm border border-gray-100">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -547,6 +621,14 @@ export default function OrderDetailPage() {
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> Leave a Review
             </Button>
           )}
+          <Button
+            variant="outline"
+            className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
+            onClick={() => setShowReceipt(true)}
+            data-testid="btn-print-receipt"
+          >
+            <Receipt className="w-4 h-4" /> View Receipt
+          </Button>
           <Link href="/shop">
             <Button variant="outline" className="gap-2" data-testid="btn-browse-shop">
               <ShoppingBag className="w-4 h-4" /> Browse Shop
@@ -605,5 +687,90 @@ export default function OrderDetailPage() {
 
       </div>
     </div>
+
+    {/* ── Receipt Dialog ──────────────────────────────── */}
+    <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-violet-600" /> Payment Receipt
+          </DialogTitle>
+          <DialogDescription>Receipt #{(id || "").slice(0, 8).toUpperCase()}</DialogDescription>
+        </DialogHeader>
+
+        <div id="receipt-printable-detail" className="space-y-3">
+          {/* Header */}
+          <div className="text-center border-b border-violet-100 pb-4">
+            <p className="text-2xl font-black text-violet-700">Taskdrip</p>
+            <p className="text-xs text-gray-500">Official Payment Receipt</p>
+            <p className="text-xs text-gray-400 mt-1">Receipt #{(id || "").slice(0, 8).toUpperCase()}</p>
+          </div>
+
+          {/* Details */}
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Item</span>
+              <span className="font-semibold text-gray-900 text-right max-w-[60%] leading-snug">{product.title || `Order #${(id || "").slice(0, 8)}`}</span>
+            </div>
+            {order.createdAt && (
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500">Date</span>
+                <span className="font-medium text-gray-900">{format(new Date(order.createdAt), "MMM d, yyyy · h:mm a")}</span>
+              </div>
+            )}
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Category</span>
+              <span className="font-medium text-gray-900">{productCategory}</span>
+            </div>
+            {order.paymentMethod && (
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500">Payment Method</span>
+                <span className="font-medium text-gray-900 capitalize">{order.paymentMethod}</span>
+              </div>
+            )}
+            {(order.transactionHash || order.transactionId) && (
+              <div className="flex justify-between items-start py-1.5 border-b border-gray-50 gap-2">
+                <span className="text-gray-500 shrink-0">Reference</span>
+                <span className="font-mono text-xs text-gray-700 break-all text-right">{order.transactionHash || order.transactionId}</span>
+              </div>
+            )}
+            {order.paymentProof && (order.paymentProof as string).startsWith("http") && (
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500">Payment Proof</span>
+                <a href={order.paymentProof} target="_blank" rel="noreferrer" className="text-violet-600 underline text-xs flex items-center gap-1">
+                  <Eye className="w-3 h-3" /> View screenshot
+                </a>
+              </div>
+            )}
+            <div className="flex justify-between py-1.5 border-b border-gray-50">
+              <span className="text-gray-500">Order Status</span>
+              <span className={`font-bold text-xs ${["paid","delivered"].includes(status) ? "text-emerald-600" : "text-amber-600"}`}>
+                {["paid","delivered"].includes(status) ? "✓ Payment Confirmed" : "⏳ Pending Verification"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-3 mt-1">
+              <span className="text-base font-bold text-gray-900">Total Paid</span>
+              <span className="text-xl font-black text-violet-700">${totalAmount.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="text-center text-xs text-gray-400 pt-2 border-t">
+            Thank you for your purchase on Taskdrip.<br />
+            Keep this receipt for your records.
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button
+            onClick={printReceipt}
+            className="flex-1 bg-violet-600 hover:bg-violet-700 text-white gap-2"
+          >
+            <Printer className="h-4 w-4" /> Print Receipt
+          </Button>
+          <Button variant="outline" onClick={() => setShowReceipt(false)} className="flex-1">Close</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
