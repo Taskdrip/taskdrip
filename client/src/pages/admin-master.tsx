@@ -3039,12 +3039,24 @@ export default function AdminMaster() {
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+            {(() => {
+              // Normalize the proof URL so relative paths like "uploads/foo.png"
+              // always get a leading "/" — prevents the browser treating the path
+              // segment as a hostname when opening in a new tab.
+              const rawUrl = proofModal.url;
+              const proofUrl = rawUrl
+                ? (rawUrl.startsWith("http") || rawUrl.startsWith("/") || rawUrl.startsWith("data:")
+                    ? rawUrl
+                    : `/${rawUrl}`)
+                : undefined;
+              return (
+                <>
             {proofModal.amount && (
               <div className="flex items-center gap-3 bg-green-900/30 border border-green-700/40 rounded-xl px-4 py-3">
                 <DollarSign className="w-5 h-5 text-green-400 flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-green-400 font-medium uppercase tracking-wide">Escrow Amount</p>
-                  <p className="text-lg font-bold text-green-300">${proofModal.amount} USDT</p>
+                  <p className="text-xs text-green-400 font-medium uppercase tracking-wide">Amount</p>
+                  <p className="text-lg font-bold text-green-300">${proofModal.amount}</p>
                 </div>
               </div>
             )}
@@ -3059,15 +3071,15 @@ export default function AdminMaster() {
                 )}
               </div>
             )}
-            {proofModal.url && (
+            {proofUrl && (
               <div className="space-y-3">
                 <p className="text-xs text-violet-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                   <Image className="w-3 h-3" /> Payment Screenshot
                 </p>
-                {/\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(proofModal.url) || proofModal.url.startsWith("data:image") ? (
+                {/\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(proofUrl) || proofUrl.startsWith("data:image") ? (
                   <div className="rounded-xl overflow-hidden border border-gray-700 bg-black">
                     <img
-                      src={proofModal.url}
+                      src={proofUrl}
                       alt="Payment proof"
                       className="w-full max-h-96 object-contain"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -3077,11 +3089,11 @@ export default function AdminMaster() {
                   <div className="rounded-xl border border-gray-700 bg-gray-800 p-6 text-center">
                     <FileText className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-gray-300 mb-1">Non-image file submitted</p>
-                    <p className="text-xs text-gray-500 break-all">{proofModal.url}</p>
+                    <p className="text-xs text-gray-500 break-all">{proofUrl}</p>
                   </div>
                 )}
                 <a
-                  href={proofModal.url}
+                  href={proofUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors border border-blue-700/40 rounded-lg px-3 py-2 bg-blue-900/20 hover:bg-blue-900/40"
@@ -3090,6 +3102,9 @@ export default function AdminMaster() {
                 </a>
               </div>
             )}
+                </>
+              );
+            })()}
             {!proofModal.url && !proofModal.txHash && (
               <div className="text-center py-8 text-gray-500">
                 <FileText className="w-10 h-10 mx-auto mb-3 text-gray-600" />
