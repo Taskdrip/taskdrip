@@ -17,7 +17,7 @@ import {
   Globe, Mail, MessageCircle, Phone, ChevronDown, Crown, Zap, Rocket,
   Sparkles, Leaf, HelpCircle, Filter, Download, AlertCircle, CheckCircle2,
   Instagram, Twitter, Youtube, BarChart3, Eye, StickyNote, CalendarDays,
-  MapPin, Clock3, MessageSquareText, ArrowUpRight, UserRound,
+  MapPin, Clock3, MessageSquareText, ArrowUpRight, UserRound, Save, X,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -230,6 +230,14 @@ export default function AdminInfluencerCRM() {
   const [noteBody, setNoteBody] = useState("");
   const [crawlResults, setCrawlResults] = useState<CrawlResult[]>([]);
   const [crawlSources, setCrawlSources] = useState<string[]>([]);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "", niche: "", country: "", email: "", phone: "", whatsapp: "",
+    website: "", followers: "", description: "", status: "new",
+    socialLinks: {} as Record<string, string>,
+  });
+  const [newSocialPlatform, setNewSocialPlatform] = useState("instagram");
+  const [newSocialUrl, setNewSocialUrl] = useState("");
 
   // ── Queries
   const { data: tierStats, isLoading: tiersLoading } = useQuery<TierDef[]>({
@@ -334,6 +342,26 @@ export default function AdminInfluencerCRM() {
     onError: (e: any) => toast({ title: "Could not save note", description: e.message, variant: "destructive" }),
   });
 
+  const editMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", `/api/admin/influencer-crm/${selectedInfluencer?.id}`, {
+      ...editForm,
+      followers: editForm.followers ? parseInt(editForm.followers, 10) : null,
+    }),
+    onSuccess: async (r: any) => {
+      const updated = await r.json();
+      setSelectedInfluencer(current => current ? {
+        ...current,
+        ...updated,
+        computedTier: current.computedTier,
+      } : current);
+      setEditMode(false);
+      qc.invalidateQueries({ queryKey: [queryKey] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/influencer-crm/tier-stats"] });
+      toast({ title: "Profile updated", description: "Influencer details and social channels were saved." });
+    },
+    onError: (e: any) => toast({ title: "Could not update profile", description: e.message, variant: "destructive" }),
+  });
+
   const bulkMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/influencer-crm/bulk-outreach", {
       leadIds: selected.size > 0 ? Array.from(selected) : undefined,
@@ -388,6 +416,21 @@ export default function AdminInfluencerCRM() {
   const openDetail = useCallback((inf: Influencer) => {
     setSelectedInfluencer(inf);
     setNoteBody("");
+    setEditMode(false);
+    setEditForm({
+      name: inf.name || "",
+      niche: inf.niche || "",
+      country: inf.country || "",
+      email: inf.email || "",
+      phone: inf.phone || "",
+      whatsapp: inf.whatsapp || "",
+      website: inf.website || "",
+      followers: inf.followers ? String(inf.followers) : "",
+      description: inf.description || "",
+      status: inf.status || "new",
+      socialLinks: { ...(inf.socialLinks || {}) },
+    });
+    setNewSocialUrl("");
     setDetailOpen(true);
   }, []);
 
@@ -644,8 +687,13 @@ export default function AdminInfluencerCRM() {
                     const meta = TIER_META[tier];
                     const tierDef = tierStats?.find(t => t.id === tier);
                     return (
-                      <tr key={inf.id} className="hover:bg-white/5 transition-colors group">
-                        <td className="p-3.5"><input type="checkbox" checked={selected.has(inf.id)} onChange={() => toggleSel(inf.id)} className="accent-purple-500" /></td>
+                      <tr
+                        key={inf.id}
+                        onClick={() => openDetail(inf)}
+                        className="hover:bg-white/5 transition-colors group cursor-pointer"
+                        title={`Open ${inf.name}'s profile, notes and conversation`}
+                      >
+                        <td className="p-3.5" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selected.has(inf.id)} onChange={() => toggleSel(inf.id)} className="accent-purple-500" /></td>
                         <td className="p-3.5 min-w-[200px]">
                           <div className="flex items-center gap-3">
                             {/* Avatar */}
@@ -653,7 +701,7 @@ export default function AdminInfluencerCRM() {
                               {inf.name.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <button onClick={() => openDetail(inf)} className="font-bold text-white hover:text-purple-300 truncate block text-left max-w-[160px] text-[13px]">
+                              <button onClick={e => { e.stopPropagation(); openDetail(inf); }} className="font-bold text-white hover:text-purple-300 truncate block text-left max-w-[160px] text-[13px] underline-offset-2 hover:underline">
                                 {inf.name}
                               </button>
                               {inf.aiSummary && <p className="text-xs text-gray-400 line-clamp-1 max-w-[160px] mt-0.5">{inf.aiSummary}</p>}
@@ -671,7 +719,7 @@ export default function AdminInfluencerCRM() {
                         <td className="p-3.5">
                           <span className={`font-black text-base ${meta.text}`}>{fmtFollowers(inf.followers)}</span>
                         </td>
-                        <td className="p-3">
+                        <td className="p-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5">
                             {Object.entries(inf.socialLinks || {}).filter(([, v]) => v).map(([k, v]) => (
                               <a key={k} href={v as string} target="_blank" rel="noreferrer" title={k}
@@ -687,7 +735,7 @@ export default function AdminInfluencerCRM() {
                             )}
                           </div>
                         </td>
-                        <td className="p-3.5">
+                        <td className="p-3.5" onClick={e => e.stopPropagation()}>
                           <div className="space-y-1 text-xs">
                             {inf.email && (
                               <a href={`mailto:${inf.email}`} className="flex items-center gap-1.5 text-purple-300 hover:text-purple-200 truncate max-w-[150px] font-medium">
@@ -698,7 +746,7 @@ export default function AdminInfluencerCRM() {
                             {!inf.email && !inf.phone && <span className="text-gray-600 italic">No contact</span>}
                           </div>
                         </td>
-                        <td className="p-3.5">
+                        <td className="p-3.5" onClick={e => e.stopPropagation()}>
                           <Select value={inf.status || "new"} onValueChange={v => statusMutation.mutate({ id: inf.id, status: v })}>
                             <SelectTrigger className={`h-7 text-xs px-2.5 border rounded-full w-[115px] font-semibold ${STATUS_COLORS[inf.status || "new"] || STATUS_COLORS.new}`}>
                               <SelectValue />
@@ -710,7 +758,7 @@ export default function AdminInfluencerCRM() {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="p-3.5 text-right">
+                        <td className="p-3.5 text-right" onClick={e => e.stopPropagation()}>
                           <div className="flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button size="sm" variant="ghost" onClick={() => openDetail(inf)} title="View profile" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg">
                               <Eye className="w-3.5 h-3.5" />
@@ -1185,9 +1233,20 @@ export default function AdminInfluencerCRM() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
-                      <MessageSquareText className="w-4 h-4 text-purple-400" />
-                      {messages?.length || 0} timeline {messages?.length === 1 ? "entry" : "entries"}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <MessageSquareText className="w-4 h-4 text-purple-400" />
+                        {messages?.length || 0} timeline {messages?.length === 1 ? "entry" : "entries"}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditMode(mode => !mode)}
+                        className="border-purple-400/30 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"
+                      >
+                        {editMode ? <X className="w-3.5 h-3.5 mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                        {editMode ? "Close editor" : "Edit profile"}
+                      </Button>
                     </div>
                   </div>
                 </DialogHeader>
@@ -1195,6 +1254,71 @@ export default function AdminInfluencerCRM() {
                 <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] min-h-[560px]">
                   {/* Profile sidebar */}
                   <aside className="border-b lg:border-b-0 lg:border-r border-white/10 p-5 space-y-4 bg-black/10">
+                    {editMode && (
+                      <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 space-y-3">
+                        <div>
+                          <p className="text-sm font-bold text-white">Edit influencer profile</p>
+                          <p className="text-[11px] text-purple-200/70 mt-1">Update contact details and social channels, then save.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input aria-label="Influencer name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Name" className="bg-black/30 border-gray-700 text-white text-xs" />
+                          <Input aria-label="Niche" value={editForm.niche} onChange={e => setEditForm(f => ({ ...f, niche: e.target.value }))} placeholder="Niche" className="bg-black/30 border-gray-700 text-white text-xs" />
+                          <Input aria-label="Country" value={editForm.country} onChange={e => setEditForm(f => ({ ...f, country: e.target.value }))} placeholder="Country" className="bg-black/30 border-gray-700 text-white text-xs" />
+                          <Input aria-label="Followers" type="number" value={editForm.followers} onChange={e => setEditForm(f => ({ ...f, followers: e.target.value }))} placeholder="Followers" className="bg-black/30 border-gray-700 text-white text-xs" />
+                        </div>
+                        <Input aria-label="Email" type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" className="bg-black/30 border-gray-700 text-white text-xs" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input aria-label="Phone" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone" className="bg-black/30 border-gray-700 text-white text-xs" />
+                          <Input aria-label="WhatsApp" value={editForm.whatsapp} onChange={e => setEditForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="WhatsApp" className="bg-black/30 border-gray-700 text-white text-xs" />
+                        </div>
+                        <Input aria-label="Website" value={editForm.website} onChange={e => setEditForm(f => ({ ...f, website: e.target.value }))} placeholder="Website URL" className="bg-black/30 border-gray-700 text-white text-xs" />
+                        <Textarea aria-label="Description" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Bio / description" className="bg-black/30 border-gray-700 text-white text-xs resize-none" />
+
+                        <div className="pt-1">
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-purple-200 mb-2">Social channels</p>
+                          <div className="space-y-2">
+                            {Object.entries(editForm.socialLinks).filter(([, value]) => value).map(([platform, url]) => (
+                              <div key={platform} className="flex items-center gap-2">
+                                <span className="w-16 text-[11px] text-gray-300 capitalize truncate">{platform}</span>
+                                <Input value={url} onChange={e => setEditForm(f => ({ ...f, socialLinks: { ...f.socialLinks, [platform]: e.target.value } }))} className="bg-black/30 border-gray-700 text-white text-xs h-8" />
+                                <Button type="button" size="sm" variant="ghost" onClick={() => setEditForm(f => {
+                                  const next = { ...f.socialLinks };
+                                  delete next[platform];
+                                  return { ...f, socialLinks: next };
+                                })} className="h-8 w-8 p-0 text-red-300 hover:bg-red-500/10"><X className="w-3.5 h-3.5" /></Button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Select value={newSocialPlatform} onValueChange={setNewSocialPlatform}>
+                              <SelectTrigger className="w-24 h-8 bg-black/30 border-gray-700 text-white text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent className="bg-gray-900 border-gray-700">
+                                {PLATFORMS.map(platform => <SelectItem key={platform} value={platform} className="capitalize text-xs">{platform}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <Input value={newSocialUrl} onChange={e => setNewSocialUrl(e.target.value)} placeholder="Profile URL" className="bg-black/30 border-gray-700 text-white text-xs h-8" />
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={!newSocialUrl.trim()}
+                              onClick={() => {
+                                setEditForm(f => ({ ...f, socialLinks: { ...f.socialLinks, [newSocialPlatform]: newSocialUrl.trim() } }));
+                                setNewSocialUrl("");
+                              }}
+                              className="h-8 bg-purple-600 hover:bg-purple-700"
+                            >Add</Button>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <Button type="button" onClick={() => editMutation.mutate()} disabled={editMutation.isPending || !editForm.name.trim()} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                            {editMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                            Save changes
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => setEditMode(false)} className="border-gray-700 text-gray-300">Cancel</Button>
+                        </div>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <div className={`rounded-xl bg-gradient-to-br ${meta.bg} border ${meta.border} p-3`}>
                         <p className="text-[10px] text-gray-400 uppercase tracking-wide">Followers</p>
