@@ -12906,6 +12906,31 @@ Instructions:
       } catch (e: any) { res.status(500).json({ message: e.message }); }
     });
 
+    // Add an internal CRM note to an influencer's conversation timeline
+    app.post('/api/admin/influencer-crm/:id/messages', isAuthenticated, requireAdmin, async (req: any, res) => {
+      try {
+        const body = String(req.body?.body || '').trim();
+        if (!body) return res.status(400).json({ message: "Note body required" });
+
+        const [lead] = await db.select({ id: leads.id }).from(leads)
+          .where(and(eq(leads.id, req.params.id), eq(leads.kind, "influencer")) as any)
+          .limit(1);
+        if (!lead) return res.status(404).json({ message: "Influencer not found" });
+
+        const [message] = await db.insert(leadMessages).values({
+          leadId: lead.id,
+          channel: "note",
+          direction: "outbound",
+          body,
+          status: "logged",
+          provider: "manual",
+          sentBy: req.user?.id || null,
+        }).returning();
+
+        res.status(201).json(message);
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
+    });
+
     // Bulk outreach
     app.post('/api/admin/influencer-crm/bulk-outreach', isAuthenticated, requireAdmin, async (req: any, res) => {
       try {

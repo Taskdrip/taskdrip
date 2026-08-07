@@ -16,7 +16,8 @@ import {
   Bot, Users, Send, Search, Plus, Trash2, RefreshCw, Loader2, ExternalLink,
   Globe, Mail, MessageCircle, Phone, ChevronDown, Crown, Zap, Rocket,
   Sparkles, Leaf, HelpCircle, Filter, Download, AlertCircle, CheckCircle2,
-  Instagram, Twitter, Youtube, BarChart3, Eye,
+  Instagram, Twitter, Youtube, BarChart3, Eye, StickyNote, CalendarDays,
+  MapPin, Clock3, MessageSquareText, ArrowUpRight, UserRound,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,6 +61,8 @@ interface OutreachMessage {
   channel: string;
   body?: string;
   status?: string;
+  direction?: string;
+  sentBy?: string;
   createdAt?: string;
 }
 
@@ -213,6 +216,7 @@ export default function AdminInfluencerCRM() {
   });
   const [outreachForm, setOutreachForm] = useState({ templateId: "intro", subject: "", body: "", channel: "email" });
   const [bulkForm, setBulkForm] = useState({ templateId: "intro", subject: "", body: "", tier: "all" });
+  const [noteBody, setNoteBody] = useState("");
 
   // ── Queries
   const { data: tierStats, isLoading: tiersLoading } = useQuery<TierDef[]>({
@@ -306,6 +310,16 @@ export default function AdminInfluencerCRM() {
     onError: (e: any) => toast({ title: "Outreach failed", description: e.message, variant: "destructive" }),
   });
 
+  const noteMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/admin/influencer-crm/${selectedInfluencer?.id}/messages`, { body: noteBody }),
+    onSuccess: () => {
+      toast({ title: "Note saved", description: "The internal note was added to this influencer's CRM timeline." });
+      setNoteBody("");
+      qc.invalidateQueries({ queryKey: [`/api/admin/influencer-crm/${selectedInfluencer?.id}/messages`] });
+    },
+    onError: (e: any) => toast({ title: "Could not save note", description: e.message, variant: "destructive" }),
+  });
+
   const bulkMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/influencer-crm/bulk-outreach", {
       leadIds: selected.size > 0 ? Array.from(selected) : undefined,
@@ -359,6 +373,7 @@ export default function AdminInfluencerCRM() {
 
   const openDetail = useCallback((inf: Influencer) => {
     setSelectedInfluencer(inf);
+    setNoteBody("");
     setDetailOpen(true);
   }, []);
 
@@ -1089,116 +1104,167 @@ export default function AdminInfluencerCRM() {
           Influencer Detail / Profile Dialog
       ══════════════════════════════════════════════════════════════ */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-950 border-purple-500/20 text-white max-w-5xl max-h-[92vh] overflow-y-auto p-0 gap-0">
           {selectedInfluencer && (() => {
             const tier = selectedInfluencer.computedTier || "unknown";
             const meta = TIER_META[tier];
             const tierDef = tierStats?.find(t => t.id === tier);
+            const orderedMessages = messages ? [...messages].reverse() : [];
             return (
               <>
-                <DialogHeader>
-                  <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${meta.bg} border ${meta.border} flex items-center justify-center text-2xl font-black ${meta.text}`}>
-                      {selectedInfluencer.name.charAt(0)}
-                    </div>
-                    <div>
-                      <DialogTitle className="text-xl">{selectedInfluencer.name}</DialogTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${meta.badge}`}>
-                          {meta.icon}{tierDef?.emoji} {tierDef?.label || tier}
-                        </span>
-                        {selectedInfluencer.niche && <span className="text-xs text-gray-400">{selectedInfluencer.niche}</span>}
+                <DialogHeader className="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-purple-950/50 to-gray-950">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pr-6">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${meta.bg} border ${meta.border} flex items-center justify-center text-2xl font-black ${meta.text} flex-shrink-0`}>
+                        {selectedInfluencer.name.charAt(0)}
                       </div>
+                      <div className="min-w-0">
+                        <DialogTitle className="text-xl truncate">{selectedInfluencer.name}</DialogTitle>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${meta.badge}`}>
+                            {meta.icon}{tierDef?.emoji} {tierDef?.label || tier}
+                          </span>
+                          {selectedInfluencer.niche && <span className="text-xs text-gray-400">{selectedInfluencer.niche}</span>}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_COLORS[selectedInfluencer.status || "new"]}`}>
+                            {selectedInfluencer.status || "new"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
+                      <MessageSquareText className="w-4 h-4 text-purple-400" />
+                      {messages?.length || 0} timeline {messages?.length === 1 ? "entry" : "entries"}
                     </div>
                   </div>
                 </DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className={`rounded-xl bg-gradient-to-br ${meta.bg} border ${meta.border} p-3`}>
-                      <p className="text-xs text-gray-400">Followers</p>
-                      <p className={`text-xl font-black ${meta.text}`}>{fmtFollowers(selectedInfluencer.followers)}</p>
-                    </div>
-                    <div className="rounded-xl bg-gray-800/50 border border-gray-700 p-3">
-                      <p className="text-xs text-gray-400">Status</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border mt-1 ${STATUS_COLORS[selectedInfluencer.status || "new"]}`}>
-                        {selectedInfluencer.status || "new"}
-                      </span>
-                    </div>
-                  </div>
 
-                  {selectedInfluencer.description && (
-                    <div className="rounded-xl bg-gray-800/30 border border-gray-700 p-3 text-xs text-gray-300">
-                      {selectedInfluencer.description}
-                    </div>
-                  )}
-
-                  <div className="space-y-2 text-sm">
-                    {selectedInfluencer.email && (
-                      <div className="flex items-center gap-2 text-purple-300">
-                        <Mail className="w-4 h-4 flex-shrink-0" />
-                        <a href={`mailto:${selectedInfluencer.email}`} className="hover:underline truncate">{selectedInfluencer.email}</a>
+                <div className="grid lg:grid-cols-[280px_minmax(0,1fr)] min-h-[560px]">
+                  {/* Profile sidebar */}
+                  <aside className="border-b lg:border-b-0 lg:border-r border-white/10 p-5 space-y-4 bg-black/10">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className={`rounded-xl bg-gradient-to-br ${meta.bg} border ${meta.border} p-3`}>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Followers</p>
+                        <p className={`text-xl font-black ${meta.text}`}>{fmtFollowers(selectedInfluencer.followers)}</p>
                       </div>
-                    )}
-                    {selectedInfluencer.phone && (
-                      <div className="flex items-center gap-2 text-blue-300">
-                        <Phone className="w-4 h-4 flex-shrink-0" />
-                        <a href={`tel:${selectedInfluencer.phone}`}>{selectedInfluencer.phone}</a>
-                      </div>
-                    )}
-                    {selectedInfluencer.country && (
-                      <div className="flex items-center gap-2 text-gray-400"><Globe className="w-4 h-4" />{selectedInfluencer.country}</div>
-                    )}
-                  </div>
-
-                  {Object.entries(selectedInfluencer.socialLinks || {}).filter(([, v]) => v).length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Social Platforms</p>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(selectedInfluencer.socialLinks || {}).filter(([, v]) => v).map(([k, v]) => (
-                          <a key={k} href={v as string} target="_blank" rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 border border-gray-700 transition-colors">
-                            {PLATFORM_ICONS[k] || <Globe className="w-3 h-3" />}
-                            <span className="capitalize">{k}</span>
-                            <ExternalLink className="w-3 h-3 opacity-50" />
-                          </a>
-                        ))}
+                      <div className="rounded-xl bg-gray-800/50 border border-gray-700 p-3">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Added</p>
+                        <p className="text-sm font-bold text-white mt-1">{selectedInfluencer.createdAt ? new Date(selectedInfluencer.createdAt).toLocaleDateString() : "—"}</p>
                       </div>
                     </div>
-                  )}
 
-                  {/* Message history */}
-                  {messages && messages.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Outreach History ({messages.length})</p>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {messages.map(m => (
-                          <div key={m.id} className="bg-gray-800/50 rounded-xl border border-gray-700 p-2.5 text-xs">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="capitalize text-gray-400">{m.channel}</span>
-                              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${m.status === "sent" ? "bg-emerald-500/20 text-emerald-300" : m.status === "failed" ? "bg-red-500/20 text-red-300" : "bg-gray-600/30 text-gray-400"}`}>
-                                {m.status}
-                              </span>
-                              <span className="text-gray-600 ml-auto">{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : ""}</span>
+                    <div className="space-y-2.5 text-sm">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Contact details</p>
+                      {selectedInfluencer.email && (
+                        <a href={`mailto:${selectedInfluencer.email}`} className="flex items-center gap-2 text-purple-300 hover:text-purple-200 truncate">
+                          <Mail className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{selectedInfluencer.email}</span>
+                        </a>
+                      )}
+                      {selectedInfluencer.phone && (
+                        <a href={`tel:${selectedInfluencer.phone}`} className="flex items-center gap-2 text-blue-300 hover:text-blue-200">
+                          <Phone className="w-4 h-4 flex-shrink-0" /> {selectedInfluencer.phone}
+                        </a>
+                      )}
+                      {selectedInfluencer.country && (
+                        <div className="flex items-center gap-2 text-gray-400"><MapPin className="w-4 h-4" />{selectedInfluencer.country}</div>
+                      )}
+                      {selectedInfluencer.lastContactedAt && (
+                        <div className="flex items-center gap-2 text-gray-400"><Clock3 className="w-4 h-4" />Last contacted {new Date(selectedInfluencer.lastContactedAt).toLocaleDateString()}</div>
+                      )}
+                      {!selectedInfluencer.email && !selectedInfluencer.phone && !selectedInfluencer.country && <p className="text-xs text-gray-600 italic">No contact details yet</p>}
+                    </div>
+
+                    {selectedInfluencer.description && (
+                      <div className="rounded-xl bg-gray-800/30 border border-gray-700 p-3 text-xs text-gray-300 leading-relaxed">
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1.5">About</p>
+                        {selectedInfluencer.description}
+                      </div>
+                    )}
+
+                    {Object.entries(selectedInfluencer.socialLinks || {}).filter(([, v]) => v).length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">Social platforms</p>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(selectedInfluencer.socialLinks || {}).filter(([, v]) => v).map(([k, v]) => (
+                            <a key={k} href={v as string} target="_blank" rel="noreferrer"
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 border border-gray-700 transition-colors">
+                              {PLATFORM_ICONS[k] || <Globe className="w-3 h-3" />}<span className="capitalize">{k}</span><ArrowUpRight className="w-3 h-3 opacity-50" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <Button onClick={() => { setDetailOpen(false); openOutreach(selectedInfluencer); }} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                        <Send className="w-4 h-4 mr-2" />Reach out
+                      </Button>
+                      {selectedInfluencer.website && (
+                        <a href={selectedInfluencer.website} target="_blank" rel="noreferrer">
+                          <Button variant="outline" className="border-gray-700 text-gray-300"><ExternalLink className="w-4 h-4" /></Button>
+                        </a>
+                      )}
+                    </div>
+                  </aside>
+
+                  {/* Conversation and notes */}
+                  <section className="p-5 sm:p-6 flex flex-col min-w-0">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-bold text-white flex items-center gap-2"><MessageSquareText className="w-4 h-4 text-purple-400" />Conversation & notes</h3>
+                        <p className="text-xs text-gray-500 mt-1">Outreach, replies, and private admin notes in one timeline.</p>
+                      </div>
+                      {messages && messages.length > 0 && <span className="text-xs text-gray-500">{messages.length} total</span>}
+                    </div>
+
+                    <div className="flex-1 min-h-[220px] max-h-[360px] overflow-y-auto pr-1 space-y-3">
+                      {!messages && <div className="h-full flex items-center justify-center text-sm text-gray-500"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading timeline…</div>}
+                      {messages && messages.length === 0 && (
+                        <div className="h-full min-h-[180px] rounded-2xl border border-dashed border-gray-700 flex flex-col items-center justify-center text-center px-6">
+                          <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-3"><MessageSquareText className="w-5 h-5 text-purple-400" /></div>
+                          <p className="text-sm font-semibold text-gray-300">No conversation yet</p>
+                          <p className="text-xs text-gray-500 mt-1">Send outreach or add an internal note to start the timeline.</p>
+                        </div>
+                      )}
+                      {orderedMessages.map(m => {
+                        const isNote = m.channel === "note";
+                        const isInbound = m.direction === "inbound";
+                        return (
+                          <div key={m.id} className={`flex ${isInbound ? "justify-start" : "justify-end"}`}>
+                            <div className={`max-w-[92%] rounded-2xl border p-3 ${isNote ? "bg-amber-500/10 border-amber-500/25" : isInbound ? "bg-blue-500/10 border-blue-500/20" : "bg-purple-500/10 border-purple-500/20"}`}>
+                              <div className="flex items-center gap-2 mb-1.5">
+                                {isNote ? <StickyNote className="w-3.5 h-3.5 text-amber-300" /> : isInbound ? <UserRound className="w-3.5 h-3.5 text-blue-300" /> : <Send className="w-3.5 h-3.5 text-purple-300" />}
+                                <span className={`text-[11px] font-bold ${isNote ? "text-amber-300" : isInbound ? "text-blue-300" : "text-purple-300"}`}>
+                                  {isNote ? "Internal admin note" : isInbound ? "Influencer reply" : `${m.channel || "outreach"} · outbound`}
+                                </span>
+                                <span className="text-[10px] text-gray-500 ml-auto flex items-center gap-1 whitespace-nowrap">
+                                  <CalendarDays className="w-3 h-3" />{m.createdAt ? new Date(m.createdAt).toLocaleString() : "—"}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">{m.body || "No message content"}</p>
+                              {!isNote && m.status && <p className="text-[10px] text-gray-500 mt-2 capitalize">Status: {m.status}</p>}
                             </div>
-                            <p className="text-gray-300 line-clamp-2">{m.body}</p>
                           </div>
-                        ))}
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-5 pt-4 border-t border-white/10">
+                      <Label className="text-gray-300 flex items-center gap-2 mb-2"><StickyNote className="w-4 h-4 text-amber-300" />Add private admin note</Label>
+                      <Textarea
+                        value={noteBody}
+                        onChange={e => setNoteBody(e.target.value)}
+                        rows={3}
+                        placeholder="Record a follow-up, preference, objection, or next step…"
+                        className="bg-black/30 border-gray-700 text-white placeholder:text-gray-600 resize-none"
+                      />
+                      <div className="flex justify-end mt-2">
+                        <Button onClick={() => noteMutation.mutate()} disabled={noteMutation.isPending || !noteBody.trim()} className="bg-amber-600 hover:bg-amber-700 text-white">
+                          {noteMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <StickyNote className="w-4 h-4 mr-2" />}
+                          Save note
+                        </Button>
                       </div>
                     </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2">
-                    <Button onClick={() => { setDetailOpen(false); openOutreach(selectedInfluencer); }} className="flex-1 bg-purple-600 hover:bg-purple-700">
-                      <Send className="w-4 h-4 mr-2" />Reach Out
-                    </Button>
-                    {selectedInfluencer.website && (
-                      <a href={selectedInfluencer.website} target="_blank" rel="noreferrer">
-                        <Button variant="outline" className="border-gray-700 text-gray-300">
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      </a>
-                    )}
-                  </div>
+                  </section>
                 </div>
               </>
             );

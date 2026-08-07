@@ -3,3 +3,4 @@
 - [Railway preDeployCommand wipes data](railway-json-predeploy.md) — railway.json preDeployCommand with db:push --force destroyed all seeded courses on every deploy; remove it.
 - [Admin Dashboard TDZ Fix](admin-dashboard-tdz.md) — root cause and definitive fix for recurring "Cannot access X before initialization" crashes.
 - [Hire Developer Panel](hire-developer-panel.md) — flow, isDevHire flag, N+1 fix, indexes, and why "0 Hires" happens on Railway.
+- [Declared dependencies may be absent](declared-dependencies-missing.md) — package.json can be ahead of node_modules; restore declared packages before diagnosing app code.

@@ -2361,7 +2361,12 @@ function buildTransporter(settings) {
   });
 }
 async function getEmailStatus() {
-  const settings = await getEmailSettings();
+  let settings = null;
+  try {
+    settings = await getEmailSettings();
+  } catch (e) {
+    console.warn("[email] getEmailStatus: could not read email_settings:", e.message);
+  }
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
   const resendOk = !!process.env.RESEND_API_KEY;
@@ -2386,20 +2391,29 @@ async function getEmailStatus() {
 async function activateResendIfAvailable() {
   if (!process.env.RESEND_API_KEY) return;
   try {
-    const settings = await getEmailSettings();
+    let settings = null;
+    try {
+      settings = await getEmailSettings();
+    } catch (_) {
+    }
     const pref = settings?.preferredProvider || "";
     const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
     if (!pref || pref === "resend" || smtpIsBrevo) {
-      await db.insert(emailSettings).values({
-        id: "singleton",
-        preferredProvider: "resend",
-        smtpHost: smtpIsBrevo ? null : settings?.smtpHost ?? null,
-        smtpUser: smtpIsBrevo ? null : settings?.smtpUser ?? null,
-        smtpPass: smtpIsBrevo ? null : settings?.smtpPass ?? null
-      }).onConflictDoUpdate({
-        target: emailSettings.id,
-        set: { preferredProvider: "resend", ...smtpIsBrevo ? { smtpHost: null, smtpUser: null, smtpPass: null } : {} }
-      });
+      try {
+        await db.insert(emailSettings).values({
+          id: "singleton",
+          preferredProvider: "resend",
+          smtpHost: smtpIsBrevo ? null : settings?.smtpHost ?? null,
+          smtpUser: smtpIsBrevo ? null : settings?.smtpUser ?? null,
+          smtpPass: smtpIsBrevo ? null : settings?.smtpPass ?? null
+        }).onConflictDoUpdate({
+          target: emailSettings.id,
+          set: { preferredProvider: "resend", ...smtpIsBrevo ? { smtpHost: null, smtpUser: null, smtpPass: null } : {} }
+        });
+      } catch (dbErr) {
+        console.warn("[email] Could not write preferred_provider (will retry after migration):", dbErr.message);
+        return;
+      }
       console.log("[email] RESEND_API_KEY detected \u2014 Resend set as preferred email provider.");
     }
   } catch (e) {
@@ -2409,15 +2423,28 @@ async function activateResendIfAvailable() {
 async function sendViaResend(opts, fromEmail, fromName) {
   const { Resend } = await import("resend");
   const client = new Resend(process.env.RESEND_API_KEY);
-  const result = await client.emails.send({
-    from: `${fromName} <${fromEmail}>`,
-    to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
-    subject: opts.subject,
-    html: opts.html,
-    text: opts.text || opts.html.replace(/<[^>]+>/g, "")
-  });
-  if (result.error) {
-    throw new Error(result.error.message || JSON.stringify(result.error));
+  const trySend = async (from) => {
+    const result = await client.emails.send({
+      from: `${fromName} <${from}>`,
+      to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text || opts.html.replace(/<[^>]+>/g, "")
+    });
+    if (result.error) {
+      throw new Error(result.error.message || JSON.stringify(result.error));
+    }
+  };
+  try {
+    await trySend(fromEmail);
+  } catch (err) {
+    const msg = (err.message || "").toLowerCase();
+    if (fromEmail !== "onboarding@resend.dev" && (msg.includes("domain") || msg.includes("sender") || msg.includes("from address") || msg.includes("not verified") || msg.includes("invalid") || msg.includes("not found"))) {
+      console.warn(`[email] Resend: sender domain not verified for ${fromEmail}, retrying with onboarding@resend.dev`);
+      await trySend("onboarding@resend.dev");
+    } else {
+      throw err;
+    }
   }
 }
 async function sendViaSendGrid(opts, fromEmail, fromName) {
@@ -22973,6 +23000,26 @@ ${body}`,
         res.status(500).json({ message: e.message });
       }
     });
+    app2.post("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
+      try {
+        const body = String(req.body?.body || "").trim();
+        if (!body) return res.status(400).json({ message: "Note body required" });
+        const [lead] = await db.select({ id: leads.id }).from(leads).where(and8(eq12(leads.id, req.params.id), eq12(leads.kind, "influencer"))).limit(1);
+        if (!lead) return res.status(404).json({ message: "Influencer not found" });
+        const [message] = await db.insert(leadMessages).values({
+          leadId: lead.id,
+          channel: "note",
+          direction: "outbound",
+          body,
+          status: "logged",
+          provider: "manual",
+          sentBy: req.user?.id || null
+        }).returning();
+        res.status(201).json(message);
+      } catch (e) {
+        res.status(400).json({ message: e.message });
+      }
+    });
     app2.post("/api/admin/influencer-crm/bulk-outreach", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
         const { leadIds, subject, body, tier, niche } = req.body || {};
@@ -25708,6 +25755,8 @@ var REQUIRED_COLUMNS = [
   { table: "purchases", column: "referral_code", definition: "varchar" },
   { table: "purchases", column: "selected_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "purchases", column: "addons_total", definition: "decimal(10,2) DEFAULT '0.00'" },
+  // Email provider preference (Resend / SMTP / SendGrid selector)
+  { table: "email_settings", column: "preferred_provider", definition: "varchar" },
   // Subscription period / expiry tracking
   { table: "subscriptions", column: "period_days", definition: "integer" },
   { table: "subscriptions", column: "expiry_reminder_sent", definition: "boolean DEFAULT false" },
