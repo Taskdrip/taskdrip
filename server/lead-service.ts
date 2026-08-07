@@ -113,9 +113,15 @@ export function generateInfluencersBuiltin(opts: {
   query: string;
   country?: string;
   maxResults?: number;
+  platforms?: string[];
 }): Partial<InsertLead>[] {
+  const requestedPlatforms = (opts.platforms || []).map(p => p === "x" ? "twitter" : p).filter(Boolean);
+  const platformPool = requestedPlatforms.length
+    ? INFLUENCER_POOL.filter(p => requestedPlatforms.includes(p.platform))
+    : INFLUENCER_POOL;
+
   // Build best-fit pool: prefer niche+country match → niche match → country match → all
-  const nicheMatch = INFLUENCER_POOL.filter(p =>
+  const nicheMatch = platformPool.filter(p =>
     p.niche.toLowerCase().includes(opts.query.toLowerCase()) ||
     opts.query.toLowerCase().includes(p.niche.toLowerCase())
   );
@@ -123,13 +129,13 @@ export function generateInfluencersBuiltin(opts: {
     ? nicheMatch.filter(p => p.country === opts.country)
     : nicheMatch;
   const countryPool = opts.country
-    ? INFLUENCER_POOL.filter(p => p.country === opts.country)
-    : INFLUENCER_POOL;
+    ? platformPool.filter(p => p.country === opts.country)
+    : platformPool;
   const pool =
     countryNicheMatch.length >= 3 ? countryNicheMatch :
     nicheMatch.length >= 3 ? nicheMatch :
     countryPool.length >= 3 ? countryPool :
-    INFLUENCER_POOL;
+    requestedPlatforms.length ? platformPool : INFLUENCER_POOL;
 
   const count = Math.min(opts.maxResults || 15, pool.length);
   const seed = strHash(opts.query + (opts.country || ""));
@@ -139,7 +145,7 @@ export function generateInfluencersBuiltin(opts: {
     const idx = (seed + i * 11) % pool.length;
     if (seen.has(idx)) continue;
     seen.add(idx);
-    const p = pool[idx];
+     const p = pool[idx];
     const handle = p.handle;
     const platform = p.platform;
     const profileUrl = platform === "twitter"

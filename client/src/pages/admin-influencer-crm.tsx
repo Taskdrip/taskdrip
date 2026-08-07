@@ -66,6 +66,17 @@ interface OutreachMessage {
   createdAt?: string;
 }
 
+interface CrawlResult {
+  id: string;
+  name: string;
+  niche?: string;
+  country?: string;
+  followers?: number;
+  source?: string;
+  socialLinks?: Record<string, string>;
+  email?: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Tier colours / icons
 // ─────────────────────────────────────────────────────────────────────────────
@@ -217,6 +228,8 @@ export default function AdminInfluencerCRM() {
   const [outreachForm, setOutreachForm] = useState({ templateId: "intro", subject: "", body: "", channel: "email" });
   const [bulkForm, setBulkForm] = useState({ templateId: "intro", subject: "", body: "", tier: "all" });
   const [noteBody, setNoteBody] = useState("");
+  const [crawlResults, setCrawlResults] = useState<CrawlResult[]>([]);
+  const [crawlSources, setCrawlSources] = useState<string[]>([]);
 
   // ── Queries
   const { data: tierStats, isLoading: tiersLoading } = useQuery<TierDef[]>({
@@ -257,9 +270,10 @@ export default function AdminInfluencerCRM() {
         title: "🤖 AI Crawl complete",
         description: `Found ${d.found} · Saved ${d.saved} new · Source: ${sourceLabel}`,
       });
+      setCrawlResults(Array.isArray(d.items) ? d.items : []);
+      setCrawlSources(Array.isArray(d.sourcesUsed) ? d.sourcesUsed : []);
       qc.invalidateQueries({ queryKey: [queryKey] });
       qc.invalidateQueries({ queryKey: ["/api/admin/influencer-crm/tier-stats"] });
-      setCrawlOpen(false);
     },
     onError: (e: any) => toast({ title: "Crawl failed", description: e.message, variant: "destructive" }),
   });
@@ -728,14 +742,14 @@ export default function AdminInfluencerCRM() {
           AI Robot Crawl Dialog
       ══════════════════════════════════════════════════════════════ */}
       <Dialog open={crawlOpen} onOpenChange={setCrawlOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bot className="w-5 h-5 text-purple-400" />
               AI Robot Crawl
             </DialogTitle>
             <DialogDescription className="text-gray-400">
-              Describe the creator niche and the AI will generate search queries, crawl platforms, and classify influencers by tier.
+              Choose one or more social platforms. The robot will discover creators, save them to the CRM, and let you start customized outreach immediately.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-1">
@@ -781,8 +795,8 @@ export default function AdminInfluencerCRM() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Platforms</Label>
-                <div className="space-y-1.5 mt-1">
+                <Label className="text-gray-300">Search platforms *</Label>
+                <div className="space-y-1.5 mt-1 rounded-xl border border-gray-700 bg-black/20 p-3">
                   {PLATFORMS.map(p => (
                     <label key={p} className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
                       <input type="checkbox"
@@ -814,7 +828,7 @@ export default function AdminInfluencerCRM() {
             </div>
 
             <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 text-xs text-purple-300 space-y-1.5">
-              <p><Bot className="w-3.5 h-3.5 inline mr-1.5" />The AI robot will discover creators in <b>{crawlForm.niche || "your niche"}</b>, classify by tier, and deduplicate automatically.</p>
+              <p><Bot className="w-3.5 h-3.5 inline mr-1.5" />The AI robot will discover creators in <b>{crawlForm.niche || "your niche"}</b> on the selected platforms, save them to the CRM, classify them by tier, and deduplicate automatically.</p>
               <p className="text-purple-400/80">
                 {crawlForm.platforms.includes("youtube")
                   ? "📡 YouTube: live channel search (requires YouTube API key)"
@@ -826,6 +840,46 @@ export default function AdminInfluencerCRM() {
                   : null}
               </p>
             </div>
+
+            {crawlResults.length > 0 && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-bold text-emerald-200">Saved to CRM — start a conversation</p>
+                    <p className="text-[11px] text-emerald-300/70">
+                      {crawlResults.length} creator{crawlResults.length === 1 ? "" : "s"} added
+                      {crawlSources.length ? ` via ${crawlSources.map(s => s === "youtube_api" ? "YouTube" : s === "groq_ai" ? "AI" : s).join(" + ")}` : ""}
+                    </p>
+                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-300 flex-shrink-0" />
+                </div>
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {crawlResults.slice(0, 12).map(result => (
+                    <div key={result.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 p-2.5">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{result.name}</p>
+                        <p className="text-[11px] text-gray-400 truncate">
+                          {result.niche || crawlForm.niche}
+                          {result.followers ? ` · ${fmtFollowers(result.followers)} followers` : ""}
+                          {result.socialLinks ? ` · ${Object.keys(result.socialLinks).join(", ")}` : ""}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setCrawlOpen(false);
+                          openOutreach(result as Influencer);
+                        }}
+                        className="flex-shrink-0 bg-purple-600 hover:bg-purple-700"
+                      >
+                        <MessageSquareText className="w-3.5 h-3.5 mr-1.5" />Customize message
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {crawlResults.length > 12 && <p className="text-[11px] text-gray-400">Showing the first 12. All results are available in the CRM table after closing this window.</p>}
+              </div>
+            )}
 
             <Button
               onClick={() => crawlMutation.mutate()}

@@ -4,3 +4,4 @@
 - [Admin Dashboard TDZ Fix](admin-dashboard-tdz.md) — root cause and definitive fix for recurring "Cannot access X before initialization" crashes.
 - [Hire Developer Panel](hire-developer-panel.md) — flow, isDevHire flag, N+1 fix, indexes, and why "0 Hires" happens on Railway.
 - [Declared dependencies may be absent](declared-dependencies-missing.md) — package.json can be ahead of node_modules; restore declared packages before diagnosing app code.
+- [Startup schema drift](startup-schema-drift.md) — startup seed can log missing legacy columns while Express still serves; treat as separate from feature changes.

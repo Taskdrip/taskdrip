@@ -187,7 +187,11 @@ Rules: vary follower counts realistically, use plausible real-sounding names, mo
       const followers = parseInt(String(p.followers || 0), 10) || 0;
       const tier = classifyTier(followers);
       if (opts.targetTiers?.length && !opts.targetTiers.includes(tier)) continue;
-      const platform = String(p.platform || opts.platforms[0] || "instagram").toLowerCase();
+      const requestedPlatforms = opts.platforms.map(platform => platform === "x" ? "twitter" : platform);
+      const requestedPlatform = String(p.platform || "").toLowerCase();
+      const platform = requestedPlatforms.includes(requestedPlatform)
+        ? requestedPlatform
+        : requestedPlatforms[0] || "instagram";
       const handle = String(p.handle || "").replace(/^@/, "");
       const profileUrl = handle
         ? platform === "twitter" ? `https://x.com/${handle}`
@@ -272,6 +276,7 @@ export async function crawlInfluencersAI(opts: {
       query: niche,
       country,
       maxResults: maxPerQuery,
+      platforms,
     });
     // Apply tier filtering if requested
     const filtered = targetTiers?.length

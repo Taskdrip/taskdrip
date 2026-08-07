@@ -12832,9 +12832,14 @@ Instructions:
       try {
         const { niche, platforms, targetTiers, country, maxPerQuery, includeInternal } = req.body || {};
         if (!niche) return res.status(400).json({ message: "niche required" });
+        const supportedPlatforms = ['youtube', 'instagram', 'tiktok', 'twitter', 'facebook', 'linkedin'];
+        const selectedPlatforms = Array.isArray(platforms)
+          ? platforms.filter((platform: unknown): platform is string => typeof platform === "string" && supportedPlatforms.includes(platform))
+          : ["youtube"];
+        if (!selectedPlatforms.length) return res.status(400).json({ message: "Select at least one social platform" });
         const result = await crawlInfluencersAI({
           niche,
-          platforms: Array.isArray(platforms) ? platforms : ["youtube"],
+          platforms: selectedPlatforms,
           targetTiers: Array.isArray(targetTiers) ? targetTiers : undefined,
           country,
           maxPerQuery: parseInt(String(maxPerQuery || "15"), 10) || 15,
