@@ -14,10 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { openWhatsAppOrder } from "@/lib/whatsapp";
+import campaignsHero from "@assets/campaigns_hero.png";
 import {
   Code2, DollarSign, Calendar, MessageCircle, CheckCircle,
   User, Mail, Lock, Briefcase, Zap, Shield, Clock,
   ArrowRight, Star, Phone, Send, LogIn, Download, Sparkles,
+  Target, Workflow, TrendingUp, Quote, Globe2,
 } from "lucide-react";
 
 const PROJECT_TYPES = [
@@ -206,6 +208,10 @@ export default function HireDeveloper() {
     URL.revokeObjectURL(url);
   };
 
+  const scrollToForm = () => {
+    document.getElementById("project-request-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (submitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center px-4">
@@ -225,22 +231,46 @@ export default function HireDeveloper() {
     <div className="min-h-screen bg-gray-950 text-white">
       <NavigationFixed />
 
-      {/* Hero */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900/40 via-gray-950 to-gray-950" />
-        <div className="relative max-w-6xl mx-auto px-4 pt-20 md:pt-28 pb-12 md:pb-16 text-center">
-          <Badge className="bg-violet-500/20 text-violet-300 border border-violet-500/30 mb-6 text-xs px-3 py-1">
+      {/* Conversion-focused hero */}
+      <div
+        className="relative overflow-hidden border-b border-white/10 bg-cover bg-center"
+        style={{ backgroundImage: `url(${campaignsHero})` }}
+      >
+        <div className="absolute inset-0 bg-gray-950/75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-violet-950/65 via-gray-950/80 to-gray-950" />
+        <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-16 text-center md:pb-20 md:pt-24">
+          <Badge className="mb-6 border border-violet-400/30 bg-violet-500/20 px-3 py-1 text-xs text-violet-200">
             <Code2 className="h-3 w-3 mr-1.5" /> Full-Stack Developer for Hire
           </Badge>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-5 leading-tight">
-            Build Your Project<br />
+          <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+            Turn attention into customers
+          </p>
+          <h1 className="mb-5 text-3xl font-black leading-tight text-white sm:text-4xl md:text-6xl">
+            Build the system that<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">
-              With Expert Help
+              grows your business
             </span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-10">
-            Tell us what you need — we'll build it. Web apps, dashboards, AI integrations, e-commerce, and more. Chat directly with the developer after submitting.
+          <p className="mx-auto mb-8 max-w-2xl text-lg leading-8 text-gray-200">
+            We combine strategy, websites, AI, automation, content, and marketing into one practical growth system — built around how your business actually works.
           </p>
+          <div className="mb-10 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button
+              type="button"
+              onClick={scrollToForm}
+              className="h-13 gap-2 bg-violet-600 px-7 py-3 text-base font-bold text-white shadow-lg shadow-violet-950/40 hover:bg-violet-500"
+            >
+              Tell us what you’re building <ArrowRight className="h-5 w-5" />
+            </Button>
+            <Button
+              type="button"
+              onClick={openTaskdripWhatsApp}
+              variant="outline"
+              className="h-13 gap-2 border-white/25 bg-black/20 px-7 py-3 text-base font-bold text-white hover:bg-white/10 hover:text-white"
+            >
+              <MessageCircle className="h-5 w-5 text-emerald-400" /> Chat on WhatsApp
+            </Button>
+          </div>
 
           {/* Trust badges */}
           <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-sm">
@@ -325,8 +355,64 @@ export default function HireDeveloper() {
         </div>
       </section>
 
+      {/* What the engagement delivers */}
+      <section className="mx-auto max-w-6xl px-4 pb-14 pt-4">
+        <div className="mb-7 max-w-2xl">
+          <p className="mb-2 text-sm font-bold uppercase tracking-[0.18em] text-violet-300">From scattered effort to a growth engine</p>
+          <h2 className="text-2xl font-black text-white sm:text-3xl">Stop doing more manually. Start building leverage.</h2>
+          <p className="mt-3 leading-7 text-gray-400">Whether you are launching, scaling, or fixing a process that is holding you back, we start with the outcome and build the right system around it.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { icon: <Target className="h-5 w-5 text-cyan-300" />, title: "Attract the right people", text: "Position your brand and content so the people who need you can find you." },
+            { icon: <Workflow className="h-5 w-5 text-violet-300" />, title: "Capture and follow up", text: "Turn interest into organized leads with clear journeys and less repetitive work." },
+            { icon: <TrendingUp className="h-5 w-5 text-emerald-300" />, title: "Grow with confidence", text: "Use a connected digital foundation that improves as your business grows." },
+          ].map((item) => (
+            <div key={item.title} className="rounded-2xl border border-white/10 bg-gray-900/80 p-5 transition-colors hover:border-violet-500/40">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">{item.icon}</div>
+              <h3 className="font-bold text-white">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-400">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Transparent proof section: replace with verified customer stories when approved */}
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-cyan-300">
+                <Globe2 className="h-4 w-4" /> Founder perspectives
+              </p>
+              <h2 className="text-2xl font-black text-white sm:text-3xl">Built for ambitious businesses everywhere.</h2>
+            </div>
+            <p className="max-w-sm text-sm leading-6 text-gray-500">Illustrative perspectives shown for layout. Replace these with verified client reviews and approved photos before publishing as testimonials.</p>
+          </div>
+          <div className="mt-7 grid gap-4 lg:grid-cols-3">
+            {[
+              { initials: "AM", location: "Lagos, Nigeria", role: "Consumer brand founder", quote: "I need a system that gives me back time — not another tool I have to manage." },
+              { initials: "DK", location: "Nairobi, Kenya", role: "Growth-stage entrepreneur", quote: "The best digital investment is one that connects attention, leads, and follow-up in one journey." },
+              { initials: "SR", location: "London, United Kingdom", role: "Independent creator", quote: "My audience is valuable. The next step is turning that attention into a clear business opportunity." },
+            ].map((review) => (
+              <article key={review.initials} className="rounded-2xl border border-white/10 bg-gray-950/70 p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-cyan-400 text-sm font-black text-white ring-2 ring-white/10">{review.initials}</div>
+                  <div>
+                    <p className="font-semibold text-white">{review.role}</p>
+                    <p className="text-xs text-gray-500">{review.location}</p>
+                  </div>
+                </div>
+                <Quote className="mb-2 h-5 w-5 text-violet-400" />
+                <p className="text-sm leading-6 text-gray-300">“{review.quote}”</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Form */}
-      <div className="max-w-3xl mx-auto px-4 pb-24">
+      <div id="project-request-form" className="mx-auto max-w-3xl scroll-mt-20 px-4 pb-24">
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Project Details Card */}
