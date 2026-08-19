@@ -3213,12 +3213,14 @@ function generateBusinessesBuiltin(opts) {
   return results;
 }
 function generateInfluencersBuiltin(opts) {
-  const nicheMatch = INFLUENCER_POOL.filter(
+  const requestedPlatforms = (opts.platforms || []).map((p) => p === "x" ? "twitter" : p).filter(Boolean);
+  const platformPool = requestedPlatforms.length ? INFLUENCER_POOL.filter((p) => requestedPlatforms.includes(p.platform)) : INFLUENCER_POOL;
+  const nicheMatch = platformPool.filter(
     (p) => p.niche.toLowerCase().includes(opts.query.toLowerCase()) || opts.query.toLowerCase().includes(p.niche.toLowerCase())
   );
   const countryNicheMatch = opts.country ? nicheMatch.filter((p) => p.country === opts.country) : nicheMatch;
-  const countryPool = opts.country ? INFLUENCER_POOL.filter((p) => p.country === opts.country) : INFLUENCER_POOL;
-  const pool3 = countryNicheMatch.length >= 3 ? countryNicheMatch : nicheMatch.length >= 3 ? nicheMatch : countryPool.length >= 3 ? countryPool : INFLUENCER_POOL;
+  const countryPool = opts.country ? platformPool.filter((p) => p.country === opts.country) : platformPool;
+  const pool3 = countryNicheMatch.length >= 3 ? countryNicheMatch : nicheMatch.length >= 3 ? nicheMatch : countryPool.length >= 3 ? countryPool : requestedPlatforms.length ? platformPool : INFLUENCER_POOL;
   const count4 = Math.min(opts.maxResults || 15, pool3.length);
   const seed = strHash(opts.query + (opts.country || ""));
   const results = [];
@@ -4551,7 +4553,9 @@ Rules: vary follower counts realistically, use plausible real-sounding names, mo
       const followers = parseInt(String(p.followers || 0), 10) || 0;
       const tier = classifyTier(followers);
       if (opts.targetTiers?.length && !opts.targetTiers.includes(tier)) continue;
-      const platform = String(p.platform || opts.platforms[0] || "instagram").toLowerCase();
+      const requestedPlatforms = opts.platforms.map((platform2) => platform2 === "x" ? "twitter" : platform2);
+      const requestedPlatform = String(p.platform || "").toLowerCase();
+      const platform = requestedPlatforms.includes(requestedPlatform) ? requestedPlatform : requestedPlatforms[0] || "instagram";
       const handle = String(p.handle || "").replace(/^@/, "");
       const profileUrl = handle ? platform === "twitter" ? `https://x.com/${handle}` : platform === "youtube" ? `https://youtube.com/@${handle}` : `https://${platform}.com/${handle}` : null;
       items.push({
@@ -4612,7 +4616,8 @@ async function crawlInfluencersAI(opts) {
     const builtinResults = generateInfluencersBuiltin({
       query: niche,
       country,
-      maxResults: maxPerQuery
+      maxResults: maxPerQuery,
+      platforms
     });
     const filtered = targetTiers?.length ? builtinResults.filter((r) => {
       const tier = classifyTier(r.followers);
@@ -22923,9 +22928,12 @@ ${body}`,
       try {
         const { niche, platforms, targetTiers, country, maxPerQuery, includeInternal } = req.body || {};
         if (!niche) return res.status(400).json({ message: "niche required" });
+        const supportedPlatforms = ["youtube", "instagram", "tiktok", "twitter", "facebook", "linkedin"];
+        const selectedPlatforms = Array.isArray(platforms) ? platforms.filter((platform) => typeof platform === "string" && supportedPlatforms.includes(platform)) : ["youtube"];
+        if (!selectedPlatforms.length) return res.status(400).json({ message: "Select at least one social platform" });
         const result = await crawlInfluencersAI2({
           niche,
-          platforms: Array.isArray(platforms) ? platforms : ["youtube"],
+          platforms: selectedPlatforms,
           targetTiers: Array.isArray(targetTiers) ? targetTiers : void 0,
           country,
           maxPerQuery: parseInt(String(maxPerQuery || "15"), 10) || 15,

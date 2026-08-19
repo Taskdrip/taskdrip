@@ -13,10 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { openWhatsAppOrder } from "@/lib/whatsapp";
 import {
   Code2, DollarSign, Calendar, MessageCircle, CheckCircle,
   User, Mail, Lock, Briefcase, Zap, Shield, Clock,
-  ArrowRight, Star, Phone, Send, LogIn,
+  ArrowRight, Star, Phone, Send, LogIn, Download, Sparkles,
 } from "lucide-react";
 
 const PROJECT_TYPES = [
@@ -56,6 +57,8 @@ const CONTACT_METHODS = [
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone / Voice Call" },
 ];
+
+const TASKDRIP_WHATSAPP = "+2348036622568";
 
 export default function HireDeveloper() {
   const [, setLocation] = useLocation();
@@ -174,6 +177,35 @@ export default function HireDeveloper() {
     submitMutation.mutate();
   };
 
+  const openTaskdripWhatsApp = () => {
+    openWhatsAppOrder([
+      "*Taskdrip — Hire a Developer*",
+      "",
+      "Hi Abraham, I’m interested in building a smart digital system for my business.",
+      "I’d love to discuss my goals and how Taskdrip can help.",
+    ], TASKDRIP_WHATSAPP);
+  };
+
+  const saveTaskdipContact = () => {
+    const vCard = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      "FN:Taskdip",
+      "N:Taskdip;;;;",
+      "TEL;TYPE=CELL,VOICE:+2348036622568",
+      "END:VCARD",
+    ].join("\r\n");
+    const blob = new Blob([vCard], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Taskdip.vcf";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   if (submitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center px-4">
@@ -226,6 +258,72 @@ export default function HireDeveloper() {
           </div>
         </div>
       </div>
+
+      {/* Taskdrip introduction and direct contact */}
+      <section className="max-w-6xl mx-auto px-4 pb-10">
+        <div className="relative overflow-hidden rounded-3xl border border-violet-500/25 bg-gradient-to-br from-violet-950/70 via-gray-900 to-indigo-950/60 p-6 sm:p-8 md:p-10 shadow-2xl shadow-violet-950/20">
+          <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="relative grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">
+                <Sparkles className="h-4 w-4" />
+                Taskdrip digital systems
+              </div>
+              <h2 className="text-2xl font-black leading-tight text-white sm:text-3xl">
+                What if your business could attract more customers online without you having to do everything manually?
+              </h2>
+              <div className="mt-5 space-y-4 text-sm leading-7 text-gray-300 sm:text-base">
+                <p>Hey, I’m Abraham, founder of Taskdrip.</p>
+                <p>
+                  I help entrepreneurs and growing brands build smart digital systems that turn attention into leads, customers, and growth.
+                </p>
+                <p>
+                  Maybe you need a website that actually converts visitors into customers. Maybe you're spending too much time answering the same questions, following up with leads, or doing repetitive tasks that could be automated. Or maybe you're creating content consistently, but you're not turning that attention into real business.
+                </p>
+                <p>That’s where Taskdrip comes in.</p>
+                <p>
+                  We combine AI, automation, websites, content, and digital marketing to build systems around your business — systems designed to help you attract the right audience, capture leads, follow up faster, and grow more efficiently.
+                </p>
+                <p className="font-semibold text-white">
+                  You don't just need more followers. You need a system that turns visibility into opportunity.
+                </p>
+                <p>
+                  So if you're an entrepreneur, creator, startup, or growing brand ready to take your online presence seriously, let's build something that works for your business.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-5 sm:p-6">
+              <h3 className="text-xl font-bold text-white">Let’s talk about your next move</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-400">
+                Send me a DM or chat with Taskdrip directly on WhatsApp. We’ll help you find the right system for your goals.
+              </p>
+              <div className="mt-5 space-y-3">
+                <Button
+                  type="button"
+                  onClick={openTaskdripWhatsApp}
+                  className="h-12 w-full gap-2 bg-emerald-600 font-bold text-white hover:bg-emerald-500"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Chat us at Taskdrip
+                </Button>
+                <Button
+                  type="button"
+                  onClick={saveTaskdipContact}
+                  variant="outline"
+                  className="h-12 w-full gap-2 border-white/20 bg-white/5 font-semibold text-white hover:bg-white/10 hover:text-white"
+                >
+                  <Download className="h-4 w-4" />
+                  Save Taskdip contact
+                </Button>
+              </div>
+              <p className="mt-4 text-center text-xs text-gray-500">
+                WhatsApp: +234 803 662 2568
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Form */}
       <div className="max-w-3xl mx-auto px-4 pb-24">

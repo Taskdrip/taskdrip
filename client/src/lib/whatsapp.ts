@@ -2,13 +2,14 @@ import { SOCIALS } from "@/config/socials";
 
 const WA_NUMBER_DIGITS = SOCIALS.whatsapp.replace(/[^0-9]/g, "");
 
-export function buildWhatsAppUrl(lines: string[]): string {
+export function buildWhatsAppUrl(lines: string[], phoneOrUrl = WA_NUMBER_DIGITS): string {
   const body = lines.filter(Boolean).join("\n");
-  return `https://wa.me/${WA_NUMBER_DIGITS}?text=${encodeURIComponent(body)}`;
+  const phoneDigits = phoneOrUrl.replace(/[^0-9]/g, "");
+  return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(body)}`;
 }
 
-export function openWhatsAppOrder(lines: string[]): void {
-  const url = buildWhatsAppUrl(lines);
+export function openWhatsAppOrder(lines: string[], phoneOrUrl?: string): void {
+  const url = buildWhatsAppUrl(lines, phoneOrUrl);
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
