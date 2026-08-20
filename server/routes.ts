@@ -7,7 +7,7 @@ import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
 import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blogger";
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
-import { sendOrderConfirmationEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable } from "./email-service";
+import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
@@ -4415,6 +4415,23 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
               }).catch(() => {});
             }
           }).catch(() => {});
+          sendAdminActivityEmail({
+            event: "shop_order",
+            subject: `New shop order: ${product.title}`,
+            customer: {
+              name: `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim(),
+              email: buyer.email,
+              phone: buyer.phoneNumber || undefined,
+            },
+            details: [
+              { label: "Product", value: `${product.title} — ${plan.title}` },
+              { label: "Order ID", value: purchase.id },
+              { label: "Amount", value: `${planPrice.toFixed(2)} ${currency || ""}`.trim() },
+              { label: "Payment method", value: purchase.paymentMethod },
+              { label: "Transaction reference", value: purchase.transactionHash || purchase.paymentProof },
+              { label: "Status", value: purchase.status },
+            ],
+          }).catch(() => {});
         }
         return res.status(201).json(purchase);
       }
@@ -4499,6 +4516,23 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
             }
           }).catch(() => {});
         }
+        sendAdminActivityEmail({
+          event: "shop_order",
+          subject: `New shop order: ${product.title}`,
+          customer: {
+            name: `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim(),
+            email: buyer.email,
+            phone: buyer.phoneNumber || undefined,
+          },
+          details: [
+            { label: "Product", value: product.title },
+            { label: "Order ID", value: purchase.id },
+            { label: "Amount", value: `${purchase.totalAmount} ${currency || ""}`.trim() },
+            { label: "Payment method", value: purchase.paymentMethod },
+            { label: "Transaction reference", value: purchase.transactionHash || purchase.paymentProof },
+            { label: "Status", value: purchase.status },
+          ],
+        }).catch(() => {});
       }
 
       res.status(201).json(purchase);
@@ -6304,6 +6338,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         priority: 'high',
       });
 
+      sendAdminActivityEmail({
+        event: "hire_request",
+        subject: `New developer hire request: ${title}`,
+        customer: {
+          name: `${(await storage.getUser(userId))?.firstName || ""} ${(await storage.getUser(userId))?.lastName || ""}`.trim(),
+          email: contactEmail || (await storage.getUser(userId))?.email || email,
+          phone: phone || whatsapp,
+        },
+        details: [
+          { label: "Request ID", value: devOffer?.id || message.id },
+          { label: "Project", value: title },
+          { label: "Type", value: typeLabels[projectType] || projectType },
+          { label: "Budget", value: budgetLabels[budget] || budget },
+          { label: "Timeline", value: timelineLabels[timeline] || timeline },
+          { label: "Features", value: features },
+          { label: "Preferred contact", value: preferredContact },
+          { label: "Description", value: description },
+          { label: "Status", value: devOffer?.status || "pending" },
+        ],
+      }).catch(() => {});
+
       res.status(201).json({ messageId: message.id, adminId: admin.id, offerId: devOffer?.id || null });
     } catch (error: any) {
       console.error('hire-developer error:', error);
@@ -6587,6 +6642,21 @@ Instructions:
       };
 
       const [reg] = await db.insert(breedskoolRegistrations).values(insertValues as any).returning();
+      sendAdminActivityEmail({
+        event: "course_registration",
+        subject: `New course registration: ${selectedCourseTitle || selectedCourseKey || "Course"}`,
+        customer: { name: fullName, email, phone },
+        details: [
+          { label: "Registration ID", value: reg.id },
+          { label: "Course", value: selectedCourseTitle || selectedCourseKey },
+          { label: "Amount", value: `${amountNgn || 0} NGN${amountUsd ? ` / $${amountUsd}` : ""}` },
+          { label: "Payment option", value: paymentOption },
+          { label: "Payment method", value: paymentMethod },
+          { label: "Transaction reference", value: transactionRef },
+          { label: "Delivery mode", value: deliveryMode },
+          { label: "Status", value: isPayLater ? "registered" : "pending" },
+        ],
+      }).catch(() => {});
 
       // Auto-enroll student in the linked platform course
       let linkedCourseId: string | null = null;
@@ -8255,8 +8325,14 @@ Instructions:
       }
       const brand = await storage.getUser(offer.brandId);
       const influencer = await storage.getUser(offer.influencerId);
+      const invoicePaymentMethods = await storage.getActivePaymentMethods("direct_hire");
       res.json({
         ...offer,
+        invoicePaymentMethods: invoicePaymentMethods.map((method: any) => ({
+          ...method,
+          paystackSecretKey: undefined,
+          stripeSecretKey: undefined,
+        })),
         brand: brand ? { id: brand.id, firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, profileImageUrl: brand.profileImageUrl } : null,
         influencer: influencer ? { id: influencer.id, firstName: influencer.firstName, lastName: influencer.lastName, profileImageUrl: influencer.profileImageUrl } : null,
       });
@@ -8930,6 +9006,7 @@ Instructions:
         agreedBudget: agreedBudget ? String(Number(agreedBudget).toFixed(2)) : offer.budget,
         status: nextStatus,
       } as any);
+      const invoiceMethods = await storage.getActivePaymentMethods("direct_hire");
       // Notify client
       await storage.createNotification({
         userId: offer.brandId,
@@ -8949,6 +9026,21 @@ Instructions:
         referenceType: 'direct_hire',
         referenceId: offer.id,
       } as any);
+      sendAdminActivityEmail({
+        event: "hire_request",
+        subject: `Invoice generated: ${offer.title}`,
+        customer: {
+          name: `${(await storage.getUser(offer.brandId))?.firstName || ""} ${(await storage.getUser(offer.brandId))?.lastName || ""}`.trim(),
+          email: (await storage.getUser(offer.brandId))?.email,
+        },
+        details: [
+          { label: "Project", value: offer.title },
+          { label: "Invoice number", value: invoiceNumber },
+          { label: "Amount", value: `$${agreedBudget || offer.budget}` },
+          { label: "Due date", value: invoiceDueDate || "Not specified" },
+          { label: "Payment methods", value: invoiceMethods.map((m: any) => m.label).join(", ") || "None configured" },
+        ],
+      }).catch(() => {});
       res.json(updated);
     } catch (e: any) {
       console.error('Error generating invoice:', e);

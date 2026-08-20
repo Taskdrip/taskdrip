@@ -46,6 +46,59 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; description:
 
 const money = (value: any) => Number(value || 0).toFixed(2);
 
+const PROCESS_STEPS = [
+  { key: "pending", label: "Request" },
+  { key: "accepted", label: "Invoice" },
+  { key: "payment_submitted", label: "Payment" },
+  { key: "active", label: "Development" },
+  { key: "work_submitted", label: "Review" },
+  { key: "completed", label: "Complete" },
+];
+
+function ProcessTimeline({ status }: { status: string }) {
+  const statusOrder: Record<string, number> = {
+    pending: 1, accepted: 2, payment_pending: 2, payment_submitted: 3,
+    active: 4, work_submitted: 5, revision_requested: 4, completed: 6,
+  };
+  const current = statusOrder[status] || 0;
+  if (status === "rejected" || status === "cancelled") return null;
+  return (
+    <Card className="mb-5 border-0 shadow-sm">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-1">
+          {PROCESS_STEPS.map((step, index) => {
+            const number = index + 1;
+            const done = number < current;
+            const active = number === current;
+            return (
+              <div key={step.key} className="flex flex-1 items-start">
+                <div className="flex min-w-0 flex-1 flex-col items-center">
+                  <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                    done ? "bg-emerald-500 text-white" :
+                    active ? "bg-purple-600 text-white ring-4 ring-purple-100" :
+                    "bg-gray-100 text-gray-400"
+                  }`}>
+                    {done ? "✓" : number}
+                  </div>
+                  <span className={`mt-1.5 text-center text-[10px] leading-tight ${active ? "font-bold text-purple-700" : done ? "text-gray-600" : "text-gray-400"}`}>
+                    {step.label}
+                  </span>
+                </div>
+                {index < PROCESS_STEPS.length - 1 && (
+                  <div className={`mt-3 h-0.5 flex-1 ${number < current ? "bg-emerald-400" : "bg-gray-200"}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-center text-xs text-gray-500">
+          This timeline updates as the admin reviews payment and the developer moves your project forward.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DirectHirePayment() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -182,6 +235,8 @@ export default function DirectHirePayment() {
           )}
         </div>
 
+        <ProcessTimeline status={offer.status} />
+
         {/* Offer Details */}
         <Card className="mb-5 border-0 shadow-sm">
           <CardHeader className="pb-3">
@@ -295,6 +350,36 @@ export default function DirectHirePayment() {
                   <p className="whitespace-pre-line">{offer.invoiceNote}</p>
                 </div>
               )}
+              <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800">Payment options</p>
+                {Array.isArray(offer.invoicePaymentMethods) && offer.invoicePaymentMethods.length > 0 ? (
+                  <div className="space-y-2">
+                    {offer.invoicePaymentMethods.map((method: any) => (
+                      <div key={method.id} className="rounded-lg border border-blue-100 bg-white p-3 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-gray-800">{method.label}</span>
+                          <span className="text-[10px] font-semibold uppercase text-blue-600">{method.type}</span>
+                        </div>
+                        {method.type === "crypto" && method.address && (
+                          <p className="mt-1 break-all font-mono text-xs text-gray-600">{method.network ? `${method.network}: ` : ""}{method.address}</p>
+                        )}
+                        {method.type === "bank" && (
+                          <p className="mt-1 text-xs leading-5 text-gray-600">
+                            {method.bankName}{method.accountName ? ` · ${method.accountName}` : ""}
+                            {method.accountNumber ? ` · Account ${method.accountNumber}` : ""}
+                            {method.routingNumber ? ` · Routing ${method.routingNumber}` : ""}
+                            {method.swiftCode ? ` · SWIFT ${method.swiftCode}` : ""}
+                          </p>
+                        )}
+                        {method.type === "paypal" && method.paypalEmail && <p className="mt-1 text-xs text-gray-600">{method.paypalEmail}</p>}
+                        {method.instructions && <p className="mt-1 whitespace-pre-line text-xs text-gray-500">{method.instructions}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-blue-700">Payment instructions are not configured yet. Please message the admin before paying.</p>
+                )}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -325,6 +410,14 @@ export default function DirectHirePayment() {
                     "<tr><td><strong class='total'>Total</strong></td><td><strong class='total'>$" + esc(invoiceAmt) + "</strong></td></tr>",
                     "</tbody></table>",
                     offer.invoiceNote ? "<p><strong>Notes / Terms:</strong><br>" + esc(offer.invoiceNote).replace(/\n/g, "<br>") + "</p>" : "",
+                     Array.isArray(offer.invoicePaymentMethods) && offer.invoicePaymentMethods.length
+                       ? "<h3>Payment options</h3><ul>" + offer.invoicePaymentMethods.map((m: any) => {
+                           const account = m.type === "crypto" ? `${m.network || ""} ${m.address || ""}` :
+                             m.type === "bank" ? `${m.bankName || ""} ${m.accountName || ""} Account ${m.accountNumber || ""} ${m.routingNumber ? `Routing ${m.routingNumber}` : ""}` :
+                             m.paypalEmail || m.label || "";
+                           return `<li><strong>${esc(m.label || m.type)}</strong>: ${esc(account)}${m.instructions ? `<br>${esc(m.instructions)}` : ""}</li>`;
+                         }).join("") + "</ul>"
+                       : "",
                     "<hr><p style='font-size:12px;color:#888'>Powered by Taskdrip &middot; taskdrip.online</p>",
                     "</body></html>",
                   ].join("");

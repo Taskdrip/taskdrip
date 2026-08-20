@@ -292,6 +292,65 @@ export async function sendOrderConfirmationEmail(opts: {
   } catch (_) { /* non-blocking */ }
 }
 
+/**
+ * Send a clean, structured notification to the Taskdrip admin inbox.
+ * This intentionally uses the existing provider chain (Resend → SMTP → SendGrid)
+ * so the feature remains compatible with the Admin → Email configuration.
+ */
+export async function sendAdminActivityEmail(opts: {
+  subject: string;
+  event: "shop_order" | "course_registration" | "hire_request";
+  customer: { name?: string; email?: string; phone?: string };
+  details: Array<{ label: string; value: string | number | null | undefined }>;
+}): Promise<void> {
+  try {
+    const eventLabels = {
+      shop_order: "New shop order",
+      course_registration: "New course registration",
+      hire_request: "New hire developer request",
+    };
+    const escapeHtml = (value: string) =>
+      value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const rows = opts.details
+      .filter((item) => item.value !== null && item.value !== undefined && String(item.value).trim() !== "")
+      .map((item) => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:30%;font-weight:600">${escapeHtml(item.label)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;white-space:pre-line">${escapeHtml(String(item.value))}</td>
+        </tr>`)
+      .join("");
+    const customerLines = [
+      opts.customer.name ? `<strong>${escapeHtml(opts.customer.name)}</strong>` : "",
+      opts.customer.email ? escapeHtml(opts.customer.email) : "",
+      opts.customer.phone ? escapeHtml(opts.customer.phone) : "",
+    ].filter(Boolean).join("<br>");
+    const html = buildDefaultEmailHtml(`
+      <div style="font-family:Arial,sans-serif">
+        <p style="margin:0 0 6px;color:#7c3aed;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">${eventLabels[opts.event]}</p>
+        <h2 style="margin:0 0 18px;color:#111827">${escapeHtml(opts.subject)}</h2>
+        <div style="margin-bottom:18px;padding:12px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-weight:700;text-transform:uppercase">Customer</p>
+          <p style="margin:0;line-height:1.55">${customerLines || "Customer details unavailable"}</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">${rows}</table>
+      </div>
+    `, "Taskdrip Admin");
+    await sendEmail({
+      to: "taskdrip@gmail.com",
+      subject: opts.subject,
+      html,
+      text: [
+        eventLabels[opts.event],
+        opts.subject,
+        `Customer: ${[opts.customer.name, opts.customer.email, opts.customer.phone].filter(Boolean).join(" | ")}`,
+        ...opts.details.filter((item) => item.value !== null && item.value !== undefined).map((item) => `${item.label}: ${item.value}`),
+      ].join("\n"),
+    });
+  } catch (error: any) {
+    console.warn("[email] admin activity notification failed:", error?.message || error);
+  }
+}
+
 export async function sendAdsApplicationEmail(opts: {
   email: string;
   firstName: string;
