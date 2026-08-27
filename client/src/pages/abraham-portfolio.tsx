@@ -61,9 +61,9 @@ const fallbackProfile: PortfolioProfile = {
   summary: "A product-minded engineer and digital transformation consultant building scalable SaaS platforms, AI-powered tools, marketplaces, and business systems.",
   bio: "I am Abraham Felix Tahbat, a full-stack developer with 14+ years of web development experience, building professionally since 2012.",
   location: "Nigeria · Working globally",
-  email: "tremendouslymax@gmail.com",
-  portraitUrl: "/api/portfolio-assets/portrait",
-  cvUrl: "/api/portfolio-assets/cv",
+  email: "taskdrip@gmail.com",
+  portraitUrl: "/portfolio/abraham-portrait.jpg",
+  cvUrl: "/portfolio/abraham-cv.pdf",
   socialLinks: [],
   skills: [],
   services: [],
@@ -104,7 +104,7 @@ function PublicHeader({ profile }: { profile: PortfolioProfile }) {
             <div className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Build with purpose</div>
           </div>
         </Link>
-        <nav className={`${open ? "absolute left-4 right-4 top-[74px] flex" : "hidden"} flex-col gap-1 rounded-2xl border border-white/10 bg-slate-900 p-2 md:static md:flex md:flex-row md:items-center md:gap-7 md:border-0 md:bg-transparent md:p-0`}>
+        <nav className={`${open ? "absolute left-4 right-4 top-[74px] flex" : "hidden"} flex-col gap-1 rounded-2xl border border-white/10 bg-slate-900 p-2 shadow-2xl shadow-slate-950/50 md:static md:flex md:flex-row md:items-center md:gap-7 md:border-0 md:bg-transparent md:p-0 md:shadow-none`}>
           <a href={`${PORTFOLIO_PATH}#work`} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Work</a>
           <a href={`${PORTFOLIO_PATH}#about`} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">About</a>
           <a href={`${PORTFOLIO_PATH}#contact`} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Contact</a>
@@ -166,7 +166,7 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
     <div className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
       <PublicHeader profile={profile} />
       <main>
-        <section className="relative isolate overflow-hidden px-5 pb-20 pt-36 sm:pb-28 lg:px-8 lg:pt-48">
+        <section className="relative isolate overflow-hidden px-5 pb-16 pt-32 sm:pb-28 sm:pt-40 lg:px-8 lg:pt-48">
           <div className="absolute inset-0 -z-30 bg-slate-950" />
           <div
             aria-hidden="true"
@@ -176,13 +176,13 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
           <div className="absolute inset-0 -z-10 bg-[linear-gradient(105deg,rgba(2,6,23,0.98)_8%,rgba(2,6,23,0.84)_42%,rgba(2,6,23,0.48)_100%)]" />
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_12%,rgba(34,211,238,0.22),transparent_25%),radial-gradient(circle_at_8%_38%,rgba(59,130,246,0.16),transparent_32%)]" />
           <div className="absolute left-1/2 top-24 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-300/10 blur-3xl" />
-          <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
-            <div>
-              <div className="mb-7 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">
+          <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
+            <div className="min-w-0">
+              <div className="mb-7 flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200 sm:text-xs sm:tracking-[0.22em]">
                 <span className="h-px w-10 bg-cyan-300" /> {profile.eyebrow}
               </div>
-              <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-[-0.055em] text-white sm:text-7xl lg:text-[6.6rem]">{profile.headline}</h1>
-              <p className="mt-8 max-w-2xl text-lg leading-8 text-slate-400 sm:text-xl">{profile.summary}</p>
+              <h1 className="max-w-4xl break-words text-[clamp(3.25rem,8.3vw,6.6rem)] font-black leading-[0.96] tracking-[-0.055em] text-white">{profile.headline}</h1>
+              <p className="mt-7 max-w-2xl text-base leading-7 text-slate-400 sm:mt-8 sm:text-xl sm:leading-8">{profile.summary}</p>
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <a href="#work" className="rounded-full bg-cyan-300 px-6 py-3.5 text-sm font-black text-slate-950 transition hover:bg-cyan-200">Explore selected work</a>
                 <a href={`mailto:${profile.email}`} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3.5 text-sm font-bold text-white transition hover:border-cyan-200/50 hover:bg-white/5"><Mail className="h-4 w-4" /> Start a conversation</a>
@@ -194,10 +194,10 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
             </div>
             <div className="relative mx-auto w-full max-w-md lg:justify-self-end">
               <div className="absolute -inset-5 rounded-[3rem] border border-cyan-200/10 bg-cyan-300/5 blur-2xl" />
-              <div className="relative overflow-hidden rounded-[2.5rem] border border-white/20 bg-slate-900/90 p-3 shadow-2xl shadow-cyan-950/40 ring-1 ring-cyan-200/10">
+              <div className="relative overflow-hidden rounded-[2.5rem] border border-white/20 bg-slate-900/90 p-2.5 shadow-2xl shadow-cyan-950/40 ring-1 ring-cyan-200/10 sm:p-3">
                 <div className="pointer-events-none absolute inset-3 rounded-[2rem] border border-white/10" />
                 <img src={profile.portraitUrl} alt={profile.name} className="aspect-[0.9] w-full rounded-[2rem] object-cover object-top" />
-                <div className="absolute bottom-7 left-7 right-7 rounded-2xl border border-white/15 bg-slate-950/80 p-4 backdrop-blur-xl">
+                <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/15 bg-slate-950/80 p-3.5 backdrop-blur-xl sm:bottom-7 sm:left-7 sm:right-7 sm:p-4">
                   <p className="text-sm font-bold text-white">{profile.name}</p>
                   <p className="mt-1 text-xs text-slate-400">Product-minded engineering from idea to launch.</p>
                 </div>
@@ -261,7 +261,13 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
                </div>
              </div>
              <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-2 shadow-2xl shadow-cyan-950/20">
-               <iframe src={profile.cvUrl} title={`${profile.name} CV`} className="h-[560px] w-full rounded-[1.5rem] bg-white sm:h-[700px]" />
+                <object data={profile.cvUrl} type="application/pdf" aria-label={`${profile.name} CV`} className="h-[min(76vh,700px)] min-h-[520px] w-full rounded-[1.5rem] bg-white">
+                  <div className="flex h-full min-h-[520px] flex-col items-center justify-center gap-4 bg-slate-900 px-6 text-center">
+                    <FileText className="h-10 w-10 text-cyan-200" />
+                    <p className="text-sm text-slate-300">Your browser can’t preview this PDF inline.</p>
+                    <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="rounded-full bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950">Open CV</a>
+                  </div>
+                </object>
              </div>
            </div>
          </section>
@@ -329,7 +335,11 @@ export default function AbrahamPortfolio() {
 
   useEffect(() => {
     document.title = detailMatch && data?.project ? `${data.project.title} · Abraham Tahbat` : "Abraham Tahbat · Product & Software Portfolio";
-  }, [data?.project, detailMatch]);
+    if (!detailMatch && data && window.location.hash) {
+      const section = document.getElementById(window.location.hash.slice(1));
+      section?.scrollIntoView({ block: "start" });
+    }
+  }, [data, detailMatch]);
 
   if (isLoading) return <LoadingState />;
   if (isError || !data) return <div className="flex min-h-screen items-center justify-center bg-slate-950 px-5 text-center text-slate-300">This portfolio is temporarily unavailable.</div>;
@@ -340,6 +350,9 @@ export default function AbrahamPortfolio() {
     skills: Array.isArray(data.profile?.skills) ? data.profile.skills : fallbackProfile.skills,
     services: Array.isArray(data.profile?.services) ? data.profile.services : fallbackProfile.services,
   };
+  if (profile.email === "tremendouslymax@gmail.com" || !profile.email) profile.email = fallbackProfile.email;
+  if (profile.portraitUrl === "/api/portfolio-assets/portrait" || !profile.portraitUrl) profile.portraitUrl = fallbackProfile.portraitUrl;
+  if (profile.cvUrl === "/api/portfolio-assets/cv" || !profile.cvUrl) profile.cvUrl = fallbackProfile.cvUrl;
   if (detailMatch) return data.project ? <PortfolioDetail profile={profile} project={data.project} /> : null;
   return <PortfolioHome profile={profile} projects={Array.isArray(data.projects) ? data.projects : []} />;
 }

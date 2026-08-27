@@ -12131,6 +12131,17 @@ Instructions:
         const storedProfile = JSON.parse(profileRow.value);
         if (storedProfile && typeof storedProfile === "object") {
           profile = { ...DEFAULT_PORTFOLIO_PROFILE, ...storedProfile };
+          // Migrate the original seeded contact and API-only asset paths while
+          // preserving any custom profile content an admin has entered.
+          if (!profile.email || profile.email === "tremendouslymax@gmail.com") {
+            profile.email = DEFAULT_PORTFOLIO_PROFILE.email;
+          }
+          if (!profile.portraitUrl || profile.portraitUrl === "/api/portfolio-assets/portrait") {
+            profile.portraitUrl = DEFAULT_PORTFOLIO_PROFILE.portraitUrl;
+          }
+          if (!profile.cvUrl || profile.cvUrl === "/api/portfolio-assets/cv") {
+            profile.cvUrl = DEFAULT_PORTFOLIO_PROFILE.cvUrl;
+          }
         }
       }
     } catch {

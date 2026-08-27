@@ -41,9 +41,9 @@ export const DEFAULT_PORTFOLIO_PROFILE: PortfolioProfile = {
   summary: "Founder, CTO, lawyer and product architect creating marketplaces, SaaS platforms, AI tools, and business systems that turn complex ideas into clear, useful experiences.",
   bio: "I am Abraham Tahbat — Founder and CTO of Breedskool Galaxy and Taskdrip, a lawyer called to the Nigerian Bar in 2015, and a full-stack web developer who followed a passion for entrepreneurship and information technology. I build products, create content, apply AI to practical business problems, shape go-to-market strategy, and help teams move from an idea to a dependable digital business.",
   location: "Nigeria · Working globally",
-  email: "tremendouslymax@gmail.com",
-  portraitUrl: "/api/portfolio-assets/portrait",
-  cvUrl: "/api/portfolio-assets/cv",
+  email: "taskdrip@gmail.com",
+  portraitUrl: "/portfolio/abraham-portrait.jpg",
+  cvUrl: "/portfolio/abraham-cv.pdf",
   socialLinks: [
     { label: "LinkedIn", url: "https://www.linkedin.com/in/taskdrip/" },
     { label: "Instagram", url: "https://www.instagram.com/taskdriper" },
