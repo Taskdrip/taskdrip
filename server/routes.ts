@@ -12103,7 +12103,7 @@ Instructions:
   app.get('/api/portfolio-assets/:asset', (req, res) => {
     const assets: Record<string, { filename: string; contentType: string }> = {
       portrait: {
-        filename: 'WhatsApp_Image_2026-08-27_at_6.34.20_PM_1787852087613.jpeg',
+        filename: 'IMG-20260825-WA0006_1787859432337.jpg',
         contentType: 'image/jpeg',
       },
       cv: {

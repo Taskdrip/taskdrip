@@ -167,7 +167,15 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
       <PublicHeader profile={profile} />
       <main>
         <section className="relative isolate overflow-hidden px-5 pb-20 pt-36 sm:pb-28 lg:px-8 lg:pt-48">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_75%_5%,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_10%_45%,rgba(59,130,246,0.12),transparent_30%)]" />
+          <div className="absolute inset-0 -z-30 bg-slate-950" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-20 scale-105 bg-cover bg-center opacity-20 blur-[3px]"
+            style={{ backgroundImage: `url("${profile.portraitUrl}")` }}
+          />
+          <div className="absolute inset-0 -z-10 bg-[linear-gradient(105deg,rgba(2,6,23,0.98)_8%,rgba(2,6,23,0.84)_42%,rgba(2,6,23,0.48)_100%)]" />
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_12%,rgba(34,211,238,0.22),transparent_25%),radial-gradient(circle_at_8%_38%,rgba(59,130,246,0.16),transparent_32%)]" />
+          <div className="absolute left-1/2 top-24 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-300/10 blur-3xl" />
           <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
               <div className="mb-7 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">
@@ -186,7 +194,8 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
             </div>
             <div className="relative mx-auto w-full max-w-md lg:justify-self-end">
               <div className="absolute -inset-5 rounded-[3rem] border border-cyan-200/10 bg-cyan-300/5 blur-2xl" />
-              <div className="relative overflow-hidden rounded-[2.5rem] border border-white/15 bg-slate-900 p-3 shadow-2xl shadow-cyan-950/40">
+              <div className="relative overflow-hidden rounded-[2.5rem] border border-white/20 bg-slate-900/90 p-3 shadow-2xl shadow-cyan-950/40 ring-1 ring-cyan-200/10">
+                <div className="pointer-events-none absolute inset-3 rounded-[2rem] border border-white/10" />
                 <img src={profile.portraitUrl} alt={profile.name} className="aspect-[0.9] w-full rounded-[2rem] object-cover object-top" />
                 <div className="absolute bottom-7 left-7 right-7 rounded-2xl border border-white/15 bg-slate-950/80 p-4 backdrop-blur-xl">
                   <p className="text-sm font-bold text-white">{profile.name}</p>
