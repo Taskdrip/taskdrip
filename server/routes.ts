@@ -32,6 +32,11 @@ import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
+import {
+  DEFAULT_PORTFOLIO_PROFILE,
+  DEFAULT_PORTFOLIO_PROJECTS,
+  PORTFOLIO_CONTENT_KEYS,
+} from "./portfolio-content";
 function makeTtlCache<T>(fn: () => Promise<T>, maxAge: number) {
   let cached: T | null = null;
   let expiry = 0;
@@ -12092,6 +12097,121 @@ Instructions:
   // ──────────────────────────────────────────────────────────────
   // CMS: Nav Config, Theme Config, Announcement Banner
   // ──────────────────────────────────────────────────────────────
+
+  // Abraham Tahbat portfolio assets are kept in attached_assets so the
+  // supplied portrait and CV remain part of the imported project.
+  app.get('/api/portfolio-assets/:asset', (req, res) => {
+    const assets: Record<string, { filename: string; contentType: string }> = {
+      portrait: {
+        filename: 'WhatsApp_Image_2026-08-27_at_6.34.20_PM_1787852087613.jpeg',
+        contentType: 'image/jpeg',
+      },
+      cv: {
+        filename: 'Abraham_Tahbat_Executive_CV_2026_(1)_1787851203671.pdf',
+        contentType: 'application/pdf',
+      },
+    };
+    const asset = assets[req.params.asset];
+    if (!asset) return res.status(404).json({ message: 'Portfolio asset not found' });
+    res.type(asset.contentType).sendFile(path.resolve(process.cwd(), 'attached_assets', asset.filename), (error) => {
+      if (error && !res.headersSent) res.status(error.statusCode || 404).json({ message: 'Portfolio asset not found' });
+    });
+  });
+
+  const readPortfolioContent = async () => {
+    const rows = await db.select().from(siteContent).where(
+      inArray(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects])
+    );
+    const profileRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.profile);
+    const projectsRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.projects);
+    let profile = DEFAULT_PORTFOLIO_PROFILE;
+    let projects = DEFAULT_PORTFOLIO_PROJECTS;
+    try {
+      if (profileRow?.value) profile = JSON.parse(profileRow.value);
+    } catch {
+      console.error('[Portfolio] Invalid profile JSON, using defaults');
+    }
+    try {
+      if (projectsRow?.value) projects = JSON.parse(projectsRow.value);
+    } catch {
+      console.error('[Portfolio] Invalid projects JSON, using defaults');
+    }
+    return { profile, projects };
+  };
+
+  app.get('/api/abraham-portfolio', async (_req, res) => {
+    try {
+      const { profile, projects } = await readPortfolioContent();
+      res.json({
+        profile,
+        projects: (Array.isArray(projects) ? projects : []).filter((project: any) => project?.visible !== false)
+          .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.get('/api/abraham-portfolio/:slug', async (req, res) => {
+    try {
+      const { profile, projects } = await readPortfolioContent();
+      const project = (Array.isArray(projects) ? projects : []).find(
+        (item: any) => item?.slug === req.params.slug && item?.visible !== false
+      );
+      if (!project) return res.status(404).json({ message: 'Portfolio project not found' });
+      res.json({ profile, project });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.get('/api/admin/abraham-portfolio', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      res.json(await readPortfolioContent());
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.put('/api/admin/abraham-portfolio', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const { profile, projects } = req.body || {};
+      if (!profile || typeof profile !== 'object' || !Array.isArray(projects)) {
+        return res.status(400).json({ message: 'Profile object and projects array are required' });
+      }
+      if (projects.some((project: any) => !project?.slug || !project?.title)) {
+        return res.status(400).json({ message: 'Every project needs a slug and title' });
+      }
+
+      const existing = await db.select({ contentKey: siteContent.contentKey })
+        .from(siteContent)
+        .where(inArray(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects]));
+      const existingKeys = new Set(existing.map((row) => row.contentKey));
+      const save = async (key: string, label: string, section: string, value: unknown, sortOrder: number) => {
+        const serialized = JSON.stringify(value);
+        if (existingKeys.has(key)) {
+          return storage.updateSiteContent(key, serialized);
+        }
+        return storage.upsertSiteContent({
+          contentKey: key,
+          label,
+          contentType: 'json',
+          page: 'portfolio',
+          section,
+          value: serialized,
+          defaultValue: serialized,
+          sortOrder,
+        } as any);
+      };
+      await save(PORTFOLIO_CONTENT_KEYS.profile, 'Abraham Tahbat Portfolio Profile', 'profile', profile, 0);
+      await save(PORTFOLIO_CONTENT_KEYS.projects, 'Abraham Tahbat Portfolio Projects', 'projects', projects, 1);
+      res.json({ profile, projects });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
 
   app.get('/api/nav-config', async (_req, res) => {
     try {

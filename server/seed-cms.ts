@@ -1,5 +1,10 @@
 import { storage } from "./storage";
 import { log } from "./vite";
+import {
+  DEFAULT_PORTFOLIO_PROFILE,
+  DEFAULT_PORTFOLIO_PROJECTS,
+  PORTFOLIO_CONTENT_KEYS,
+} from "./portfolio-content";
 
 const DEFAULT_SLIDERS = [
   {
@@ -238,6 +243,41 @@ export async function seedCmsContent(): Promise<void> {
       log(`[CMS] Synced page content — ${inserted} new block(s) added, ${updated} block(s) updated`);
     } else {
       log(`[CMS] Page content up to date (${DEFAULT_PAGE_CONTENT.length} blocks)`);
+    }
+
+    // ── Abraham portfolio: insert defaults once, preserving admin edits ─────
+    const existingSiteContent = await storage.getSiteContent();
+    const portfolioDefaults = [
+      {
+        contentKey: PORTFOLIO_CONTENT_KEYS.profile,
+        label: "Abraham Tahbat Portfolio Profile",
+        contentType: "json",
+        page: "portfolio",
+        section: "profile",
+        value: JSON.stringify(DEFAULT_PORTFOLIO_PROFILE),
+        defaultValue: JSON.stringify(DEFAULT_PORTFOLIO_PROFILE),
+        sortOrder: 0,
+      },
+      {
+        contentKey: PORTFOLIO_CONTENT_KEYS.projects,
+        label: "Abraham Tahbat Portfolio Projects",
+        contentType: "json",
+        page: "portfolio",
+        section: "projects",
+        value: JSON.stringify(DEFAULT_PORTFOLIO_PROJECTS),
+        defaultValue: JSON.stringify(DEFAULT_PORTFOLIO_PROJECTS),
+        sortOrder: 1,
+      },
+    ];
+    let portfolioAdded = 0;
+    for (const item of portfolioDefaults) {
+      if (!existingSiteContent.some((content) => content.contentKey === item.contentKey)) {
+        await storage.upsertSiteContent(item as any);
+        portfolioAdded++;
+      }
+    }
+    if (portfolioAdded > 0) {
+      log(`[CMS] Added ${portfolioAdded} Abraham portfolio content block(s)`);
     }
   } catch (err) {
     console.error("[CMS] Seed error:", err);
