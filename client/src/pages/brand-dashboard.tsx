@@ -30,6 +30,7 @@ import { useLocation, Link } from "wouter";
 import { WelcomeCampaign } from "@/components/ui/welcome-campaign";
 import { DashboardSpotlight } from "@/components/DashboardSpotlight";
 import { InlineTdripTopup } from "@/components/InlineTdripTopup";
+import { UpgradeBanner } from "@/components/ui/upgrade-banner";
 
 interface Campaign {
   id: string;
@@ -1012,6 +1013,12 @@ export default function BrandDashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── Premium upgrade prompt ───────────────────────────────────────── */}
+        <UpgradeBanner
+          feature="Scale your next campaign with Brand Pro"
+          description="Unlock unlimited campaigns, featured placement, bulk outreach, and your verified brand badge."
+        />
 
         {/* Spotlight & Featured */}
         <div className="mb-5">

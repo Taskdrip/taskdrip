@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
 import { DashboardSpotlight } from "@/components/DashboardSpotlight";
+import { UpgradeBanner } from "@/components/ui/upgrade-banner";
 
 // ── Level helpers ──────────────────────────────────────────────────────────────
 function getLevelConfig(level: string) {
@@ -328,6 +329,12 @@ export default function SimpleDashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── Premium upgrade prompt ───────────────────────────────────────── */}
+        <UpgradeBanner
+          feature="Turn your influence into more opportunities"
+          description="Unlock unlimited applications, direct brand access, advanced analytics, and your verified badge."
+        />
 
         {/* ── Spotlight & Featured ────────────────────────────────────────── */}
         <div className="mb-5">

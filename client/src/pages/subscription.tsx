@@ -324,9 +324,18 @@ export default function SubscriptionPage() {
       <NavigationFixed />
 
       {/* Hero */}
-      <div className={`relative overflow-hidden bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white`}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,255,255,0.15)_0%,transparent_70%)]" />
-        <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+      <div
+        className={`relative overflow-hidden bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white`}
+        style={{
+          backgroundImage: `url("https://images.unsplash.com/${isBrand ? "photo-1556761175-b413da4baf72" : "photo-1551836022-d5d88e9218df"}?auto=format&fit=crop&w=2000&q=85")`,
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+        }}
+      >
+        <div className="absolute inset-0 bg-slate-950/65" />
+        <div className={`absolute inset-0 bg-gradient-to-br ${gradientFrom}/85 ${gradientTo}/80 mix-blend-multiply`} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,255,255,0.2)_0%,transparent_70%)]" />
+        <div className="absolute inset-0 opacity-[0.1]" style={{ backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="relative max-w-4xl mx-auto px-4 py-20 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/20 rounded-full border border-white/30 backdrop-blur-sm mb-6">
             {isBrand ? <Crown className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
@@ -490,10 +499,13 @@ export default function SubscriptionPage() {
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
-                      className={`w-full mt-7 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white font-bold py-6 text-base hover:opacity-90 gap-2`}
+                      className={`relative w-full mt-7 bg-gradient-to-r ${gradientFrom} ${gradientTo} text-white font-bold py-6 text-base hover:opacity-90 gap-2 overflow-hidden ${isBrand ? "btn-glow-amber" : "btn-glow-purple"}`}
                       data-testid="subscribe-btn"
                     >
-                      {(paidPlan as any).icon} Get {(paidPlan as any).name} <ArrowRight className="w-4 h-4 ml-auto" />
+                      <span className="upgrade-shimmer absolute inset-0 pointer-events-none" />
+                      <span className="relative z-10 flex items-center gap-2">
+                        {(paidPlan as any).icon} Get {(paidPlan as any).name} <ArrowRight className="w-4 h-4 ml-auto" />
+                      </span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

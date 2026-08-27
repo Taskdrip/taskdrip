@@ -12129,16 +12129,17 @@ Instructions:
     try {
       if (profileRow?.value) {
         const storedProfile = JSON.parse(profileRow.value);
-        if (storedProfile?.contentVersion === DEFAULT_PORTFOLIO_PROFILE.contentVersion) {
-          profile = storedProfile;
+        if (storedProfile && typeof storedProfile === "object") {
+          profile = { ...DEFAULT_PORTFOLIO_PROFILE, ...storedProfile };
         }
       }
     } catch {
       console.error('[Portfolio] Invalid profile JSON, using defaults');
     }
     try {
-      if (projectsRow?.value && profile !== DEFAULT_PORTFOLIO_PROFILE) {
-        projects = JSON.parse(projectsRow.value);
+      if (projectsRow?.value) {
+        const storedProjects = JSON.parse(projectsRow.value);
+        if (Array.isArray(storedProjects)) projects = storedProjects;
       }
     } catch {
       console.error('[Portfolio] Invalid projects JSON, using defaults');
