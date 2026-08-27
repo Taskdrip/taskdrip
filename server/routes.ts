@@ -12127,12 +12127,19 @@ Instructions:
     let profile = DEFAULT_PORTFOLIO_PROFILE;
     let projects = DEFAULT_PORTFOLIO_PROJECTS;
     try {
-      if (profileRow?.value) profile = JSON.parse(profileRow.value);
+      if (profileRow?.value) {
+        const storedProfile = JSON.parse(profileRow.value);
+        if (storedProfile?.contentVersion === DEFAULT_PORTFOLIO_PROFILE.contentVersion) {
+          profile = storedProfile;
+        }
+      }
     } catch {
       console.error('[Portfolio] Invalid profile JSON, using defaults');
     }
     try {
-      if (projectsRow?.value) projects = JSON.parse(projectsRow.value);
+      if (projectsRow?.value && profile !== DEFAULT_PORTFOLIO_PROFILE) {
+        projects = JSON.parse(projectsRow.value);
+      }
     } catch {
       console.error('[Portfolio] Invalid projects JSON, using defaults');
     }

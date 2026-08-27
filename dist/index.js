@@ -2332,6 +2332,7 @@ __export(email_service_exports, {
   buildTransporter: () => buildTransporter,
   getEmailSettings: () => getEmailSettings,
   getEmailStatus: () => getEmailStatus,
+  sendAdminActivityEmail: () => sendAdminActivityEmail,
   sendAdsApplicationEmail: () => sendAdsApplicationEmail,
   sendEmail: () => sendEmail,
   sendNewsletterWelcomeEmail: () => sendNewsletterWelcomeEmail,
@@ -2572,6 +2573,50 @@ async function sendOrderConfirmationEmail(opts) {
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
   } catch (_) {
+  }
+}
+async function sendAdminActivityEmail(opts) {
+  try {
+    const eventLabels = {
+      shop_order: "New shop order",
+      course_registration: "New course registration",
+      hire_request: "New hire developer request"
+    };
+    const escapeHtml2 = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const rows = opts.details.filter((item) => item.value !== null && item.value !== void 0 && String(item.value).trim() !== "").map((item) => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:30%;font-weight:600">${escapeHtml2(item.label)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;white-space:pre-line">${escapeHtml2(String(item.value))}</td>
+        </tr>`).join("");
+    const customerLines = [
+      opts.customer.name ? `<strong>${escapeHtml2(opts.customer.name)}</strong>` : "",
+      opts.customer.email ? escapeHtml2(opts.customer.email) : "",
+      opts.customer.phone ? escapeHtml2(opts.customer.phone) : ""
+    ].filter(Boolean).join("<br>");
+    const html = buildDefaultEmailHtml(`
+      <div style="font-family:Arial,sans-serif">
+        <p style="margin:0 0 6px;color:#7c3aed;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">${eventLabels[opts.event]}</p>
+        <h2 style="margin:0 0 18px;color:#111827">${escapeHtml2(opts.subject)}</h2>
+        <div style="margin-bottom:18px;padding:12px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-weight:700;text-transform:uppercase">Customer</p>
+          <p style="margin:0;line-height:1.55">${customerLines || "Customer details unavailable"}</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">${rows}</table>
+      </div>
+    `, "Taskdrip Admin");
+    await sendEmail({
+      to: "taskdrip@gmail.com",
+      subject: opts.subject,
+      html,
+      text: [
+        eventLabels[opts.event],
+        opts.subject,
+        `Customer: ${[opts.customer.name, opts.customer.email, opts.customer.phone].filter(Boolean).join(" | ")}`,
+        ...opts.details.filter((item) => item.value !== null && item.value !== void 0).map((item) => `${item.label}: ${item.value}`)
+      ].join("\n")
+    });
+  } catch (error) {
+    console.warn("[email] admin activity notification failed:", error?.message || error);
   }
 }
 async function sendAdsApplicationEmail(opts) {
@@ -11377,6 +11422,303 @@ import bcrypt3 from "bcryptjs";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
+
+// server/portfolio-content.ts
+var projectImage = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=82`;
+var DEFAULT_PORTFOLIO_PROFILE = {
+  contentVersion: 2,
+  name: "Abraham Tahbat",
+  eyebrow: "Founder & CTO \xB7 Full-Stack AI Developer \xB7 Lawyer",
+  headline: "I build the digital products ambitious businesses need next.",
+  summary: "Founder, CTO, lawyer and product architect creating marketplaces, SaaS platforms, AI tools, and business systems that turn complex ideas into clear, useful experiences.",
+  bio: "I am Abraham Tahbat \u2014 Founder and CTO of Breedskool Galaxy and Taskdrip, a lawyer called to the Nigerian Bar in 2015, and a full-stack web developer who followed a passion for entrepreneurship and information technology. I build products, create content, apply AI to practical business problems, shape go-to-market strategy, and help teams move from an idea to a dependable digital business.",
+  location: "Nigeria \xB7 Working globally",
+  email: "tremendouslymax@gmail.com",
+  portraitUrl: "/api/portfolio-assets/portrait",
+  cvUrl: "/api/portfolio-assets/cv",
+  socialLinks: [
+    { label: "LinkedIn", url: "https://www.linkedin.com/in/taskdrip/" },
+    { label: "Instagram", url: "https://www.instagram.com/taskdriper" },
+    { label: "X", url: "https://x.com/taskdrip" },
+    { label: "YouTube", url: "https://www.youtube.com/@Taskdriper" }
+  ],
+  skills: [
+    "JavaScript",
+    "TypeScript",
+    "React",
+    "Next.js",
+    "Node.js",
+    "Express.js",
+    "PostgreSQL",
+    "MongoDB",
+    "REST APIs",
+    "AI integration",
+    "Railway deployment",
+    "WordPress",
+    "SEO",
+    "UI/UX",
+    "Product strategy",
+    "Digital marketing",
+    "Content creation",
+    "Legal technology",
+    "Business automation"
+  ],
+  services: [
+    "SaaS product architecture and full-stack development",
+    "AI-powered application development and automation",
+    "Marketplace, logistics, and LMS development",
+    "Digital transformation and growth strategy",
+    "Product positioning, content, and go-to-market"
+  ]
+};
+var DEFAULT_PORTFOLIO_PROJECTS = [
+  {
+    slug: "taskdrip",
+    title: "Taskdrip",
+    category: "Marketplace \xB7 Fintech \xB7 Learning",
+    year: "2025\u2013Present",
+    summary: "A creator marketplace that connects brands and influencers through campaigns, escrow, direct hire, and education.",
+    description: "Taskdrip brings creator discovery, campaign operations, crypto-enabled payments, digital products, community, and BreedSkool learning into one platform. The product is designed around trust: verified profiles, structured campaign submissions, admin-controlled payment flows, and clear progress visibility.",
+    role: "Founder \xB7 Product architect \xB7 Lead engineer",
+    technologies: ["React", "TypeScript", "Express", "PostgreSQL", "Drizzle ORM", "WebSockets", "Railway"],
+    outcomes: ["One workspace for creator campaigns, products, education, and direct hire", "Escrow and review flows designed around transparent delivery", "Admin tooling for content, payments, users, and operations"],
+    imageUrl: projectImage("photo-1556761175-b413da4baf72"),
+    liveUrl: "https://taskdrip.online",
+    featured: true,
+    visible: true,
+    sortOrder: 1
+  },
+  {
+    slug: "beagvs-marine",
+    title: "Beagvs Marine",
+    category: "Marketplace \xB7 Real Estate \xB7 Logistics",
+    year: "2024\u2013Present",
+    summary: "A multi-category marketplace for real estate, products, and services with a complete shipping and logistics experience.",
+    description: "Beagvs Marine brings property, products, services, and fulfilment into one marketplace experience. The platform is designed to make discovery feel simple while supporting the operational detail behind enquiries, orders, shipping, and logistics.",
+    role: "Founder \xB7 Product architect \xB7 Full-stack developer",
+    technologies: ["React", "Node.js", "PostgreSQL", "Marketplace UX", "Logistics workflows"],
+    outcomes: ["One marketplace experience across property, products, and services", "Operational foundation for shipping and fulfilment", "Conversion-focused discovery and enquiry flows"],
+    imageUrl: projectImage("photo-1494412574643-ff11b0a5c1c3"),
+    liveUrl: "https://beagvsmarine.com/",
+    featured: true,
+    visible: true,
+    sortOrder: 2
+  },
+  {
+    slug: "lawcolab",
+    title: "LAWCOLAB",
+    category: "LegalTech \xB7 SaaS",
+    year: "2024\u2013Present",
+    summary: "A complete law-firm management web app for matters, clients, documents, billing, team operations, and client portals.",
+    description: "LAWCOLAB turns everyday law-firm operations into a connected workspace. It supports client and matter management, document workflows, billing, team visibility, firm isolation, and a client portal \u2014 shaped by real legal practice knowledge and software discipline.",
+    role: "Founder \xB7 Product architect \xB7 Lead engineer",
+    technologies: ["Python", "Flask", "PostgreSQL", "REST APIs", "Multi-tenant SaaS", "RBAC"],
+    outcomes: ["Connected workflows for modern law firms", "Multi-tenant foundation for solo practitioners and growing firms", "A secure bridge between legal expertise and operational software"],
+    imageUrl: projectImage("photo-1450101499163-c8848c66ca85"),
+    liveUrl: "https://lawcolab-production.up.railway.app",
+    featured: true,
+    visible: true,
+    sortOrder: 3
+  },
+  {
+    slug: "stageplug",
+    title: "StagePlug",
+    category: "Music \xB7 Entertainment \xB7 SaaS",
+    year: "2024\u2013Present",
+    summary: "A music empire and record-label management web app for artists, releases, opportunities, and the business behind the stage.",
+    description: "StagePlug is a digital operating layer for music and entertainment businesses. It brings artists, releases, label operations, opportunities, and production needs into a structured experience built to support both discovery and execution.",
+    role: "Founder \xB7 Product architect \xB7 Full-stack developer",
+    technologies: ["React", "Node.js", "PostgreSQL", "Marketplace UX", "Media workflows"],
+    outcomes: ["A focused home for artists, labels, and entertainment opportunities", "Structured workflows for releases and production operations", "A product foundation for growth across the music ecosystem"],
+    imageUrl: projectImage("photo-1501281668745-f7f57925c3b4"),
+    liveUrl: "https://stageplug-production.up.railway.app/",
+    featured: true,
+    visible: true,
+    sortOrder: 4
+  },
+  {
+    slug: "the-industry-miner",
+    title: "The Industry Miner",
+    category: "Entrepreneurship \xB7 Mentorship \xB7 Community",
+    year: "2024\u2013Present",
+    summary: "An entrepreneurship and mentorship platform connecting ambitious people with practical industry insight and guidance.",
+    description: "The Industry Miner creates a more discoverable home for entrepreneurship content, mentorship, stories, and opportunities. The experience makes dense industry knowledge approachable while leaving room for community, programmes, and sponsored learning.",
+    role: "Founder \xB7 Product strategist \xB7 Developer",
+    technologies: ["React", "Content systems", "SEO", "Editorial UX", "Community workflows"],
+    outcomes: ["A structured publishing experience for industry-focused content", "Clear pathways from discovery to deeper learning", "A flexible platform for mentorship, research, and community"],
+    imageUrl: projectImage("photo-1454165804606-c3d57bc86b40"),
+    liveUrl: "https://theindustryminer.com/",
+    featured: true,
+    visible: true,
+    sortOrder: 5
+  },
+  {
+    slug: "replit-saas-starter",
+    title: "Replit SaaS Starter Project",
+    category: "Software Product \xB7 SaaS",
+    year: "2024",
+    summary: "A production-minded starter codebase for launching authenticated, data-driven SaaS products faster.",
+    description: "The Replit SaaS Starter Project packages the recurring foundations of a modern SaaS product: authentication, dashboards, payments, content, database-backed workflows, and deployment practices. It is built for founders who want to spend their energy on differentiation rather than reinvention.",
+    role: "Software architect \xB7 Developer",
+    technologies: ["React", "TypeScript", "Express", "PostgreSQL", "Drizzle ORM", "Vite"],
+    outcomes: ["Reusable foundations for new SaaS products", "A practical bridge from prototype to production", "Faster delivery without hiding the important engineering decisions"],
+    imageUrl: projectImage("photo-1560518883-ce09059eeffa"),
+    liveUrl: "/shop/product/80970463-963e-4a1a-8cfa-e3531261bcc7",
+    featured: false,
+    visible: true,
+    sortOrder: 6
+  },
+  {
+    slug: "github-repo-growth-kit",
+    title: "GitHub Repo Growth Kit",
+    category: "Developer Tools \xB7 Documentation",
+    year: "2023",
+    summary: "A documentation and repository presentation system that helps software projects earn trust.",
+    description: "The GitHub Repo Growth Kit treats documentation as part of the product experience. It gives maintainers a clearer structure for README content, contribution guidance, issue templates, releases, and the first impression that turns a visitor into a user or contributor.",
+    role: "Developer experience designer \xB7 Developer",
+    technologies: ["GitHub", "Documentation systems", "Markdown", "Open-source workflows"],
+    outcomes: ["More navigable repositories for users and contributors", "Repeatable documentation patterns for new projects", "A stronger connection between code quality and product communication"],
+    imageUrl: "https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=1400&q=82",
+    liveUrl: "/shop/product/d576b928-6208-442d-91fd-880627c1e875",
+    featured: false,
+    visible: true,
+    sortOrder: 7
+  },
+  {
+    slug: "personal-brand-strategy-guide",
+    title: "Personal Brand Strategy Guide",
+    category: "Strategy \xB7 Digital Product",
+    year: "2023\u2013Present",
+    summary: "A guided digital product for creators and professionals shaping a clearer personal brand.",
+    description: "The Personal Brand Strategy Guide helps users move from a vague sense of what they do to a clearer positioning story. It combines prompts, frameworks, and practical next steps so the result can live across a profile, portfolio, and content plan.",
+    role: "Brand strategist \xB7 Product designer",
+    technologies: ["Brand strategy", "UX writing", "Digital publishing", "Content design"],
+    outcomes: ["A clearer process for defining a differentiated point of view", "Frameworks that translate into content and profile decisions", "A reusable digital product for personal brand workshops"],
+    imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1400&q=82",
+    liveUrl: "/shop/product/b2029709-92b1-4fe9-b664-be40a1167c72",
+    featured: false,
+    visible: true,
+    sortOrder: 8
+  },
+  {
+    slug: "content-influencer-toolkit",
+    title: "Content Influencer Toolkit",
+    category: "Creator Tools \xB7 Productivity",
+    year: "2023",
+    summary: "A collection of practical workflows and tools for creators building a consistent publishing business.",
+    description: "The Content Influencer Toolkit brings planning, content operations, and creator resources into a single product direction. It is intentionally practical: reduce the blank-page problem, make repeatable work easier, and keep the creator focused on their audience.",
+    role: "Product strategist \xB7 Developer",
+    technologies: ["React", "Content workflows", "UI systems", "Digital products"],
+    outcomes: ["A cohesive home for everyday creator workflows", "Reusable patterns for tool and resource libraries", "A product foundation that supports both free and premium content"],
+    imageUrl: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=1400&q=82",
+    liveUrl: "/shop/product/1e43245b-c673-4944-91c6-9f2d5e0c74c3",
+    featured: false,
+    visible: true,
+    sortOrder: 9
+  },
+  {
+    slug: "hashtag-research-tool-pro",
+    title: "Hashtag Research Tool Pro",
+    category: "Creator Tools \xB7 Analytics",
+    year: "2023",
+    summary: "A focused research tool for helping creators make more informed content distribution choices.",
+    description: "Hashtag Research Tool Pro turns a noisy discovery problem into a more focused research workflow. The product direction is centered on useful filtering, understandable signals, and decisions creators can act on immediately.",
+    role: "Product architect \xB7 Developer",
+    technologies: ["React", "Data visualization", "Search UX", "API integration"],
+    outcomes: ["More deliberate discovery and content planning", "Signals presented in a way non-technical users can understand", "A modular base for broader creator analytics"],
+    imageUrl: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1400&q=82",
+    liveUrl: "/shop/product/8426d252-058e-483f-b825-f07f0db5181f",
+    featured: false,
+    visible: true,
+    sortOrder: 10
+  },
+  {
+    slug: "influencer-media-kit",
+    title: "Influencer Media Kit Template",
+    category: "Creator Tools \xB7 Template",
+    year: "2023",
+    summary: "A polished media kit system that helps creators present their audience, services, and partnership value.",
+    description: "The Influencer Media Kit gives creators a stronger way to communicate who they are and how brands can work with them. The design focuses on scannable proof, clear offers, and a personal brand presentation that feels more considered than a collection of social links.",
+    role: "Product designer \xB7 Developer",
+    technologies: ["React", "Responsive UI", "Brand systems", "Creator UX"],
+    outcomes: ["A clear narrative for creator-brand conversations", "Reusable content blocks for different creator niches", "A stronger bridge between audience data and commercial opportunity"],
+    imageUrl: "https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=1400&q=82",
+    liveUrl: "/shop/product/8b6297c4-887d-4abf-8f93-e70b8e2b4b80",
+    featured: false,
+    visible: true,
+    sortOrder: 11
+  },
+  {
+    slug: "viral-content-templates",
+    title: "Viral Content Templates Pack",
+    category: "Creator Tools \xB7 Template",
+    year: "2023",
+    summary: "A practical content template library for creators who need repeatable ideas and faster production.",
+    description: "Viral Content Templates organizes content prompts and formats into a usable system rather than a static list of inspiration. It is designed to help creators move from an idea to a publishable brief with less friction.",
+    role: "Content product designer \xB7 Developer",
+    technologies: ["Content systems", "React", "UX writing", "Information architecture"],
+    outcomes: ["Faster discovery of relevant content formats", "A repeatable workflow for planning creator output", "A foundation for personalization by niche and platform"],
+    imageUrl: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1400&q=82",
+    liveUrl: "/shop/product/f2f9ef2c-4994-4878-ac1e-4bbdd0f518ce",
+    featured: false,
+    visible: true,
+    sortOrder: 12
+  },
+  {
+    slug: "ai-ebook-generator",
+    title: "AI Ebook Generator",
+    category: "AI \xB7 Content Tools",
+    year: "2023",
+    summary: "An AI-assisted workflow for turning ideas into structured ebook drafts and publishable content.",
+    description: "The AI Ebook Generator explores how generative AI can support authors and businesses without hiding the human in the process. The workflow emphasizes guided inputs, useful structure, editing, and export rather than one-click noise.",
+    role: "AI product architect \xB7 Developer",
+    technologies: ["AI APIs", "React", "Node.js", "Prompt design", "Document workflows"],
+    outcomes: ["Guided creation flow from concept to structured draft", "Human-in-the-loop editing as a first-class step", "A reusable pattern for AI-assisted business content"],
+    imageUrl: "https://images.unsplash.com/photo-1456324504439-367cee3b3c32?w=1400&q=82",
+    liveUrl: "/shop",
+    featured: false,
+    visible: true,
+    sortOrder: 13
+  },
+  {
+    slug: "property-os",
+    title: "Property OS",
+    category: "PropTech \xB7 SaaS",
+    year: "2023",
+    summary: "A property management SaaS concept for organizing properties, tenants, maintenance, and business operations.",
+    description: "Property OS brings the operational side of property management into one place. The product direction focuses on replacing fragmented spreadsheets and chat threads with structured records, task visibility, and actionable dashboards.",
+    role: "Product architect \xB7 Full-stack developer",
+    technologies: ["React", "Node.js", "PostgreSQL", "Dashboards", "Workflow automation"],
+    outcomes: ["Centralized view of property operations", "Clearer workflows for recurring management tasks", "An extensible platform direction for landlords and property teams"],
+    imageUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1400&q=82",
+    liveUrl: "/shop",
+    featured: false,
+    visible: true,
+    sortOrder: 14
+  },
+  {
+    slug: "breedskool-lms",
+    title: "BreedSkool Galaxy LMS",
+    category: "EdTech \xB7 Learning",
+    year: "2023",
+    summary: "A learning platform for practical technology training, courses, lessons, certificates, and community.",
+    description: "BreedSkool extends the mission of Breedskool Galaxy Ltd into a modern learning experience. It supports course discovery, structured lessons, enrollment, progress, certificates, and training operations designed for aspiring creators and digital professionals.",
+    role: "Founder \xB7 Learning product architect \xB7 Developer",
+    technologies: ["React", "TypeScript", "Express", "PostgreSQL", "Course workflows"],
+    outcomes: ["Learning journeys that connect lessons to visible progress", "Admin controls for courses, pricing, enrollments, and certificates", "A scalable home for practical digital skills training"],
+    imageUrl: projectImage("photo-1522202176988-66273c2fd55f"),
+    liveUrl: "/breedskool",
+    featured: false,
+    visible: true,
+    sortOrder: 15
+  }
+];
+var PORTFOLIO_CONTENT_KEYS = {
+  profile: "portfolio_abraham_profile",
+  projects: "portfolio_abraham_projects"
+};
+
+// server/routes.ts
 function getSubscriptionTier(user) {
   if (!user || user.subscriptionStatus !== "active") return "free";
   const plan = (user.subscriptionPlan || "").toLowerCase();
@@ -15224,6 +15566,24 @@ async function registerRoutes(app2, existingServer) {
             }
           }).catch(() => {
           });
+          sendAdminActivityEmail({
+            event: "shop_order",
+            subject: `New shop order: ${product.title}`,
+            customer: {
+              name: `${buyer2.firstName || ""} ${buyer2.lastName || ""}`.trim(),
+              email: buyer2.email,
+              phone: buyer2.phoneNumber || void 0
+            },
+            details: [
+              { label: "Product", value: `${product.title} \u2014 ${plan.title}` },
+              { label: "Order ID", value: purchase2.id },
+              { label: "Amount", value: `${planPrice.toFixed(2)} ${currency || ""}`.trim() },
+              { label: "Payment method", value: purchase2.paymentMethod },
+              { label: "Transaction reference", value: purchase2.transactionHash || purchase2.paymentProof },
+              { label: "Status", value: purchase2.status }
+            ]
+          }).catch(() => {
+          });
         }
         return res.status(201).json(purchase2);
       }
@@ -15299,6 +15659,24 @@ async function registerRoutes(app2, existingServer) {
           }).catch(() => {
           });
         }
+        sendAdminActivityEmail({
+          event: "shop_order",
+          subject: `New shop order: ${product.title}`,
+          customer: {
+            name: `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim(),
+            email: buyer.email,
+            phone: buyer.phoneNumber || void 0
+          },
+          details: [
+            { label: "Product", value: product.title },
+            { label: "Order ID", value: purchase.id },
+            { label: "Amount", value: `${purchase.totalAmount} ${currency || ""}`.trim() },
+            { label: "Payment method", value: purchase.paymentMethod },
+            { label: "Transaction reference", value: purchase.transactionHash || purchase.paymentProof },
+            { label: "Status", value: purchase.status }
+          ]
+        }).catch(() => {
+        });
       }
       res.status(201).json(purchase);
     } catch (error) {
@@ -16886,6 +17264,27 @@ ${contactLines.join("\n")}` : ""),
         isRead: false,
         priority: "high"
       });
+      sendAdminActivityEmail({
+        event: "hire_request",
+        subject: `New developer hire request: ${title}`,
+        customer: {
+          name: `${(await storage.getUser(userId))?.firstName || ""} ${(await storage.getUser(userId))?.lastName || ""}`.trim(),
+          email: contactEmail || (await storage.getUser(userId))?.email || email,
+          phone: phone || whatsapp
+        },
+        details: [
+          { label: "Request ID", value: devOffer?.id || message.id },
+          { label: "Project", value: title },
+          { label: "Type", value: typeLabels[projectType] || projectType },
+          { label: "Budget", value: budgetLabels[budget] || budget },
+          { label: "Timeline", value: timelineLabels[timeline] || timeline },
+          { label: "Features", value: features },
+          { label: "Preferred contact", value: preferredContact },
+          { label: "Description", value: description },
+          { label: "Status", value: devOffer?.status || "pending" }
+        ]
+      }).catch(() => {
+      });
       res.status(201).json({ messageId: message.id, adminId: admin.id, offerId: devOffer?.id || null });
     } catch (error) {
       console.error("hire-developer error:", error);
@@ -17150,6 +17549,22 @@ Instructions:
         homeAddress: homeAddress || null
       };
       const [reg] = await db.insert(breedskoolRegistrations).values(insertValues).returning();
+      sendAdminActivityEmail({
+        event: "course_registration",
+        subject: `New course registration: ${selectedCourseTitle || selectedCourseKey || "Course"}`,
+        customer: { name: fullName, email, phone },
+        details: [
+          { label: "Registration ID", value: reg.id },
+          { label: "Course", value: selectedCourseTitle || selectedCourseKey },
+          { label: "Amount", value: `${amountNgn || 0} NGN${amountUsd ? ` / $${amountUsd}` : ""}` },
+          { label: "Payment option", value: paymentOption },
+          { label: "Payment method", value: paymentMethod },
+          { label: "Transaction reference", value: transactionRef },
+          { label: "Delivery mode", value: deliveryMode },
+          { label: "Status", value: isPayLater ? "registered" : "pending" }
+        ]
+      }).catch(() => {
+      });
       let linkedCourseId = null;
       try {
         const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
@@ -18593,8 +19008,14 @@ Instructions:
       }
       const brand = await storage.getUser(offer.brandId);
       const influencer = await storage.getUser(offer.influencerId);
+      const invoicePaymentMethods = await storage.getActivePaymentMethods("direct_hire");
       res.json({
         ...offer,
+        invoicePaymentMethods: invoicePaymentMethods.map((method) => ({
+          ...method,
+          paystackSecretKey: void 0,
+          stripeSecretKey: void 0
+        })),
         brand: brand ? { id: brand.id, firstName: brand.firstName, lastName: brand.lastName, companyName: brand.companyName, profileImageUrl: brand.profileImageUrl } : null,
         influencer: influencer ? { id: influencer.id, firstName: influencer.firstName, lastName: influencer.lastName, profileImageUrl: influencer.profileImageUrl } : null
       });
@@ -19241,6 +19662,7 @@ ${accessNotes}` : ""}`,
         agreedBudget: agreedBudget ? String(Number(agreedBudget).toFixed(2)) : offer.budget,
         status: nextStatus
       });
+      const invoiceMethods = await storage.getActivePaymentMethods("direct_hire");
       await storage.createNotification({
         userId: offer.brandId,
         type: "direct_hire_invoice",
@@ -19262,6 +19684,22 @@ Please proceed to the payment section when ready.`,
         messageType: "direct_hire",
         referenceType: "direct_hire",
         referenceId: offer.id
+      });
+      sendAdminActivityEmail({
+        event: "hire_request",
+        subject: `Invoice generated: ${offer.title}`,
+        customer: {
+          name: `${(await storage.getUser(offer.brandId))?.firstName || ""} ${(await storage.getUser(offer.brandId))?.lastName || ""}`.trim(),
+          email: (await storage.getUser(offer.brandId))?.email
+        },
+        details: [
+          { label: "Project", value: offer.title },
+          { label: "Invoice number", value: invoiceNumber },
+          { label: "Amount", value: `$${agreedBudget || offer.budget}` },
+          { label: "Due date", value: invoiceDueDate || "Not specified" },
+          { label: "Payment methods", value: invoiceMethods.map((m) => m.label).join(", ") || "None configured" }
+        ]
+      }).catch(() => {
       });
       res.json(updated);
     } catch (e) {
@@ -22068,6 +22506,116 @@ ${body}`,
       res.status(500).json({ message: e.message });
     }
   });
+  app2.get("/api/portfolio-assets/:asset", (req, res) => {
+    const assets = {
+      portrait: {
+        filename: "WhatsApp_Image_2026-08-27_at_6.34.20_PM_1787852087613.jpeg",
+        contentType: "image/jpeg"
+      },
+      cv: {
+        filename: "Abraham_Tahbat_Executive_CV_2026_(1)_1787851203671.pdf",
+        contentType: "application/pdf"
+      }
+    };
+    const asset = assets[req.params.asset];
+    if (!asset) return res.status(404).json({ message: "Portfolio asset not found" });
+    res.type(asset.contentType).sendFile(path.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
+      if (error && !res.headersSent) res.status(error.statusCode || 404).json({ message: "Portfolio asset not found" });
+    });
+  });
+  const readPortfolioContent = async () => {
+    const rows = await db.select().from(siteContent).where(
+      inArray8(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects])
+    );
+    const profileRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.profile);
+    const projectsRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.projects);
+    let profile = DEFAULT_PORTFOLIO_PROFILE;
+    let projects = DEFAULT_PORTFOLIO_PROJECTS;
+    try {
+      if (profileRow?.value) {
+        const storedProfile = JSON.parse(profileRow.value);
+        if (storedProfile?.contentVersion === DEFAULT_PORTFOLIO_PROFILE.contentVersion) {
+          profile = storedProfile;
+        }
+      }
+    } catch {
+      console.error("[Portfolio] Invalid profile JSON, using defaults");
+    }
+    try {
+      if (projectsRow?.value && profile !== DEFAULT_PORTFOLIO_PROFILE) {
+        projects = JSON.parse(projectsRow.value);
+      }
+    } catch {
+      console.error("[Portfolio] Invalid projects JSON, using defaults");
+    }
+    return { profile, projects };
+  };
+  app2.get("/api/abraham-portfolio", async (_req, res) => {
+    try {
+      const { profile, projects } = await readPortfolioContent();
+      res.json({
+        profile,
+        projects: (Array.isArray(projects) ? projects : []).filter((project) => project?.visible !== false).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/abraham-portfolio/:slug", async (req, res) => {
+    try {
+      const { profile, projects } = await readPortfolioContent();
+      const project = (Array.isArray(projects) ? projects : []).find(
+        (item) => item?.slug === req.params.slug && item?.visible !== false
+      );
+      if (!project) return res.status(404).json({ message: "Portfolio project not found" });
+      res.json({ profile, project });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/admin/abraham-portfolio", isAuthenticated, async (req, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
+      res.json(await readPortfolioContent());
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.put("/api/admin/abraham-portfolio", isAuthenticated, async (req, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
+      const { profile, projects } = req.body || {};
+      if (!profile || typeof profile !== "object" || !Array.isArray(projects)) {
+        return res.status(400).json({ message: "Profile object and projects array are required" });
+      }
+      if (projects.some((project) => !project?.slug || !project?.title)) {
+        return res.status(400).json({ message: "Every project needs a slug and title" });
+      }
+      const existing = await db.select({ contentKey: siteContent.contentKey }).from(siteContent).where(inArray8(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects]));
+      const existingKeys = new Set(existing.map((row) => row.contentKey));
+      const save = async (key, label, section, value, sortOrder) => {
+        const serialized = JSON.stringify(value);
+        if (existingKeys.has(key)) {
+          return storage.updateSiteContent(key, serialized);
+        }
+        return storage.upsertSiteContent({
+          contentKey: key,
+          label,
+          contentType: "json",
+          page: "portfolio",
+          section,
+          value: serialized,
+          defaultValue: serialized,
+          sortOrder
+        });
+      };
+      await save(PORTFOLIO_CONTENT_KEYS.profile, "Abraham Tahbat Portfolio Profile", "profile", profile, 0);
+      await save(PORTFOLIO_CONTENT_KEYS.projects, "Abraham Tahbat Portfolio Projects", "projects", projects, 1);
+      res.json({ profile, projects });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
       const [config] = await db.select().from(siteContent).where(eq12(siteContent.contentKey, "cms_nav_config"));
@@ -24589,6 +25137,39 @@ async function seedCmsContent() {
       log(`[CMS] Synced page content \u2014 ${inserted} new block(s) added, ${updated} block(s) updated`);
     } else {
       log(`[CMS] Page content up to date (${DEFAULT_PAGE_CONTENT.length} blocks)`);
+    }
+    const existingSiteContent = await storage.getSiteContent();
+    const portfolioDefaults = [
+      {
+        contentKey: PORTFOLIO_CONTENT_KEYS.profile,
+        label: "Abraham Tahbat Portfolio Profile",
+        contentType: "json",
+        page: "portfolio",
+        section: "profile",
+        value: JSON.stringify(DEFAULT_PORTFOLIO_PROFILE),
+        defaultValue: JSON.stringify(DEFAULT_PORTFOLIO_PROFILE),
+        sortOrder: 0
+      },
+      {
+        contentKey: PORTFOLIO_CONTENT_KEYS.projects,
+        label: "Abraham Tahbat Portfolio Projects",
+        contentType: "json",
+        page: "portfolio",
+        section: "projects",
+        value: JSON.stringify(DEFAULT_PORTFOLIO_PROJECTS),
+        defaultValue: JSON.stringify(DEFAULT_PORTFOLIO_PROJECTS),
+        sortOrder: 1
+      }
+    ];
+    let portfolioAdded = 0;
+    for (const item of portfolioDefaults) {
+      if (!existingSiteContent.some((content) => content.contentKey === item.contentKey)) {
+        await storage.upsertSiteContent(item);
+        portfolioAdded++;
+      }
+    }
+    if (portfolioAdded > 0) {
+      log(`[CMS] Added ${portfolioAdded} Abraham portfolio content block(s)`);
     }
   } catch (err) {
     console.error("[CMS] Seed error:", err);

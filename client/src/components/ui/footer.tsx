@@ -105,6 +105,13 @@ export function Footer() {
             <p className="text-gray-400 mb-4 leading-relaxed text-sm">
               The #1 Web3 influencer marketplace — where influencers turn their reach into real crypto income. Join 15,000+ influencers earning USDT from top global brands through campaigns, direct hire, P2P trading, and more.
             </p>
+            <Link
+              href="/abraham-tahbat"
+              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-cyan-400/25 bg-cyan-400/10 px-3.5 py-2.5 text-sm font-semibold text-cyan-200 transition-colors hover:border-cyan-300/50 hover:bg-cyan-400/20 hover:text-white"
+              data-testid="link-footer-abraham-portfolio"
+            >
+              <ExternalLink className="h-4 w-4" /> Abraham Tahbat’s portfolio
+            </Link>
 
             {/* Social Icons — DB-driven if available, else static fallback */}
             <div className="flex flex-wrap gap-2 mb-5">

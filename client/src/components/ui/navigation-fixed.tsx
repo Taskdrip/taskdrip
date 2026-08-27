@@ -248,6 +248,7 @@ export function NavigationFixed() {
             { href: "/admin/keyword-analytics", label: "Keyword Analytics" },
             { href: "/admin/auto-blogger", label: "Auto Blogger" },
             { href: "/admin/cms", label: "CMS Editor" },
+             { href: "/admin/portfolio", label: "Abraham Portfolio" },
             { href: "/admin/seo", label: "SEO" },
             { href: "/admin/email", label: "Email" },
           ],

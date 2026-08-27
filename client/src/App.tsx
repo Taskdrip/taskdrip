@@ -90,6 +90,8 @@ const DocumentationPage = lazy(() => import("@/pages/documentation"));
 const RoadmapPage = lazy(() => import("@/pages/roadmap"));
 const AdminSpotlight = lazy(() => import("@/pages/admin-spotlight"));
 const AdminCMSEditor = lazy(() => import("@/pages/admin-cms-editor"));
+const AdminPortfolio = lazy(() => import("@/pages/admin-portfolio"));
+const AbrahamPortfolio = lazy(() => import("@/pages/abraham-portfolio"));
 const AdminSEO = lazy(() => import("@/pages/admin-seo"));
 const AdminSeoIntelligence = lazy(() => import("@/pages/admin-seo-intelligence"));
 const AdminLeads = lazy(() => import("@/pages/admin-leads"));
@@ -186,6 +188,10 @@ function Router() {
         <Route path="/shop/checkout/:id" component={ShopCheckout} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
+        <Route path="/abraham-tahbat/:slug" component={AbrahamPortfolio} />
+        <Route path="/abraham-tahbat" component={AbrahamPortfolio} />
+        <Route path="/portfolio/:slug" component={AbrahamPortfolio} />
+        <Route path="/portfolio" component={AbrahamPortfolio} />
         <Route path="/terms" component={() => <LegalPageTemplate slug="terms" />} />
         <Route path="/privacy" component={() => <LegalPageTemplate slug="privacy" />} />
         <Route path="/cookies" component={() => <LegalPageTemplate slug="cookies" />} />
@@ -264,6 +270,7 @@ function Router() {
             <Route path="/admin/p2p-fees" component={AdminP2PFees} />
             <Route path="/admin/platform-fees" component={AdminPlatformFees} />
             <Route path="/admin/cms" component={AdminCMSEditor} />
+            <Route path="/admin/portfolio" component={AdminPortfolio} />
             <Route path="/admin/seo" component={AdminSEO} />
             <Route path="/admin/seo-intelligence" component={AdminSeoIntelligence} />
             <Route path="/subscription" component={SubscriptionPage} />

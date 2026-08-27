@@ -3372,6 +3372,22 @@ export default function AdminMaster() {
                 </button>
               </RouterLink>
             </div>
+            <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-900/20 via-sky-900/10 to-blue-900/20 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-600/30 flex items-center justify-center shrink-0">
+                  <Briefcase className="w-5 h-5 text-cyan-300" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">Abraham Tahbat Portfolio</p>
+                  <p className="text-gray-400 text-xs">Edit the public bio, social handles, recruiter CV, and project case studies.</p>
+                </div>
+              </div>
+              <RouterLink href="/admin/portfolio">
+                <button className="shrink-0 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition-colors flex items-center gap-2" data-testid="button-open-portfolio-editor">
+                  <Briefcase className="w-4 h-4" /> Edit Portfolio
+                </button>
+              </RouterLink>
+            </div>
 
             {/* ── ROW 1: 8 secondary KPI cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">

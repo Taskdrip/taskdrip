@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Download,
   ExternalLink,
+  FileText,
   Github,
   Linkedin,
   Mail,
@@ -18,6 +19,8 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+
+const PORTFOLIO_PATH = "/abraham-tahbat";
 
 type PortfolioProfile = {
   name: string;
@@ -92,7 +95,7 @@ function PublicHeader({ profile }: { profile: PortfolioProfile }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-slate-950/85 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-        <Link href="/portfolio" className="group flex items-center gap-3">
+        <Link href={PORTFOLIO_PATH} className="group flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-300/10 text-cyan-200">
             <Sparkles className="h-4 w-4" />
           </div>
@@ -102,9 +105,9 @@ function PublicHeader({ profile }: { profile: PortfolioProfile }) {
           </div>
         </Link>
         <nav className={`${open ? "absolute left-4 right-4 top-[74px] flex" : "hidden"} flex-col gap-1 rounded-2xl border border-white/10 bg-slate-900 p-2 md:static md:flex md:flex-row md:items-center md:gap-7 md:border-0 md:bg-transparent md:p-0`}>
-          <a href="/portfolio#work" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Work</a>
-          <a href="/portfolio#about" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">About</a>
-          <a href="/portfolio#contact" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Contact</a>
+          <a href={`${PORTFOLIO_PATH}#work`} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Work</a>
+          <a href={`${PORTFOLIO_PATH}#about`} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">About</a>
+          <a href={`${PORTFOLIO_PATH}#contact`} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">Contact</a>
           <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 rounded-xl bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 md:mt-0">
             <Download className="h-4 w-4" /> View CV
           </a>
@@ -132,7 +135,7 @@ function SocialLinks({ links }: { links: PortfolioProfile["socialLinks"] }) {
 
 function ProjectCard({ project }: { project: PortfolioProject }) {
   return (
-    <Link href={`/portfolio/${project.slug}`} className="group block overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-cyan-200/40 hover:bg-white/[0.07]">
+    <Link href={`${PORTFOLIO_PATH}/${project.slug}`} className="group block overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-cyan-200/40 hover:bg-white/[0.07]">
       <ProjectImage project={project} className="aspect-[16/10]" />
       <div className="p-5 sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
@@ -237,7 +240,24 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
           </div>
         </section>
 
-        <section id="contact" className="scroll-mt-24 px-5 py-20 sm:py-28 lg:px-8">
+         <section id="cv" className="scroll-mt-24 border-t border-white/10 px-5 py-20 sm:py-28 lg:px-8">
+           <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-start">
+             <div>
+               <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">For recruiters</p>
+               <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">See the experience behind the work.</h2>
+               <p className="mt-5 max-w-md text-sm leading-7 text-slate-400">Review Abraham’s current CV directly on this page, or open the PDF in a new tab to save and share it.</p>
+               <div className="mt-7 flex flex-wrap gap-3">
+                 <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-200"><FileText className="h-4 w-4" /> Open full CV</a>
+                 <a href="#contact" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-white transition hover:border-cyan-200/50 hover:bg-white/5">Discuss a role</a>
+               </div>
+             </div>
+             <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-2 shadow-2xl shadow-cyan-950/20">
+               <iframe src={profile.cvUrl} title={`${profile.name} CV`} className="h-[560px] w-full rounded-[1.5rem] bg-white sm:h-[700px]" />
+             </div>
+           </div>
+         </section>
+
+         <section id="contact" className="scroll-mt-24 px-5 py-20 sm:py-28 lg:px-8">
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 rounded-[2rem] border border-cyan-200/20 bg-gradient-to-br from-cyan-300/10 to-blue-500/5 p-8 sm:p-12 md:flex-row md:items-end">
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">Have a product in mind?</p>
@@ -248,7 +268,7 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
           </div>
         </section>
       </main>
-      <footer className="border-t border-white/10 px-5 py-7 text-center text-xs text-slate-600 lg:px-8">© {new Date().getFullYear()} {profile.name}. Product, technology, and transformation.</footer>
+       <footer className="border-t border-white/10 px-5 py-7 text-center text-xs text-slate-600 lg:px-8">© {new Date().getFullYear()} {profile.name}. Product, technology, and transformation.</footer>
     </div>
   );
 }
@@ -258,7 +278,7 @@ function PortfolioDetail({ profile, project }: { profile: PortfolioProfile; proj
     <div className="min-h-screen bg-slate-950 text-white">
       <PublicHeader profile={profile} />
       <main className="mx-auto max-w-6xl px-5 pb-20 pt-32 sm:pt-40 lg:px-8">
-        <Link href="/portfolio#work" className="mb-10 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 transition hover:text-cyan-200"><ArrowLeft className="h-4 w-4" /> Back to selected work</Link>
+        <Link href={`${PORTFOLIO_PATH}#work`} className="mb-10 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 transition hover:text-cyan-200"><ArrowLeft className="h-4 w-4" /> Back to selected work</Link>
         <div className="max-w-4xl">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">{project.category} · {project.year}</p>
           <h1 className="text-5xl font-black tracking-[-0.055em] sm:text-7xl">{project.title}</h1>
@@ -291,7 +311,10 @@ function PortfolioDetail({ profile, project }: { profile: PortfolioProfile; proj
 }
 
 export default function AbrahamPortfolio() {
-  const [detailMatch, params] = useRoute<{ slug: string }>("/portfolio/:slug");
+  const [canonicalDetailMatch, canonicalParams] = useRoute<{ slug: string }>(`${PORTFOLIO_PATH}/:slug`);
+  const [legacyDetailMatch, legacyParams] = useRoute<{ slug: string }>("/portfolio/:slug");
+  const detailMatch = canonicalDetailMatch || legacyDetailMatch;
+  const params = canonicalDetailMatch ? canonicalParams : legacyParams;
   const endpoint = detailMatch && params?.slug ? `/api/abraham-portfolio/${params.slug}` : "/api/abraham-portfolio";
   const { data, isLoading, isError } = useQuery<any>({ queryKey: [endpoint] });
 
@@ -301,7 +324,13 @@ export default function AbrahamPortfolio() {
 
   if (isLoading) return <LoadingState />;
   if (isError || !data) return <div className="flex min-h-screen items-center justify-center bg-slate-950 px-5 text-center text-slate-300">This portfolio is temporarily unavailable.</div>;
-  const profile = { ...fallbackProfile, ...(data.profile || {}) };
+  const profile = {
+    ...fallbackProfile,
+    ...(data.profile || {}),
+    socialLinks: Array.isArray(data.profile?.socialLinks) ? data.profile.socialLinks : fallbackProfile.socialLinks,
+    skills: Array.isArray(data.profile?.skills) ? data.profile.skills : fallbackProfile.skills,
+    services: Array.isArray(data.profile?.services) ? data.profile.services : fallbackProfile.services,
+  };
   if (detailMatch) return data.project ? <PortfolioDetail profile={profile} project={data.project} /> : null;
   return <PortfolioHome profile={profile} projects={Array.isArray(data.projects) ? data.projects : []} />;
 }
