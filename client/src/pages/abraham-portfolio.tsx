@@ -10,17 +10,18 @@ import {
   Download,
   ExternalLink,
   FileText,
-  Github,
-  Linkedin,
   Mail,
   MapPin,
   Menu,
   Sparkles,
   X,
 } from "lucide-react";
+import { FaLinkedin } from "react-icons/fa";
+import { SiInstagram, SiTelegram, SiTiktok, SiWhatsapp, SiX, SiYoutube } from "react-icons/si";
 import { useState } from "react";
 
 const PORTFOLIO_PATH = "/abraham-tahbat";
+const CV_PREVIEW_URL = "/portfolio/abraham-cv-preview.png";
 
 type PortfolioProfile = {
   name: string;
@@ -64,7 +65,15 @@ const fallbackProfile: PortfolioProfile = {
   email: "taskdrip@gmail.com",
   portraitUrl: "/portfolio/abraham-portrait.jpg",
   cvUrl: "/portfolio/abraham-cv.pdf",
-  socialLinks: [],
+  socialLinks: [
+    { label: "LinkedIn", url: "https://www.linkedin.com/in/taskdrip/" },
+    { label: "Instagram", url: "https://www.instagram.com/taskdriper" },
+    { label: "TikTok", url: "https://www.tiktok.com/@taskdrip" },
+    { label: "X", url: "https://x.com/taskdrip" },
+    { label: "YouTube", url: "https://www.youtube.com/@Taskdriper" },
+    { label: "Telegram", url: "https://t.me/taskdrip" },
+    { label: "WhatsApp chat", url: "https://wa.me/message/CHINRBNHGJNDN1" },
+  ],
   skills: [],
   services: [],
 };
@@ -121,12 +130,27 @@ function PublicHeader({ profile }: { profile: PortfolioProfile }) {
 }
 
 function SocialLinks({ links }: { links: PortfolioProfile["socialLinks"] }) {
+  function iconFor(label: string) {
+    const name = label.toLowerCase();
+    if (name.includes("linkedin")) return <FaLinkedin className="h-4 w-4" />;
+    if (name.includes("instagram")) return <SiInstagram className="h-4 w-4" />;
+    if (name.includes("tiktok")) return <SiTiktok className="h-4 w-4" />;
+    if (name === "x" || name.includes("twitter")) return <SiX className="h-4 w-4" />;
+    if (name.includes("youtube")) return <SiYoutube className="h-4 w-4" />;
+    if (name.includes("telegram")) return <SiTelegram className="h-4 w-4" />;
+    if (name.includes("whatsapp")) return <SiWhatsapp className="h-4 w-4" />;
+    return <ExternalLink className="h-4 w-4" />;
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid gap-2 sm:grid-cols-2">
       {links.map((link) => (
-        <a key={`${link.label}-${link.url}`} href={link.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:border-cyan-200/40 hover:text-cyan-100">
-          {link.label.toLowerCase().includes("linkedin") ? <Linkedin className="h-3.5 w-3.5" /> : link.label.toLowerCase().includes("github") ? <Github className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
-          {link.label}
+        <a key={`${link.label}-${link.url}`} href={link.url} target="_blank" rel="noreferrer" className="group inline-flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-300 transition hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-200/10 hover:text-white">
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-cyan-200 transition group-hover:bg-cyan-200 group-hover:text-slate-950">{iconFor(link.label)}</span>
+            <span>{link.label}</span>
+          </span>
+          <ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:text-cyan-200" />
         </a>
       ))}
     </div>
@@ -231,7 +255,10 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">A little context</p>
               <h2 className="max-w-md text-4xl font-black tracking-[-0.04em] sm:text-5xl">Technical depth, business awareness.</h2>
-              <div className="mt-8"><SocialLinks links={profile.socialLinks} /></div>
+              <div className="mt-8">
+                <p className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Find me online</p>
+                <SocialLinks links={profile.socialLinks} />
+              </div>
             </div>
             <div>
               <p className="text-lg leading-8 text-slate-300">{profile.bio}</p>
@@ -249,7 +276,7 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
           </div>
         </section>
 
-         <section id="cv" className="scroll-mt-24 border-t border-white/10 px-5 py-20 sm:py-28 lg:px-8">
+          <section id="cv" className="scroll-mt-24 border-t border-white/10 px-5 py-20 sm:py-28 lg:px-8">
            <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-start">
              <div>
                <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-cyan-200">For recruiters</p>
@@ -260,14 +287,35 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
                  <a href="#contact" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-white transition hover:border-cyan-200/50 hover:bg-white/5">Discuss a role</a>
                </div>
              </div>
-             <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-2 shadow-2xl shadow-cyan-950/20">
-                <object data={profile.cvUrl} type="application/pdf" aria-label={`${profile.name} CV`} className="h-[min(76vh,700px)] min-h-[520px] w-full rounded-[1.5rem] bg-white">
-                  <div className="flex h-full min-h-[520px] flex-col items-center justify-center gap-4 bg-slate-900 px-6 text-center">
-                    <FileText className="h-10 w-10 text-cyan-200" />
-                    <p className="text-sm text-slate-300">Your browser can’t preview this PDF inline.</p>
-                    <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="rounded-full bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950">Open CV</a>
+              <div
+                className="relative overflow-hidden rounded-[2rem] border border-cyan-200/20 bg-slate-900 p-2 shadow-2xl shadow-cyan-950/30"
+                style={{
+                  backgroundImage: `linear-gradient(145deg, rgba(8, 47, 73, 0.96), rgba(2, 6, 23, 0.9)), url("${profile.portraitUrl}")`,
+                  backgroundPosition: "center",
+                  backgroundSize: "cover",
+                }}
+              >
+                <div className="relative overflow-hidden rounded-[1.6rem] border border-white/15 bg-slate-950/60 p-3 backdrop-blur-sm">
+                  <div className="mb-3 flex items-center justify-between gap-3 px-1 py-1">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">Abraham Tahbat</p>
+                      <p className="mt-1 text-xs text-slate-400">Executive CV · 2026</p>
+                    </div>
+                    <FileText className="h-5 w-5 text-cyan-200" />
                   </div>
-                </object>
+                  <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl bg-white" aria-label="Open Abraham Tahbat CV PDF">
+                    <img
+                      src={CV_PREVIEW_URL}
+                      alt={`Preview of ${profile.name} CV`}
+                      loading="lazy"
+                      className="h-[min(76vh,700px)] min-h-[520px] w-full object-contain object-top transition duration-500 group-hover:scale-[1.01]"
+                    />
+                  </a>
+                  <div className="mt-3 flex items-center justify-between gap-3 px-1 text-xs text-slate-400">
+                    <span>Click the preview to open the PDF</span>
+                    <a href={profile.cvUrl} target="_blank" rel="noreferrer" className="font-bold text-cyan-200 transition hover:text-white">Open in new tab ↗</a>
+                  </div>
+                </div>
              </div>
            </div>
          </section>
@@ -279,7 +327,10 @@ function PortfolioHome({ profile, projects }: { profile: PortfolioProfile; proje
               <h2 className="max-w-2xl text-4xl font-black tracking-[-0.04em] sm:text-5xl">Let’s make the next useful thing.</h2>
               <p className="mt-4 max-w-xl text-slate-400">Tell me what you are building, what is getting in the way, and where you want to go next.</p>
             </div>
-            <a href={`mailto:${profile.email}`} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-black text-slate-950 transition hover:bg-cyan-100"><Mail className="h-4 w-4" /> {profile.email}</a>
+             <div className="flex shrink-0 flex-wrap gap-3">
+               <a href={`mailto:${profile.email}`} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-black text-slate-950 transition hover:bg-cyan-100"><Mail className="h-4 w-4" /> {profile.email}</a>
+               <a href="https://wa.me/message/CHINRBNHGJNDN1" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3.5 text-sm font-black text-slate-950 transition hover:bg-[#72f09a]"><SiWhatsapp className="h-4 w-4" /> Chat on WhatsApp</a>
+             </div>
           </div>
         </section>
       </main>
@@ -343,10 +394,14 @@ export default function AbrahamPortfolio() {
 
   if (isLoading) return <LoadingState />;
   if (isError || !data) return <div className="flex min-h-screen items-center justify-center bg-slate-950 px-5 text-center text-slate-300">This portfolio is temporarily unavailable.</div>;
+  const storedSocialLinks = Array.isArray(data.profile?.socialLinks) ? data.profile.socialLinks : [];
+  const requiredSocialLinks = fallbackProfile.socialLinks.filter((required) => (
+    !storedSocialLinks.some((link) => link?.label?.toLowerCase() === required.label.toLowerCase())
+  ));
   const profile = {
     ...fallbackProfile,
     ...(data.profile || {}),
-    socialLinks: Array.isArray(data.profile?.socialLinks) ? data.profile.socialLinks : fallbackProfile.socialLinks,
+    socialLinks: [...storedSocialLinks, ...requiredSocialLinks],
     skills: Array.isArray(data.profile?.skills) ? data.profile.skills : fallbackProfile.skills,
     services: Array.isArray(data.profile?.services) ? data.profile.services : fallbackProfile.services,
   };

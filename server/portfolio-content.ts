@@ -47,8 +47,11 @@ export const DEFAULT_PORTFOLIO_PROFILE: PortfolioProfile = {
   socialLinks: [
     { label: "LinkedIn", url: "https://www.linkedin.com/in/taskdrip/" },
     { label: "Instagram", url: "https://www.instagram.com/taskdriper" },
+    { label: "TikTok", url: "https://www.tiktok.com/@taskdrip" },
     { label: "X", url: "https://x.com/taskdrip" },
     { label: "YouTube", url: "https://www.youtube.com/@Taskdriper" },
+    { label: "Telegram", url: "https://t.me/taskdrip" },
+    { label: "WhatsApp chat", url: "https://wa.me/message/CHINRBNHGJNDN1" },
   ],
   skills: [
     "JavaScript", "TypeScript", "React", "Next.js", "Node.js", "Express.js",

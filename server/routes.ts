@@ -12113,7 +12113,12 @@ Instructions:
     };
     const asset = assets[req.params.asset];
     if (!asset) return res.status(404).json({ message: 'Portfolio asset not found' });
-    res.type(asset.contentType).sendFile(path.resolve(process.cwd(), 'attached_assets', asset.filename), (error) => {
+    res.set({
+      'Content-Type': asset.contentType,
+      'Content-Disposition': asset.contentType === 'application/pdf' ? 'inline' : 'inline',
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=3600',
+    }).sendFile(path.resolve(process.cwd(), 'attached_assets', asset.filename), (error) => {
       if (error && !res.headersSent) res.status(error.statusCode || 404).json({ message: 'Portfolio asset not found' });
     });
   });
@@ -12130,7 +12135,14 @@ Instructions:
       if (profileRow?.value) {
         const storedProfile = JSON.parse(profileRow.value);
         if (storedProfile && typeof storedProfile === "object") {
-          profile = { ...DEFAULT_PORTFOLIO_PROFILE, ...storedProfile };
+           profile = { ...DEFAULT_PORTFOLIO_PROFILE, ...storedProfile };
+           const existingSocialLinks = Array.isArray(profile.socialLinks) ? profile.socialLinks : [];
+           profile.socialLinks = [
+             ...existingSocialLinks,
+             ...DEFAULT_PORTFOLIO_PROFILE.socialLinks.filter((required) => (
+               !existingSocialLinks.some((link) => link.label.toLowerCase() === required.label.toLowerCase())
+             )),
+           ];
           // Migrate the original seeded contact and API-only asset paths while
           // preserving any custom profile content an admin has entered.
           if (!profile.email || profile.email === "tremendouslymax@gmail.com") {
