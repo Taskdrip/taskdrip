@@ -7,7 +7,7 @@ import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
 import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blogger";
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
-import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable } from "./email-service";
+import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable, TASKDRIP_EMAILS } from "./email-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
@@ -1396,6 +1396,26 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       };
       
       const escrowPayment = await storage.createEscrowPayment(escrowPaymentData);
+      sendAdminActivityEmail({
+        event: "transaction",
+        subject: `New campaign awaiting payment: ${title}`,
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          email: user.email,
+          phone: user.phoneNumber,
+        },
+        details: [
+          { label: "Campaign ID", value: campaign.id },
+          { label: "Campaign title", value: title },
+          { label: "Budget", value: totalAmount },
+          { label: "Reward per creator", value: rewardNum },
+          { label: "Creator slots", value: totalSlotsNum },
+          { label: "Escrow payment ID", value: escrowPayment.id },
+          { label: "Status", value: campaign.status },
+        ],
+      }).catch(() => {});
 
       res.status(201).json({
         success: true,
@@ -1575,6 +1595,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         network,
         description: `Campaign escrow deposit for campaign ${campaignId}`,
       });
+
+      const payer = await storage.getUser(escrowPayment.brandId).catch(() => null);
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `Campaign escrow payment submitted: ${campaignId}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${payer?.firstName || ""} ${payer?.lastName || ""}`.trim(),
+          email: payer?.email,
+          phone: payer?.phoneNumber || undefined,
+        },
+        details: [
+          { label: "Campaign ID", value: campaignId },
+          { label: "Payment ID", value: escrowPayment.id },
+          { label: "Amount", value: escrowPayment.amount },
+          { label: "Network", value: network },
+          { label: "Transaction reference", value: transactionHash },
+          { label: "Status", value: "verifying" },
+        ],
+      }).catch(() => {});
 
       res.json({ 
         success: true, 
@@ -1986,6 +2027,26 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       });
 
       const transaction = await storage.createTransaction(validatedData);
+      sendAdminActivityEmail({
+        event: "transaction",
+        subject: `New transaction: ${transaction.type || "platform transaction"}`,
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber,
+        },
+        details: [
+          { label: "Transaction ID", value: transaction.id },
+          { label: "Type", value: transaction.type },
+          { label: "Amount", value: transaction.amount },
+          { label: "Status", value: transaction.status },
+          { label: "Network", value: transaction.network },
+          { label: "Reference", value: transaction.transactionHash },
+          { label: "Description", value: transaction.description },
+        ],
+      }).catch(() => {});
       res.json(transaction);
     } catch (error: any) {
       console.error("Error creating transaction:", error);
@@ -2215,6 +2276,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           } as any);
         }
       } catch (_e) { /* non-fatal */ }
+
+      const legacyBuyer = await storage.getUser(userId).catch(() => null);
+      sendAdminActivityEmail({
+        event: "shop_order",
+        subject: `New shop order: ${purchase.id}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${legacyBuyer?.firstName || ""} ${legacyBuyer?.lastName || ""}`.trim(),
+          email: legacyBuyer?.email,
+          phone: legacyBuyer?.phoneNumber || undefined,
+        },
+        details: [
+          { label: "Order ID", value: purchase.id },
+          { label: "Product ID", value: purchase.productId },
+          { label: "Amount", value: purchase.totalAmount },
+          { label: "Payment method", value: purchase.paymentMethod },
+          { label: "Transaction reference", value: purchase.transactionHash || purchase.paymentProof },
+          { label: "Status", value: purchase.status },
+        ],
+      }).catch(() => {});
 
       res.json(purchase);
     } catch (error) {
@@ -3155,6 +3237,25 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       };
 
       const deposit = await storage.createPaymentDeposit(depositData);
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `New wallet payment deposit: ${deposit.id}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber,
+        },
+        details: [
+          { label: "Deposit ID", value: deposit.id },
+          { label: "Campaign ID", value: deposit.campaignId },
+          { label: "Amount", value: deposit.amount },
+          { label: "Network", value: deposit.network },
+          { label: "Transaction reference", value: deposit.transactionHash },
+          { label: "Status", value: deposit.status },
+        ],
+      }).catch(() => {});
       res.status(201).json(deposit);
     } catch (error) {
       console.error("Error creating payment deposit:", error);
@@ -4423,6 +4524,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           sendAdminActivityEmail({
             event: "shop_order",
             subject: `New shop order: ${product.title}`,
+            recipient: TASKDRIP_EMAILS.payments,
+            fromEmail: TASKDRIP_EMAILS.payments,
             customer: {
               name: `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim(),
               email: buyer.email,
@@ -4524,6 +4627,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         sendAdminActivityEmail({
           event: "shop_order",
           subject: `New shop order: ${product.title}`,
+          recipient: TASKDRIP_EMAILS.payments,
+          fromEmail: TASKDRIP_EMAILS.payments,
           customer: {
             name: `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim(),
             email: buyer.email,
@@ -4869,6 +4974,27 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         paymentMethodLabel: paymentMethodLabel || undefined,
       });
 
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `New subscription payment: ${plan}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber,
+        },
+        details: [
+          { label: "Subscription ID", value: sub.id },
+          { label: "Plan", value: plan },
+          { label: "Amount", value: amount },
+          { label: "Network", value: network || "manual" },
+          { label: "Payment method", value: paymentMethodLabel },
+          { label: "Transaction reference", value: transactionHash },
+          { label: "Status", value: "pending verification" },
+        ],
+      }).catch(() => {});
+
       const periodLabel = periodDays === 3 ? '3-day' : periodDays === 5 ? '5-day' : periodDays === 365 ? 'yearly' : 'monthly';
       await storage.createNotification({
         userId: req.user.id,
@@ -4967,6 +5093,25 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(400).json({ message: "contentType, contentId and reason are required" });
       }
       const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
+      const reporter = await storage.getUser(userId).catch(() => null);
+      sendAdminActivityEmail({
+        event: "contact",
+        subject: `New customer complaint/report: ${reason}`,
+        recipient: TASKDRIP_EMAILS.support,
+        fromEmail: TASKDRIP_EMAILS.support,
+        customer: {
+          name: `${reporter?.firstName || ""} ${reporter?.lastName || ""}`.trim(),
+          email: reporter?.email,
+          phone: reporter?.phoneNumber || undefined,
+        },
+        details: [
+          { label: "Report ID", value: report.id },
+          { label: "Content type", value: contentType },
+          { label: "Content ID", value: contentId },
+          { label: "Reason", value: reason },
+          { label: "Details", value: details },
+        ],
+      }).catch(() => {});
       // Notify all admins
       try {
         const admins = await db.select().from(users).where(eq(users.userType, 'admin'));
@@ -6346,6 +6491,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       sendAdminActivityEmail({
         event: "hire_request",
         subject: `New developer hire request: ${title}`,
+        recipient: TASKDRIP_EMAILS.developer,
+        fromEmail: TASKDRIP_EMAILS.developer,
         customer: {
           name: `${(await storage.getUser(userId))?.firstName || ""} ${(await storage.getUser(userId))?.lastName || ""}`.trim(),
           email: contactEmail || (await storage.getUser(userId))?.email || email,
@@ -6650,6 +6797,8 @@ Instructions:
       sendAdminActivityEmail({
         event: "course_registration",
         subject: `New course registration: ${selectedCourseTitle || selectedCourseKey || "Course"}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
         customer: { name: fullName, email, phone },
         details: [
           { label: "Registration ID", value: reg.id },
@@ -8282,6 +8431,26 @@ Instructions:
         deadline: deadline ? new Date(deadline) : null,
         status: 'pending',
       });
+      sendAdminActivityEmail({
+        event: "hire_request",
+        subject: `New developer hire request: ${title}`,
+        recipient: TASKDRIP_EMAILS.developer,
+        fromEmail: TASKDRIP_EMAILS.developer,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber,
+        },
+        details: [
+          { label: "Request ID", value: offer.id },
+          { label: "Project", value: title },
+          { label: "Description", value: description },
+          { label: "Deliverables", value: deliverables },
+          { label: "Budget", value: baseBudget.toFixed(2) },
+          { label: "Deadline", value: deadline },
+          { label: "Status", value: offer.status },
+        ],
+      }).catch(() => {});
       // Notify influencer
       await storage.createNotification({
         userId: influencerId,
@@ -8675,6 +8844,26 @@ Instructions:
         paymentProof,
         adminNote: verification.message,
       });
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `Developer hire payment submitted: ${offer.title}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber,
+        },
+        details: [
+          { label: "Hire request ID", value: offer.id },
+          { label: "Project", value: offer.title },
+          { label: "Amount", value: payableAmount },
+          { label: "Network", value: paymentNetwork },
+          { label: "Transaction reference", value: transactionHash },
+          { label: "Verification", value: verification.message },
+          { label: "Status", value: updated.status },
+        ],
+      }).catch(() => {});
       // Notify admin
       const admins = await storage.getUsersByType('admin');
       for (const admin of admins) {
@@ -9034,6 +9223,8 @@ Instructions:
       sendAdminActivityEmail({
         event: "hire_request",
         subject: `Invoice generated: ${offer.title}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
         customer: {
           name: `${(await storage.getUser(offer.brandId))?.firstName || ""} ${(await storage.getUser(offer.brandId))?.lastName || ""}`.trim(),
           email: (await storage.getUser(offer.brandId))?.email,
@@ -10730,6 +10921,25 @@ Instructions:
           });
         }
       } catch (_notifErr) { /* non-blocking */ }
+      sendAdminActivityEmail({
+        event: "advertising",
+        subject: `New advertising enquiry: ${req.body.companyName || "Unknown company"}`,
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: req.body.contactName,
+          email: req.body.contactEmail,
+          phone: req.body.phone || req.body.phoneNumber,
+        },
+        details: [
+          { label: "Application ID", value: app2.id },
+          { label: "Company", value: req.body.companyName },
+          { label: "Ad type", value: (req.body.adType || "advertising").replace(/_/g, " ") },
+          { label: "Budget", value: req.body.budget },
+          { label: "Message", value: req.body.message || req.body.description },
+          { label: "Status", value: app2.status },
+        ],
+      }).catch(() => {});
       // Send confirmation email to the applicant (non-blocking)
       if (req.body.contactEmail) {
         const contactName = req.body.contactName || '';
@@ -10757,25 +10967,16 @@ Instructions:
 
       let emailSent = false;
       try {
-        const sgMail = (await import('@sendgrid/mail')).default;
-        const apiKey = process.env.SENDGRID_API_KEY;
-        if (apiKey) {
-          sgMail.setApiKey(apiKey);
-          await sgMail.send({
-            to: { email: applicantEmail, name: applicantName || applicantEmail },
-            from: { email: 'ads@taskdrip.online', name: 'Taskdrip Advertising Team' },
-            subject,
-            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-              <img src="https://taskdrip.online/logo.png" alt="Taskdrip" style="height:36px;margin-bottom:24px" />
-              <div style="background:#f9fafb;border-radius:12px;padding:24px;border:1px solid #e5e7eb">
-                ${body.replace(/\n/g, '<br/>')}
-              </div>
-              <p style="color:#6b7280;font-size:12px;margin-top:24px">Taskdrip Advertising Team · ads@taskdrip.online</p>
-            </div>`,
-            text: body,
-          });
-          emailSent = true;
-        }
+        const { buildDefaultEmailHtml, sendEmail } = await import("./email-service");
+        const result = await sendEmail({
+          to: applicantEmail,
+          toName: applicantName || applicantEmail,
+          subject,
+          html: buildDefaultEmailHtml(`<h2 style="color:#1f2937;margin:0 0 16px">${subject}</h2><div style="line-height:1.7">${body.replace(/\n/g, '<br/>')}</div>`, "Taskdrip Advertising Team"),
+          text: body,
+          fromEmail: TASKDRIP_EMAILS.info,
+        });
+        emailSent = result.success;
       } catch (mailErr: any) {
         console.error('[ads-email]', mailErr?.message);
       }
@@ -12820,6 +13021,43 @@ Instructions:
   });
 
   // ── Newsletter Subscribers ────────────────────────────────────────────────
+  app.post('/api/contact', async (req: any, res) => {
+    try {
+      const { name, email, subject, message, type } = req.body || {};
+      const validTypes = new Set(["general", "support", "partnership", "bug"]);
+      if (!name || !email || !subject || !message || !validTypes.has(type)) {
+        return res.status(400).json({ message: "Name, email, subject, message, and enquiry type are required." });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+        return res.status(400).json({ message: "Please provide a valid email address." });
+      }
+      if (String(message).trim().length < 10) {
+        return res.status(400).json({ message: "Message must be at least 10 characters." });
+      }
+
+      const recipient = type === "support" || type === "bug"
+        ? TASKDRIP_EMAILS.support
+        : TASKDRIP_EMAILS.info;
+      const typeLabel = { general: "General enquiry", support: "Support request", partnership: "Partnership enquiry", bug: "Bug report" }[type as string] || "Contact enquiry";
+      sendAdminActivityEmail({
+        event: "contact",
+        subject: `[${typeLabel}] ${String(subject).trim().slice(0, 180)}`,
+        recipient,
+        fromEmail: recipient,
+        customer: { name: String(name).trim(), email: String(email).trim() },
+        details: [
+          { label: "Enquiry type", value: typeLabel },
+          { label: "Subject", value: String(subject).trim() },
+          { label: "Message", value: String(message).trim() },
+        ],
+      }).catch(() => {});
+      res.status(201).json({ message: "Thanks for reaching out. We'll get back to you within 24 hours." });
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      res.status(500).json({ message: "Failed to submit your message." });
+    }
+  });
+
   app.post('/api/subscribe', async (req: any, res) => {
     try {
       const { email, name, source } = req.body;
@@ -12831,6 +13069,14 @@ Instructions:
         if (existing[0].status === 'unsubscribed') {
           await db.update(newsletterSubscribers).set({ status: 'active', subscribedAt: new Date() }).where(eq(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {});
+          sendAdminActivityEmail({
+            event: "newsletter",
+            subject: "Newsletter subscriber re-subscribed",
+            recipient: TASKDRIP_EMAILS.info,
+            fromEmail: TASKDRIP_EMAILS.info,
+            customer: { name, email },
+            details: [{ label: "Source", value: source || "footer" }, { label: "Status", value: "active" }],
+          }).catch(() => {});
           return res.json({ message: 'Welcome back! You have been re-subscribed.' });
         }
         return res.json({ message: 'You are already subscribed. Thank you!' });
@@ -12838,6 +13084,14 @@ Instructions:
       const ip = (req.headers['x-forwarded-for'] as string || req.ip || '').split(',')[0].trim();
       await db.insert(newsletterSubscribers).values({ email: email.toLowerCase().trim(), name: name || null, source: source || 'footer', ipAddress: ip });
       sendNewsletterWelcomeEmail(email, name).catch(() => {});
+      sendAdminActivityEmail({
+        event: "newsletter",
+        subject: "New newsletter subscriber",
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: { name, email },
+        details: [{ label: "Source", value: source || "footer" }, { label: "Status", value: "active" }],
+      }).catch(() => {});
       res.json({ message: 'You have been subscribed! Check your inbox for a welcome email.' });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });

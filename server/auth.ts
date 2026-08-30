@@ -10,7 +10,7 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
-import { sendWelcomeEmail } from "./email-service";
+import { sendWelcomeEmail, sendAdminActivityEmail, TASKDRIP_EMAILS } from "./email-service";
 
 declare global {
   namespace Express {
@@ -173,6 +173,26 @@ export function setupAuth(app: Express) {
       } catch (pErr) {
         console.error('Points award error:', pErr);
       }
+
+      // Email the operations inbox for every new account. This is intentionally
+      // non-blocking so an email provider outage never prevents registration.
+      sendAdminActivityEmail({
+        event: "registration",
+        subject: `New user registration: ${user.firstName} ${user.lastName}`.trim(),
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: `${user.firstName} ${user.lastName}`.trim(),
+          email: user.email,
+        },
+        details: [
+          { label: "User ID", value: user.id },
+          { label: "Account type", value: user.userType },
+          { label: "Company", value: user.companyName },
+          { label: "Location", value: user.location },
+          { label: "Referral code used", value: userData.referralCode },
+        ],
+      }).catch(() => {});
 
       req.login(user, (err) => {
         if (err) return next(err);

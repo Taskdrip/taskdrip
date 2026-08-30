@@ -1,14 +1,27 @@
 import nodemailer from "nodemailer";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import { db } from "./db";
 import { emailSettings, emailLogs, emailCampaigns, users } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 
+export const TASKDRIP_EMAILS = {
+  info: "info@taskdrip.online",
+  developer: "developer@taskdrip.online",
+  support: "support@taskdrip.online",
+  payments: "payments@taskdrip.online",
+  admin: "taskdrip@gmail.com",
+} as const;
+
 export interface EmailOptions {
   to: string;
+  cc?: string[];
   toName?: string;
   subject: string;
   html: string;
   text?: string;
+  fromEmail?: string;
+  fromName?: string;
+  replyTo?: string;
   campaignId?: string;
   autoResponderId?: string;
 }
@@ -48,33 +61,34 @@ export async function getEmailStatus(): Promise<{
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
   const resendOk = !!process.env.RESEND_API_KEY;
+  const resendConnectionOk = !!process.env.REPLIT_CONNECTORS_HOSTNAME;
   const pref = (settings as any)?.preferredProvider || "";
   const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
 
   // Respect admin's explicit provider preference, then fall back to auto-priority
   // Special rule: if Resend key is present and pref is "smtp" with brevo host, auto-switch to Resend
   let activeProvider: string;
-  if (pref === "resend" && resendOk) activeProvider = "resend";
+  if (pref === "resend" && (resendOk || resendConnectionOk)) activeProvider = "resend";
   else if (pref === "smtp" && smtpOk && !smtpIsBrevo) activeProvider = "smtp";
   else if (pref === "sendgrid" && sendgridOk) activeProvider = "sendgrid";
-  else activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
+  else activeProvider = (resendOk || resendConnectionOk) ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
 
   return {
     configured: activeProvider !== "none",
     provider: activeProvider,
     smtpHost: settings?.smtpHost ?? undefined,
     sendgridAvailable: sendgridOk,
-    resendAvailable: resendOk,
+    resendAvailable: resendOk || resendConnectionOk,
     preferredProvider: pref || undefined,
     smtpIsBrevo,
-    resendKeyPresent: resendOk,
+    resendKeyPresent: resendOk || resendConnectionOk,
   };
 }
 
 /** Call on startup: if RESEND_API_KEY is present and preferred provider is not already set
  *  to a non-brevo SMTP, set preferred to "resend" automatically. */
 export async function activateResendIfAvailable(): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY && !process.env.REPLIT_CONNECTORS_HOSTNAME) return;
   try {
     let settings: any = null;
     try { settings = await getEmailSettings(); } catch (_) { /* column may not exist yet */ }
@@ -106,6 +120,27 @@ export async function activateResendIfAvailable(): Promise<void> {
 }
 
 async function sendViaResend(opts: EmailOptions, fromEmail: string, fromName: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    const connectors = new ReplitConnectors();
+    const response = await connectors.proxy("resend", "/emails", {
+      method: "POST",
+      body: {
+        from: `${fromName} <${fromEmail}>`,
+        to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+        ...(opts.cc?.length ? { cc: opts.cc } : {}),
+        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
+      },
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Resend connector returned ${response.status}: ${body || response.statusText}`);
+    }
+    return;
+  }
+
   const { Resend } = await import("resend");
   const client = new Resend(process.env.RESEND_API_KEY!);
 
@@ -113,6 +148,8 @@ async function sendViaResend(opts: EmailOptions, fromEmail: string, fromName: st
     const result = await client.emails.send({
       from: `${fromName} <${from}>`,
       to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+      ...(opts.cc?.length ? { cc: opts.cc } : {}),
+      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
       subject: opts.subject,
       html: opts.html,
       text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
@@ -145,6 +182,8 @@ async function sendViaSendGrid(opts: EmailOptions, fromEmail: string, fromName: 
   sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
   await sgMail.send({
     to: { email: opts.to, name: opts.toName },
+    ...(opts.cc?.length ? { cc: opts.cc } : {}),
+    ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
     from: { email: fromEmail, name: fromName },
     subject: opts.subject,
     html: opts.html,
@@ -157,9 +196,10 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
+  const resendConnectionOk = !!process.env.REPLIT_CONNECTORS_HOSTNAME;
   const pref = (settings as any)?.preferredProvider || "";
 
-  if (!resendKey && !smtpOk && !sendgridKey) {
+  if (!resendKey && !resendConnectionOk && !smtpOk && !sendgridKey) {
     console.warn("[email] No email provider configured — set RESEND_API_KEY, configure SMTP, or set SENDGRID_API_KEY.");
     await db.insert(emailLogs).values({
       id: crypto.randomUUID(),
@@ -178,10 +218,10 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
   // When using Resend: prefer RESEND_FROM_EMAIL env var (verified sender), then DB smtpFromEmail,
   // then fall back to Resend's built-in onboarding sender which works with any API key for testing.
   // Never fall back to a non-verified custom domain or Resend will reject the send.
-  const fromEmail = (resendKey
-    ? (process.env.RESEND_FROM_EMAIL || settings?.smtpFromEmail || "onboarding@resend.dev")
+  const fromEmail = (resendKey || resendConnectionOk
+    ? (opts.fromEmail || process.env.RESEND_FROM_EMAIL || settings?.smtpFromEmail || TASKDRIP_EMAILS.info)
     : (settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online"));
-  const fromName = (opts as any).fromName || settings?.smtpFromName || "Taskdrip";
+  const fromName = opts.fromName || settings?.smtpFromName || "Taskdrip";
 
   // Build provider list respecting admin's explicit preference
   const smtpProvider = { name: "smtp", fn: async () => {
@@ -189,6 +229,8 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
+      ...(opts.cc?.length ? { cc: opts.cc } : {}),
+      ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
       subject: opts.subject,
       html: opts.html,
       text: opts.text || opts.html.replace(/<[^>]+>/g, ""),
@@ -199,11 +241,11 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
 
   // Respect admin preference, then fall back to auto-priority (Resend → SMTP → SendGrid)
   let providers: Array<{ name: string; fn: () => Promise<void> }> = [];
-  if (pref === "resend" && resendKey) providers = [resendProvider, ...(smtpOk ? [smtpProvider] : []), ...(sendgridKey ? [sgProvider] : [])];
-  else if (pref === "smtp" && smtpOk) providers = [smtpProvider, ...(resendKey ? [resendProvider] : []), ...(sendgridKey ? [sgProvider] : [])];
-  else if (pref === "sendgrid" && sendgridKey) providers = [sgProvider, ...(resendKey ? [resendProvider] : []), ...(smtpOk ? [smtpProvider] : [])];
+  if (pref === "resend" && (resendKey || resendConnectionOk)) providers = [resendProvider, ...(smtpOk ? [smtpProvider] : []), ...(sendgridKey ? [sgProvider] : [])];
+  else if (pref === "smtp" && smtpOk) providers = [smtpProvider, ...((resendKey || resendConnectionOk) ? [resendProvider] : []), ...(sendgridKey ? [sgProvider] : [])];
+  else if (pref === "sendgrid" && sendgridKey) providers = [sgProvider, ...((resendKey || resendConnectionOk) ? [resendProvider] : []), ...(smtpOk ? [smtpProvider] : [])];
   else {
-    if (resendKey) providers.push(resendProvider);
+    if (resendKey || resendConnectionOk) providers.push(resendProvider);
     if (smtpOk) providers.push(smtpProvider);
     if (sendgridKey) providers.push(sgProvider);
   }
@@ -259,7 +301,7 @@ export async function sendWelcomeEmail(user: { email: string; firstName: string;
     };
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: user.email, toName: `${user.firstName} ${user.lastName || ""}`.trim(), subject, html });
+    await sendEmail({ to: user.email, toName: `${user.firstName} ${user.lastName || ""}`.trim(), subject, html, fromEmail: TASKDRIP_EMAILS.info });
   } catch (_) { /* non-blocking */ }
 }
 
@@ -288,7 +330,7 @@ export async function sendOrderConfirmationEmail(opts: {
     };
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
+    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html, fromEmail: TASKDRIP_EMAILS.payments });
   } catch (_) { /* non-blocking */ }
 }
 
@@ -299,15 +341,23 @@ export async function sendOrderConfirmationEmail(opts: {
  */
 export async function sendAdminActivityEmail(opts: {
   subject: string;
-  event: "shop_order" | "course_registration" | "hire_request";
+  event: "shop_order" | "course_registration" | "hire_request" | "contact" | "transaction" | "payment" | "registration" | "newsletter" | "advertising";
   customer: { name?: string; email?: string; phone?: string };
   details: Array<{ label: string; value: string | number | null | undefined }>;
+  recipient?: string;
+  fromEmail?: string;
 }): Promise<void> {
   try {
     const eventLabels = {
       shop_order: "New shop order",
       course_registration: "New course registration",
       hire_request: "New hire developer request",
+      contact: "New contact enquiry",
+      transaction: "New platform transaction",
+      payment: "New payment activity",
+      registration: "New user registration",
+      newsletter: "New newsletter subscription",
+      advertising: "New advertising enquiry",
     };
     const escapeHtml = (value: string) =>
       value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -336,9 +386,11 @@ export async function sendAdminActivityEmail(opts: {
       </div>
     `, "Taskdrip Admin");
     await sendEmail({
-      to: "taskdrip@gmail.com",
+      to: opts.recipient || TASKDRIP_EMAILS.admin,
+      cc: opts.recipient && opts.recipient !== TASKDRIP_EMAILS.admin ? [TASKDRIP_EMAILS.admin] : undefined,
       subject: opts.subject,
       html,
+      fromEmail: opts.fromEmail || TASKDRIP_EMAILS.info,
       text: [
         eventLabels[opts.event],
         opts.subject,
@@ -371,7 +423,7 @@ export async function sendAdsApplicationEmail(opts: {
     };
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
+    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html, fromEmail: TASKDRIP_EMAILS.info });
   } catch (_) { /* non-blocking */ }
 }
 
@@ -408,7 +460,7 @@ export async function blastCampaign(campaignId: string): Promise<{ sent: number;
       const vars: Record<string, string> = { first_name: (sub as any).name || "", last_name: "", full_name: (sub as any).name || "", email: sub.email, username: sub.email, user_type: "newsletter" };
       const html = interpolate(campaign.htmlBody, vars);
       const subject = interpolate(campaign.subject, vars);
-      const result = await sendEmail({ to: sub.email, toName: (sub as any).name || undefined, subject, html, campaignId });
+      const result = await sendEmail({ to: sub.email, toName: (sub as any).name || undefined, subject, html, campaignId, fromEmail: TASKDRIP_EMAILS.info });
       if (result.success) sent++; else { failed++; errors.push(`${sub.email}: ${result.error}`); }
     }
     await db.update(emailCampaigns).set({ status: "sent", sentAt: new Date(), totalRecipients: activeSubs.length, sent, bounced: failed }).where(eq(emailCampaigns.id, campaignId));
@@ -467,6 +519,7 @@ export async function blastCampaign(campaignId: string): Promise<{ sent: number;
       toName: `${user.firstName} ${user.lastName}`.trim(),
       subject,
       html,
+      fromEmail: TASKDRIP_EMAILS.info,
       campaignId,
     });
 
@@ -869,6 +922,6 @@ export async function sendNewsletterWelcomeEmail(email: string, name?: string): 
     const template = AI_TEMPLATES['newsletter_welcome'];
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: email, toName: name || undefined, subject, html });
+    await sendEmail({ to: email, toName: name || undefined, subject, html, fromEmail: TASKDRIP_EMAILS.info });
   } catch (_) { /* non-blocking */ }
 }

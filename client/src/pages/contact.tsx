@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { SOCIALS, OFFICES } from '@/config/socials';
 import { SocialLinksGrid } from '@/components/ui/social-sidebar';
 import {
@@ -71,13 +72,23 @@ export default function Contact() {
 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1800));
-    toast({
-      title: "Message sent!",
-      description: "Thanks for reaching out. We'll get back to you within 24 hours.",
-    });
-    reset();
-    setIsSubmitting(false);
+    try {
+      const response = await apiRequest('POST', '/api/contact', data);
+      const result = await response.json();
+      toast({
+        title: "Message sent!",
+        description: result.message || "Thanks for reaching out. We'll get back to you within 24 hours.",
+      });
+      reset();
+    } catch (error: any) {
+      toast({
+        title: "Message could not be sent",
+        description: error.message || "Please try again or email support@taskdrip.online.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -111,7 +122,7 @@ export default function Contact() {
                 <SiTelegram className="h-4 w-4" /> Join Telegram
               </button>
             </a>
-            <a href={`mailto:support@taskdrip.online`}>
+            <a href={`mailto:info@taskdrip.online`}>
               <button className="inline-flex items-center gap-2 bg-white/10 border border-white/25 text-white font-semibold px-6 py-3 rounded-xl hover:bg-white/20 transition-colors text-sm">
                 <Mail className="h-4 w-4" /> Email Support
               </button>
@@ -222,6 +233,24 @@ export default function Contact() {
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</p>
                     <p className="text-sm font-medium text-gray-900 group-hover:text-purple-600 transition-colors">support@taskdrip.online</p>
+                  </div>
+                </a>
+                <a href="mailto:info@taskdrip.online" className="flex items-start gap-3 group">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Mail className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">General enquiries</p>
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">info@taskdrip.online</p>
+                  </div>
+                </a>
+                <a href="mailto:payments@taskdrip.online" className="flex items-start gap-3 group">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <Mail className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Orders & payments</p>
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-amber-600 transition-colors">payments@taskdrip.online</p>
                   </div>
                 </a>
                 <a href={SOCIALS.whatsapp} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 group">
