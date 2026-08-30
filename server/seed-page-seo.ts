@@ -205,17 +205,17 @@ const PAGES = [
   {
     pageSlug: "breedskool",
     pageTitle: "BreedSkool",
-    metaTitle: "BreedSkool — Learn Tech Skills & Earn | Taskdrip Training",
+    metaTitle: "BreedSkool — Free Tech Training & Digital Skills for Africa",
     metaDescription:
-      "BreedSkool offers tech training in Web Development, AI Content Creation, Social Media Monetization, Trading, and more. Learn skills, get certified, and earn crypto rewards.",
-    ogTitle: "BreedSkool — Web3 Creator Academy by Taskdrip",
+      "Join BreedSkool for free practical tech training, a supportive learner community, and a £100,000 mission to make digital opportunity more accessible across Africa.",
+    ogTitle: "BreedSkool — Free Tech Training & Digital Skills for Africa",
     ogDescription:
-      "Free and pro courses to grow as a Web3 influencer. Learn audience growth, monetization, brand deals and crypto payouts from expert instructors.",
-    ogImage: OG,
+      "Learn practical digital skills, join a supportive community, and start building your future with BreedSkool.",
+    ogImage: "/breedskool-training-project.png",
     twitterCard: "summary_large_image",
-    twitterTitle: "BreedSkool — Learn. Create. Earn.",
-    twitterDescription: "Tech training in Web Dev, AI, Social Media Monetization & Trading. Get certified and earn crypto.",
-    twitterImage: OG,
+    twitterTitle: "BreedSkool — Free Tech Training for Africa",
+    twitterDescription: "Free practical tech training, learner community, and a £100,000 mission to expand digital opportunity.",
+    twitterImage: "/breedskool-training-project.png",
     keywords:
       "tech training Nigeria, web development course, AI content creation, social media monetization, breedskool, creator academy",
     canonicalUrl: `${SITE}/breedskool`,

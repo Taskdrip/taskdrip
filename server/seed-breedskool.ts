@@ -91,6 +91,17 @@ const BREEDSKOOL_COURSES = [
     isActive: true,
     acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"],
   },
+  {
+    courseKey: "free_foundations",
+    title: "BreedSkool Foundations — Learn, Build & Earn",
+    shortDescription:
+      "A free, comprehensive starting point for digital skills, confidence, and online opportunity.",
+    regularPrice: 0,
+    discountPrice: 0,
+    duration: "Self-paced",
+    isActive: true,
+    acceptedPayments: [],
+  },
   // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
   // Regular: $290 USD (~435,000 NGN) | August 2026 promo: $145 USD (~217,500 NGN)
   {

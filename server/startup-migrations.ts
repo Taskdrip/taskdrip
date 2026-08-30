@@ -35,6 +35,10 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "shop_products", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "courses", column: "intro_video_url", definition: "varchar" },
   { table: "courses", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  // Course sale fields are used by the current course seed and admin editor.
+  // Keep this additive for imported databases that predate sale pricing.
+  { table: "courses", column: "sale_price", definition: "decimal(10,2)" },
+  { table: "courses", column: "sale_deadline", definition: "timestamp" },
   { table: "campaigns", column: "intro_video_url", definition: "varchar" },
   { table: "campaigns", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "campaigns", column: "min_followers", definition: "integer DEFAULT 0" },

@@ -13,12 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { SeoHead } from "@/components/SeoHead";
 import {
   BookOpen, Users, Star, Clock, Play, Search, TrendingUp, Zap,
   Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, CheckCircle2,
   Laptop, Brain, TrendingDown, GraduationCap, Globe2, ArrowRight, Sparkles, X,
   PhoneCall, MessageCircle, Send, CheckCircle, AlertCircle, CreditCard, Upload,
   MapPin, Eye, EyeOff, User, Mail, Lock, ShieldCheck, Timer, Home, MonitorPlay, School, Baby,
+  Share2, Copy, Bell,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -56,6 +58,40 @@ interface RegForm {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const BLACK_MARKET_RATE = 1650;
+const BREEDSKOOL_IMAGE = "/breedskool-training-project.png";
+const TELEGRAM_URL = "https://t.me/taskdrip";
+const DONATION_TARGET_GBP = 100000;
+
+const LEARNER_STORIES = [
+  {
+    name: "Amina O.",
+    location: "Lagos, Nigeria",
+    role: "Web development learner",
+    quote: "I joined to understand how websites are built and left with a project I could show people. The step-by-step lessons made the journey feel possible.",
+    image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Chidi N.",
+    location: "Enugu, Nigeria",
+    role: "Digital creator",
+    quote: "The community is the best part for me. I can ask a question, see how other learners approach it, and keep moving instead of getting stuck alone.",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Zainab M.",
+    location: "Abuja, Nigeria",
+    role: "AI content learner",
+    quote: "The practical projects helped me turn curiosity into a real routine. I now know what to practise next and where to get feedback.",
+    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Tunde A.",
+    location: "Ibadan, Nigeria",
+    role: "Community learner",
+    quote: "I started with no technical background. Having lessons, reminders and other African learners in one place gave me the confidence to keep showing up.",
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=face",
+  },
+];
 
 const ALL_PAYMENT_METHODS: Record<string, { label: string; icon: string; desc: string }> = {
   bank_transfer: { label: "Bank Transfer", icon: "🏦", desc: "Pay via local bank transfer (Opay/Palmpay)" },
@@ -311,6 +347,18 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
     }
   }, [open, initialDeliveryMode]);
 
+  // Keep the student on a clear confirmation state long enough to read the
+  // thank-you message, then take them to the learning dashboard — never back
+  // to the BreedSkool landing page.
+  useEffect(() => {
+    if (!showSuccess || regWrongPassword) return;
+    const timer = window.setTimeout(() => {
+      setShowSuccess(false);
+      navigate("/dashboard?tab=training");
+    }, 6500);
+    return () => window.clearTimeout(timer);
+  }, [showSuccess, regWrongPassword]);
+
   const set = (field: keyof RegForm, value: any) =>
     setForm(f => ({ ...f, [field]: value }));
 
@@ -361,21 +409,9 @@ function RegistrationModal({ open, onClose, courses: rawCourses, initialDelivery
         setRegAutoLoggedIn(false);
         setPayLater(form.paymentOption === "pay_later");
         setShowSuccess(true);
-      } else if (data.loggedIn) {
-        // Successfully logged in — go straight to training dashboard
-        toast({
-          title: `🎉 Welcome, ${form.fullName.split(" ")[0]}!`,
-          description: data.linkedCourseId
-            ? `You're enrolled in ${form.selectedCourseTitle}. Taking you to your training now!`
-            : `Your account is live. Taking you to your training dashboard!`,
-        });
-        if (data.linkedCourseId) {
-          navigate(`/breedskool/${data.linkedCourseId}/learn`);
-        } else {
-          navigate("/my-training");
-        }
       } else {
-        // Not logged in (e.g. onsite / pay-later with no account created) — show success modal
+        // Keep every successful signup on this page first so the student sees
+        // the thank-you message, community links, and dashboard next step.
         setRegisteredName(form.fullName);
         setRegisteredCourse(form.selectedCourseTitle);
         setRegisteredCourseId(data.linkedCourseId || null);
@@ -1233,6 +1269,57 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
   );
 }
 
+function ShareButtons({ compact = false, title = "BreedSkool — free tech training for Africa", description = "Join BreedSkool to learn practical digital skills, meet other learners, and start building your future." }: { compact?: boolean; title?: string; description?: string }) {
+  const [copied, setCopied] = useState(false);
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "/breedskool";
+  const shareTitle = title;
+  const shareText = description;
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedText = encodeURIComponent(shareText);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // Clipboard access can be blocked in embedded previews; the social links still work.
+    }
+  };
+
+  const share = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: shareTitle, text: shareText, url: shareUrl }).catch(() => {});
+    } else {
+      copyLink();
+    }
+  };
+
+  const links = [
+    { label: "WhatsApp", href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`, color: "bg-emerald-500 hover:bg-emerald-600" },
+    { label: "X / Twitter", href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, color: "bg-gray-900 hover:bg-gray-800" },
+    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, color: "bg-blue-600 hover:bg-blue-700" },
+    { label: "LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, color: "bg-sky-700 hover:bg-sky-800" },
+    { label: "Telegram", href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, color: "bg-sky-500 hover:bg-sky-600" },
+  ];
+
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? "" : "justify-center"}`}>
+      <button type="button" onClick={share} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-700" data-testid="button-share-breedskool">
+        <Share2 className="h-3.5 w-3.5" /> Share
+      </button>
+      {links.map(link => (
+        <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className={`rounded-xl px-3 py-2 text-xs font-semibold text-white transition-colors ${link.color}`} data-testid={`link-share-${link.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+          {link.label}
+        </a>
+      ))}
+      <button type="button" onClick={copyLink} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50" data-testid="button-copy-breedskool-link">
+        <Copy className="h-3.5 w-3.5" /> {copied ? "Copied!" : "Copy link"}
+      </button>
+    </div>
+  );
+}
+
 // ── Main Export ───────────────────────────────────────────────────────────────
 export default function BreedSkool() {
   const { user, isAuthenticated } = useAuth();
@@ -1246,6 +1333,7 @@ export default function BreedSkool() {
   const { data: myEnrollments = [] } = useQuery<any[]>({ queryKey: ["/api/courses/my-enrollments"], enabled: isAuthenticated });
   const { data: bsPricing = [] } = useQuery<BsCoursePricing[]>({ queryKey: ["/api/breedskool/pricing"] });
   const { data: bsPaySettings = {} } = useQuery<Record<string, string>>({ queryKey: ["/api/breedskool/payment-settings"] });
+  const { data: siteContent = [] } = useQuery<any[]>({ queryKey: ["/api/site-content"] });
 
   const [regModalMode, setRegModalMode] = useState<"online" | "onsite" | "home_lesson">("online");
 
@@ -1266,9 +1354,28 @@ export default function BreedSkool() {
   const isPremium = (user as any)?.subscriptionStatus === "active";
   const isAdmin = (user as any)?.userType === "admin" || (user as any)?.role === "admin";
   const canTeach = isAdmin || isPremium;
+  const content = (key: string, fallback: string) => {
+    const item = (siteContent as any[]).find((entry: any) => entry.contentKey === key);
+    return item?.value || item?.defaultValue || fallback;
+  };
+  const heroImage = content("breedskool.hero.bg_image", BREEDSKOOL_IMAGE);
+  const fundraisingTarget = Number(content("breedskool.fundraising.target", String(DONATION_TARGET_GBP))) || DONATION_TARGET_GBP;
+  const fundraisingRaised = Math.max(0, Number(content("breedskool.fundraising.raised", "0")) || 0);
+  const fundraisingPercent = Math.min(100, Math.round((fundraisingRaised / fundraisingTarget) * 100));
+  const telegramUrl = content("breedskool.community.telegram_url", TELEGRAM_URL);
+  const shareTitle = content("breedskool.share.title", "BreedSkool — free tech training for Africa");
+  const shareDescription = content("breedskool.share.description", "Learn practical digital skills, join a supportive community, and start building your future with BreedSkool.");
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SeoHead
+        title={content("breedskool.seo.title", "BreedSkool — Free Tech Training & Digital Skills for Africa")}
+        description={shareDescription}
+        ogImage={typeof window !== "undefined"
+          ? (heroImage.startsWith("http") ? heroImage : `${window.location.origin}${heroImage.startsWith("/") ? heroImage : `/${heroImage}`}`)
+          : heroImage}
+        canonicalUrl={typeof window !== "undefined" ? `${window.location.origin}/breedskool` : undefined}
+      />
       <AdPopupZone page="breedskool" />
       <NavigationFixed />
       <AdSlot page="breedskool" placementType="banner_top" className="w-full" />
@@ -1278,7 +1385,7 @@ export default function BreedSkool() {
         {/* Professional background: tech training / students with laptops */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1600&h=800&fit=crop&q=80')" }}
+          style={{ backgroundImage: `url('${heroImage}')` }}
         />
         {/* Strong dark overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-950/95 via-violet-950/90 to-indigo-950/90" />
@@ -1299,18 +1406,18 @@ export default function BreedSkool() {
                 </span>
               </div>
 
-              <div className="inline-flex items-center gap-2 mb-4">
+              <div className="inline-flex items-center gap-2 mb-4 animate-fade-in">
                 <span className="text-2xl">🎓</span>
-                <span className="text-violet-300 text-sm font-bold tracking-widest uppercase">BreedSkool Tech Training Academy</span>
+                <span className="text-violet-300 text-sm font-bold tracking-widest uppercase">{content("breedskool.hero.eyebrow", "BreedSkool Tech Training Academy")}</span>
               </div>
 
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-5 leading-tight">
-                Where Skills<br />
-                Become <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">Income</span>
+                {content("breedskool.hero.title_line1", "Where Skills")}<br />
+                {content("breedskool.hero.title_line2", "Become")} <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">{content("breedskool.hero.title_accent", "Income")}</span>
               </h1>
 
               <p className="text-white/75 text-base md:text-lg mb-4 leading-relaxed max-w-lg">
-                Equipping tech enthusiasts with <strong className="text-white">Web3-era digital skills</strong> to build profitable online businesses and become valuable global assets.
+                {content("breedskool.hero.subtitle", "Equipping tech enthusiasts with Web3-era digital skills to build profitable online businesses and become valuable global assets.")}
               </p>
 
               {/* Location & event info */}
@@ -1329,7 +1436,7 @@ export default function BreedSkool() {
                   className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-8 py-6 text-base rounded-2xl shadow-2xl shadow-orange-400/30 hover:-translate-y-0.5 transition-all"
                   data-testid="btn-hero-register"
                 >
-                  🎓 Register & Enroll Now
+                   🎓 {content("breedskool.hero.cta", "Join Free & Start Learning")}
                 </Button>
                 <a href="#courses">
                   <Button variant="outline" size="lg" className="border-white/30 text-white bg-white/10 hover:bg-white/20 font-bold px-6 py-6 text-base rounded-2xl" data-testid="btn-hero-browse">
@@ -1382,6 +1489,54 @@ export default function BreedSkool() {
           </div>
         </div>
       </div>
+
+      {/* ── Fund the Future ── */}
+      <section className="relative overflow-hidden bg-[#111827] py-14 text-white" id="support">
+        <div className="absolute -right-20 top-0 h-64 w-64 rounded-full bg-orange-500/10 blur-3xl" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
+          <div>
+            <Badge className="mb-4 border border-orange-300/20 bg-orange-400/10 px-3 py-1 text-orange-200">
+              <span className="mr-1.5 animate-pulse">●</span> {content("breedskool.fundraising.badge", "Help us open more doors")}
+            </Badge>
+            <h2 className="max-w-2xl text-3xl font-black leading-tight sm:text-4xl">
+              {content("breedskool.fundraising.title", "Give more African learners a seat at the table.")}
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
+              {content("breedskool.fundraising.description", "We are raising funds to provide devices, connectivity, mentors, and practical training to people ready to build a better future. Every contribution helps a learner move from potential to opportunity.")}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a href={`https://wa.me/12016800266?text=${encodeURIComponent("Hello, I would like to support the BreedSkool training project.")}`} target="_blank" rel="noopener noreferrer">
+                <Button className="rounded-xl bg-orange-400 font-black text-gray-950 hover:bg-orange-300" data-testid="button-donate-breedskool">Support the project</Button>
+              </a>
+              <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="rounded-xl border-white/20 bg-white/5 font-bold text-white hover:bg-white/10" data-testid="button-fundraising-telegram">Join the community</Button>
+              </a>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-sm">
+            <div className="mb-2 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Community goal</p>
+                <p className="mt-1 text-3xl font-black text-orange-300">£{fundraisingTarget.toLocaleString()}</p>
+              </div>
+              <p className="text-sm font-bold text-white">{fundraisingPercent}%</p>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-yellow-300 transition-all duration-1000" style={{ width: `${fundraisingPercent}%` }} />
+            </div>
+            <div className="mt-2 flex justify-between text-xs text-gray-400">
+              <span>£{fundraisingRaised.toLocaleString()} raised</span>
+              <span>£{Math.max(0, fundraisingTarget - fundraisingRaised).toLocaleString()} to go</span>
+            </div>
+            <p className="mt-5 border-t border-white/10 pt-4 text-xs leading-relaxed text-gray-400">
+              Funds go towards accessible training, learner resources, and community support. Donors can share this page to help us reach the goal faster.
+            </p>
+            <div className="mt-4">
+              <ShareButtons compact title={shareTitle} description={shareDescription} />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── Teaching Modes ── */}
       <section className="py-14 bg-white border-b border-gray-100">
@@ -1455,6 +1610,38 @@ export default function BreedSkool() {
               <Button onClick={() => openRegModal("home_lesson")} className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold rounded-xl text-sm">
                 Book Home Lesson <Home className="ml-2 w-4 h-4" />
               </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Start Here Guide ── */}
+      <section className="bg-violet-50 py-14" id="start-here">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <Badge className="mb-3 border-0 bg-violet-100 px-3 py-1 text-violet-700"><Bell className="mr-1.5 h-3.5 w-3.5" /> Your first steps</Badge>
+              <h2 className="text-3xl font-black leading-tight text-gray-900 sm:text-4xl">{content("breedskool.guide.title", "Everything you need to start learning today.")}</h2>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-gray-600 sm:text-base">
+                {content("breedskool.guide.description", "Create your account right here, follow your dashboard prompts, and meet your learning community. No confusing hand-offs and no need to leave this page to get started.")}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button onClick={() => openRegModal("online")} className="rounded-xl bg-violet-600 font-bold text-white hover:bg-violet-700" data-testid="button-guide-signup">Create my free account <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                <a href={telegramUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-bold text-violet-700 hover:bg-violet-100" data-testid="link-guide-telegram">Join Telegram</a>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { step: "01", title: "Sign up here", text: "Complete the short form on this page. Your learning account is created automatically." },
+                { step: "02", title: "Open your dashboard", text: "Use the thank-you button or dashboard notification to find your free course and next lesson." },
+                { step: "03", title: "Meet your people", text: "Post an introduction in the in-app community, then join Telegram for daily support." },
+              ].map(item => (
+                <div key={item.step} className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm transition-transform duration-300 hover:-translate-y-1">
+                  <span className="text-xs font-black tracking-widest text-violet-500">{item.step}</span>
+                  <h3 className="mt-3 text-sm font-black text-gray-900">{item.title}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">{item.text}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1558,6 +1745,47 @@ export default function BreedSkool() {
               Register for a Course <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* ── Learner Voices ── */}
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <Badge className="mb-3 border-0 bg-orange-100 px-3 py-1 text-orange-700">Learner voices</Badge>
+              <h2 className="text-3xl font-black text-gray-900 sm:text-4xl">{content("breedskool.reviews.title", "A community that keeps you moving.")}</h2>
+              <p className="mt-2 max-w-2xl text-sm text-gray-500 sm:text-base">{content("breedskool.reviews.subtitle", "Learning is easier when you can see yourself in the room. Meet learners building skills across Africa.")}</p>
+            </div>
+            <a href={telegramUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-violet-600 hover:underline">Meet more learners on Telegram →</a>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {LEARNER_STORIES.map(story => (
+              <article key={story.name} className="rounded-2xl border border-gray-100 bg-gray-50 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <div className="mb-4 flex items-center gap-3">
+                  <img src={story.image} alt={`${story.name}, ${story.role}`} className="h-12 w-12 rounded-full object-cover ring-2 ring-white" />
+                  <div>
+                    <p className="text-sm font-black text-gray-900">{story.name}</p>
+                    <p className="text-[11px] text-gray-500">{story.location}</p>
+                  </div>
+                </div>
+                <div className="mb-3 flex gap-0.5">{[1, 2, 3, 4, 5].map(i => <Star key={i} className="h-3.5 w-3.5 fill-orange-400 text-orange-400" />)}</div>
+                <p className="text-sm leading-relaxed text-gray-600">“{story.quote}”</p>
+                <p className="mt-4 text-[10px] font-bold uppercase tracking-wider text-violet-600">{story.role}</p>
+              </article>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-[11px] text-gray-400">Learner voices are community spotlights. Admins can replace or update this section with verified reviews and approved photos.</p>
+        </div>
+      </section>
+
+      {/* ── Share the opportunity ── */}
+      <section className="bg-gray-50 py-12">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <Share2 className="mx-auto mb-3 h-7 w-7 text-violet-600" />
+          <h2 className="text-2xl font-black text-gray-900 sm:text-3xl">{content("breedskool.share.title", "Know someone who would benefit? Share this page.")}</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-gray-500">{content("breedskool.share.description", shareDescription)}</p>
+          <div className="mt-5"><ShareButtons title={shareTitle} description={shareDescription} /></div>
         </div>
       </section>
 

@@ -174,6 +174,36 @@ const BREEDSKOOL_PLATFORM_COURSES = [
     ],
   },
 
+  // ── FREE COMMUNITY FOUNDATIONS ─────────────────────────────────────────────
+  {
+    courseKey: "free_foundations",
+    title: "BreedSkool Foundations — Learn, Build & Earn",
+    description: "A practical, beginner-friendly introduction to digital skills, online safety, content creation, AI tools, web basics, personal branding, and the first steps to earning online. Learn at your own pace, practise with small projects, and get feedback from the BreedSkool community.",
+    shortDescription: "A free, comprehensive starting point for digital skills, confidence, and online opportunity.",
+    category: "general",
+    level: "beginner",
+    duration: "Self-paced",
+    price: "0.00",
+    tags: ["breedskool_free_foundations", "free", "foundations", "digital skills", "breedskool"],
+    whatYouLearn: ["Digital confidence and online safety", "AI tools and responsible prompting", "Web and content creation basics", "Personal branding and portfolio building", "Finding your first practical opportunity"],
+    requirements: ["A smartphone or laptop", "A willingness to practise", "No previous experience required"],
+    syllabus: [
+      { week: "Module 1", topic: "Your digital learning setup & online safety" },
+      { week: "Module 2", topic: "AI tools, prompts & responsible use" },
+      { week: "Module 3", topic: "Web, content & communication basics" },
+      { week: "Module 4", topic: "Personal brand, portfolio & opportunity map" },
+      { week: "Module 5", topic: "Your 30-day build-and-share challenge" },
+    ],
+    lessons: [
+      { title: "Welcome to BreedSkool — Start Here", content: "Welcome to BreedSkool Foundations!\n\nIn this course you will build confidence with digital tools, create your first small project, and meet learners who are on the same journey.\n\nStart by introducing yourself in the community: tell us your name, location, what you want to learn, and one thing you hope to build.", isPreview: true, order: 1 },
+      { title: "Digital Confidence & Online Safety", content: "Learn the basics that keep you safe and effective online:\n• Strong passwords and account protection\n• Recognising scams and suspicious links\n• Protecting personal information\n• Organising files and backing up your work\n• Communicating respectfully in online communities\n\nPractice: create a simple folder system for your learning projects.", isPreview: false, order: 2 },
+      { title: "AI Tools & Better Prompts", content: "AI is a tool, not a replacement for your judgement. Practise:\n• Writing clear prompts with context and a desired format\n• Checking AI answers before using them\n• Brainstorming ideas, outlines, captions and study plans\n• Using AI to learn, not to misrepresent someone else's work\n\nPractice: ask an AI tool for three project ideas, then choose one and explain why.", isPreview: false, order: 3 },
+      { title: "The Web, Content & Communication Basics", content: "Understand how digital work is made and shared:\n• What a website, social profile and digital asset are\n• Simple HTML concepts and visual hierarchy\n• Writing a clear caption, profile bio and call to action\n• Choosing one platform to practise consistently\n\nPractice: publish a one-page introduction or a draft creator profile.", isPreview: false, order: 4 },
+      { title: "Build Your Personal Brand & Portfolio", content: "Your portfolio is evidence of what you can do. Learn:\n• Choosing a useful niche and audience\n• Showing process, not just finished work\n• Turning one project into a case study\n• Asking for feedback and improving your next version\n\nPractice: write a short bio and add your first project to your portfolio checklist.", isPreview: false, order: 5 },
+      { title: "Your 30-Day Build & Share Challenge", content: "Create a simple 30-day plan:\n• Pick one skill and one small project\n• Schedule three practice sessions each week\n• Share progress in the in-app community\n• Ask one specific question when you are stuck\n• Review your progress every Sunday\n\nFinish by posting your plan in the group chat and joining the Telegram community for accountability.", isPreview: false, order: 6 },
+    ],
+  },
+
   // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
   {
     courseKey: "saas_masterclass",
@@ -327,7 +357,7 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
           category: course.category,
           instructorId: adminId,
           price: course.price,
-          isFree: false,
+          isFree: course.courseKey === "free_foundations",
           level: course.level as any,
           duration: course.duration,
           status: "published",

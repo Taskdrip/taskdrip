@@ -142,7 +142,7 @@ const ROUTE_SEO: Record<string, { slug: string; title: string; description: stri
   "/brands": { slug: "brands", title: "Brands on Taskdrip — Crypto-Native Advertisers", description: "Browse brands hiring influencers. Connect with Web3, gaming, DeFi, and lifestyle brands paying in stablecoins." },
   "/feed": { slug: "feed", title: "Creator Feed — Latest Posts & Drops | Taskdrip", description: "The freshest posts from verified Taskdrip creators. Tip in $TDRIP, follow your favourites, never miss a drop." },
   "/blog": { slug: "blog", title: "Taskdrip Blog — Web3 Marketing & Creator Economy Insights", description: "Guides, case studies and news on the Web3 creator economy, SocialFi, influencer marketing and crypto payouts." },
-  "/breedskool": { slug: "breedskool", title: "BreedSkool — Web3 Creator Academy | Taskdrip", description: "Free and pro courses to grow as a Web3 influencer. Learn audience growth, monetization, brand deals and crypto payouts." },
+  "/breedskool": { slug: "breedskool", title: "BreedSkool — Free Tech Training & Digital Skills for Africa", description: "Join BreedSkool for free practical tech training, a supportive learner community, and a £100,000 mission to make digital opportunity more accessible across Africa." },
   "/leaderboard": { slug: "leaderboard", title: "Leaderboard — Top Earners & Creators | Taskdrip", description: "See the top-earning creators, biggest spenders and most active brands on Taskdrip." },
   "/advertise": { slug: "advertise", title: "Advertise on Taskdrip — Reach Crypto-Native Audiences", description: "Run banner ads, sponsored campaigns and creator collaborations on Taskdrip. Targeting tools, transparent pricing." },
   "/about": { slug: "about", title: "About Taskdrip — The Web3 Influencer Marketplace", description: "Taskdrip connects brands and creators with on-chain payouts, verified profiles and the $TDRIP rewards economy." },
@@ -204,7 +204,10 @@ export function PageSeo({ slug, fallbackTitle, fallbackDescription }: PageSeoPro
 
   const title = data?.metaTitle || data?.pageTitle || fallbackTitle;
   const description = data?.metaDescription || fallbackDescription;
-  const ogImage = data?.ogImage || data?.twitterImage || globalSettings?.defaultOgImage;
+  const defaultOgImage = slug === "breedskool"
+    ? (typeof window !== "undefined" ? `${window.location.origin}/breedskool-training-project.png` : "/breedskool-training-project.png")
+    : globalSettings?.defaultOgImage;
+  const ogImage = data?.ogImage || data?.twitterImage || defaultOgImage;
   const canonicalUrl =
     data?.canonicalUrl ||
     (typeof window !== "undefined" ? window.location.origin + window.location.pathname : undefined);

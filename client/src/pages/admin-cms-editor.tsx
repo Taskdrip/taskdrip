@@ -35,6 +35,7 @@ const MODULES = [
   { id: "navigation", label: "Navigation & Menu", icon: Navigation, desc: "Edit nav labels & links" },
   { id: "hero-sliders", label: "Hero Sliders", icon: Image, desc: "Homepage carousel slides" },
   { id: "pages-content", label: "Pages & Content", icon: FileText, desc: "All text, images, buttons" },
+  { id: "breedskool-landing", label: "BreedSkool Landing", icon: BookOpen, desc: "Training page, goal & community" },
   { id: "theme-colors", label: "Theme & Colors", icon: Palette, desc: "Brand colors & gradients" },
   { id: "fees-rates", label: "Fees & Rates", icon: DollarSign, desc: "Platform fees & P2P rates" },
   { id: "footer-management", label: "Footer Management", icon: Layout, desc: "Footer columns & links" },
@@ -91,21 +92,19 @@ function SiteSettingsPanel() {
 
   const { data: allContent = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/site-content"] });
 
-  const globalContent = Array.isArray(allContent)
-    ? allContent.filter((item: any) => item.page === "global")
-    : [];
+  const editableContent = Array.isArray(allContent) ? allContent : [];
 
   const getVal = (key: string) => {
-    const item = globalContent.find((c: any) => c.contentKey === key);
+    const item = editableContent.find((c: any) => c.contentKey === key);
     return item?.value || item?.defaultValue || "";
   };
 
   const [fields, setFields] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (globalContent.length > 0) {
+    if (editableContent.length > 0) {
       const initial: Record<string, string> = {};
-      globalContent.forEach((c: any) => { initial[c.contentKey] = c.value || c.defaultValue || ""; });
+      editableContent.forEach((c: any) => { initial[c.contentKey] = c.value || c.defaultValue || ""; });
       setFields(initial);
     }
   }, [allContent.length]);
@@ -145,6 +144,41 @@ function SiteSettingsPanel() {
         { key: "global.seo.meta_description", label: "Meta Description (SEO)", type: "textarea" },
         { key: "global.seo.og_title", label: "Social Share Title (OG)", type: "text" },
         { key: "global.seo.og_image", label: "Social Share Image URL (OG)", type: "text", placeholder: "https://..." },
+      ],
+    },
+    {
+      title: "BreedSkool Landing Page",
+      fields: [
+        { key: "breedskool.hero.eyebrow", label: "Eyebrow / Academy Label", type: "text" },
+        { key: "breedskool.hero.title_line1", label: "Hero Title — Line 1", type: "text" },
+        { key: "breedskool.hero.title_line2", label: "Hero Title — Line 2", type: "text" },
+        { key: "breedskool.hero.title_accent", label: "Hero Title Accent", type: "text" },
+        { key: "breedskool.hero.subtitle", label: "Hero Description", type: "textarea" },
+        { key: "breedskool.hero.cta", label: "Hero Button Text", type: "text" },
+        { key: "breedskool.hero.bg_image", label: "Header / Featured Image URL", type: "text", placeholder: "/breedskool-training-project.png or https://..." },
+      ],
+    },
+    {
+      title: "Fundraising & Community",
+      fields: [
+        { key: "breedskool.fundraising.badge", label: "Fundraising Badge", type: "text" },
+        { key: "breedskool.fundraising.title", label: "Fundraising Title", type: "text" },
+        { key: "breedskool.fundraising.description", label: "Fundraising Description", type: "textarea" },
+        { key: "breedskool.fundraising.target", label: "Target in GBP (£)", type: "text" },
+        { key: "breedskool.fundraising.raised", label: "Raised So Far in GBP (£)", type: "text" },
+        { key: "breedskool.community.telegram_url", label: "Telegram Community URL", type: "text", placeholder: "https://t.me/..." },
+      ],
+    },
+    {
+      title: "Learner Voices & Sharing",
+      fields: [
+        { key: "breedskool.guide.title", label: "Getting Started Guide Title", type: "text" },
+        { key: "breedskool.guide.description", label: "Getting Started Guide Description", type: "textarea" },
+        { key: "breedskool.reviews.title", label: "Learner Voices Title", type: "text" },
+        { key: "breedskool.reviews.subtitle", label: "Learner Voices Subtitle", type: "textarea" },
+        { key: "breedskool.share.title", label: "Share Title", type: "text" },
+        { key: "breedskool.share.description", label: "Share Description", type: "textarea" },
+        { key: "breedskool.seo.title", label: "SEO Title", type: "text" },
       ],
     },
   ];
@@ -1191,6 +1225,7 @@ export default function AdminCMSEditor() {
     "navigation": NavigationPanel,
     "hero-sliders": HeroSlidersPanel,
     "pages-content": PagesContentPanel,
+    "breedskool-landing": SiteSettingsPanel,
     "theme-colors": ThemeColorsPanel,
     "fees-rates": FeesRatesPanel,
     "footer-management": FooterManagementPanel,
