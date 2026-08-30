@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { NavigationFixed } from "@/components/ui/navigation-fixed";
-import { Footer } from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,9 +12,9 @@ import { usePageContent } from "@/hooks/usePageContent";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RegistrationModal } from "@/pages/breedskool";
 import {
-  ArrowRight, BookOpen, Briefcase, Check, CheckCircle2, ChevronRight, Copy,
-  HeartHandshake, Laptop, Mail, MapPin, Menu, MessageCircle, Play, Rocket,
-  School, Send, ShieldCheck, Sparkles, Users, Wifi, X,
+  ArrowRight, BookOpen, Briefcase, Check, CheckCircle2, ChevronDown, Copy,
+  HeartHandshake, Laptop, MessageCircle, Quote, Rocket, School, Send,
+  ShieldCheck, Sparkles, TrendingUp, Users, Wifi,
 } from "lucide-react";
 
 const JUST_GIVING_URL = "https://www.justgiving.com/crowdfunding/breedskool";
@@ -65,6 +62,32 @@ function money(value: number) {
   return `£${Math.max(0, Number(value || 0)).toLocaleString("en-GB", { maximumFractionDigits: 0 })}`;
 }
 
+function CampaignNav({ onRegister, onDonate }: { onRegister: () => void; onDonate: () => void }) {
+  return (
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 text-white backdrop-blur-xl">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <a href="#top" className="group flex min-w-0 items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 text-lg font-black shadow-lg shadow-violet-900/30 transition-transform group-hover:rotate-3">B</span>
+          <span className="min-w-0">
+            <span className="block truncate text-base font-black tracking-tight sm:text-lg">BreedSkool</span>
+            <span className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-white/50 sm:block">Skills for the future</span>
+          </span>
+        </a>
+        <nav className="hidden items-center gap-7 text-sm font-semibold text-white/65 md:flex" aria-label="Campaign navigation">
+          <a href="#free-course" className="transition-colors hover:text-white">Free course</a>
+          <a href="#impact" className="transition-colors hover:text-white">Our impact</a>
+          <a href="#stories" className="transition-colors hover:text-white">Learner stories</a>
+          <a href="#support" className="transition-colors hover:text-white">Support</a>
+        </nav>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={onDonate} className="hidden rounded-full border border-white/20 px-4 py-2 text-xs font-bold text-white/80 transition-colors hover:border-amber-300/60 hover:text-amber-200 sm:block">Fund a learner</button>
+          <button type="button" onClick={onRegister} className="rounded-full bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-900/20 transition-all hover:-translate-y-0.5 hover:bg-amber-300 sm:px-5">Join free</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 function CampaignButton({ href, children, className = "", external = false, onClick }: {
   href?: string;
   children: React.ReactNode;
@@ -74,9 +97,7 @@ function CampaignButton({ href, children, className = "", external = false, onCl
 }) {
   const button = <Button onClick={onClick} className={`h-12 rounded-xl px-6 font-bold shadow-lg transition-all hover:-translate-y-0.5 ${className}`}>{children}</Button>;
   if (onClick || !href) return button;
-  return external
-    ? <a href={href} target="_blank" rel="noopener noreferrer">{button}</a>
-    : <Link href={href}>{button}</Link>;
+  return <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>{button}</a>;
 }
 
 function StatPill({ icon: Icon, value, label }: { icon: any; value: string; label: string }) {
@@ -209,6 +230,7 @@ export default function BreedSkoolCampaign() {
   const cms = usePageContent("breedskool_campaign");
   const [donationOpen, setDonationOpen] = useState(false);
   const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [focus, setFocus] = useState<"learn" | "give">("learn");
   const [sessionId] = useState(() => {
     const key = "taskdrip-analytics-session";
     const existing = window.localStorage.getItem(key);
@@ -244,23 +266,39 @@ export default function BreedSkoolCampaign() {
   const freeCourse = pricing.find((course) => course.courseKey === "free_foundations") || freeCourseFallback;
   const registrationCourses = [freeCourse, ...pricing.filter((course) => course.courseKey !== "free_foundations")];
   return (
-    <div className="min-h-screen bg-[#fbfaf8] text-slate-900">
-      <NavigationFixed />
+    <div id="top" className="min-h-screen overflow-hidden bg-[#fbfaf8] text-slate-900">
+      <CampaignNav onRegister={() => setRegistrationOpen(true)} onDonate={() => setDonationOpen(true)} />
       <main>
         <section className="relative isolate overflow-hidden bg-slate-950">
           <div className="absolute inset-0 -z-10 bg-cover bg-center" style={{ backgroundImage: `url(${config.heroImage})` }} />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/45" />
           <div className="absolute inset-0 -z-10 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/30" />
+          <div className="absolute -right-24 top-16 -z-10 h-72 w-72 rounded-full bg-violet-600/20 blur-3xl campaign-breathe" />
+          <div className="absolute bottom-0 left-1/3 -z-10 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl campaign-breathe [animation-delay:1.5s]" />
           <div className="mx-auto max-w-7xl px-4 pb-20 pt-32 sm:px-6 sm:pb-28 lg:px-8">
-            <div className="max-w-3xl">
+            <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.72fr]">
+            <div className="max-w-3xl campaign-rise">
               <Badge className="mb-5 border border-amber-300/30 bg-amber-300/15 px-4 py-2 text-xs font-bold text-amber-200"><HeartHandshake className="mr-2 h-3.5 w-3.5" /> {cms.get("hero", "eyebrow", "A practical technology education campaign for young Africans")}</Badge>
-              <h1 className="max-w-3xl text-4xl font-black leading-[1.04] tracking-tight text-white sm:text-6xl lg:text-7xl">{cms.get("hero", "title", "Give a Young African a Chance to Build the Future")}</h1>
-              <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/75 sm:text-xl">{cms.get("hero", "subtitle", "Talent is everywhere. Opportunity is not. Help us put skills, equipment, mentorship and a real pathway into the hands of young people who are ready to learn.")}</p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <CampaignButton onClick={() => setRegistrationOpen(true)} className="bg-amber-400 text-slate-950 hover:bg-amber-300">Start the free course <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
-                <CampaignButton onClick={() => setDonationOpen(true)} className="border border-white/25 bg-white/10 text-white hover:bg-white/20">Support a learner <HeartHandshake className="ml-2 h-4 w-4" /></CampaignButton>
-                <CampaignButton href={config.justGivingUrl || JUST_GIVING_URL} external className="border border-white/25 bg-transparent text-white hover:bg-white/10">Donate on JustGiving <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
+              <h1 className="max-w-3xl text-4xl font-black leading-[1.04] tracking-tight text-white sm:text-6xl lg:text-7xl">Skills today.<br /><span className="text-amber-300">Opportunities tomorrow.</span></h1>
+              <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/75 sm:text-xl">{cms.get("hero", "subtitle", "A free, practical technology course for young Africans — and a clear way for supporters to help more learners get the tools to build a future.")}</p>
+              <div className="mt-7 inline-flex rounded-2xl border border-white/15 bg-white/10 p-1.5 backdrop-blur-sm" role="tablist" aria-label="Choose your path">
+                <button type="button" role="tab" aria-selected={focus === "learn"} onClick={() => setFocus("learn")} className={`rounded-xl px-4 py-2.5 text-xs font-black transition-all sm:px-5 ${focus === "learn" ? "bg-white text-slate-950 shadow-lg" : "text-white/65 hover:text-white"}`}>I want to learn</button>
+                <button type="button" role="tab" aria-selected={focus === "give"} onClick={() => setFocus("give")} className={`rounded-xl px-4 py-2.5 text-xs font-black transition-all sm:px-5 ${focus === "give" ? "bg-amber-400 text-slate-950 shadow-lg" : "text-white/65 hover:text-white"}`}>I want to give</button>
               </div>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                {focus === "learn" ? (
+                  <>
+                    <CampaignButton onClick={() => setRegistrationOpen(true)} className="bg-amber-400 text-slate-950 hover:bg-amber-300">Start the free course <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
+                    <a href="#free-course" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-6 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-white/20">See what you'll learn <ChevronDown className="ml-2 h-4 w-4" /></a>
+                  </>
+                ) : (
+                  <>
+                    <CampaignButton onClick={() => setDonationOpen(true)} className="bg-amber-400 text-slate-950 hover:bg-amber-300">Fund a learner <HeartHandshake className="ml-2 h-4 w-4" /></CampaignButton>
+                    <CampaignButton href={config.justGivingUrl || JUST_GIVING_URL} external className="border border-white/25 bg-white/10 text-white hover:bg-white/20">Donate on JustGiving <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
+                  </>
+                )}
+              </div>
+              <p className="mt-4 text-xs font-medium text-white/50">{focus === "learn" ? "No payment required · Online access · Beginner friendly" : "Transparent giving · Crypto or JustGiving · Every gift has a job"}</p>
               <div className="mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatPill icon={Users} value={String(config.registrations || 0)} label="registered learners" />
                 <StatPill icon={Laptop} value={String(config.studentsWithoutEquipment || 0)} label="need equipment" />
@@ -268,10 +306,23 @@ export default function BreedSkoolCampaign() {
                 <StatPill icon={HeartHandshake} value={money(config.raisedUsd)} label="raised so far" />
               </div>
             </div>
+            <div className="relative hidden lg:block campaign-float">
+              <div className="absolute -left-10 top-12 z-10 rounded-2xl border border-white/15 bg-slate-950/85 p-4 shadow-2xl backdrop-blur-md">
+                <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400/15 text-emerald-300"><Check className="h-4 w-4" /></span><div><p className="text-xs font-black text-white">100% free to join</p><p className="text-[10px] text-white/50">Built for beginners</p></div></div>
+              </div>
+              <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white/10 p-2 shadow-2xl shadow-black/30 backdrop-blur-sm">
+                <img src={learnerImage} alt="African learner working on a laptop" className="h-[24rem] w-full rounded-[1.5rem] object-cover" />
+                <div className="flex items-center justify-between px-4 py-4">
+                  <div><p className="text-xs font-black uppercase tracking-[0.16em] text-amber-300">Your first step</p><p className="mt-1 text-lg font-black text-white">Learn. Build. Earn.</p></div>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-400 text-slate-950"><ArrowRight className="h-5 w-5" /></span>
+                </div>
+              </div>
+            </div>
+            </div>
           </div>
         </section>
 
-        <section className="border-b border-slate-200 bg-white py-14 sm:py-20">
+        <section id="free-course" className="scroll-mt-24 border-b border-slate-200 bg-white py-14 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div>
@@ -283,7 +334,7 @@ export default function BreedSkoolCampaign() {
                 </div>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <CampaignButton onClick={() => setRegistrationOpen(true)} className="bg-violet-700 text-white hover:bg-violet-800">Get free access <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
-                  <CampaignButton href="/breedskool" className="border border-slate-200 bg-white text-slate-900 hover:bg-slate-50">See the full school</CampaignButton>
+                   <a href="#impact" className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:bg-slate-50">How it creates impact <ArrowRight className="ml-2 h-4 w-4" /></a>
                 </div>
               </div>
               <Card className="overflow-hidden border-violet-100 bg-gradient-to-br from-violet-50 to-amber-50 shadow-xl">
@@ -295,15 +346,15 @@ export default function BreedSkoolCampaign() {
                 </CardContent>
               </Card>
             </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div id="stories" className="mt-10 scroll-mt-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { name: "Amina O.", place: "Lagos", quote: "I finally knew what to practise first." },
-                { name: "Kofi B.", place: "Accra", quote: "Every module ends with something real to build." },
-                { name: "Fatima S.", place: "Kano", quote: "Sharing progress made learning less intimidating." },
-                { name: "Mandla P.", place: "Johannesburg", quote: "The free course gave me a clear next step." },
-              ].map((review) => <div key={review.name} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="mb-2 flex gap-0.5">{[1, 2, 3, 4, 5].map((star) => <span key={star} className="text-sm text-amber-500">★</span>)}</div><p className="text-sm italic leading-relaxed text-slate-600">“{review.quote}”</p><p className="mt-3 text-xs font-black text-slate-900">{review.name} <span className="font-medium text-slate-500">· {review.place}</span></p></div>)}
+                 { name: "Amina O.", place: "Lagos", quote: "I finally knew what to practise first.", image: learnerImage },
+                 { name: "Kofi B.", place: "Accra", quote: "Every module ends with something real to build.", image: storyImage },
+                 { name: "Fatima S.", place: "Kano", quote: "Sharing progress made learning less intimidating.", image: classroomImage },
+                 { name: "Mandla P.", place: "Johannesburg", quote: "The free course gave me a clear next step.", image: equipmentImage },
+               ].map((review) => <div key={review.name} className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all hover:-translate-y-1 hover:border-violet-200 hover:bg-white hover:shadow-xl"><div className="flex items-center gap-3"><img src={review.image} alt="" className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm transition-transform group-hover:scale-105" /><div><p className="text-xs font-black text-slate-900">{review.name}</p><p className="text-[11px] text-slate-500">{review.place}</p></div><div className="ml-auto flex gap-0.5" aria-label="5 out of 5 stars">{[1, 2, 3, 4, 5].map((star) => <span key={star} className="text-sm text-amber-500">★</span>)}</div></div><p className="mt-4 text-sm italic leading-relaxed text-slate-600">“{review.quote}”</p></div>)}
             </div>
-            <p className="mt-4 text-center text-[11px] text-slate-400">Demo learner profiles and illustrative voices shown for the campaign preview; verified reviews and approved photos will replace them as cohorts consent.</p>
+             <p className="mt-4 text-center text-[11px] text-slate-400">Illustrative learner voices and approved campaign imagery shown for this preview. Verified reviews and consented student portraits will replace them as cohorts share their stories.</p>
           </div>
         </section>
 
@@ -317,7 +368,7 @@ export default function BreedSkoolCampaign() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:px-8 lg:py-28">
+        <section id="impact" className="mx-auto grid max-w-7xl scroll-mt-24 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:px-8 lg:py-28">
           <div>
             <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-violet-700">Why this matters</p>
             <h2 className="text-3xl font-black tracking-tight sm:text-5xl">{cms.get("story", "title", "The talent is there. The opportunity isn't.")}</h2>
@@ -368,7 +419,7 @@ export default function BreedSkoolCampaign() {
           </div>
         </section>
 
-        <section className="bg-amber-50 py-20 sm:py-24">
+        <section id="support" className="scroll-mt-24 bg-amber-50 py-20 sm:py-24">
           <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
             <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-amber-700">Campaign progress</p>
             <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Help us give talent a chance.</h2>
@@ -384,7 +435,7 @@ export default function BreedSkoolCampaign() {
 
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
           <div className="grid gap-8 lg:grid-cols-2">
-            <div className="rounded-3xl bg-violet-700 p-8 text-white sm:p-10"><School className="h-8 w-8 text-amber-300" /><h2 className="mt-6 text-3xl font-black">Are you ready to join the training?</h2><p className="mt-4 leading-relaxed text-white/75">Register for onsite or online training and get access to mentorship, practical tools, training equipment and pathways toward jobs and remote opportunities.</p><div className="mt-7 flex flex-col gap-3 sm:flex-row"><CampaignButton href="/breedskool" className="bg-white text-violet-800 hover:bg-slate-100">View training programs <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton><CampaignButton href="/login" className="border border-white/30 bg-white/10 text-white hover:bg-white/20">Sign in</CampaignButton></div></div>
+            <div className="rounded-3xl bg-violet-700 p-8 text-white sm:p-10"><School className="h-8 w-8 text-amber-300" /><h2 className="mt-6 text-3xl font-black">Ready to take your first step?</h2><p className="mt-4 leading-relaxed text-white/75">Register for free online access and start learning practical skills with a community of ambitious young Africans.</p><div className="mt-7 flex flex-col gap-3 sm:flex-row"><CampaignButton onClick={() => setRegistrationOpen(true)} className="bg-white text-violet-800 hover:bg-slate-100">Join the free course <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton><a href="#free-course" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/30 bg-white/10 px-6 text-sm font-bold text-white transition-colors hover:bg-white/20">See the curriculum</a></div></div>
             <div className="rounded-3xl bg-slate-950 p-8 text-white sm:p-10"><Briefcase className="h-8 w-8 text-amber-300" /><h2 className="mt-6 text-3xl font-black">Are you a brand or sponsor?</h2><p className="mt-4 leading-relaxed text-white/65">Partner with Breedskool by sponsoring equipment, supporting a cohort, offering mentorship or creating a pathway into work.</p><div className="mt-7 flex flex-col gap-3 sm:flex-row"><CampaignButton href={config.sponsorWhatsAppUrl} external className="bg-amber-400 text-slate-950 hover:bg-amber-300"><MessageCircle className="mr-2 h-4 w-4" /> Chat with the team</CampaignButton><CampaignButton href={config.developerUrl} external className="border border-white/20 bg-white/10 text-white hover:bg-white/20">Developer page <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton></div></div>
           </div>
           <div className="mt-16 rounded-3xl border border-slate-200 bg-white p-7 sm:p-10"><div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-violet-700">{cms.get("contact", "student_label", "For African students joining the training")}</p><h3 className="mt-2 text-2xl font-black">Bring a friend. Join the community. Stay informed.</h3><p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">Join Telegram for updates, cohort announcements and opportunities. Students can also chat with the training team directly on WhatsApp.</p></div><div className="flex flex-col gap-3 sm:flex-row"><CampaignButton href={config.telegramUrl} external className="bg-[#229ED9] text-white hover:bg-[#188bbf]"><Send className="mr-2 h-4 w-4" /> Join Telegram</CampaignButton><CampaignButton href={config.studentWhatsAppUrl} external className="bg-[#25D366] text-white hover:bg-[#1db954]"><MessageCircle className="mr-2 h-4 w-4" /> Chat as a student</CampaignButton></div></div></div>
@@ -404,7 +455,10 @@ export default function BreedSkoolCampaign() {
         </section>
         <section className="bg-slate-950 py-20 text-center text-white sm:py-24"><div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8"><Sparkles className="mx-auto h-8 w-8 text-amber-300" /><h2 className="mt-5 text-3xl font-black sm:text-5xl">{cms.get("cta", "title", "Will you help us open the door?")}</h2><p className="mt-5 leading-relaxed text-white/65">{cms.get("cta", "subtitle", "Every donation matters. And if you cannot donate, sharing this campaign can still help us reach the right people.")}</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><CampaignButton onClick={() => setDonationOpen(true)} className="bg-amber-400 text-slate-950 hover:bg-amber-300">Support Breedskool <HeartHandshake className="ml-2 h-4 w-4" /></CampaignButton><CampaignButton href={config.justGivingUrl || JUST_GIVING_URL} external className="border border-white/20 bg-white/10 text-white hover:bg-white/20">Share on JustGiving <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton></div></div></section>
       </main>
-      <Footer />
+       <div className="fixed inset-x-3 bottom-3 z-30 flex gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-2xl backdrop-blur-md sm:hidden">
+         <button type="button" onClick={() => setRegistrationOpen(true)} className="flex-1 rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white">Join free</button>
+         <button type="button" onClick={() => setDonationOpen(true)} className="flex-1 rounded-xl bg-amber-400 px-4 py-3 text-sm font-black text-slate-950">Fund a learner</button>
+       </div>
       <DonationDialog open={donationOpen} onClose={() => setDonationOpen(false)} config={config} />
       <RegistrationModal open={registrationOpen} onClose={() => setRegistrationOpen(false)} courses={registrationCourses} initialDeliveryMode="online" initialCourseKey="free_foundations" />
     </div>
