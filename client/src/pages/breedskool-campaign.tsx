@@ -206,6 +206,11 @@ function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () 
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-violet-100"><div className="h-full rounded-full bg-violet-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, Math.round((Number(config.raisedUsd || 0) / Math.max(1, Number(config.goalUsd || 0))) * 100)))}%` }} /></div>
             <p className="mt-2 text-xs text-slate-500">Campaign goal: <span className="font-bold text-slate-700">{money(config.goalUsd)}</span> · Updated by the BreedSkool team</p>
           </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-black text-slate-900">Prefer to pay another way?</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">Use JustGiving to donate with card or another supported payment method instead.</p>
+            <CampaignButton href={config.justGivingUrl || JUST_GIVING_URL} external className="mt-3 w-full bg-violet-700 text-white hover:bg-violet-800">Pay with JustGiving <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
+          </div>
           <div>
             <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Donation amount (USDT)</Label>
             <div className="mt-2 flex gap-2">
