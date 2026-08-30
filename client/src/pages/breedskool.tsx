@@ -339,7 +339,7 @@ function PasswordInput({ value, onChange, placeholder, id, testId }: { value: st
 }
 
 // ── Registration Modal ─────────────────────────────────────────────────────────
-function RegistrationModal({ open, onClose, courses: rawCourses, initialDeliveryMode = "online" }: {
+export function RegistrationModal({ open, onClose, courses: rawCourses, initialDeliveryMode = "online" }: {
   open: boolean;
   onClose: () => void;
   courses: BsCoursePricing[];
