@@ -91,6 +91,41 @@ const LEARNER_STORIES = [
     quote: "I started with no technical background. Having lessons, reminders and other African learners in one place gave me the confidence to keep showing up.",
     image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=face",
   },
+  {
+    name: "Nneka E.",
+    location: "Port Harcourt, Nigeria",
+    role: "SaaS learner",
+    quote: "The lessons helped me stop waiting for the perfect time. I can now break a big idea into a small project and ask for help when I need it.",
+    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Kofi B.",
+    location: "Accra, Ghana",
+    role: "Digital skills learner",
+    quote: "I appreciate that the learning is practical. Every module gives me something I can try immediately instead of only theory.",
+    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Fatima S.",
+    location: "Kano, Nigeria",
+    role: "Content creator",
+    quote: "The community makes the process less intimidating. Seeing people share progress encouraged me to share my own work too.",
+    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Mandla P.",
+    location: "Johannesburg, South Africa",
+    role: "Web learner",
+    quote: "I joined for the free foundations course and found a clear path into deeper training. The first lesson gave me a useful place to begin.",
+    image: "https://images.unsplash.com/photo-1504593811423-6dd665756598?w=160&h=160&fit=crop&crop=face",
+  },
+];
+
+const FUNDRAISING_MILESTONES = [
+  { amount: 10000, label: "Equip learners", detail: "Starter devices, data support, and learning materials" },
+  { amount: 25000, label: "Open access", detail: "Connectivity grants and more free course places" },
+  { amount: 50000, label: "Grow mentorship", detail: "Tutors, community sessions, and practical workshops" },
+  { amount: 100000, label: "Scale the mission", detail: "A sustainable training hub reaching more communities" },
 ];
 
 const ALL_PAYMENT_METHODS: Record<string, { label: string; icon: string; desc: string }> = {
@@ -1527,6 +1562,31 @@ export default function BreedSkool() {
             <div className="mt-2 flex justify-between text-xs text-gray-400">
               <span>£{fundraisingRaised.toLocaleString()} raised</span>
               <span>£{Math.max(0, fundraisingTarget - fundraisingRaised).toLocaleString()} to go</span>
+            </div>
+            <div className="mt-6 border-t border-white/10 pt-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-300">Our milestones</p>
+                <p className="text-[10px] text-gray-500">Every stage creates impact</p>
+              </div>
+              <div className="space-y-3">
+                {FUNDRAISING_MILESTONES.map((milestone, index) => {
+                  const milestonePercent = Math.min(100, Math.round((fundraisingRaised / milestone.amount) * 100));
+                  const reached = fundraisingRaised >= milestone.amount;
+                  return (
+                    <div key={milestone.amount} className="relative">
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${reached ? "bg-emerald-400 text-gray-950" : "bg-white/10 text-gray-400"}`}>{reached ? "✓" : index + 1}</span>
+                        <span className="text-xs font-bold text-white">{milestone.label}</span>
+                        <span className="ml-auto text-[10px] font-semibold text-orange-200">£{milestone.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="ml-7 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div className={`h-full rounded-full transition-all duration-700 ${reached ? "bg-emerald-400" : "bg-orange-300"}`} style={{ width: `${milestonePercent}%` }} />
+                      </div>
+                      <p className="ml-7 mt-1 text-[10px] leading-relaxed text-gray-500">{milestone.detail}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <p className="mt-5 border-t border-white/10 pt-4 text-xs leading-relaxed text-gray-400">
               Funds go towards accessible training, learner resources, and community support. Donors can share this page to help us reach the goal faster.
