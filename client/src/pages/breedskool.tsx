@@ -203,6 +203,17 @@ const toUsd = (ngn: number) => ngn / BLACK_MARKET_RATE;
 // Default courses shown when admin hasn't seeded pricing yet
 const DEFAULT_COURSES: BsCoursePricing[] = [
   {
+    id: "default-free_foundations",
+    courseKey: "free_foundations",
+    title: "BreedSkool Foundations — Learn, Build & Earn",
+    shortDescription: "Start with practical digital skills, build your first proof-of-work projects, and find your next path with a free online course.",
+    regularPrice: 0,
+    discountPrice: 0,
+    duration: "Self-paced",
+    isActive: true,
+    acceptedPayments: [],
+  },
+  {
     id: "default-webdev",
     courseKey: "webdev",
     title: "Web Development & Vibe Coding",
@@ -375,7 +386,11 @@ export function RegistrationModal({ open, onClose, courses: rawCourses, initialD
   initialCourseKey?: string;
 }) {
   // Use admin-configured courses if available, otherwise fall back to defaults
-  const courses = rawCourses.length > 0 ? rawCourses : DEFAULT_COURSES;
+  const courses = rawCourses.length > 0
+    ? rawCourses.some(course => course.courseKey === "free_foundations")
+      ? rawCourses
+      : [DEFAULT_COURSES[0], ...rawCourses]
+    : DEFAULT_COURSES;
   const initialCourse = initialCourseKey ? courses.find(course => course.courseKey === initialCourseKey) : undefined;
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -413,8 +428,8 @@ export function RegistrationModal({ open, onClose, courses: rawCourses, initialD
         ...(initialCourse ? {
           selectedCourseKey: initialCourse.courseKey,
           selectedCourseTitle: initialCourse.title,
-          amountNgn: initialCourse.discountPrice,
-          paymentOption: initialCourse.discountPrice === 0 ? "pay_later" : f.paymentOption,
+           amountNgn: Number(initialCourse.discountPrice) || 0,
+           paymentOption: Number(initialCourse.discountPrice) === 0 ? "pay_later" : f.paymentOption,
         } : {}),
       }));
       setStep(1);
@@ -1404,18 +1419,27 @@ export default function BreedSkool() {
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [showRegModal, setShowRegModal] = useState(false);
+  const [regModalCourseKey, setRegModalCourseKey] = useState<string | undefined>();
 
   const { data: courses = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/courses"] });
   const { data: myEnrollments = [] } = useQuery<any[]>({ queryKey: ["/api/courses/my-enrollments"], enabled: isAuthenticated });
   const { data: bsPricing = [] } = useQuery<BsCoursePricing[]>({ queryKey: ["/api/breedskool/pricing"] });
-  const { data: bsPaySettings = {} } = useQuery<Record<string, string>>({ queryKey: ["/api/breedskool/payment-settings"] });
   const { data: siteContent = [] } = useQuery<any[]>({ queryKey: ["/api/site-content"] });
 
   const [regModalMode, setRegModalMode] = useState<"online" | "onsite" | "home_lesson">("online");
 
-  const openRegModal = (mode: "online" | "onsite" | "home_lesson" = "online") => {
+  const openRegModal = (mode: "online" | "onsite" | "home_lesson" = "online", courseKey?: string) => {
     setRegModalMode(mode);
+    setRegModalCourseKey(courseKey);
     setShowRegModal(true);
+  };
+
+  const handleTrainingEntry = () => {
+    if (isAuthenticated) {
+      setLocation("/dashboard?tab=training");
+      return;
+    }
+    openRegModal("online", "free_foundations");
   };
 
   const enrolledCourseIds = new Set((myEnrollments as any[]).map((e: any) => e.courseId));
@@ -1748,77 +1772,37 @@ export default function BreedSkool() {
         </div>
       </section>
 
-      {/* ── Tech Training Programs ── */}
-      {bsPricing.length > 0 && (
-        <section className="py-16 bg-gray-50" id="tech-training">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-10">
-              <Badge className="mb-3 bg-violet-100 text-violet-700 border-0 px-4 py-1.5 text-sm font-semibold">
-                <Sparkles className="w-3.5 h-3.5 mr-1 inline" /> Intensive Tech Programs
-              </Badge>
-              <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">BreedSkool Tech Training Programs</h2>
-              <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">
-                Industry-focused programs designed to take you from zero to profitable in the digital economy. Taught by practitioners, not just theorists.
-              </p>
-              <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-2 text-sm text-orange-700 font-medium">
-                <MapPin className="w-4 h-4" />
-                Live training at TootoOba Estate, Ijede, Ikorodu Lagos · Also fully online · Home Lessons available
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-              {bsPricing.map((course) => {
-                const Icon = COURSE_ICONS[course.courseKey] || BookOpen;
-                const gradient = COURSE_GRADIENTS[course.courseKey] || "from-gray-600 to-gray-500";
-                const savings = course.regularPrice - course.discountPrice;
-                const savingsPct = Math.round((savings / course.regularPrice) * 100);
-                return (
-                  <div key={course.courseKey} className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden" data-testid={`card-training-${course.courseKey}`}>
-                    <div className={`h-2 bg-gradient-to-r ${gradient}`} />
-                    <div className="p-5">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-3 shadow-sm`}>
-                        <Icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <Badge className={`text-[10px] px-2 py-0.5 ${COURSE_BADGE_COLOR[course.courseKey] || "bg-gray-100 text-gray-600"} border-0`}>{course.duration}</Badge>
-                        <Badge className="bg-red-100 text-red-600 text-[10px] border-0">-{savingsPct}% OFF</Badge>
-                      </div>
-                      <h3 className="font-black text-gray-900 text-sm mb-1 leading-snug">{course.title}</h3>
-                      <p className="text-xs text-gray-500 whitespace-normal break-anywhere mb-4">{course.shortDescription}</p>
-                      <div className="border-t border-gray-100 pt-3">
-                        <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className="text-xs text-gray-400 line-through">{fmtNgn(course.regularPrice)}</span>
-                          <span className="text-xs text-green-600 font-semibold">Save {fmtNgn(savings)}</span>
-                        </div>
-                        <p className="text-xl font-black text-gray-900">{fmtNgn(course.discountPrice)}</p>
-                        <p className="text-xs text-gray-400">≈ {fmtUsd(toUsd(course.discountPrice))} for international students</p>
-                      </div>
-                      <Button onClick={() => openRegModal(course.courseKey === "onsite_training" ? "onsite" : course.courseKey === "home_lesson" ? "home_lesson" : "online")} className={`w-full mt-4 bg-gradient-to-r ${gradient} hover:opacity-90 text-white font-bold rounded-xl text-sm`} data-testid={`btn-enroll-${course.courseKey}`}>
-                        Enroll Now <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Payment methods info */}
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6">
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 mb-1">Flexible Payment Options</h3>
-                  <p className="text-sm text-gray-600">Pay via bank transfer or cryptocurrency. International students can pay the equivalent in USD.</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {Object.entries(ALL_PAYMENT_METHODS).map(([k, v]) => (
-                    <span key={k} className="bg-white rounded-xl px-3 py-2 border border-gray-200 text-gray-600 text-xs font-medium shadow-sm">{v.icon} {v.label}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
+      {/* ── Training registration ── */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-indigo-950 to-gray-950 py-16" id="tech-training">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+        <div className="absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <Badge className="mb-4 border-0 bg-orange-400/15 px-4 py-1.5 text-sm font-semibold text-orange-200">
+            <Sparkles className="mr-1.5 inline h-3.5 w-3.5" /> Start with BreedSkool Foundations
+          </Badge>
+          <h2 className="text-3xl font-black text-white sm:text-4xl">Your next skill starts with one step.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-indigo-100 sm:text-base">
+            Create your learner account and get immediate access to our free online foundations course. You can continue with advanced training whenever you are ready.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-indigo-100">
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">Free online access</span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">Pay by fiat or USDT for advanced courses</span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">Dashboard access after signup</span>
           </div>
-        </section>
-      )}
+          <Button
+            onClick={handleTrainingEntry}
+            size="lg"
+            className="mt-8 rounded-xl bg-white px-8 font-black text-violet-700 shadow-xl hover:bg-indigo-50"
+            data-testid="btn-training-registration"
+          >
+            {isAuthenticated ? "Open my training dashboard" : "Register or sign in to start"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+          <p className="mt-4 text-xs text-indigo-200/80">
+            Existing learners can sign in inside the registration window — no account gets left behind.
+          </p>
+        </div>
+      </section>
 
       {/* ── Why BreedSkool ── */}
       <section className="py-14 bg-gray-950">
@@ -2016,7 +2000,7 @@ export default function BreedSkool() {
       <AdSlot page="breedskool" placementType="banner_bottom" className="w-full" />
       <Footer />
 
-      <RegistrationModal open={showRegModal} onClose={() => setShowRegModal(false)} courses={bsPricing} initialDeliveryMode={regModalMode} />
+      <RegistrationModal open={showRegModal} onClose={() => setShowRegModal(false)} courses={bsPricing} initialDeliveryMode={regModalMode} initialCourseKey={regModalCourseKey} />
     </div>
   );
 }

@@ -6821,19 +6821,29 @@ Instructions:
           .where(eq(breedskoolCoursePricing.courseKey, selectedCourseKey))
           .limit(1);
         const pricing = pricingRows[0];
-        if (pricing?.linkedCourseId) {
-          linkedCourseId = pricing.linkedCourseId;
+        // The free course must remain enrollable even if its admin pricing row
+        // has not been linked yet. The course seed uses this stable tag.
+        let resolvedLinkedCourseId = pricing?.linkedCourseId || null;
+        if (!resolvedLinkedCourseId && selectedCourseKey === 'free_foundations') {
+          const freeCourseRows = await db.select({ id: courses.id })
+            .from(courses)
+            .where(sql`${courses.tags} @> ARRAY['breedskool_free_foundations']::text[]`)
+            .limit(1);
+          resolvedLinkedCourseId = freeCourseRows[0]?.id || null;
+        }
+        if (resolvedLinkedCourseId) {
+          linkedCourseId = resolvedLinkedCourseId;
           // Check not already enrolled
           const alreadyEnrolled = await db.select({ id: courseEnrollments.id })
             .from(courseEnrollments)
             .where(and(
-              eq(courseEnrollments.courseId, linkedCourseId),
+              eq(courseEnrollments.courseId, resolvedLinkedCourseId),
               eq(courseEnrollments.userId, userId!)
             ))
             .limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
-              courseId: linkedCourseId,
+              courseId: resolvedLinkedCourseId,
               userId: userId!,
               // Pay later = free online access immediately; Pay now = pending admin approval
               status: isPayLater ? 'active' : 'pending_payment',
@@ -6846,7 +6856,7 @@ Instructions:
           }
           // Save linkedCourseId back to the registration row
           await db.update(breedskoolRegistrations)
-            .set({ linkedCourseId })
+            .set({ linkedCourseId: resolvedLinkedCourseId })
             .where(eq(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr: any) {
