@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { usePageContent } from "@/hooks/usePageContent";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { RegistrationModal } from "@/pages/breedskool";
 import {
   ArrowRight, BookOpen, Briefcase, Check, CheckCircle2, ChevronRight, Copy,
   HeartHandshake, Laptop, Mail, MapPin, Menu, MessageCircle, Play, Rocket,
@@ -40,14 +41,14 @@ type CampaignConfig = {
 };
 
 const DEFAULT_CONFIG: CampaignConfig = {
-  goalUsd: 25000,
+  goalUsd: 100000,
   raisedUsd: 0,
   supporters: 0,
   studentsTarget: 100,
   studentsTrained: 0,
   studentsEmployed: 0,
   studentsWithoutEquipment: 100,
-  heroImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+  heroImage: "/breedskool-campaign-header.png",
   justGivingUrl: JUST_GIVING_URL,
   telegramUrl: "https://t.me/taskdrip",
   studentWhatsAppUrl: "https://wa.me/2348036622568",
@@ -61,7 +62,7 @@ const classroomImage = "https://images.unsplash.com/photo-1509062522246-37559779
 const equipmentImage = "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=900&q=85&auto=format&fit=crop";
 
 function money(value: number) {
-  return `$${Math.max(0, Number(value || 0)).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  return `£${Math.max(0, Number(value || 0)).toLocaleString("en-GB", { maximumFractionDigits: 0 })}`;
 }
 
 function CampaignButton({ href, children, className = "", external = false, onClick }: {
@@ -187,7 +188,7 @@ function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () 
                 <p className="min-w-0 flex-1 break-all font-mono text-xs text-slate-800">{selectedWallet.address}</p>
                 <button type="button" onClick={copyWallet} className="rounded-lg bg-slate-900 p-2 text-white" aria-label="Copy wallet address">{copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}</button>
               </div>
-              <p className="mt-2 text-xs text-slate-500">Send exactly {money(Number(amount))} USDT, then paste the transaction hash below.</p>
+              <p className="mt-2 text-xs text-slate-500">Send exactly {Number(amount || 0).toLocaleString("en-US")} USDT, then paste the transaction hash below.</p>
             </div>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
@@ -207,6 +208,7 @@ function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () 
 export default function BreedSkoolCampaign() {
   const cms = usePageContent("breedskool_campaign");
   const [donationOpen, setDonationOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
   const [sessionId] = useState(() => {
     const key = "taskdrip-analytics-session";
     const existing = window.localStorage.getItem(key);
@@ -227,6 +229,20 @@ export default function BreedSkoolCampaign() {
     }).catch(() => {});
   }, [sessionId]);
 
+  const { data: pricing = [] } = useQuery<any[]>({ queryKey: ["/api/breedskool/pricing"] });
+  const freeCourseFallback = {
+    id: "free-foundations",
+    courseKey: "free_foundations",
+    title: "BreedSkool Foundations — Learn, Build & Earn",
+    shortDescription: "A free, practical foundation across the digital skills young Africans need to learn, build and earn.",
+    regularPrice: 0,
+    discountPrice: 0,
+    duration: "Self-paced · 14 lessons",
+    isActive: true,
+    acceptedPayments: [],
+  };
+  const freeCourse = pricing.find((course) => course.courseKey === "free_foundations") || freeCourseFallback;
+  const registrationCourses = [freeCourse, ...pricing.filter((course) => course.courseKey !== "free_foundations")];
   return (
     <div className="min-h-screen bg-[#fbfaf8] text-slate-900">
       <NavigationFixed />
@@ -241,7 +257,7 @@ export default function BreedSkoolCampaign() {
               <h1 className="max-w-3xl text-4xl font-black leading-[1.04] tracking-tight text-white sm:text-6xl lg:text-7xl">{cms.get("hero", "title", "Give a Young African a Chance to Build the Future")}</h1>
               <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/75 sm:text-xl">{cms.get("hero", "subtitle", "Talent is everywhere. Opportunity is not. Help us put skills, equipment, mentorship and a real pathway into the hands of young people who are ready to learn.")}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <CampaignButton href="/breedskool" className="bg-amber-400 text-slate-950 hover:bg-amber-300">Join the training <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
+                <CampaignButton onClick={() => setRegistrationOpen(true)} className="bg-amber-400 text-slate-950 hover:bg-amber-300">Start the free course <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
                 <CampaignButton onClick={() => setDonationOpen(true)} className="border border-white/25 bg-white/10 text-white hover:bg-white/20">Support a learner <HeartHandshake className="ml-2 h-4 w-4" /></CampaignButton>
                 <CampaignButton href={config.justGivingUrl || JUST_GIVING_URL} external className="border border-white/25 bg-transparent text-white hover:bg-white/10">Donate on JustGiving <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
               </div>
@@ -252,6 +268,42 @@ export default function BreedSkoolCampaign() {
                 <StatPill icon={HeartHandshake} value={money(config.raisedUsd)} label="raised so far" />
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="border-b border-slate-200 bg-white py-14 sm:py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+              <div>
+                <Badge className="border-0 bg-violet-100 px-3 py-1 text-violet-700">Free for every learner</Badge>
+                <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">Start with the course BreedSkool gives you.</h2>
+                <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600">Register once and get immediate access to a practical 14-lesson foundation. It covers AI, web development, content creation, social media, digital marketing, blockchain safety, entrepreneurship, freelancing and remote work.</p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {["AI tools", "Web development", "Content & social", "Digital marketing", "Crypto safety", "Freelancing"].map((topic) => <span key={topic} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">{topic}</span>)}
+                </div>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <CampaignButton onClick={() => setRegistrationOpen(true)} className="bg-violet-700 text-white hover:bg-violet-800">Get free access <ArrowRight className="ml-2 h-4 w-4" /></CampaignButton>
+                  <CampaignButton href="/breedskool" className="border border-slate-200 bg-white text-slate-900 hover:bg-slate-50">See the full school</CampaignButton>
+                </div>
+              </div>
+              <Card className="overflow-hidden border-violet-100 bg-gradient-to-br from-violet-50 to-amber-50 shadow-xl">
+                <div className="h-40 bg-cover bg-center" style={{ backgroundImage: `url(${config.heroImage})` }} />
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">Featured free course</p><h3 className="mt-2 text-xl font-black text-slate-950">{freeCourse.title}</h3></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">FREE</span></div>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{freeCourse.shortDescription}</p>
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm"><div className="rounded-xl bg-white/80 p-3"><p className="font-black text-slate-950">14</p><p className="text-xs text-slate-500">practical lessons</p></div><div className="rounded-xl bg-white/80 p-3"><p className="font-black text-slate-950">0 cost</p><p className="text-xs text-slate-500">no payment required</p></div></div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { name: "Amina O.", place: "Lagos", quote: "I finally knew what to practise first." },
+                { name: "Kofi B.", place: "Accra", quote: "Every module ends with something real to build." },
+                { name: "Fatima S.", place: "Kano", quote: "Sharing progress made learning less intimidating." },
+                { name: "Mandla P.", place: "Johannesburg", quote: "The free course gave me a clear next step." },
+              ].map((review) => <div key={review.name} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="mb-2 flex gap-0.5">{[1, 2, 3, 4, 5].map((star) => <span key={star} className="text-sm text-amber-500">★</span>)}</div><p className="text-sm italic leading-relaxed text-slate-600">“{review.quote}”</p><p className="mt-3 text-xs font-black text-slate-900">{review.name} <span className="font-medium text-slate-500">· {review.place}</span></p></div>)}
+            </div>
+            <p className="mt-4 text-center text-[11px] text-slate-400">Demo learner profiles and illustrative voices shown for the campaign preview; verified reviews and approved photos will replace them as cohorts consent.</p>
           </div>
         </section>
 
@@ -354,6 +406,7 @@ export default function BreedSkoolCampaign() {
       </main>
       <Footer />
       <DonationDialog open={donationOpen} onClose={() => setDonationOpen(false)} config={config} />
+      <RegistrationModal open={registrationOpen} onClose={() => setRegistrationOpen(false)} courses={registrationCourses} initialDeliveryMode="online" initialCourseKey="free_foundations" />
     </div>
   );
 }

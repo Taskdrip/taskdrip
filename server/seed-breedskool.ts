@@ -95,7 +95,7 @@ const BREEDSKOOL_COURSES = [
     courseKey: "free_foundations",
     title: "BreedSkool Foundations — Learn, Build & Earn",
     shortDescription:
-      "A free, comprehensive starting point for digital skills, confidence, and online opportunity.",
+      "A free, practical foundation across AI, web development, content, marketing, crypto safety, entrepreneurship and remote work.",
     regularPrice: 0,
     discountPrice: 0,
     duration: "Self-paced",

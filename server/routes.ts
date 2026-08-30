@@ -7143,14 +7143,16 @@ Instructions:
   // Public campaign settings are kept in app_settings so the campaign can be
   // edited without introducing a second donation-specific schema.
   const DEFAULT_BREEDSKOOL_CAMPAIGN = {
-    goalUsd: 25000,
+    // Kept as goalUsd for backwards compatibility with saved app settings;
+    // campaign copy and admin labels present this target in GBP.
+    goalUsd: 100000,
     raisedUsd: 0,
     supporters: 0,
     studentsTarget: 100,
     studentsTrained: 0,
     studentsEmployed: 0,
     studentsWithoutEquipment: 100,
-    heroImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+    heroImage: "/breedskool-campaign-header.png",
     justGivingUrl: "https://www.justgiving.com/crowdfunding/breedskool",
     telegramUrl: "https://t.me/taskdrip",
     studentWhatsAppUrl: "https://wa.me/2348036622568",

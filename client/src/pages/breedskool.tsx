@@ -119,6 +119,34 @@ const LEARNER_STORIES = [
     quote: "I joined for the free foundations course and found a clear path into deeper training. The first lesson gave me a useful place to begin.",
     image: "https://images.unsplash.com/photo-1504593811423-6dd665756598?w=160&h=160&fit=crop&crop=face",
   },
+  {
+    name: "Sade T.",
+    location: "Abeokuta, Nigeria",
+    role: "Marketing learner",
+    quote: "The audience and offer exercises helped me turn an idea into something I could explain clearly to a real customer.",
+    image: "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Kwame R.",
+    location: "Kumasi, Ghana",
+    role: "Freelancing learner",
+    quote: "I learned that a portfolio can start with practice work. That gave me the confidence to create my first service profile.",
+    image: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Lerato K.",
+    location: "Gaborone, Botswana",
+    role: "AI tools learner",
+    quote: "The prompt structure made AI feel less mysterious. I can now ask better questions and check the answers before using them.",
+    image: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=160&h=160&fit=crop&crop=face",
+  },
+  {
+    name: "Yusuf M.",
+    location: "Kaduna, Nigeria",
+    role: "Digital skills learner",
+    quote: "The 30-day plan helped me keep learning even with limited time and a phone. Small progress now feels like progress I can build on.",
+    image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&h=160&fit=crop&crop=face",
+  },
 ];
 
 const FUNDRAISING_MILESTONES = [
@@ -339,14 +367,16 @@ function PasswordInput({ value, onChange, placeholder, id, testId }: { value: st
 }
 
 // ── Registration Modal ─────────────────────────────────────────────────────────
-export function RegistrationModal({ open, onClose, courses: rawCourses, initialDeliveryMode = "online" }: {
+export function RegistrationModal({ open, onClose, courses: rawCourses, initialDeliveryMode = "online", initialCourseKey }: {
   open: boolean;
   onClose: () => void;
   courses: BsCoursePricing[];
   initialDeliveryMode?: "online" | "onsite" | "home_lesson";
+  initialCourseKey?: string;
 }) {
   // Use admin-configured courses if available, otherwise fall back to defaults
   const courses = rawCourses.length > 0 ? rawCourses : DEFAULT_COURSES;
+  const initialCourse = initialCourseKey ? courses.find(course => course.courseKey === initialCourseKey) : undefined;
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -377,10 +407,19 @@ export function RegistrationModal({ open, onClose, courses: rawCourses, initialD
   // Pre-select delivery mode whenever the modal opens with a different mode
   useEffect(() => {
     if (open) {
-      setForm(f => ({ ...f, deliveryMode: initialDeliveryMode }));
+      setForm(f => ({
+        ...f,
+        deliveryMode: initialDeliveryMode,
+        ...(initialCourse ? {
+          selectedCourseKey: initialCourse.courseKey,
+          selectedCourseTitle: initialCourse.title,
+          amountNgn: initialCourse.discountPrice,
+          paymentOption: initialCourse.discountPrice === 0 ? "pay_later" : f.paymentOption,
+        } : {}),
+      }));
       setStep(1);
     }
-  }, [open, initialDeliveryMode]);
+  }, [open, initialDeliveryMode, initialCourseKey, initialCourse?.id, initialCourse?.title, initialCourse?.discountPrice]);
 
   // Keep the student on a clear confirmation state long enough to read the
   // thank-you message, then take them to the learning dashboard — never back
@@ -481,8 +520,10 @@ export function RegistrationModal({ open, onClose, courses: rawCourses, initialD
       if (!form.password || form.password.length < 6) return toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
       if (form.password !== form.confirmPassword) return toast({ title: "Passwords don't match", description: "Please make sure both passwords match.", variant: "destructive" });
       // Skip step 3 for onsite/home_lesson — course already auto-selected in step 1
-      if (form.deliveryMode !== "online") {
+       if (form.deliveryMode !== "online") {
         setStep(4);
+       } else if (initialCourseKey && form.selectedCourseKey === initialCourseKey) {
+         setStep(4);
       } else {
         setStep(3);
       }

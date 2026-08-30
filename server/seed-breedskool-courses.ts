@@ -178,29 +178,40 @@ const BREEDSKOOL_PLATFORM_COURSES = [
   {
     courseKey: "free_foundations",
     title: "BreedSkool Foundations — Learn, Build & Earn",
-    description: "A practical, beginner-friendly introduction to digital skills, online safety, content creation, AI tools, web basics, personal branding, and the first steps to earning online. Learn at your own pace, practise with small projects, and get feedback from the BreedSkool community.",
-    shortDescription: "A free, comprehensive starting point for digital skills, confidence, and online opportunity.",
+    description: "A practical, beginner-friendly digital opportunity course covering AI, web development, content, social media, marketing, blockchain safety, entrepreneurship, freelancing, remote work, and emerging technology. Every module ends with a small project learners can practise with a phone or computer and share with the BreedSkool community.",
+    shortDescription: "A free, practical foundation across the digital skills young Africans need to learn, build and earn.",
     category: "general",
     level: "beginner",
     duration: "Self-paced",
     price: "0.00",
     tags: ["breedskool_free_foundations", "free", "foundations", "digital skills", "breedskool"],
-    whatYouLearn: ["Digital confidence and online safety", "AI tools and responsible prompting", "Web and content creation basics", "Personal branding and portfolio building", "Finding your first practical opportunity"],
+    whatYouLearn: ["Digital skills, online safety and productive workflows", "AI tools, prompting and responsible use", "Web development and no-code project basics", "Content creation, social media management and digital marketing", "Blockchain, crypto and airdrop safety", "Entrepreneurship, freelancing and remote work", "Emerging technologies, portfolio building and next steps"],
     requirements: ["A smartphone or laptop", "A willingness to practise", "No previous experience required"],
     syllabus: [
-      { week: "Module 1", topic: "Your digital learning setup & online safety" },
-      { week: "Module 2", topic: "AI tools, prompts & responsible use" },
-      { week: "Module 3", topic: "Web, content & communication basics" },
-      { week: "Module 4", topic: "Personal brand, portfolio & opportunity map" },
-      { week: "Module 5", topic: "Your 30-day build-and-share challenge" },
+      { week: "Module 1", topic: "Digital confidence, devices and online safety" },
+      { week: "Module 2", topic: "AI tools, prompting and responsible use" },
+      { week: "Module 3", topic: "Web development and digital product basics" },
+      { week: "Module 4", topic: "Content creation and social media management" },
+      { week: "Module 5", topic: "Digital marketing and audience growth" },
+      { week: "Module 6", topic: "Blockchain, crypto and airdrop safety" },
+      { week: "Module 7", topic: "Entrepreneurship, freelancing and remote work" },
+      { week: "Module 8", topic: "Portfolio, emerging tech and a 30-day launch plan" },
     ],
     lessons: [
-      { title: "Welcome to BreedSkool — Start Here", content: "Welcome to BreedSkool Foundations!\n\nIn this course you will build confidence with digital tools, create your first small project, and meet learners who are on the same journey.\n\nStart by introducing yourself in the community: tell us your name, location, what you want to learn, and one thing you hope to build.", isPreview: true, order: 1 },
-      { title: "Digital Confidence & Online Safety", content: "Learn the basics that keep you safe and effective online:\n• Strong passwords and account protection\n• Recognising scams and suspicious links\n• Protecting personal information\n• Organising files and backing up your work\n• Communicating respectfully in online communities\n\nPractice: create a simple folder system for your learning projects.", isPreview: false, order: 2 },
-      { title: "AI Tools & Better Prompts", content: "AI is a tool, not a replacement for your judgement. Practise:\n• Writing clear prompts with context and a desired format\n• Checking AI answers before using them\n• Brainstorming ideas, outlines, captions and study plans\n• Using AI to learn, not to misrepresent someone else's work\n\nPractice: ask an AI tool for three project ideas, then choose one and explain why.", isPreview: false, order: 3 },
-      { title: "The Web, Content & Communication Basics", content: "Understand how digital work is made and shared:\n• What a website, social profile and digital asset are\n• Simple HTML concepts and visual hierarchy\n• Writing a clear caption, profile bio and call to action\n• Choosing one platform to practise consistently\n\nPractice: publish a one-page introduction or a draft creator profile.", isPreview: false, order: 4 },
-      { title: "Build Your Personal Brand & Portfolio", content: "Your portfolio is evidence of what you can do. Learn:\n• Choosing a useful niche and audience\n• Showing process, not just finished work\n• Turning one project into a case study\n• Asking for feedback and improving your next version\n\nPractice: write a short bio and add your first project to your portfolio checklist.", isPreview: false, order: 5 },
-      { title: "Your 30-Day Build & Share Challenge", content: "Create a simple 30-day plan:\n• Pick one skill and one small project\n• Schedule three practice sessions each week\n• Share progress in the in-app community\n• Ask one specific question when you are stuck\n• Review your progress every Sunday\n\nFinish by posting your plan in the group chat and joining the Telegram community for accountability.", isPreview: false, order: 6 },
+      { title: "Welcome to BreedSkool — Start Here", content: "Welcome to BreedSkool Foundations, a free starting point for learning, building and finding opportunity.\n\nWHAT YOU WILL DO\n• Choose one digital direction to explore\n• Build small proof-of-work projects\n• Learn how to ask for feedback and improve\n• Meet other learners in the in-app community\n\nSETUP CHECKLIST\n1. Create a folder called BreedSkool and subfolders for Notes, Projects and Portfolio.\n2. Save your login details safely; never share a password in the community.\n3. Introduce yourself in the community with your name, location, current device and one thing you hope to build.\n\nPractice: write a one-sentence learning goal using this format: “In the next 30 days I will learn ___ and build ___ for ___.”", isPreview: true, order: 1 },
+      { title: "Digital Skills, Productivity & Online Safety", content: "Digital confidence starts with everyday habits. Learn how to search effectively, download and name files, use cloud storage, communicate clearly, and keep your accounts safe.\n\nKEY IDEAS\n• Use a unique passphrase and two-step verification where available.\n• Check the sender, domain and urgency of unexpected messages.\n• Never send an OTP, recovery code, wallet seed phrase or password to anyone.\n• Keep personal and public information separate.\n• Back up important work in two places.\n\nPractice: make a “safe or suspicious?” checklist for three messages you receive, then organise your BreedSkool folder and create a backup.", isPreview: false, order: 2 },
+      { title: "AI Tools & Better Prompts", content: "AI can help you research, learn, plan, write and prototype, but you remain responsible for the result.\n\nPROMPT FORMULA\nRole + task + context + constraints + output format. Example: “Act as a patient web tutor. Explain HTML forms to a beginner using a market-stall analogy, then give me three practice questions.”\n\nWORKFLOW\n1. Ask for a first draft.\n2. Check facts, bias, copyright and private information.\n3. Improve the prompt with your feedback.\n4. Add your own judgement and voice.\n\nPractice: ask an AI tool for three local problems that technology could help solve. Choose one, verify the idea with a person you know, and write a five-line solution brief.", isPreview: false, order: 3 },
+      { title: "Web Development & Digital Product Basics", content: "Web development turns an idea into something people can use. Learn the roles of HTML (structure), CSS (presentation) and JavaScript (behaviour), plus how no-code and AI-assisted tools can help you prototype faster.\n\nBUILDING BLOCKS\n• A page needs a clear audience, purpose and call to action.\n• Good layouts work on phones first.\n• Forms should ask only for information they genuinely need.\n• Test links, spelling, contrast and loading on a real phone.\n\nPractice: create a one-page profile or community noticeboard using HTML/CSS, a no-code builder or an AI coding tool. Include a heading, short bio, one image, three useful links and a contact action.", isPreview: false, order: 4 },
+      { title: "Content Creation: Ideas, Storytelling & Editing", content: "Content creation is the skill of turning an idea into a useful, watchable or shareable story.\n\nCONTENT LOOP\nAudience problem → strong hook → one clear message → proof/example → call to action.\n\nExplore short video, graphics, writing, audio and mobile editing. Use your own photos, licensed assets or clearly credited sources. Plan a shot list before recording and remove unnecessary pauses when editing.\n\nPractice: create a 30–60 second educational video or a five-slide carousel teaching one useful skill. Write the caption, add accessible text, and ask one community member for feedback.", isPreview: false, order: 5 },
+      { title: "Social Media Management & Community", content: "Managing social channels means serving an audience consistently, not simply posting frequently.\n\nLEARN TO\n• Choose one audience and one primary platform.\n• Build three content pillars: teach, show the process, and invite conversation.\n• Use a simple weekly calendar with post goal, format, caption and status.\n• Reply respectfully, escalate safety issues and never buy fake engagement.\n• Read saves, replies, watch time and profile visits instead of chasing vanity numbers.\n\nPractice: plan seven posts for a local business, creator or cause. Include two educational posts, two proof posts, one story, one community question and one offer.", isPreview: false, order: 6 },
+      { title: "Digital Marketing & Finding an Audience", content: "Digital marketing connects a useful offer with the people who need it. Learn the customer journey: awareness, interest, trust, action and retention.\n\nTOOLS\n• Define a specific audience and problem.\n• Write a simple value proposition: “I help ___ achieve ___ without ___.”\n• Use search-friendly words in titles and descriptions.\n• Build a basic landing page or WhatsApp enquiry flow.\n• Test one change at a time and track enquiries, not just likes.\n\nPractice: create a one-page campaign for a real or imaginary local service. Write the audience, promise, three content ideas, call to action and two measures of success.", isPreview: false, order: 7 },
+      { title: "Blockchain, Crypto & Airdrop Safety", content: "Blockchain is a shared record system used for digital assets and applications. Crypto can be useful, but it is also volatile and full of scams. This lesson is education, not financial advice.\n\nUNDERSTAND\n• Wallet addresses are public; seed phrases and private keys are secret.\n• A token’s price, utility and legitimacy are different questions.\n• Airdrops may reward genuine participation, but fake links often ask for approvals or wallet access.\n• No legitimate support person needs your seed phrase or asks you to send funds to “unlock” a reward.\n• Use official project channels, verify domains character by character, and test with a small amount only when you understand the risk.\n\nPractice: write a scam-check procedure with five checks. Do not connect a wallet or send money for this exercise.", isPreview: false, order: 8 },
+      { title: "Entrepreneurship: From Problem to Small Venture", content: "Entrepreneurship begins with a problem worth solving, not a logo. Learn to observe a need, talk to potential users, define a small offer and test demand before spending heavily.\n\nONE-PAGE PLAN\nProblem → audience → promise → solution → delivery method → price or funding → next experiment.\n\nConsider local services, digital products, creator businesses and technology-enabled community solutions. Start narrow, deliver well and document what you learn.\n\nPractice: interview two people about a problem they face. Turn the answers into a one-page venture brief and identify the cheapest experiment you can run this week.", isPreview: false, order: 9 },
+      { title: "Freelancing & Remote Work Fundamentals", content: "Freelancing is a professional service, not a shortcut. Learn how to choose a service, show evidence, write a clear proposal, set boundaries, communicate across time zones and deliver on time.\n\nA GOOD PROFILE SHOWS\n• Who you help and what outcome you create.\n• Three proof items, even if they are practice projects.\n• Your process, timeline, inclusions and revision policy.\n• A safe payment and communication process; avoid jobs that demand fees, credentials or unpaid sensitive work.\n\nPractice: create a freelancer profile for one service, write a proposal for a fictional brief, and make a delivery checklist with milestones.", isPreview: false, order: 10 },
+      { title: "Remote Collaboration, Client Care & Digital Workflows", content: "Reliable remote workers make progress visible. Practise writing concise updates, recording decisions, naming files, using task boards and requesting feedback early.\n\nCLIENT UPDATE TEMPLATE\nDone: ___\nNext: ___\nBlocked by: ___\nDecision needed by: ___\n\nLearn the difference between urgent and important work, how to estimate a task, and why a short written brief prevents rework. Protect client data and ask permission before sharing work publicly.\n\nPractice: take your project from lesson 4, create a three-step task board, write a client brief and send a sample progress update.", isPreview: false, order: 11 },
+      { title: "Emerging Technologies & Choosing Your Direction", content: "Technology changes quickly. Explore responsible uses of cloud tools, automation, data, cybersecurity, extended reality, robotics and AI agents without feeling pressure to master everything at once.\n\nA SMART LEARNING CHOICE\n• Pick one direction that matches your curiosity and the problems around you.\n• Learn the fundamentals before chasing trends.\n• Follow trusted documentation and communities.\n• Build a small project every time you learn a concept.\n• Consider access, privacy, inclusion and environmental impact.\n\nPractice: compare two emerging technologies in a one-page “what it is / who it helps / risks / first project” note, then choose one to explore next.", isPreview: false, order: 12 },
+      { title: "Personal Brand, Portfolio & Proof of Work", content: "Your portfolio helps another person understand what you can do. It can be a simple web page, document or organised folder.\n\nEACH CASE STUDY SHOULD INCLUDE\nContext: what was the challenge?\nRole: what did you do?\nProcess: what decisions did you make?\nResult: what changed or what did you learn?\nNext: what would you improve?\n\nUse a clear bio, professional contact method and consistent name. Never claim a client result you cannot prove.\n\nPractice: turn one course project into a case study with an image, a short explanation and a link or sample. Share it in the in-app community for feedback.", isPreview: false, order: 13 },
+      { title: "Your 30-Day Build, Share & Opportunity Plan", content: "Bring the course together with a realistic 30-day plan.\n\nWEEK 1: Choose one direction, finish your safety setup and study three times.\nWEEK 2: Build version one of a small project and ask for feedback.\nWEEK 3: Improve the project, publish your case study and practise your offer.\nWEEK 4: Contact three safe opportunities, mentors or collaborators and review your results.\n\nTRACK: hours practised, project milestones, feedback received, applications or conversations, and the next skill to learn. Join the in-app community and Telegram for accountability, but keep your personal and wallet information private.\n\nFinal practice: post your 30-day plan, project link or screenshots, and one specific question. Celebrate finishing — then choose a next BreedSkool course or a real-world project.", isPreview: false, order: 14 },
     ],
   },
 
@@ -349,6 +360,22 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
 
       if (existing.length > 0) {
         courseId = existing[0].id;
+        if (course.courseKey === "free_foundations") {
+          await db.update(courses)
+            .set({
+              title: course.title,
+              description: course.description,
+              shortDescription: course.shortDescription,
+              isFree: true,
+              isPublished: true,
+              status: "published",
+              duration: course.duration,
+              whatYouLearn: course.whatYouLearn,
+              requirements: course.requirements,
+              syllabus: course.syllabus as any,
+            } as any)
+            .where(eq(courses.id, courseId));
+        }
       } else {
         const [newCourse] = await db.insert(courses).values({
           title: course.title,
@@ -373,10 +400,10 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
       }
 
       // Seed lessons for this course (idempotent — skip if already exist)
-      const existingLessons = await db.select({ id: courseLessons.id })
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order })
         .from(courseLessons)
         .where(eq(courseLessons.courseId, courseId))
-        .limit(1);
+        .orderBy(courseLessons.order);
 
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
@@ -389,6 +416,34 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
           } as any);
         }
         // Update the denormalized lessons_count on the course record
+        await db.execute(
+          sql`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
+        );
+      } else if (course.courseKey === "free_foundations" && course.lessons?.length) {
+        // The free foundations course is part of the public campaign promise.
+        // Keep its seeded curriculum in sync while leaving admin-authored
+        // lessons for every other BreedSkool course untouched.
+        for (const lesson of course.lessons) {
+          const existingLesson = existingLessons.find((item) => item.order === lesson.order);
+          if (existingLesson) {
+            await db.update(courseLessons)
+              .set({
+                title: lesson.title,
+                content: lesson.content,
+                isPreview: lesson.isPreview,
+                order: lesson.order,
+              } as any)
+              .where(eq(courseLessons.id, existingLesson.id));
+          } else {
+            await db.insert(courseLessons).values({
+              courseId,
+              title: lesson.title,
+              content: lesson.content,
+              isPreview: lesson.isPreview,
+              order: lesson.order,
+            } as any);
+          }
+        }
         await db.execute(
           sql`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );

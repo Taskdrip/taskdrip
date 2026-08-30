@@ -3649,6 +3649,20 @@ async function seedBreedskoolCourses(adminId) {
       let courseId;
       if (existing.length > 0) {
         courseId = existing[0].id;
+        if (course.courseKey === "free_foundations") {
+          await db.update(courses).set({
+            title: course.title,
+            description: course.description,
+            shortDescription: course.shortDescription,
+            isFree: true,
+            isPublished: true,
+            status: "published",
+            duration: course.duration,
+            whatYouLearn: course.whatYouLearn,
+            requirements: course.requirements,
+            syllabus: course.syllabus
+          }).where(eq9(courses.id, courseId));
+        }
       } else {
         const [newCourse] = await db.insert(courses).values({
           title: course.title,
@@ -3657,7 +3671,7 @@ async function seedBreedskoolCourses(adminId) {
           category: course.category,
           instructorId: adminId,
           price: course.price,
-          isFree: false,
+          isFree: course.courseKey === "free_foundations",
           level: course.level,
           duration: course.duration,
           status: "published",
@@ -3671,7 +3685,7 @@ async function seedBreedskoolCourses(adminId) {
         courseId = newCourse.id;
         created++;
       }
-      const existingLessons = await db.select({ id: courseLessons.id }).from(courseLessons).where(eq9(courseLessons.courseId, courseId)).limit(1);
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq9(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
           await db.insert(courseLessons).values({
@@ -3681,6 +3695,29 @@ async function seedBreedskoolCourses(adminId) {
             isPreview: lesson.isPreview,
             order: lesson.order
           });
+        }
+        await db.execute(
+          sql7`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
+        );
+      } else if (course.courseKey === "free_foundations" && course.lessons?.length) {
+        for (const lesson of course.lessons) {
+          const existingLesson = existingLessons.find((item) => item.order === lesson.order);
+          if (existingLesson) {
+            await db.update(courseLessons).set({
+              title: lesson.title,
+              content: lesson.content,
+              isPreview: lesson.isPreview,
+              order: lesson.order
+            }).where(eq9(courseLessons.id, existingLesson.id));
+          } else {
+            await db.insert(courseLessons).values({
+              courseId,
+              title: lesson.title,
+              content: lesson.content,
+              isPreview: lesson.isPreview,
+              order: lesson.order
+            });
+          }
         }
         await db.execute(
           sql7`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
@@ -3869,6 +3906,46 @@ var init_seed_breedskool_courses = __esm({
           { title: "Week 2\u20133 \u2014 Core Skills Intensive", content: "Classroom sessions this week focus on:\n\u2022 CSS layouts with Flexbox and Grid\n\u2022 JavaScript fundamentals\n\u2022 Debugging techniques\n\u2022 Peer code reviews \u2014 learn from each other\n\u2022 Mini hackathon: build a landing page in 2 hours!\n\n\u{1F4DD} Weekly project: Submit your mini landing page to the group chat for feedback from the tutor.", isPreview: false, order: 3 },
           { title: "Week 4\u20135 \u2014 Group Projects & Collaboration", content: "You'll be assigned to project teams this week!\n\u2022 Teams of 2\u20133 students build a real web application together\n\u2022 Daily standups in class (just like a real tech company)\n\u2022 Tutor mentorship sessions (30 mins per team)\n\u2022 Version control workflow (branches, pull requests, reviews)\n\n\u{1F91D} Use the group chat to coordinate with your teammates outside class hours!", isPreview: false, order: 4 },
           { title: "Week 6\u20138 \u2014 Portfolio Building & Graduation", content: "Final stretch \u2014 get job/client ready:\n\u2022 Build your personal portfolio website\n\u2022 Write your developer bio and case studies\n\u2022 LinkedIn and GitHub profile optimization\n\u2022 Job search / freelancing strategies for Nigerian developers\n\u2022 Graduation ceremony \u2014 present your project to the class!\n\n\u{1F393} After graduation you receive your BreedSkool certificate and lifelong access to this course hub and the alumni group chat.", isPreview: false, order: 5 }
+        ]
+      },
+      // ── FREE COMMUNITY FOUNDATIONS ─────────────────────────────────────────────
+      {
+        courseKey: "free_foundations",
+        title: "BreedSkool Foundations \u2014 Learn, Build & Earn",
+        description: "A practical, beginner-friendly digital opportunity course covering AI, web development, content, social media, marketing, blockchain safety, entrepreneurship, freelancing, remote work, and emerging technology. Every module ends with a small project learners can practise with a phone or computer and share with the BreedSkool community.",
+        shortDescription: "A free, practical foundation across the digital skills young Africans need to learn, build and earn.",
+        category: "general",
+        level: "beginner",
+        duration: "Self-paced",
+        price: "0.00",
+        tags: ["breedskool_free_foundations", "free", "foundations", "digital skills", "breedskool"],
+        whatYouLearn: ["Digital skills, online safety and productive workflows", "AI tools, prompting and responsible use", "Web development and no-code project basics", "Content creation, social media management and digital marketing", "Blockchain, crypto and airdrop safety", "Entrepreneurship, freelancing and remote work", "Emerging technologies, portfolio building and next steps"],
+        requirements: ["A smartphone or laptop", "A willingness to practise", "No previous experience required"],
+        syllabus: [
+          { week: "Module 1", topic: "Digital confidence, devices and online safety" },
+          { week: "Module 2", topic: "AI tools, prompting and responsible use" },
+          { week: "Module 3", topic: "Web development and digital product basics" },
+          { week: "Module 4", topic: "Content creation and social media management" },
+          { week: "Module 5", topic: "Digital marketing and audience growth" },
+          { week: "Module 6", topic: "Blockchain, crypto and airdrop safety" },
+          { week: "Module 7", topic: "Entrepreneurship, freelancing and remote work" },
+          { week: "Module 8", topic: "Portfolio, emerging tech and a 30-day launch plan" }
+        ],
+        lessons: [
+          { title: "Welcome to BreedSkool \u2014 Start Here", content: "Welcome to BreedSkool Foundations, a free starting point for learning, building and finding opportunity.\n\nWHAT YOU WILL DO\n\u2022 Choose one digital direction to explore\n\u2022 Build small proof-of-work projects\n\u2022 Learn how to ask for feedback and improve\n\u2022 Meet other learners in the in-app community\n\nSETUP CHECKLIST\n1. Create a folder called BreedSkool and subfolders for Notes, Projects and Portfolio.\n2. Save your login details safely; never share a password in the community.\n3. Introduce yourself in the community with your name, location, current device and one thing you hope to build.\n\nPractice: write a one-sentence learning goal using this format: \u201CIn the next 30 days I will learn ___ and build ___ for ___.\u201D", isPreview: true, order: 1 },
+          { title: "Digital Skills, Productivity & Online Safety", content: "Digital confidence starts with everyday habits. Learn how to search effectively, download and name files, use cloud storage, communicate clearly, and keep your accounts safe.\n\nKEY IDEAS\n\u2022 Use a unique passphrase and two-step verification where available.\n\u2022 Check the sender, domain and urgency of unexpected messages.\n\u2022 Never send an OTP, recovery code, wallet seed phrase or password to anyone.\n\u2022 Keep personal and public information separate.\n\u2022 Back up important work in two places.\n\nPractice: make a \u201Csafe or suspicious?\u201D checklist for three messages you receive, then organise your BreedSkool folder and create a backup.", isPreview: false, order: 2 },
+          { title: "AI Tools & Better Prompts", content: "AI can help you research, learn, plan, write and prototype, but you remain responsible for the result.\n\nPROMPT FORMULA\nRole + task + context + constraints + output format. Example: \u201CAct as a patient web tutor. Explain HTML forms to a beginner using a market-stall analogy, then give me three practice questions.\u201D\n\nWORKFLOW\n1. Ask for a first draft.\n2. Check facts, bias, copyright and private information.\n3. Improve the prompt with your feedback.\n4. Add your own judgement and voice.\n\nPractice: ask an AI tool for three local problems that technology could help solve. Choose one, verify the idea with a person you know, and write a five-line solution brief.", isPreview: false, order: 3 },
+          { title: "Web Development & Digital Product Basics", content: "Web development turns an idea into something people can use. Learn the roles of HTML (structure), CSS (presentation) and JavaScript (behaviour), plus how no-code and AI-assisted tools can help you prototype faster.\n\nBUILDING BLOCKS\n\u2022 A page needs a clear audience, purpose and call to action.\n\u2022 Good layouts work on phones first.\n\u2022 Forms should ask only for information they genuinely need.\n\u2022 Test links, spelling, contrast and loading on a real phone.\n\nPractice: create a one-page profile or community noticeboard using HTML/CSS, a no-code builder or an AI coding tool. Include a heading, short bio, one image, three useful links and a contact action.", isPreview: false, order: 4 },
+          { title: "Content Creation: Ideas, Storytelling & Editing", content: "Content creation is the skill of turning an idea into a useful, watchable or shareable story.\n\nCONTENT LOOP\nAudience problem \u2192 strong hook \u2192 one clear message \u2192 proof/example \u2192 call to action.\n\nExplore short video, graphics, writing, audio and mobile editing. Use your own photos, licensed assets or clearly credited sources. Plan a shot list before recording and remove unnecessary pauses when editing.\n\nPractice: create a 30\u201360 second educational video or a five-slide carousel teaching one useful skill. Write the caption, add accessible text, and ask one community member for feedback.", isPreview: false, order: 5 },
+          { title: "Social Media Management & Community", content: "Managing social channels means serving an audience consistently, not simply posting frequently.\n\nLEARN TO\n\u2022 Choose one audience and one primary platform.\n\u2022 Build three content pillars: teach, show the process, and invite conversation.\n\u2022 Use a simple weekly calendar with post goal, format, caption and status.\n\u2022 Reply respectfully, escalate safety issues and never buy fake engagement.\n\u2022 Read saves, replies, watch time and profile visits instead of chasing vanity numbers.\n\nPractice: plan seven posts for a local business, creator or cause. Include two educational posts, two proof posts, one story, one community question and one offer.", isPreview: false, order: 6 },
+          { title: "Digital Marketing & Finding an Audience", content: "Digital marketing connects a useful offer with the people who need it. Learn the customer journey: awareness, interest, trust, action and retention.\n\nTOOLS\n\u2022 Define a specific audience and problem.\n\u2022 Write a simple value proposition: \u201CI help ___ achieve ___ without ___.\u201D\n\u2022 Use search-friendly words in titles and descriptions.\n\u2022 Build a basic landing page or WhatsApp enquiry flow.\n\u2022 Test one change at a time and track enquiries, not just likes.\n\nPractice: create a one-page campaign for a real or imaginary local service. Write the audience, promise, three content ideas, call to action and two measures of success.", isPreview: false, order: 7 },
+          { title: "Blockchain, Crypto & Airdrop Safety", content: "Blockchain is a shared record system used for digital assets and applications. Crypto can be useful, but it is also volatile and full of scams. This lesson is education, not financial advice.\n\nUNDERSTAND\n\u2022 Wallet addresses are public; seed phrases and private keys are secret.\n\u2022 A token\u2019s price, utility and legitimacy are different questions.\n\u2022 Airdrops may reward genuine participation, but fake links often ask for approvals or wallet access.\n\u2022 No legitimate support person needs your seed phrase or asks you to send funds to \u201Cunlock\u201D a reward.\n\u2022 Use official project channels, verify domains character by character, and test with a small amount only when you understand the risk.\n\nPractice: write a scam-check procedure with five checks. Do not connect a wallet or send money for this exercise.", isPreview: false, order: 8 },
+          { title: "Entrepreneurship: From Problem to Small Venture", content: "Entrepreneurship begins with a problem worth solving, not a logo. Learn to observe a need, talk to potential users, define a small offer and test demand before spending heavily.\n\nONE-PAGE PLAN\nProblem \u2192 audience \u2192 promise \u2192 solution \u2192 delivery method \u2192 price or funding \u2192 next experiment.\n\nConsider local services, digital products, creator businesses and technology-enabled community solutions. Start narrow, deliver well and document what you learn.\n\nPractice: interview two people about a problem they face. Turn the answers into a one-page venture brief and identify the cheapest experiment you can run this week.", isPreview: false, order: 9 },
+          { title: "Freelancing & Remote Work Fundamentals", content: "Freelancing is a professional service, not a shortcut. Learn how to choose a service, show evidence, write a clear proposal, set boundaries, communicate across time zones and deliver on time.\n\nA GOOD PROFILE SHOWS\n\u2022 Who you help and what outcome you create.\n\u2022 Three proof items, even if they are practice projects.\n\u2022 Your process, timeline, inclusions and revision policy.\n\u2022 A safe payment and communication process; avoid jobs that demand fees, credentials or unpaid sensitive work.\n\nPractice: create a freelancer profile for one service, write a proposal for a fictional brief, and make a delivery checklist with milestones.", isPreview: false, order: 10 },
+          { title: "Remote Collaboration, Client Care & Digital Workflows", content: "Reliable remote workers make progress visible. Practise writing concise updates, recording decisions, naming files, using task boards and requesting feedback early.\n\nCLIENT UPDATE TEMPLATE\nDone: ___\nNext: ___\nBlocked by: ___\nDecision needed by: ___\n\nLearn the difference between urgent and important work, how to estimate a task, and why a short written brief prevents rework. Protect client data and ask permission before sharing work publicly.\n\nPractice: take your project from lesson 4, create a three-step task board, write a client brief and send a sample progress update.", isPreview: false, order: 11 },
+          { title: "Emerging Technologies & Choosing Your Direction", content: "Technology changes quickly. Explore responsible uses of cloud tools, automation, data, cybersecurity, extended reality, robotics and AI agents without feeling pressure to master everything at once.\n\nA SMART LEARNING CHOICE\n\u2022 Pick one direction that matches your curiosity and the problems around you.\n\u2022 Learn the fundamentals before chasing trends.\n\u2022 Follow trusted documentation and communities.\n\u2022 Build a small project every time you learn a concept.\n\u2022 Consider access, privacy, inclusion and environmental impact.\n\nPractice: compare two emerging technologies in a one-page \u201Cwhat it is / who it helps / risks / first project\u201D note, then choose one to explore next.", isPreview: false, order: 12 },
+          { title: "Personal Brand, Portfolio & Proof of Work", content: "Your portfolio helps another person understand what you can do. It can be a simple web page, document or organised folder.\n\nEACH CASE STUDY SHOULD INCLUDE\nContext: what was the challenge?\nRole: what did you do?\nProcess: what decisions did you make?\nResult: what changed or what did you learn?\nNext: what would you improve?\n\nUse a clear bio, professional contact method and consistent name. Never claim a client result you cannot prove.\n\nPractice: turn one course project into a case study with an image, a short explanation and a link or sample. Share it in the in-app community for feedback.", isPreview: false, order: 13 },
+          { title: "Your 30-Day Build, Share & Opportunity Plan", content: "Bring the course together with a realistic 30-day plan.\n\nWEEK 1: Choose one direction, finish your safety setup and study three times.\nWEEK 2: Build version one of a small project and ask for feedback.\nWEEK 3: Improve the project, publish your case study and practise your offer.\nWEEK 4: Contact three safe opportunities, mentors or collaborators and review your results.\n\nTRACK: hours practised, project milestones, feedback received, applications or conversations, and the next skill to learn. Join the in-app community and Telegram for accountability, but keep your personal and wallet information private.\n\nFinal practice: post your 30-day plan, project link or screenshots, and one specific question. Celebrate finishing \u2014 then choose a next BreedSkool course or a real-world project.", isPreview: false, order: 14 }
         ]
       },
       // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
@@ -4188,6 +4265,16 @@ var init_seed_breedskool = __esm({
         duration: "6\u20138 Weeks",
         isActive: true,
         acceptedPayments: ["bank_transfer", "usdt_tron", "usdt_ton", "usdt_bnb"]
+      },
+      {
+        courseKey: "free_foundations",
+        title: "BreedSkool Foundations \u2014 Learn, Build & Earn",
+        shortDescription: "A free, practical foundation across AI, web development, content, marketing, crypto safety, entrepreneurship and remote work.",
+        regularPrice: 0,
+        discountPrice: 0,
+        duration: "Self-paced",
+        isActive: true,
+        acceptedPayments: []
       },
       // ── FLAGSHIP BESTSELLER ────────────────────────────────────────────────────
       // Regular: $290 USD (~435,000 NGN) | August 2026 promo: $145 USD (~217,500 NGN)
@@ -18227,14 +18314,16 @@ Instructions:
     }
   });
   const DEFAULT_BREEDSKOOL_CAMPAIGN = {
-    goalUsd: 25e3,
+    // Kept as goalUsd for backwards compatibility with saved app settings;
+    // campaign copy and admin labels present this target in GBP.
+    goalUsd: 1e5,
     raisedUsd: 0,
     supporters: 0,
     studentsTarget: 100,
     studentsTrained: 0,
     studentsEmployed: 0,
     studentsWithoutEquipment: 100,
-    heroImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+    heroImage: "/breedskool-campaign-header.png",
     justGivingUrl: "https://www.justgiving.com/crowdfunding/breedskool",
     telegramUrl: "https://t.me/taskdrip",
     studentWhatsAppUrl: "https://wa.me/2348036622568",
@@ -21569,6 +21658,27 @@ Looking forward to collaborating with you!`;
     { contentKey: "landing.hero.cta_creator", label: "Creator CTA Button Text", contentType: "text", page: "landing", section: "Hero Section", defaultValue: "Join as Influencer", value: "", sortOrder: 5 },
     { contentKey: "landing.hero.cta_brand", label: "Brand CTA Button Text", contentType: "text", page: "landing", section: "Hero Section", defaultValue: "Hire Influencers", value: "", sortOrder: 6 },
     { contentKey: "landing.hero.bg_image", label: "Hero Background Image URL", contentType: "image", page: "landing", section: "Hero Section", defaultValue: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1800&q=85&auto=format&fit=crop", value: "", sortOrder: 7 },
+    // ── BreedSkool fundraising landing page ─────────────────────────────────
+    { contentKey: "breedskool.hero.eyebrow", label: "BreedSkool Eyebrow", contentType: "text", page: "breedskool", section: "Hero Section", defaultValue: "BreedSkool Tech Training Academy", value: "", sortOrder: 1 },
+    { contentKey: "breedskool.hero.title_line1", label: "BreedSkool Hero Title \u2014 Line 1", contentType: "text", page: "breedskool", section: "Hero Section", defaultValue: "Where Skills", value: "", sortOrder: 2 },
+    { contentKey: "breedskool.hero.title_line2", label: "BreedSkool Hero Title \u2014 Line 2", contentType: "text", page: "breedskool", section: "Hero Section", defaultValue: "Become", value: "", sortOrder: 3 },
+    { contentKey: "breedskool.hero.title_accent", label: "BreedSkool Hero Title Accent", contentType: "text", page: "breedskool", section: "Hero Section", defaultValue: "Income", value: "", sortOrder: 4 },
+    { contentKey: "breedskool.hero.subtitle", label: "BreedSkool Hero Description", contentType: "textarea", page: "breedskool", section: "Hero Section", defaultValue: "Equipping tech enthusiasts with Web3-era digital skills to build profitable online businesses and become valuable global assets.", value: "", sortOrder: 5 },
+    { contentKey: "breedskool.hero.cta", label: "BreedSkool Hero CTA", contentType: "text", page: "breedskool", section: "Hero Section", defaultValue: "Join Free & Start Learning", value: "", sortOrder: 6 },
+    { contentKey: "breedskool.hero.bg_image", label: "BreedSkool Header / Featured Image URL", contentType: "image", page: "breedskool", section: "Hero Section", defaultValue: "/breedskool-training-project.png", value: "", sortOrder: 7 },
+    { contentKey: "breedskool.fundraising.badge", label: "Fundraising Badge", contentType: "text", page: "breedskool", section: "Fundraising", defaultValue: "Help us open more doors", value: "", sortOrder: 10 },
+    { contentKey: "breedskool.fundraising.title", label: "Fundraising Title", contentType: "text", page: "breedskool", section: "Fundraising", defaultValue: "Give more African learners a seat at the table.", value: "", sortOrder: 11 },
+    { contentKey: "breedskool.fundraising.description", label: "Fundraising Description", contentType: "textarea", page: "breedskool", section: "Fundraising", defaultValue: "We are raising funds to provide devices, connectivity, mentors, and practical training to people ready to build a better future. Every contribution helps a learner move from potential to opportunity.", value: "", sortOrder: 12 },
+    { contentKey: "breedskool.fundraising.target", label: "Fundraising Target (\xA3)", contentType: "text", page: "breedskool", section: "Fundraising", defaultValue: "100000", value: "", sortOrder: 13 },
+    { contentKey: "breedskool.fundraising.raised", label: "Funds Raised So Far (\xA3)", contentType: "text", page: "breedskool", section: "Fundraising", defaultValue: "0", value: "", sortOrder: 14 },
+    { contentKey: "breedskool.guide.title", label: "Getting Started Guide Title", contentType: "text", page: "breedskool", section: "Getting Started Guide", defaultValue: "Everything you need to start learning today.", value: "", sortOrder: 20 },
+    { contentKey: "breedskool.guide.description", label: "Getting Started Guide Description", contentType: "textarea", page: "breedskool", section: "Getting Started Guide", defaultValue: "Create your account right here, follow your dashboard prompts, and meet your learning community. No confusing hand-offs and no need to leave this page to get started.", value: "", sortOrder: 21 },
+    { contentKey: "breedskool.reviews.title", label: "Learner Voices Title", contentType: "text", page: "breedskool", section: "Learner Voices", defaultValue: "A community that keeps you moving.", value: "", sortOrder: 30 },
+    { contentKey: "breedskool.reviews.subtitle", label: "Learner Voices Subtitle", contentType: "textarea", page: "breedskool", section: "Learner Voices", defaultValue: "Learning is easier when you can see yourself in the room. Meet learners building skills across Africa.", value: "", sortOrder: 31 },
+    { contentKey: "breedskool.community.telegram_url", label: "Telegram Community URL", contentType: "url", page: "breedskool", section: "Community", defaultValue: "https://t.me/taskdrip", value: "", sortOrder: 40 },
+    { contentKey: "breedskool.share.title", label: "Social Share Title", contentType: "text", page: "breedskool", section: "Social Sharing", defaultValue: "BreedSkool \u2014 free tech training for Africa", value: "", sortOrder: 50 },
+    { contentKey: "breedskool.share.description", label: "Social Share Description", contentType: "textarea", page: "breedskool", section: "Social Sharing", defaultValue: "Learn practical digital skills, join a supportive community, and start building your future with BreedSkool.", value: "", sortOrder: 51 },
+    { contentKey: "breedskool.seo.title", label: "BreedSkool SEO Title", contentType: "text", page: "breedskool", section: "Social Sharing", defaultValue: "BreedSkool \u2014 Free Tech Training & Digital Skills for Africa", value: "", sortOrder: 52 },
     // ── Landing Page: Stats ─────────────────────────────────────────────────
     { contentKey: "landing.stats.influencers_value", label: "Stat: Influencers Count", contentType: "text", page: "landing", section: "Hero Stats", defaultValue: "10K+", value: "", sortOrder: 10 },
     { contentKey: "landing.stats.influencers_label", label: "Stat: Influencers Label", contentType: "text", page: "landing", section: "Hero Stats", defaultValue: "Influencers", value: "", sortOrder: 11 },
@@ -26838,15 +26948,15 @@ var PAGES = [
   {
     pageSlug: "breedskool",
     pageTitle: "BreedSkool",
-    metaTitle: "BreedSkool \u2014 Learn Tech Skills & Earn | Taskdrip Training",
-    metaDescription: "BreedSkool offers tech training in Web Development, AI Content Creation, Social Media Monetization, Trading, and more. Learn skills, get certified, and earn crypto rewards.",
-    ogTitle: "BreedSkool \u2014 Web3 Creator Academy by Taskdrip",
-    ogDescription: "Free and pro courses to grow as a Web3 influencer. Learn audience growth, monetization, brand deals and crypto payouts from expert instructors.",
-    ogImage: OG,
+    metaTitle: "BreedSkool \u2014 Free Tech Training & Digital Skills for Africa",
+    metaDescription: "Join BreedSkool for free practical tech training, a supportive learner community, and a \xA3100,000 mission to make digital opportunity more accessible across Africa.",
+    ogTitle: "BreedSkool \u2014 Free Tech Training & Digital Skills for Africa",
+    ogDescription: "Learn practical digital skills, join a supportive community, and start building your future with BreedSkool.",
+    ogImage: "/breedskool-training-project.png",
     twitterCard: "summary_large_image",
-    twitterTitle: "BreedSkool \u2014 Learn. Create. Earn.",
-    twitterDescription: "Tech training in Web Dev, AI, Social Media Monetization & Trading. Get certified and earn crypto.",
-    twitterImage: OG,
+    twitterTitle: "BreedSkool \u2014 Free Tech Training for Africa",
+    twitterDescription: "Free practical tech training, learner community, and a \xA3100,000 mission to expand digital opportunity.",
+    twitterImage: "/breedskool-training-project.png",
     keywords: "tech training Nigeria, web development course, AI content creation, social media monetization, breedskool, creator academy",
     canonicalUrl: `${SITE}/breedskool`,
     noIndex: false,
@@ -27045,6 +27155,10 @@ var REQUIRED_COLUMNS = [
   { table: "shop_products", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "courses", column: "intro_video_url", definition: "varchar" },
   { table: "courses", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  // Course sale fields are used by the current course seed and admin editor.
+  // Keep this additive for imported databases that predate sale pricing.
+  { table: "courses", column: "sale_price", definition: "decimal(10,2)" },
+  { table: "courses", column: "sale_deadline", definition: "timestamp" },
   { table: "campaigns", column: "intro_video_url", definition: "varchar" },
   { table: "campaigns", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   { table: "campaigns", column: "min_followers", definition: "integer DEFAULT 0" },
