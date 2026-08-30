@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import {
   FileText, Image, Link2, Type, AlignLeft, Save, RotateCcw, ChevronDown,
   ChevronRight, Globe, Layers, ShoppingBag, BookOpen, Target, Home,
-  CheckCircle, Edit3, ExternalLink
+  CheckCircle, Edit3, ExternalLink, HeartHandshake
 } from "lucide-react";
 
 interface ContentBlock {
@@ -30,6 +30,7 @@ const PAGE_META: Record<string, { label: string; icon: any; color: string }> = {
   global: { label: "Global Settings", icon: Globe, color: "text-violet-400" },
   landing: { label: "Landing Page", icon: Home, color: "text-orange-400" },
   breedskool: { label: "BreedSkool", icon: BookOpen, color: "text-blue-400" },
+  breedskool_campaign: { label: "BreedSkool Campaign", icon: HeartHandshake, color: "text-amber-400" },
   shop: { label: "Shop", icon: ShoppingBag, color: "text-emerald-400" },
   campaigns: { label: "Campaigns", icon: Target, color: "text-pink-400" },
   blog: { label: "Blog", icon: Layers, color: "text-cyan-400" },

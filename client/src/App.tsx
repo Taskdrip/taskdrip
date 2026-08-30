@@ -35,6 +35,7 @@ const Login = lazy(() => import("@/pages/login"));
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
 const BreedSkool = lazy(() => import("@/pages/breedskool"));
+const BreedSkoolCampaign = lazy(() => import("@/pages/breedskool-campaign"));
 const BreedSkoolOnsite = lazy(() => import("@/pages/breedskool-onsite"));
 const BreedSkoolCourse = lazy(() => import("@/pages/breedskool-course"));
 const CourseLearn = lazy(() => import("@/pages/course-learn"));
@@ -91,6 +92,7 @@ const DocumentationPage = lazy(() => import("@/pages/documentation"));
 const RoadmapPage = lazy(() => import("@/pages/roadmap"));
 const AdminSpotlight = lazy(() => import("@/pages/admin-spotlight"));
 const AdminCMSEditor = lazy(() => import("@/pages/admin-cms-editor"));
+const AdminBreedSkoolCampaign = lazy(() => import("@/pages/admin-breedskool-campaign"));
 const AdminPortfolio = lazy(() => import("@/pages/admin-portfolio"));
 const AbrahamPortfolio = lazy(() => import("@/pages/abraham-portfolio"));
 const AdminSEO = lazy(() => import("@/pages/admin-seo"));
@@ -178,6 +180,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/admin-login" component={AdminLogin} />
         <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/breedskool/campaign" component={BreedSkoolCampaign} />
         <Route path="/breedskool" component={BreedSkool} />
         <Route path="/breedskool/onsite" component={BreedSkoolOnsite} />
         <Route path="/breedskool/:id" component={BreedSkoolCourse} />
@@ -272,6 +275,7 @@ function Router() {
             <Route path="/admin/p2p-fees" component={AdminP2PFees} />
             <Route path="/admin/platform-fees" component={AdminPlatformFees} />
             <Route path="/admin/cms" component={AdminCMSEditor} />
+        <Route path="/admin/breedskool-campaign" component={AdminBreedSkoolCampaign} />
             <Route path="/admin/portfolio" component={AdminPortfolio} />
             <Route path="/admin/seo" component={AdminSEO} />
             <Route path="/admin/seo-intelligence" component={AdminSeoIntelligence} />

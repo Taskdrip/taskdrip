@@ -18,6 +18,7 @@ import {
   MapPin,
   ShoppingBag,
   BookOpen,
+  HeartHandshake,
   Newspaper,
   Trophy,
   Store,
@@ -239,7 +240,8 @@ export function Footer() {
                   <li><Link href="/shop" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-shop"><ShoppingBag className="h-4 w-4 mr-2 flex-shrink-0" />Shop</Link></li>
                   <li><Link href="/tasks" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-tasks"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Browse Tasks</Link></li>
                   <li><Link href="/signup?type=creator" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />Join as Influencer</Link></li>
-                  <li><Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-breedskool"><BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />BreedSkool Academy</Link></li>
+                   <li><Link href="/breedskool" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-breedskool"><BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />BreedSkool Academy</Link></li>
+                   <li><Link href="/breedskool/campaign" className="text-amber-300 hover:text-amber-200 transition-colors flex items-center text-sm font-semibold" data-testid="link-footer-breedskool-campaign"><HeartHandshake className="h-4 w-4 mr-2 flex-shrink-0" />Support the education campaign</Link></li>
                   <li><Link href="/leaderboard" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm" data-testid="link-footer-leaderboard"><Trophy className="h-4 w-4 mr-2 flex-shrink-0" />Leaderboard</Link></li>
                   <li><Link href="/wallet" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />Wallet & Payouts</Link></li>
                   <li><Link href="/referrals" className="text-gray-400 hover:text-white transition-colors flex items-center text-sm"><Users className="h-4 w-4 mr-2 flex-shrink-0" />Referral Program</Link></li>

@@ -1,0 +1,219 @@
+continue and complete the below update to the web app
+Trying to build a High converting landing page that is smart to focus on our Breedskool training event with crowdfunding campaign, with stories that touch the heart, encouraging African youths looking for support and donors and philanthropist to engage add hero sliders with Background images showcasing sections of the landing, add a link to the landing on the footer  and allow admin edit and update content and sections of this page - find a way to add the below story cleanly to the page- with relevant images on the entire landing page of African students and youths learning tech is a local rural classroom with computers some students sharing computers - dont forget to add realistic reviews from African student and youths with images ,  dont make landing page look ai generated 
+
+# **Give a Young African a Chance to Build the Future**
+
+**Every day, somewhere in Africa, a young person wakes up with talent, ambition and dreams — but no computer, no reliable internet, no mentor, and no opportunity to learn.**
+
+My name is **Abraham Tahbat**. I am a lawyer, entrepreneur and web developer, and the founder of **Breedskool Galaxy Ltd.**
+
+For years, I have worked in technology and watched how access to digital skills can completely change a person's future. Today, I want to help make that opportunity available to young Africans who are being left behind.
+
+## **The talent is there. The opportunity isn't.**
+
+Imagine being a young person in a rural community.
+
+You have never owned a computer.
+
+Your phone may be shared with other members of your family — or you may not have one at all.
+
+Internet access is unreliable or completely unavailable.
+
+There is no technology centre nearby. No coding teacher. No AI mentor. No professional network to guide you.
+
+You may be intelligent, creative and determined, but the modern digital economy can feel like a world you are simply not allowed to enter.
+
+For young people living in communities affected by poverty, unemployment, displacement, insecurity and economic hardship, this gap can become a cycle that lasts for generations.
+
+**We believe where someone is born should not determine whether they get a chance to participate in the future.**
+
+---
+
+# **This is why we are building Breedskool.**
+
+Through our **Breedskool training initiative, powered by Taskdrip.online**, we want to bring practical technology education and opportunity closer to young people who need it most.
+
+Our goal is to provide training in areas such as:
+
+* Artificial Intelligence and AI tools
+* Web development
+* Digital skills
+* Blockchain technology , crypto and Airdrops
+* Social media management
+* Content creation
+* Digital marketing
+* Entrepreneurship
+* Freelancing and remote work
+* Emerging technologies
+
+But **training alone is not enough.**
+
+A young person cannot learn web development without a computer.
+
+They cannot practise AI without access to technology.
+
+They cannot participate in the global digital economy without internet access.
+
+And sometimes, they simply need someone to say:
+
+**“I believe you can do this.”**
+
+That is why Breedskool is designed around **skills, access, equipment, mentorship and opportunity.**
+
+---
+
+## **From a classroom in Africa to the global economy**
+
+We want to create practical training environments where young people can access the things many of us take for granted:
+
+💻 Computers and technology equipment
+🌍 Internet connectivity
+🤖 AI tools and learning resources
+👩🏾‍💻 Experienced mentors and instructors
+📚 Practical digital training
+🚀 Entrepreneurship and career guidance
+🌎 Exposure to global opportunities
+
+We don't want young people to simply receive certificates.
+
+**We want them to build things.**
+
+Build websites.
+
+Build businesses.
+
+Create digital products.
+
+Use AI.
+
+Serve clients.
+
+Create content.
+
+Work remotely.
+
+Start companies.
+
+And ultimately become contributors to a global economy that increasingly depends on digital skills.
+
+---
+
+# **Behind every donation is a person**
+
+Your donation may look small on a fundraising page.
+
+But to someone sitting in a community without access to technology, it can mean something much bigger.
+
+It can help provide a computer that allows a young person to write their first line of code.
+
+It can help provide internet access that opens the door to thousands of learning resources.
+
+It can help fund a training session where someone discovers a skill they never knew they had.
+
+It can connect a young person with a mentor who helps them see a future beyond unemployment.
+
+And one day, that same person could be the developer building a company, the designer working with an international client, the entrepreneur employing others, or the technology professional creating solutions for their own community.
+
+**That is the kind of impact we want your support to create.**
+
+---
+
+# **This is bigger than Taskdrip.**
+
+Taskdrip.online began as a technology venture with a vision to connect talented people, creators, influencers and businesses with opportunities.
+
+But we believe technology should do more than create businesses.
+
+**It should create possibilities for people.**
+
+Breedskool is our attempt to use technology as a bridge — connecting young people who have been excluded from opportunity with the skills, tools, mentorship and networks they need to participate.
+
+We know we cannot change the lives of every young person overnight.
+
+But we can start with one.
+
+Then another.
+
+Then another.
+
+**And together, those individual lives can become a movement.**
+
+---
+
+# **Will you help us open the door?**
+
+We are raising funds to help establish and support Breedskool training programmes, acquire computers and other learning equipment, provide internet connectivity, access relevant AI and technology resources, support instructors and mentors, and reach young people in communities where these opportunities are hardest to find.
+
+**Your donation is not simply paying for equipment.**
+
+You are helping put a tool in someone's hands.
+
+You are helping put knowledge in someone's mind.
+
+You are helping put confidence in someone's heart.
+
+And you may be helping create the first opportunity that changes the direction of someone's life.
+
+### **You can help us turn:**
+
+**No computer → into a first coding project.**
+
+**No internet → into access to the world.**
+
+**No mentor → into guidance and confidence.**
+
+**No opportunity → into a pathway.**
+
+**Unemployment → into skills and possibility.**
+
+**Potential → into impact.**
+
+---
+
+## **Help us give talent a chance. ❤️**
+
+We are asking people from Africa and around the world to stand with us.
+
+You don't have to be wealthy to make a difference.
+
+**Every donation matters.**
+
+And if you cannot donate, you can still help enormously by **sharing this campaign with your friends, family, organisations, schools, businesses and communities.**
+
+Because somewhere in Africa, there is a young person who could become an exceptional developer, entrepreneur, designer, AI professional or technology leader.
+
+They may already have the talent.
+
+They may already have the determination.
+
+**They may simply be waiting for someone to open the door.**
+
+Let's open it together.
+
+**Let's give them the skills.
+Let's give them the tools.
+Let's give them mentorship.
+Let's give them a chance.**
+
+### **From skills to opportunity. From opportunity to independence. From one young person to a stronger Africa.**
+
+**Support Breedskool, powered by Taskdrip.online.**
+
+**Together, we can help equip the next generation of African talent for a global digital economy.** ❤️
+
+
+ capture influencers/Brands registering on taskdrip
+
+Be able to capture those wanting to join our Breedskool training campaign, that grants them access to our onsite and online training events , where they can get to enjoy Free Mentorship, training , tools, training equipment's, job placements, and remote jobs opportunities, on the same page allow them to signup and signin to their account .
+
+Create a section for our crowdfunding  campaign , allow them  support via justGiving with a button - https://www.justgiving.com/crowdfunding/breedskool and Add Donate with crypto and allow them have accesss and manual donate simple checkout where they can send their donations using the crypto wallets added by the admin for donations, in a clean manual stripe style system , 
+
+make the page smart to record analytics in a clean interface with data on views , registered Students , undergoing training, students without equipment's,    trained students, employed student and more, add animations to make it appealing , 
+
+Add links to our social media channels , and community, for Brands and sponsors , they can chat our USA Number - https://wa.me/12016800266 and for african student registering to our training events , they can chat https://wa.me/2348036622568 .
+
+Request they join our Community on telegram to get notified on updates - https://t.me/taskdrip
+
+And link to here a developer page for businesses aand brands- 
+
+https://taskdrip.online/hire-developer

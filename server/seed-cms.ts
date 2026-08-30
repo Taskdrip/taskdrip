@@ -78,6 +78,20 @@ const DEFAULT_SLIDERS = [
     isActive: true,
   },
   {
+    order: 8,
+    badge: "BreedSkool Impact Campaign",
+    headline: "Help a Young African Build the Future.",
+    subheadline: "Support practical technology training, equipment, mentorship and pathways to work for young people in communities where opportunity is hardest to find.",
+    ctaPrimaryLabel: "Support the campaign",
+    ctaPrimaryLink: "/breedskool/campaign",
+    ctaSecondaryLabel: "Join the training",
+    ctaSecondaryLink: "/breedskool",
+    backgroundImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/95 via-violet-950/75 to-black/45",
+    accentColor: "from-amber-300 via-orange-400 to-rose-400",
+    isActive: true,
+  },
+  {
     order: 5,
     badge: "Influencer Shop",
     headline: "Tools Built for Influencers Who Mean Business.",
@@ -196,6 +210,17 @@ const DEFAULT_PAGE_CONTENT = [
   { page: "breedskool", section: "hero", key: "background_image", label: "Hero Background Image", type: "image", defaultValue: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=1800&q=85&auto=format&fit=crop", order: 2 },
   { page: "breedskool", section: "features", key: "title", label: "Features Section Title", type: "text", defaultValue: "Everything You Need to Grow", order: 0 },
   { page: "breedskool", section: "features", key: "subtitle", label: "Features Section Subtitle", type: "textarea", defaultValue: "Courses, mentorship, and community — all in one place.", order: 1 },
+
+  // ── BreedSkool campaign landing page ────────────────────────
+  { page: "breedskool_campaign", section: "hero", key: "eyebrow", label: "Campaign Eyebrow", type: "text", defaultValue: "A practical technology education campaign for young Africans", order: 0 },
+  { page: "breedskool_campaign", section: "hero", key: "title", label: "Campaign Hero Title", type: "text", defaultValue: "Give a Young African a Chance to Build the Future", order: 1 },
+  { page: "breedskool_campaign", section: "hero", key: "subtitle", label: "Campaign Hero Subtitle", type: "textarea", defaultValue: "Talent is everywhere. Opportunity is not. Help us put skills, equipment, mentorship and a real pathway into the hands of young people who are ready to learn.", order: 2 },
+  { page: "breedskool_campaign", section: "story", key: "title", label: "Story Section Title", type: "text", defaultValue: "The talent is there. The opportunity isn't.", order: 0 },
+  { page: "breedskool_campaign", section: "story", key: "body", label: "Story Section Body", type: "textarea", defaultValue: "Imagine being a young person in a rural community with no computer, unreliable internet and no technology centre nearby. You may be intelligent, creative and determined, but the modern digital economy can feel like a world you are not allowed to enter.", order: 1 },
+  { page: "breedskool_campaign", section: "cta", key: "title", label: "Campaign CTA Title", type: "text", defaultValue: "Will you help us open the door?", order: 0 },
+  { page: "breedskool_campaign", section: "cta", key: "subtitle", label: "Campaign CTA Subtitle", type: "textarea", defaultValue: "Every donation matters. And if you cannot donate, sharing this campaign can still help us reach the right people.", order: 1 },
+  { page: "breedskool_campaign", section: "contact", key: "sponsor_label", label: "Sponsor Contact Label", type: "text", defaultValue: "For brands, sponsors and philanthropists", order: 0 },
+  { page: "breedskool_campaign", section: "contact", key: "student_label", label: "Student Contact Label", type: "text", defaultValue: "For African students joining the training", order: 1 },
 
   // ── Shop page ────────────────────────────────────────────────
   { page: "shop", section: "hero", key: "title", label: "Shop Hero Title", type: "text", defaultValue: "Creator Tools & Resources", order: 0 },

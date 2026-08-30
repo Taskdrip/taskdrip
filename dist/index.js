@@ -11,6 +11,7 @@ var __export = (target, all) => {
 // shared/schema.ts
 var schema_exports = {};
 __export(schema_exports, {
+  activityLogs: () => activityLogs,
   adAnalytics: () => adAnalytics,
   adNetworkPlacements: () => adNetworkPlacements,
   adminWallets: () => adminWallets,
@@ -54,6 +55,7 @@ __export(schema_exports, {
   escrowPayments: () => escrowPayments,
   footerColumns: () => footerColumns,
   heroSliders: () => heroSliders,
+  insertActivityLogSchema: () => insertActivityLogSchema,
   insertAdNetworkPlacementSchema: () => insertAdNetworkPlacementSchema,
   insertAdminWalletSchema: () => insertAdminWalletSchema,
   insertAdvertiseApplicationSchema: () => insertAdvertiseApplicationSchema,
@@ -209,7 +211,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, productLikes, messages, blockedUsers, taskSubmissions, notifications, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -629,6 +631,32 @@ var init_schema = __esm({
       // 'low', 'normal', 'high', 'urgent'
       createdAt: timestamp("created_at").defaultNow(),
       readAt: timestamp("read_at")
+    });
+    activityLogs = pgTable("activity_logs", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      actorId: varchar("actor_id").references(() => users.id, { onDelete: "set null" }),
+      actorName: varchar("actor_name"),
+      actorEmail: varchar("actor_email"),
+      eventType: varchar("event_type", { length: 60 }).notNull(),
+      action: varchar("action", { length: 200 }).notNull(),
+      description: text("description").notNull(),
+      route: varchar("route", { length: 300 }),
+      method: varchar("method", { length: 10 }),
+      status: varchar("status", { length: 20 }).notNull().default("success"),
+      entityType: varchar("entity_type", { length: 60 }),
+      entityId: varchar("entity_id"),
+      metadata: jsonb("metadata").default({}),
+      ipAddress: varchar("ip_address", { length: 100 }),
+      userAgent: text("user_agent"),
+      createdAt: timestamp("created_at").defaultNow()
+    }, (table) => [
+      index("activity_logs_created_at_idx").on(table.createdAt),
+      index("activity_logs_event_type_idx").on(table.eventType),
+      index("activity_logs_actor_id_idx").on(table.actorId)
+    ]);
+    insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+      id: true,
+      createdAt: true
     });
     escrowPayments = pgTable("escrow_payments", {
       id: varchar("id").primaryKey(),
@@ -2326,6 +2354,7 @@ var init_db = __esm({
 var email_service_exports = {};
 __export(email_service_exports, {
   AI_TEMPLATES: () => AI_TEMPLATES,
+  TASKDRIP_EMAILS: () => TASKDRIP_EMAILS,
   activateResendIfAvailable: () => activateResendIfAvailable,
   blastCampaign: () => blastCampaign,
   buildDefaultEmailHtml: () => buildDefaultEmailHtml,
@@ -2341,6 +2370,7 @@ __export(email_service_exports, {
   testSmtpConnection: () => testSmtpConnection
 });
 import nodemailer from "nodemailer";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import { eq as eq2 } from "drizzle-orm";
 async function getEmailSettings() {
   const rows = await db.select().from(emailSettings).limit(1);
@@ -2371,26 +2401,27 @@ async function getEmailStatus() {
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridOk = !!process.env.SENDGRID_API_KEY;
   const resendOk = !!process.env.RESEND_API_KEY;
+  const resendConnectionOk = !!process.env.REPLIT_CONNECTORS_HOSTNAME;
   const pref = settings?.preferredProvider || "";
   const smtpIsBrevo = !!(settings?.smtpHost && settings.smtpHost.toLowerCase().includes("brevo"));
   let activeProvider;
-  if (pref === "resend" && resendOk) activeProvider = "resend";
+  if (pref === "resend" && (resendOk || resendConnectionOk)) activeProvider = "resend";
   else if (pref === "smtp" && smtpOk && !smtpIsBrevo) activeProvider = "smtp";
   else if (pref === "sendgrid" && sendgridOk) activeProvider = "sendgrid";
-  else activeProvider = resendOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
+  else activeProvider = resendOk || resendConnectionOk ? "resend" : smtpOk ? "smtp" : sendgridOk ? "sendgrid" : "none";
   return {
     configured: activeProvider !== "none",
     provider: activeProvider,
     smtpHost: settings?.smtpHost ?? void 0,
     sendgridAvailable: sendgridOk,
-    resendAvailable: resendOk,
+    resendAvailable: resendOk || resendConnectionOk,
     preferredProvider: pref || void 0,
     smtpIsBrevo,
-    resendKeyPresent: resendOk
+    resendKeyPresent: resendOk || resendConnectionOk
   };
 }
 async function activateResendIfAvailable() {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY && !process.env.REPLIT_CONNECTORS_HOSTNAME) return;
   try {
     let settings = null;
     try {
@@ -2422,12 +2453,34 @@ async function activateResendIfAvailable() {
   }
 }
 async function sendViaResend(opts, fromEmail, fromName) {
+  if (!process.env.RESEND_API_KEY) {
+    const connectors = new ReplitConnectors();
+    const response = await connectors.proxy("resend", "/emails", {
+      method: "POST",
+      body: {
+        from: `${fromName} <${fromEmail}>`,
+        to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+        ...opts.cc?.length ? { cc: opts.cc } : {},
+        ...opts.replyTo ? { reply_to: opts.replyTo } : {},
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.text || opts.html.replace(/<[^>]+>/g, "")
+      }
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Resend connector returned ${response.status}: ${body || response.statusText}`);
+    }
+    return;
+  }
   const { Resend } = await import("resend");
   const client = new Resend(process.env.RESEND_API_KEY);
   const trySend = async (from) => {
     const result = await client.emails.send({
       from: `${fromName} <${from}>`,
       to: [opts.toName ? `${opts.toName} <${opts.to}>` : opts.to],
+      ...opts.cc?.length ? { cc: opts.cc } : {},
+      ...opts.replyTo ? { reply_to: opts.replyTo } : {},
       subject: opts.subject,
       html: opts.html,
       text: opts.text || opts.html.replace(/<[^>]+>/g, "")
@@ -2453,6 +2506,8 @@ async function sendViaSendGrid(opts, fromEmail, fromName) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   await sgMail.send({
     to: { email: opts.to, name: opts.toName },
+    ...opts.cc?.length ? { cc: opts.cc } : {},
+    ...opts.replyTo ? { replyTo: opts.replyTo } : {},
     from: { email: fromEmail, name: fromName },
     subject: opts.subject,
     html: opts.html,
@@ -2464,8 +2519,9 @@ async function sendEmail(opts) {
   const smtpOk = !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpPass);
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const resendKey = process.env.RESEND_API_KEY;
+  const resendConnectionOk = !!process.env.REPLIT_CONNECTORS_HOSTNAME;
   const pref = settings?.preferredProvider || "";
-  if (!resendKey && !smtpOk && !sendgridKey) {
+  if (!resendKey && !resendConnectionOk && !smtpOk && !sendgridKey) {
     console.warn("[email] No email provider configured \u2014 set RESEND_API_KEY, configure SMTP, or set SENDGRID_API_KEY.");
     await db.insert(emailLogs).values({
       id: crypto.randomUUID(),
@@ -2480,13 +2536,15 @@ async function sendEmail(opts) {
     });
     return { success: false, error: "No email provider configured. Add RESEND_API_KEY to your secrets or set up SMTP." };
   }
-  const fromEmail = resendKey ? process.env.RESEND_FROM_EMAIL || settings?.smtpFromEmail || "onboarding@resend.dev" : settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
+  const fromEmail = resendKey || resendConnectionOk ? opts.fromEmail || process.env.RESEND_FROM_EMAIL || settings?.smtpFromEmail || TASKDRIP_EMAILS.info : settings?.smtpFromEmail || settings?.smtpUser || "noreply@taskdrip.online";
   const fromName = opts.fromName || settings?.smtpFromName || "Taskdrip";
   const smtpProvider = { name: "smtp", fn: async () => {
     const transporter = buildTransporter(settings);
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: opts.toName ? `"${opts.toName}" <${opts.to}>` : opts.to,
+      ...opts.cc?.length ? { cc: opts.cc } : {},
+      ...opts.replyTo ? { replyTo: opts.replyTo } : {},
       subject: opts.subject,
       html: opts.html,
       text: opts.text || opts.html.replace(/<[^>]+>/g, "")
@@ -2495,11 +2553,11 @@ async function sendEmail(opts) {
   const resendProvider = { name: "resend", fn: () => sendViaResend(opts, fromEmail, fromName) };
   const sgProvider = { name: "sendgrid", fn: () => sendViaSendGrid(opts, fromEmail, fromName) };
   let providers = [];
-  if (pref === "resend" && resendKey) providers = [resendProvider, ...smtpOk ? [smtpProvider] : [], ...sendgridKey ? [sgProvider] : []];
-  else if (pref === "smtp" && smtpOk) providers = [smtpProvider, ...resendKey ? [resendProvider] : [], ...sendgridKey ? [sgProvider] : []];
-  else if (pref === "sendgrid" && sendgridKey) providers = [sgProvider, ...resendKey ? [resendProvider] : [], ...smtpOk ? [smtpProvider] : []];
+  if (pref === "resend" && (resendKey || resendConnectionOk)) providers = [resendProvider, ...smtpOk ? [smtpProvider] : [], ...sendgridKey ? [sgProvider] : []];
+  else if (pref === "smtp" && smtpOk) providers = [smtpProvider, ...resendKey || resendConnectionOk ? [resendProvider] : [], ...sendgridKey ? [sgProvider] : []];
+  else if (pref === "sendgrid" && sendgridKey) providers = [sgProvider, ...resendKey || resendConnectionOk ? [resendProvider] : [], ...smtpOk ? [smtpProvider] : []];
   else {
-    if (resendKey) providers.push(resendProvider);
+    if (resendKey || resendConnectionOk) providers.push(resendProvider);
     if (smtpOk) providers.push(smtpProvider);
     if (sendgridKey) providers.push(sgProvider);
   }
@@ -2550,7 +2608,7 @@ async function sendWelcomeEmail(user) {
     };
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: user.email, toName: `${user.firstName} ${user.lastName || ""}`.trim(), subject, html });
+    await sendEmail({ to: user.email, toName: `${user.firstName} ${user.lastName || ""}`.trim(), subject, html, fromEmail: TASKDRIP_EMAILS.info });
   } catch (_) {
   }
 }
@@ -2571,7 +2629,7 @@ async function sendOrderConfirmationEmail(opts) {
     };
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
+    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html, fromEmail: TASKDRIP_EMAILS.payments });
   } catch (_) {
   }
 }
@@ -2580,7 +2638,14 @@ async function sendAdminActivityEmail(opts) {
     const eventLabels = {
       shop_order: "New shop order",
       course_registration: "New course registration",
-      hire_request: "New hire developer request"
+      hire_request: "New hire developer request",
+      contact: "New contact enquiry",
+      transaction: "New platform transaction",
+      payment: "New payment activity",
+      registration: "New user registration",
+      newsletter: "New newsletter subscription",
+      advertising: "New advertising enquiry",
+      activity: "Platform activity"
     };
     const escapeHtml2 = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const rows = opts.details.filter((item) => item.value !== null && item.value !== void 0 && String(item.value).trim() !== "").map((item) => `
@@ -2605,9 +2670,11 @@ async function sendAdminActivityEmail(opts) {
       </div>
     `, "Taskdrip Admin");
     await sendEmail({
-      to: "taskdrip@gmail.com",
+      to: opts.recipient || TASKDRIP_EMAILS.admin,
+      cc: opts.recipient && opts.recipient !== TASKDRIP_EMAILS.admin ? [TASKDRIP_EMAILS.admin] : void 0,
       subject: opts.subject,
       html,
+      fromEmail: opts.fromEmail || TASKDRIP_EMAILS.info,
       text: [
         eventLabels[opts.event],
         opts.subject,
@@ -2633,7 +2700,7 @@ async function sendAdsApplicationEmail(opts) {
     };
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html });
+    await sendEmail({ to: opts.email, toName: opts.firstName, subject, html, fromEmail: TASKDRIP_EMAILS.info });
   } catch (_) {
   }
 }
@@ -2664,7 +2731,7 @@ async function blastCampaign(campaignId) {
       const vars = { first_name: sub.name || "", last_name: "", full_name: sub.name || "", email: sub.email, username: sub.email, user_type: "newsletter" };
       const html = interpolate(campaign.htmlBody, vars);
       const subject = interpolate(campaign.subject, vars);
-      const result = await sendEmail({ to: sub.email, toName: sub.name || void 0, subject, html, campaignId });
+      const result = await sendEmail({ to: sub.email, toName: sub.name || void 0, subject, html, campaignId, fromEmail: TASKDRIP_EMAILS.info });
       if (result.success) sent2++;
       else {
         failed2++;
@@ -2720,6 +2787,7 @@ async function blastCampaign(campaignId) {
       toName: `${user.firstName} ${user.lastName}`.trim(),
       subject,
       html,
+      fromEmail: TASKDRIP_EMAILS.info,
       campaignId
     });
     if (result.success) sent++;
@@ -2782,16 +2850,23 @@ async function sendNewsletterWelcomeEmail(email, name) {
     const template = AI_TEMPLATES["newsletter_welcome"];
     const subject = template.subject.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
     const html = template.body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || "");
-    await sendEmail({ to: email, toName: name || void 0, subject, html });
+    await sendEmail({ to: email, toName: name || void 0, subject, html, fromEmail: TASKDRIP_EMAILS.info });
   } catch (_) {
   }
 }
-var AI_TEMPLATES;
+var TASKDRIP_EMAILS, AI_TEMPLATES;
 var init_email_service = __esm({
   "server/email-service.ts"() {
     "use strict";
     init_db();
     init_schema();
+    TASKDRIP_EMAILS = {
+      info: "info@taskdrip.online",
+      developer: "developer@taskdrip.online",
+      support: "support@taskdrip.online",
+      payments: "payments@taskdrip.online",
+      admin: "taskdrip@gmail.com"
+    };
     AI_TEMPLATES = {
       welcome_creator: {
         subject: "Welcome to Taskdrip, {{first_name}}! Your creator account is live \u{1F680}",
@@ -7070,6 +7145,24 @@ function setupAuth(app2) {
       } catch (pErr) {
         console.error("Points award error:", pErr);
       }
+      sendAdminActivityEmail({
+        event: "registration",
+        subject: `New user registration: ${user.firstName} ${user.lastName}`.trim(),
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: `${user.firstName} ${user.lastName}`.trim(),
+          email: user.email
+        },
+        details: [
+          { label: "User ID", value: user.id },
+          { label: "Account type", value: user.userType },
+          { label: "Company", value: user.companyName },
+          { label: "Location", value: user.location },
+          { label: "Referral code used", value: userData.referralCode }
+        ]
+      }).catch(() => {
+      });
       req.login(user, (err) => {
         if (err) return next(err);
         sendWelcomeEmail({ email: user.email, firstName: user.firstName || "", lastName: user.lastName || "", userType: user.userType || "creator" }).catch(() => {
@@ -11297,6 +11390,168 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 // server/routes.ts
 init_email_service();
 
+// server/activity-service.ts
+init_schema();
+init_db();
+init_email_service();
+var IGNORED_PATHS = [
+  "/api/health",
+  "/api/notifications/",
+  "/api/page-views",
+  "/api/online/ping",
+  "/api/typing",
+  "/api/ads/"
+];
+var ROUTES_WITH_EXISTING_ADMIN_EMAIL = [
+  "/api/auth/register",
+  "/api/purchases",
+  "/api/advertise-applications",
+  "/api/contact",
+  "/api/hire-developer",
+  "/api/transactions",
+  "/api/subscriptions",
+  "/api/escrow-payment/submit-proof",
+  "/api/courses/",
+  "/api/admin/email/"
+];
+var EVENT_LABELS = {
+  registration: "New user registration",
+  order: "New order activity",
+  payment: "Payment activity",
+  campaign: "Campaign activity",
+  course: "Course activity",
+  profile: "Profile activity",
+  communication: "Communication activity",
+  content: "Content activity",
+  marketplace: "Marketplace activity",
+  admin: "Admin activity",
+  activity: "Platform activity"
+};
+function compact(value, max = 500) {
+  if (value === null || value === void 0) return void 0;
+  const result = typeof value === "string" ? value : JSON.stringify(value);
+  if (!result) return void 0;
+  return result.length > max ? `${result.slice(0, max)}\u2026` : result;
+}
+function sanitize2(value, key = "") {
+  const lowerKey = key.toLowerCase();
+  if (/(password|pass|secret|token|authorization|cookie|paymentproof|paymentscreenshot|prooffile|attachment)/i.test(lowerKey)) {
+    return "[redacted]";
+  }
+  if (typeof value === "string") return compact(value, 500);
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitize2(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).slice(0, 40).map(([childKey, childValue]) => [childKey, sanitize2(childValue, childKey)])
+    );
+  }
+  return value;
+}
+function classify(path5) {
+  if (path5.includes("/register")) return "registration";
+  if (path5.includes("/purchase") || path5.includes("/orders")) return "order";
+  if (path5.includes("payment") || path5.includes("subscription") || path5.includes("topup") || path5.includes("transaction")) return "payment";
+  if (path5.includes("campaign")) return "campaign";
+  if (path5.includes("course") || path5.includes("breedskool")) return "course";
+  if (path5.includes("profile") || path5.includes("become-creator") || path5.includes("message-privacy")) return "profile";
+  if (path5.includes("message") || path5.includes("contact") || path5.includes("hire")) return "communication";
+  if (path5.includes("post") || path5.includes("blog") || path5.includes("review") || path5.includes("report")) return "content";
+  if (path5.includes("p2p") || path5.includes("listing") || path5.includes("payout")) return "marketplace";
+  if (path5.includes("/admin/")) return "admin";
+  return "activity";
+}
+function shouldIgnore(path5) {
+  return IGNORED_PATHS.some((prefix) => path5 === prefix || path5.startsWith(prefix));
+}
+function hasExistingEmail(path5) {
+  if (path5.startsWith("/api/courses/")) return !path5.endsWith("/enroll");
+  return ROUTES_WITH_EXISTING_ADMIN_EMAIL.some((prefix) => path5 === prefix || path5.startsWith(prefix));
+}
+function routeTitle(method, path5) {
+  const clean = path5.replace(/^\/api\/?/, "").replace(/\/+/g, " ").replace(/[-_]/g, " ");
+  return `${method} ${clean || "API action"}`.replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+async function recordActivity(input) {
+  try {
+    await db.insert(activityLogs).values({
+      actorId: input.actorId || null,
+      actorName: input.actorName || null,
+      actorEmail: input.actorEmail || null,
+      eventType: input.eventType,
+      action: input.action,
+      description: input.description,
+      route: input.route || null,
+      method: input.method || null,
+      status: input.status || "success",
+      entityType: input.entityType || null,
+      entityId: input.entityId || null,
+      metadata: input.metadata || {},
+      ipAddress: input.ipAddress || null,
+      userAgent: input.userAgent || null
+    });
+  } catch (error) {
+    console.error("[activity] Could not record activity:", error?.message || error);
+  }
+}
+function requestActor(req) {
+  const user = req.user;
+  const body = req.body || {};
+  const name = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : String(body.name || body.contactName || body.firstName || "").trim();
+  const email = user?.email || body.email || body.contactEmail || void 0;
+  return { id: user?.id || null, name: name || null, email: email || null };
+}
+function activityAuditMiddleware(req, res, next) {
+  const isWrite = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
+  const path5 = req.path;
+  if (!isWrite || !path5.startsWith("/api") || shouldIgnore(path5)) return next();
+  const startedAt = Date.now();
+  res.on("finish", () => {
+    const actor = requestActor(req);
+    const status = res.statusCode >= 400 ? "failed" : "success";
+    const body = sanitize2(req.body || {});
+    const eventType = classify(path5);
+    const title = routeTitle(req.method, path5);
+    const entityId = path5.split("/").filter(Boolean).pop() || null;
+    const details = Object.entries(body).filter(([key]) => !["password", "smtpPass", "imapPass"].includes(key)).slice(0, 12).map(([key, value]) => `${key}: ${compact(value, 180)}`).join(" | ");
+    void recordActivity({
+      actorId: actor.id,
+      actorName: actor.name,
+      actorEmail: actor.email,
+      eventType,
+      action: title,
+      description: `${status === "success" ? "Completed" : "Failed"} ${title}${details ? ` \u2014 ${details}` : ""}`,
+      route: path5,
+      method: req.method,
+      status,
+      entityId: entityId && !entityId.startsWith("api") ? entityId : null,
+      metadata: {
+        request: body,
+        responseStatus: res.statusCode,
+        durationMs: Date.now() - startedAt
+      },
+      ipAddress: req.ip,
+      userAgent: req.get("user-agent") || null
+    });
+    if (status === "success" && !hasExistingEmail(path5) && (actor.id || actor.email) && req.user?.userType !== "admin") {
+      const label = EVENT_LABELS[eventType] || EVENT_LABELS.activity;
+      void sendAdminActivityEmail({
+        event: "activity",
+        subject: `${label}: ${title}`,
+        recipient: TASKDRIP_EMAILS.admin,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: { name: actor.name || void 0, email: actor.email || void 0 },
+        details: [
+          { label: "Action", value: title },
+          { label: "Route", value: path5 },
+          { label: "Status", value: `${res.statusCode} ${status}` },
+          { label: "Details", value: details || "No form fields supplied" }
+        ]
+      });
+    }
+  });
+  next();
+}
+
 // server/content-scanner.ts
 var MALICIOUS_PATTERNS = [
   /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
@@ -11416,7 +11671,7 @@ function scanRequestBody(body, depth = 0) {
 init_schema();
 init_lead_service();
 init_db();
-import { desc as desc8, sql as sql11, eq as eq12, and as and8, count as count3, gte as gte2, inArray as inArray8 } from "drizzle-orm";
+import { desc as desc8, sql as sql11, eq as eq12, and as and8, count as count3, gte as gte2, inArray as inArray8, ilike as ilike2, or } from "drizzle-orm";
 import multer from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid } from "nanoid";
@@ -11433,14 +11688,17 @@ var DEFAULT_PORTFOLIO_PROFILE = {
   summary: "Founder, CTO, lawyer and product architect creating marketplaces, SaaS platforms, AI tools, and business systems that turn complex ideas into clear, useful experiences.",
   bio: "I am Abraham Tahbat \u2014 Founder and CTO of Breedskool Galaxy and Taskdrip, a lawyer called to the Nigerian Bar in 2015, and a full-stack web developer who followed a passion for entrepreneurship and information technology. I build products, create content, apply AI to practical business problems, shape go-to-market strategy, and help teams move from an idea to a dependable digital business.",
   location: "Nigeria \xB7 Working globally",
-  email: "tremendouslymax@gmail.com",
-  portraitUrl: "/api/portfolio-assets/portrait",
-  cvUrl: "/api/portfolio-assets/cv",
+  email: "taskdrip@gmail.com",
+  portraitUrl: "/portfolio/abraham-portrait.jpg",
+  cvUrl: "/portfolio/abraham-cv.pdf",
   socialLinks: [
     { label: "LinkedIn", url: "https://www.linkedin.com/in/taskdrip/" },
     { label: "Instagram", url: "https://www.instagram.com/taskdriper" },
+    { label: "TikTok", url: "https://www.tiktok.com/@taskdrip" },
     { label: "X", url: "https://x.com/taskdrip" },
-    { label: "YouTube", url: "https://www.youtube.com/@Taskdriper" }
+    { label: "YouTube", url: "https://www.youtube.com/@Taskdriper" },
+    { label: "Telegram", url: "https://t.me/taskdrip" },
+    { label: "WhatsApp chat", url: "https://wa.me/message/CHINRBNHGJNDN1" }
   ],
   skills: [
     "JavaScript",
@@ -12014,6 +12272,7 @@ async function runSubscriptionExpiryCheck() {
   return { expired, reminded };
 }
 async function registerRoutes(app2, existingServer) {
+  app2.use(activityAuditMiddleware);
   setupAuth(app2);
   const SCAN_SKIP_PATHS = ["/api/health", "/api/login", "/api/register", "/api/uploads", "/api/breedskool"];
   const SCAN_SKIP_FIELDS = ["password", "confirmPassword", "transactionHash", "transactionRef", "paymentProof", "proofNote"];
@@ -12921,6 +13180,27 @@ async function registerRoutes(app2, existingServer) {
         // 30 minutes
       };
       const escrowPayment = await storage.createEscrowPayment(escrowPaymentData);
+      sendAdminActivityEmail({
+        event: "transaction",
+        subject: `New campaign awaiting payment: ${title}`,
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          email: user.email,
+          phone: user.phoneNumber
+        },
+        details: [
+          { label: "Campaign ID", value: campaign.id },
+          { label: "Campaign title", value: title },
+          { label: "Budget", value: totalAmount },
+          { label: "Reward per creator", value: rewardNum },
+          { label: "Creator slots", value: totalSlotsNum },
+          { label: "Escrow payment ID", value: escrowPayment.id },
+          { label: "Status", value: campaign.status }
+        ]
+      }).catch(() => {
+      });
       res.status(201).json({
         success: true,
         campaign,
@@ -13068,6 +13348,27 @@ async function registerRoutes(app2, existingServer) {
         transactionHash,
         network,
         description: `Campaign escrow deposit for campaign ${campaignId}`
+      });
+      const payer = await storage.getUser(escrowPayment.brandId).catch(() => null);
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `Campaign escrow payment submitted: ${campaignId}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${payer?.firstName || ""} ${payer?.lastName || ""}`.trim(),
+          email: payer?.email,
+          phone: payer?.phoneNumber || void 0
+        },
+        details: [
+          { label: "Campaign ID", value: campaignId },
+          { label: "Payment ID", value: escrowPayment.id },
+          { label: "Amount", value: escrowPayment.amount },
+          { label: "Network", value: network },
+          { label: "Transaction reference", value: transactionHash },
+          { label: "Status", value: "verifying" }
+        ]
+      }).catch(() => {
       });
       res.json({
         success: true,
@@ -13412,6 +13713,27 @@ async function registerRoutes(app2, existingServer) {
         userId
       });
       const transaction = await storage.createTransaction(validatedData);
+      sendAdminActivityEmail({
+        event: "transaction",
+        subject: `New transaction: ${transaction.type || "platform transaction"}`,
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber
+        },
+        details: [
+          { label: "Transaction ID", value: transaction.id },
+          { label: "Type", value: transaction.type },
+          { label: "Amount", value: transaction.amount },
+          { label: "Status", value: transaction.status },
+          { label: "Network", value: transaction.network },
+          { label: "Reference", value: transaction.transactionHash },
+          { label: "Description", value: transaction.description }
+        ]
+      }).catch(() => {
+      });
       res.json(transaction);
     } catch (error) {
       console.error("Error creating transaction:", error);
@@ -13607,6 +13929,27 @@ async function registerRoutes(app2, existingServer) {
         }
       } catch (_e) {
       }
+      const legacyBuyer = await storage.getUser(userId).catch(() => null);
+      sendAdminActivityEmail({
+        event: "shop_order",
+        subject: `New shop order: ${purchase.id}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${legacyBuyer?.firstName || ""} ${legacyBuyer?.lastName || ""}`.trim(),
+          email: legacyBuyer?.email,
+          phone: legacyBuyer?.phoneNumber || void 0
+        },
+        details: [
+          { label: "Order ID", value: purchase.id },
+          { label: "Product ID", value: purchase.productId },
+          { label: "Amount", value: purchase.totalAmount },
+          { label: "Payment method", value: purchase.paymentMethod },
+          { label: "Transaction reference", value: purchase.transactionHash || purchase.paymentProof },
+          { label: "Status", value: purchase.status }
+        ]
+      }).catch(() => {
+      });
       res.json(purchase);
     } catch (error) {
       console.error("Error creating purchase:", error);
@@ -14406,6 +14749,26 @@ async function registerRoutes(app2, existingServer) {
         status: "submitted"
       };
       const deposit = await storage.createPaymentDeposit(depositData);
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `New wallet payment deposit: ${deposit.id}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber
+        },
+        details: [
+          { label: "Deposit ID", value: deposit.id },
+          { label: "Campaign ID", value: deposit.campaignId },
+          { label: "Amount", value: deposit.amount },
+          { label: "Network", value: deposit.network },
+          { label: "Transaction reference", value: deposit.transactionHash },
+          { label: "Status", value: deposit.status }
+        ]
+      }).catch(() => {
+      });
       res.status(201).json(deposit);
     } catch (error) {
       console.error("Error creating payment deposit:", error);
@@ -15569,6 +15932,8 @@ async function registerRoutes(app2, existingServer) {
           sendAdminActivityEmail({
             event: "shop_order",
             subject: `New shop order: ${product.title}`,
+            recipient: TASKDRIP_EMAILS.payments,
+            fromEmail: TASKDRIP_EMAILS.payments,
             customer: {
               name: `${buyer2.firstName || ""} ${buyer2.lastName || ""}`.trim(),
               email: buyer2.email,
@@ -15662,6 +16027,8 @@ async function registerRoutes(app2, existingServer) {
         sendAdminActivityEmail({
           event: "shop_order",
           subject: `New shop order: ${product.title}`,
+          recipient: TASKDRIP_EMAILS.payments,
+          fromEmail: TASKDRIP_EMAILS.payments,
           customer: {
             name: `${buyer.firstName || ""} ${buyer.lastName || ""}`.trim(),
             email: buyer.email,
@@ -15970,6 +16337,27 @@ async function registerRoutes(app2, existingServer) {
         periodDays,
         paymentMethodLabel: paymentMethodLabel || void 0
       });
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `New subscription payment: ${plan}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber
+        },
+        details: [
+          { label: "Subscription ID", value: sub.id },
+          { label: "Plan", value: plan },
+          { label: "Amount", value: amount },
+          { label: "Network", value: network || "manual" },
+          { label: "Payment method", value: paymentMethodLabel },
+          { label: "Transaction reference", value: transactionHash },
+          { label: "Status", value: "pending verification" }
+        ]
+      }).catch(() => {
+      });
       const periodLabel = periodDays === 3 ? "3-day" : periodDays === 5 ? "5-day" : periodDays === 365 ? "yearly" : "monthly";
       await storage.createNotification({
         userId: req.user.id,
@@ -16058,6 +16446,26 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "contentType, contentId and reason are required" });
       }
       const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
+      const reporter = await storage.getUser(userId).catch(() => null);
+      sendAdminActivityEmail({
+        event: "contact",
+        subject: `New customer complaint/report: ${reason}`,
+        recipient: TASKDRIP_EMAILS.support,
+        fromEmail: TASKDRIP_EMAILS.support,
+        customer: {
+          name: `${reporter?.firstName || ""} ${reporter?.lastName || ""}`.trim(),
+          email: reporter?.email,
+          phone: reporter?.phoneNumber || void 0
+        },
+        details: [
+          { label: "Report ID", value: report.id },
+          { label: "Content type", value: contentType },
+          { label: "Content ID", value: contentId },
+          { label: "Reason", value: reason },
+          { label: "Details", value: details }
+        ]
+      }).catch(() => {
+      });
       try {
         const admins = await db.select().from(users).where(eq12(users.userType, "admin"));
         for (const a of admins) {
@@ -17267,6 +17675,8 @@ ${contactLines.join("\n")}` : ""),
       sendAdminActivityEmail({
         event: "hire_request",
         subject: `New developer hire request: ${title}`,
+        recipient: TASKDRIP_EMAILS.developer,
+        fromEmail: TASKDRIP_EMAILS.developer,
         customer: {
           name: `${(await storage.getUser(userId))?.firstName || ""} ${(await storage.getUser(userId))?.lastName || ""}`.trim(),
           email: contactEmail || (await storage.getUser(userId))?.email || email,
@@ -17552,6 +17962,8 @@ Instructions:
       sendAdminActivityEmail({
         event: "course_registration",
         subject: `New course registration: ${selectedCourseTitle || selectedCourseKey || "Course"}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
         customer: { name: fullName, email, phone },
         details: [
           { label: "Registration ID", value: reg.id },
@@ -17812,6 +18224,118 @@ Instructions:
     } catch (e) {
       console.error("[delete-registration error]", e);
       res.status(500).json({ message: e.message });
+    }
+  });
+  const DEFAULT_BREEDSKOOL_CAMPAIGN = {
+    goalUsd: 25e3,
+    raisedUsd: 0,
+    supporters: 0,
+    studentsTarget: 100,
+    studentsTrained: 0,
+    studentsEmployed: 0,
+    studentsWithoutEquipment: 100,
+    heroImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+    justGivingUrl: "https://www.justgiving.com/crowdfunding/breedskool",
+    telegramUrl: "https://t.me/taskdrip",
+    studentWhatsAppUrl: "https://wa.me/2348036622568",
+    sponsorWhatsAppUrl: "https://wa.me/12016800266",
+    developerUrl: "https://taskdrip.online/hire-developer"
+  };
+  app2.get("/api/breedskool/campaign", async (_req, res) => {
+    try {
+      const [row] = await db.select().from(appSettings).where(eq12(appSettings.key, "breedskool_campaign_config"));
+      let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
+      if (row?.value) {
+        try {
+          config = { ...config, ...JSON.parse(row.value) };
+        } catch {
+        }
+      }
+      const [registrationStats] = await db.select({
+        total: count3(),
+        confirmed: sql11`count(*) filter (where ${breedskoolRegistrations.paymentStatus} in ('paid', 'confirmed'))`
+      }).from(breedskoolRegistrations);
+      res.json({ ...config, registrations: Number(registrationStats?.total || 0), confirmedRegistrations: Number(registrationStats?.confirmed || 0) });
+    } catch (e) {
+      res.json({ ...DEFAULT_BREEDSKOOL_CAMPAIGN, registrations: 0, confirmedRegistrations: 0 });
+    }
+  });
+  app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+    try {
+      const [row] = await db.select().from(appSettings).where(eq12(appSettings.key, "breedskool_campaign_config"));
+      let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
+      if (row?.value) {
+        try {
+          config = { ...config, ...JSON.parse(row.value) };
+        } catch {
+        }
+      }
+      res.json(config);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.put("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
+    if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
+    try {
+      const allowed = Object.keys(DEFAULT_BREEDSKOOL_CAMPAIGN);
+      const clean = {};
+      for (const key of allowed) {
+        if (req.body?.[key] === void 0) continue;
+        const value = req.body[key];
+        if (["goalUsd", "raisedUsd", "supporters", "studentsTarget", "studentsTrained", "studentsEmployed", "studentsWithoutEquipment"].includes(key)) {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed) || parsed < 0) return res.status(400).json({ message: `${key} must be a non-negative number` });
+          clean[key] = parsed;
+        } else if (typeof value === "string" && value.length <= 1e3) {
+          clean[key] = value.trim();
+        }
+      }
+      const merged = { ...DEFAULT_BREEDSKOOL_CAMPAIGN, ...clean };
+      await db.insert(appSettings).values({ key: "breedskool_campaign_config", value: JSON.stringify(merged), updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(merged), updatedAt: /* @__PURE__ */ new Date() } });
+      res.json(merged);
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.post("/api/breedskool/campaign/donations", upload.single("paymentProof"), async (req, res) => {
+    try {
+      const amount = Number(req.body?.amount);
+      const network = String(req.body?.network || "").toLowerCase();
+      const txHash = String(req.body?.transactionHash || "").trim();
+      const allowedNetworks = /* @__PURE__ */ new Set(["tron", "ton", "bsc", "pi"]);
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 1e8) return res.status(400).json({ message: "Enter a valid donation amount." });
+      if (!allowedNetworks.has(network)) return res.status(400).json({ message: "Choose a supported network." });
+      if (txHash.length < 6 || txHash.length > 100) return res.status(400).json({ message: "Enter the transaction hash after sending your donation." });
+      const settings = await db.select().from(appSettings).where(inArray8(appSettings.key, [
+        "breedskool_usdt_tron_address",
+        "breedskool_usdt_ton_address",
+        "breedskool_usdt_bnb_address"
+      ]));
+      const walletByNetwork = {};
+      for (const setting of settings) {
+        if (setting.key.includes("tron")) walletByNetwork.tron = setting.value || "";
+        if (setting.key.includes("ton")) walletByNetwork.ton = setting.value || "";
+        if (setting.key.includes("bnb")) walletByNetwork.bsc = setting.value || "";
+      }
+      if (!walletByNetwork[network] && network !== "pi") return res.status(400).json({ message: "That donation wallet is not configured yet." });
+      const donorName = String(req.body?.donorName || "").trim().slice(0, 120);
+      const donorEmail = String(req.body?.donorEmail || "").trim().slice(0, 160);
+      const message = String(req.body?.message || "").trim().slice(0, 500);
+      const deposit = await storage.createPaymentDeposit({
+        amount: amount.toFixed(2),
+        network,
+        walletAddress: walletByNetwork[network] || null,
+        transactionHash: txHash,
+        paymentProof: req.file?.path || null,
+        adminNotes: JSON.stringify({ source: "breedskool_campaign", donorName, donorEmail, message }),
+        status: "submitted"
+      });
+      res.status(201).json({ success: true, id: deposit.id, message: "Thank you. Your donation is pending verification." });
+    } catch (e) {
+      console.error("[breedskool-campaign-donation]", e?.message || e);
+      res.status(500).json({ message: "We could not record the donation right now. Please try again." });
     }
   });
   app2.get("/api/breedskool/payment-settings", async (_req, res) => {
@@ -18963,6 +19487,27 @@ Instructions:
         deadline: deadline ? new Date(deadline) : null,
         status: "pending"
       });
+      sendAdminActivityEmail({
+        event: "hire_request",
+        subject: `New developer hire request: ${title}`,
+        recipient: TASKDRIP_EMAILS.developer,
+        fromEmail: TASKDRIP_EMAILS.developer,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber
+        },
+        details: [
+          { label: "Request ID", value: offer.id },
+          { label: "Project", value: title },
+          { label: "Description", value: description },
+          { label: "Deliverables", value: deliverables },
+          { label: "Budget", value: baseBudget.toFixed(2) },
+          { label: "Deadline", value: deadline },
+          { label: "Status", value: offer.status }
+        ]
+      }).catch(() => {
+      });
       await storage.createNotification({
         userId: influencerId,
         type: "direct_hire_offer",
@@ -19352,6 +19897,27 @@ Instructions:
         paymentProof,
         adminNote: verification.message
       });
+      sendAdminActivityEmail({
+        event: "payment",
+        subject: `Developer hire payment submitted: ${offer.title}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
+        customer: {
+          name: `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+          email: req.user.email,
+          phone: req.user.phoneNumber
+        },
+        details: [
+          { label: "Hire request ID", value: offer.id },
+          { label: "Project", value: offer.title },
+          { label: "Amount", value: payableAmount },
+          { label: "Network", value: paymentNetwork },
+          { label: "Transaction reference", value: transactionHash },
+          { label: "Verification", value: verification.message },
+          { label: "Status", value: updated.status }
+        ]
+      }).catch(() => {
+      });
       const admins = await storage.getUsersByType("admin");
       for (const admin of admins) {
         await storage.createNotification({
@@ -19688,6 +20254,8 @@ Please proceed to the payment section when ready.`,
       sendAdminActivityEmail({
         event: "hire_request",
         subject: `Invoice generated: ${offer.title}`,
+        recipient: TASKDRIP_EMAILS.payments,
+        fromEmail: TASKDRIP_EMAILS.payments,
         customer: {
           name: `${(await storage.getUser(offer.brandId))?.firstName || ""} ${(await storage.getUser(offer.brandId))?.lastName || ""}`.trim(),
           email: (await storage.getUser(offer.brandId))?.email
@@ -21269,6 +21837,26 @@ Looking forward to collaborating with you!`;
         }
       } catch (_notifErr) {
       }
+      sendAdminActivityEmail({
+        event: "advertising",
+        subject: `New advertising enquiry: ${req.body.companyName || "Unknown company"}`,
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: {
+          name: req.body.contactName,
+          email: req.body.contactEmail,
+          phone: req.body.phone || req.body.phoneNumber
+        },
+        details: [
+          { label: "Application ID", value: app22.id },
+          { label: "Company", value: req.body.companyName },
+          { label: "Ad type", value: (req.body.adType || "advertising").replace(/_/g, " ") },
+          { label: "Budget", value: req.body.budget },
+          { label: "Message", value: req.body.message || req.body.description },
+          { label: "Status", value: app22.status }
+        ]
+      }).catch(() => {
+      });
       if (req.body.contactEmail) {
         const contactName = req.body.contactName || "";
         const firstName = contactName.split(" ")[0] || contactName;
@@ -21294,25 +21882,16 @@ Looking forward to collaborating with you!`;
       if (!subject || !body || !applicantEmail) return res.status(400).json({ message: "subject, body, and applicantEmail required" });
       let emailSent = false;
       try {
-        const sgMail = (await import("@sendgrid/mail")).default;
-        const apiKey = process.env.SENDGRID_API_KEY;
-        if (apiKey) {
-          sgMail.setApiKey(apiKey);
-          await sgMail.send({
-            to: { email: applicantEmail, name: applicantName || applicantEmail },
-            from: { email: "ads@taskdrip.online", name: "Taskdrip Advertising Team" },
-            subject,
-            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-              <img src="https://taskdrip.online/logo.png" alt="Taskdrip" style="height:36px;margin-bottom:24px" />
-              <div style="background:#f9fafb;border-radius:12px;padding:24px;border:1px solid #e5e7eb">
-                ${body.replace(/\n/g, "<br/>")}
-              </div>
-              <p style="color:#6b7280;font-size:12px;margin-top:24px">Taskdrip Advertising Team \xB7 ads@taskdrip.online</p>
-            </div>`,
-            text: body
-          });
-          emailSent = true;
-        }
+        const { buildDefaultEmailHtml: buildDefaultEmailHtml3, sendEmail: sendEmail3 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
+        const result = await sendEmail3({
+          to: applicantEmail,
+          toName: applicantName || applicantEmail,
+          subject,
+          html: buildDefaultEmailHtml3(`<h2 style="color:#1f2937;margin:0 0 16px">${subject}</h2><div style="line-height:1.7">${body.replace(/\n/g, "<br/>")}</div>`, "Taskdrip Advertising Team"),
+          text: body,
+          fromEmail: TASKDRIP_EMAILS.info
+        });
+        emailSent = result.success;
       } catch (mailErr) {
         console.error("[ads-email]", mailErr?.message);
       }
@@ -21361,6 +21940,45 @@ ${body}`,
       res.json({ success: true, message: "Resend activated as default provider" });
     } catch (e) {
       res.status(500).json({ success: false, error: e.message });
+    }
+  });
+  app2.get("/api/admin/activity", isAuthenticated, async (req, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
+      const requestedLimit = Number.parseInt(String(req.query.limit || "50"), 10);
+      const requestedOffset = Number.parseInt(String(req.query.offset || "0"), 10);
+      const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1), 200);
+      const offset = Math.max(Number.isFinite(requestedOffset) ? requestedOffset : 0, 0);
+      const eventType = String(req.query.eventType || "").trim();
+      const status = String(req.query.status || "").trim();
+      const search = String(req.query.search || "").trim();
+      const conditions = [];
+      if (eventType && eventType !== "all") conditions.push(eq12(activityLogs.eventType, eventType));
+      if (status && status !== "all") conditions.push(eq12(activityLogs.status, status));
+      if (search) {
+        const pattern = `%${search.slice(0, 100)}%`;
+        conditions.push(or(
+          ilike2(activityLogs.action, pattern),
+          ilike2(activityLogs.description, pattern),
+          ilike2(activityLogs.actorName, pattern),
+          ilike2(activityLogs.actorEmail, pattern),
+          ilike2(activityLogs.entityId, pattern)
+        ));
+      }
+      const where = conditions.length ? and8(...conditions) : void 0;
+      const [items, totalRows] = await Promise.all([
+        db.select().from(activityLogs).where(where).orderBy(desc8(activityLogs.createdAt)).limit(limit).offset(offset),
+        db.select({ count: count3() }).from(activityLogs).where(where)
+      ]);
+      res.json({
+        items,
+        total: Number(totalRows[0]?.count || 0),
+        limit,
+        offset
+      });
+    } catch (error) {
+      console.error("Error fetching admin activity history:", error);
+      res.status(500).json({ message: "Failed to fetch activity history" });
     }
   });
   app2.get("/api/admin/email/status", isAuthenticated, async (req, res) => {
@@ -22509,7 +23127,7 @@ ${body}`,
   app2.get("/api/portfolio-assets/:asset", (req, res) => {
     const assets = {
       portrait: {
-        filename: "WhatsApp_Image_2026-08-27_at_6.34.20_PM_1787852087613.jpeg",
+        filename: "IMG-20260825-WA0006_1787859432337.jpg",
         contentType: "image/jpeg"
       },
       cv: {
@@ -22519,7 +23137,12 @@ ${body}`,
     };
     const asset = assets[req.params.asset];
     if (!asset) return res.status(404).json({ message: "Portfolio asset not found" });
-    res.type(asset.contentType).sendFile(path.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
+    res.set({
+      "Content-Type": asset.contentType,
+      "Content-Disposition": asset.contentType === "application/pdf" ? "inline" : "inline",
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "public, max-age=3600"
+    }).sendFile(path.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
       if (error && !res.headersSent) res.status(error.statusCode || 404).json({ message: "Portfolio asset not found" });
     });
   });
@@ -22534,16 +23157,31 @@ ${body}`,
     try {
       if (profileRow?.value) {
         const storedProfile = JSON.parse(profileRow.value);
-        if (storedProfile?.contentVersion === DEFAULT_PORTFOLIO_PROFILE.contentVersion) {
-          profile = storedProfile;
+        if (storedProfile && typeof storedProfile === "object") {
+          profile = { ...DEFAULT_PORTFOLIO_PROFILE, ...storedProfile };
+          const existingSocialLinks = Array.isArray(profile.socialLinks) ? profile.socialLinks : [];
+          profile.socialLinks = [
+            ...existingSocialLinks,
+            ...DEFAULT_PORTFOLIO_PROFILE.socialLinks.filter((required) => !existingSocialLinks.some((link) => link.label.toLowerCase() === required.label.toLowerCase()))
+          ];
+          if (!profile.email || profile.email === "tremendouslymax@gmail.com") {
+            profile.email = DEFAULT_PORTFOLIO_PROFILE.email;
+          }
+          if (!profile.portraitUrl || profile.portraitUrl === "/api/portfolio-assets/portrait") {
+            profile.portraitUrl = DEFAULT_PORTFOLIO_PROFILE.portraitUrl;
+          }
+          if (!profile.cvUrl || profile.cvUrl === "/api/portfolio-assets/cv") {
+            profile.cvUrl = DEFAULT_PORTFOLIO_PROFILE.cvUrl;
+          }
         }
       }
     } catch {
       console.error("[Portfolio] Invalid profile JSON, using defaults");
     }
     try {
-      if (projectsRow?.value && profile !== DEFAULT_PORTFOLIO_PROFILE) {
-        projects = JSON.parse(projectsRow.value);
+      if (projectsRow?.value) {
+        const storedProjects = JSON.parse(projectsRow.value);
+        if (Array.isArray(storedProjects)) projects = storedProjects;
       }
     } catch {
       console.error("[Portfolio] Invalid projects JSON, using defaults");
@@ -23212,6 +23850,40 @@ ${body}`,
       res.status(500).json({ message: e.message });
     }
   });
+  app2.post("/api/contact", async (req, res) => {
+    try {
+      const { name, email, subject, message, type } = req.body || {};
+      const validTypes = /* @__PURE__ */ new Set(["general", "support", "partnership", "bug"]);
+      if (!name || !email || !subject || !message || !validTypes.has(type)) {
+        return res.status(400).json({ message: "Name, email, subject, message, and enquiry type are required." });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+        return res.status(400).json({ message: "Please provide a valid email address." });
+      }
+      if (String(message).trim().length < 10) {
+        return res.status(400).json({ message: "Message must be at least 10 characters." });
+      }
+      const recipient = type === "support" || type === "bug" ? TASKDRIP_EMAILS.support : TASKDRIP_EMAILS.info;
+      const typeLabel = { general: "General enquiry", support: "Support request", partnership: "Partnership enquiry", bug: "Bug report" }[type] || "Contact enquiry";
+      sendAdminActivityEmail({
+        event: "contact",
+        subject: `[${typeLabel}] ${String(subject).trim().slice(0, 180)}`,
+        recipient,
+        fromEmail: recipient,
+        customer: { name: String(name).trim(), email: String(email).trim() },
+        details: [
+          { label: "Enquiry type", value: typeLabel },
+          { label: "Subject", value: String(subject).trim() },
+          { label: "Message", value: String(message).trim() }
+        ]
+      }).catch(() => {
+      });
+      res.status(201).json({ message: "Thanks for reaching out. We'll get back to you within 24 hours." });
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      res.status(500).json({ message: "Failed to submit your message." });
+    }
+  });
   app2.post("/api/subscribe", async (req, res) => {
     try {
       const { email, name, source } = req.body;
@@ -23224,6 +23896,15 @@ ${body}`,
           await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq12(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
+          sendAdminActivityEmail({
+            event: "newsletter",
+            subject: "Newsletter subscriber re-subscribed",
+            recipient: TASKDRIP_EMAILS.info,
+            fromEmail: TASKDRIP_EMAILS.info,
+            customer: { name, email },
+            details: [{ label: "Source", value: source || "footer" }, { label: "Status", value: "active" }]
+          }).catch(() => {
+          });
           return res.json({ message: "Welcome back! You have been re-subscribed." });
         }
         return res.json({ message: "You are already subscribed. Thank you!" });
@@ -23231,6 +23912,15 @@ ${body}`,
       const ip = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
       await db.insert(newsletterSubscribers).values({ email: email.toLowerCase().trim(), name: name || null, source: source || "footer", ipAddress: ip });
       sendNewsletterWelcomeEmail(email, name).catch(() => {
+      });
+      sendAdminActivityEmail({
+        event: "newsletter",
+        subject: "New newsletter subscriber",
+        recipient: TASKDRIP_EMAILS.info,
+        fromEmail: TASKDRIP_EMAILS.info,
+        customer: { name, email },
+        details: [{ label: "Source", value: source || "footer" }, { label: "Status", value: "active" }]
+      }).catch(() => {
       });
       res.json({ message: "You have been subscribed! Check your inbox for a welcome email." });
     } catch (e) {
@@ -24993,6 +25683,20 @@ var DEFAULT_SLIDERS = [
     isActive: true
   },
   {
+    order: 8,
+    badge: "BreedSkool Impact Campaign",
+    headline: "Help a Young African Build the Future.",
+    subheadline: "Support practical technology training, equipment, mentorship and pathways to work for young people in communities where opportunity is hardest to find.",
+    ctaPrimaryLabel: "Support the campaign",
+    ctaPrimaryLink: "/breedskool/campaign",
+    ctaSecondaryLabel: "Join the training",
+    ctaSecondaryLink: "/breedskool",
+    backgroundImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+    overlayColor: "from-black/95 via-violet-950/75 to-black/45",
+    accentColor: "from-amber-300 via-orange-400 to-rose-400",
+    isActive: true
+  },
+  {
     order: 5,
     badge: "Influencer Shop",
     headline: "Tools Built for Influencers Who Mean Business.",
@@ -25101,6 +25805,16 @@ var DEFAULT_PAGE_CONTENT = [
   { page: "breedskool", section: "hero", key: "background_image", label: "Hero Background Image", type: "image", defaultValue: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=1800&q=85&auto=format&fit=crop", order: 2 },
   { page: "breedskool", section: "features", key: "title", label: "Features Section Title", type: "text", defaultValue: "Everything You Need to Grow", order: 0 },
   { page: "breedskool", section: "features", key: "subtitle", label: "Features Section Subtitle", type: "textarea", defaultValue: "Courses, mentorship, and community \u2014 all in one place.", order: 1 },
+  // ── BreedSkool campaign landing page ────────────────────────
+  { page: "breedskool_campaign", section: "hero", key: "eyebrow", label: "Campaign Eyebrow", type: "text", defaultValue: "A practical technology education campaign for young Africans", order: 0 },
+  { page: "breedskool_campaign", section: "hero", key: "title", label: "Campaign Hero Title", type: "text", defaultValue: "Give a Young African a Chance to Build the Future", order: 1 },
+  { page: "breedskool_campaign", section: "hero", key: "subtitle", label: "Campaign Hero Subtitle", type: "textarea", defaultValue: "Talent is everywhere. Opportunity is not. Help us put skills, equipment, mentorship and a real pathway into the hands of young people who are ready to learn.", order: 2 },
+  { page: "breedskool_campaign", section: "story", key: "title", label: "Story Section Title", type: "text", defaultValue: "The talent is there. The opportunity isn't.", order: 0 },
+  { page: "breedskool_campaign", section: "story", key: "body", label: "Story Section Body", type: "textarea", defaultValue: "Imagine being a young person in a rural community with no computer, unreliable internet and no technology centre nearby. You may be intelligent, creative and determined, but the modern digital economy can feel like a world you are not allowed to enter.", order: 1 },
+  { page: "breedskool_campaign", section: "cta", key: "title", label: "Campaign CTA Title", type: "text", defaultValue: "Will you help us open the door?", order: 0 },
+  { page: "breedskool_campaign", section: "cta", key: "subtitle", label: "Campaign CTA Subtitle", type: "textarea", defaultValue: "Every donation matters. And if you cannot donate, sharing this campaign can still help us reach the right people.", order: 1 },
+  { page: "breedskool_campaign", section: "contact", key: "sponsor_label", label: "Sponsor Contact Label", type: "text", defaultValue: "For brands, sponsors and philanthropists", order: 0 },
+  { page: "breedskool_campaign", section: "contact", key: "student_label", label: "Student Contact Label", type: "text", defaultValue: "For African students joining the training", order: 1 },
   // ── Shop page ────────────────────────────────────────────────
   { page: "shop", section: "hero", key: "title", label: "Shop Hero Title", type: "text", defaultValue: "Creator Tools & Resources", order: 0 },
   { page: "shop", section: "hero", key: "subtitle", label: "Shop Hero Subtitle", type: "textarea", defaultValue: "Premium templates, scripts, plugins, and digital tools. Built for creators who mean business.", order: 1 },
@@ -26384,6 +27098,12 @@ var REQUIRED_COLUMNS = [
   { table: "direct_hire_offers", column: "influencer_payout", definition: "decimal(10,2) DEFAULT '0.00'" },
   { table: "direct_hire_offers", column: "rejection_reason", definition: "text" },
   { table: "direct_hire_offers", column: "payment_proof", definition: "varchar" },
+  // PWA analytics and search verification fields
+  { table: "pwa_settings", column: "ga_tracking_id", definition: "varchar" },
+  { table: "pwa_settings", column: "gtm_id", definition: "varchar" },
+  { table: "pwa_settings", column: "google_site_verification", definition: "varchar" },
+  { table: "pwa_settings", column: "bing_verification", definition: "varchar" },
+  { table: "pwa_settings", column: "default_og_image", definition: "varchar" },
   { table: "direct_hire_offers", column: "payment_network", definition: "varchar" },
   { table: "direct_hire_offers", column: "transaction_hash", definition: "varchar" },
   { table: "direct_hire_offers", column: "admin_note", definition: "text" },
@@ -26786,6 +27506,25 @@ var REQUIRED_TABLES = [
     "created_at" timestamp DEFAULT now(),
     "approved_at" timestamp,
     "paid_at" timestamp
+  )`,
+  // Admin activity history — captures major writes and their sanitized details
+  `CREATE TABLE IF NOT EXISTS "activity_logs" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "actor_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "actor_name" varchar,
+    "actor_email" varchar,
+    "event_type" varchar(60) NOT NULL,
+    "action" varchar(200) NOT NULL,
+    "description" text NOT NULL,
+    "route" varchar(300),
+    "method" varchar(10),
+    "status" varchar(20) NOT NULL DEFAULT 'success',
+    "entity_type" varchar(60),
+    "entity_id" varchar,
+    "metadata" jsonb DEFAULT '{}'::jsonb,
+    "ip_address" varchar(100),
+    "user_agent" text,
+    "created_at" timestamp DEFAULT now()
   )`
 ];
 async function runStartupMigrations() {

@@ -7140,6 +7140,117 @@ Instructions:
   });
 
   // Public: get BreedSkool payment settings (bank + crypto info for registration form)
+  // Public campaign settings are kept in app_settings so the campaign can be
+  // edited without introducing a second donation-specific schema.
+  const DEFAULT_BREEDSKOOL_CAMPAIGN = {
+    goalUsd: 25000,
+    raisedUsd: 0,
+    supporters: 0,
+    studentsTarget: 100,
+    studentsTrained: 0,
+    studentsEmployed: 0,
+    studentsWithoutEquipment: 100,
+    heroImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1800&q=85&auto=format&fit=crop",
+    justGivingUrl: "https://www.justgiving.com/crowdfunding/breedskool",
+    telegramUrl: "https://t.me/taskdrip",
+    studentWhatsAppUrl: "https://wa.me/2348036622568",
+    sponsorWhatsAppUrl: "https://wa.me/12016800266",
+    developerUrl: "https://taskdrip.online/hire-developer",
+  };
+
+  app.get('/api/breedskool/campaign', async (_req, res) => {
+    try {
+      const [row] = await db.select().from(appSettings).where(eq(appSettings.key, 'breedskool_campaign_config'));
+      let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
+      if (row?.value) {
+        try { config = { ...config, ...JSON.parse(row.value) }; } catch {}
+      }
+      const [registrationStats] = await db.select({
+        total: count(),
+        confirmed: sql<number>`count(*) filter (where ${breedskoolRegistrations.paymentStatus} in ('paid', 'confirmed'))`,
+      }).from(breedskoolRegistrations);
+      res.json({ ...config, registrations: Number(registrationStats?.total || 0), confirmedRegistrations: Number(registrationStats?.confirmed || 0) });
+    } catch (e: any) {
+      res.json({ ...DEFAULT_BREEDSKOOL_CAMPAIGN, registrations: 0, confirmedRegistrations: 0 });
+    }
+  });
+
+  app.get('/api/admin/breedskool/campaign', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const [row] = await db.select().from(appSettings).where(eq(appSettings.key, 'breedskool_campaign_config'));
+      let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
+      if (row?.value) {
+        try { config = { ...config, ...JSON.parse(row.value) }; } catch {}
+      }
+      res.json(config);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.put('/api/admin/breedskool/campaign', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const allowed = Object.keys(DEFAULT_BREEDSKOOL_CAMPAIGN);
+      const clean: Record<string, string | number> = {};
+      for (const key of allowed) {
+        if (req.body?.[key] === undefined) continue;
+        const value = req.body[key];
+        if (['goalUsd', 'raisedUsd', 'supporters', 'studentsTarget', 'studentsTrained', 'studentsEmployed', 'studentsWithoutEquipment'].includes(key)) {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed) || parsed < 0) return res.status(400).json({ message: `${key} must be a non-negative number` });
+          clean[key] = parsed;
+        } else if (typeof value === 'string' && value.length <= 1000) {
+          clean[key] = value.trim();
+        }
+      }
+      const merged = { ...DEFAULT_BREEDSKOOL_CAMPAIGN, ...clean };
+      await db.insert(appSettings)
+        .values({ key: 'breedskool_campaign_config', value: JSON.stringify(merged), updatedAt: new Date() })
+        .onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(merged), updatedAt: new Date() } });
+      res.json(merged);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Public manual campaign donation submission. Donations are reviewed by an
+  // admin; no account is required for a supporter to submit a transaction hash.
+  app.post('/api/breedskool/campaign/donations', upload.single('paymentProof'), async (req: any, res) => {
+    try {
+      const amount = Number(req.body?.amount);
+      const network = String(req.body?.network || '').toLowerCase();
+      const txHash = String(req.body?.transactionHash || '').trim();
+      const allowedNetworks = new Set(['tron', 'ton', 'bsc', 'pi']);
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) return res.status(400).json({ message: 'Enter a valid donation amount.' });
+      if (!allowedNetworks.has(network)) return res.status(400).json({ message: 'Choose a supported network.' });
+      if (txHash.length < 6 || txHash.length > 100) return res.status(400).json({ message: 'Enter the transaction hash after sending your donation.' });
+      const settings = await db.select().from(appSettings).where(inArray(appSettings.key, [
+        'breedskool_usdt_tron_address', 'breedskool_usdt_ton_address', 'breedskool_usdt_bnb_address',
+      ]));
+      const walletByNetwork: Record<string, string> = {};
+      for (const setting of settings) {
+        if (setting.key.includes('tron')) walletByNetwork.tron = setting.value || '';
+        if (setting.key.includes('ton')) walletByNetwork.ton = setting.value || '';
+        if (setting.key.includes('bnb')) walletByNetwork.bsc = setting.value || '';
+      }
+      if (!walletByNetwork[network] && network !== 'pi') return res.status(400).json({ message: 'That donation wallet is not configured yet.' });
+      const donorName = String(req.body?.donorName || '').trim().slice(0, 120);
+      const donorEmail = String(req.body?.donorEmail || '').trim().slice(0, 160);
+      const message = String(req.body?.message || '').trim().slice(0, 500);
+      const deposit = await storage.createPaymentDeposit({
+        amount: amount.toFixed(2),
+        network,
+        walletAddress: walletByNetwork[network] || null,
+        transactionHash: txHash,
+        paymentProof: req.file?.path || null,
+        adminNotes: JSON.stringify({ source: 'breedskool_campaign', donorName, donorEmail, message }),
+        status: 'submitted',
+      });
+      res.status(201).json({ success: true, id: deposit.id, message: 'Thank you. Your donation is pending verification.' });
+    } catch (e: any) {
+      console.error('[breedskool-campaign-donation]', e?.message || e);
+      res.status(500).json({ message: 'We could not record the donation right now. Please try again.' });
+    }
+  });
+
   app.get('/api/breedskool/payment-settings', async (_req, res) => {
     try {
       const keys = [
