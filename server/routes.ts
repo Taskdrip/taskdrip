@@ -6972,15 +6972,56 @@ Instructions:
     }
   });
 
-  // Admin: update registration status (and activate linked course enrollment on verification)
+  // Admin: update registration details/status (and activate linked course enrollment on verification)
   app.patch('/api/admin/breedskool/registrations/:id', isAuthenticated, async (req: any, res) => {
     if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
     try {
-      const { paymentStatus, notes } = req.body;
+      const body = req.body || {};
       const updateData: Record<string, any> = { updatedAt: new Date() };
-      if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
-      if (notes !== undefined) updateData.notes = notes;
+      const requiredTextFields = ['fullName', 'email', 'phone', 'selectedCourseKey', 'selectedCourseTitle'];
+      const optionalTextFields = ['location', 'paymentMethod', 'transactionRef', 'childName', 'childAge', 'parentName', 'homeAddress', 'notes'];
+      const textLimits: Record<string, number> = {
+        fullName: 160, email: 254, phone: 40, selectedCourseKey: 80, selectedCourseTitle: 200,
+        location: 160, paymentMethod: 60, transactionRef: 160, childName: 160, childAge: 20,
+        parentName: 160, homeAddress: 500, notes: 2000,
+      };
+      for (const field of requiredTextFields) {
+        if (body[field] !== undefined) {
+          const value = String(body[field] || '').trim();
+          if (!value) return res.status(400).json({ message: `${field} is required.` });
+          updateData[field] = value.slice(0, textLimits[field]);
+        }
+      }
+      for (const field of optionalTextFields) {
+        if (body[field] !== undefined) {
+          const value = body[field] == null ? '' : String(body[field]).trim();
+          updateData[field] = value ? value.slice(0, textLimits[field]) : null;
+        }
+      }
+      if (body.email !== undefined) updateData.email = updateData.email.toLowerCase();
+      if (body.amountNgn !== undefined) {
+        const amountNgn = Number(body.amountNgn);
+        if (!Number.isFinite(amountNgn) || amountNgn < 0) return res.status(400).json({ message: 'Amount must be a non-negative number.' });
+        updateData.amountNgn = Math.round(amountNgn);
+      }
+      const allowedPaymentOptions = ['pay_now', 'pay_later'];
+      if (body.paymentOption !== undefined) {
+        if (!allowedPaymentOptions.includes(String(body.paymentOption))) return res.status(400).json({ message: 'Invalid payment option.' });
+        updateData.paymentOption = String(body.paymentOption);
+      }
+      const allowedDeliveryModes = ['online', 'onsite', 'home_lesson'];
+      if (body.deliveryMode !== undefined) {
+        if (!allowedDeliveryModes.includes(String(body.deliveryMode))) return res.status(400).json({ message: 'Invalid delivery mode.' });
+        updateData.deliveryMode = String(body.deliveryMode);
+      }
+      const allowedPaymentStatuses = ['pending', 'paid', 'confirmed', 'verified', 'approved', 'rejected'];
+      const paymentStatus = body.paymentStatus;
+      if (paymentStatus !== undefined) {
+        if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: 'Invalid payment status.' });
+        updateData.paymentStatus = String(paymentStatus);
+      }
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq(breedskoolRegistrations.id, req.params.id)).returning();
+      if (!row) return res.status(404).json({ message: 'Registration not found' });
 
       // When payment is verified OR confirmed → activate the linked platform course enrollment
       if (paymentStatus === 'verified' || paymentStatus === 'confirmed' || paymentStatus === 'paid' || paymentStatus === 'approved') {
