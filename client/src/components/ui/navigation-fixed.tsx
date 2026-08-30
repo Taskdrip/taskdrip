@@ -251,6 +251,7 @@ export function NavigationFixed() {
              { href: "/admin/portfolio", label: "Abraham Portfolio" },
             { href: "/admin/seo", label: "SEO" },
             { href: "/admin/email", label: "Email" },
+            { href: "/admin/activity-history", label: "Activity History" },
           ],
           "More": secondaryMainItems,
         },

@@ -88,6 +88,12 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "direct_hire_offers", column: "influencer_payout", definition: "decimal(10,2) DEFAULT '0.00'" },
   { table: "direct_hire_offers", column: "rejection_reason", definition: "text" },
   { table: "direct_hire_offers", column: "payment_proof", definition: "varchar" },
+  // PWA analytics and search verification fields
+  { table: "pwa_settings", column: "ga_tracking_id", definition: "varchar" },
+  { table: "pwa_settings", column: "gtm_id", definition: "varchar" },
+  { table: "pwa_settings", column: "google_site_verification", definition: "varchar" },
+  { table: "pwa_settings", column: "bing_verification", definition: "varchar" },
+  { table: "pwa_settings", column: "default_og_image", definition: "varchar" },
   { table: "direct_hire_offers", column: "payment_network", definition: "varchar" },
   { table: "direct_hire_offers", column: "transaction_hash", definition: "varchar" },
   { table: "direct_hire_offers", column: "admin_note", definition: "text" },
@@ -518,6 +524,26 @@ const REQUIRED_TABLES: string[] = [
     "created_at" timestamp DEFAULT now(),
     "approved_at" timestamp,
     "paid_at" timestamp
+  )`,
+
+  // Admin activity history — captures major writes and their sanitized details
+  `CREATE TABLE IF NOT EXISTS "activity_logs" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "actor_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "actor_name" varchar,
+    "actor_email" varchar,
+    "event_type" varchar(60) NOT NULL,
+    "action" varchar(200) NOT NULL,
+    "description" text NOT NULL,
+    "route" varchar(300),
+    "method" varchar(10),
+    "status" varchar(20) NOT NULL DEFAULT 'success',
+    "entity_type" varchar(60),
+    "entity_id" varchar,
+    "metadata" jsonb DEFAULT '{}'::jsonb,
+    "ip_address" varchar(100),
+    "user_agent" text,
+    "created_at" timestamp DEFAULT now()
   )`,
 ];
 

@@ -66,6 +66,7 @@ const TasksPage = lazy(() => import("@/pages/tasks"));
 const AdminPayments = lazy(() => import("@/pages/admin-payments"));
 const AdminAds = lazy(() => import("@/pages/admin-ads"));
 const AdminEmail = lazy(() => import("@/pages/admin-email"));
+const AdminActivityHistory = lazy(() => import("@/pages/admin-activity-history"));
 const AdvertiseWithUs = lazy(() => import("@/pages/advertise-with-us"));
 const GetStarted = lazy(() => import("@/pages/get-started"));
 const DirectHirePayment = lazy(() => import("@/pages/direct-hire-payment"));
@@ -266,6 +267,7 @@ function Router() {
             <Route path="/admin-ads" component={AdminAds} />
             <Route path="/admin/ads" component={AdminAds} />
             <Route path="/admin/email" component={AdminEmail} />
+            <Route path="/admin/activity-history" component={AdminActivityHistory} />
             <Route path="/admin/p2p-transactions" component={AdminP2PTransactions} />
             <Route path="/admin/p2p-fees" component={AdminP2PFees} />
             <Route path="/admin/platform-fees" component={AdminPlatformFees} />
@@ -306,6 +308,7 @@ function Router() {
             <Route path="/admin/auto-blogger" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/auto-blogger')}`; return null; }} />
             <Route path="/admin/leads" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
             <Route path="/admin/leads/:id" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
+            <Route path="/admin/activity-history" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
             <Route path="/p2p-deals" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/p2p-deals')}`; return null; }} />
             <Route path="/p2p-deals/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
             <Route path="/my-training" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/my-training')}`; return null; }} />

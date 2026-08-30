@@ -436,6 +436,35 @@ export const notifications = pgTable("notifications", {
   readAt: timestamp("read_at"),
 });
 
+// Admin activity history — durable audit trail for important user and system actions
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  actorId: varchar("actor_id").references(() => users.id, { onDelete: "set null" }),
+  actorName: varchar("actor_name"),
+  actorEmail: varchar("actor_email"),
+  eventType: varchar("event_type", { length: 60 }).notNull(),
+  action: varchar("action", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  route: varchar("route", { length: 300 }),
+  method: varchar("method", { length: 10 }),
+  status: varchar("status", { length: 20 }).notNull().default("success"),
+  entityType: varchar("entity_type", { length: 60 }),
+  entityId: varchar("entity_id"),
+  metadata: jsonb("metadata").default({}),
+  ipAddress: varchar("ip_address", { length: 100 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("activity_logs_created_at_idx").on(table.createdAt),
+  index("activity_logs_event_type_idx").on(table.eventType),
+  index("activity_logs_actor_id_idx").on(table.actorId),
+]);
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Escrow payments table for campaign funding
 export const escrowPayments = pgTable("escrow_payments", {
   id: varchar("id").primaryKey(),
@@ -924,6 +953,8 @@ export type TaskSubmission = typeof taskSubmissions.$inferSelect;
 export type InsertTaskSubmission = z.infer<typeof insertTaskSubmissionSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 
 // Payment deposits for campaign funding
 export const paymentDeposits = pgTable("payment_deposits", {

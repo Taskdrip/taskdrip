@@ -8,11 +8,12 @@ import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blo
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
 import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable, TASKDRIP_EMAILS } from "./email-service";
+import { activityAuditMiddleware, recordActivity } from "./activity-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
-import { desc, sql, eq, and, count, gte, inArray } from "drizzle-orm";
+import { desc, sql, eq, and, count, gte, inArray, ilike, or } from "drizzle-orm";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -352,6 +353,7 @@ export async function runSubscriptionExpiryCheck() {
 }
 
 export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
+  app.use(activityAuditMiddleware);
   setupAuth(app);
 
   const SCAN_SKIP_PATHS = ['/api/health', '/api/login', '/api/register', '/api/uploads', '/api/breedskool'];
@@ -11039,6 +11041,51 @@ Instructions:
         .onConflictDoUpdate({ target: (emailSettingsTable as any).id, set: { preferredProvider: 'resend', smtpHost: null, smtpUser: null, smtpPass: null } });
       res.json({ success: true, message: 'Resend activated as default provider' });
     } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
+  });
+
+  // Admin activity history — searchable, paginated audit trail of important writes
+  app.get('/api/admin/activity', isAuthenticated, async (req: any, res) => {
+    try {
+      if (!isAdminUser(req.user)) return res.status(403).json({ message: 'Admin only' });
+      const requestedLimit = Number.parseInt(String(req.query.limit || '50'), 10);
+      const requestedOffset = Number.parseInt(String(req.query.offset || '0'), 10);
+      const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1), 200);
+      const offset = Math.max(Number.isFinite(requestedOffset) ? requestedOffset : 0, 0);
+      const eventType = String(req.query.eventType || '').trim();
+      const status = String(req.query.status || '').trim();
+      const search = String(req.query.search || '').trim();
+      const conditions: any[] = [];
+      if (eventType && eventType !== 'all') conditions.push(eq(activityLogs.eventType, eventType));
+      if (status && status !== 'all') conditions.push(eq(activityLogs.status, status));
+      if (search) {
+        const pattern = `%${search.slice(0, 100)}%`;
+        conditions.push(or(
+          ilike(activityLogs.action, pattern),
+          ilike(activityLogs.description, pattern),
+          ilike(activityLogs.actorName, pattern),
+          ilike(activityLogs.actorEmail, pattern),
+          ilike(activityLogs.entityId, pattern),
+        ));
+      }
+      const where = conditions.length ? and(...conditions) : undefined;
+      const [items, totalRows] = await Promise.all([
+        db.select().from(activityLogs)
+          .where(where)
+          .orderBy(desc(activityLogs.createdAt))
+          .limit(limit)
+          .offset(offset),
+        db.select({ count: count() }).from(activityLogs).where(where),
+      ]);
+      res.json({
+        items,
+        total: Number(totalRows[0]?.count || 0),
+        limit,
+        offset,
+      });
+    } catch (error: any) {
+      console.error('Error fetching admin activity history:', error);
+      res.status(500).json({ message: 'Failed to fetch activity history' });
+    }
   });
 
   // Email Status

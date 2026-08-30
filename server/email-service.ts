@@ -341,7 +341,7 @@ export async function sendOrderConfirmationEmail(opts: {
  */
 export async function sendAdminActivityEmail(opts: {
   subject: string;
-  event: "shop_order" | "course_registration" | "hire_request" | "contact" | "transaction" | "payment" | "registration" | "newsletter" | "advertising";
+  event: "shop_order" | "course_registration" | "hire_request" | "contact" | "transaction" | "payment" | "registration" | "newsletter" | "advertising" | "activity";
   customer: { name?: string; email?: string; phone?: string };
   details: Array<{ label: string; value: string | number | null | undefined }>;
   recipient?: string;
@@ -358,6 +358,7 @@ export async function sendAdminActivityEmail(opts: {
       registration: "New user registration",
       newsletter: "New newsletter subscription",
       advertising: "New advertising enquiry",
+      activity: "Platform activity",
     };
     const escapeHtml = (value: string) =>
       value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
