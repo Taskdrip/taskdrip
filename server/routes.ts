@@ -7199,6 +7199,7 @@ Instructions:
     goalUsd: 100000,
     raisedUsd: 0,
     supporters: 0,
+    registeredUsers: 0,
     studentsTarget: 100,
     studentsTrained: 0,
     studentsEmployed: 0,
@@ -7267,16 +7268,29 @@ Instructions:
     try {
       const [row] = await db.select().from(appSettings).where(eq(appSettings.key, 'breedskool_campaign_config'));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
+      let storedConfig: Record<string, any> | null = null;
       if (row?.value) {
-        try { config = { ...config, ...JSON.parse(row.value) }; } catch {}
+        try {
+          const parsed = JSON.parse(row.value);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            storedConfig = parsed;
+            config = { ...config, ...parsed };
+          }
+        } catch {}
       }
       const [registrationStats] = await db.select({
         total: count(),
         confirmed: sql<number>`count(*) filter (where ${breedskoolRegistrations.paymentStatus} in ('paid', 'confirmed'))`,
       }).from(breedskoolRegistrations);
-      res.json({ ...config, registrations: Number(registrationStats?.total || 0), confirmedRegistrations: Number(registrationStats?.confirmed || 0) });
+      const storedRegisteredUsers = storedConfig && Object.prototype.hasOwnProperty.call(storedConfig, 'registeredUsers')
+        ? Number(storedConfig.registeredUsers)
+        : Number(registrationStats?.total || 0);
+      const registeredUsers = Number.isFinite(storedRegisteredUsers) && storedRegisteredUsers >= 0
+        ? storedRegisteredUsers
+        : Number(registrationStats?.total || 0);
+      res.json({ ...config, registeredUsers, registrations: registeredUsers, confirmedRegistrations: Number(registrationStats?.confirmed || 0) });
     } catch (e: any) {
-      res.json({ ...DEFAULT_BREEDSKOOL_CAMPAIGN, registrations: 0, confirmedRegistrations: 0 });
+      res.json({ ...DEFAULT_BREEDSKOOL_CAMPAIGN, registeredUsers: 0, registrations: 0, confirmedRegistrations: 0 });
     }
   });
 
@@ -7287,6 +7301,10 @@ Instructions:
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       if (row?.value) {
         try { config = { ...config, ...JSON.parse(row.value) }; } catch {}
+      }
+      if (!Object.prototype.hasOwnProperty.call(config, 'registeredUsers')) {
+        const [registrationStats] = await db.select({ total: count() }).from(breedskoolRegistrations);
+        config.registeredUsers = Number(registrationStats?.total || 0);
       }
       res.json(config);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
@@ -7300,7 +7318,7 @@ Instructions:
       for (const key of allowed) {
         if (req.body?.[key] === undefined) continue;
         const value = req.body[key];
-        if (['goalUsd', 'raisedUsd', 'supporters', 'studentsTarget', 'studentsTrained', 'studentsEmployed', 'studentsWithoutEquipment'].includes(key)) {
+        if (['goalUsd', 'raisedUsd', 'supporters', 'registeredUsers', 'studentsTarget', 'studentsTrained', 'studentsEmployed', 'studentsWithoutEquipment'].includes(key)) {
           const parsed = Number(value);
           if (!Number.isFinite(parsed) || parsed < 0) return res.status(400).json({ message: `${key} must be a non-negative number` });
           clean[key] = parsed;

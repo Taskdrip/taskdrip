@@ -17,6 +17,7 @@ type CampaignConfig = {
   goalUsd: number;
   raisedUsd: number;
   supporters: number;
+  registeredUsers: number;
   studentsTarget: number;
   studentsTrained: number;
   studentsEmployed: number;
@@ -76,6 +77,7 @@ type BreedSkoolRegistration = {
 };
 const DEFAULT_CONFIG: CampaignConfig = {
   goalUsd: 100000, raisedUsd: 0, supporters: 0, studentsTarget: 100,
+  registeredUsers: 0,
   studentsTrained: 0, studentsEmployed: 0, studentsWithoutEquipment: 100,
   heroImage: "", justGivingUrl: "https://www.justgiving.com/crowdfunding/breedskool",
   telegramUrl: "https://t.me/taskdrip", studentWhatsAppUrl: "https://wa.me/2348036622568",
@@ -86,6 +88,7 @@ const numberFields: Array<[keyof CampaignConfig, string, string]> = [
   ["goalUsd", "Fundraising goal (GBP)", "The total campaign target, displayed in pounds sterling."],
   ["raisedUsd", "Raised so far (GBP)", "Update this after verified JustGiving or crypto donations."],
   ["supporters", "Supporters", "Verified supporters across donation channels."],
+  ["registeredUsers", "Registered users shown publicly", "The learner count displayed on the public campaign and donation pages."],
   ["studentsTarget", "Learner target", "The number of learners this campaign aims to serve."],
   ["studentsTrained", "Learners trained", "Verified learners who have completed training."],
   ["studentsWithoutEquipment", "Learners needing equipment", "Current equipment gap for reporting."],

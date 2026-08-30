@@ -23,6 +23,7 @@ type CampaignConfig = {
   goalUsd: number;
   raisedUsd: number;
   supporters: number;
+  registeredUsers?: number;
   studentsTarget: number;
   studentsTrained: number;
   studentsEmployed: number;
@@ -197,6 +198,14 @@ function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () 
           </DialogHeader>
         </div>
         <div className="space-y-5 p-6">
+          <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3">
+            <div className="flex items-end justify-between gap-4">
+              <div><p className="text-[11px] font-black uppercase tracking-[0.16em] text-violet-600">Campaign progress</p><p className="mt-1 text-sm font-semibold text-slate-700">Raised so far</p></div>
+              <p className="text-2xl font-black text-violet-700">{money(config.raisedUsd)}</p>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-violet-100"><div className="h-full rounded-full bg-violet-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, Math.round((Number(config.raisedUsd || 0) / Math.max(1, Number(config.goalUsd || 0))) * 100)))}%` }} /></div>
+            <p className="mt-2 text-xs text-slate-500">Campaign goal: <span className="font-bold text-slate-700">{money(config.goalUsd)}</span> · Updated by the BreedSkool team</p>
+          </div>
           <div>
             <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Donation amount (USDT)</Label>
             <div className="mt-2 flex gap-2">
