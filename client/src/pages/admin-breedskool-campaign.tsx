@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HeartHandshake, ExternalLink, Save, Settings2, BarChart3, WalletCards } from "lucide-react";
+import { CheckCircle2, Clipboard, ExternalLink, HeartHandshake, Plus, Save, Settings2, Trash2, WalletCards, XCircle } from "lucide-react";
 
 type CampaignConfig = {
   goalUsd: number;
@@ -29,6 +29,29 @@ type CampaignConfig = {
   developerUrl: string;
 };
 
+type DonationWallet = {
+  id: string;
+  label: string;
+  currency: string;
+  network: string;
+  address: string;
+  isActive: boolean;
+};
+
+type DonationTransaction = {
+  id: string;
+  amount: string;
+  network: string;
+  walletAddress?: string;
+  walletLabel?: string;
+  transactionHash?: string;
+  status: string;
+  donorName: string;
+  donorEmail: string;
+  donorMessage?: string;
+  proofUrl?: string | null;
+  createdAt?: string;
+};
 const DEFAULT_CONFIG: CampaignConfig = {
   goalUsd: 100000, raisedUsd: 0, supporters: 0, studentsTarget: 100,
   studentsTrained: 0, studentsEmployed: 0, studentsWithoutEquipment: 100,
@@ -52,9 +75,19 @@ export default function AdminBreedSkoolCampaign() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [form, setForm] = useState<CampaignConfig>(DEFAULT_CONFIG);
+  const [wallets, setWallets] = useState<DonationWallet[]>([]);
+  const [transactionFilter, setTransactionFilter] = useState("all");
   const isAdmin = (user as any)?.userType === "admin" || (user as any)?.role === "admin";
   const { data, isLoading } = useQuery<CampaignConfig>({
     queryKey: ["/api/admin/breedskool/campaign"],
+    enabled: isAdmin,
+  });
+  const { data: paymentSettings, isLoading: walletsLoading } = useQuery<Record<string, any>>({
+    queryKey: ["/api/admin/breedskool/payment-settings"],
+    enabled: isAdmin,
+  });
+  const { data: donations = [], isLoading: donationsLoading } = useQuery<DonationTransaction[]>({
+    queryKey: ["/api/admin/breedskool/campaign/donations"],
     enabled: isAdmin,
   });
 
@@ -62,6 +95,9 @@ export default function AdminBreedSkoolCampaign() {
     if (!authLoading && !isAdmin) setLocation("/login");
   }, [authLoading, isAdmin, setLocation]);
   useEffect(() => { if (data) setForm({ ...DEFAULT_CONFIG, ...data }); }, [data]);
+  useEffect(() => {
+    if (Array.isArray(paymentSettings?.wallets)) setWallets(paymentSettings.wallets);
+  }, [paymentSettings]);
 
   const saveMutation = useMutation({
     mutationFn: () => apiRequest("PUT", "/api/admin/breedskool/campaign", form),
@@ -73,9 +109,43 @@ export default function AdminBreedSkoolCampaign() {
     onError: (error: any) => toast({ title: "Could not save settings", description: error.message, variant: "destructive" }),
   });
 
+  const saveWalletsMutation = useMutation({
+    mutationFn: () => apiRequest("PUT", "/api/admin/breedskool/payment-settings", { wallets }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/breedskool/payment-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/breedskool/payment-settings"] });
+      toast({ title: "Donation wallets saved", description: "Active wallets are now available in the public checkout." });
+    },
+    onError: (error: any) => toast({ title: "Could not save wallets", description: error.message, variant: "destructive" }),
+  });
+
+  const reviewDonationMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiRequest("PATCH", `/api/admin/breedskool/campaign/donations/${id}`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/breedskool/campaign/donations"] });
+      toast({ title: "Donation status updated" });
+    },
+    onError: (error: any) => toast({ title: "Could not update donation", description: error.message, variant: "destructive" }),
+  });
+
   if (authLoading || !isAdmin) return <div className="min-h-screen bg-gray-950" />;
 
   const update = (key: keyof CampaignConfig, value: string | number) => setForm((current) => ({ ...current, [key]: value }));
+  const filteredDonations = useMemo(
+    () => transactionFilter === "all" ? donations : donations.filter((donation) => donation.status === transactionFilter),
+    [donations, transactionFilter],
+  );
+  const addWallet = (preset?: Partial<DonationWallet>) => {
+    setWallets((current) => [...current, {
+      id: `${preset?.currency?.toLowerCase() || "wallet"}-${Date.now()}`,
+      label: preset?.label || "New crypto wallet",
+      currency: preset?.currency || "USDT",
+      network: preset?.network || "other",
+      address: "",
+      isActive: true,
+    }]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -86,7 +156,7 @@ export default function AdminBreedSkoolCampaign() {
           <div className="flex gap-2"><Link href="/breedskool/campaign"><Button variant="outline" className="border-gray-700 bg-transparent text-white hover:bg-gray-800"><ExternalLink className="mr-2 h-4 w-4" />View campaign</Button></Link><Link href="/admin/cms"><Button variant="outline" className="border-gray-700 bg-transparent text-white hover:bg-gray-800">Open CMS editor</Button></Link></div>
         </div>
         <Tabs defaultValue="settings">
-          <TabsList className="mb-5 bg-gray-900"><TabsTrigger value="settings"><Settings2 className="mr-2 h-4 w-4" />Campaign settings</TabsTrigger><TabsTrigger value="content"><HeartHandshake className="mr-2 h-4 w-4" />Story and sections</TabsTrigger><TabsTrigger value="wallets"><WalletCards className="mr-2 h-4 w-4" />Donation wallets</TabsTrigger></TabsList>
+          <TabsList className="mb-5 flex h-auto flex-wrap gap-1 bg-gray-900"><TabsTrigger value="settings"><Settings2 className="mr-2 h-4 w-4" />Campaign settings</TabsTrigger><TabsTrigger value="transactions"><Clipboard className="mr-2 h-4 w-4" />Donation transactions {donations.length ? `(${donations.length})` : ""}</TabsTrigger><TabsTrigger value="content"><HeartHandshake className="mr-2 h-4 w-4" />Story and sections</TabsTrigger><TabsTrigger value="wallets"><WalletCards className="mr-2 h-4 w-4" />Donation wallets</TabsTrigger></TabsList>
           <TabsContent value="settings">
             <Card className="border-gray-800 bg-gray-900"><CardHeader><CardTitle className="text-white">Public progress and links</CardTitle><CardDescription className="text-gray-400">Numbers are displayed publicly as campaign reporting. Only enter verified figures.</CardDescription></CardHeader><CardContent className="space-y-7">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{numberFields.map(([key, label, description]) => <div key={key}><Label className="text-gray-200">{label}</Label><Input type="number" min="0" value={String(form[key] ?? "")} onChange={(event) => update(key, Number(event.target.value))} className="mt-2 border-gray-700 bg-gray-800 text-white" /><p className="mt-1 text-xs text-gray-500">{description}</p></div>)}</div>
@@ -94,8 +164,59 @@ export default function AdminBreedSkoolCampaign() {
               <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || isLoading} className="bg-violet-600 font-bold hover:bg-violet-700"><Save className="mr-2 h-4 w-4" />{saveMutation.isPending ? "Saving…" : "Save campaign settings"}</Button>
             </CardContent></Card>
           </TabsContent>
+          <TabsContent value="transactions">
+            <Card className="border-gray-800 bg-gray-900">
+              <CardHeader>
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div><CardTitle className="text-white">BreedSkool donation transactions</CardTitle><CardDescription className="text-gray-400">Review transaction hashes and approve verified manual crypto donations.</CardDescription></div>
+                  <select value={transactionFilter} onChange={(event) => setTransactionFilter(event.target.value)} className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white"><option value="all">All statuses</option><option value="submitted">Submitted</option><option value="verified">Verified</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {donationsLoading ? <p className="py-10 text-center text-gray-400">Loading donations…</p> : filteredDonations.length === 0 ? <div className="rounded-xl border border-dashed border-gray-700 py-12 text-center text-gray-400"><HeartHandshake className="mx-auto mb-3 h-9 w-9 opacity-40" /><p>No donation transactions in this view.</p></div> : (
+                  <div className="space-y-3">
+                    {filteredDonations.map((donation) => (
+                      <div key={donation.id} className="rounded-xl border border-gray-800 bg-gray-950/50 p-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2"><span className="text-lg font-black text-white">${Number(donation.amount || 0).toLocaleString()}</span><span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-bold text-violet-200">{donation.walletLabel || donation.network}</span><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${donation.status === "approved" || donation.status === "verified" ? "bg-emerald-500/15 text-emerald-300" : donation.status === "rejected" ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{donation.status}</span></div>
+                            <p className="mt-2 text-sm font-semibold text-gray-200">{donation.donorName}{donation.donorEmail ? <span className="ml-2 font-normal text-gray-500">{donation.donorEmail}</span> : null}</p>
+                            <p className="mt-2 break-all font-mono text-xs text-gray-400">Tx: {donation.transactionHash || "Not supplied"}</p>
+                            <p className="mt-1 break-all font-mono text-xs text-gray-500">Wallet: {donation.walletAddress || "—"}</p>
+                            {donation.donorMessage && <p className="mt-2 text-sm text-gray-400">“{donation.donorMessage}”</p>}
+                            <p className="mt-2 text-[11px] text-gray-600">{donation.createdAt ? new Date(donation.createdAt).toLocaleString() : ""}</p>
+                          </div>
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            {donation.proofUrl && <Button size="sm" variant="outline" asChild className="border-gray-700 text-gray-200"><a href={donation.proofUrl} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3.5 w-3.5" />Proof</a></Button>}
+                            {donation.status === "submitted" && <Button size="sm" onClick={() => reviewDonationMutation.mutate({ id: donation.id, status: "verified" })} disabled={reviewDonationMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Verify</Button>}
+                            {donation.status === "verified" && <Button size="sm" onClick={() => reviewDonationMutation.mutate({ id: donation.id, status: "approved" })} disabled={reviewDonationMutation.isPending} className="bg-violet-600 hover:bg-violet-700"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Approve</Button>}
+                            {donation.status !== "rejected" && <Button size="sm" variant="outline" onClick={() => reviewDonationMutation.mutate({ id: donation.id, status: "rejected" })} disabled={reviewDonationMutation.isPending} className="border-red-900 text-red-300 hover:bg-red-950"><XCircle className="mr-1.5 h-3.5 w-3.5" />Reject</Button>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="content"><ContentEditorPanel /></TabsContent>
-          <TabsContent value="wallets"><Card className="border-gray-800 bg-gray-900"><CardHeader><CardTitle className="flex items-center gap-2 text-white"><WalletCards className="h-5 w-5 text-amber-300" />Manual crypto wallets</CardTitle><CardDescription className="text-gray-400">These are shared with BreedSkool registration and the campaign donation form.</CardDescription></CardHeader><CardContent><p className="text-gray-400">Use the existing BreedSkool payment settings panel to add or update USDT wallet addresses, then return here to preview the public form.</p><Link href="/admin?tab=payments"><Button className="mt-5 bg-amber-400 font-bold text-slate-950 hover:bg-amber-300">Open payment settings</Button></Link></CardContent></Card></TabsContent>
+          <TabsContent value="wallets">
+            <Card className="border-gray-800 bg-gray-900">
+              <CardHeader><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><CardTitle className="flex items-center gap-2 text-white"><WalletCards className="h-5 w-5 text-amber-300" />Donation wallet manager</CardTitle><CardDescription className="text-gray-400">Add multiple currencies and networks. Only active wallets with an address appear in the public checkout.</CardDescription></div><Button onClick={() => addWallet()} className="bg-violet-600 font-bold hover:bg-violet-700"><Plus className="mr-2 h-4 w-4" />Add wallet</Button></div></CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex flex-wrap gap-2"><span className="text-xs font-bold uppercase tracking-wide text-gray-500">Quick add</span>{[{ label: "Bitcoin", currency: "BTC", network: "bitcoin" }, { label: "Ethereum", currency: "ETH", network: "ethereum" }, { label: "USDT · ERC-20", currency: "USDT", network: "ethereum" }, { label: "Solana", currency: "SOL", network: "solana" }, { label: "Toncoin", currency: "TON", network: "ton" }].map((preset) => <button key={preset.label} type="button" onClick={() => addWallet(preset)} className="rounded-full border border-gray-700 px-3 py-1.5 text-xs font-bold text-gray-300 transition hover:border-violet-400 hover:text-white">{preset.label}</button>)}</div>
+                {walletsLoading ? <p className="py-8 text-center text-gray-400">Loading wallets…</p> : <div className="space-y-3">{wallets.map((wallet, index) => <div key={wallet.id} className="grid gap-3 rounded-xl border border-gray-800 bg-gray-950/50 p-4 md:grid-cols-[1.1fr_0.65fr_0.9fr_1.6fr_auto] md:items-end">
+                  <div><Label className="text-xs text-gray-400">Wallet name</Label><Input value={wallet.label} onChange={(event) => setWallets((current) => current.map((item, i) => i === index ? { ...item, label: event.target.value } : item))} className="mt-1 border-gray-700 bg-gray-800 text-white" placeholder="e.g. Bitcoin" /></div>
+                  <div><Label className="text-xs text-gray-400">Currency</Label><Input value={wallet.currency} onChange={(event) => setWallets((current) => current.map((item, i) => i === index ? { ...item, currency: event.target.value.toUpperCase() } : item))} className="mt-1 border-gray-700 bg-gray-800 font-mono text-white" placeholder="BTC" /></div>
+                  <div><Label className="text-xs text-gray-400">Network</Label><Input value={wallet.network} onChange={(event) => setWallets((current) => current.map((item, i) => i === index ? { ...item, network: event.target.value.toLowerCase() } : item))} className="mt-1 border-gray-700 bg-gray-800 font-mono text-white" placeholder="bitcoin" /></div>
+                  <div><Label className="text-xs text-gray-400">Wallet address</Label><Input value={wallet.address} onChange={(event) => setWallets((current) => current.map((item, i) => i === index ? { ...item, address: event.target.value } : item))} className="mt-1 border-gray-700 bg-gray-800 font-mono text-xs text-white" placeholder="Paste the receiving address" /></div>
+                  <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={wallet.isActive} onChange={(event) => setWallets((current) => current.map((item, i) => i === index ? { ...item, isActive: event.target.checked } : item))} />Active</label><Button size="icon" variant="ghost" onClick={() => setWallets((current) => current.filter((_, i) => i !== index))} className="text-red-300 hover:bg-red-950 hover:text-red-200" aria-label={`Remove ${wallet.label}`}><Trash2 className="h-4 w-4" /></Button></div>
+                </div>)}</div>}
+                <Button onClick={() => saveWalletsMutation.mutate()} disabled={saveWalletsMutation.isPending || walletsLoading} className="bg-amber-400 font-bold text-slate-950 hover:bg-amber-300"><Save className="mr-2 h-4 w-4" />{saveWalletsMutation.isPending ? "Saving…" : "Save donation wallets"}</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>

@@ -7170,6 +7170,58 @@ Instructions:
     developerUrl: "https://taskdrip.online/hire-developer",
   };
 
+  const DEFAULT_BREEDSKOOL_DONATION_WALLETS = [
+    { id: "usdt-trc20", label: "USDT · TRC-20", currency: "USDT", network: "tron", address: "", isActive: true },
+    { id: "usdt-bep20", label: "USDT · BEP-20", currency: "USDT", network: "bsc", address: "", isActive: true },
+    { id: "usdt-ton", label: "USDT · TON", currency: "USDT", network: "ton", address: "", isActive: true },
+    { id: "usdt-erc20", label: "USDT · ERC-20", currency: "USDT", network: "ethereum", address: "", isActive: true },
+    { id: "bitcoin", label: "Bitcoin", currency: "BTC", network: "bitcoin", address: "", isActive: true },
+    { id: "ethereum", label: "Ethereum", currency: "ETH", network: "ethereum", address: "", isActive: true },
+    { id: "bnb", label: "BNB Smart Chain", currency: "BNB", network: "bsc", address: "", isActive: true },
+    { id: "solana", label: "Solana", currency: "SOL", network: "solana", address: "", isActive: true },
+    { id: "ton", label: "Toncoin", currency: "TON", network: "ton", address: "", isActive: true },
+  ];
+
+  const readBreedSkoolDonationWallets = async () => {
+    const [walletRow] = await db.select().from(appSettings).where(eq(appSettings.key, 'breedskool_donation_wallets'));
+    if (walletRow?.value) {
+      try {
+        const stored = JSON.parse(walletRow.value);
+        if (Array.isArray(stored)) {
+          return stored
+            .filter((wallet: any) => wallet && typeof wallet === 'object')
+            .map((wallet: any) => ({
+              id: String(wallet.id || '').trim().slice(0, 50),
+              label: String(wallet.label || wallet.currency || 'Crypto wallet').trim().slice(0, 100),
+              currency: String(wallet.currency || 'USDT').trim().slice(0, 12).toUpperCase(),
+              network: String(wallet.network || 'other').trim().slice(0, 20).toLowerCase(),
+              address: String(wallet.address || '').trim().slice(0, 200),
+              isActive: wallet.isActive !== false,
+            }))
+            .filter((wallet: any) => wallet.id);
+        }
+      } catch {}
+    }
+
+    // Keep existing three BreedSkool payment fields compatible with the new
+    // catalog until an admin saves the new wallet manager.
+    const legacyRows = await db.select().from(appSettings).where(inArray(appSettings.key, [
+      'breedskool_usdt_tron_address', 'breedskool_usdt_ton_address', 'breedskool_usdt_bnb_address',
+    ]));
+    const legacy: Record<string, string> = {};
+    for (const row of legacyRows) legacy[row.key] = row.value || '';
+    return DEFAULT_BREEDSKOOL_DONATION_WALLETS.map((wallet) => ({
+      ...wallet,
+      address: wallet.id === 'usdt-trc20'
+        ? legacy.breedskool_usdt_tron_address || ''
+        : wallet.id === 'usdt-ton'
+          ? legacy.breedskool_usdt_ton_address || ''
+          : wallet.id === 'usdt-bep20'
+            ? legacy.breedskool_usdt_bnb_address || ''
+            : '',
+    }));
+  };
+
   app.get('/api/breedskool/campaign', async (_req, res) => {
     try {
       const [row] = await db.select().from(appSettings).where(eq(appSettings.key, 'breedskool_campaign_config'));
@@ -7228,32 +7280,23 @@ Instructions:
   app.post('/api/breedskool/campaign/donations', upload.single('paymentProof'), async (req: any, res) => {
     try {
       const amount = Number(req.body?.amount);
-      const network = String(req.body?.network || '').toLowerCase();
+      const walletId = String(req.body?.walletId || req.body?.network || '').trim().toLowerCase();
       const txHash = String(req.body?.transactionHash || '').trim();
-      const allowedNetworks = new Set(['tron', 'ton', 'bsc', 'pi']);
       if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) return res.status(400).json({ message: 'Enter a valid donation amount.' });
-      if (!allowedNetworks.has(network)) return res.status(400).json({ message: 'Choose a supported network.' });
       if (txHash.length < 6 || txHash.length > 100) return res.status(400).json({ message: 'Enter the transaction hash after sending your donation.' });
-      const settings = await db.select().from(appSettings).where(inArray(appSettings.key, [
-        'breedskool_usdt_tron_address', 'breedskool_usdt_ton_address', 'breedskool_usdt_bnb_address',
-      ]));
-      const walletByNetwork: Record<string, string> = {};
-      for (const setting of settings) {
-        if (setting.key.includes('tron')) walletByNetwork.tron = setting.value || '';
-        if (setting.key.includes('ton')) walletByNetwork.ton = setting.value || '';
-        if (setting.key.includes('bnb')) walletByNetwork.bsc = setting.value || '';
-      }
-      if (!walletByNetwork[network] && network !== 'pi') return res.status(400).json({ message: 'That donation wallet is not configured yet.' });
+      const wallets = await readBreedSkoolDonationWallets();
+      const wallet = wallets.find((item: any) => item.id === walletId && item.isActive && item.address);
+      if (!wallet) return res.status(400).json({ message: 'That donation wallet is not configured yet.' });
       const donorName = String(req.body?.donorName || '').trim().slice(0, 120);
       const donorEmail = String(req.body?.donorEmail || '').trim().slice(0, 160);
       const message = String(req.body?.message || '').trim().slice(0, 500);
       const deposit = await storage.createPaymentDeposit({
         amount: amount.toFixed(2),
-        network,
-        walletAddress: walletByNetwork[network] || null,
+        network: wallet.network,
+        walletAddress: wallet.address,
         transactionHash: txHash,
         paymentProof: req.file?.path || null,
-        adminNotes: JSON.stringify({ source: 'breedskool_campaign', donorName, donorEmail, message }),
+        adminNotes: JSON.stringify({ source: 'breedskool_campaign', walletId: wallet.id, walletLabel: wallet.label, donorName, donorEmail, message }),
         status: 'submitted',
       });
       res.status(201).json({ success: true, id: deposit.id, message: 'Thank you. Your donation is pending verification.' });
@@ -7273,7 +7316,7 @@ Instructions:
       const rows = await db.select().from(appSettings).where(inArray(appSettings.key, keys));
       const settings: Record<string, string> = {};
       for (const r of rows) settings[r.key] = r.value || '';
-      res.json(settings);
+      res.json({ ...settings, wallets: await readBreedSkoolDonationWallets() });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
@@ -7289,7 +7332,7 @@ Instructions:
       const rows = await db.select().from(appSettings).where(inArray(appSettings.key, keys));
       const settings: Record<string, string> = {};
       for (const r of rows) settings[r.key] = r.value || '';
-      res.json(settings);
+      res.json({ ...settings, wallets: await readBreedSkoolDonationWallets() });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
@@ -7303,12 +7346,78 @@ Instructions:
         'breedskool_usdt_bnb_address', 'breedskool_payment_instructions',
       ];
       for (const [key, value] of Object.entries(req.body)) {
+        if (key === 'wallets') {
+          if (!Array.isArray(value) || value.length > 30) return res.status(400).json({ message: 'Add up to 30 donation wallets.' });
+          const wallets = value.map((wallet: any) => ({
+            id: String(wallet?.id || '').trim().slice(0, 50),
+            label: String(wallet?.label || '').trim().slice(0, 100),
+            currency: String(wallet?.currency || '').trim().slice(0, 12).toUpperCase(),
+            network: String(wallet?.network || '').trim().slice(0, 20).toLowerCase(),
+            address: String(wallet?.address || '').trim().slice(0, 200),
+            isActive: wallet?.isActive !== false,
+          }));
+          if (wallets.some((wallet: any) => !wallet.id || !wallet.label || !wallet.currency || !wallet.network)) {
+            return res.status(400).json({ message: 'Each wallet needs a name, currency and network.' });
+          }
+          await db.insert(appSettings)
+            .values({ key: 'breedskool_donation_wallets', value: JSON.stringify(wallets), updatedAt: new Date() })
+            .onConflictDoUpdate({ target: appSettings.key, set: { value: JSON.stringify(wallets), updatedAt: new Date() } });
+          continue;
+        }
         if (!allowed.includes(key)) continue;
         await db.insert(appSettings)
           .values({ key, value: String(value), updatedAt: new Date() })
           .onConflictDoUpdate({ target: appSettings.key, set: { value: String(value), updatedAt: new Date() } });
       }
       res.json({ message: 'Payment settings updated' });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Admin: review manual crypto donations submitted on the public BreedSkool page.
+  app.get('/api/admin/breedskool/campaign/donations', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const deposits = await db.select().from(paymentDeposits)
+        .where(ilike(paymentDeposits.adminNotes, '%breedskool_campaign%'))
+        .orderBy(desc(paymentDeposits.createdAt));
+      res.json(deposits.map((deposit: any) => {
+        let details: any = {};
+        try { details = deposit.adminNotes ? JSON.parse(deposit.adminNotes) : {}; } catch {}
+        return {
+          ...deposit,
+          donorName: details.donorName || 'Anonymous supporter',
+          donorEmail: details.donorEmail || '',
+          donorMessage: details.message || '',
+          walletLabel: details.walletLabel || deposit.network,
+          proofUrl: deposit.paymentProof
+            ? (String(deposit.paymentProof).startsWith('/') ? deposit.paymentProof : `/${deposit.paymentProof}`)
+            : null,
+        };
+      }));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.patch('/api/admin/breedskool/campaign/donations/:id', isAuthenticated, async (req: any, res) => {
+    if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+    try {
+      const status = String(req.body?.status || '').toLowerCase();
+      if (!['submitted', 'verified', 'approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ message: 'Choose a valid donation status.' });
+      }
+      const [existing] = await db.select().from(paymentDeposits).where(eq(paymentDeposits.id, req.params.id));
+      if (!existing || !String(existing.adminNotes || '').includes('breedskool_campaign')) {
+        return res.status(404).json({ message: 'Donation not found.' });
+      }
+      const existingNotes = (() => { try { return JSON.parse(existing.adminNotes || '{}'); } catch { return {}; } })();
+      const adminNote = String(req.body?.adminNotes || '').trim().slice(0, 500);
+      const [updated] = await db.update(paymentDeposits).set({
+        status,
+        adminNotes: JSON.stringify({ ...existingNotes, adminNote }),
+        approvedBy: status === 'approved' || status === 'verified' ? req.user.id : null,
+        approvedAt: status === 'approved' || status === 'verified' ? new Date() : null,
+        updatedAt: new Date(),
+      }).where(eq(paymentDeposits.id, req.params.id)).returning();
+      res.json(updated);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

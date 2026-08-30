@@ -3388,6 +3388,22 @@ export default function AdminMaster() {
                 </button>
               </RouterLink>
             </div>
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-900/20 via-orange-900/10 to-violet-900/20 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <Coins className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">BreedSkool Funding Campaign</p>
+                  <p className="text-gray-400 text-xs">Manage campaign progress, crypto donation wallets, and submitted donation transactions.</p>
+                </div>
+              </div>
+              <RouterLink href="/admin/breedskool-campaign">
+                <button className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-semibold transition-colors flex items-center gap-2" data-testid="button-open-breedskool-campaign-admin">
+                  <Coins className="w-4 h-4" /> Open campaign controls
+                </button>
+              </RouterLink>
+            </div>
 
             {/* ── ROW 1: 8 secondary KPI cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -5981,12 +5997,16 @@ export default function AdminMaster() {
                 </h2>
                 <p className="text-gray-500 text-sm mt-1">Create and manage courses for the learning platform</p>
               </div>
-              <Dialog open={isCourseDialogOpen} onOpenChange={(v) => { setIsCourseDialogOpen(v); if (!v) { setEditingCourse(null); courseForm.reset(); } }}>
-                <DialogTrigger asChild>
-                  <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                    <Plus className="h-4 w-4" /> Add Course
-                  </Button>
-                </DialogTrigger>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" className="gap-2 border-amber-200 text-amber-700 hover:bg-amber-50" asChild>
+                  <RouterLink href="/admin/breedskool-campaign"><Coins className="h-4 w-4" /> Funding campaign controls</RouterLink>
+                </Button>
+                <Dialog open={isCourseDialogOpen} onOpenChange={(v) => { setIsCourseDialogOpen(v); if (!v) { setEditingCourse(null); courseForm.reset(); } }}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
+                      <Plus className="h-4 w-4" /> Add Course
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{editingCourse ? "Edit Course" : "Create New Course"}</DialogTitle>
@@ -6094,7 +6114,8 @@ export default function AdminMaster() {
                     </div>
                   </form>
                 </DialogContent>
-              </Dialog>
+                </Dialog>
+              </div>
             </div>
 
             {/* Stats */}

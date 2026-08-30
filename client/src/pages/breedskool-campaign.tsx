@@ -37,6 +37,15 @@ type CampaignConfig = {
   confirmedRegistrations?: number;
 };
 
+type DonationWallet = {
+  id: string;
+  label: string;
+  currency: string;
+  network: string;
+  address: string;
+  isActive?: boolean;
+};
+
 const DEFAULT_CONFIG: CampaignConfig = {
   goalUsd: 100000,
   raisedUsd: 0,
@@ -76,6 +85,7 @@ function CampaignNav({ onRegister, onDonate }: { onRegister: () => void; onDonat
         <nav className="hidden items-center gap-7 text-sm font-semibold text-white/65 md:flex" aria-label="Campaign navigation">
           <a href="#free-course" className="transition-colors hover:text-white">Free course</a>
           <a href="#impact" className="transition-colors hover:text-white">Our impact</a>
+          <a href="#projects" className="transition-colors hover:text-white">Projects</a>
           <a href="#stories" className="transition-colors hover:text-white">Learner stories</a>
           <a href="#support" className="transition-colors hover:text-white">Support</a>
         </nav>
@@ -115,23 +125,28 @@ function StatPill({ icon: Icon, value, label }: { icon: any; value: string; labe
 function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () => void; config: CampaignConfig }) {
   const { toast } = useToast();
   const [amount, setAmount] = useState("25");
-  const [network, setNetwork] = useState("tron");
+  const [network, setNetwork] = useState("usdt-trc20");
   const [donorName, setDonorName] = useState("");
   const [donorEmail, setDonorEmail] = useState("");
   const [transactionHash, setTransactionHash] = useState("");
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const { data: paymentSettings = {} } = useQuery<Record<string, string>>({
+  const { data: paymentSettings = {} as Record<string, string> & { wallets?: DonationWallet[] } } = useQuery<Record<string, string> & { wallets?: DonationWallet[] }>({
     queryKey: ["/api/breedskool/payment-settings"],
     enabled: open,
   });
 
-  const wallets = useMemo(() => [
-    { id: "tron", label: "USDT · TRC-20", address: paymentSettings.breedskool_usdt_tron_address || "" },
-    { id: "ton", label: "USDT · TON", address: paymentSettings.breedskool_usdt_ton_address || "" },
-    { id: "bsc", label: "USDT · BEP-20", address: paymentSettings.breedskool_usdt_bnb_address || "" },
-  ].filter((wallet) => wallet.address), [paymentSettings]);
+  const wallets = useMemo<DonationWallet[]>(() => {
+    if (Array.isArray(paymentSettings.wallets)) {
+      return paymentSettings.wallets.filter((wallet) => wallet.isActive !== false && wallet.address);
+    }
+    return [
+      { id: "tron", label: "USDT · TRC-20", currency: "USDT", network: "tron", address: paymentSettings.breedskool_usdt_tron_address || "" },
+      { id: "ton", label: "USDT · TON", currency: "USDT", network: "ton", address: paymentSettings.breedskool_usdt_ton_address || "" },
+      { id: "bsc", label: "USDT · BEP-20", currency: "USDT", network: "bsc", address: paymentSettings.breedskool_usdt_bnb_address || "" },
+    ].filter((wallet) => wallet.address);
+  }, [paymentSettings]);
 
   useEffect(() => {
     if (wallets.length && !wallets.some((wallet) => wallet.id === network)) setNetwork(wallets[0].id);
@@ -142,6 +157,7 @@ function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () 
     mutationFn: async () => {
       const form = new FormData();
       form.append("amount", amount);
+      form.append("walletId", network);
       form.append("network", network);
       form.append("donorName", donorName);
       form.append("donorEmail", donorEmail);
@@ -191,11 +207,14 @@ function DonationDialog({ open, onClose, config }: { open: boolean; onClose: () 
             </div>
           </div>
           <div>
-            <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Choose network</Label>
+            <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Choose a donation wallet</Label>
             {wallets.length ? (
-              <div className="mt-2 grid grid-cols-3 gap-2">
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {wallets.map((wallet) => (
-                  <button key={wallet.id} type="button" onClick={() => setNetwork(wallet.id)} className={`rounded-xl border px-2 py-3 text-xs font-bold ${network === wallet.id ? "border-violet-600 bg-violet-50 text-violet-700 ring-1 ring-violet-300" : "border-slate-200 text-slate-600"}`}>{wallet.label}</button>
+                  <button key={wallet.id} type="button" onClick={() => setNetwork(wallet.id)} className={`rounded-xl border px-3 py-3 text-left text-xs font-bold ${network === wallet.id ? "border-violet-600 bg-violet-50 text-violet-700 ring-1 ring-violet-300" : "border-slate-200 text-slate-600"}`}>
+                    <span className="block">{wallet.label}</span>
+                    <span className="mt-1 block truncate font-mono text-[10px] font-normal opacity-60">{wallet.address}</span>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -401,6 +420,39 @@ export default function BreedSkoolCampaign() {
             <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <img src={equipmentImage} alt="Collaborative workspace with computers" className="h-64 w-full rounded-3xl object-cover sm:h-80" />
               <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-7"><h3 className="text-2xl font-black">We don't want young people to simply receive certificates.</h3><p className="mt-4 leading-relaxed text-white/65">We want them to build websites, create products, serve clients, use AI, work remotely and start companies that strengthen their communities.</p><div className="mt-6 flex flex-wrap gap-2">{["Build", "Create", "Serve", "Earn", "Employ"].map((word) => <span key={word} className="rounded-full bg-amber-300/15 px-3 py-1.5 text-xs font-bold text-amber-200">{word}</span>)}</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="projects" className="scroll-mt-24 bg-[#f3f0ff] py-20 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+              <div className="max-w-2xl">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-violet-700">Work built through BreedSkool</p>
+                <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">Learning becomes real when students ship.</h2>
+                <p className="mt-5 text-base leading-relaxed text-slate-600">Alongside our instructors and product team, learners practise by building useful digital projects for real communities. These selected builds show the kind of portfolio, confidence and opportunity your support helps unlock.</p>
+              </div>
+              <a href={config.developerUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-violet-700">Hire a developer for your brand <ArrowRight className="h-4 w-4" /></a>
+            </div>
+            <div className="mt-12 grid gap-5 md:grid-cols-3">
+              {[
+                { title: "Taskdrip creator marketplace", tag: "Team build · Platform", text: "A Web3 campaign platform that connects brands with creators, structured tasks and transparent crypto rewards.", image: storyImage, accent: "from-violet-700 to-indigo-900" },
+                { title: "Community commerce hub", tag: "Student build · Marketplace", text: "A mobile-first storefront concept helping local makers present their products, take orders and reach new customers.", image: equipmentImage, accent: "from-amber-500 to-orange-700" },
+                { title: "Learn-to-earn starter kit", tag: "Team + students · Education", text: "A practical learning experience that turns lessons into small projects, public portfolios and a clearer pathway to paid work.", image: learnerImage, accent: "from-cyan-600 to-blue-900" },
+              ].map((project) => (
+                <article key={project.title} className="group overflow-hidden rounded-[1.75rem] border border-white bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                  <div className="relative h-52 overflow-hidden">
+                    <img src={project.image} alt="" className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+                    <div className={`absolute inset-0 bg-gradient-to-tr ${project.accent} opacity-45 mix-blend-multiply`} />
+                    <span className="absolute bottom-4 left-4 rounded-full border border-white/30 bg-slate-950/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white backdrop-blur">{project.tag}</span>
+                  </div>
+                  <div className="p-6"><h3 className="text-xl font-black text-slate-950">{project.title}</h3><p className="mt-3 text-sm leading-relaxed text-slate-600">{project.text}</p><div className="mt-5 flex items-center gap-2 text-xs font-black text-violet-700"><CheckCircle2 className="h-4 w-4" /> Built to be useful</div></div>
+                </article>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-col gap-5 rounded-[1.75rem] bg-slate-950 p-7 text-white shadow-xl sm:p-9 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-3xl"><p className="text-xs font-black uppercase tracking-[0.18em] text-amber-300">A partnership that compounds</p><h3 className="mt-3 text-2xl font-black sm:text-3xl">Brands that help fund students get huge discounts on their projects.</h3><p className="mt-3 text-sm leading-relaxed text-white/65">Support a learner, then access our top developers at a preferred rate when your brand is ready to build, improve or scale its next project.</p></div>
+              <a href={config.developerUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3.5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-300">Explore brand development <ArrowRight className="h-4 w-4" /></a>
             </div>
           </div>
         </section>
