@@ -60,7 +60,6 @@ interface RegForm {
 const BLACK_MARKET_RATE = 1650;
 const BREEDSKOOL_IMAGE = "/breedskool-training-project.png";
 const TELEGRAM_URL = "https://t.me/taskdrip";
-const DONATION_TARGET_GBP = 100000;
 
 const LEARNER_STORIES = [
   {
@@ -147,13 +146,6 @@ const LEARNER_STORIES = [
     quote: "The 30-day plan helped me keep learning even with limited time and a phone. Small progress now feels like progress I can build on.",
     image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&h=160&fit=crop&crop=face",
   },
-];
-
-const FUNDRAISING_MILESTONES = [
-  { amount: 10000, label: "Equip learners", detail: "Starter devices, data support, and learning materials" },
-  { amount: 25000, label: "Open access", detail: "Connectivity grants and more free course places" },
-  { amount: 50000, label: "Grow mentorship", detail: "Tutors, community sessions, and practical workshops" },
-  { amount: 100000, label: "Scale the mission", detail: "A sustainable training hub reaching more communities" },
 ];
 
 const ALL_PAYMENT_METHODS: Record<string, { label: string; icon: string; desc: string }> = {
@@ -1459,9 +1451,6 @@ export default function BreedSkool() {
     return item?.value || item?.defaultValue || fallback;
   };
   const heroImage = content("breedskool.hero.bg_image", BREEDSKOOL_IMAGE);
-  const fundraisingTarget = Number(content("breedskool.fundraising.target", String(DONATION_TARGET_GBP))) || DONATION_TARGET_GBP;
-  const fundraisingRaised = Math.max(0, Number(content("breedskool.fundraising.raised", "0")) || 0);
-  const fundraisingPercent = Math.min(100, Math.round((fundraisingRaised / fundraisingTarget) * 100));
   const telegramUrl = content("breedskool.community.telegram_url", TELEGRAM_URL);
   const shareTitle = content("breedskool.share.title", "BreedSkool — free tech training for Africa");
   const shareDescription = content("breedskool.share.description", "Learn practical digital skills, join a supportive community, and start building your future with BreedSkool.");
@@ -1481,187 +1470,104 @@ export default function BreedSkool() {
       <AdSlot page="breedskool" placementType="banner_top" className="w-full" />
 
       {/* ── Hero Section ── */}
-      <div className="relative overflow-hidden min-h-[620px] flex items-center">
-        {/* Professional background: tech training / students with laptops */}
+      <div className="relative flex min-h-[680px] items-center overflow-hidden bg-[#050914]">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-55"
           style={{ backgroundImage: `url('${heroImage}')` }}
         />
-        {/* Strong dark overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-950/95 via-violet-950/90 to-indigo-950/90" />
-        {/* Decorative glows */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-10 left-1/4 w-72 h-72 bg-violet-600/15 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-1/4 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl" />
-        </div>
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,7,18,0.98)_0%,rgba(3,10,24,0.9)_45%,rgba(3,7,18,0.78)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_45%,rgba(34,211,238,0.13),transparent_28%),radial-gradient(circle_at_20%_20%,rgba(124,58,237,0.18),transparent_32%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "linear-gradient(rgba(125,211,252,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(125,211,252,0.35) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
 
-        <div className="relative max-w-7xl mx-auto px-4 py-20 w-full">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            {/* Left: Text */}
-            <div>
-              {/* Badge */}
-              <div className="flex flex-wrap items-center gap-2 mb-5">
-                <span className="inline-flex items-center gap-1.5 bg-orange-500/20 border border-orange-400/30 backdrop-blur-sm text-orange-200 text-xs font-semibold px-3 py-1.5 rounded-full">
-                  🔴 Live Training Ongoing
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="max-w-2xl">
+              <div className="mb-6 flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" /> Live learning cohort
                 </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">/ breedskool / digital-skills</span>
               </div>
 
-              <div className="inline-flex items-center gap-2 mb-4 animate-fade-in">
-                <span className="text-2xl">🎓</span>
-                <span className="text-violet-300 text-sm font-bold tracking-widest uppercase">{content("breedskool.hero.eyebrow", "BreedSkool Tech Training Academy")}</span>
-              </div>
-
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-5 leading-tight">
-                {content("breedskool.hero.title_line1", "Where Skills")}<br />
-                {content("breedskool.hero.title_line2", "Become")} <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 bg-clip-text text-transparent">{content("breedskool.hero.title_accent", "Income")}</span>
+              <p className="mb-4 font-mono text-xs font-bold uppercase tracking-[0.26em] text-violet-300">
+                {content("breedskool.hero.eyebrow", "BreedSkool Tech Training Academy")}
+              </p>
+              <h1 className="max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl">
+                {content("breedskool.hero.title_line1", "Where Skills")}{" "}
+                <span className="text-cyan-300">{content("breedskool.hero.title_line2", "Become")}</span>
+                <br />
+                <span className="bg-gradient-to-r from-cyan-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">{content("breedskool.hero.title_accent", "Income")}</span>
+                <span className="text-white/30">.</span>
               </h1>
-
-              <p className="text-white/75 text-base md:text-lg mb-4 leading-relaxed max-w-lg">
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
                 {content("breedskool.hero.subtitle", "Equipping tech enthusiasts with Web3-era digital skills to build profitable online businesses and become valuable global assets.")}
               </p>
 
-              {/* Location & event info */}
-              <div className="flex items-start gap-2 mb-7 bg-white/5 border border-white/10 rounded-xl p-3 max-w-sm">
-                <MapPin className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+              <div className="mt-6 flex max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/55 p-3 backdrop-blur-md">
+                <MapPin className="h-4 w-4 shrink-0 text-cyan-300" />
                 <div>
-                  <p className="text-white text-xs font-bold">Current Live Training Venue</p>
-                  <p className="text-white/70 text-xs mt-0.5">TootoOba Estate, Ijede, Ikorodu, Lagos</p>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-white/50">Current live training venue</p>
+                  <p className="mt-0.5 text-xs font-semibold text-white/85">TootoOba Estate, Ijede, Ikorodu, Lagos</p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-start gap-3">
-                <Button
-                  onClick={() => openRegModal("online")}
-                  size="lg"
-                  className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 font-black px-8 py-6 text-base rounded-2xl shadow-2xl shadow-orange-400/30 hover:-translate-y-0.5 transition-all"
-                  data-testid="btn-hero-register"
-                >
-                   🎓 {content("breedskool.hero.cta", "Join Free & Start Learning")}
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={() => openRegModal("online")} size="lg" className="rounded-xl bg-cyan-300 px-7 py-6 font-black text-slate-950 shadow-xl shadow-cyan-950/40 hover:bg-cyan-200 hover:-translate-y-0.5 transition-all" data-testid="btn-hero-register">
+                  {content("breedskool.hero.cta", "Join Free & Start Learning")} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <a href="#courses">
-                  <Button variant="outline" size="lg" className="border-white/30 text-white bg-white/10 hover:bg-white/20 font-bold px-6 py-6 text-base rounded-2xl" data-testid="btn-hero-browse">
-                    Browse Courses <ChevronRight className="ml-1 w-4 h-4" />
+                  <Button variant="outline" size="lg" className="w-full rounded-xl border-white/20 bg-white/5 px-6 py-6 font-bold text-white hover:bg-white/10 sm:w-auto" data-testid="btn-hero-browse">
+                    Browse Courses <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </a>
               </div>
             </div>
 
-            {/* Right: Stats cards */}
-            <div className="hidden lg:block">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { value: `${courses.length + 4}+`, label: "Training Programs", icon: "📚", color: "from-violet-500/20 to-indigo-500/20 border-violet-400/30" },
-                  { value: `${totalStudents.toLocaleString()}+`, label: "Students Enrolled", icon: "🎓", color: "from-orange-500/20 to-amber-500/20 border-orange-400/30" },
-                  { value: "100%", label: "Online & In-Person", icon: "🌍", color: "from-emerald-500/20 to-teal-500/20 border-emerald-400/30" },
-                  { value: "4", label: "Tech Programs", icon: "💻", color: "from-blue-500/20 to-cyan-500/20 border-blue-400/30" },
-                ].map((s) => (
-                  <div key={s.label} className={`bg-gradient-to-br ${s.color} border backdrop-blur-sm rounded-2xl p-5 text-center`}>
-                    <p className="text-3xl mb-2">{s.icon}</p>
-                    <p className="text-3xl font-extrabold text-white">{s.value}</p>
-                    <p className="text-white/60 text-xs mt-1">{s.label}</p>
+            <div className="relative hidden lg:block">
+              <div className="absolute -inset-8 rounded-[2rem] bg-cyan-400/10 blur-3xl" />
+              <div className="relative overflow-hidden rounded-3xl border border-cyan-200/20 bg-[#07101f]/90 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-300/80" />
                   </div>
-                ))}
-              </div>
-              {/* Testimonial mini card */}
-              <div className="mt-4 bg-white/8 border border-white/15 rounded-2xl p-4">
-                <div className="flex items-center gap-1 mb-2">
-                  {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />)}
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">learner_pathway.ts</span>
+                  <span className="font-mono text-[10px] text-emerald-300">● ready</span>
                 </div>
-                <p className="text-white/80 text-xs leading-relaxed">"BreedSkool gave me the exact skills I needed to start freelancing. Within 3 months I was earning consistently online."</p>
-                <p className="text-violet-300 text-xs font-semibold mt-2">— Adeola, Web Dev Graduate · Lagos</p>
+                <div className="space-y-2 px-6 py-7 font-mono text-xs leading-relaxed">
+                  <p><span className="text-violet-300">const</span> <span className="text-cyan-200">pathway</span> = <span className="text-amber-200">"future-ready"</span>;</p>
+                  <p><span className="text-violet-300">const</span> <span className="text-cyan-200">skills</span> = [<span className="text-emerald-200">"web"</span>, <span className="text-emerald-200">"AI"</span>, <span className="text-emerald-200">"digital income"</span>];</p>
+                  <p className="pt-3 text-white/35">// learn → build → launch</p>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[72%] rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" /></div>
+                  <div className="grid grid-cols-3 gap-3 border-t border-white/10 pt-5">
+                    <div><p className="text-xl font-black text-white">{courses.length + 4}+</p><p className="mt-1 text-[10px] uppercase tracking-wider text-white/40">programs</p></div>
+                    <div><p className="text-xl font-black text-white">{totalStudents.toLocaleString()}+</p><p className="mt-1 text-[10px] uppercase tracking-wider text-white/40">learners</p></div>
+                    <div><p className="text-xl font-black text-white">4</p><p className="mt-1 text-[10px] uppercase tracking-wider text-white/40">pathways</p></div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -bottom-5 -left-5 rounded-2xl border border-white/10 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur-xl">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-white/40">next milestone</p>
+                <p className="mt-1 text-sm font-bold text-white">Build your first project <span className="text-cyan-300">→</span></p>
               </div>
             </div>
           </div>
 
-          {/* Mobile stats strip */}
-          <div className="flex items-center justify-center gap-3 mt-8 lg:hidden flex-wrap">
+          <div className="mt-12 grid grid-cols-3 gap-2 border-t border-white/10 pt-5 lg:hidden">
             {[
-              { value: `${courses.length + 4}+`, label: "Courses", icon: "📚" },
-              { value: `${totalStudents.toLocaleString()}+`, label: "Students", icon: "🎓" },
-              { value: "100%", label: "Online", icon: "🌍" },
+              { value: `${courses.length + 4}+`, label: "Programs" },
+              { value: `${totalStudents.toLocaleString()}+`, label: "Learners" },
+              { value: "4", label: "Pathways" },
             ].map((s) => (
-              <div key={s.label} className="text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4">
-                <p className="text-2xl mb-1">{s.icon}</p>
-                <p className="text-xl font-extrabold text-white">{s.value}</p>
-                <p className="text-white/60 text-xs">{s.label}</p>
+              <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 px-2 py-3 text-center">
+                <p className="text-lg font-black text-white">{s.value}</p>
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-white/45">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
-
-      {/* ── Fund the Future ── */}
-      <section className="relative overflow-hidden bg-[#111827] py-14 text-white" id="support">
-        <div className="absolute -right-20 top-0 h-64 w-64 rounded-full bg-orange-500/10 blur-3xl" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-          <div>
-            <Badge className="mb-4 border border-orange-300/20 bg-orange-400/10 px-3 py-1 text-orange-200">
-              <span className="mr-1.5 animate-pulse">●</span> {content("breedskool.fundraising.badge", "Help us open more doors")}
-            </Badge>
-            <h2 className="max-w-2xl text-3xl font-black leading-tight sm:text-4xl">
-              {content("breedskool.fundraising.title", "Give more African learners a seat at the table.")}
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
-              {content("breedskool.fundraising.description", "We are raising funds to provide devices, connectivity, mentors, and practical training to people ready to build a better future. Every contribution helps a learner move from potential to opportunity.")}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a href={`https://wa.me/12016800266?text=${encodeURIComponent("Hello, I would like to support the BreedSkool training project.")}`} target="_blank" rel="noopener noreferrer">
-                <Button className="rounded-xl bg-orange-400 font-black text-gray-950 hover:bg-orange-300" data-testid="button-donate-breedskool">Support the project</Button>
-              </a>
-              <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" className="rounded-xl border-white/20 bg-white/5 font-bold text-white hover:bg-white/10" data-testid="button-fundraising-telegram">Join the community</Button>
-              </a>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-sm">
-            <div className="mb-2 flex items-end justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Community goal</p>
-                <p className="mt-1 text-3xl font-black text-orange-300">£{fundraisingTarget.toLocaleString()}</p>
-              </div>
-              <p className="text-sm font-bold text-white">{fundraisingPercent}%</p>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-yellow-300 transition-all duration-1000" style={{ width: `${fundraisingPercent}%` }} />
-            </div>
-            <div className="mt-2 flex justify-between text-xs text-gray-400">
-              <span>£{fundraisingRaised.toLocaleString()} raised</span>
-              <span>£{Math.max(0, fundraisingTarget - fundraisingRaised).toLocaleString()} to go</span>
-            </div>
-            <div className="mt-6 border-t border-white/10 pt-5">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-300">Our milestones</p>
-                <p className="text-[10px] text-gray-500">Every stage creates impact</p>
-              </div>
-              <div className="space-y-3">
-                {FUNDRAISING_MILESTONES.map((milestone, index) => {
-                  const milestonePercent = Math.min(100, Math.round((fundraisingRaised / milestone.amount) * 100));
-                  const reached = fundraisingRaised >= milestone.amount;
-                  return (
-                    <div key={milestone.amount} className="relative">
-                      <div className="mb-1.5 flex items-center gap-2">
-                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${reached ? "bg-emerald-400 text-gray-950" : "bg-white/10 text-gray-400"}`}>{reached ? "✓" : index + 1}</span>
-                        <span className="text-xs font-bold text-white">{milestone.label}</span>
-                        <span className="ml-auto text-[10px] font-semibold text-orange-200">£{milestone.amount.toLocaleString()}</span>
-                      </div>
-                      <div className="ml-7 h-1.5 overflow-hidden rounded-full bg-white/10">
-                        <div className={`h-full rounded-full transition-all duration-700 ${reached ? "bg-emerald-400" : "bg-orange-300"}`} style={{ width: `${milestonePercent}%` }} />
-                      </div>
-                      <p className="ml-7 mt-1 text-[10px] leading-relaxed text-gray-500">{milestone.detail}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <p className="mt-5 border-t border-white/10 pt-4 text-xs leading-relaxed text-gray-400">
-              Funds go towards accessible training, learner resources, and community support. Donors can share this page to help us reach the goal faster.
-            </p>
-            <div className="mt-4">
-              <ShareButtons compact title={shareTitle} description={shareDescription} />
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── Teaching Modes ── */}
       <section className="py-14 bg-white border-b border-gray-100">
