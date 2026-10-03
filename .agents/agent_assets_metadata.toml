@@ -83,9 +83,25 @@ id = "MEuV9bEQ69gSCVYOjJCSw"
 uri = "file://attached_assets/stock_images/future_creator_economy_web3.jpg"
 type = "image"
 title = "creator influencer with camera and microphone in modern studio, neon lights, futuristic web3 vibe"
+logical_id = "a5ab4c02-8836-4931-83fc-82c9d14de87d"
 
 [[outputs]]
 id = "rWiYaOfFFaZnu1BJ_v88T"
 uri = "file://attached_assets/stock_images/passive_income_digital_products.jpg"
 type = "image"
 title = "ebook digital download laptop home office"
+logical_id = "bf9ee689-d0e3-4b5e-8cc5-ba8346779158"
+
+[[outputs]]
+id = "ok_zsRImRZK4tVG2MRQVm"
+uri = "file://client/public/portfolio/olajumoke-owoeye-cv.pdf"
+type = "pdf"
+title = "Olajumoke Owoeye — updated CV"
+description = "Two-page downloadable CV with a clickable link to the new portfolio and contact links."
+logical_id = "242f176e-9e4a-42f2-93b6-224fd9e6025e"
+content_hash = "sha256:ef9bd11e8818fa5f5e62007933013e165b3993381fdc199784f6c1ecb11a8ad7"
+size = 106098
+mtime_ms = 1791068875778
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:313556f5-f1ce-4d7f-808e-0ceb8a0b7087/242f176e-9e4a-42f2-93b6-224fd9e6025e/a976ed47-e53b-4176-a4cb-76710aa761b9"
+storage_version_token = "1791069993622520"
+content_type = "application/pdf"
