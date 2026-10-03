@@ -33,6 +33,7 @@ import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   DEFAULT_PORTFOLIO_PROFILE,
   DEFAULT_PORTFOLIO_PROJECTS,
@@ -378,6 +379,102 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       });
     }
     next();
+  });
+
+  app.post("/api/portfolio/olajumoke-owoeye/contact", async (req, res) => {
+    const inquirySchema = z.object({
+      name: z.string().trim().min(2).max(100),
+      email: z.string().trim().email().max(254),
+      service: z.enum([
+        "Content creation",
+        "Social media management",
+        "Marketing strategy",
+        "Website & web content",
+        "Other",
+      ]),
+      budget: z.string().trim().min(2).max(80),
+      projectBrief: z.string().trim().min(20).max(2500),
+      website: z.string().max(0).optional(),
+    });
+
+    const parsed = inquirySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Please check the form and complete all required fields." });
+    }
+
+    // Quietly accept automated submissions caught by the hidden honeypot.
+    if (parsed.data.website) return res.json({ ok: true });
+
+    const escapeHtml = (value: string) =>
+      value.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]!);
+    const name = escapeHtml(parsed.data.name);
+    const email = escapeHtml(parsed.data.email);
+    const service = escapeHtml(parsed.data.service);
+    const budget = escapeHtml(parsed.data.budget);
+    const projectBrief = escapeHtml(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
+
+    try {
+      const connectors = new ReplitConnectors();
+      const subject = `New ${parsed.data.service.toLowerCase()} enquiry from ${parsed.data.name}`;
+      const html = `
+        <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#20251c">
+          <h2 style="color:#33451f">New portfolio enquiry</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Requested service:</strong> ${service}</p>
+          <p><strong>Budget:</strong> ${budget}</p>
+          <p><strong>Project brief:</strong><br />${projectBrief}</p>
+          <p style="color:#68715d;font-size:13px">Reply directly to this message to contact the enquirer.</p>
+        </div>
+      `;
+      const text = [
+        "New portfolio enquiry",
+        `Name: ${parsed.data.name}`,
+        `Email: ${parsed.data.email}`,
+        `Requested service: ${parsed.data.service}`,
+        `Budget: ${parsed.data.budget}`,
+        `Project brief: ${parsed.data.projectBrief}`,
+      ].join("\n");
+      const send = (sender: string) => connectors.proxy("resend", "/emails", {
+        method: "POST",
+        body: {
+          from: `Olajumoke Owoeye | Portfolio <${sender}>`,
+          to: ["owoeyeolajumokeoluwatosin@gmail.com"],
+          cc: [TASKDRIP_EMAILS.admin],
+          reply_to: parsed.data.email,
+          subject,
+          html,
+          text,
+        },
+      });
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+      let response = await send(fromEmail);
+      let responseError = response.ok ? "" : await response.text().catch(() => "");
+      if (!response.ok && fromEmail !== "onboarding@resend.dev" &&
+          /domain|sender|from address|verified|invalid/i.test(responseError)) {
+        response = await send("onboarding@resend.dev");
+        responseError = response.ok ? "" : await response.text().catch(() => "");
+      }
+      if (!response.ok) {
+        console.error("[portfolio contact] Resend delivery failed:", response.status, responseError);
+        return res.status(503).json({
+          message: "Email delivery is not available right now. Please contact Olajumoke directly by email or WhatsApp.",
+        });
+      }
+      return res.json({ ok: true });
+    } catch (error: any) {
+      console.error("[portfolio contact] Could not send enquiry:", error?.message || error);
+      return res.status(503).json({
+        message: "Email delivery is not available right now. Please contact Olajumoke directly by email or WhatsApp.",
+      });
+    }
   });
 
   let webPushState: { client: any; publicKey: string } | null = null;

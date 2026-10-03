@@ -95,6 +95,7 @@ const AdminCMSEditor = lazy(() => import("@/pages/admin-cms-editor"));
 const AdminBreedSkoolCampaign = lazy(() => import("@/pages/admin-breedskool-campaign"));
 const AdminPortfolio = lazy(() => import("@/pages/admin-portfolio"));
 const AbrahamPortfolio = lazy(() => import("@/pages/abraham-portfolio"));
+const OlajumokePortfolio = lazy(() => import("@/pages/olajumoke-owoeye"));
 const AdminSEO = lazy(() => import("@/pages/admin-seo"));
 const AdminSeoIntelligence = lazy(() => import("@/pages/admin-seo-intelligence"));
 const AdminLeads = lazy(() => import("@/pages/admin-leads"));
@@ -194,6 +195,7 @@ function Router() {
         <Route path="/contact" component={Contact} />
         <Route path="/abraham-tahbat/:slug" component={AbrahamPortfolio} />
         <Route path="/abraham-tahbat" component={AbrahamPortfolio} />
+        <Route path="/olajumoke-owoeye" component={OlajumokePortfolio} />
         <Route path="/portfolio/:slug" component={AbrahamPortfolio} />
         <Route path="/portfolio" component={AbrahamPortfolio} />
         <Route path="/terms" component={() => <LegalPageTemplate slug="terms" />} />

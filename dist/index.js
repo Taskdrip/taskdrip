@@ -11759,11 +11759,13 @@ init_schema();
 init_lead_service();
 init_db();
 import { desc as desc8, sql as sql11, eq as eq12, and as and8, count as count3, gte as gte2, inArray as inArray8, ilike as ilike2, or } from "drizzle-orm";
+import { z as z2 } from "zod";
 import multer from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid } from "nanoid";
 import path from "path";
 import express from "express";
+import { ReplitConnectors as ReplitConnectors2 } from "@replit/connectors-sdk";
 
 // server/portfolio-content.ts
 var projectImage = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=82`;
@@ -12380,6 +12382,93 @@ async function registerRoutes(app2, existingServer) {
       });
     }
     next();
+  });
+  app2.post("/api/portfolio/olajumoke-owoeye/contact", async (req, res) => {
+    const inquirySchema = z2.object({
+      name: z2.string().trim().min(2).max(100),
+      email: z2.string().trim().email().max(254),
+      service: z2.enum([
+        "Content creation",
+        "Social media management",
+        "Marketing strategy",
+        "Website & web content",
+        "Other"
+      ]),
+      budget: z2.string().trim().min(2).max(80),
+      projectBrief: z2.string().trim().min(20).max(2500),
+      website: z2.string().max(0).optional()
+    });
+    const parsed = inquirySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Please check the form and complete all required fields." });
+    }
+    if (parsed.data.website) return res.json({ ok: true });
+    const escapeHtml2 = (value) => value.replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[character]);
+    const name = escapeHtml2(parsed.data.name);
+    const email = escapeHtml2(parsed.data.email);
+    const service = escapeHtml2(parsed.data.service);
+    const budget = escapeHtml2(parsed.data.budget);
+    const projectBrief = escapeHtml2(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
+    try {
+      const connectors = new ReplitConnectors2();
+      const subject = `New ${parsed.data.service.toLowerCase()} enquiry from ${parsed.data.name}`;
+      const html = `
+        <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#20251c">
+          <h2 style="color:#33451f">New portfolio enquiry</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Requested service:</strong> ${service}</p>
+          <p><strong>Budget:</strong> ${budget}</p>
+          <p><strong>Project brief:</strong><br />${projectBrief}</p>
+          <p style="color:#68715d;font-size:13px">Reply directly to this message to contact the enquirer.</p>
+        </div>
+      `;
+      const text2 = [
+        "New portfolio enquiry",
+        `Name: ${parsed.data.name}`,
+        `Email: ${parsed.data.email}`,
+        `Requested service: ${parsed.data.service}`,
+        `Budget: ${parsed.data.budget}`,
+        `Project brief: ${parsed.data.projectBrief}`
+      ].join("\n");
+      const send = (sender) => connectors.proxy("resend", "/emails", {
+        method: "POST",
+        body: {
+          from: `Olajumoke Owoeye | Portfolio <${sender}>`,
+          to: ["owoeyeolajumokeoluwatosin@gmail.com"],
+          cc: [TASKDRIP_EMAILS.admin],
+          reply_to: parsed.data.email,
+          subject,
+          html,
+          text: text2
+        }
+      });
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+      let response = await send(fromEmail);
+      let responseError = response.ok ? "" : await response.text().catch(() => "");
+      if (!response.ok && fromEmail !== "onboarding@resend.dev" && /domain|sender|from address|verified|invalid/i.test(responseError)) {
+        response = await send("onboarding@resend.dev");
+        responseError = response.ok ? "" : await response.text().catch(() => "");
+      }
+      if (!response.ok) {
+        console.error("[portfolio contact] Resend delivery failed:", response.status, responseError);
+        return res.status(503).json({
+          message: "Email delivery is not available right now. Please contact Olajumoke directly by email or WhatsApp."
+        });
+      }
+      return res.json({ ok: true });
+    } catch (error) {
+      console.error("[portfolio contact] Could not send enquiry:", error?.message || error);
+      return res.status(503).json({
+        message: "Email delivery is not available right now. Please contact Olajumoke directly by email or WhatsApp."
+      });
+    }
   });
   let webPushState = null;
   const getWebPushState = async () => {
@@ -18193,11 +18282,62 @@ Instructions:
   app2.patch("/api/admin/breedskool/registrations/:id", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const { paymentStatus, notes } = req.body;
+      const body = req.body || {};
       const updateData = { updatedAt: /* @__PURE__ */ new Date() };
-      if (paymentStatus !== void 0) updateData.paymentStatus = paymentStatus;
-      if (notes !== void 0) updateData.notes = notes;
+      const requiredTextFields = ["fullName", "email", "phone", "selectedCourseKey", "selectedCourseTitle"];
+      const optionalTextFields = ["location", "paymentMethod", "transactionRef", "childName", "childAge", "parentName", "homeAddress", "notes"];
+      const textLimits = {
+        fullName: 160,
+        email: 254,
+        phone: 40,
+        selectedCourseKey: 80,
+        selectedCourseTitle: 200,
+        location: 160,
+        paymentMethod: 60,
+        transactionRef: 160,
+        childName: 160,
+        childAge: 20,
+        parentName: 160,
+        homeAddress: 500,
+        notes: 2e3
+      };
+      for (const field of requiredTextFields) {
+        if (body[field] !== void 0) {
+          const value = String(body[field] || "").trim();
+          if (!value) return res.status(400).json({ message: `${field} is required.` });
+          updateData[field] = value.slice(0, textLimits[field]);
+        }
+      }
+      for (const field of optionalTextFields) {
+        if (body[field] !== void 0) {
+          const value = body[field] == null ? "" : String(body[field]).trim();
+          updateData[field] = value ? value.slice(0, textLimits[field]) : null;
+        }
+      }
+      if (body.email !== void 0) updateData.email = updateData.email.toLowerCase();
+      if (body.amountNgn !== void 0) {
+        const amountNgn = Number(body.amountNgn);
+        if (!Number.isFinite(amountNgn) || amountNgn < 0) return res.status(400).json({ message: "Amount must be a non-negative number." });
+        updateData.amountNgn = Math.round(amountNgn);
+      }
+      const allowedPaymentOptions = ["pay_now", "pay_later"];
+      if (body.paymentOption !== void 0) {
+        if (!allowedPaymentOptions.includes(String(body.paymentOption))) return res.status(400).json({ message: "Invalid payment option." });
+        updateData.paymentOption = String(body.paymentOption);
+      }
+      const allowedDeliveryModes = ["online", "onsite", "home_lesson"];
+      if (body.deliveryMode !== void 0) {
+        if (!allowedDeliveryModes.includes(String(body.deliveryMode))) return res.status(400).json({ message: "Invalid delivery mode." });
+        updateData.deliveryMode = String(body.deliveryMode);
+      }
+      const allowedPaymentStatuses = ["pending", "paid", "confirmed", "verified", "approved", "rejected"];
+      const paymentStatus = body.paymentStatus;
+      if (paymentStatus !== void 0) {
+        if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: "Invalid payment status." });
+        updateData.paymentStatus = String(paymentStatus);
+      }
       const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq12(breedskoolRegistrations.id, req.params.id)).returning();
+      if (!row) return res.status(404).json({ message: "Registration not found" });
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
@@ -18324,6 +18464,7 @@ Instructions:
     goalUsd: 1e5,
     raisedUsd: 0,
     supporters: 0,
+    registeredUsers: 0,
     studentsTarget: 100,
     studentsTrained: 0,
     studentsEmployed: 0,
@@ -18380,9 +18521,14 @@ Instructions:
     try {
       const [row] = await db.select().from(appSettings).where(eq12(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
+      let storedConfig = null;
       if (row?.value) {
         try {
-          config = { ...config, ...JSON.parse(row.value) };
+          const parsed = JSON.parse(row.value);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            storedConfig = parsed;
+            config = { ...config, ...parsed };
+          }
         } catch {
         }
       }
@@ -18390,9 +18536,11 @@ Instructions:
         total: count3(),
         confirmed: sql11`count(*) filter (where ${breedskoolRegistrations.paymentStatus} in ('paid', 'confirmed'))`
       }).from(breedskoolRegistrations);
-      res.json({ ...config, registrations: Number(registrationStats?.total || 0), confirmedRegistrations: Number(registrationStats?.confirmed || 0) });
+      const storedRegisteredUsers = storedConfig && Object.prototype.hasOwnProperty.call(storedConfig, "registeredUsers") ? Number(storedConfig.registeredUsers) : Number(registrationStats?.total || 0);
+      const registeredUsers = Number.isFinite(storedRegisteredUsers) && storedRegisteredUsers >= 0 ? storedRegisteredUsers : Number(registrationStats?.total || 0);
+      res.json({ ...config, registeredUsers, registrations: registeredUsers, confirmedRegistrations: Number(registrationStats?.confirmed || 0) });
     } catch (e) {
-      res.json({ ...DEFAULT_BREEDSKOOL_CAMPAIGN, registrations: 0, confirmedRegistrations: 0 });
+      res.json({ ...DEFAULT_BREEDSKOOL_CAMPAIGN, registeredUsers: 0, registrations: 0, confirmedRegistrations: 0 });
     }
   });
   app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
@@ -18405,6 +18553,10 @@ Instructions:
           config = { ...config, ...JSON.parse(row.value) };
         } catch {
         }
+      }
+      if (!Object.prototype.hasOwnProperty.call(config, "registeredUsers")) {
+        const [registrationStats] = await db.select({ total: count3() }).from(breedskoolRegistrations);
+        config.registeredUsers = Number(registrationStats?.total || 0);
       }
       res.json(config);
     } catch (e) {
@@ -18419,7 +18571,7 @@ Instructions:
       for (const key of allowed) {
         if (req.body?.[key] === void 0) continue;
         const value = req.body[key];
-        if (["goalUsd", "raisedUsd", "supporters", "studentsTarget", "studentsTrained", "studentsEmployed", "studentsWithoutEquipment"].includes(key)) {
+        if (["goalUsd", "raisedUsd", "supporters", "registeredUsers", "studentsTarget", "studentsTrained", "studentsEmployed", "studentsWithoutEquipment"].includes(key)) {
           const parsed = Number(value);
           if (!Number.isFinite(parsed) || parsed < 0) return res.status(400).json({ message: `${key} must be a non-negative number` });
           clean[key] = parsed;
