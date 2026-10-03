@@ -31,8 +31,8 @@ const projects = [
     description:
       "Developing content and managing social channels for an online learning community, with creative support for projects delivered to its clients.",
     url: "https://breedskool.com",
+    image: "/portfolio/projects/breedskool-learning.jpg",
     initials: "BG",
-    color: "bg-[#d7ec78]",
   },
   {
     number: "02",
@@ -43,8 +43,8 @@ const projects = [
     description:
       "A training and mentoring platform helping entrepreneurs access the skills, tools and support to grow in the marketplace.",
     url: "https://theindustryminer.com/",
+    image: "/portfolio/projects/industry-miner.jpg",
     initials: "IM",
-    color: "bg-[#f2c4a8]",
   },
   {
     number: "03",
@@ -55,8 +55,8 @@ const projects = [
     description:
       "Creating content for a marketplace that connects brands with creators and influencers for targeted campaigns.",
     url: "https://taskdrip.online/",
+    image: "/portfolio/projects/taskdrip-creators.jpg",
     initials: "TD",
-    color: "bg-[#c7dbd1]",
   },
   {
     number: "04",
@@ -67,8 +67,8 @@ const projects = [
     description:
       "Supporting content and social media for a shipping and logistics platform with marketplace services.",
     url: "https://beagvsmarine.com/",
+    image: "/portfolio/projects/beagvs-marine.jpg",
     initials: "BM",
-    color: "bg-[#b9d8e4]",
   },
   {
     number: "05",
@@ -79,8 +79,8 @@ const projects = [
     description:
       "Part of the web management and social media team for a property platform connecting landlords, tenants, managers and maintenance professionals.",
     url: "https://proprenty.online/",
+    image: "/portfolio/projects/proprenty.jpg",
     initials: "PR",
-    color: "bg-[#e1d1ef]",
   },
   {
     number: "06",
@@ -91,8 +91,8 @@ const projects = [
     description:
       "Managing social media content for the makeover brand.",
     url: "https://www.tiktok.com/@muainibadan1",
+    image: "/portfolio/projects/hernique-touch-makeover.jpg",
     initials: "HT",
-    color: "bg-[#f1bfd0]",
   },
   {
     number: "07",
@@ -103,8 +103,8 @@ const projects = [
     description:
       "Managing social content for a children’s clothing brand.",
     url: "https://www.tiktok.com/@herniquekiddieswears1",
+    image: "/portfolio/projects/hernique-kiddies-wears.jpg",
     initials: "HK",
-    color: "bg-[#f2d995]",
   },
 ];
 
@@ -129,16 +129,23 @@ type Inquiry = {
 function ProjectCard({ project }: { project: (typeof projects)[number] }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[1.4rem] border border-[#e5e8e0] bg-white transition duration-300 hover:-translate-y-1 hover:border-[#b9c58d] hover:shadow-[0_18px_50px_rgba(31,42,24,0.09)]">
-      <div className={`${project.color} relative flex min-h-[184px] items-end justify-between overflow-hidden p-5 sm:p-6`}>
-        <div className="absolute -right-10 -top-20 h-56 w-56 rounded-full border border-black/10" />
-        <div className="absolute -right-2 -top-12 h-44 w-44 rounded-full border border-black/10" />
-        <span className="relative z-10 text-xs font-bold uppercase tracking-[0.18em] text-[#20261c]/65">
+      <div className="relative flex min-h-[184px] items-end justify-between overflow-hidden bg-[#25311d] p-5 sm:p-6">
+        <img
+          src={project.image}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#182116]/45 via-[#182116]/20 to-[#182116]/75" />
+        <span className="relative z-10 max-w-[70%] text-xs font-bold uppercase tracking-[0.18em] text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
           {project.type}
         </span>
-        <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl border border-black/10 bg-white/45 text-lg font-black tracking-tight text-[#20261c] backdrop-blur-sm">
+        <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/60 bg-white/85 text-lg font-black tracking-tight text-[#20261c] shadow-sm backdrop-blur-sm">
           {project.initials}
         </span>
-        <span className="absolute left-6 top-5 text-[11px] font-bold tracking-[0.2em] text-black/50">
+        <span className="absolute left-6 top-5 text-[11px] font-bold tracking-[0.2em] text-white/85 drop-shadow-[0_1px_4px_rgba(0,0,0,0.65)]">
           {project.number}
         </span>
       </div>
