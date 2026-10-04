@@ -442,32 +442,40 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         `Project brief: ${parsed.data.projectBrief}`,
         "Portfolio: https://taskdrip.online/olajumoke-owoeye",
       ].join("\n");
-      const connectors = new ReplitConnectors();
-      const send = (sender: string) => connectors.proxy("resend", "/emails", {
-        method: "POST",
-        body: {
-          from: `Olajumoke Owoeye | Portfolio <${sender}>`,
-          to: ["owoeyeolajumokeoluwatosin@gmail.com", TASKDRIP_EMAILS.info],
+      const recipients = ["owoeyeolajumokeoluwatosin@gmail.com", TASKDRIP_EMAILS.info];
+      if (process.env.RESEND_API_KEY) {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const result = await resend.emails.send({
+          from: `Olajumoke Owoeye | Portfolio <${process.env.RESEND_FROM_EMAIL || TASKDRIP_EMAILS.info}>`,
+          to: recipients,
           reply_to: parsed.data.email,
           subject,
           html,
           text,
-        },
-      });
-
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-      let response = await send(fromEmail);
-      let responseError = response.ok ? "" : await response.text().catch(() => "");
-      if (!response.ok && fromEmail !== "onboarding@resend.dev" &&
-          /domain|sender|from address|verified|invalid/i.test(responseError)) {
-        response = await send("onboarding@resend.dev");
-        responseError = response.ok ? "" : await response.text().catch(() => "");
-      }
-      if (!response.ok) {
-        console.error("[portfolio contact] Resend delivery failed:", response.status, responseError);
-        return res.status(503).json({
-          message: "Your enquiry could not be emailed just now. Your details are still here—please try again or send them on WhatsApp.",
         });
+        if (result.error) {
+          throw new Error(`Resend delivery failed: ${result.error.message}`);
+        }
+      } else if (process.env.REPLIT_CONNECTORS_HOSTNAME) {
+        const connectors = new ReplitConnectors();
+        const response = await connectors.proxy("resend", "/emails", {
+          method: "POST",
+          body: {
+            from: `Olajumoke Owoeye | Portfolio <${process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"}>`,
+            to: recipients,
+            reply_to: parsed.data.email,
+            subject,
+            html,
+            text,
+          },
+        });
+        if (!response.ok) {
+          const responseError = await response.text().catch(() => "");
+          throw new Error(`Resend connector returned ${response.status}: ${responseError}`);
+        }
+      } else {
+        throw new Error("Email delivery is not configured on this host; set RESEND_API_KEY and a verified RESEND_FROM_EMAIL.");
       }
       return res.json({ ok: true });
     } catch (error: any) {
