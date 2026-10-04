@@ -24,7 +24,7 @@ import {
 } from "react-icons/si";
 import { FaLinkedin as SiLinkedin } from "react-icons/fa";
 import {
-  MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink,
+  MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink, ChevronLeft, ChevronRight,
   BarChart3, UserPlus, UserCheck, Globe, Briefcase, Zap, Flame, Crown,
   Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X, Coins, Wallet, Trash2, Pencil
 } from "lucide-react";
@@ -700,6 +700,9 @@ export default function CreatorProfile() {
   const seoName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
   const seoTitle = profile.seoTitle || `${seoName} — ${tierConf.name} Influencer | Taskdrip`;
   const seoDesc = profile.seoDescription || profile.bio || `Hire ${seoName}, a ${tierConf.name}-tier creator on Taskdrip. ${formatFollowers(totalSocialFollowers || 0)} followers, ${profile.completedCampaigns || 0} campaigns completed.`;
+  const portfolioPagePath = profile.id === "user_1776822545259_5ioj61auy"
+    ? "/olajumoke-owoeye"
+    : `/creator-portfolio/${encodeURIComponent(profile.username || profile.id)}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#0f0f1a] to-gray-50">
@@ -837,6 +840,11 @@ export default function CreatorProfile() {
                         </Button>
                       </Link>
                     )}
+                    <Button asChild variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50" data-testid="view-creator-portfolio">
+                      <a href={portfolioPagePath} target="_blank" rel="noreferrer">
+                        <Globe className="w-4 h-4 mr-1.5" /> View Portfolio
+                      </a>
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast({ title: "Link copied!" }); }}>
                       <Share2 className="w-4 h-4 text-gray-400" />
                     </Button>

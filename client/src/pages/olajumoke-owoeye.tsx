@@ -1,13 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
+  Camera,
   Check,
   ChevronDown,
   CirclePlay,
   Download,
+  Lightbulb,
   Mail,
+  PenLine,
+  Share2,
   Menu,
   Send,
   Sparkles,
@@ -17,9 +21,20 @@ import { SiTiktok, SiWhatsapp } from "react-icons/si";
 import { SeoHead } from "@/components/SeoHead";
 
 const PORTFOLIO_URL = "https://taskdrip.online/olajumoke-owoeye";
+const PROFILE_URL = "https://taskdrip.online/influencers/user_1776822545259_5ioj61auy";
 const CV_URL = "/portfolio/olajumoke-owoeye-cv.pdf";
 const EMAIL = "owoeyeolajumokeoluwatosin@gmail.com";
 const WHATSAPP = "2348101126365";
+const heroImages = [
+  "/portfolio/projects/breedskool-learning.jpg",
+  "/portfolio/projects/taskdrip-creators.jpg",
+  "/portfolio/projects/hernique-touch-makeover.jpg",
+];
+const expertise = [
+  { label: "Content creation", Icon: PenLine },
+  { label: "Social media management", Icon: Share2 },
+  { label: "Marketing strategy", Icon: Lightbulb },
+];
 
 const projects = [
   {
@@ -121,6 +136,7 @@ const inputClass =
 
 type Inquiry = {
   name: string;
+  email: string;
   service: string;
   budget: string;
   projectBrief: string;
@@ -173,6 +189,7 @@ function ProjectCard({ project }: { project: (typeof projects)[number] }) {
 export default function OlajumokeOwoeyePortfolio() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [formError, setFormError] = useState("");
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [form, setForm] = useState({
@@ -184,11 +201,20 @@ export default function OlajumokeOwoeyePortfolio() {
     website: "",
   });
 
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      setHeroIndex((current) => (current + 1) % heroImages.length);
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const whatsappUrl = useMemo(() => {
     if (!inquiry) return `https://wa.me/${WHATSAPP}`;
     const message = [
       "Hi Olajumoke, I just sent an enquiry through your portfolio.",
       `Name: ${inquiry.name}`,
+      `Email: ${inquiry.email}`,
       `Service: ${inquiry.service}`,
       `Budget: ${inquiry.budget}`,
       `Project brief: ${inquiry.projectBrief}`,
@@ -215,6 +241,7 @@ export default function OlajumokeOwoeyePortfolio() {
       if (!response.ok) throw new Error(result.message || "Your message could not be sent. Please try again.");
       setInquiry({
         name: form.name.trim(),
+        email: form.email.trim(),
         service: form.service,
         budget: form.budget.trim(),
         projectBrief: form.projectBrief.trim(),
@@ -261,10 +288,11 @@ export default function OlajumokeOwoeyePortfolio() {
               <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.2em] text-[#78816d]">Creative portfolio</span>
             </span>
           </a>
-          <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
+          <nav className="hidden items-center gap-7 md:flex" aria-label="Main navigation">
             <a className="text-sm font-medium text-[#62695d] transition hover:text-[#35451c]" href="#work">Selected work</a>
             <a className="text-sm font-medium text-[#62695d] transition hover:text-[#35451c]" href="#about">About</a>
             <a className="text-sm font-medium text-[#62695d] transition hover:text-[#35451c]" href="#experience">Experience</a>
+            <a className="text-sm font-medium text-[#62695d] transition hover:text-[#35451c]" href={PROFILE_URL} target="_blank" rel="noreferrer">Taskdrip profile</a>
             <a className="rounded-full bg-[#25311d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#3b4b29]" href="#contact">Let’s talk <ArrowRight className="ml-1 inline h-4 w-4" /></a>
           </nav>
           <button
@@ -282,12 +310,25 @@ export default function OlajumokeOwoeyePortfolio() {
             {[["Selected work", "#work"], ["About", "#about"], ["Experience", "#experience"], ["Contact", "#contact"]].map(([label, href]) => (
               <a key={href} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-[#eef1e8]" href={href}>{label}</a>
             ))}
+            <a onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 text-sm font-medium hover:bg-[#eef1e8]" href={PROFILE_URL} target="_blank" rel="noreferrer">Taskdrip profile</a>
           </nav>
         )}
       </header>
 
       <main id="home">
-        <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-12 lg:pb-28 lg:pt-20">
+        <section className="relative overflow-hidden bg-[#f8f9f5]">
+          <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+            {heroImages.map((image, index) => (
+              <img
+                key={image}
+                src={image}
+                alt=""
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 motion-reduce:transition-none ${heroIndex === index ? "opacity-60" : "opacity-0"}`}
+              />
+            ))}
+          </div>
+          <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-[#f8f9f5]/95 via-[#f8f9f5]/78 to-[#f8f9f5]/42" aria-hidden="true" />
+          <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:px-12 lg:pb-28 lg:pt-20">
           <div className="order-2 lg:order-1">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#dfe5d2] bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#52662d]">
               <Sparkles className="h-3.5 w-3.5" /> Content creator · Social media manager
@@ -299,6 +340,13 @@ export default function OlajumokeOwoeyePortfolio() {
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[#62695d] sm:text-xl sm:leading-9">
               I help brands find their voice, create thoughtful content, and build a more consistent presence across social media.
             </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {expertise.map(({ label, Icon }) => (
+                <span key={label} className="inline-flex items-center gap-2 rounded-full border border-[#dfe5d2] bg-white/90 px-3 py-2 text-xs font-semibold text-[#46552f] shadow-sm backdrop-blur">
+                  <Icon className="h-4 w-4 text-[#73863a]" /> {label}
+                </span>
+              ))}
+            </div>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a href="#work" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#25311d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#3b4b29]">
                 Explore my work <ArrowDown className="h-4 w-4" />
@@ -311,6 +359,12 @@ export default function OlajumokeOwoeyePortfolio() {
               <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#7e9a30]" /> Ibadan, Nigeria</span>
               <a className="inline-flex items-center gap-2 transition hover:text-[#35451c]" href={`mailto:${EMAIL}`}><Mail className="h-4 w-4" /> Email me</a>
               <a className="inline-flex items-center gap-2 transition hover:text-[#35451c]" href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noreferrer"><SiWhatsapp className="h-4 w-4" /> WhatsApp</a>
+              <a className="inline-flex items-center gap-2 transition hover:text-[#35451c]" href={PROFILE_URL} target="_blank" rel="noreferrer"><Camera className="h-4 w-4" /> Taskdrip profile</a>
+            </div>
+            <div className="mt-6 flex items-center gap-2" aria-label="Hero background images">
+              {heroImages.map((image, index) => (
+                <button key={image} type="button" aria-label={`Show hero image ${index + 1}`} aria-pressed={heroIndex === index} onClick={() => setHeroIndex(index)} className={`h-1.5 rounded-full transition-all ${heroIndex === index ? "w-8 bg-[#73863a]" : "w-3 bg-[#c5cbbb] hover:bg-[#73863a]"}`} />
+              ))}
             </div>
           </div>
           <div className="order-1 relative mx-auto w-full max-w-[520px] lg:order-2">
@@ -329,6 +383,7 @@ export default function OlajumokeOwoeyePortfolio() {
               <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#78816d]">A little about my work</p>
               <p className="mt-1.5 text-sm font-semibold leading-5 text-[#283122]">Clear ideas. Human stories. Consistent presence.</p>
             </div>
+          </div>
           </div>
         </section>
 
@@ -361,6 +416,18 @@ export default function OlajumokeOwoeyePortfolio() {
             <div>
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.19em] text-[#d5e690]">A little about me</p>
               <h2 className="max-w-md text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">Good content starts with listening.</h2>
+              <div className="mt-7 grid grid-cols-2 gap-3">
+                <figure className="relative aspect-[0.86] overflow-hidden rounded-2xl border border-white/15 bg-white/10">
+                  <img src="/portfolio/projects/industry-miner.jpg" alt="Entrepreneurs collaborating on a learning project" loading="lazy" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#142014]/85 via-transparent to-transparent" />
+                  <figcaption className="absolute inset-x-3 bottom-3 text-[10px] font-bold uppercase leading-4 tracking-[0.1em] text-white">Education & entrepreneurship</figcaption>
+                </figure>
+                <figure className="relative mt-6 aspect-[0.86] overflow-hidden rounded-2xl border border-white/15 bg-white/10">
+                  <img src="/portfolio/projects/hernique-touch-makeover.jpg" alt="Beauty content being created for a social media project" loading="lazy" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#142014]/85 via-transparent to-transparent" />
+                  <figcaption className="absolute inset-x-3 bottom-3 text-[10px] font-bold uppercase leading-4 tracking-[0.1em] text-white">Social-first brand stories</figcaption>
+                </figure>
+              </div>
             </div>
             <div>
               <p className="text-base leading-8 text-[#e0e4d9] sm:text-lg">
@@ -516,6 +583,7 @@ export default function OlajumokeOwoeyePortfolio() {
             <a className="inline-flex items-center gap-2 hover:text-white" href="https://www.tiktok.com/@muainibadan1" target="_blank" rel="noreferrer"><SiTiktok className="h-3.5 w-3.5" /> Hernique’s Touch</a>
             <a className="inline-flex items-center gap-2 hover:text-white" href="https://www.tiktok.com/@herniquekiddieswears1" target="_blank" rel="noreferrer"><SiTiktok className="h-3.5 w-3.5" /> Kiddies Wear</a>
             <a className="inline-flex items-center gap-2 hover:text-white" href={`mailto:${EMAIL}`}><Mail className="h-3.5 w-3.5" /> Email</a>
+            <a className="inline-flex items-center gap-2 hover:text-white" href={PROFILE_URL} target="_blank" rel="noreferrer"><ArrowUpRight className="h-3.5 w-3.5" /> Taskdrip profile</a>
           </div>
           <a className="text-xs text-[#aab49a] hover:text-white" href={PORTFOLIO_URL}>Back to top ↑</a>
         </div>

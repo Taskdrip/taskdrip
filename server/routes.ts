@@ -445,8 +445,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         method: "POST",
         body: {
           from: `Olajumoke Owoeye | Portfolio <${sender}>`,
-          to: ["owoeyeolajumokeoluwatosin@gmail.com"],
-          cc: [TASKDRIP_EMAILS.admin],
+          to: ["owoeyeolajumokeoluwatosin@gmail.com", TASKDRIP_EMAILS.info],
           reply_to: parsed.data.email,
           subject,
           html,
@@ -8738,6 +8737,43 @@ Instructions:
       const items = await storage.getUserPortfolio(req.params.id);
       res.json(items);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get('/api/creator-portfolios/:identity', async (req, res) => {
+    try {
+      const identity = String(req.params.identity || '').trim();
+      const user = await storage.getUserById(identity) || await storage.getUserByUsername(identity);
+      if (!user || user.userType === 'brand') {
+        return res.status(404).json({ message: 'Creator portfolio not found' });
+      }
+
+      const items = await storage.getUserPortfolio(user.id);
+      return res.json({
+        profile: {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileImageUrl: user.profileImageUrl,
+          bannerImageUrl: user.bannerImageUrl,
+          bio: user.bio,
+          location: user.location,
+          website: user.website,
+          skills: user.skills,
+          niche: user.niche,
+          instagramHandle: user.instagramHandle,
+          tiktokHandle: user.tiktokHandle,
+          youtubeHandle: user.youtubeHandle,
+          twitterHandle: user.twitterHandle,
+        },
+        items: items.map(({ id, title, description, imageUrl, videoUrl, url, category }) => ({
+          id, title, description, imageUrl, videoUrl, url, category,
+        })),
+      });
+    } catch (error) {
+      console.error('[creator portfolio] Failed to load public portfolio:', error);
+      return res.status(500).json({ message: 'Could not load this creator portfolio' });
+    }
   });
 
   // Upload portfolio image — returns { url }

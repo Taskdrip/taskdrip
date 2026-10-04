@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/ui/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
-import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, Bell, Send, Mail, Briefcase, Plus, Trash2, ExternalLink, Link2, Code2 } from "lucide-react";
+import { User, DollarSign, Trophy, Clock, Star, Edit3, Upload, MessageCircle, MessageSquare, Bell, Send, Mail, Briefcase, Package, Plus, Trash2, ExternalLink, Link2, Code2, Globe, Sparkles, Clipboard } from "lucide-react";
 import { DashboardSpotlight } from "@/components/DashboardSpotlight";
 import { DevProjectsTab } from "@/components/DevProjectsTab";
 
@@ -153,7 +154,13 @@ export default function Dashboard() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('PATCH', `/api/users/${user?.id}/profile`, data);
+      const payload = {
+        ...data,
+        skills: Array.isArray(data.skills)
+          ? data.skills
+          : String(data.skills || "").split(",").map((skill: string) => skill.trim()).filter(Boolean),
+      };
+      const response = await apiRequest('PATCH', `/api/users/${user?.id}/profile`, payload);
       return await response.json();
     },
     onSuccess: () => {
@@ -181,7 +188,7 @@ export default function Dashboard() {
         bio: user.bio || '',
         website: user.website || '',
         location: user.location || '',
-        skills: user.skills || '',
+        skills: Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || ''),
         phoneNumber: user.phoneNumber || '',
         socialMedia: user.socialMedia || {
           instagram: '',
@@ -226,6 +233,35 @@ export default function Dashboard() {
   
   const completedTasks = participations?.filter((p: any) => p.status === 'approved').length || 0;
   const pendingTasks = participations?.filter((p: any) => p.status === 'pending').length || 0;
+  const portfolioUser = user as any;
+  const portfolioIdentity = portfolioUser?.username || portfolioUser?.id;
+  const portfolioPagePath = portfolioUser?.id === "user_1776822545259_5ioj61auy"
+    ? "/olajumoke-owoeye"
+    : portfolioIdentity
+      ? `/creator-portfolio/${encodeURIComponent(portfolioIdentity)}`
+      : "/creator-portfolio";
+  const portfolioPageUrl = `${window.location.origin}${portfolioPagePath}`;
+
+  const openPortfolioProfileEditor = () => {
+    handleTabChange("profile");
+    setIsEditing(true);
+  };
+
+  const openPortfolioWorkEditor = () => {
+    handleTabChange("portfolio");
+    setEditingPortfolio(null);
+    setPortfolioForm({ title: "", description: "", imageUrl: "", url: "", category: "" });
+    setPortfolioDialogOpen(true);
+  };
+
+  const copyPortfolioPageUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(portfolioPageUrl);
+      toast({ title: "Portfolio link copied" });
+    } catch {
+      toast({ title: "Copy failed", description: "Select and copy the portfolio link shown here.", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -303,6 +339,9 @@ export default function Dashboard() {
               </TabsTrigger>
               <TabsTrigger value="portfolio" className="whitespace-nowrap px-4 gap-1.5" data-testid="tab-portfolio">
                 <Briefcase className="w-3.5 h-3.5" /> Portfolio
+              </TabsTrigger>
+              <TabsTrigger value="portfolio-page" className="whitespace-nowrap px-4 gap-1.5" data-testid="tab-portfolio-page">
+                <Globe className="w-3.5 h-3.5" /> Portfolio page
               </TabsTrigger>
               <TabsTrigger value="reviews" className="whitespace-nowrap px-4 gap-1.5" data-testid="tab-reviews">
                 <Star className="w-3.5 h-3.5" /> Reviews
@@ -969,6 +1008,73 @@ export default function Dashboard() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Public Portfolio Page Tab */}
+          <TabsContent value="portfolio-page" className="space-y-6">
+            <Card className="overflow-hidden border-0 shadow-sm">
+              <div className="bg-gradient-to-br from-[#26311f] via-[#33451f] to-[#586b2b] p-6 text-white sm:p-8">
+                <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+                  <div className="max-w-2xl">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-[#e8f2cb]">
+                      <Sparkles className="h-3.5 w-3.5" /> Your public creator page
+                    </div>
+                    <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Put your best work in one shareable link.</h2>
+                    <p className="mt-2 text-sm leading-6 text-white/75">
+                      Your page uses your profile photo, bio, skills and portfolio items. Save changes in your profile or work samples and the public page updates automatically.
+                    </p>
+                  </div>
+                  <a href={portfolioPagePath} target="_blank" rel="noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#d7ec78] px-5 py-3 text-sm font-bold text-[#25311d] hover:bg-[#e7f5aa]">
+                    Preview page <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+                <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-white/15 bg-black/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">Portfolio link</p>
+                    <a href={portfolioPagePath} target="_blank" rel="noreferrer" className="mt-1 block truncate text-sm font-semibold text-white hover:underline">{portfolioPageUrl}</a>
+                  </div>
+                  <Button variant="secondary" onClick={copyPortfolioPageUrl} className="shrink-0 bg-white text-[#25311d] hover:bg-[#f0f3e9]">
+                    <Clipboard className="mr-2 h-4 w-4" /> Copy link
+                  </Button>
+                </div>
+              </div>
+              <CardContent className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                  <div className="flex items-center gap-2 font-bold text-gray-900"><User className="h-4 w-4 text-purple-600" /> Edit your introduction</div>
+                  <p className="mt-2 text-sm leading-6 text-gray-500">Add a clear bio, profile image, location and skills so brands understand what you do.</p>
+                  <Button variant="outline" className="mt-4" onClick={openPortfolioProfileEditor}>Edit profile details</Button>
+                </div>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                  <div className="flex items-center gap-2 font-bold text-gray-900"><Briefcase className="h-4 w-4 text-purple-600" /> Add or update work</div>
+                  <p className="mt-2 text-sm leading-6 text-gray-500">Show selected projects with a short description, category, image and project link.</p>
+                  <Button variant="outline" className="mt-4" onClick={openPortfolioWorkEditor}>Add a work sample</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5 text-purple-600" /> Quick guide to your portfolio page</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="grid gap-4 md:grid-cols-3">
+                  {[
+                    { number: "01", title: "Complete your profile", detail: "Use your real name, a clear profile photo and a concise bio. Add the skills and social accounts you want brands to see." },
+                    { number: "02", title: "Choose strong examples", detail: "Add a project title, category, short description, image and link. Only share work you have permission to display." },
+                    { number: "03", title: "Preview and share", detail: "Open the public page to check how it looks on a phone, then copy the link for your pitch, social bio or media kit." },
+                  ].map((step) => (
+                    <li key={step.number} className="rounded-2xl border border-gray-100 bg-white p-4">
+                      <span className="text-xs font-black tracking-[0.14em] text-purple-600">{step.number}</span>
+                      <h3 className="mt-2 font-bold text-gray-900">{step.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-gray-500">{step.detail}</p>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-5 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                  Note: your page is public. Check your bio, photos and project links before sharing it, and don’t include private contact or client information without permission.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

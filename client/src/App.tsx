@@ -96,6 +96,7 @@ const AdminBreedSkoolCampaign = lazy(() => import("@/pages/admin-breedskool-camp
 const AdminPortfolio = lazy(() => import("@/pages/admin-portfolio"));
 const AbrahamPortfolio = lazy(() => import("@/pages/abraham-portfolio"));
 const OlajumokePortfolio = lazy(() => import("@/pages/olajumoke-owoeye"));
+const CreatorPortfolio = lazy(() => import("@/pages/creator-portfolio"));
 const AdminSEO = lazy(() => import("@/pages/admin-seo"));
 const AdminSeoIntelligence = lazy(() => import("@/pages/admin-seo-intelligence"));
 const AdminLeads = lazy(() => import("@/pages/admin-leads"));
@@ -196,6 +197,7 @@ function Router() {
         <Route path="/abraham-tahbat/:slug" component={AbrahamPortfolio} />
         <Route path="/abraham-tahbat" component={AbrahamPortfolio} />
         <Route path="/olajumoke-owoeye" component={OlajumokePortfolio} />
+        <Route path="/creator-portfolio/:identity" component={CreatorPortfolio} />
         <Route path="/portfolio/:slug" component={AbrahamPortfolio} />
         <Route path="/portfolio" component={AbrahamPortfolio} />
         <Route path="/terms" component={() => <LegalPageTemplate slug="terms" />} />
