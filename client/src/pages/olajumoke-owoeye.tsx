@@ -221,6 +221,17 @@ export default function OlajumokeOwoeyePortfolio() {
     ].join("\n");
     return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`;
   }, [inquiry]);
+  const retryWhatsAppUrl = useMemo(() => {
+    const message = [
+      "Hi Olajumoke, I’m enquiring about a project through your portfolio.",
+      `Name: ${form.name}`,
+      `Email: ${form.email}`,
+      `Service: ${form.service}`,
+      `Budget: ${form.budget}`,
+      `Project brief: ${form.projectBrief}`,
+    ].join("\n");
+    return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`;
+  }, [form]);
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -507,13 +518,27 @@ export default function OlajumokeOwoeyePortfolio() {
 
             <div className="rounded-[1.5rem] border border-[#e1e5da] bg-white p-5 shadow-[0_12px_40px_rgba(31,42,24,0.045)] sm:p-8">
               {inquiry ? (
-                <div id="form-success" className="flex min-h-[440px] flex-col justify-center">
+                <div id="form-success" aria-live="polite" className="flex min-h-[440px] flex-col justify-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e9f1d2] text-[#536c20]"><Check className="h-7 w-7" /></div>
                   <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.18em] text-[#73863a]">Message sent</p>
                   <h3 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[#1b2119]">Thank you, {inquiry.name.split(" ")[0]}.</h3>
                   <p className="mt-4 max-w-lg text-sm leading-7 text-[#697064]">
-                    Your {inquiry.service.toLowerCase()} enquiry is on its way. I’ll review your brief and get back to you. If you’d like, continue the conversation on WhatsApp with your project details ready to send.
+                    I’ve received your {inquiry.service.toLowerCase()} enquiry and will reply to {inquiry.email}. Here’s a summary of your project; you can also continue the conversation on WhatsApp with these details ready to send.
                   </p>
+                  <dl className="mt-6 space-y-3 rounded-2xl bg-[#f5f7f1] p-4 text-sm">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <dt className="font-semibold text-[#68715d]">Service</dt>
+                      <dd className="font-medium text-[#1b2119]">{inquiry.service}</dd>
+                    </div>
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <dt className="font-semibold text-[#68715d]">Project budget</dt>
+                      <dd className="font-medium text-[#1b2119]">{inquiry.budget}</dd>
+                    </div>
+                    <div className="border-t border-[#e2e7d9] pt-3">
+                      <dt className="font-semibold text-[#68715d]">Project brief</dt>
+                      <dd className="mt-1 whitespace-pre-wrap break-words leading-6 text-[#42493d]">{inquiry.projectBrief}</dd>
+                    </div>
+                  </dl>
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -561,7 +586,19 @@ export default function OlajumokeOwoeyePortfolio() {
                     <div className="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
                       <label>Leave this field empty<input tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => updateField("website", event.target.value)} /></label>
                     </div>
-                    {formError && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</p>}
+                    {formError && (
+                      <div role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
+                        <p>{formError}</p>
+                        <a
+                          href={retryWhatsAppUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex min-h-10 items-center gap-2 font-semibold underline underline-offset-2"
+                        >
+                          <SiWhatsapp className="h-4 w-4" /> Send these details on WhatsApp instead
+                        </a>
+                      </div>
+                    )}
                     <div className="flex flex-col items-start justify-between gap-4 pt-1 sm:flex-row sm:items-center">
                       <p className="max-w-xs text-xs leading-5 text-[#878d81]">Your details are only used to respond to this project enquiry.</p>
                       <button disabled={isSending} type="submit" className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25311d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#3b4b29] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">

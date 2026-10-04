@@ -420,7 +420,6 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     const projectBrief = escapeHtml(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
 
     try {
-      const connectors = new ReplitConnectors();
       const subject = `New ${parsed.data.service.toLowerCase()} enquiry from ${parsed.data.name}`;
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#20251c">
@@ -430,6 +429,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           <p><strong>Requested service:</strong> ${service}</p>
           <p><strong>Budget:</strong> ${budget}</p>
           <p><strong>Project brief:</strong><br />${projectBrief}</p>
+          <p><strong>Portfolio:</strong> <a href="https://taskdrip.online/olajumoke-owoeye">taskdrip.online/olajumoke-owoeye</a></p>
           <p style="color:#68715d;font-size:13px">Reply directly to this message to contact the enquirer.</p>
         </div>
       `;
@@ -440,7 +440,9 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         `Requested service: ${parsed.data.service}`,
         `Budget: ${parsed.data.budget}`,
         `Project brief: ${parsed.data.projectBrief}`,
+        "Portfolio: https://taskdrip.online/olajumoke-owoeye",
       ].join("\n");
+      const connectors = new ReplitConnectors();
       const send = (sender: string) => connectors.proxy("resend", "/emails", {
         method: "POST",
         body: {
@@ -464,14 +466,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (!response.ok) {
         console.error("[portfolio contact] Resend delivery failed:", response.status, responseError);
         return res.status(503).json({
-          message: "Email delivery is not available right now. Please contact Olajumoke directly by email or WhatsApp.",
+          message: "Your enquiry could not be emailed just now. Your details are still here—please try again or send them on WhatsApp.",
         });
       }
       return res.json({ ok: true });
     } catch (error: any) {
       console.error("[portfolio contact] Could not send enquiry:", error?.message || error);
       return res.status(503).json({
-        message: "Email delivery is not available right now. Please contact Olajumoke directly by email or WhatsApp.",
+        message: "Your enquiry could not be emailed just now. Your details are still here—please try again or send them on WhatsApp.",
       });
     }
   });
