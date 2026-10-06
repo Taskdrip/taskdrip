@@ -86,6 +86,9 @@ const AdminP2PTransactions = lazy(() => import("@/pages/admin-p2p-transactions")
 const AdminP2PFees = lazy(() => import("@/pages/admin-p2p-fees"));
 const AdminPlatformFees = lazy(() => import("@/pages/admin-platform-fees"));
 const MyOrdersPage = lazy(() => import("@/pages/my-orders"));
+const CreatorStudioPage = lazy(() => import("@/pages/creator-studio"));
+const DigitalLibraryPage = lazy(() => import("@/pages/digital-library"));
+const AdminPublishingPage = lazy(() => import("@/pages/admin-publishing"));
 const OrderDetailPage = lazy(() => import("@/pages/order-detail"));
 const TDripInfoPage = lazy(() => import("@/pages/tdrip-info"));
 const DocumentationPage = lazy(() => import("@/pages/documentation"));
@@ -287,6 +290,9 @@ function Router() {
             <Route path="/payout-requests" component={PayoutRequestsPage} />
             <Route path="/my-campaigns" component={MyCampaignsPage} />
             <Route path="/my-orders" component={MyOrdersPage} />
+            <Route path="/creator-studio" component={CreatorStudioPage} />
+            <Route path="/my-digital-library" component={DigitalLibraryPage} />
+            <Route path="/admin/publishing" component={AdminPublishingPage} />
             <Route path="/my-training" component={MyTraining} />
             <Route path="/orders/:id" component={OrderDetailPage} />
             <Route path="/security" component={SecuritySettings} />

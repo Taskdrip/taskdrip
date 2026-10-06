@@ -364,6 +364,85 @@ export const productReviews = pgTable("product_reviews", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Publishing content remains separate from its commercial shop listing.
+export const creatorBooks = pgTable("creator_books", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 240 }).notNull(),
+  subtitle: varchar("subtitle", { length: 300 }),
+  idea: text("idea"),
+  description: text("description"),
+  outline: jsonb("outline").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  chapters: jsonb("chapters").$type<Array<{ id: string; title: string; content: string }>>().notNull().default(sql`'[]'::jsonb`),
+  coverImage: text("cover_image"),
+  amazonUrl: text("amazon_url"),
+  status: varchar("status", { length: 32 }).notNull().default("draft"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("creator_books_creator_id_idx").on(table.creatorId),
+  index("creator_books_status_idx").on(table.status),
+]);
+
+export const creatorPublishingProducts = pgTable("creator_publishing_products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  bookId: varchar("book_id").references(() => creatorBooks.id, { onDelete: "set null" }),
+  shopProductId: varchar("shop_product_id").references(() => shopProducts.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 240 }).notNull(),
+  description: text("description").notNull(),
+  productType: varchar("product_type", { length: 60 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  currency: varchar("currency", { length: 8 }).notNull().default("USD"),
+  coverImage: text("cover_image"),
+  tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
+  version: varchar("version", { length: 40 }).default("1.0"),
+  license: text("license"),
+  amazonUrl: text("amazon_url"),
+  fileKey: text("file_key"),
+  originalFileName: varchar("original_file_name", { length: 255 }),
+  mimeType: varchar("mime_type", { length: 120 }),
+  fileSize: integer("file_size"),
+  status: varchar("status", { length: 32 }).notNull().default("draft"),
+  reviewNote: text("review_note"),
+  submittedAt: timestamp("submitted_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("creator_publishing_products_creator_id_idx").on(table.creatorId),
+  index("creator_publishing_products_status_idx").on(table.status),
+  index("creator_publishing_products_shop_product_id_idx").on(table.shopProductId),
+]);
+
+export const creatorProductEarnings = pgTable("creator_product_earnings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  purchaseId: varchar("purchase_id").notNull().unique().references(() => purchases.id),
+  productId: varchar("product_id").notNull().references(() => shopProducts.id),
+  creatorId: varchar("creator_id").notNull().references(() => users.id),
+  currency: varchar("currency", { length: 8 }).notNull().default("USD"),
+  grossAmount: decimal("gross_amount", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  referralFee: decimal("referral_fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 24 }).notNull().default("available"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("creator_product_earnings_creator_id_idx").on(table.creatorId),
+]);
+
+export const creatorProductDownloads = pgTable("creator_product_downloads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  publishingProductId: varchar("publishing_product_id").notNull().references(() => creatorPublishingProducts.id, { onDelete: "cascade" }),
+  purchaseId: varchar("purchase_id").notNull().references(() => purchases.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  downloadedAt: timestamp("downloaded_at").defaultNow(),
+}, (table) => [
+  index("creator_product_downloads_purchase_id_idx").on(table.purchaseId),
+]);
+
 // Product likes/dislikes tracking table
 export const productLikes = pgTable("product_likes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

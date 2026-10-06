@@ -146,6 +146,17 @@ export default function ProductDetail() {
     enabled: !!productId,
   });
 
+  const { data: publishingInfo } = useQuery<any>({
+    queryKey: ["/api/publishing/products", productId],
+    enabled: !!productId,
+    queryFn: async () => {
+      const response = await fetch(`/api/publishing/products/${productId}`);
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error("Could not load publishing details");
+      return response.json();
+    },
+  });
+
   const { data: reviews = [] } = useQuery<ProductReview[]>({
     queryKey: ["/api/shop/products", productId, "reviews"],
     enabled: !!productId,
@@ -475,6 +486,13 @@ export default function ProductDetail() {
                     {product.isFree ? "Get Free" : "Buy Now"}
                   </Button>
                 </Link>
+              )}
+              {publishingInfo?.amazonUrl && (
+                <a href={publishingInfo.amazonUrl} target="_blank" rel="noreferrer" className="block">
+                  <Button variant="outline" size="lg" className="w-full">
+                    <ExternalLink className="w-5 h-5 mr-2" />Buy on Amazon
+                  </Button>
+                </a>
               )}
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1">

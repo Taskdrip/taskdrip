@@ -14,6 +14,7 @@ import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurch
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or } from "drizzle-orm";
+import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./creator-publishing";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -4520,18 +4521,48 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const user = req.user as any;
       const { rating, comment, title } = req.body;
 
-      if (!rating || rating < 1 || rating > 5) {
+      if (!Number.isInteger(Number(rating)) || Number(rating) < 1 || Number(rating) > 5) {
         return res.status(400).json({ message: "Rating must be between 1 and 5" });
+      }
+
+      let verifiedPurchaseId: string | undefined;
+      const { creatorPublishingProducts: publishingProducts, purchases: shopPurchases } = await import("@shared/schema");
+      const [publishingProduct] = await db.select({ id: publishingProducts.id })
+        .from(publishingProducts)
+        .where(and(
+          eq(publishingProducts.shopProductId, req.params.id),
+          eq(publishingProducts.status, "published"),
+        )).limit(1);
+      if (publishingProduct) {
+        const [verifiedPurchase] = await db.select({ id: shopPurchases.id })
+          .from(shopPurchases)
+          .where(and(
+            eq(shopPurchases.productId, req.params.id),
+            eq(shopPurchases.userId, user.id),
+            inArray(shopPurchases.status, ["paid", "approved", "delivered"]),
+          )).limit(1);
+        if (!verifiedPurchase) {
+          return res.status(403).json({ message: "Only verified buyers can review this digital product." });
+        }
+        verifiedPurchaseId = verifiedPurchase.id;
+        const [existingReview] = await db.select({ id: productReviews.id })
+          .from(productReviews)
+          .where(and(
+            eq(productReviews.productId, req.params.id),
+            eq(productReviews.userId, user.id),
+          )).limit(1);
+        if (existingReview) return res.status(409).json({ message: "You have already reviewed this product." });
       }
 
       const review = await storage.createProductReview({
         productId: req.params.id,
         userId: user.id,
-        rating,
+        rating: Number(rating),
         title,
         comment,
-        isVerified: false, // TODO: Check if user actually purchased the product
-      });
+        isVerified: !!verifiedPurchaseId,
+        purchaseId: verifiedPurchaseId,
+      } as any);
 
       res.status(201).json(review);
     } catch (error) {
@@ -5565,10 +5596,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.post('/api/payout-requests', isAuthenticated, async (req: any, res) => {
     try {
       const { amount, network, walletAddress } = req.body;
+      const sourceType = req.body.sourceType === 'publishing' ? 'publishing' : 'manual';
       const user = await storage.getUser(req.user.id);
       
       const parsedAmount = parseFloat(amount);
       if (!parsedAmount || parsedAmount <= 0) return res.status(400).json({ message: "Invalid amount" });
+      if (sourceType === 'publishing' && parsedAmount < 10) {
+        return res.status(400).json({ message: "Publishing withdrawals must be at least $10." });
+      }
       if (parseFloat(user?.availableBalance || '0') < parsedAmount) {
         return res.status(400).json({ message: "Insufficient balance" });
       }
@@ -5578,7 +5613,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         amount: parsedAmount,
         network,
         walletAddress,
-      });
+        sourceType,
+      } as any);
 
       // Deduct from available balance
       await storage.updateUserBalance(req.user.id, parsedAmount, 'subtract');
@@ -9460,6 +9496,7 @@ Instructions:
         });
 
         // ── 15% product referral commission ─────────────────────────────
+        let productReferralFee = 0;
         try {
           const PRODUCT_COMMISSION_RATE = 0.15;
           let referrerId: string | null = null;
@@ -9498,6 +9535,7 @@ Instructions:
               availableBalance: sql`${users.availableBalance} + ${parseFloat(commissionAmount)}` as any,
               referralBonusEarned: sql`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}` as any,
             });
+            productReferralFee = parseFloat(commissionAmount);
             await storage.createNotification({
               userId: referrerId,
               type: 'referral_bonus',
@@ -9508,6 +9546,9 @@ Instructions:
             });
           }
         } catch (commErr) { /* non-fatal */ }
+        await recordCreatorProductSale(existing.id, productReferralFee).catch((earningError) => {
+          console.error("Failed to credit digital product earnings:", earningError);
+        });
       }
       res.json(updated);
     } catch (e: any) {
@@ -13963,5 +14004,6 @@ Instructions:
   }
 
   const httpServer = existingServer ?? createServer(app);
+  registerCreatorPublishingRoutes(app);
   return httpServer;
 }

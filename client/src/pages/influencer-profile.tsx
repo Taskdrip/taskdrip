@@ -26,7 +26,7 @@ import { FaLinkedin as SiLinkedin } from "react-icons/fa";
 import {
   MapPin, Users, Trophy, Star, Heart, MessageCircle, Gift, ExternalLink, ChevronLeft, ChevronRight,
   BarChart3, UserPlus, UserCheck, Globe, Briefcase, Zap, Flame, Crown,
-  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X, Coins, Wallet, Trash2, Pencil
+  Eye, Share2, Edit3, CheckCircle, TrendingUp, DollarSign, Sparkles, Loader2, Send, X, Coins, Wallet, Trash2, Pencil, Store
 } from "lucide-react";
 
 function StarRating({ value, onChange, readOnly = false }: { value: number; onChange?: (v: number) => void; readOnly?: boolean }) {
@@ -420,6 +420,16 @@ export default function CreatorProfile() {
   const { data: profile, isLoading } = useQuery<any>({
     queryKey: [`/api/creators/${id}/profile`],
     enabled: !!id,
+  });
+
+  const { data: digitalProducts = [] } = useQuery<any[]>({
+    queryKey: [`/api/creators/${id}/digital-products`],
+    enabled: !!id,
+    queryFn: async () => {
+      const response = await fetch(`/api/creators/${id}/digital-products`);
+      if (!response.ok) throw new Error("Could not load creator products");
+      return response.json();
+    },
   });
 
   const { data: followStatus } = useQuery<{ following: boolean }>({
@@ -952,11 +962,55 @@ export default function CreatorProfile() {
           <TabsList className="mb-5 w-full justify-start overflow-x-auto bg-white shadow-sm border border-gray-100 rounded-xl p-1 flex-nowrap">
             <TabsTrigger value="social" className="rounded-lg whitespace-nowrap" data-testid="tab-analytics"><BarChart3 className="w-4 h-4 mr-1.5" />Analytics</TabsTrigger>
             <TabsTrigger value="portfolio" className="rounded-lg whitespace-nowrap" data-testid="tab-portfolio"><Briefcase className="w-4 h-4 mr-1.5" />Portfolio</TabsTrigger>
+            {digitalProducts.length > 0 && <TabsTrigger value="digital-products" className="rounded-lg whitespace-nowrap" data-testid="tab-digital-products"><Store className="w-4 h-4 mr-1.5" />Digital Products ({digitalProducts.length})</TabsTrigger>}
             <TabsTrigger value="rates" className="rounded-lg whitespace-nowrap" data-testid="tab-rates"><DollarSign className="w-4 h-4 mr-1.5" />Rates</TabsTrigger>
             <TabsTrigger value="reviews" className="rounded-lg whitespace-nowrap" data-testid="tab-reviews"><Star className="w-4 h-4 mr-1.5" />Reviews ({profile.reviews?.length || 0})</TabsTrigger>
             <TabsTrigger value="posts" className="rounded-lg whitespace-nowrap" data-testid="tab-posts"><Eye className="w-4 h-4 mr-1.5" />Posts</TabsTrigger>
             <TabsTrigger value="campaigns" className="rounded-lg whitespace-nowrap" data-testid="tab-campaigns"><Flame className="w-4 h-4 mr-1.5" />Campaigns</TabsTrigger>
           </TabsList>
+
+          {digitalProducts.length > 0 && (
+            <TabsContent value="digital-products">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {digitalProducts.map((product: any) => (
+                  <Card key={product.publishingProductId} className="overflow-hidden border-gray-100 shadow-sm">
+                    <div className="aspect-[4/3] bg-gray-50">
+                      {product.coverImage
+                        ? <img src={product.coverImage} alt={product.title} className="h-full w-full object-cover" />
+                        : <div className="h-full flex items-center justify-center text-gray-300"><Store className="w-12 h-12" /></div>}
+                    </div>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-gray-900 line-clamp-2">{product.title}</h3>
+                        {product.isFeatured && <Badge className="shrink-0">Featured</Badge>}
+                      </div>
+                      <p className="text-xs text-violet-700 font-semibold mt-1">{product.productType}</p>
+                      <p className="text-sm text-gray-600 mt-2 line-clamp-3">{product.description}</p>
+                      <div className="flex items-center justify-between mt-4">
+                        <div>
+                          <div className="font-bold text-gray-900">${Number(product.price).toFixed(2)}</div>
+                          <div className="text-xs text-gray-500">★ {Number(product.rating || 0).toFixed(1)} · {product.reviewCount || 0} reviews</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Link href={`/shop/product/${product.shopProductId}`}>
+                            <Button size="sm">Buy / View</Button>
+                          </Link>
+                          {product.amazonUrl && (
+                            <a href={product.amazonUrl} target="_blank" rel="noreferrer">
+                              <Button size="sm" variant="outline">Amazon</Button>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {Number(product.salesCount || 0) > 0 && (
+                        <p className="text-xs text-gray-500 mt-2">{product.salesCount} sales</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          )}
 
           {/* ── Analytics Tab ── */}
           <TabsContent value="social">

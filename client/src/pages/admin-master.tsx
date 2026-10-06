@@ -3372,6 +3372,24 @@ export default function AdminMaster() {
                 </button>
               </RouterLink>
             </div>
+            {(isFullAdmin || canManageStore || canModerate || canManageContent) && (
+              <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-900/25 via-purple-900/10 to-fuchsia-900/20 p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-600/30 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5 text-violet-300" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-sm">Creator Publishing Review</p>
+                    <p className="text-gray-400 text-xs">Review book and digital product submissions, publish approved listings, and set the creator platform fee.</p>
+                  </div>
+                </div>
+                <RouterLink href="/admin/publishing">
+                  <button className="shrink-0 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors flex items-center gap-2" data-testid="button-open-publishing-review">
+                    <BookOpen className="w-4 h-4" /> Open Review Queue
+                  </button>
+                </RouterLink>
+              </div>
+            )}
             <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-900/20 via-sky-900/10 to-blue-900/20 p-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-cyan-600/30 flex items-center justify-center shrink-0">

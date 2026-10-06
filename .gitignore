@@ -9,6 +9,7 @@ vite.config.ts.*
 cookies.txt
 uploads/*
 !uploads/.gitkeep
+.private-product-files/
 *.log
 .cache
 .upm

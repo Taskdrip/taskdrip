@@ -95,6 +95,7 @@ function ChatThread({ requestId }: { requestId: string }) {
 export default function PayoutRequestsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const publishingWithdrawal = new URLSearchParams(window.location.search).get("sourceType") === "publishing";
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [form, setForm] = useState({ amount: "", walletAddress: "", network: "USDT-TRC20", notes: "" });
@@ -113,7 +114,10 @@ export default function PayoutRequestsPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", '/api/payout-requests', form);
+      const res = await apiRequest("POST", '/api/payout-requests', {
+        ...form,
+        ...(publishingWithdrawal ? { sourceType: "publishing" } : {}),
+      });
       return res.json();
     },
     onSuccess: () => {
