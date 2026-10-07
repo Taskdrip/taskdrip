@@ -1,0 +1,3779 @@
+Continue and complete the below web update and add a control link for the studio to the admin dashboard, and a front end interface for users to interact with the application and also an interface in their dashboard to track their projects. Make it working with a link in the menu, not signed in users should be made to sign in of signup before using the full features of the studio to create their ebook project, admin should have full management to all the activities of this application, He should be also able to set monthly fees to have access to this tools using the web app checkout process for subscribing to this Ebook studio Generator
+
+﻿TASKDRIP CREATOR PUBLISHING, EBOOK & DIGITAL PRODUCT STUDIO
+Complete Integration Specification for the Existing Taskdrip Web App
+You are an expert full-stack product engineer, SaaS architect, UI/UX designer, AI integration engineer, marketplace engineer, and digital publishing platform developer.
+You are working on the existing Taskdrip web application.
+DO NOT build this as a separate standalone application.
+Your job is to deeply inspect the existing Taskdrip codebase, database, authentication system, creator/influencer accounts, profiles, dashboards, marketplace/store, payment systems, wallet/earnings systems, and existing UI before making changes.
+The objective is to seamlessly add a powerful Creator Publishing & Digital Products Studio to Taskdrip.
+The final system should allow Taskdrip creators, influencers, educators, experts, writers, developers, designers, and brands to transform their knowledge, stories, expertise, software, templates, and ideas into products they can publish, sell, promote, and earn from.
+CORE PRODUCT PHILOSOPHY:
+CREATE → PUBLISH → FEATURE → SELL → PROMOTE → EARN
+Position the feature as:
+Taskdrip Creator Publishing
+Tagline:
+Turn Your Knowledge, Ideas & Creativity Into Products That Sell.
+Secondary positioning:
+Every creator can become a publisher.
+Do not break any existing Taskdrip functionality while implementing this feature.
+________________
+
+
+1. FIRST: AUDIT THE EXISTING TASKDRIP APPLICATION
+Before writing new application logic, inspect the entire existing project.
+Identify:
+* Framework
+* Frontend architecture
+* Backend architecture
+* Database technology
+* ORM
+* Authentication system
+* User model
+* Creator model
+* Influencer model
+* Brand model
+* Existing profile system
+* Existing creator dashboard
+* Existing public creator landing/profile pages
+* Existing marketplace/store
+* Existing product system
+* Existing order system
+* Existing payment system
+* Existing wallet system
+* Existing earnings system
+* Existing withdrawal system
+* Existing notification system
+* Existing admin dashboard
+* Existing file storage
+* Existing media/image handling
+* Existing subscription/plan system
+* Existing reviews/rating system
+* Existing analytics
+* Existing API architecture
+* Existing role/permission system
+DO NOT duplicate existing functionality if it already exists.
+For example:
+If Taskdrip already has:
+users creators profiles products orders payments wallets earnings withdrawals reviews
+extend those systems instead of creating duplicate versions.
+Reuse existing authentication.
+Reuse existing creator IDs.
+Reuse existing wallet/account IDs.
+Reuse existing payment infrastructure.
+Reuse existing order architecture where possible.
+Reuse existing notification architecture.
+Reuse existing admin permissions.
+Reuse existing profile pages.
+Reuse existing design system.
+The publishing system must feel like a native Taskdrip feature.
+________________
+
+
+2. IMPORTANT DEVELOPMENT RULE
+Do NOT blindly overwrite the existing application.
+Before modifying anything:
+1. Map the existing architecture.
+2. Identify reusable components.
+3. Identify database relationships.
+4. Identify existing APIs.
+5. Identify existing payment flows.
+6. Identify existing creator profile routes.
+7. Identify existing dashboard routes.
+8. Identify existing admin routes.
+9. Identify existing storage architecture.
+10. Identify existing security mechanisms.
+Then implement the publishing system incrementally.
+If something already exists, extend it.
+If something does not exist, create it cleanly.
+Maintain backward compatibility.
+________________
+
+
+3. NEW TASKDRIP PRODUCT CATEGORY
+Introduce a new product ecosystem called:
+DIGITAL PRODUCTS
+Creators should be able to sell:
+Publishing Products
+* eBooks
+* PDF books
+* EPUB books
+* Paperback-ready books
+* Hardcover-ready books
+* Workbooks
+* Journals
+* Planners
+* Children's books
+* Storybooks
+* Activity books
+* Coloring books
+* Puzzle books
+* Recipe books
+* Poetry books
+* Novels
+* Business books
+* Educational books
+* How-to guides
+* Devotionals
+* Bible story books
+* Study guides
+* Course books
+* Research guides
+* Real estate guides
+* Finance guides
+* Technology guides
+* Marketing guides
+Digital Products
+* Software
+* SaaS tools
+* Mobile apps
+* Desktop applications
+* Plugins
+* WordPress plugins
+* Website templates
+* Canva templates
+* Notion templates
+* Excel/Google Sheets templates
+* Business templates
+* Contracts/templates
+* Design assets
+* Graphics
+* Presets
+* Prompt packs
+* AI resources
+* Checklists
+* Worksheets
+* Courses
+* Audio products
+* Video products
+* Digital resource bundles
+The architecture must allow new digital product types to be added later without redesigning the database.
+________________
+
+
+4. CREATOR DASHBOARD INTEGRATION
+Add a new major dashboard section:
+Creator Studio
+Inside Creator Studio:
+* Overview
+* My Books
+* My Digital Products
+* Create New Product
+* AI Publishing Studio
+* Book Editor
+* Cover Designer
+* Product Designer
+* AI Asset Library
+* Templates
+* Published Products
+* Drafts
+* Sales
+* Earnings
+* Withdrawals
+* Reviews
+* Analytics
+* Marketing Studio
+Existing creators should automatically see this feature.
+Do NOT require creators to create a second account.
+Use their existing Taskdrip account.
+________________
+
+
+5. EXISTING CREATOR PROFILE INTEGRATION
+This is extremely important.
+Every existing creator/influencer profile landing page must be capable of featuring the creator's products.
+The creator profile should become a mini personal storefront.
+Example:
+Creator:
+John Doe
+Bio
+Social links
+Creator services
+Then:
+John's Digital Products
+Display:
+* eBooks
+* Software
+* Templates
+* Courses
+* Other digital products
+Use beautiful product cards.
+Each card should show:
+* Cover/product image
+* Product title
+* Short description
+* Product type
+* Price
+* Rating
+* Number of reviews
+* Sales/download indicator where appropriate
+* Featured badge
+* Buy/Get button
+Example:
+The Ultimate YouTube Growth Guide
+eBook
+$9.99
+★★★★★
+[View Book]
+Creator Content Planner
+Template
+$5.00
+[Get Template]
+Social Growth Toolkit
+Digital Bundle
+$19.00
+[Get Bundle]
+________________
+
+
+6. CREATOR PROFILE PRODUCT TABS
+Add optional tabs to creator landing pages:
+* About
+* Services
+* Portfolio
+* Digital Products
+* Books
+* Software
+* Reviews
+* Socials
+Do not show empty tabs.
+Only display tabs when the creator has relevant content.
+For example:
+If the creator has books but no software:
+show:
+About | Services | Books | Reviews
+If creator has multiple product types:
+About | Services | Products | Books | Software | Reviews
+Allow the creator to configure which sections are visible.
+________________
+
+
+7. FEATURED PRODUCTS ON PROFILE
+Creators must be able to select products to feature prominently.
+Creator dashboard:
+Creator Studio → Profile Showcase
+Allow:
+* Select featured products
+* Reorder products
+* Choose maximum number of featured products
+* Set featured product
+* Hide product
+* Show product on profile
+* Add promotional message
+Example:
+Featured Products
+[Book Cover]
+The Nigerian Property Playbook
+"Everything you need to navigate Nigeria's property market."
+₦15,000
+[Buy Now]
+Then:
+More Products
+Display remaining products.
+________________
+
+
+8. CREATOR PROFILE HERO CTA
+Allow creators to optionally show a CTA in their profile hero:
+Examples:
+"Explore My Books"
+"Shop My Digital Products"
+"Get My Latest Guide"
+"Explore My Software"
+"View My Resources"
+The creator should be able to configure this from the dashboard.
+________________
+
+
+9. PRODUCT CREATION SYSTEM
+Create:
+Create New Product
+The creator chooses:
+Product Type
+* eBook
+* Book
+* Software
+* Template
+* Course
+* Digital Download
+* Bundle
+* Other
+If eBook/book is selected:
+open the Publishing Studio.
+If Software is selected:
+open Software Product Studio.
+If Template is selected:
+open Digital Asset Product Studio.
+The system should dynamically adapt the creation workflow.
+________________
+
+
+10. BOOK CREATION WIZARD
+Create a guided multi-step wizard.
+Step 1:
+What are you creating?
+Examples:
+eBook Paperback Hardcover Workbook Journal Planner Children's Book Storybook Coloring Book Business Book Educational Book Novel Poetry Devotional Guide
+Step 2:
+Book Idea
+Fields:
+Title
+Subtitle
+Book concept
+Target reader
+Problem solved
+Main promise
+Category
+Language
+Author
+Co-authors
+Step 3:
+Writing Style
+Options:
+Professional
+Conversational
+Educational
+Inspirational
+Storytelling
+Academic
+Simple
+Premium
+Humorous
+Children-friendly
+Custom
+Step 4:
+Book Length
+Allow:
+Short
+Medium
+Long
+Custom page/chapter target.
+Step 5:
+AI Generation
+Allow:
+Generate outline
+Generate chapter
+Generate entire manuscript
+Rewrite section
+Expand section
+Summarize
+Simplify
+Improve readability
+Fact-check suggestions
+Generate exercises
+Generate examples
+Generate case studies
+Generate FAQs
+Generate conclusion
+Generate introduction
+Generate author bio
+Generate book description
+Generate marketing copy
+________________
+
+
+11. AI BOOK ARCHITECT
+Before generating a long manuscript, AI should create:
+* Book concept
+* Reader profile
+* Book promise
+* Table of contents
+* Chapter architecture
+* Chapter objectives
+* Key concepts
+* Examples
+* Exercises
+* Case studies
+* Character bible where applicable
+* Visual requirements
+* Style guide
+The creator reviews this architecture before generating the full manuscript.
+Do not generate a 200-page book blindly.
+The system should generate content in manageable jobs.
+________________
+
+
+12. BOOK EDITOR
+Create a professional browser-based editor.
+The interface should feel like a combination of:
+Google Docs Canva Kindle Create Notion
+Features:
+* Chapter navigation
+* Page navigation
+* Rich text editing
+* Headings
+* Paragraphs
+* Lists
+* Tables
+* Quotes
+* Callouts
+* Images
+* Captions
+* Footnotes
+* Endnotes
+* Page breaks
+* Section breaks
+* Headers
+* Footers
+* Page numbers
+* TOC
+* References
+* Bibliography
+* Copyright page
+* Dedication
+* Preface
+* Introduction
+* About the author
+* Conclusion
+* Appendices
+Allow drag-and-drop section ordering.
+Autosave continuously.
+Provide version history.
+________________
+
+
+13. AI EDITOR ASSISTANT
+Inside the editor provide:
+AI Assistant
+Actions:
+Rewrite
+Improve
+Expand
+Shorten
+Simplify
+Make professional
+Make conversational
+Make persuasive
+Fix grammar
+Improve transitions
+Remove repetition
+Generate example
+Generate case study
+Generate FAQ
+Generate summary
+Generate exercise
+Generate quiz
+Generate social media post
+Generate promotional copy
+Continue writing
+Change tone
+Translate
+The AI should only modify selected text unless the user explicitly chooses a larger scope.
+Always provide:
+Accept
+Reject
+Regenerate
+________________
+
+
+14. AI QUALITY CONTROL
+Create an automated editorial quality system.
+Check for:
+* Repetition
+* Generic AI language
+* Contradictions
+* Broken transitions
+* Unsupported claims
+* Excessive filler
+* Poor readability
+* Grammar
+* Spelling
+* Inconsistent terminology
+* Character inconsistency
+* Chapter duplication
+* Missing sections
+* Inconsistent facts
+* Formatting problems
+Display:
+Publishing Readiness Score
+Example:
+Content Quality: 91%
+Structure: 96%
+Formatting: 94%
+Cover: 88%
+Metadata: 100%
+Overall:
+94%
+Publishing Ready
+________________
+
+
+15. BOOK DESIGN ENGINE
+Allow creators to choose a visual theme.
+Categories:
+Modern
+Minimal
+Business
+Luxury
+Educational
+Children
+Creative
+Professional
+Magazine
+Academic
+Classic
+Faith
+Finance
+Technology
+Real Estate
+African Culture
+Custom
+The design engine should automatically style:
+* Headings
+* Paragraphs
+* Chapter openings
+* Quotes
+* Callouts
+* Tables
+* Images
+* Page numbers
+* Headers
+* Footers
+* TOC
+Allow manual customization.
+________________
+
+
+16. KDP-READY BOOK FORMATTING
+Do not hard-code a single KDP specification.
+Create configurable publishing profiles.
+Example profiles:
+* 5 x 8
+* 5.25 x 8
+* 5.5 x 8.5
+* 6 x 9
+* 7 x 10
+* 8 x 10
+* 8.5 x 11
+* Other supported trim sizes
+Allow:
+* Bleed
+* No bleed
+* Margins
+* Gutter
+* Page size
+* Paper type
+* Interior type
+* Black and white
+* Color
+* Page count
+Generate:
+* Interior PDF
+* Full cover PDF
+* eBook EPUB
+* Digital PDF
+Add preflight validation.
+________________
+
+
+17. KDP PRE-FLIGHT CHECKER
+Before export:
+Check:
+* Trim size
+* Page dimensions
+* Bleed
+* Margins
+* Gutter
+* Image resolution
+* Font embedding
+* Font compatibility
+* Page count
+* Blank pages
+* Cover dimensions
+* Spine width
+* Safe areas
+* Metadata
+* ISBN fields
+* Copyright page
+* Table of contents
+* EPUB structure
+Show errors and warnings.
+Example:
+✓ Trim size valid
+✓ Images high resolution
+⚠ Spine width requires update after page count change
+✓ Interior PDF generated
+✓ EPUB validated
+________________
+
+
+18. COVER DESIGNER
+Create a dedicated Cover Studio.
+Generate:
+Front cover
+Spine
+Back cover
+Full wrap cover
+Allow:
+* AI cover generation
+* Uploaded images
+* Templates
+* Typography
+* Colors
+* Backgrounds
+* Shapes
+* Icons
+* Author photo
+* Logo
+Automatically calculate spine based on:
+* Page count
+* Trim size
+* Paper profile
+Never fabricate:
+* ISBN
+* Barcode
+* Publisher information
+Provide reserved areas for them.
+________________
+
+
+19. CHILDREN'S BOOK STUDIO
+Create a dedicated workflow.
+Features:
+Character Bible
+Character name
+Age
+Appearance
+Clothing
+Personality
+Colors
+Illustration style
+The AI must maintain character consistency across pages.
+Allow:
+* Story generation
+* Page storyboard
+* Illustration generation
+* Text placement
+* Page layouts
+* Scene descriptions
+* Dialogue
+* Character consistency
+Example:
+Page 1:
+Text
+Illustration
+Page 2:
+Text
+Illustration
+etc.
+________________
+
+
+20. SOFTWARE PRODUCT STUDIO
+Creators must also be able to publish software products.
+Create:
+Software Product
+Fields:
+Product name
+Description
+Category
+Version
+Platform
+Windows
+Mac
+Linux
+Android
+iOS
+Web
+Browser Extension
+WordPress Plugin
+SaaS
+Download file
+Demo URL
+Documentation URL
+Support URL
+Version notes
+System requirements
+License
+Installation instructions
+Screenshots
+Product video
+Pricing
+Lifetime / subscription options where supported
+Allow creators to upload:
+ZIP
+EXE
+DMG
+APK
+IPA where appropriate
+Other supported software files
+SECURITY REQUIREMENT:
+Uploaded software must NOT automatically become publicly downloadable until admin approval and security checks are complete.
+Implement:
+* File type validation
+* File size limits
+* Malware/virus scanning where available
+* Admin review
+* Version control
+* Download authorization
+* Purchase verification
+* Secure download links
+________________
+
+
+21. SOFTWARE PRODUCT LANDING PAGE
+Each software product gets a beautiful landing page.
+Include:
+Product screenshot
+Product title
+Creator
+Description
+Features
+Screenshots
+Demo
+System requirements
+Version
+Changelog
+Documentation
+Reviews
+Rating
+Price
+Buy button
+Download after purchase
+Creator profile link
+Related products
+________________
+
+
+22. DIGITAL PRODUCT STUDIO
+For templates, PDFs, spreadsheets, assets, etc.
+Allow:
+Product name
+Description
+Category
+Preview images
+Product files
+Version
+Instructions
+License
+Price
+Tags
+SEO metadata
+Product gallery
+Demo/sample
+________________
+
+
+23. PRODUCT DATA ARCHITECTURE
+IMPORTANT:
+Separate:
+BOOK
+The intellectual content.
+BOOK EDITION
+The format.
+Examples:
+ebook
+paperback
+hardcover
+workbook
+PRODUCT
+The commercial listing.
+Examples:
+The book's ebook listing
+Paperback listing
+Bundle listing
+DIGITAL PRODUCT
+Software/template/resource etc.
+Architecture should support:
+Creator
+↓
+Book
+↓
+Book Editions
+↓
+Products
+↓
+Orders
+↓
+Payments
+↓
+Creator Earnings
+This prevents duplication.
+________________
+
+
+24. STORE INTEGRATION
+Add all approved products to the existing Taskdrip marketplace/store.
+Create product categories:
+Books
+eBooks
+Software
+Templates
+Courses
+Digital Downloads
+Business Resources
+Educational Resources
+Children's Books
+Creative Resources
+Bundles
+etc.
+The store should support:
+Search
+Categories
+Filters
+Price range
+Rating
+Creator
+Product type
+Newest
+Popular
+Featured
+Best selling
+________________
+
+
+25. CREATOR MINI STORE
+Every creator should automatically have a mini-store attached to their Taskdrip profile.
+Example URL:
+taskdrip.com/@creatorname
+or the existing Taskdrip creator profile URL structure.
+Within that profile:
+About
+Services
+Products
+Books
+Software
+Reviews
+Social Links
+The creator controls which sections are visible.
+________________
+
+
+26. PRODUCT FEATURE SETTINGS
+Creator dashboard:
+Profile Showcase
+Allow:
+* Feature on profile
+* Feature on homepage
+* Feature in creator store
+* Set featured product
+* Set product order
+* Hide product
+* Show product
+* Create featured collection
+Example:
+My Featured Resources
+[Book]
+[Software]
+[Template]
+[Course]
+________________
+
+
+27. CREATOR PRODUCT COLLECTIONS
+Allow creators to create collections.
+Examples:
+My Business Resources
+* Business Masterclass Book
+* Business Plan Template
+* Marketing Workbook
+My Creator Toolkit
+* Content Planner
+* Caption Pack
+* Social Media Guide
+Complete Real Estate Toolkit
+* Real Estate Book
+* Property Checklist
+* Investment Calculator
+* Property Management Template
+Allow:
+Collection title
+Description
+Cover image
+Products
+Collection price
+Optional bundle discount
+________________
+
+
+28. PRODUCT PAGE
+Each product should have a conversion-focused landing page.
+Include:
+Product cover/image
+Title
+Creator
+Rating
+Reviews
+Price
+Buy button
+Description
+What you'll get
+Features
+Table of contents where applicable
+Screenshots
+Preview/sample
+Creator information
+Creator social links
+Related products
+FAQ
+Reviews
+Share buttons
+Amazon KDP button where applicable
+________________
+
+
+29. AMAZON KDP INTEGRATION
+Do not attempt to process Amazon purchases.
+Creators can enter their legitimate Amazon product URL.
+Taskdrip generates:
+Buy on Amazon
+button.
+Allow:
+Amazon URL
+Amazon marketplace
+Amazon product ID/ASIN where appropriate
+Validate URL.
+Show Amazon purchase option alongside:
+Buy on Taskdrip
+if the Taskdrip product is also sold there.
+________________
+
+
+30. PAYMENT INTEGRATION
+Reuse the existing Taskdrip payment system.
+DO NOT create a separate wallet.
+Support the payment methods already available.
+Where supported:
+* Bank transfer
+* Crypto
+* Cryptomus
+* Existing Taskdrip payment gateway
+* Other existing payment methods
+For manual bank transfer:
+Buyer selects:
+Bank Transfer
+System creates order:
+Pending Payment
+Buyer sees payment instructions.
+Buyer uploads payment receipt.
+Admin verifies.
+Order becomes:
+Paid
+Buyer receives access.
+________________
+
+
+31. DIGITAL DELIVERY
+After successful payment:
+Allow secure downloads.
+Implement:
+* Purchase verification
+* Signed URLs
+* Expiring download links
+* Download limits where appropriate
+* Purchase history
+* Re-download access
+* Optional watermarking
+* Download logging
+Do not expose raw storage URLs.
+________________
+
+
+32. CREATOR EARNINGS
+Integrate with existing Taskdrip earnings/wallet architecture.
+For each sale:
+Gross Sale
+minus
+Platform Fee
+minus
+Payment Processing Fee
+minus
+Refunds
+=
+Creator Earnings
+Display transparent breakdown.
+Example:
+Sale:
+₦15,000
+Platform Fee:
+₦1,500
+Payment Fee:
+₦300
+Creator Earnings:
+₦13,200
+Use configurable admin fee settings.
+________________
+
+
+33. $10 WITHDRAWAL THRESHOLD
+Creator withdrawal minimum:
+$10 equivalent.
+Do not hard-code currency conversion.
+Use Taskdrip's existing currency system/exchange mechanism where available.
+Creator wallet should show:
+Available Balance
+Pending Balance
+Lifetime Earnings
+Total Sales
+Refunds
+Withdrawals
+________________
+
+
+34. WITHDRAWAL SYSTEM
+Reuse existing withdrawal functionality if available.
+Statuses:
+Pending
+Approved
+Processing
+Paid
+Rejected
+Cancelled
+Allow supported withdrawal methods.
+Do not create duplicate payout infrastructure.
+________________
+
+
+35. REVIEWS
+Products must support reviews.
+Only verified purchasers should be able to review purchased products.
+Review includes:
+Star rating
+Written review
+Optional image
+Date
+Verified Purchase badge
+Allow:
+1–5 stars.
+Creators cannot edit reviews.
+Admins can moderate reviews.
+Add review reporting.
+________________
+
+
+36. BOOK SALES PAGE
+Book product page should show:
+Cover
+Title
+Subtitle
+Author
+Description
+What readers will learn
+Table of contents
+Pages
+Format
+File type
+Price
+Preview
+Reviews
+Rating
+Creator profile
+Other creator products
+Amazon button
+Taskdrip purchase button
+________________
+
+
+37. CREATOR ANALYTICS
+Add:
+Product views
+Unique visitors
+Product clicks
+Sales
+Conversion rate
+Revenue
+Downloads
+Reviews
+Ratings
+Top products
+Top traffic sources
+Top countries where possible
+Amazon clicks
+Profile → product conversion
+Display charts.
+________________
+
+
+38. CREATOR PROFILE ANALYTICS
+Creators should see:
+Profile views
+Product views
+Book views
+Software views
+Product sales
+Profile-to-product conversion
+Top performing products
+Featured product performance
+________________
+
+
+39. MARKETING STUDIO
+Each product should have:
+Promote This Product
+Generate:
+X posts
+Instagram captions
+Facebook posts
+LinkedIn posts
+Telegram posts
+WhatsApp promotional copy
+TikTok captions
+YouTube descriptions
+Email campaigns
+Blog posts
+Short video scripts
+Book trailer scripts
+30-second promo
+60-second promo
+7-second hooks
+Call-to-action variations
+________________
+
+
+40. AI BOOK MARKETING AGENT
+Create:
+Launch My Book
+AI generates:
+Launch announcement
+Pre-launch campaign
+Launch day posts
+7-day campaign
+14-day campaign
+30-day campaign
+Email campaign
+Social captions
+Short video concepts
+X threads
+Quote cards
+Book trailer script
+Influencer outreach message
+Affiliate promotion copy
+________________
+
+
+41. AI IMAGE GENERATION
+Where supported, allow creators to generate:
+Book covers
+Illustrations
+Product images
+Social media graphics
+Quote cards
+Promotional banners
+Character images
+Storyboards
+Marketing visuals
+Do not make the system dependent on one AI provider.
+Create an AI abstraction layer.
+________________
+
+
+42. AI MODEL ORCHESTRATION
+Create:
+Taskdrip AI Gateway
+The application should not hard-code the entire product around one model provider.
+Create provider interfaces for:
+Text
+Image
+Vision
+Speech
+Embeddings
+Video
+Moderation
+OCR
+Example architecture:
+AI Gateway
+→ Text Provider
+→ Image Provider
+→ Vision Provider
+→ Speech Provider
+→ Video Provider
+→ Embedding Provider
+→ Moderation Provider
+Use the best commercially usable/open-source models available for each task where practical.
+Make models configurable by administrators.
+________________
+
+
+43. AI COST CONTROL
+Create an AI usage system.
+Track:
+User
+Model
+Task
+Tokens
+Images generated
+Video generations
+Compute time
+Credits
+Cost
+Status
+Admin should be able to configure:
+Free AI credits
+Creator credits
+Pro credits
+Generation limits
+Maximum image resolution
+Maximum video duration
+Maximum manuscript generation per job
+Do not allow unlimited expensive AI jobs.
+________________
+
+
+44. OPEN-SOURCE AI
+Where possible, support self-hosted/open-source models for:
+* Basic text generation
+* Editing
+* Classification
+* Embeddings
+* OCR
+* Moderation
+* Image processing
+Design the architecture so models can later be deployed on dedicated GPU infrastructure.
+Do not assume Replit itself can host large GPU models efficiently.
+Create provider adapters.
+________________
+
+
+45. ADMIN PUBLISHING CONTROL CENTER
+Create:
+Publishing Dashboard
+Admin sees:
+Books awaiting review
+Digital products awaiting review
+Software awaiting review
+Rejected products
+Published products
+Reported products
+Creator submissions
+Sales
+Revenue
+Creator earnings
+Withdrawals
+Refunds
+Reviews
+AI usage
+AI costs
+Storage usage
+Product downloads
+________________
+
+
+46. ADMIN REVIEW WORKFLOW
+Admin can:
+Approve
+Reject
+Request Changes
+Suspend
+Unpublish
+Restore
+Feature
+Remove Feature
+Edit metadata where authorized
+Admin rejection should support reason.
+Creator receives notification.
+________________
+
+
+47. CONTENT SAFETY
+Before publication, scan products for:
+Copyright infringement indicators
+Trademark abuse
+Impersonation
+Fraud
+Scams
+Malware
+Hate content
+Sexual content
+Dangerous instructions
+Illegal content
+Medical misinformation
+Financial misinformation
+Fake credentials
+False claims
+AI-generated copyrighted characters where applicable
+Do not claim the AI detector is perfect.
+Flag suspicious products for human review.
+________________
+
+
+48. COPYRIGHT DECLARATION
+During publishing, require creator confirmation:
+"I confirm that I have the necessary rights, permissions, licenses, or authority to publish and sell this content."
+Add:
+AI disclosure
+Content ownership
+Third-party assets
+Image rights
+Software license
+Font/license declarations where appropriate
+________________
+
+
+49. AI DISCLOSURE
+Allow creators to select:
+Human Written
+AI Assisted
+AI Generated
+AI Generated + Human Edited
+Display disclosure where appropriate.
+________________
+
+
+50. PRODUCT VERSIONING
+Every book/product should support versions.
+Example:
+Version 1.0
+Version 1.1
+Version 2.0
+For software:
+Release notes
+Changelog
+Download previous version where appropriate.
+For books:
+Updated edition
+Updated manuscript
+Updated cover
+Updated files
+Customers should receive updated versions according to product settings.
+________________
+
+
+51. BOOK EXPORT ENGINE
+Generate:
+PDF
+EPUB
+Print-ready PDF
+Paperback interior PDF
+Paperback cover PDF
+Hardcover interior PDF where supported
+Hardcover cover PDF where supported
+Do not prioritize MOBI unless required.
+The EPUB should be properly structured and validated.
+________________
+
+
+52. EXPORT JOB SYSTEM
+Large exports should run as background jobs.
+Show:
+Preparing book...
+Rendering pages...
+Generating cover...
+Validating EPUB...
+Running preflight...
+Export complete.
+Allow creators to continue using the dashboard.
+Store generated files securely.
+________________
+
+
+53. JOB QUEUE
+Use background workers for:
+AI generation
+PDF rendering
+EPUB generation
+Cover rendering
+Image generation
+Video generation
+Virus scanning
+Preflight
+Email generation
+Analytics processing
+Do not run expensive tasks synchronously inside normal web requests.
+________________
+
+
+54. DATABASE DESIGN
+Adapt to the existing database.
+Potential entities:
+users
+creator_profiles
+books
+book_versions
+book_editions
+book_chapters
+book_pages
+book_assets
+book_covers
+digital_products
+software_products
+product_files
+product_versions
+product_collections
+products
+product_categories
+product_tags
+product_reviews
+orders
+order_items
+payments
+creator_earnings
+withdrawals
+downloads
+product_views
+product_analytics
+publishing_submissions
+publishing_reviews
+ai_jobs
+ai_generations
+ai_usage
+ai_credits
+ai_models
+marketing_campaigns
+marketing_assets
+creator_featured_products
+creator_collections
+product_amazon_links
+notifications
+audit_logs
+Only create entities that do not already exist in Taskdrip.
+________________
+
+
+55. MOST IMPORTANT DATABASE RELATIONSHIP
+Ensure every product belongs to the existing Taskdrip creator/user.
+Example:
+User
+→ Creator Profile
+→ Product
+→ Product Files
+→ Orders
+→ Earnings
+Do not create a separate creator identity.
+The existing Taskdrip creator account remains the owner.
+________________
+
+
+56. CREATOR URL STRUCTURE
+Respect the existing Taskdrip creator profile URLs.
+If the existing system uses:
+/creator/username
+keep that.
+If it uses:
+/profile/username
+keep that.
+Add product routes around it.
+Possible structure:
+/creator/username/products
+/creator/username/books
+/creator/username/software
+/product/product-slug
+/book/book-slug
+But adapt to the existing routing architecture.
+________________
+
+
+57. SEO
+Every public product must have:
+SEO title
+Meta description
+Slug
+Canonical URL
+Open Graph title
+Open Graph description
+Open Graph image
+Twitter/X card metadata
+Structured data where appropriate.
+Books should support:
+Book structured data where appropriate.
+Products should support:
+Product structured data.
+Reviews should support:
+Aggregate rating structured data where appropriate.
+Creator pages should be indexable where appropriate.
+________________
+
+
+58. PRODUCT DISCOVERY
+Add search/filter capabilities.
+Users should be able to search:
+"business books"
+"real estate ebook"
+"Canva templates"
+"software"
+"children's books"
+"marketing resources"
+etc.
+Filters:
+Product type
+Category
+Creator
+Price
+Rating
+Newest
+Best selling
+Featured
+________________
+
+
+59. HOMEPAGE INTEGRATION
+Where appropriate, add sections to Taskdrip homepage:
+Creator Products
+Trending Books
+New Releases
+Best Selling Digital Products
+Creator Software
+Featured Creators
+Do not overwhelm the homepage.
+Use existing Taskdrip design patterns.
+________________
+
+
+60. CREATOR PRODUCT SHOWCASE WIDGET
+Build a reusable component:
+CreatorProductShowcase
+Props/config:
+creatorId
+productType
+limit
+featuredOnly
+layout
+title
+showPrice
+showRating
+showDescription
+allowCarousel
+This component can be used on:
+Creator profile
+Homepage
+Campaign pages
+Creator landing pages
+Blog pages
+Marketing pages
+________________
+
+
+61. PRODUCT CARD COMPONENT
+Create reusable:
+ProductCard
+Variants:
+BookCard
+SoftwareCard
+TemplateCard
+CourseCard
+DigitalProductCard
+Each should inherit from a common ProductCard system.
+________________
+
+
+62. CREATOR LANDING PAGE BUILDER
+If the existing Taskdrip creator profile system supports customization, extend it.
+Allow creators to arrange:
+Hero
+About
+Services
+Portfolio
+Featured Products
+Books
+Software
+Collections
+Testimonials
+Reviews
+Social Links
+Contact
+CTA
+Do not require creators to design everything manually.
+Provide professional defaults.
+________________
+
+
+63. CREATOR STORE CUSTOMIZATION
+Allow:
+Profile/store headline
+Store description
+Featured product
+Featured collection
+Product ordering
+Banner image
+Profile photo
+Brand colors if existing system supports them
+CTA
+Social links
+Do not create an entirely separate website builder.
+Keep it inside Taskdrip.
+________________
+
+
+64. BOOK BUNDLES
+Creators can combine products.
+Example:
+The Complete Business Starter Pack
+Includes:
+Business Book
+Business Plan Template
+Business Checklist
+Marketing Workbook
+Price:
+₦25,000
+Individual value:
+₦35,000
+Bundle discount:
+29%
+Implement bundle products using existing order architecture.
+________________
+
+
+65. PROMO CODES
+Support:
+Percentage discounts
+Fixed discounts
+Product-specific coupons
+Creator-specific coupons
+Bundle coupons
+Campaign coupons
+Expiry dates
+Usage limits
+First purchase discount
+________________
+
+
+66. AFFILIATE SYSTEM FOUNDATION
+Prepare architecture for creator affiliates.
+Creators can eventually allow others to promote their products.
+Track:
+Affiliate
+Product
+Clicks
+Conversions
+Commission
+Payout
+Do not necessarily build the entire affiliate system in MVP, but design the database/API so it can be added without restructuring the product system.
+________________
+
+
+67. PRODUCT SHARING
+Every product should have:
+Share to X
+Share to Facebook
+Share to WhatsApp
+Share to Telegram
+Copy Link
+Email
+Generate promotional image
+Generate QR code where useful.
+________________
+
+
+68. BOOK PROMOTIONAL GRAPHICS
+Automatically generate:
+Book cover mockup
+3D book mockup
+Quote card
+Author card
+Launch graphic
+Sale graphic
+Social story graphic
+Square social graphic
+Vertical 1080×1920 promotional graphic
+________________
+
+
+69. VIDEO PROMOTION
+Allow creators to generate promotional video concepts.
+Options:
+7 seconds
+15 seconds
+30 seconds
+60 seconds
+Provide:
+Script
+Scene breakdown
+Visual prompts
+Voiceover script
+Captions
+CTA
+Where supported, connect to configured video generation providers.
+Do not make video generation mandatory for book publishing.
+________________
+
+
+70. NOTIFICATION SYSTEM
+Integrate with existing Taskdrip notifications.
+Notify creators when:
+Draft saved
+AI generation complete
+Export complete
+Product submitted
+Product approved
+Product rejected
+Product needs changes
+Product published
+Product sold
+Product reviewed
+Withdrawal requested
+Withdrawal approved
+Withdrawal paid
+New version available
+Notify buyers when:
+Payment confirmed
+Product ready
+File updated
+New version released
+________________
+
+
+71. BUYER LIBRARY
+Create:
+My Library
+Users can see purchased:
+Books
+Software
+Templates
+Courses
+Digital products
+Downloads
+Updates
+Receipts
+Reviews
+Purchase dates
+________________
+
+
+72. BOOK READER
+Future-ready architecture should support an online reader.
+Allow:
+PDF viewer
+EPUB reader
+Bookmark
+Reading progress
+Notes
+Highlight
+Search
+However, for MVP prioritize secure downloads.
+________________
+
+
+73. PRODUCT ACCESS CONTROL
+After payment:
+User gets entitlement.
+Example:
+Order
+→ Paid
+→ Product entitlement
+→ Secure download
+For subscriptions where supported:
+Active subscription
+→ Access
+Expired subscription
+→ Access revoked according to product rules.
+________________
+
+
+74. ADMIN SETTINGS
+Create settings for:
+Platform commission
+Minimum withdrawal
+Supported currencies
+Payment methods
+Maximum file size
+Allowed file extensions
+Product categories
+Publishing categories
+Review settings
+AI models
+AI credit costs
+AI limits
+Storage limits
+Download limits
+KDP profiles
+Tax settings if applicable
+________________
+
+
+75. SECURITY
+Implement:
+Authentication
+Authorization
+Role-based access
+Creator ownership validation
+Admin authorization
+File access control
+Signed download URLs
+Rate limiting
+CSRF protection
+XSS protection
+SQL injection protection
+Input validation
+File type validation
+File size validation
+Secure upload
+Audit logging
+Payment verification
+Webhook verification
+Never trust client-side price values.
+Always calculate prices server-side.
+Never expose private files publicly.
+________________
+
+
+76. PAYMENT SECURITY
+When integrating existing Taskdrip payment systems:
+Never mark orders paid based solely on frontend redirect.
+Verify payment server-side.
+Use verified payment webhooks where available.
+For manual bank transfer:
+Require admin verification.
+For crypto:
+Verify transaction/payment status through the existing Taskdrip/Cryptomus integration.
+Do not duplicate payment logic unnecessarily.
+________________
+
+
+77. CREATOR EARNINGS SECURITY
+Never allow creators to manually modify earnings.
+Earnings must derive from verified orders.
+Use immutable ledger entries.
+Every earning should reference:
+Order ID
+Product ID
+Creator ID
+Gross amount
+Fees
+Net amount
+Currency
+Exchange rate if applicable
+Timestamp
+Status
+Refund relationship
+________________
+
+
+78. REFUNDS
+Integrate with existing Taskdrip refund logic.
+If refund occurs:
+Reverse pending creator earnings.
+If earnings already withdrawn:
+Create negative ledger adjustment according to configured policy.
+Do not silently modify historical transactions.
+________________
+
+
+79. UI/UX DESIGN
+The feature should look like a premium modern SaaS product.
+Design principles:
+Clean
+Fast
+Minimal
+Professional
+Creator-focused
+Mobile-first
+Responsive
+Accessible
+Do not overload users with technical complexity.
+Use progressive disclosure.
+Creators should always know:
+Where am I?
+What have I completed?
+What is next?
+________________
+
+
+80. BOOK CREATION PROGRESS
+Show:
+1. Idea
+2. Outline
+3. Manuscript
+4. Edit
+5. Design
+6. Cover
+7. Export
+8. Review
+9. Submit
+10. Publish
+11. Sell
+12. Promote
+Allow users to resume exactly where they stopped.
+________________
+
+
+81. DRAFT AUTOSAVE
+Every editor change should autosave.
+Show:
+Saving...
+Saved
+Last saved 10 seconds ago
+Handle connection interruptions gracefully.
+Never lose manuscript data.
+________________
+
+
+82. VERSION CONTROL
+Creators can:
+Create version
+Duplicate book
+Restore previous version
+Compare versions
+Name versions
+Example:
+Draft 1
+Edited Draft
+Final Manuscript
+Published Edition 1
+Revised Edition 2
+________________
+
+
+83. IMPORT EXISTING MANUSCRIPTS
+Allow upload/import:
+DOCX
+PDF
+TXT
+Markdown
+EPUB where technically appropriate
+Extract content.
+Preserve headings where possible.
+Allow creator to clean up formatting.
+________________
+
+
+84. EXPORT QUALITY
+Generated files must be actual downloadable files.
+Do NOT build a webpage pretending to be an ebook.
+When creator clicks:
+Export PDF
+the application must generate a real PDF file.
+When creator clicks:
+Export EPUB
+the application must generate a real EPUB file.
+When creator clicks:
+KDP Paperback
+generate actual print-ready files.
+________________
+
+
+85. FILE STORAGE
+Use the existing Taskdrip storage architecture if suitable.
+Separate:
+Private draft files
+Private generated files
+Published public assets
+Protected purchase files
+Admin files
+Do not store sensitive/private product files in public directories.
+________________
+
+
+86. BACKGROUND PROCESSING
+Use queue workers.
+AI generation, PDF rendering and video generation should not block the main web server.
+Track jobs:
+queued
+processing
+completed
+failed
+cancelled
+retrying
+________________
+
+
+87. FAILED JOB RECOVERY
+If generation fails:
+Show useful error.
+Allow retry.
+Do not lose content.
+Save intermediate results where possible.
+Example:
+"Your PDF export failed while rendering page 143. Your manuscript is safe. Retry export."
+________________
+
+
+88. ADMIN OBSERVABILITY
+Admin should see:
+Failed jobs
+AI errors
+Payment errors
+Export failures
+Storage errors
+Webhook failures
+Suspicious downloads
+Product reports
+System health
+________________
+
+
+89. API ARCHITECTURE
+Create clean APIs for:
+Books
+Chapters
+Pages
+Products
+Products files
+Covers
+AI jobs
+Exports
+Publishing
+Orders
+Reviews
+Earnings
+Downloads
+Analytics
+Profile showcase
+Marketing
+Amazon links
+Use the existing Taskdrip API architecture where available.
+________________
+
+
+90. API PERMISSION RULES
+Creator can:
+Create own products
+Edit own drafts
+Submit own products
+View own analytics
+View own earnings
+Manage own profile products
+Generate AI content according to limits
+Download own generated files
+Admin can:
+View all
+Approve
+Reject
+Suspend
+Feature
+Unpublish
+Manage settings
+Manage categories
+Manage AI
+Manage payouts
+Manage reports
+________________
+
+
+91. DATABASE MIGRATION SAFETY
+Before migration:
+Backup database.
+Create migrations.
+Never delete existing data.
+Use nullable fields when extending existing tables where appropriate.
+Test migrations on development database.
+________________
+
+
+92. MOBILE EXPERIENCE
+The majority of creators may access Taskdrip from mobile devices.
+Therefore:
+Creator dashboard must work on mobile.
+Product creation must work on mobile.
+Book editing should support mobile where practical.
+File uploads should work on mobile.
+Product management must work on mobile.
+Do not make the editor unusable on small screens.
+For complex book editing, provide responsive layout and desktop optimization.
+________________
+
+
+93. CREATOR ONBOARDING
+When creator first opens Creator Studio:
+Show:
+Welcome to Taskdrip Creator Publishing
+"You already have an audience. Now turn your knowledge, creativity and expertise into products that can keep earning."
+CTA:
+Create Your First Product
+Also show:
+Create a Book
+Sell Software
+Sell Templates
+Sell Digital Products
+________________
+
+
+94. EMPTY STATES
+Do not show empty dashboards.
+Example:
+No products yet.
+"Your next product could be your first digital income stream."
+[Create Your First Product]
+________________
+
+
+95. PROFILE EMPTY STATE
+If creator has no products:
+Do not show "Products" tab unless enabled.
+Optionally show creator-only prompt:
+"Turn your expertise into a product your audience can buy."
+[Create Product]
+________________
+
+
+96. CREATOR PRODUCT CTA
+On creator profile:
+"Shop My Digital Products"
+or
+"Explore My Books"
+or
+"Get My Resources"
+depending on creator configuration.
+________________
+
+
+97. SEO-FRIENDLY CREATOR STOREFRONT
+Creator profile pages containing products should be indexable.
+Example metadata:
+Abraham Tahbat — Author, Creator & Digital Product Creator | Taskdrip
+Use product links internally.
+Generate structured data where appropriate.
+________________
+
+
+98. PERFORMANCE
+Do not load every product asset immediately.
+Use:
+Lazy loading
+Pagination
+Caching
+Image optimization
+Responsive images
+CDN where available
+Background processing
+Database indexes
+Efficient queries
+Avoid N+1 queries.
+________________
+
+
+99. PRODUCT IMAGE OPTIMIZATION
+Generate appropriate thumbnails.
+Store:
+Original
+Large
+Medium
+Thumbnail
+Do not repeatedly regenerate images.
+________________
+
+
+100. ADMIN PRODUCT FEATURE
+Admin can feature:
+Books
+Creators
+Software
+Digital products
+Collections
+Featured products can appear:
+Homepage
+Store
+Category pages
+Creator profiles
+Campaign pages
+________________
+
+
+101. CREATOR PRODUCT RANKING
+Create scalable ranking signals:
+Sales
+Conversion
+Reviews
+Rating
+Recent activity
+Views
+Wishlist/bookmarks
+Do not manipulate rankings unfairly.
+Make ranking configurable.
+________________
+
+
+102. WISHLIST
+Allow users to:
+Wishlist product
+Save book
+Follow creator
+Notify when price changes
+Notify when product launches
+Prepare architecture even if some features are deferred.
+________________
+
+
+103. PRODUCT LAUNCH MODE
+Creators can schedule a launch.
+Fields:
+Launch date
+Launch time
+Pre-launch message
+Launch price
+Regular price
+Early-bird discount
+Launch campaign
+Allow product page to display:
+Coming Soon
+Launch Date
+Notify Me
+________________
+
+
+104. PRE-ORDERS
+Design the architecture for future pre-orders.
+Do not implement unless existing payment/order system can safely support it.
+________________
+
+
+105. PRODUCT REVIEWS ON CREATOR PROFILE
+Creator profile can display:
+What Readers & Customers Say
+Verified reviews from their products.
+Allow filtering by product.
+________________
+
+
+106. CREATOR SOCIAL PROOF
+Show:
+Books published
+Products created
+Customers served
+Verified reviews
+Average rating
+Only show verified metrics.
+Never fabricate numbers.
+________________
+
+
+107. CREATOR PRODUCT LANDING PAGE TEMPLATE
+Every product landing page should be visually polished.
+Hero:
+Product image
+Product title
+Short promise
+Creator
+Rating
+Price
+CTA
+Then:
+Problem
+Solution
+Features
+What's included
+Preview
+Reviews
+About creator
+FAQ
+Related products
+Final CTA
+________________
+
+
+108. PRODUCT DESCRIPTION AI
+Creator can click:
+Generate Product Description
+AI generates:
+Headline
+Short description
+Long description
+Benefits
+Features
+FAQ
+CTA
+SEO title
+Meta description
+Creator can edit everything.
+________________
+
+
+109. BOOK DESCRIPTION AI
+Generate Amazon-style book description without making unsupported claims.
+Allow creator editing.
+________________
+
+
+110. AUTHOR BIO AI
+Generate professional author bio from creator's existing Taskdrip profile information.
+Never invent qualifications.
+________________
+
+
+111. PRODUCT TAGS
+AI can suggest:
+Category
+Keywords
+Tags
+But creator must approve.
+________________
+
+
+112. BOOK METADATA
+Support:
+Title
+Subtitle
+Author
+Contributors
+Publisher
+Language
+ISBN
+Publication date
+Edition
+Categories
+Keywords
+Age range
+Description
+Copyright
+AI disclosure
+________________
+
+
+113. ISBN
+Do not generate fake ISBNs.
+Allow:
+No ISBN
+Creator-provided ISBN
+Reserved ISBN field
+Admin-provided ISBN where applicable
+________________
+
+
+114. BARCODE
+Do not fabricate barcode data.
+Allow uploading a legitimate barcode or leave reserved area.
+________________
+
+
+115. SOFTWARE LICENSE
+Allow:
+Proprietary
+MIT
+GPL
+Apache
+Commercial
+Personal Use
+Extended License
+Custom
+But creator must confirm they have rights.
+________________
+
+
+116. PRODUCT LICENSE PAGE
+Every downloadable product should clearly show:
+License
+Usage rights
+Restrictions
+Support policy
+Version
+Update policy
+Refund policy
+________________
+
+
+117. PRODUCT SUPPORT
+Creator can define:
+Support email/contact
+Support URL
+Documentation
+FAQ
+Taskdrip should not expose private creator contact information unless configured.
+________________
+
+
+118. PRODUCT REPORTING
+Users can report:
+Copyright issue
+Fraud
+Broken product
+Malware
+Misleading description
+Other
+Admin reviews reports.
+________________
+
+
+119. ADMIN AUDIT LOG
+Record:
+Product approval
+Product rejection
+Product deletion
+Price changes
+Creator payout changes
+Payment status changes
+Review moderation
+Admin actions
+AI model changes
+Publishing setting changes
+________________
+
+
+120. PRODUCT PRICE MANAGEMENT
+Support:
+NGN
+USD
+Other existing Taskdrip currencies.
+Do not duplicate currency conversion logic if Taskdrip already has one.
+________________
+
+
+121. TAX/VAT FOUNDATION
+Create configurable tax fields.
+Do not assume a single tax regime.
+Allow admin to configure tax rules by market where required.
+________________
+
+
+122. CREATOR REVENUE DASHBOARD
+Example:
+Your Publishing Revenue
+This Month
+₦450,000
+Products Sold
+37
+Best Seller
+The Nigerian Property Playbook
+₦210,000
+Available to Withdraw
+₦330,000
+[Withdraw Funds]
+________________
+
+
+123. CREATOR SALES TABLE
+Columns:
+Date
+Product
+Buyer
+Amount
+Fee
+Net Earnings
+Status
+Order ID
+________________
+
+
+124. PRODUCT SALES ANALYTICS
+Example:
+The Nigerian Property Playbook
+Views: 4,820
+Sales: 312
+Conversion: 6.47%
+Revenue: ₦3,120,000
+Rating: 4.8
+Reviews: 87
+________________
+
+
+125. CREATOR PROFILE PRODUCT SECTION
+The creator's public profile should automatically update when a product is approved.
+Approved product:
+→ available in creator store
+→ available in profile product section
+→ searchable in Taskdrip marketplace
+Rejected product:
+→ never publicly visible
+Draft:
+→ creator only
+________________
+
+
+126. FEATURED PRODUCT LOGIC
+Creators can choose:
+1 featured product
+or
+multiple featured products.
+Featured product appears first.
+Admin may also feature products globally.
+________________
+
+
+127. PRODUCT VISIBILITY
+Statuses:
+Draft
+Pending Review
+Changes Requested
+Approved
+Published
+Unpublished
+Suspended
+Rejected
+Archived
+________________
+
+
+128. BOOK STATUS
+Book itself can have:
+Draft
+Editing
+Ready
+Submitted
+Approved
+Published
+Revised
+Archived
+Separate from commercial product status.
+________________
+
+
+129. SEPARATE CONTENT FROM COMMERCE
+This is a critical architectural requirement.
+Do not mix:
+Book manuscript
+with
+Product listing.
+A book can exist without being sold.
+A book can have:
+Taskdrip eBook product
+Amazon link
+Paperback product
+Bundle product
+Future audiobook product.
+________________
+
+
+130. CREATOR PROFILE INTEGRATION API
+Create reusable functions such as:
+getCreatorProducts()
+getCreatorFeaturedProducts()
+getCreatorBooks()
+getCreatorSoftware()
+getCreatorCollections()
+getCreatorReviews()
+Use existing Taskdrip creator ID.
+________________
+
+
+131. CREATOR PRODUCT EMBEDDING
+Allow creators to optionally embed their Taskdrip products externally later.
+Prepare for:
+Embed Product Card
+Embed Book
+Embed Creator Store
+Shareable product widget
+________________
+
+
+132. PRODUCT AFFILIATE LINKS
+Prepare architecture for:
+taskdrip.com/product/x?ref=creator123
+Track:
+Referrer
+Click
+Sale
+Commission
+________________
+
+
+133. REFERRAL COMPATIBILITY
+Ensure this product system can integrate with existing Taskdrip referral systems.
+Do not create conflicting referral IDs.
+________________
+
+
+134. CREATOR ACCOUNT COMPATIBILITY
+Existing creators should immediately be eligible for publishing.
+Do not require migration to a new creator account.
+If Taskdrip has creator verification:
+Respect it.
+If Taskdrip has creator tiers:
+Integrate publishing permissions accordingly.
+________________
+
+
+135. INFLUENCER ACCOUNT COMPATIBILITY
+Influencers should also be able to publish products.
+An influencer can have:
+Services
+Social profiles
+Books
+Software
+Templates
+Courses
+Digital resources
+All under one profile.
+________________
+
+
+136. BRAND ACCOUNT COMPATIBILITY
+Design architecture so brands can eventually publish:
+Reports
+Guides
+Whitepapers
+Software
+Templates
+Digital resources.
+Do not restrict database design to creators only.
+________________
+
+
+137. PROFILE PRODUCT CTA
+If an influencer publishes:
+"Instagram Growth Guide"
+their profile automatically displays:
+My Latest Guide
+[Cover]
+[Get the Guide]
+________________
+
+
+138. CREATOR STORE SEO
+Each creator store should have unique:
+Title
+Description
+OG image
+Canonical URL
+Schema
+________________
+
+
+139. SOCIAL PROFILE LINKS
+Use existing Taskdrip social profile information.
+Do not ask creator to re-enter their social accounts unnecessarily.
+________________
+
+
+140. AI USE OF CREATOR PROFILE
+When generating:
+Author bio
+Product description
+Marketing content
+AI may use approved public creator profile data.
+Never expose private account information.
+________________
+
+
+141. PRODUCT OWNERSHIP
+Every product must have:
+owner_id
+creator_id
+created_by
+updated_by
+Ensure ownership checks happen server-side.
+________________
+
+
+142. MULTI-CREATOR BOOKS
+Prepare for co-authors.
+A book may have:
+Primary creator
+Co-authors
+Revenue split
+Do not necessarily enable revenue splitting in MVP unless safely implemented.
+________________
+
+
+143. REVENUE SPLITS
+Future-ready architecture:
+Book
+→ Contributors
+→ Percentage
+→ Earnings allocation
+Admin controlled.
+________________
+
+
+144. CREATOR NOTIFICATIONS
+Use existing notification system.
+Do not create duplicate notification infrastructure.
+________________
+
+
+145. EMAILS
+Reuse Taskdrip email system.
+Email templates:
+Product approved
+Product rejected
+Product purchased
+Download ready
+Review received
+Earnings received
+Withdrawal processed
+________________
+
+
+146. TRANSACTION RECEIPTS
+Buyer receives receipt containing:
+Order ID
+Product
+Creator
+Amount
+Payment method
+Date
+Download/access button
+________________
+
+
+147. CREATOR RECEIPTS
+Creators can download:
+Sales report
+Earnings report
+Monthly statement
+________________
+
+
+148. EXPORT SALES DATA
+Allow CSV export:
+Sales
+Orders
+Earnings
+Reviews
+Analytics
+________________
+
+
+149. ADMIN EXPORTS
+Admin can export:
+Products
+Creators
+Sales
+Revenue
+Payouts
+Reviews
+AI usage
+________________
+
+
+150. PRODUCT SEARCH SEO
+Create clean slugs.
+Example:
+/product/the-nigerian-property-playbook
+/book/the-nigerian-property-playbook
+Avoid duplicate URLs.
+Choose one canonical product URL.
+________________
+
+
+151. BOOK PAGE SOCIAL PREVIEW
+When shared on X/WhatsApp/Telegram:
+Display:
+Book cover
+Title
+Creator
+Short description
+Taskdrip URL.
+________________
+
+
+152. PRODUCT PAGE PERFORMANCE
+Do not render huge manuscript content on initial product page.
+Use preview/sample.
+________________
+
+
+153. BOOK SAMPLE
+Allow creator to choose:
+First chapter
+Selected pages
+Percentage preview
+Admin configurable.
+________________
+
+
+154. ANTI-ABUSE
+Implement:
+Download rate limits
+Account limits
+Suspicious activity detection
+Purchase fraud checks
+Coupon abuse protection
+Review spam protection
+________________
+
+
+155. PRODUCT DELETION
+Creators cannot permanently delete a product that has completed sales without appropriate handling.
+Use archive/unpublish.
+Preserve transaction history.
+________________
+
+
+156. CREATOR DELETION
+If a creator account is deleted:
+Do not destroy historical orders.
+Products can become:
+"Creator unavailable"
+according to Taskdrip policy.
+________________
+
+
+157. DATA PRIVACY
+Respect existing Taskdrip privacy policies.
+Do not expose:
+Buyer email
+Buyer phone
+Private files
+Payment information
+Private creator data.
+________________
+
+
+158. ADMIN CONTENT REVIEW
+Admin product review screen should show:
+Creator
+Product
+Preview
+Files
+Metadata
+AI disclosure
+Copyright declaration
+Price
+Description
+Cover
+Sample
+Risk flags
+Actions:
+Approve
+Reject
+Request Changes
+Suspend
+________________
+
+
+159. CREATOR SUBMISSION CHECKLIST
+Before Submit:
+✓ Title
+✓ Description
+✓ Category
+✓ Price
+✓ Cover
+✓ Product file
+✓ Author information
+✓ Rights declaration
+✓ AI disclosure
+✓ Metadata
+✓ Quality checks
+Then:
+[Submit for Review]
+________________
+
+
+160. PUBLISHING READINESS
+Show progress:
+Content ✓
+Design ✓
+Cover ✓
+Metadata ✓
+Files ✓
+Rights ✓
+AI Disclosure ✓
+Preflight ✓
+Ready to Submit ✓
+________________
+
+
+161. PRODUCT QUALITY SCORE
+Create:
+Product Quality Score
+Examples:
+92/100
+Factors:
+Content
+Presentation
+Description
+Cover
+Metadata
+File quality
+SEO
+Preview
+Creator profile completeness
+________________
+
+
+162. CREATOR PROFILE COMPLETENESS
+If profile incomplete:
+"Complete your profile to improve product conversions."
+Suggestions:
+Profile image
+Bio
+Social links
+Portfolio
+Services
+Product description
+________________
+
+
+163. PRODUCT CONVERSION OPTIMIZATION
+Provide AI suggestions:
+"Your cover is strong."
+"Your product description could be more specific."
+"Add 3 preview pages."
+"Add a testimonial if you have permission."
+"Add your creator credentials."
+Never fabricate testimonials.
+________________
+
+
+164. TESTIMONIALS
+Creators can add testimonials only manually or from verified reviews.
+Never allow AI to invent testimonials.
+________________
+
+
+165. BOOK QUOTES
+AI can generate quote suggestions from the creator's own manuscript.
+________________
+
+
+166. MARKETING ASSET LIBRARY
+All generated:
+Images
+Videos
+Posts
+Scripts
+Covers
+Promotional assets
+should be stored in:
+Creator Studio → AI Assets.
+________________
+
+
+167. PRODUCT DUPLICATION
+Allow:
+Duplicate Product
+Duplicate Book
+Create New Edition
+Useful for creators creating similar products.
+________________
+
+
+168. TEMPLATE SYSTEM
+Create reusable templates:
+Business book
+Real estate guide
+Children's book
+Workbook
+Journal
+Planner
+Marketing guide
+Creator guide
+Course workbook
+etc.
+Admin can add/edit templates.
+________________
+
+
+169. ADMIN TEMPLATE MANAGEMENT
+Admin can:
+Create
+Edit
+Publish
+Disable
+Duplicate
+Feature templates.
+________________
+
+
+170. AI PROMPT MANAGEMENT
+Do not hard-code every AI prompt directly into UI code.
+Create configurable prompt templates where practical.
+Admin can update system prompts without redeploying the entire application where safe.
+________________
+
+
+171. AI SAFETY
+Do not allow AI generation to bypass Taskdrip content moderation.
+All AI-generated content should pass appropriate checks before publication.
+________________
+
+
+172. AI JOB STATUS
+Every AI job should have:
+id
+user
+type
+provider
+model
+input
+status
+output
+tokens/usage
+cost
+created_at
+completed_at
+error
+________________
+
+
+173. AI RETRY
+Allow failed jobs to retry.
+Avoid duplicate charges where possible.
+________________
+
+
+174. MODEL FALLBACK
+If primary AI provider fails:
+Use configured fallback.
+Example:
+Primary text model unavailable
+→ fallback text model.
+Do not silently use an expensive provider.
+________________
+
+
+175. ADMIN AI COST DASHBOARD
+Show:
+Daily AI spend
+Monthly AI spend
+Cost by creator
+Cost by model
+Cost by task
+Failed jobs
+Average cost/product
+________________
+
+
+176. STORAGE COST CONTROL
+Track:
+Creator storage
+Product storage
+Generated assets
+Video storage
+Book files
+Set configurable limits.
+________________
+
+
+177. CREATOR PLANS
+If Taskdrip already has membership tiers, integrate publishing permissions.
+Possible capabilities:
+Free
+Creator
+Creator Pro
+Publisher
+Do not create plans that conflict with existing Taskdrip plans.
+Admin should configure limits such as:
+Number of books
+AI credits
+Storage
+Products
+Video generations
+________________
+
+
+178. FEATURE FLAGS
+Implement feature flags so administrators can enable/disable:
+Book Studio
+Software Studio
+AI generation
+Video generation
+KDP export
+Marketplace publishing
+Creator storefront
+________________
+
+
+179. MVP PRIORITY
+Do NOT attempt to build every advanced feature before the core system works.
+Implement in this order:
+PHASE 1
+Existing account integration
+Creator Studio
+Product database
+Book creation
+Book editor
+PDF
+EPUB
+Cover creator
+KDP formatting
+Admin approval
+Taskdrip store
+Creator profile products
+Payments
+Earnings
+$10 withdrawal
+Reviews
+Amazon link
+PHASE 2
+Children's book studio
+Illustration generation
+Software studio
+Templates
+Collections
+Bundles
+Analytics
+Marketing Studio
+PHASE 3
+Video generation
+Audiobooks
+Advanced AI
+Affiliate marketplace
+Online reader
+Subscriptions
+Print-on-demand
+________________
+
+
+180. CRITICAL MVP USER JOURNEY
+A creator must be able to do this:
+Login to existing Taskdrip account.
+↓
+Open Creator Studio.
+↓
+Click:
+Create Product
+↓
+Choose:
+eBook
+↓
+Enter:
+Book idea
+↓
+AI generates:
+Outline
+↓
+Creator approves.
+↓
+AI generates chapters.
+↓
+Creator edits.
+↓
+Choose design.
+↓
+Generate cover.
+↓
+Run preflight.
+↓
+Export PDF/EPUB/KDP files.
+↓
+Create Taskdrip product.
+↓
+Set price.
+↓
+Submit for approval.
+↓
+Admin approves.
+↓
+Product becomes published.
+↓
+Product automatically appears:
+Taskdrip Store
+Creator Profile
+Creator Digital Products section
+↓
+Customer purchases.
+↓
+Payment verified.
+↓
+Customer receives download.
+↓
+Creator receives earnings.
+↓
+Creator can withdraw after $10.
+↓
+Creator promotes product using Marketing Studio.
+This entire workflow must work end-to-end.
+________________
+
+
+181. SOFTWARE USER JOURNEY
+Creator:
+Login
+↓
+Creator Studio
+↓
+Create Product
+↓
+Software
+↓
+Upload software
+↓
+Add screenshots
+↓
+Description
+↓
+Version
+↓
+License
+↓
+Price
+↓
+Security scan
+↓
+Submit
+↓
+Admin review
+↓
+Approve
+↓
+Published
+↓
+Appears in:
+Taskdrip Store
+Creator Profile
+Creator Software section
+↓
+Customer buys
+↓
+Payment verified
+↓
+Secure download
+↓
+Creator earns.
+________________
+
+
+182. PROFILE USER JOURNEY
+Visitor opens:
+Creator Profile
+They see:
+Creator identity
+Bio
+Socials
+Services
+Portfolio
+Featured Product
+Books
+Software
+Digital Products
+Reviews
+Visitor clicks:
+Book
+↓
+Book landing page
+↓
+Buy
+↓
+Payment
+↓
+Download
+The experience must feel seamless.
+________________
+
+
+183. DESIGN REQUIREMENTS
+Use existing Taskdrip branding.
+Do not make the publishing studio look like a third-party website.
+Use existing:
+Typography
+Buttons
+Cards
+Navigation
+Colors
+Spacing
+Icons
+Responsive components
+Dark/light mode if existing.
+Where new UI is necessary, make it visually consistent with Taskdrip.
+________________
+
+
+184. DASHBOARD SIDEBAR
+Add:
+Creator Studio
+Under it:
+Overview
+Products
+Books
+Software
+Collections
+Sales
+Earnings
+Marketing
+Analytics
+Profile Showcase
+Settings
+Do not duplicate existing navigation items.
+________________
+
+
+185. CREATOR PROFILE EXAMPLE
+Public creator profile:
+________________
+
+
+CREATOR NAME
+Bio
+Social Links
+[Follow]
+[Contact]
+[Featured Product]
+The Nigerian Property Playbook
+₦15,000
+[Get It]
+________________
+
+
+SERVICES
+...
+________________
+
+
+DIGITAL PRODUCTS
+Books | Software | Templates
+________________
+
+
+BOOKS
+[Book 1]
+[Book 2]
+________________
+
+
+SOFTWARE
+[Software 1]
+________________
+
+
+REVIEWS
+★★★★★
+________________
+________________
+
+
+186. PRODUCT DETAIL EXAMPLE
+Hero:
+BOOK COVER
+THE NIGERIAN PROPERTY PLAYBOOK
+By Abraham Tahbat
+Learn how to navigate Nigeria's property market...
+★★★★★ 4.8
+₦15,000
+[Buy on Taskdrip]
+[Buy on Amazon]
+Then:
+What You'll Learn
+Inside the Book
+Preview
+About the Author
+Reviews
+FAQ
+More From This Creator
+________________
+
+
+187. MOBILE PROFILE
+On mobile:
+Creator header
+Featured product
+Products
+Books
+Software
+Services
+Reviews
+Use cards.
+Sticky CTA where appropriate.
+________________
+
+
+188. ADMIN MOBILE
+Admin dashboard should remain usable on mobile for urgent approvals.
+________________
+
+
+189. ACCESSIBILITY
+Implement:
+Semantic HTML
+Keyboard navigation
+Accessible labels
+Contrast
+Alt text
+ARIA where needed
+Focus states
+________________
+
+
+190. INTERNATIONALIZATION
+Architecture should support:
+English
+Future additional languages.
+Do not hard-code text into logic.
+________________
+
+
+191. CURRENCY
+Do not assume USD only.
+Taskdrip is Nigeria-first.
+Support:
+NGN
+USD
+Other supported Taskdrip currencies.
+Creator can price products in supported currencies where appropriate.
+________________
+
+
+192. NIGERIA-FIRST FEATURES
+Optimize for:
+Nigerian creators
+Naira pricing
+Bank transfers
+Crypto
+Mobile users
+Low bandwidth
+African content
+Local business resources
+Educational resources
+Real estate
+SMEs
+Personal finance
+Agriculture
+Technology
+Creative industries
+________________
+
+
+193. PERFORMANCE FOR NIGERIAN MOBILE USERS
+Optimize:
+Images
+JS bundles
+API calls
+PDF generation
+Lazy loading
+Mobile bandwidth.
+Do not load AI/editor assets unnecessarily.
+________________
+
+
+194. LOW-BANDWIDTH FALLBACK
+If possible:
+Simple editor mode
+Compressed previews
+Retry uploads
+Resume uploads
+Background uploads
+________________
+
+
+195. FILE UPLOAD UX
+Show:
+Upload progress
+Percentage
+File size
+Validation
+Success
+Failure
+Retry
+Do not refresh the page during uploads.
+________________
+
+
+196. ERROR UX
+Errors must be understandable.
+Bad:
+"Internal server error"
+Better:
+"We couldn't generate your EPUB right now. Your book is safe. Please retry."
+________________
+
+
+197. SUCCESS UX
+After publication:
+"Your product is live!"
+Show:
+Product URL
+Creator profile
+Share buttons
+Marketing tools
+View product
+Create another product
+________________
+
+
+198. CREATOR GROWTH LOOP
+After first product sale:
+Show:
+"Congratulations!"
+Then:
+"Turn this product into another income stream."
+Suggestions:
+Create workbook
+Create journal
+Create course
+Create template
+Create social campaign
+Create bundle
+________________
+
+
+199. BOOK-TO-PRODUCT ENGINE
+Design future architecture for:
+Book
+↓
+Workbook
+↓
+Journal
+↓
+Flashcards
+↓
+Course
+↓
+Quiz
+↓
+Social content
+↓
+Video series
+↓
+Audiobook
+↓
+Email course
+↓
+Templates
+The creator should eventually be able to turn one piece of knowledge into an entire digital product ecosystem.
+________________
+
+
+200. FINAL PRODUCT POSITIONING
+The Taskdrip Creator Publishing Studio should ultimately communicate:
+Your audience is valuable. Your knowledge is valuable. Your creativity is valuable. Turn it into products.
+Primary CTA:
+Create Your First Product
+Secondary CTA:
+Explore Creator Products
+Creator-facing phrase:
+Create Once. Sell Again and Again.
+________________
+
+
+201. TESTING REQUIREMENTS
+Before declaring the feature complete, test:
+Authentication
+Creator access
+Influencer access
+Profile integration
+Book creation
+Book editing
+AI generation
+Autosave
+Cover generation
+PDF export
+EPUB export
+KDP formatting
+Preflight
+Product creation
+Product approval
+Store listing
+Creator profile listing
+Product purchase
+Bank transfer
+Crypto payment
+Payment verification
+Download authorization
+Creator earnings
+$10 withdrawal
+Reviews
+Amazon link
+Notifications
+Admin approval
+Product suspension
+Refunds
+Mobile responsiveness
+Security
+SEO
+Performance
+________________
+
+
+202. TEST ACCOUNTS
+Create development/test data:
+Test Creator
+Test Influencer
+Test Buyer
+Test Admin
+Test Book
+Test Software
+Test Digital Product
+Test Order
+Test Review
+Test Withdrawal
+Do not use fake data in production.
+________________
+
+
+203. ACCEPTANCE TEST
+The implementation is not complete until the following works:
+TEST 1:
+Existing creator logs in.
+They see Creator Studio.
+TEST 2:
+Creator creates an eBook.
+TEST 3:
+AI creates outline.
+TEST 4:
+Creator edits manuscript.
+TEST 5:
+Creator creates cover.
+TEST 6:
+Creator exports PDF.
+TEST 7:
+Creator exports EPUB.
+TEST 8:
+Creator runs KDP preflight.
+TEST 9:
+Creator submits product.
+TEST 10:
+Admin approves product.
+TEST 11:
+Product appears in Taskdrip marketplace.
+TEST 12:
+Product automatically appears on creator profile.
+TEST 13:
+Visitor opens creator profile.
+TEST 14:
+Visitor clicks product.
+TEST 15:
+Visitor purchases product.
+TEST 16:
+Payment is verified.
+TEST 17:
+Buyer receives secure download.
+TEST 18:
+Creator receives earnings.
+TEST 19:
+Creator sees sale in dashboard.
+TEST 20:
+Creator can withdraw once available balance reaches $10 equivalent.
+TEST 21:
+Buyer leaves verified review.
+TEST 22:
+Review appears on product page.
+TEST 23:
+Creator promotes product through Marketing Studio.
+TEST 24:
+Amazon button works if Amazon URL is provided.
+TEST 25:
+Existing Taskdrip features continue working exactly as before.
+________________
+
+
+204. DO NOT BREAK EXISTING TASKDRIP
+This is non-negotiable.
+Do not break:
+Existing creators
+Influencer accounts
+Brand accounts
+Authentication
+Profiles
+Services
+Marketplace
+Existing products
+Payments
+Crypto payments
+Wallets
+Earnings
+Withdrawals
+Messaging
+Notifications
+Campaigns
+Referrals
+Existing URLs
+SEO
+Admin functionality.
+Before deployment, regression test existing major user journeys.
+________________
+
+
+205. DEVELOPMENT METHOD
+Implement in controlled milestones.
+Milestone 1
+Architecture audit
+Milestone 2
+Database extensions
+Milestone 3
+Creator Studio
+Milestone 4
+Product architecture
+Milestone 5
+Book engine
+Milestone 6
+Book editor
+Milestone 7
+Cover/design engine
+Milestone 8
+PDF/EPUB/KDP export
+Milestone 9
+Publishing workflow
+Milestone 10
+Taskdrip store integration
+Milestone 11
+Creator profile integration
+Milestone 12
+Payments
+Milestone 13
+Earnings/withdrawals
+Milestone 14
+Reviews
+Milestone 15
+Software products
+Milestone 16
+Marketing Studio
+Milestone 17
+Analytics
+Milestone 18
+Admin controls
+Milestone 19
+Security
+Milestone 20
+Full QA/regression testing
+________________
+
+
+206. IMPORTANT REPLIT INSTRUCTION
+Do NOT respond by simply saying:
+"Feature implemented."
+Actually inspect the codebase and implement the feature.
+When you encounter an existing Taskdrip component that already performs a required function, integrate with it rather than recreating it.
+Before modifying major systems, explain:
+1. Existing architecture found.
+2. Components that will be reused.
+3. Components that must be added.
+4. Database changes.
+5. Migration strategy.
+6. Potential conflicts.
+Then implement.
+________________
+
+
+207. DO NOT CREATE A FAKE DEMO
+The final result must not be:
+* Static mockups
+* Fake buttons
+* Fake dashboard
+* Placeholder product cards
+* Simulated payments
+* Hard-coded creator profiles
+* Fake download links
+* Fake earnings
+* Fake AI generation
+Everything displayed as functional must connect to the actual backend.
+If a third-party AI provider is unavailable, build the provider interface and clearly identify the configuration required rather than pretending generation works.
+________________
+
+
+208. ENVIRONMENT VARIABLES
+Use secure environment variables for:
+AI providers
+Storage
+Payment gateways
+Cryptomus
+Email
+Video providers
+Image providers
+Database
+Other APIs.
+Never hard-code secrets.
+________________
+
+
+209. DOCUMENTATION
+Create documentation inside the project covering:
+Architecture
+Database
+API
+Creator workflow
+Admin workflow
+Payment flow
+Publishing flow
+AI architecture
+File storage
+Deployment
+Environment variables
+Security
+Testing
+Future extensions
+________________
+
+
+210. FINAL OUTPUT REQUIRED FROM REPLIT
+After implementation provide:
+1. Architecture summary
+2. Database changes
+3. New routes
+4. New APIs
+5. New UI components
+6. Creator workflow
+7. Admin workflow
+8. Payment integration
+9. Earnings integration
+10. Profile integration
+11. AI integration
+12. Export system
+13. Security implementation
+14. Tests completed
+15. Known limitations
+16. Environment variables required
+17. Deployment instructions
+Most importantly:
+The completed Taskdrip application should allow an existing creator/influencer to go from:
+IDEA → BOOK/SOFTWARE → DESIGN → PUBLISH → PROFILE → STORE → SALE → EARNINGS → WITHDRAWAL → PROMOTION
+without creating another account or leaving Taskdrip.
+The creator's existing Taskdrip identity should remain the center of the entire ecosystem.
+The creator profile should evolve from merely being a profile into a:
+Portfolio + Service Page + Creator Store + Bookstore + Software Store + Personal Brand Hub.
+The ultimate Taskdrip ecosystem should become:
+Creators build audiences on Taskdrip.
+Creators create products on Taskdrip.
+Creators publish products on Taskdrip.
+Creators sell products on Taskdrip.
+Creators promote products through Taskdrip.
+Creators earn from products through Taskdrip.
+Build the system so that:
+EVERY CREATOR CAN BECOME A PUBLISHER.
+CREATE ONCE. SELL AGAIN AND AGAIN.

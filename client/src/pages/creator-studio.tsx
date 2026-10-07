@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownToLine, ArrowLeft, BookOpen, Check, FileText, Loader2, Plus, Sparkles, Store, Trash2, Wallet } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import { ArrowDownToLine, ArrowLeft, BookOpen, Check, CreditCard, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet } from "lucide-react";
 
 type Chapter = { id: string; title: string; content: string };
 type Book = {
@@ -37,6 +39,13 @@ type Product = {
   status: string;
   reviewNote?: string | null;
 };
+type StudioAccess = {
+  hasAccess: boolean;
+  monthlyPrice: number;
+  currency: string;
+  subscriptionStatus: "active" | "pending" | "inactive";
+  subscription: { endDate?: string | null; paymentMethodLabel?: string | null } | null;
+};
 
 async function requestJson(url: string, options: RequestInit = {}) {
   const response = await fetch(url, { credentials: "include", ...options });
@@ -60,6 +69,7 @@ const statusColor: Record<string, string> = {
 export default function CreatorStudioPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [section, setSection] = useState<"overview" | "books" | "products" | "earnings">("overview");
   const [activeBook, setActiveBook] = useState<Book | null>(null);
   const [bookFile, setBookFile] = useState<File | null>(null);
@@ -69,22 +79,65 @@ export default function CreatorStudioPage() {
   const [chapterBusy, setChapterBusy] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
+  const [subscriptionProof, setSubscriptionProof] = useState<File | null>(null);
+  const [subscriptionReference, setSubscriptionReference] = useState("");
+  const [paymentMethodId, setPaymentMethodId] = useState("");
   const [productForm, setProductForm] = useState({
     title: "", description: "", productType: "digital-download", category: "Digital Downloads",
     price: "9.99", tags: "", version: "1.0", license: "", coverImage: "",
   });
 
+  const isCreatorAccount = ["creator", "influencer"].includes((user as any)?.userType || "");
+  const planQuery = useQuery<{ monthlyPrice: number; currency: string }>({
+    queryKey: ["/api/creator-studio/plan"],
+    queryFn: () => requestJson("/api/creator-studio/plan"),
+  });
+  const accessQuery = useQuery<StudioAccess>({
+    queryKey: ["/api/creator-studio/access"],
+    queryFn: () => requestJson("/api/creator-studio/access"),
+    enabled: !!user && isCreatorAccount,
+  });
+  const paymentMethodsQuery = useQuery<any[]>({
+    queryKey: ["/api/payment-methods", "subscriptions"],
+    queryFn: () => requestJson("/api/payment-methods?feature=subscriptions"),
+    enabled: !!user && isCreatorAccount && accessQuery.data?.hasAccess === false && accessQuery.data?.subscriptionStatus !== "pending",
+  });
+  const paymentMethods = paymentMethodsQuery.data?.length
+    ? paymentMethodsQuery.data
+    : [{ id: "manual", type: "manual", label: "Manual payment", instructions: "Contact Taskdrip support for payment instructions." }];
+  const selectedPaymentMethod = paymentMethods.find((method) => method.id === paymentMethodId) || paymentMethods[0];
+  const subscribeMutation = useMutation({
+    mutationFn: async () => {
+      const body = new FormData();
+      body.append("network", selectedPaymentMethod?.network || selectedPaymentMethod?.type || "manual");
+      body.append("paymentMethodLabel", selectedPaymentMethod?.label || "Manual payment");
+      body.append("transactionHash", subscriptionReference);
+      if (subscriptionProof) body.append("paymentProof", subscriptionProof);
+      return requestJson("/api/creator-studio/subscribe", { method: "POST", body });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/access"] });
+      setSubscriptionProof(null);
+      setSubscriptionReference("");
+      toast({ title: "Payment submitted", description: "Creator Studio access will open after admin verification." });
+    },
+    onError: (error: Error) => toast({ title: "Payment submission failed", description: error.message, variant: "destructive" }),
+  });
+
   const booksQuery = useQuery<Book[]>({
     queryKey: ["/api/creator-studio/books"],
     queryFn: () => requestJson("/api/creator-studio/books"),
+    enabled: accessQuery.data?.hasAccess === true,
   });
   const productsQuery = useQuery<Product[]>({
     queryKey: ["/api/creator-studio/products"],
     queryFn: () => requestJson("/api/creator-studio/products"),
+    enabled: accessQuery.data?.hasAccess === true,
   });
   const earningsQuery = useQuery<any>({
     queryKey: ["/api/creator-studio/earnings"],
     queryFn: () => requestJson("/api/creator-studio/earnings"),
+    enabled: accessQuery.data?.hasAccess === true,
   });
   const books = booksQuery.data || [];
   const products = productsQuery.data || [];
@@ -283,8 +336,119 @@ export default function CreatorStudioPage() {
     earnings: "Sales & Earnings",
   }[section]), [section]);
 
+  if (authLoading || (isAuthenticated && isCreatorAccount && accessQuery.isLoading)) {
+    return <div className="min-h-screen bg-slate-50"><NavigationFixed /><div className="mx-auto max-w-4xl px-4 py-24 text-center text-slate-500">Loading Creator Studio…</div></div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavigationFixed />
+        <main className="mx-auto max-w-3xl px-4 py-20">
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-8 sm:p-12 text-center">
+              <BookOpen className="mx-auto h-12 w-12 text-violet-700" />
+              <p className="mt-5 text-sm font-bold uppercase tracking-wider text-violet-700">Taskdrip Creator Publishing</p>
+              <h1 className="mt-2 text-3xl font-bold text-slate-900">Create and publish from your Taskdrip account</h1>
+              <p className="mx-auto mt-3 max-w-xl text-slate-600">Sign in or create a creator account to open the ebook editor, save projects, and submit products for review.</p>
+              <div className="mt-7 flex flex-wrap justify-center gap-3">
+                <Link href="/login?redirect=%2Fcreator-studio"><Button>Sign in</Button></Link>
+                <Link href="/signup?type=creator&redirect=%2Fcreator-studio"><Button variant="outline">Create a creator account</Button></Link>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isCreatorAccount) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavigationFixed />
+        <main className="mx-auto max-w-3xl px-4 py-20">
+          <Card className="border-0 shadow-lg"><CardContent className="p-8 text-center">
+            <LockKeyhole className="mx-auto h-10 w-10 text-violet-700" />
+            <h1 className="mt-4 text-2xl font-bold">Creator account required</h1>
+            <p className="mt-2 text-slate-600">Creator Studio is available to Taskdrip creator and influencer accounts.</p>
+            <Link href={(user as any)?.userType === "admin" ? "/admin/publishing" : "/dashboard"}><Button className="mt-5">Return to dashboard</Button></Link>
+          </CardContent></Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (accessQuery.isError) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavigationFixed />
+        <main className="mx-auto max-w-3xl px-4 py-20">
+          <Card><CardContent className="p-8 text-center text-rose-700">
+            {(accessQuery.error as Error).message}
+            <Button className="ml-3" variant="outline" onClick={() => accessQuery.refetch()}>Try again</Button>
+          </CardContent></Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (accessQuery.data?.hasAccess !== true) {
+    const isPending = accessQuery.data?.subscriptionStatus === "pending";
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <NavigationFixed />
+        <main className="mx-auto max-w-5xl px-4 py-10 sm:py-16">
+          <div className="mx-auto max-w-3xl">
+            <Link href="/dashboard"><Button variant="ghost" className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Dashboard</Button></Link>
+            <Card className="overflow-hidden border-0 shadow-lg">
+              <div className="bg-gradient-to-br from-violet-800 to-indigo-900 px-6 py-8 text-white sm:px-9">
+                <div className="flex items-center gap-3"><LockKeyhole className="h-7 w-7" /><span className="text-sm font-bold uppercase tracking-wider">Creator Studio access</span></div>
+                <h1 className="mt-4 text-3xl font-bold">Publish your next digital product on Taskdrip</h1>
+                <p className="mt-2 max-w-2xl text-violet-100">Studio access includes the ebook editor, AI-assisted drafting when configured, product submissions, and your project workspace.</p>
+              </div>
+              <CardContent className="space-y-5 p-6 sm:p-9">
+                {isPending ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                    <h2 className="font-semibold text-amber-900">Payment awaiting verification</h2>
+                    <p className="mt-1 text-sm text-amber-800">Your Creator Studio access will be enabled after the publishing team reviews your payment. You can still track saved projects from your dashboard.</p>
+                    <Button className="mt-4" variant="outline" onClick={() => accessQuery.refetch()} disabled={accessQuery.isFetching}>
+                      {accessQuery.isFetching && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Refresh status
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl bg-violet-50 p-5">
+                      <div><p className="text-sm font-semibold text-violet-900">Monthly Creator Studio access</p><p className="mt-1 text-sm text-violet-700">Payment is verified by Taskdrip before access begins.</p></div>
+                      <p className="text-3xl font-bold text-violet-950">${Number(accessQuery.data?.monthlyPrice ?? planQuery.data?.monthlyPrice ?? 7).toFixed(2)}<span className="text-sm font-medium"> / month</span></p>
+                    </div>
+                    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); subscribeMutation.mutate(); }}>
+                      <div>
+                        <Label htmlFor="studio-payment-method">Payment method</Label>
+                        <select id="studio-payment-method" className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm" value={paymentMethodId || selectedPaymentMethod?.id || ""} onChange={(event) => setPaymentMethodId(event.target.value)}>
+                          {paymentMethods.map((method) => <option key={method.id} value={method.id}>{method.label || method.type}</option>)}
+                        </select>
+                        {selectedPaymentMethod?.instructions && <p className="mt-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{selectedPaymentMethod.instructions}</p>}
+                      </div>
+                      <div><Label htmlFor="studio-payment-reference">Transaction reference</Label><Input id="studio-payment-reference" value={subscriptionReference} onChange={(event) => setSubscriptionReference(event.target.value)} maxLength={255} placeholder="Enter a transfer or payment reference" /></div>
+                      <div><Label htmlFor="studio-payment-proof">Payment proof (PNG, JPG, WEBP, or PDF)</Label><Input id="studio-payment-proof" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf" onChange={(event) => setSubscriptionProof(event.target.files?.[0] || null)} /><p className="mt-1 text-xs text-slate-500">Add a transaction reference or attach proof. Do not upload passwords, account credentials, or private keys.</p></div>
+                      <Button type="submit" disabled={subscribeMutation.isPending || (!subscriptionReference.trim() && !subscriptionProof)}>
+                        {subscribeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                        Submit monthly payment for review
+                      </Button>
+                    </form>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
+      <NavigationFixed />
       <header className="bg-white border-b">
         <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">

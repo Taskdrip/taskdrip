@@ -23,28 +23,39 @@ export default function AdminPublishingPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [feePercent, setFeePercent] = useState("10");
+  const [studioMonthlyPrice, setStudioMonthlyPrice] = useState("7");
   const [notes, setNotes] = useState<Record<string, string>>({});
   const queue = useQuery<any[]>({
     queryKey: ["/api/admin/publishing-products"],
     queryFn: () => apiJson("/api/admin/publishing-products"),
   });
-  const settings = useQuery<{ platformFeePercent: number }>({
+  const subscriptions = useQuery<any[]>({
+    queryKey: ["/api/admin/creator-studio/subscriptions"],
+    queryFn: () => apiJson("/api/admin/creator-studio/subscriptions"),
+  });
+  const settings = useQuery<{ platformFeePercent: number; studioMonthlyPrice: number }>({
     queryKey: ["/api/admin/publishing-settings"],
     queryFn: () => apiJson("/api/admin/publishing-settings"),
   });
   useEffect(() => {
-    if (settings.data) setFeePercent(String(settings.data.platformFeePercent));
+    if (settings.data) {
+      setFeePercent(String(settings.data.platformFeePercent));
+      setStudioMonthlyPrice(String(settings.data.studioMonthlyPrice));
+    }
   }, [settings.data]);
 
   const saveFee = useMutation({
     mutationFn: () => apiJson("/api/admin/publishing-settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platformFeePercent: Number(feePercent) }),
+      body: JSON.stringify({
+        platformFeePercent: Number(feePercent),
+        studioMonthlyPrice: Number(studioMonthlyPrice),
+      }),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/publishing-settings"] });
-      toast({ title: "Publishing fee saved" });
+      toast({ title: "Publishing settings saved" });
     },
     onError: (error: Error) => toast({ title: "Could not save fee", description: error.message, variant: "destructive" }),
   });
@@ -62,6 +73,21 @@ export default function AdminPublishingPage() {
     onError: (error: Error) => toast({ title: "Review could not be saved", description: error.message, variant: "destructive" }),
   });
 
+  const reviewSubscription = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "revoke" }) => apiJson(`/api/admin/creator-studio/subscriptions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, reviewNote: notes[id] || "" }),
+    }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/creator-studio/subscriptions"] });
+      toast({
+        title: variables.action === "approve" ? "Creator Studio access approved" : variables.action === "reject" ? "Payment rejected" : "Creator Studio access revoked",
+      });
+    },
+    onError: (error: Error) => toast({ title: "Subscription review failed", description: error.message, variant: "destructive" }),
+  });
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b">
@@ -75,8 +101,54 @@ export default function AdminPublishingPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-violet-700" />Publishing settings</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap items-end gap-3">
             <div className="w-48"><Label htmlFor="publishing-fee">Platform fee (%)</Label><Input id="publishing-fee" type="number" min="0" max="100" step="0.1" value={feePercent} onChange={(e) => setFeePercent(e.target.value)} /></div>
-            <Button onClick={() => saveFee.mutate()} disabled={saveFee.isPending}>{saveFee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}Save fee</Button>
-            <p className="text-xs text-slate-500">Applied to future verified Taskdrip sales. Payment fees are currently recorded as $0 until the payment provider supplies a fee amount.</p>
+            <div className="w-52"><Label htmlFor="studio-monthly-price">Creator Studio monthly fee (USD)</Label><Input id="studio-monthly-price" type="number" min="0" max="999999" step="0.01" value={studioMonthlyPrice} onChange={(e) => setStudioMonthlyPrice(e.target.value)} /></div>
+            <Button onClick={() => saveFee.mutate()} disabled={saveFee.isPending}>{saveFee.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}Save settings</Button>
+            <p className="w-full text-xs text-slate-500">The platform fee applies to future verified Taskdrip sales. Studio access starts after payment review and runs for 30 days. Payment processing fees are recorded as $0 until supplied by a provider.</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardHeader><CardTitle>Creator Studio subscriptions</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {subscriptions.isLoading ? <p className="text-sm text-slate-500">Loading subscription payments…</p> : subscriptions.error ? (
+              <p className="text-sm text-red-700">{(subscriptions.error as Error).message}</p>
+            ) : subscriptions.data?.length ? subscriptions.data.map((subscription) => (
+              <div key={subscription.id} className="rounded-xl border p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-semibold">{subscription.user?.firstName} {subscription.user?.lastName}</h2>
+                      <Badge variant="outline">{subscription.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">{subscription.user?.email || "Creator"} · ${Number(subscription.amount).toFixed(2)} {subscription.currency} · {subscription.paymentMethodLabel || subscription.network || "Manual payment"}</p>
+                    {subscription.transactionHash && <p className="mt-1 break-all text-xs text-slate-500">Reference: {subscription.transactionHash}</p>}
+                    {subscription.createdAt && <p className="mt-1 text-xs text-slate-500">Submitted {new Date(subscription.createdAt).toLocaleString()}</p>}
+                    {subscription.endDate && <p className="mt-1 text-xs text-slate-500">Access until {new Date(subscription.endDate).toLocaleDateString()}</p>}
+                    {subscription.reviewNote && <p className="mt-2 rounded bg-rose-50 p-2 text-sm text-rose-800">{subscription.reviewNote}</p>}
+                    {subscription.proofUrl && <a className="mt-2 inline-block text-sm font-medium text-violet-700 underline" href={subscription.proofUrl} target="_blank" rel="noreferrer">View private payment proof</a>}
+                  </div>
+                  {subscription.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => reviewSubscription.mutate({ id: subscription.id, action: "approve" })} disabled={reviewSubscription.isPending}><CheckCircle2 className="mr-1 h-4 w-4" />Approve 30 days</Button>
+                      <Button size="sm" variant="destructive" onClick={() => reviewSubscription.mutate({ id: subscription.id, action: "reject" })} disabled={reviewSubscription.isPending || !notes[subscription.id]?.trim()}><XCircle className="mr-1 h-4 w-4" />Reject</Button>
+                    </div>
+                  )}
+                  {subscription.status === "active" && (
+                    <Button size="sm" variant="destructive" onClick={() => {
+                      if (window.confirm("Revoke this creator’s active Creator Studio access now?")) {
+                        reviewSubscription.mutate({ id: subscription.id, action: "revoke" });
+                      }
+                    }} disabled={reviewSubscription.isPending}>Revoke access</Button>
+                  )}
+                </div>
+                {subscription.status === "pending" && (
+                  <div className="mt-3">
+                    <Label htmlFor={`subscription-note-${subscription.id}`}>Review note (required to reject)</Label>
+                    <Textarea id={`subscription-note-${subscription.id}`} rows={2} value={notes[subscription.id] || ""} onChange={(e) => setNotes({ ...notes, [subscription.id]: e.target.value })} placeholder="Explain why the payment could not be verified." />
+                  </div>
+                )}
+              </div>
+            )) : <p className="text-sm text-slate-500">No Creator Studio subscription payments have been submitted.</p>}
           </CardContent>
         </Card>
 

@@ -443,6 +443,29 @@ export const creatorProductDownloads = pgTable("creator_product_downloads", {
   index("creator_product_downloads_purchase_id_idx").on(table.purchaseId),
 ]);
 
+export const creatorStudioSubscriptions = pgTable("creator_studio_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 24 }).notNull().default("pending"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 8 }).notNull().default("USD"),
+  network: varchar("network", { length: 40 }).default("manual"),
+  transactionHash: varchar("transaction_hash", { length: 255 }),
+  paymentProofKey: text("payment_proof_key"),
+  paymentMethodLabel: varchar("payment_method_label", { length: 160 }),
+  periodDays: integer("period_days").notNull().default(30),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  reviewNote: text("review_note"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("creator_studio_subscriptions_user_status_idx").on(table.userId, table.status),
+  index("creator_studio_subscriptions_status_created_idx").on(table.status, table.createdAt),
+]);
+
 // Product likes/dislikes tracking table
 export const productLikes = pgTable("product_likes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

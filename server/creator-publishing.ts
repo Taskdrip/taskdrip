@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import multer from "multer";
@@ -11,6 +11,7 @@ import {
   creatorProductDownloads,
   creatorProductEarnings,
   creatorPublishingProducts,
+  creatorStudioSubscriptions,
   notifications,
   purchases,
   shopProducts,
@@ -21,6 +22,8 @@ import { isAuthenticated } from "./auth";
 
 const PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
+const PRIVATE_STUDIO_PAYMENT_DIR = path.resolve(process.cwd(), ".private-studio-payment-proofs");
+mkdirSync(PRIVATE_STUDIO_PAYMENT_DIR, { recursive: true });
 
 const ALLOWED_FILE_EXTENSIONS = new Set([
   ".pdf", ".epub", ".zip", ".docx", ".xlsx", ".pptx", ".csv", ".txt", ".md",
@@ -43,6 +46,23 @@ const privateProductUpload = multer({
     cb(null, true);
   },
 });
+const studioPaymentProofUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, PRIVATE_STUDIO_PAYMENT_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "").toLowerCase();
+      cb(null, `${nanoid()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    if (![".png", ".jpg", ".jpeg", ".webp", ".pdf"].includes(ext)) {
+      return cb(new Error("Payment proof must be a PNG, JPG, WEBP, or PDF file."));
+    }
+    cb(null, true);
+  },
+});
 
 const ADMIN_ROLES = new Set(["admin", "store_manager", "moderator", "content_editor"]);
 const DOWNLOADABLE_PURCHASE_STATES = ["paid", "approved", "delivered"];
@@ -55,6 +75,64 @@ function isPublishingAdmin(user: any) {
 function canPublish(user: any) {
   return user?.userType === "creator" || user?.userType === "influencer";
 }
+
+async function getCreatorStudioMonthlyPrice() {
+  const [setting] = await db.select({ value: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, "creator_studio_monthly_price"))
+    .limit(1);
+  const price = Number(setting?.value);
+  return Number.isFinite(price) && price >= 0 && price <= 999999
+    ? Number(price.toFixed(2))
+    : 7;
+}
+
+async function getCreatorStudioAccess(userId: string) {
+  const now = new Date();
+  const [active] = await db.select().from(creatorStudioSubscriptions)
+    .where(and(
+      eq(creatorStudioSubscriptions.userId, userId),
+      eq(creatorStudioSubscriptions.status, "active"),
+      gt(creatorStudioSubscriptions.endDate, now),
+    ))
+    .orderBy(desc(creatorStudioSubscriptions.endDate))
+    .limit(1);
+  const [pending] = await db.select().from(creatorStudioSubscriptions)
+    .where(and(
+      eq(creatorStudioSubscriptions.userId, userId),
+      eq(creatorStudioSubscriptions.status, "pending"),
+    ))
+    .orderBy(desc(creatorStudioSubscriptions.createdAt))
+    .limit(1);
+  const monthlyPrice = await getCreatorStudioMonthlyPrice();
+  return {
+    hasAccess: monthlyPrice === 0 || !!active,
+    monthlyPrice,
+    currency: "USD",
+    subscriptionStatus: monthlyPrice === 0 ? "active" : active ? "active" : pending ? "pending" : "inactive",
+    subscription: active || pending || null,
+  };
+}
+
+const requireCreatorStudioAccess = async (req: any, res: any, next: any) => {
+  if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+  try {
+    const access = await getCreatorStudioAccess(req.user.id);
+    if (!access.hasAccess) {
+      return res.status(402).json({
+        code: "CREATOR_STUDIO_SUBSCRIPTION_REQUIRED",
+        message: access.subscriptionStatus === "pending"
+          ? "Your Creator Studio payment is awaiting admin verification."
+          : "A Creator Studio monthly subscription is required.",
+      });
+    }
+    req.creatorStudioAccess = access;
+    next();
+  } catch (error) {
+    console.error("Could not check Creator Studio access:", error);
+    res.status(500).json({ message: "Could not verify Creator Studio access." });
+  }
+};
 
 function safeProduct(product: any) {
   if (!product) return product;
@@ -202,7 +280,198 @@ export async function recordCreatorProductSale(purchaseId: string, referralAmoun
 }
 
 export function registerCreatorPublishingRoutes(app: Express) {
-  app.get("/api/creator-studio/books", isAuthenticated, async (req: any, res) => {
+  app.get("/api/creator-studio/plan", async (_req, res) => {
+    try {
+      res.json({ monthlyPrice: await getCreatorStudioMonthlyPrice(), currency: "USD", periodDays: 30 });
+    } catch (error) {
+      console.error("Could not load Creator Studio plan:", error);
+      res.status(500).json({ message: "Could not load Creator Studio pricing." });
+    }
+  });
+
+  app.get("/api/creator-studio/access", isAuthenticated, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    try {
+      const access = await getCreatorStudioAccess(req.user.id);
+      const subscription = access.subscription
+        ? (({ paymentProofKey: _privateKey, ...safeSubscription }) => safeSubscription)(access.subscription)
+        : null;
+      res.json({ ...access, subscription });
+    } catch (error) {
+      console.error("Could not load Creator Studio access:", error);
+      res.status(500).json({ message: "Could not load Creator Studio access." });
+    }
+  });
+
+  app.post("/api/creator-studio/subscribe", isAuthenticated, studioPaymentProofUpload.single("paymentProof"), async (req: any, res) => {
+    if (!canPublish(req.user)) {
+      removeUpload(req.file);
+      return res.status(403).json({ message: "Creator accounts only." });
+    }
+    const transactionHash = String(req.body.transactionHash || "").trim().slice(0, 255);
+    if (!transactionHash && !req.file) {
+      removeUpload(req.file);
+      return res.status(400).json({ message: "Add a transaction reference or upload payment proof." });
+    }
+    try {
+      const access = await getCreatorStudioAccess(req.user.id);
+      if (access.hasAccess) {
+        removeUpload(req.file);
+        return res.status(409).json({ message: "You already have active Creator Studio access." });
+      }
+      if (access.subscriptionStatus === "pending") {
+        removeUpload(req.file);
+        return res.status(409).json({ message: "A Creator Studio payment is already awaiting verification." });
+      }
+      const [subscription] = await db.insert(creatorStudioSubscriptions).values({
+        userId: req.user.id,
+        status: "pending",
+        amount: access.monthlyPrice.toFixed(2),
+        currency: access.currency,
+        network: String(req.body.network || "manual").trim().slice(0, 40),
+        transactionHash: transactionHash || null,
+        paymentProofKey: req.file ? path.basename(req.file.filename) : null,
+        paymentMethodLabel: String(req.body.paymentMethodLabel || "").trim().slice(0, 160) || null,
+        periodDays: 30,
+      }).returning();
+
+      await db.insert(notifications).values({
+        userId: req.user.id,
+        type: "creator_studio_subscription",
+        title: "Creator Studio payment submitted",
+        content: "Your monthly Creator Studio payment is awaiting verification. We’ll notify you when access is approved.",
+        actionUrl: "/creator-studio",
+        priority: "normal",
+      }).catch(() => {});
+      const [admin] = await db.select({ id: users.id }).from(users).where(eq(users.userType, "admin")).limit(1);
+      if (admin) {
+        await db.insert(notifications).values({
+          userId: admin.id,
+          type: "creator_studio_subscription",
+          title: "Creator Studio subscription payment to review",
+          content: `${req.user.firstName || "A creator"} submitted a $${access.monthlyPrice.toFixed(2)} monthly Creator Studio payment.`,
+          actionUrl: "/admin/publishing",
+          priority: "high",
+        }).catch(() => {});
+      }
+      const { paymentProofKey: _privateKey, ...safeSubscription } = subscription;
+      res.status(201).json(safeSubscription);
+    } catch (error) {
+      if (req.file) {
+        try { unlinkSync(req.file.path); } catch { /* Keep the original DB error. */ }
+      }
+      console.error("Could not submit Creator Studio payment:", error);
+      res.status(500).json({ message: "Could not submit Creator Studio payment." });
+    }
+  });
+
+  app.get("/api/admin/creator-studio/subscriptions", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const requestedStatus = String(req.query.status || "").trim();
+      const rows = requestedStatus
+        ? await db.select().from(creatorStudioSubscriptions)
+          .where(eq(creatorStudioSubscriptions.status, requestedStatus))
+          .orderBy(desc(creatorStudioSubscriptions.createdAt)).limit(200)
+        : await db.select().from(creatorStudioSubscriptions)
+          .orderBy(desc(creatorStudioSubscriptions.createdAt)).limit(200);
+      const enriched = await Promise.all(rows.map(async (row) => {
+        const [user] = await db.select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          userType: users.userType,
+        }).from(users).where(eq(users.id, row.userId)).limit(1);
+        const { paymentProofKey, ...safeRow } = row;
+        return {
+          ...safeRow,
+          user,
+          proofUrl: paymentProofKey ? `/api/admin/creator-studio/subscriptions/${row.id}/proof` : null,
+        };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("Could not list Creator Studio subscriptions:", error);
+      res.status(500).json({ message: "Could not load Creator Studio subscriptions." });
+    }
+  });
+
+  app.get("/api/admin/creator-studio/subscriptions/:id/proof", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const [subscription] = await db.select({
+        paymentProofKey: creatorStudioSubscriptions.paymentProofKey,
+      }).from(creatorStudioSubscriptions).where(eq(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      if (!subscription?.paymentProofKey) return res.status(404).json({ message: "Payment proof not found." });
+      const filePath = path.join(PRIVATE_STUDIO_PAYMENT_DIR, path.basename(subscription.paymentProofKey));
+      if (!existsSync(filePath)) return res.status(404).json({ message: "Payment proof file is no longer available." });
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("Could not load Creator Studio payment proof:", error);
+      res.status(500).json({ message: "Could not load payment proof." });
+    }
+  });
+
+  app.patch("/api/admin/creator-studio/subscriptions/:id", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const action = String(req.body.action || "");
+    const reviewNote = String(req.body.reviewNote || "").trim().slice(0, 4000);
+    if (!["approve", "reject", "revoke"].includes(action)) {
+      return res.status(400).json({ message: "Choose approve, reject, or revoke." });
+    }
+    if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason when rejecting a payment." });
+    try {
+      const [subscription] = await db.select().from(creatorStudioSubscriptions)
+        .where(eq(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      if (!subscription) return res.status(404).json({ message: "Creator Studio subscription not found." });
+      if (action === "approve" && subscription.status !== "pending") {
+        return res.status(409).json({ message: "Only pending payments can be approved." });
+      }
+      if (action === "reject" && subscription.status !== "pending") {
+        return res.status(409).json({ message: "Only pending payments can be rejected." });
+      }
+      if (action === "revoke" && subscription.status !== "active") {
+        return res.status(409).json({ message: "Only active access can be revoked." });
+      }
+      const now = new Date();
+      const endDate = new Date(now.getTime() + subscription.periodDays * 24 * 60 * 60 * 1000);
+      const nextStatus = action === "approve" ? "active" : action === "reject" ? "rejected" : "cancelled";
+      const [updated] = await db.update(creatorStudioSubscriptions).set({
+        status: nextStatus,
+        startDate: action === "approve" ? now : subscription.startDate,
+        endDate: action === "approve" ? endDate : action === "revoke" ? now : subscription.endDate,
+        reviewNote: reviewNote || null,
+        reviewedBy: req.user.id,
+        reviewedAt: now,
+        updatedAt: now,
+      }).where(eq(creatorStudioSubscriptions.id, subscription.id)).returning();
+
+      const title = action === "approve"
+        ? "Creator Studio access approved"
+        : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
+      const content = action === "approve"
+        ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.`
+        : action === "reject"
+          ? `Your Creator Studio payment was not approved. ${reviewNote}`
+          : "An admin ended your Creator Studio access.";
+      await db.insert(notifications).values({
+        userId: subscription.userId,
+        type: "creator_studio_subscription",
+        title,
+        content,
+        actionUrl: "/creator-studio",
+        priority: "high",
+      }).catch(() => {});
+      const { paymentProofKey: _privateKey, ...safeSubscription } = updated;
+      res.json(safeSubscription);
+    } catch (error) {
+      console.error("Could not update Creator Studio subscription:", error);
+      res.status(500).json({ message: "Could not update Creator Studio subscription." });
+    }
+  });
+
+  app.get("/api/creator-studio/books", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const books = await db.select().from(creatorBooks)
@@ -215,7 +484,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/creator-studio/books", isAuthenticated, async (req: any, res) => {
+  app.post("/api/creator-studio/books", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const [book] = await db.insert(creatorBooks).values({
@@ -230,7 +499,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/creator-studio/books/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/creator-studio/books/:id", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const [book] = await db.select().from(creatorBooks)
@@ -280,7 +549,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/creator-studio/books/:id/submit", isAuthenticated, privateProductUpload.single("productFile"), async (req: any, res) => {
+  app.post("/api/creator-studio/books/:id/submit", isAuthenticated, requireCreatorStudioAccess, privateProductUpload.single("productFile"), async (req: any, res) => {
     if (!canPublish(req.user)) {
       removeUpload(req.file);
       return res.status(403).json({ message: "Creator accounts only." });
@@ -355,7 +624,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.get("/api/creator-studio/products", isAuthenticated, async (req: any, res) => {
+  app.get("/api/creator-studio/products", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const products = await db.select().from(creatorPublishingProducts)
@@ -368,7 +637,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/creator-studio/products", isAuthenticated, privateProductUpload.single("productFile"), async (req: any, res) => {
+  app.post("/api/creator-studio/products", isAuthenticated, requireCreatorStudioAccess, privateProductUpload.single("productFile"), async (req: any, res) => {
     if (!canPublish(req.user)) {
       removeUpload(req.file);
       return res.status(403).json({ message: "Creator accounts only." });
@@ -396,7 +665,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/creator-studio/products/:id", isAuthenticated, privateProductUpload.single("productFile"), async (req: any, res) => {
+  app.patch("/api/creator-studio/products/:id", isAuthenticated, requireCreatorStudioAccess, privateProductUpload.single("productFile"), async (req: any, res) => {
     if (!canPublish(req.user)) {
       removeUpload(req.file);
       return res.status(403).json({ message: "Creator accounts only." });
@@ -441,7 +710,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/creator-studio/products/:id/submit", isAuthenticated, async (req: any, res) => {
+  app.post("/api/creator-studio/products/:id/submit", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const [product] = await db.select().from(creatorPublishingProducts)
@@ -469,7 +738,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/creator-studio/products/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/creator-studio/products/:id", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const [product] = await db.select().from(creatorPublishingProducts)
@@ -490,7 +759,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/creator-studio/ai/outline", isAuthenticated, async (req: any, res) => {
+  app.post("/api/creator-studio/ai/outline", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     if (!process.env.OPENAI_API_KEY) {
       return res.status(503).json({
@@ -524,7 +793,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/creator-studio/ai/chapter", isAuthenticated, async (req: any, res) => {
+  app.post("/api/creator-studio/ai/chapter", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     if (!process.env.OPENAI_API_KEY) {
       return res.status(503).json({
@@ -590,7 +859,10 @@ export function registerCreatorPublishingRoutes(app: Express) {
   app.get("/api/admin/publishing-settings", isAuthenticated, async (req: any, res) => {
     if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
-      res.json({ platformFeePercent: await getPublishingFeePercent() });
+      res.json({
+        platformFeePercent: await getPublishingFeePercent(),
+        studioMonthlyPrice: await getCreatorStudioMonthlyPrice(),
+      });
     } catch (error) {
       res.status(500).json({ message: "Could not load publishing settings." });
     }
@@ -602,6 +874,13 @@ export function registerCreatorPublishingRoutes(app: Express) {
     if (!Number.isFinite(feePercent) || feePercent < 0 || feePercent > 100) {
       return res.status(400).json({ message: "Platform fee must be between 0 and 100 percent." });
     }
+    const studioMonthlyPrice = req.body.studioMonthlyPrice === undefined
+      ? undefined
+      : Number(req.body.studioMonthlyPrice);
+    if (studioMonthlyPrice !== undefined
+      && (!Number.isFinite(studioMonthlyPrice) || studioMonthlyPrice < 0 || studioMonthlyPrice > 999999)) {
+      return res.status(400).json({ message: "Creator Studio monthly price must be between $0 and $999,999." });
+    }
     try {
       await db.insert(appSettings).values({
         key: "creator_publishing_fee_percent",
@@ -611,7 +890,20 @@ export function registerCreatorPublishingRoutes(app: Express) {
         target: appSettings.key,
         set: { value: String(feePercent), updatedAt: new Date() },
       });
-      res.json({ platformFeePercent: feePercent });
+      if (studioMonthlyPrice !== undefined) {
+        await db.insert(appSettings).values({
+          key: "creator_studio_monthly_price",
+          value: studioMonthlyPrice.toFixed(2),
+          updatedAt: new Date(),
+        }).onConflictDoUpdate({
+          target: appSettings.key,
+          set: { value: studioMonthlyPrice.toFixed(2), updatedAt: new Date() },
+        });
+      }
+      res.json({
+        platformFeePercent: feePercent,
+        studioMonthlyPrice: studioMonthlyPrice ?? await getCreatorStudioMonthlyPrice(),
+      });
     } catch (error) {
       console.error("Failed to save publishing settings:", error);
       res.status(500).json({ message: "Could not save publishing settings." });
@@ -945,7 +1237,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
-  app.get("/api/creator-studio/earnings", isAuthenticated, async (req: any, res) => {
+  app.get("/api/creator-studio/earnings", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
       const rows = await db.select().from(creatorProductEarnings)

@@ -187,6 +187,7 @@ export function NavigationFixed() {
         grouped: {
           "Explore": [
             { href: "/breedskool", label: "BreedSkool" },
+            { href: "/creator-studio", label: "Creator Studio" },
             { href: "/p2p-hub", label: "P2P Market" },
             { href: "/blog", label: "Blog" },
           ],
@@ -210,6 +211,7 @@ export function NavigationFixed() {
         grouped: {
           "Marketplace": [
             { href: "/shop", label: "Shop" },
+            { href: "/creator-studio", label: "Creator Studio" },
             { href: "/breedskool", label: "BreedSkool" },
             { href: "/p2p-hub", label: "P2P Market" },
             { href: "/feed", label: "Feed" },
@@ -247,6 +249,7 @@ export function NavigationFixed() {
             { href: "/admin/url-shortener", label: "Shortener Admin" },
             { href: "/admin/keyword-analytics", label: "Keyword Analytics" },
             { href: "/admin/auto-blogger", label: "Auto Blogger" },
+            { href: "/admin/publishing", label: "Creator Publishing" },
             { href: "/admin/cms", label: "CMS Editor" },
              { href: "/admin/portfolio", label: "Abraham Portfolio" },
             { href: "/admin/seo", label: "SEO" },
@@ -268,6 +271,7 @@ export function NavigationFixed() {
       grouped: {
         "Marketplace": [
           { href: "/shop", label: "Shop" },
+          { href: "/creator-studio", label: "Creator Studio" },
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/influencers", label: "Influencers" },
@@ -358,7 +362,7 @@ export function NavigationFixed() {
                           {gIdx > 0 && <DropdownMenuSeparator className="my-1" />}
                           <p className="px-2 pt-2 pb-1 text-[10px] font-bold tracking-wider text-violet-600 uppercase">{groupName}</p>
                           <div className="grid grid-cols-2 gap-1">
-                            {items.map((item) => (
+                            {items.map((item: { href: string; label: string }) => (
                               <DropdownMenuItem key={item.href} asChild className="rounded-md">
                                 <Link
                                   href={item.href}
