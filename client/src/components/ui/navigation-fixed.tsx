@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap, Code2, Gift } from "lucide-react";
+import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap, Code2, Gift, BookOpen } from "lucide-react";
 import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
 import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
@@ -187,7 +187,6 @@ export function NavigationFixed() {
         grouped: {
           "Explore": [
             { href: "/breedskool", label: "BreedSkool" },
-            { href: "/creator-studio", label: "Creator Studio" },
             { href: "/p2p-hub", label: "P2P Market" },
             { href: "/blog", label: "Blog" },
           ],
@@ -211,7 +210,6 @@ export function NavigationFixed() {
         grouped: {
           "Marketplace": [
             { href: "/shop", label: "Shop" },
-            { href: "/creator-studio", label: "Creator Studio" },
             { href: "/breedskool", label: "BreedSkool" },
             { href: "/p2p-hub", label: "P2P Market" },
             { href: "/feed", label: "Feed" },
@@ -271,7 +269,6 @@ export function NavigationFixed() {
       grouped: {
         "Marketplace": [
           { href: "/shop", label: "Shop" },
-          { href: "/creator-studio", label: "Creator Studio" },
           { href: "/breedskool", label: "BreedSkool" },
           { href: "/p2p-hub", label: "P2P Market" },
           { href: "/influencers", label: "Influencers" },
@@ -404,6 +401,16 @@ export function NavigationFixed() {
 
           {/* Right side */}
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
+            <Link href="/creator-studio" className="hidden lg:flex">
+              <Button
+                size="sm"
+                data-testid="button-header-ebook-studio"
+                className="rounded-full bg-violet-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-violet-700"
+              >
+                <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                Ebook Studio
+              </Button>
+            </Link>
             {/* Hire a Developer — always visible on desktop */}
             <Link href="/hire-developer" className="hidden sm:block">
               <button
@@ -619,6 +626,15 @@ export function NavigationFixed() {
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href="/creator-studio"
+                data-testid="link-mobile-ebook-studio"
+                className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-700"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <BookOpen className="h-4 w-4" />
+                Ebook Studio
+              </Link>
               {moreItems.map((item) => (
                 <Link
                   key={item.href}

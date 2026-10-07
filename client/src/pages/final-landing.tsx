@@ -516,6 +516,50 @@ export default function FinalLanding() {
         </div>
       </section>
 
+      {/* Ebook Studio feature */}
+      <section
+        aria-labelledby="ebook-studio-heading"
+        data-testid="section-ebook-studio"
+        className="relative isolate overflow-hidden bg-slate-950 py-14 sm:py-20"
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              'url("https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=1800&q=85&auto=format&fit=crop")',
+          }}
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-indigo-950/45" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <Badge className="mb-4 border border-white/20 bg-white/10 px-4 py-1.5 text-xs text-white hover:bg-white/10">
+              <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+              For creators and authors
+            </Badge>
+            <h2 id="ebook-studio-heading" className="text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
+              Turn your next idea into a book that’s ready to share.
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
+              Shape an outline, draft chapter by chapter, and manage your ebook submission and digital products in one creator workspace.
+            </p>
+            <div className="mt-7">
+              <Link href="/creator-studio">
+                <Button
+                  size="lg"
+                  data-testid="button-homepage-ebook-studio"
+                  className="rounded-xl bg-violet-500 px-6 font-bold text-white shadow-lg shadow-violet-950/30 transition hover:-translate-y-0.5 hover:bg-violet-400"
+                >
+                  Check out the Ebook Studio
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+            <p className="mt-3 text-xs text-white/65">Sign in or create a creator account to continue.</p>
+          </div>
+        </div>
+      </section>
+
       {/* Inline Ad Slot */}
       <AdSlot page="landing" placementType="inline" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2" />
 
