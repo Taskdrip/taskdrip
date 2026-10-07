@@ -3379,13 +3379,13 @@ export default function AdminMaster() {
                     <BookOpen className="w-5 h-5 text-violet-300" />
                   </div>
                   <div>
-                    <p className="text-white font-bold text-sm">Creator Publishing Review</p>
-                    <p className="text-gray-400 text-xs">Review book and digital product submissions, publish approved listings, and set the creator platform fee.</p>
+                    <p className="text-white font-bold text-sm">Creator Publishing Studio Controls</p>
+                    <p className="text-gray-400 text-xs">Review book and digital product submissions, publish approved listings, and manage the creator platform fee.</p>
                   </div>
                 </div>
                 <RouterLink href="/admin/publishing">
                   <button className="shrink-0 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors flex items-center gap-2" data-testid="button-open-publishing-review">
-                    <BookOpen className="w-4 h-4" /> Open Review Queue
+                    <BookOpen className="w-4 h-4" /> Manage Publishing
                   </button>
                 </RouterLink>
               </div>

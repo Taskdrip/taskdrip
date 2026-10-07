@@ -57,6 +57,30 @@ const hireStatusColors: Record<string, string> = {
   work_submitted: "bg-indigo-100 text-indigo-800", completed: "bg-gray-100 text-gray-700",
 };
 
+type PublishingProject = {
+  id: string;
+  projectType: "book" | "product";
+  typeLabel: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  progress: number;
+  nextAction: string;
+  reviewNote?: string | null;
+  updatedAt?: string | null;
+  shopProductId?: string | null;
+};
+
+const publishingProjectStatusClasses: Record<string, string> = {
+  published: "bg-emerald-100 text-emerald-800",
+  pending_review: "bg-amber-100 text-amber-800",
+  reviewing: "bg-amber-100 text-amber-800",
+  submitted: "bg-amber-100 text-amber-800",
+  rejected: "bg-rose-100 text-rose-800",
+  draft: "bg-slate-100 text-slate-700",
+  editing: "bg-blue-100 text-blue-800",
+};
+
 // ── SEO Settings Card ──────────────────────────────────────────────────────────
 function SeoSettingsCard({ user }: { user: any }) {
   const { toast } = useToast();
@@ -177,6 +201,7 @@ export default function SimpleDashboard() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isPublishingCreator = ["creator", "influencer"].includes((user as any)?.userType);
 
   // Read ?tab= from URL to support deep-linking (e.g. /dashboard?tab=training)
   const urlTab = new URLSearchParams(window.location.search).get("tab") as Tab | null;
@@ -228,6 +253,18 @@ export default function SimpleDashboard() {
   const { data: leaderboard = [] } = useQuery<any[]>({
     queryKey: ["/api/leaderboard/points"],
     enabled: !!uid,
+  });
+  const publishingProjectsQuery = useQuery<PublishingProject[]>({
+    queryKey: ["/api/creator-studio/projects"],
+    queryFn: async () => {
+      const response = await fetch("/api/creator-studio/projects", { credentials: "include" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || "Could not load publishing projects.");
+      }
+      return response.json();
+    },
+    enabled: isPublishingCreator,
   });
 
   const ensureCodesMutation = useMutation({
@@ -655,6 +692,98 @@ export default function SimpleDashboard() {
                     )}
                   </div>
                 </div>
+
+                {isPublishingCreator && (
+                  <Card className="border-violet-100 shadow-sm">
+                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-violet-600" />
+                          Publishing project tracker
+                        </CardTitle>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Follow your books and digital products from draft through review to publication.
+                        </p>
+                      </div>
+                      <Link href="/creator-studio">
+                        <Button size="sm" className="bg-violet-600 text-white hover:bg-violet-700">
+                          Open Creator Studio
+                        </Button>
+                      </Link>
+                    </CardHeader>
+                    <CardContent>
+                      {publishingProjectsQuery.isLoading ? (
+                        <div className="flex items-center gap-2 py-5 text-sm text-gray-500">
+                          <Clock className="h-4 w-4 animate-pulse" /> Loading your projects…
+                        </div>
+                      ) : publishingProjectsQuery.isError ? (
+                        <div className="rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700">
+                          {(publishingProjectsQuery.error as Error).message}
+                          <Button variant="link" className="ml-1 px-1 text-rose-800" onClick={() => publishingProjectsQuery.refetch()}>
+                            Try again
+                          </Button>
+                        </div>
+                      ) : publishingProjectsQuery.data?.length ? (
+                        <div className="space-y-3">
+                          {publishingProjectsQuery.data.slice(0, 5).map((project) => {
+                            const ProjectIcon = project.projectType === "book" ? BookOpen : Package;
+                            const href = project.status === "published" && project.shopProductId
+                              ? `/shop/product/${project.shopProductId}`
+                              : "/creator-studio";
+                            return (
+                              <div key={`${project.projectType}-${project.id}`} className="rounded-xl border border-gray-100 p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="flex min-w-0 items-start gap-3">
+                                    <span className="rounded-lg bg-violet-50 p-2 text-violet-700">
+                                      <ProjectIcon className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <h3 className="truncate font-semibold text-gray-900">{project.title}</h3>
+                                        <Badge variant="outline" className="capitalize">{project.typeLabel}</Badge>
+                                      </div>
+                                      <p className="mt-1 text-sm text-gray-600">{project.nextAction}</p>
+                                    </div>
+                                  </div>
+                                  <Badge className={publishingProjectStatusClasses[project.status] || "bg-slate-100 text-slate-700"}>
+                                    {project.statusLabel}
+                                  </Badge>
+                                </div>
+                                <Progress value={project.progress} className="mt-3 h-2" />
+                                {project.reviewNote && (
+                                  <p className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">
+                                    Admin feedback: {project.reviewNote}
+                                  </p>
+                                )}
+                                <div className="mt-3 flex items-center justify-between gap-3">
+                                  <span className="text-xs text-gray-400">
+                                    Updated {project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : "recently"}
+                                  </span>
+                                  <Link href={href}>
+                                    <Button size="sm" variant="outline">
+                                      {project.status === "published" ? "View listing" : "Continue in Studio"}
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {publishingProjectsQuery.data.length > 5 && (
+                            <p className="text-center text-xs text-gray-500">
+                              Showing 5 of {publishingProjectsQuery.data.length} projects. Open Creator Studio to see all.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 px-4 py-8 text-center">
+                          <BookOpen className="mx-auto mb-2 h-8 w-8 text-violet-400" />
+                          <p className="font-medium text-gray-800">Your publishing projects will appear here</p>
+                          <p className="mt-1 text-sm text-gray-500">Start a book or create a digital product in Creator Studio.</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Points earning guide */}
                 <div className="rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-100 p-4">

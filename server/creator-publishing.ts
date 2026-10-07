@@ -838,6 +838,113 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
+  app.get("/api/creator-studio/projects", isAuthenticated, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    try {
+      const [books, products] = await Promise.all([
+        db.select({
+          id: creatorBooks.id,
+          title: creatorBooks.title,
+          status: creatorBooks.status,
+          updatedAt: creatorBooks.updatedAt,
+        }).from(creatorBooks)
+          .where(eq(creatorBooks.creatorId, req.user.id))
+          .orderBy(desc(creatorBooks.updatedAt)),
+        db.select({
+          id: creatorPublishingProducts.id,
+          title: creatorPublishingProducts.title,
+          productType: creatorPublishingProducts.productType,
+          status: creatorPublishingProducts.status,
+          reviewNote: creatorPublishingProducts.reviewNote,
+          updatedAt: creatorPublishingProducts.updatedAt,
+          bookId: creatorPublishingProducts.bookId,
+          shopProductId: creatorPublishingProducts.shopProductId,
+        }).from(creatorPublishingProducts)
+          .where(eq(creatorPublishingProducts.creatorId, req.user.id))
+          .orderBy(desc(creatorPublishingProducts.updatedAt)),
+      ]);
+
+      const newestProductByBook = new Map<string, typeof products[number]>();
+      for (const product of products) {
+        if (product.bookId && !newestProductByBook.has(product.bookId)) {
+          newestProductByBook.set(product.bookId, product);
+        }
+      }
+
+      const summarize = (status: string, projectType: "book" | "product") => {
+        if (status === "published") {
+          return { statusLabel: "Published", progress: 100, nextAction: "Your product is live in the Taskdrip Shop." };
+        }
+        if (status === "pending_review" || status === "reviewing" || status === "submitted") {
+          return { statusLabel: "In review", progress: 75, nextAction: "Your submission is with the publishing team. Check back for updates." };
+        }
+        if (status === "rejected") {
+          return { statusLabel: "Changes requested", progress: 55, nextAction: "Review the admin note, make changes, and submit again." };
+        }
+        if (projectType === "book") {
+          return { statusLabel: "In progress", progress: status === "editing" ? 40 : 20, nextAction: "Continue your manuscript, then submit a finished PDF or EPUB for review." };
+        }
+        return { statusLabel: "Draft", progress: 25, nextAction: "Finish your product details and upload its customer-ready file." };
+      };
+
+      const projects: Array<{
+        id: string;
+        projectType: "book" | "product";
+        typeLabel: string;
+        title: string;
+        status: string;
+        statusLabel: string;
+        progress: number;
+        nextAction: string;
+        reviewNote: string | null;
+        updatedAt: Date | null;
+        shopProductId: string | null;
+      }> = books.map((book) => {
+        const product = newestProductByBook.get(book.id);
+        const bookIsNewer = Boolean(
+          product
+          && ["draft", "editing"].includes(book.status)
+          && new Date(book.updatedAt || 0).getTime() > new Date(product.updatedAt || 0).getTime(),
+        );
+        const status = bookIsNewer ? book.status : product?.status || book.status;
+        const summary = summarize(status, "book");
+        return {
+          id: book.id,
+          projectType: "book" as const,
+          typeLabel: "Book",
+          title: product?.title || book.title,
+          status,
+          ...summary,
+          reviewNote: bookIsNewer ? null : product?.reviewNote || null,
+          updatedAt: bookIsNewer ? book.updatedAt : product?.updatedAt || book.updatedAt,
+          shopProductId: product?.shopProductId || null,
+        };
+      });
+
+      for (const product of products) {
+        if (product.bookId) continue;
+        const summary = summarize(product.status, "product");
+        projects.push({
+          id: product.id,
+          projectType: "product",
+          typeLabel: product.productType.replace(/[-_]/g, " "),
+          title: product.title,
+          status: product.status,
+          ...summary,
+          reviewNote: product.reviewNote || null,
+          updatedAt: product.updatedAt,
+          shopProductId: product.shopProductId || null,
+        });
+      }
+
+      projects.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+      res.json(projects);
+    } catch (error) {
+      console.error("Failed to load creator publishing projects:", error);
+      res.status(500).json({ message: "Could not load your publishing projects." });
+    }
+  });
+
   app.get("/api/creator-studio/earnings", isAuthenticated, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {

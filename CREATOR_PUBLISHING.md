@@ -4,7 +4,7 @@ Creator Publishing is part of the existing Taskdrip app. It reuses creator accou
 
 ## Creator flow
 
-1. Open **Creator Studio** from the creator dashboard.
+1. Open **Creator Studio** from the creator dashboard. The dashboard also includes a project tracker for saved books and digital products.
 2. Create a book draft or a digital-product draft.
 3. Save chapters and product metadata; AI outline/chapter drafting is optional.
 4. Submit the finished product file for admin review.
@@ -12,11 +12,18 @@ Creator Publishing is part of the existing Taskdrip app. It reuses creator accou
 6. Buyers pay through the existing checkout/payment-review flow. Once an admin marks the purchase paid, the purchase appears in the buyer's Digital Library and the creator's earnings are credited to the existing Taskdrip balance.
 7. Buyers can submit one verified-purchase review per digital product. Download access requires authentication and a paid/approved/delivered purchase; downloads are logged and capped at 10 per purchase.
 
+## Creator dashboard project tracker
+
+- The authenticated `GET /api/creator-studio/projects` endpoint returns only the signed-in creator's books and products.
+- The dashboard shows each project's publishing status, suggested next step, admin review note (when present), and a link to a published shop listing.
+- Responses omit manuscript chapters and private product file keys. Books and their linked publishing submissions are combined into one tracked project.
+- Admins can open **Creator Publishing Studio Controls** in the admin dashboard to manage the review queue and publishing fee.
+
 ## Setup and operations
 
 - Apply the additive development database migration with `npm run db:migrate`.
 - Private product files are written under `.private-product-files/`, which is excluded from Git and is not served as public uploads.
-- Admins can open **Admin → Creator Publishing Review** to approve or reject submissions and configure the publishing platform fee. The default fee is 10% until changed.
+- Admins can use **Creator Publishing Studio Controls** on the admin dashboard to open `/admin/publishing`, approve or reject submissions, and configure the publishing platform fee. The default fee is 10% until changed.
 - AI book drafting is disabled unless `OPENAI_API_KEY` is configured in Replit Secrets. The app reports this state rather than returning mock AI content.
 - Product prices and creator publishing earnings currently use USD because the existing shop and wallet flow do not carry a transaction currency. Do not represent USD prices as NGN; multi-currency checkout and conversion are not implemented.
 - Payment-processing fees are recorded as zero because the existing manual payment-review flow does not provide a processor-fee amount.
