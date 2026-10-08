@@ -11523,6 +11523,7 @@ Instructions:
   // Email Marketing CRM
   // ──────────────────────────────────────────────────────────────
   const { sendEmail, testSmtpConnection, blastCampaign, AI_TEMPLATES, buildDefaultEmailHtml, getEmailStatus, sendWelcomeEmail } = await import("./email-service");
+  const groqEmail = await import("./groq-email");
 
   // Auto-activate Resend on startup if key is present
   activateResendIfAvailable().catch(() => {});
@@ -11585,6 +11586,115 @@ Instructions:
   });
 
   // Email Status
+  app.get('/api/admin/email/ai/insights', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!process.env.GROQ_API_KEY) return res.status(503).json({ message: 'GROQ_API_KEY is not configured.' });
+      const [campaigns, responders, templates] = await Promise.all([
+        storage.getAllEmailCampaigns(),
+        storage.getAllEmailAutoResponders(),
+        storage.getAllEmailTemplates(),
+      ]);
+      const insights = await groqEmail.analyzeCampaignInsights({
+        campaigns: campaigns.map((item: any) => ({
+          name: item.name, sent: Number(item.sent || 0), opened: Number(item.opened || 0),
+          clicked: Number(item.clicked || 0), bounced: Number(item.bounced || 0), status: item.status,
+        })),
+        autoResponders: responders.map((item: any) => ({
+          name: item.name, trigger: item.trigger, sentCount: Number(item.sentCount || 0), isActive: !!item.isActive,
+        })),
+        templates: templates.length,
+        totalSent: campaigns.reduce((sum: number, item: any) => sum + Number(item.sent || 0), 0),
+      });
+      res.json({ insights });
+    } catch (error: any) {
+      console.error('[email-ai] Insight generation failed:', error);
+      res.status(502).json({ message: error.message || 'Could not generate email insights.' });
+    }
+  });
+
+  app.post('/api/admin/email/ai/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const prompt = String(req.body.prompt || '').trim().slice(0, 2000);
+      if (prompt.length < 5) return res.status(400).json({ message: 'Describe the email you want to generate.' });
+      const result = await groqEmail.generateEmailTemplate({
+        prompt,
+        category: String(req.body.category || 'general').slice(0, 60),
+        audience: String(req.body.audience || 'creators and brands').slice(0, 200),
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error('[email-ai] Template generation failed:', error);
+      res.status(502).json({ message: error.message || 'Could not generate the email.' });
+    }
+  });
+
+  app.post('/api/admin/email/ai/subjects', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const content = String(req.body.content || '').trim().slice(0, 5000);
+      if (!content) return res.status(400).json({ message: 'Provide email content to analyze.' });
+      const subjects = await groqEmail.generateSubjectLines({
+        content,
+        audience: String(req.body.audience || 'creators and brands').slice(0, 200),
+        goal: String(req.body.goal || '').slice(0, 300),
+        existingSubject: String(req.body.existingSubject || '').slice(0, 300),
+      });
+      res.json({ subjects });
+    } catch (error: any) {
+      console.error('[email-ai] Subject suggestions failed:', error);
+      res.status(502).json({ message: error.message || 'Could not generate subject lines.' });
+    }
+  });
+
+  app.post('/api/admin/email/ai/improve', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const html = String(req.body.html || '').trim().slice(0, 12000);
+      if (!html) return res.status(400).json({ message: 'Add email HTML before asking AI to improve it.' });
+      const result = await groqEmail.improveTemplate({
+        html,
+        subject: String(req.body.subject || '').slice(0, 300),
+        feedback: String(req.body.feedback || '').slice(0, 500),
+        audience: String(req.body.audience || 'platform users').slice(0, 200),
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error('[email-ai] Template improvement failed:', error);
+      res.status(502).json({ message: error.message || 'Could not improve the template.' });
+    }
+  });
+
+  app.post('/api/admin/email/ai/auto-responder', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const trigger = String(req.body.trigger || 'custom').slice(0, 60);
+      const triggerLabel = String(req.body.triggerLabel || trigger).slice(0, 120);
+      const extraContext = String(req.body.extraContext || '').slice(0, 1500);
+      const userType = String(req.body.userType || 'all').slice(0, 40);
+      const result = await groqEmail.generateAutoResponder({ trigger, triggerLabel, userType, extraContext });
+      res.json(result);
+    } catch (error: any) {
+      console.error('[email-ai] Auto-responder generation failed:', error);
+      res.status(502).json({ message: error.message || 'Could not generate an auto-responder.' });
+    }
+  });
+
+  app.post('/api/admin/email/ai/send-time', isAuthenticated, async (req: any, res) => {
+    try {
+      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      const recommendation = await groqEmail.recommendSendTime({
+        audience: String(req.body.audience || 'Taskdrip creators').slice(0, 200),
+        emailType: String(req.body.emailType || 'campaign announcement').slice(0, 120),
+      });
+      res.json({ recommendation });
+    } catch (error: any) {
+      console.error('[email-ai] Send-time recommendation failed:', error);
+      res.status(502).json({ message: error.message || 'Could not recommend a send time.' });
+    }
+  });
+
   app.get('/api/admin/email/status', isAuthenticated, async (req: any, res) => {
     try {
       if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
@@ -11654,6 +11764,12 @@ Instructions:
     try {
       if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
       const { to, subject, html } = req.body;
+      if (typeof to !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
+        return res.status(400).json({ success: false, error: 'Enter a valid recipient email address.' });
+      }
+      if (!String(subject || '').trim()) {
+        return res.status(400).json({ success: false, error: 'Enter an email subject.' });
+      }
       const result = await sendEmail({ to, subject, html: html || '<p>Test email from Taskdrip Email CRM.</p>' });
       res.json(result);
     } catch (e: any) { res.status(500).json({ success: false, error: e.message }); }
@@ -11702,9 +11818,28 @@ Instructions:
   // Upload an image for use inside an email template / campaign body
   app.post('/api/admin/email/upload-image', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
-      if (req.user?.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (req.user?.userType !== 'admin') {
+        if (req.file) {
+          const fs = await import('node:fs/promises');
+          await fs.unlink(req.file.path).catch(() => {});
+        }
+        return res.status(403).json({ message: 'Forbidden' });
+      }
       if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
-      const url = `/uploads/${req.file.filename}`;
+      const ext = (String(req.file.originalname || '').toLowerCase().match(/\.[^.]+$/) || [""])[0];
+      const allowedImageTypes: Record<string, string> = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+      };
+      if (!allowedImageTypes[ext] || req.file.mimetype !== allowedImageTypes[ext]) {
+        const fs = await import('node:fs/promises');
+        await fs.unlink(req.file.path).catch(() => {});
+        return res.status(400).json({ message: 'Upload a PNG, JPG, WEBP, or GIF image.' });
+      }
+      const url = new URL(`/uploads/${req.file.filename}`, `${req.protocol}://${req.get('host')}`).toString();
       res.json({ url });
     } catch (e: any) { res.status(500).json({ message: e.message || 'Upload failed' }); }
   });

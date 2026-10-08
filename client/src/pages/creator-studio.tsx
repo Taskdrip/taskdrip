@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { KDP_BOOK_TYPES, KDP_GENRES, KDP_TRIM_SIZES, downloadKdpManuscript } from "@/lib/kdp-manuscript";
-import { ArrowDownToLine, ArrowLeft, BookOpen, Check, CreditCard, ExternalLink, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Banknote, BookOpen, Check, Copy, CreditCard, ExternalLink, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet, Wand2 } from "lucide-react";
 
 type Chapter = { id: string; title: string; content: string };
 type Book = {
@@ -28,6 +28,7 @@ type Book = {
   chapters?: Chapter[];
   amazonUrl?: string | null;
   accessUrl?: string | null;
+  kdpKeywords?: string[];
   status: string;
 };
 type Product = {
@@ -53,6 +54,10 @@ type StudioAccess = {
   currency: string;
   subscriptionStatus: "active" | "pending" | "inactive";
   subscription: { endDate?: string | null; paymentMethodLabel?: string | null } | null;
+};
+type StudioPaymentOptions = {
+  cryptoWallets: Array<{ id: string; name: string; asset: string; network: string; address: string; instructions?: string; enabled: boolean }>;
+  bankAccounts: Array<{ id: string; bankName: string; accountName: string; accountNumber: string; currency: string; instructions?: string; enabled: boolean }>;
 };
 
 async function requestJson(url: string, options: RequestInit = {}) {
@@ -85,6 +90,12 @@ export default function CreatorStudioPage() {
   const [bookBusy, setBookBusy] = useState(false);
   const [outlineBusy, setOutlineBusy] = useState(false);
   const [chapterBusy, setChapterBusy] = useState<string | null>(null);
+  const [metadataBusy, setMetadataBusy] = useState(false);
+  const [generatedMetadata, setGeneratedMetadata] = useState<any>(null);
+  const [writingToolBusy, setWritingToolBusy] = useState("");
+  const [writingToolOutput, setWritingToolOutput] = useState("");
+  const [writingToolKind, setWritingToolKind] = useState("");
+  const [writingToolChapterId, setWritingToolChapterId] = useState("");
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
   const [subscriptionProof, setSubscriptionProof] = useState<File | null>(null);
@@ -106,15 +117,33 @@ export default function CreatorStudioPage() {
     queryFn: () => requestJson("/api/creator-studio/access"),
     enabled: !!user,
   });
-  const paymentMethodsQuery = useQuery<any[]>({
-    queryKey: ["/api/payment-methods", "subscriptions"],
-    queryFn: () => requestJson("/api/payment-methods?feature=subscriptions"),
+  const paymentOptionsQuery = useQuery<StudioPaymentOptions>({
+    queryKey: ["/api/creator-studio/payment-options"],
+    queryFn: () => requestJson("/api/creator-studio/payment-options"),
     enabled: !!user && !isStudioAdmin && accessQuery.data?.hasAccess === false && accessQuery.data?.subscriptionStatus !== "pending",
   });
-  const paymentMethods = paymentMethodsQuery.data?.length
-    ? paymentMethodsQuery.data
-    : [{ id: "manual", type: "manual", label: "Manual payment", instructions: "Contact Taskdrip support for payment instructions." }];
-  const selectedPaymentMethod = paymentMethods.find((method) => method.id === paymentMethodId) || paymentMethods[0];
+  const paymentMethods: any[] = [
+    ...(paymentOptionsQuery.data?.cryptoWallets || []).map((wallet) => ({
+      id: `crypto:${wallet.id}`,
+      type: wallet.asset,
+      network: wallet.network,
+      label: wallet.name || `${wallet.asset} — ${wallet.network}`,
+      address: wallet.address,
+      instructions: wallet.instructions,
+    })),
+    ...(paymentOptionsQuery.data?.bankAccounts || []).map((account) => ({
+      id: `bank:${account.id}`,
+      type: "bank_transfer",
+      network: "bank_transfer",
+      label: `${account.bankName} — ${account.currency}`,
+      bankName: account.bankName,
+      accountName: account.accountName,
+      accountNumber: account.accountNumber,
+      currency: account.currency,
+      instructions: account.instructions,
+    })),
+  ];
+  const selectedPaymentMethod: any = paymentMethods.find((method) => method.id === paymentMethodId) || paymentMethods[0];
   const subscribeMutation = useMutation({
     mutationFn: async () => {
       const body = new FormData();
@@ -207,6 +236,7 @@ export default function CreatorStudioPage() {
           description: book.description || "",
           outline: book.outline || [],
           chapters: book.chapters || [],
+          kdpKeywords: book.kdpKeywords || [],
           coverImage: book.coverImage || "",
           amazonUrl: book.amazonUrl || "",
           accessUrl: book.accessUrl || "",
@@ -304,6 +334,80 @@ export default function CreatorStudioPage() {
     } finally {
       setChapterBusy(null);
     }
+  };
+
+  const generateMetadata = async () => {
+    if (!activeBook) return;
+    setMetadataBusy(true);
+    setGeneratedMetadata(null);
+    try {
+      const result = await requestJson("/api/creator-studio/ai/metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId: activeBook.id }),
+      });
+      setGeneratedMetadata(result);
+      toast({ title: "KDP metadata is ready", description: "Review all AI suggestions before using them." });
+    } catch (error: any) {
+      toast({ title: "Could not generate KDP metadata", description: error.message, variant: "destructive" });
+    } finally {
+      setMetadataBusy(false);
+    }
+  };
+
+  const runWritingTool = async (tool: string) => {
+    if (!activeBook) return;
+    const chosenChapter = (activeBook.chapters || []).find((chapter) => chapter.id === writingToolChapterId)
+      || activeBook.chapters?.[0];
+    setWritingToolBusy(tool);
+    setWritingToolOutput("");
+    setWritingToolKind(tool);
+    try {
+      const result = await requestJson("/api/creator-studio/ai/tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookId: activeBook.id,
+          chapterId: chosenChapter?.id,
+          tool,
+        }),
+      });
+      setWritingToolOutput(result.content || "");
+    } catch (error: any) {
+      toast({ title: "AI writing tool failed", description: error.message, variant: "destructive" });
+    } finally {
+      setWritingToolBusy("");
+    }
+  };
+
+  const applyGeneratedMetadata = () => {
+    if (!activeBook || !generatedMetadata) return;
+    setActiveBook({
+      ...activeBook,
+      title: generatedMetadata.title || activeBook.title,
+      subtitle: generatedMetadata.subtitle || activeBook.subtitle,
+      description: generatedMetadata.description || activeBook.description,
+      kdpKeywords: generatedMetadata.keywords || activeBook.kdpKeywords || [],
+    });
+    setGeneratedMetadata(null);
+    toast({ title: "KDP metadata applied", description: "Save the draft to keep these changes." });
+  };
+
+  const applyWritingToolOutput = () => {
+    if (!activeBook || !writingToolOutput) return;
+    const chosenChapter = (activeBook.chapters || []).find((chapter) => chapter.id === writingToolChapterId)
+      || activeBook.chapters?.[0];
+    if (writingToolKind === "blurb") {
+      setActiveBook({ ...activeBook, description: writingToolOutput });
+    } else if (writingToolKind === "keywords") {
+      setActiveBook({ ...activeBook, kdpKeywords: writingToolOutput.split("\n").map((item) => item.replace(/^\s*[-*\d.)]+\s*/, "").trim()).filter(Boolean).slice(0, 7) });
+    } else if (writingToolKind === "proofread" || writingToolKind === "expand") {
+      if (chosenChapter) updateChapter(chosenChapter.id, "content", writingToolOutput);
+    } else if (writingToolKind === "title-ideas") {
+      const firstSuggestion = writingToolOutput.split("\n").map((item) => item.replace(/^\s*(?:\d+[.)]|[-*])\s*/, "").trim()).find(Boolean);
+      if (firstSuggestion) setActiveBook({ ...activeBook, title: firstSuggestion.split(" — ")[0].slice(0, 240) });
+    }
+    toast({ title: "AI suggestion applied", description: "Review and save your draft to keep the changes." });
   };
 
   const updateChapter = (id: string, key: keyof Chapter, value: string) => {
@@ -435,11 +539,35 @@ export default function CreatorStudioPage() {
                         <select id="studio-payment-method" className="mt-1 h-10 w-full rounded-md border bg-white px-3 text-sm" value={paymentMethodId || selectedPaymentMethod?.id || ""} onChange={(event) => setPaymentMethodId(event.target.value)}>
                           {paymentMethods.map((method) => <option key={method.id} value={method.id}>{method.label || method.type}</option>)}
                         </select>
-                        {selectedPaymentMethod?.instructions && <p className="mt-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{selectedPaymentMethod.instructions}</p>}
+                        {selectedPaymentMethod ? (
+                          <div className="mt-2 rounded-lg border bg-white p-3 text-sm text-slate-700">
+                            {selectedPaymentMethod.address ? (
+                              <>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{selectedPaymentMethod.asset} receiving address · {selectedPaymentMethod.network}</p>
+                                <div className="mt-1 flex items-start gap-2">
+                                  <code className="min-w-0 flex-1 break-all rounded bg-slate-50 p-2 text-xs">{selectedPaymentMethod.address}</code>
+                                  <Button type="button" size="icon" variant="outline" aria-label="Copy crypto address" onClick={() => navigator.clipboard.writeText(selectedPaymentMethod.address).then(() => toast({ title: "Wallet address copied" }))}><Copy className="h-4 w-4" /></Button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="font-semibold">{selectedPaymentMethod.bankName}</p>
+                                <p className="mt-1">Account name: <strong>{selectedPaymentMethod.accountName}</strong></p>
+                                <p>Account number / IBAN: <strong className="select-all">{selectedPaymentMethod.accountNumber}</strong></p>
+                                <p>Currency: {selectedPaymentMethod.currency}</p>
+                              </>
+                            )}
+                            {selectedPaymentMethod.instructions && <p className="mt-2 text-xs text-slate-600">{selectedPaymentMethod.instructions}</p>}
+                          </div>
+                        ) : (
+                          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                            Subscription payment destinations are not configured yet. Please contact the Taskdrip team.
+                          </p>
+                        )}
                       </div>
                       <div><Label htmlFor="studio-payment-reference">Transaction reference</Label><Input id="studio-payment-reference" value={subscriptionReference} onChange={(event) => setSubscriptionReference(event.target.value)} maxLength={255} placeholder="Enter a transfer or payment reference" /></div>
                       <div><Label htmlFor="studio-payment-proof">Payment proof (PNG, JPG, WEBP, or PDF)</Label><Input id="studio-payment-proof" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf" onChange={(event) => setSubscriptionProof(event.target.files?.[0] || null)} /><p className="mt-1 text-xs text-slate-500">Add a transaction reference or attach proof. Do not upload passwords, account credentials, or private keys.</p></div>
-                      <Button type="submit" disabled={subscribeMutation.isPending || (!subscriptionReference.trim() && !subscriptionProof)}>
+                      <Button type="submit" disabled={subscribeMutation.isPending || !selectedPaymentMethod || (!subscriptionReference.trim() && !subscriptionProof)}>
                         {subscribeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
                         Submit monthly payment for review
                       </Button>
@@ -563,6 +691,59 @@ export default function CreatorStudioPage() {
                   </div>
                   <div><Label>Book concept</Label><Textarea rows={3} value={activeBook.idea || ""} onChange={(e) => setActiveBook({ ...activeBook, idea: e.target.value })} placeholder="Who is this for, and what will readers learn?" /></div>
                   <div><Label>Book description</Label><Textarea rows={3} value={activeBook.description || ""} onChange={(e) => setActiveBook({ ...activeBook, description: e.target.value })} placeholder="A short description for readers and the Taskdrip Shop." /></div>
+                  <Card className="border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 shadow-none">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
+                        <span className="flex items-center gap-2"><Wand2 className="h-4 w-4 text-violet-700" />AI book launch studio</span>
+                        <Button type="button" size="sm" variant="outline" onClick={generateMetadata} disabled={metadataBusy}>
+                          {metadataBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                          Generate KDP metadata
+                        </Button>
+                      </CardTitle>
+                      <p className="text-xs text-slate-600">Generate title, subtitle, sales description, search keywords, and category ideas for review. AI text is a draft, not a bestseller guarantee.</p>
+                    </CardHeader>
+                    {generatedMetadata && (
+                      <CardContent className="space-y-2 border-t border-violet-100 pt-3">
+                        <p className="font-semibold">{generatedMetadata.title}{generatedMetadata.subtitle ? `: ${generatedMetadata.subtitle}` : ""}</p>
+                        <p className="text-sm text-slate-600 line-clamp-4 whitespace-pre-line">{generatedMetadata.description}</p>
+                        <p className="text-xs text-slate-500"><strong>Keywords:</strong> {(generatedMetadata.keywords || []).join(" · ")}</p>
+                        <p className="text-xs text-slate-500"><strong>Category ideas:</strong> {(generatedMetadata.categories || []).join(" · ")}</p>
+                        <Button type="button" size="sm" onClick={applyGeneratedMetadata}>Apply metadata to draft</Button>
+                      </CardContent>
+                    )}
+                    <CardContent className="space-y-3 pt-2">
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          ["title-ideas", "Title ideas"],
+                          ["blurb", "Write sales blurb"],
+                          ["keywords", "KDP keywords"],
+                          ["proofread", "Proofread chapter"],
+                          ["expand", "Expand chapter draft"],
+                        ].map(([tool, label]) => (
+                          <Button key={tool} type="button" size="sm" variant="outline" onClick={() => runWritingTool(tool)} disabled={!!writingToolBusy || (["proofread", "expand"].includes(tool) && !(activeBook.chapters || []).some((chapter) => chapter.content.trim()))}>
+                            {writingToolBusy === tool ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
+                            {label}
+                          </Button>
+                        ))}
+                      </div>
+                      {(activeBook.chapters || []).length > 0 && (
+                        <div className="max-w-sm">
+                          <Label htmlFor="ai-tool-chapter" className="text-xs">Chapter for proofread / expand</Label>
+                          <select id="ai-tool-chapter" className="mt-1 h-9 w-full rounded-md border bg-white px-2 text-sm" value={writingToolChapterId || activeBook.chapters?.[0]?.id || ""} onChange={(e) => setWritingToolChapterId(e.target.value)}>
+                            {activeBook.chapters?.map((chapter) => <option key={chapter.id} value={chapter.id}>{chapter.title}</option>)}
+                          </select>
+                        </div>
+                      )}
+                      {writingToolOutput && (
+                        <div className="rounded-lg border bg-white p-3">
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">AI draft — review before applying</p>
+                          <Textarea rows={8} value={writingToolOutput} onChange={(e) => setWritingToolOutput(e.target.value)} />
+                          <Button type="button" size="sm" className="mt-2" onClick={applyWritingToolOutput}>Apply suggestion</Button>
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500">Requires GROQ_API_KEY. Review AI-generated writing, claims, and metadata yourself before publishing.</p>
+                    </CardContent>
+                  </Card>
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1"><Label>Chapter outline</Label><Button size="sm" variant="outline" onClick={generateOutline} disabled={outlineBusy}><Sparkles className="h-4 w-4 mr-1" />{outlineBusy ? "Generating…" : "Generate outline"}</Button></div>
                     <Textarea rows={4} value={(activeBook.outline || []).join("\n")} onChange={(e) => setActiveBook({ ...activeBook, outline: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean) })} placeholder="Add one chapter title per line." />
@@ -589,6 +770,7 @@ export default function CreatorStudioPage() {
                     <div><Label>Amazon KDP purchase link (optional)</Label><Input type="url" value={activeBook.amazonUrl || ""} onChange={(e) => setActiveBook({ ...activeBook, amazonUrl: e.target.value })} placeholder="Add after the book is live on Amazon" /></div>
                     <div><Label>Reader or purchase link (optional)</Label><Input type="url" value={activeBook.accessUrl || ""} onChange={(e) => setActiveBook({ ...activeBook, accessUrl: e.target.value })} placeholder="https://…" /></div>
                   </div>
+                  <div><Label>KDP search keywords (up to 7, one per line)</Label><Textarea rows={3} value={(activeBook.kdpKeywords || []).join("\n")} onChange={(e) => setActiveBook({ ...activeBook, kdpKeywords: e.target.value.split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 7) })} placeholder="beginner home gardening&#10;small-space vegetable garden&#10;…" /></div>
                   <p className="-mt-2 text-xs text-slate-500">Amazon links appear as “Buy on Amazon.” Your reader link appears as “Access Book” on the public store page. Use a public or separately gated HTTPS page; these links are visible to all visitors.</p>
                   <div><Label>Finished PDF or EPUB file (optional when using an external link)</Label><Input type="file" accept=".pdf,.epub" onChange={(e) => setBookFile(e.target.files?.[0] || null)} /><p className="text-xs text-slate-500 mt-1">Upload the customer-ready file for Taskdrip delivery, or submit a KDP/reader link for an externally delivered book.</p></div>
                   <Card className="border-violet-200 bg-violet-50/60 shadow-none">

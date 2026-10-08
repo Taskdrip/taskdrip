@@ -250,6 +250,7 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
     if (sendgridKey) providers.push(sgProvider);
   }
 
+  const providerErrors: string[] = [];
   for (const provider of providers) {
     try {
       await provider.fn();
@@ -265,13 +266,17 @@ export async function sendEmail(opts: EmailOptions): Promise<{ success: boolean;
       });
       return { success: true, provider: provider.name };
     } catch (err: any) {
-      console.error(`[email] ${provider.name} send failed:`, err.message);
+      const detail = String(err?.message || err || "Unknown delivery error").replace(/Bearer\s+\S+/gi, "Bearer [redacted]").slice(0, 500);
+      providerErrors.push(`${provider.name}: ${detail}`);
+      console.error(`[email] ${provider.name} send failed:`, detail);
       // Try next provider
     }
   }
 
   // All providers failed
-  const errMsg = "All email providers failed. Check RESEND_API_KEY / SMTP credentials.";
+  const errMsg = providerErrors.length
+    ? `All email providers failed. ${providerErrors.join(" | ")}`
+    : "No email provider is available. Configure Resend, SMTP, or SendGrid.";
   await db.insert(emailLogs).values({
     id: crypto.randomUUID(),
     campaignId: opts.campaignId || null,

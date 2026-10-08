@@ -56,6 +56,8 @@ export function AiEmailAssistant({
   const [subjectGoal, setSubjectGoal] = useState("");
   const [generatingSubjects, setGeneratingSubjects] = useState(false);
   const [subjects, setSubjects] = useState<string[]>([]);
+  const [sendTimeSuggestion, setSendTimeSuggestion] = useState("");
+  const [loadingSendTime, setLoadingSendTime] = useState(false);
 
   // ── Improve tab state
   const [improveFeedback, setImproveFeedback] = useState("");
@@ -126,6 +128,25 @@ export function AiEmailAssistant({
       toast({ title: `AI Error: ${err.message}`, variant: "destructive" });
     } finally {
       setGeneratingSubjects(false);
+    }
+  };
+
+  const handleRecommendSendTime = async () => {
+    setLoadingSendTime(true);
+    try {
+      const res = await fetch("/api/admin/email/ai/send-time", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ audience, emailType: category }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Recommendation failed");
+      setSendTimeSuggestion(data.recommendation || "");
+    } catch (err: any) {
+      toast({ title: `AI Error: ${err.message}`, variant: "destructive" });
+    } finally {
+      setLoadingSendTime(false);
     }
   };
 
@@ -316,6 +337,15 @@ export function AiEmailAssistant({
                   <><Sparkles className="h-4 w-4" />Generate 5 Subject Lines</>
                 )}
               </Button>
+              {mode === "campaign" && (
+                <div>
+                  <Button type="button" variant="outline" className="w-full gap-2" onClick={handleRecommendSendTime} disabled={loadingSendTime}>
+                    {loadingSendTime ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Lightbulb className="h-4 w-4" />}
+                    {loadingSendTime ? "Checking…" : "Recommend a send time"}
+                  </Button>
+                  {sendTimeSuggestion && <p className="mt-2 rounded-lg bg-indigo-50 p-3 text-sm text-indigo-900">{sendTimeSuggestion}</p>}
+                </div>
+              )}
 
               {subjects.length > 0 && (
                 <div className="space-y-2">

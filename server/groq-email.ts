@@ -45,9 +45,12 @@ async function groqChat(
 // Parse delimiter-wrapped response: ---SUBJECT--- ... ---HTML--- ... ---END---
 function parseDelimitedResponse(text: string): { subject: string; html: string } | null {
   const subjectMatch = text.match(/---SUBJECT---\s*([\s\S]*?)\s*---HTML---/);
-  const htmlMatch = text.match(/---HTML---\s*([\s\S]*?)\s*---END---/s);
+  const htmlMatch = text.match(/---HTML---\s*([\s\S]*?)\s*---END---/);
   if (!subjectMatch?.[1] || !htmlMatch?.[1]) return null;
-  return { subject: subjectMatch[1].trim(), html: htmlMatch[1].trim() };
+  return {
+    subject: subjectMatch[1].trim().replace(/^```(?:text)?\s*/i, "").replace(/\s*```$/, ""),
+    html: htmlMatch[1].trim().replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/, ""),
+  };
 }
 
 const DESIGN_RULES = `
@@ -195,13 +198,13 @@ ${opts.html.slice(0, 3500)}`,
   );
 
   const subjectMatch = reply.match(/---SUBJECT---\s*([\s\S]*?)\s*---HTML---/);
-  const htmlMatch = reply.match(/---HTML---\s*([\s\S]*?)\s*---SUMMARY---/s);
-  const summaryMatch = reply.match(/---SUMMARY---\s*([\s\S]*?)\s*---END---/s);
+  const htmlMatch = reply.match(/---HTML---\s*([\s\S]*?)\s*---SUMMARY---/);
+  const summaryMatch = reply.match(/---SUMMARY---\s*([\s\S]*?)\s*---END---/);
 
   return {
     subject: subjectMatch?.[1]?.trim() ?? opts.subject ?? "",
-    html: htmlMatch?.[1]?.trim() ?? opts.html,
-    summary: summaryMatch?.[1]?.trim() ?? "",
+    html: htmlMatch?.[1]?.trim().replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/, "") ?? opts.html,
+    summary: summaryMatch?.[1]?.trim().replace(/^```(?:text)?\s*/i, "").replace(/\s*```$/, "") ?? "",
   };
 }
 

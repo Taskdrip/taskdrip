@@ -51,6 +51,13 @@ function SignupSuccessScreen({ firstName, userType, redirectTo }: { firstName: s
 
   const isBrand = userType === 'brand';
 
+  useEffect(() => {
+    if (redirectTo === "/creator-studio") {
+      const timer = window.setTimeout(() => setLocation(redirectTo), 900);
+      return () => window.clearTimeout(timer);
+    }
+  }, [redirectTo, setLocation]);
+
   const socialItems = [
     { href: SOCIALS.telegram, label: "Join Telegram Community", icon: SiTelegram, color: "bg-[#229ED9]", pts: "+20 pts" },
     { href: SOCIALS.whatsapp, label: "Chat on WhatsApp", icon: SiWhatsapp, color: "bg-[#25D366]", pts: "+10 pts" },

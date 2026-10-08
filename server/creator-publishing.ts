@@ -19,6 +19,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
+import { storage } from "./storage";
 
 const PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
@@ -102,6 +103,116 @@ async function getCreatorStudioMonthlyPrice() {
     : 7;
 }
 
+type CreatorStudioPaymentOptions = {
+  cryptoWallets: Array<{
+    id: string; name: string; asset: string; network: string; address: string; instructions: string; enabled: boolean;
+  }>;
+  bankAccounts: Array<{
+    id: string; bankName: string; accountName: string; accountNumber: string; currency: string; instructions: string; enabled: boolean;
+  }>;
+};
+
+const EMPTY_STUDIO_PAYMENT_OPTIONS: CreatorStudioPaymentOptions = { cryptoWallets: [], bankAccounts: [] };
+
+async function getCreatorStudioPaymentOptions(): Promise<CreatorStudioPaymentOptions> {
+  const [setting] = await db.select({ value: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, "creator_studio_payment_options"))
+    .limit(1);
+  try {
+    const parsed = JSON.parse(setting?.value || "{}");
+    return {
+      cryptoWallets: Array.isArray(parsed.cryptoWallets) ? parsed.cryptoWallets : [],
+      bankAccounts: Array.isArray(parsed.bankAccounts) ? parsed.bankAccounts : [],
+    };
+  } catch {
+    return EMPTY_STUDIO_PAYMENT_OPTIONS;
+  }
+}
+
+function validateStudioPaymentOptions(input: any): CreatorStudioPaymentOptions {
+  const clean = (value: any, max = 200) => String(value ?? "").trim().slice(0, max);
+  return {
+    cryptoWallets: (Array.isArray(input?.cryptoWallets) ? input.cryptoWallets : []).slice(0, 20).map((wallet: any, index: number) => ({
+      id: clean(wallet.id, 80) || `wallet-${index + 1}`,
+      name: clean(wallet.name, 100),
+      asset: clean(wallet.asset, 20).toUpperCase(),
+      network: clean(wallet.network, 80),
+      address: clean(wallet.address, 240),
+      instructions: clean(wallet.instructions, 1000),
+      enabled: wallet.enabled !== false,
+    })).filter((wallet: any) => wallet.name && wallet.asset && wallet.network && wallet.address),
+    bankAccounts: (Array.isArray(input?.bankAccounts) ? input.bankAccounts : []).slice(0, 20).map((account: any, index: number) => ({
+      id: clean(account.id, 80) || `bank-${index + 1}`,
+      bankName: clean(account.bankName, 100),
+      accountName: clean(account.accountName, 160),
+      accountNumber: clean(account.accountNumber, 80),
+      currency: clean(account.currency || "USD", 12).toUpperCase(),
+      instructions: clean(account.instructions, 1000),
+      enabled: account.enabled !== false,
+    })).filter((account: any) => account.bankName && account.accountName && account.accountNumber),
+  };
+}
+
+async function sendCreatorStudioExpiryReminders() {
+  const now = new Date();
+  const activeRows = await db.select().from(creatorStudioSubscriptions)
+    .where(eq(creatorStudioSubscriptions.status, "active"));
+  if (!activeRows.length) return;
+
+  const emailService = await import("./email-service").catch(() => null);
+  for (const subscription of activeRows) {
+    if (!subscription.endDate) continue;
+    const remainingMs = subscription.endDate.getTime() - now.getTime();
+    const daysLeft = remainingMs / (24 * 60 * 60 * 1000);
+    const reminderType = daysLeft <= 0 ? "creator_studio_expired" : daysLeft <= 3 ? "creator_studio_expiry_reminder" : null;
+    if (!reminderType) continue;
+    const reminderLink = `/creator-studio?renewal=${subscription.id}&expires=${subscription.endDate.getTime()}`;
+    const [existing] = await db.select({ id: notifications.id })
+      .from(notifications)
+      .where(and(
+        eq(notifications.relatedId, subscription.id),
+        eq(notifications.type, reminderType),
+        eq(notifications.actionUrl, reminderLink),
+      )).limit(1);
+    if (existing) continue;
+
+    const expired = daysLeft <= 0;
+    const message = expired
+      ? "Your Creator Studio access has expired. Submit a new monthly payment to restore access."
+      : `Your Creator Studio access expires in ${Math.max(1, Math.ceil(daysLeft))} day${Math.ceil(daysLeft) === 1 ? "" : "s"}. Submit your renewal payment before it ends.`;
+    await db.insert(notifications).values({
+      userId: subscription.userId,
+      type: reminderType,
+      title: expired ? "Creator Studio access expired" : "Creator Studio renewal reminder",
+      content: message,
+      actionUrl: reminderLink,
+      relatedId: subscription.id,
+      isRead: false,
+      priority: "high",
+    }).catch((error) => console.warn("[creator-studio] Could not save expiry notification:", error));
+
+    const [user] = await db.select({ email: users.email, firstName: users.firstName })
+      .from(users).where(eq(users.id, subscription.userId)).limit(1);
+    if (user?.email && emailService?.sendEmail) {
+      await emailService.sendEmail({
+        to: user.email,
+        toName: user.firstName,
+        subject: expired ? "Your Creator Studio access has expired" : "Your Creator Studio subscription is almost due",
+        html: `<p>Hello ${String(user.firstName || "there").replace(/[<>&"]/g, "")},</p><p>${message}</p><p><a href="https://taskdrip.online/creator-studio">Open Creator Studio to renew</a></p>`,
+      }).catch((error: any) => console.warn("[creator-studio] Renewal email failed:", error?.message || error));
+    }
+
+    if (expired) {
+      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now })
+        .where(and(
+          eq(creatorStudioSubscriptions.id, subscription.id),
+          eq(creatorStudioSubscriptions.status, "active"),
+        ));
+    }
+  }
+}
+
 async function getCreatorStudioAccess(userId: string) {
   const now = new Date();
   const [active] = await db.select().from(creatorStudioSubscriptions)
@@ -172,7 +283,7 @@ function parseList(value: any): string[] {
   } catch {
     // Plain comma-separated tags are also accepted.
   }
-  return value.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 20);
+  return value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean).slice(0, 20);
 }
 
 function validPublicImage(value: any): string | null {
@@ -311,12 +422,35 @@ export async function recordCreatorProductSale(purchaseId: string, referralAmoun
 }
 
 export function registerCreatorPublishingRoutes(app: Express) {
+  const reminderTimer = setInterval(() => {
+    sendCreatorStudioExpiryReminders().catch((error) => {
+      console.error("[creator-studio] Subscription reminder scan failed:", error);
+    });
+  }, 12 * 60 * 60 * 1000);
+  reminderTimer.unref?.();
+  sendCreatorStudioExpiryReminders().catch((error) => {
+    console.error("[creator-studio] Initial subscription reminder scan failed:", error);
+  });
+
   app.get("/api/creator-studio/plan", async (_req, res) => {
     try {
       res.json({ monthlyPrice: await getCreatorStudioMonthlyPrice(), currency: "USD", periodDays: 30 });
     } catch (error) {
       console.error("Could not load Creator Studio plan:", error);
       res.status(500).json({ message: "Could not load Creator Studio pricing." });
+    }
+  });
+
+  app.get("/api/creator-studio/payment-options", async (_req, res) => {
+    try {
+      const options = await getCreatorStudioPaymentOptions();
+      res.json({
+        cryptoWallets: options.cryptoWallets.filter((item) => item.enabled),
+        bankAccounts: options.bankAccounts.filter((item) => item.enabled),
+      });
+    } catch (error) {
+      console.error("Could not load Creator Studio payment options:", error);
+      res.status(500).json({ message: "Could not load Creator Studio payment options." });
     }
   });
 
@@ -457,8 +591,8 @@ export function registerCreatorPublishingRoutes(app: Express) {
     if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const action = String(req.body.action || "");
     const reviewNote = String(req.body.reviewNote || "").trim().slice(0, 4000);
-    if (!["approve", "reject", "revoke"].includes(action)) {
-      return res.status(400).json({ message: "Choose approve, reject, or revoke." });
+    if (!["approve", "reject", "revoke", "extend"].includes(action)) {
+      return res.status(400).json({ message: "Choose approve, reject, revoke, or extend." });
     }
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason when rejecting a payment." });
     try {
@@ -471,16 +605,17 @@ export function registerCreatorPublishingRoutes(app: Express) {
       if (action === "reject" && subscription.status !== "pending") {
         return res.status(409).json({ message: "Only pending payments can be rejected." });
       }
-      if (action === "revoke" && subscription.status !== "active") {
-        return res.status(409).json({ message: "Only active access can be revoked." });
+      if ((action === "revoke" || action === "extend") && subscription.status !== "active") {
+        return res.status(409).json({ message: "Only active subscriptions can be extended or revoked." });
       }
       const now = new Date();
-      const endDate = new Date(now.getTime() + subscription.periodDays * 24 * 60 * 60 * 1000);
-      const nextStatus = action === "approve" ? "active" : action === "reject" ? "rejected" : "cancelled";
+      const extensionStart = subscription.endDate && subscription.endDate > now ? subscription.endDate : now;
+      const endDate = new Date(extensionStart.getTime() + subscription.periodDays * 24 * 60 * 60 * 1000);
+      const nextStatus = action === "approve" || action === "extend" ? "active" : action === "reject" ? "rejected" : "cancelled";
       const [updated] = await db.update(creatorStudioSubscriptions).set({
         status: nextStatus,
         startDate: action === "approve" ? now : subscription.startDate,
-        endDate: action === "approve" ? endDate : action === "revoke" ? now : subscription.endDate,
+        endDate: action === "approve" || action === "extend" ? endDate : action === "revoke" ? now : subscription.endDate,
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: now,
@@ -489,10 +624,13 @@ export function registerCreatorPublishingRoutes(app: Express) {
 
       const title = action === "approve"
         ? "Creator Studio access approved"
-        : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
+        : action === "extend" ? "Creator Studio access extended"
+          : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
       const content = action === "approve"
         ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.`
-        : action === "reject"
+        : action === "extend"
+          ? `Your Creator Studio subscription has been extended until ${endDate.toLocaleDateString()}.`
+          : action === "reject"
           ? `Your Creator Studio payment was not approved. ${reviewNote}`
           : "An admin ended your Creator Studio access.";
       await db.insert(notifications).values({
@@ -508,6 +646,98 @@ export function registerCreatorPublishingRoutes(app: Express) {
     } catch (error) {
       console.error("Could not update Creator Studio subscription:", error);
       res.status(500).json({ message: "Could not update Creator Studio subscription." });
+    }
+  });
+
+  app.get("/api/admin/creator-studio/payment-options", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      res.json(await getCreatorStudioPaymentOptions());
+    } catch (error) {
+      console.error("Could not load Creator Studio payment options:", error);
+      res.status(500).json({ message: "Could not load Creator Studio payment options." });
+    }
+  });
+
+  app.put("/api/admin/creator-studio/payment-options", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const options = validateStudioPaymentOptions(req.body);
+      await db.insert(appSettings).values({
+        key: "creator_studio_payment_options",
+        value: JSON.stringify(options),
+        updatedAt: new Date(),
+      }).onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: JSON.stringify(options), updatedAt: new Date() },
+      });
+      res.json(options);
+    } catch (error) {
+      console.error("Could not save Creator Studio payment options:", error);
+      res.status(500).json({ message: "Could not save Creator Studio payment options." });
+    }
+  });
+
+  app.post("/api/admin/creator-studio/subscriptions/grant", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const periodDays = Number(req.body.periodDays ?? 30);
+    if (!email || !Number.isInteger(periodDays) || periodDays < 1 || periodDays > 365) {
+      return res.status(400).json({ message: "Enter a creator email and an access period from 1 to 365 days." });
+    }
+    try {
+      const [user] = await db.select({ id: users.id, userType: users.userType })
+        .from(users).where(eq(users.email, email)).limit(1);
+      if (!user || user.userType !== "creator") return res.status(404).json({ message: "No creator account found for that email." });
+      const access = await getCreatorStudioAccess(user.id);
+      if (access.hasAccess) return res.status(409).json({ message: "This creator already has active access." });
+      if (access.subscriptionStatus === "pending") return res.status(409).json({ message: "This creator already has a payment awaiting review." });
+
+      const now = new Date();
+      const endDate = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
+      const [subscription] = await db.insert(creatorStudioSubscriptions).values({
+        userId: user.id,
+        status: "active",
+        amount: "0.00",
+        currency: "USD",
+        network: "admin_grant",
+        paymentMethodLabel: "Admin-granted access",
+        periodDays,
+        startDate: now,
+        endDate,
+        reviewedBy: req.user.id,
+        reviewedAt: now,
+      }).returning();
+      await db.insert(notifications).values({
+        userId: user.id,
+        type: "creator_studio_subscription",
+        title: "Creator Studio access granted",
+        content: `Your Creator Studio access is active until ${endDate.toLocaleDateString()}.`,
+        actionUrl: "/creator-studio",
+        priority: "high",
+      });
+      res.status(201).json(subscription);
+    } catch (error) {
+      console.error("Could not grant Creator Studio access:", error);
+      res.status(500).json({ message: "Could not grant Creator Studio access." });
+    }
+  });
+
+  app.post("/api/admin/creator-studio/subscribers/:userId/reset-password", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const password = String(req.body.password || "");
+    if (password.length < 12 || password.length > 128) {
+      return res.status(400).json({ message: "Use a temporary password between 12 and 128 characters." });
+    }
+    try {
+      const [subscriber] = await db.select({ id: users.id, userType: users.userType })
+        .from(users).where(eq(users.id, req.params.userId)).limit(1);
+      if (!subscriber || subscriber.userType !== "creator") return res.status(404).json({ message: "Creator account not found." });
+      await storage.resetUserPassword(subscriber.id, password);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Could not reset Creator Studio subscriber password:", error);
+      res.status(500).json({ message: "Could not reset the password." });
     }
   });
 
@@ -533,6 +763,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
         bookType: "nonfiction",
         genre: "General nonfiction",
         trimSize: "6x9",
+        kdpKeywords: [],
         status: "draft",
       }).returning();
       res.status(201).json(book);
@@ -578,6 +809,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
       if (req.body.idea !== undefined) changes.idea = String(req.body.idea).slice(0, 12000);
       if (req.body.description !== undefined) changes.description = String(req.body.description).slice(0, 20000);
       if (req.body.outline !== undefined) changes.outline = parseList(req.body.outline);
+      if (req.body.kdpKeywords !== undefined) changes.kdpKeywords = parseList(req.body.kdpKeywords);
       if (req.body.chapters !== undefined) {
         if (!Array.isArray(req.body.chapters) || req.body.chapters.length > 80) {
           return res.status(400).json({ message: "A book can contain up to 80 chapters." });
@@ -899,6 +1131,102 @@ export function registerCreatorPublishingRoutes(app: Express) {
     } catch (error) {
       console.error("Publishing chapter generation failed:", error);
       res.status(502).json({ message: "AI chapter generation failed. Try again later." });
+    }
+  });
+
+  app.post("/api/creator-studio/ai/metadata", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    const client = createGroqClient();
+    if (!client) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
+    const bookId = String(req.body.bookId || "");
+    const [book] = await db.select().from(creatorBooks)
+      .where(and(eq(creatorBooks.id, bookId), eq(creatorBooks.creatorId, req.user.id)))
+      .limit(1);
+    if (!book) return res.status(404).json({ message: "Book not found." });
+    if (book.status === "published" || book.status === "submitted") {
+      return res.status(409).json({ message: "Metadata for submitted books is locked." });
+    }
+    try {
+      const result = await client.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        temperature: 0.65,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: "Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {\"title\":\"...\",\"subtitle\":\"...\",\"description\":\"...\",\"keywords\":[\"...\"],\"categories\":[\"...\"]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.",
+          },
+          {
+            role: "user",
+            content: `Book type: ${book.bookType}\nNiche: ${book.genre}\nTrim size: ${book.trimSize}\nConcept: ${book.idea || ""}\nCurrent title: ${book.title}\nCurrent subtitle: ${book.subtitle || ""}\nCurrent description: ${book.description || ""}`,
+          },
+        ],
+      });
+      const parsed = JSON.parse(result.choices[0]?.message?.content || "{}");
+      res.json({
+        title: String(parsed.title || "").slice(0, 240),
+        subtitle: String(parsed.subtitle || "").slice(0, 300),
+        description: String(parsed.description || "").slice(0, 3500),
+        keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 7).map((item: any) => String(item).slice(0, 100)) : [],
+        categories: Array.isArray(parsed.categories) ? parsed.categories.slice(0, 5).map((item: any) => String(item).slice(0, 120)) : [],
+      });
+    } catch (error) {
+      console.error("Publishing metadata generation failed:", error);
+      res.status(502).json({ message: "AI metadata generation failed. Try again later." });
+    }
+  });
+
+  app.post("/api/creator-studio/ai/tool", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    const client = createGroqClient();
+    if (!client) return res.status(503).json(groqUnavailableResponse("writing tools"));
+    const tool = String(req.body.tool || "");
+    const bookId = String(req.body.bookId || "");
+    const chapterId = String(req.body.chapterId || "");
+    const [book] = await db.select().from(creatorBooks)
+      .where(and(eq(creatorBooks.id, bookId), eq(creatorBooks.creatorId, req.user.id)))
+      .limit(1);
+    if (!book) return res.status(404).json({ message: "Book not found." });
+    if (book.status === "published" || book.status === "submitted") {
+      return res.status(409).json({ message: "Writing tools are disabled for submitted or published books." });
+    }
+    const chapter = (Array.isArray(book.chapters) ? book.chapters : []).find((item) => item.id === chapterId);
+    if (["proofread", "expand"].includes(tool) && !chapter) {
+      return res.status(404).json({ message: "Choose a saved chapter first." });
+    }
+    const input = String(req.body.input || "").trim().slice(0, 12000);
+    if (!["title-ideas", "blurb", "proofread", "expand", "keywords"].includes(tool)) {
+      return res.status(400).json({ message: "Choose a supported writing tool." });
+    }
+    if (["proofread", "expand"].includes(tool) && !(chapter?.content || "").trim()) {
+      return res.status(400).json({ message: "Add chapter content before using this tool." });
+    }
+    try {
+      const instructions: Record<string, string> = {
+        "title-ideas": "Suggest 10 original, memorable book title and subtitle pairs for the concept. Include no false claims. Return numbered plain text.",
+        blurb: "Write a compelling back-cover / Amazon description for this book. Include a strong hook, reader outcomes, and a clear audience fit. No fabricated credentials, reviews, research, or guaranteed results. Return polished plain text under 3000 characters.",
+        proofread: "Proofread and improve grammar, clarity, flow, and consistency while preserving the author's meaning and voice. Do not add fabricated facts or sources. Return only the revised chapter text.",
+        expand: "Expand the chapter into a detailed, useful draft that fits the book's outline and niche. Preserve the author's existing ideas, add clear headings and helpful examples, but do not invent research or make professional medical, legal, or financial claims. Return only the revised chapter text.",
+        keywords: "Suggest 7 relevant Amazon KDP search keyword phrases, each short enough to fit a keyword field. Avoid misleading, trademark-stuffed, or bestseller-guarantee phrases. Return one phrase per line.",
+      };
+      const context = `Book title: ${book.title}\nBook type: ${book.bookType}\nNiche: ${book.genre}\nConcept: ${book.idea || ""}\nDescription: ${book.description || ""}`;
+      const prompt = tool === "proofread" || tool === "expand"
+        ? `${context}\nChapter title: ${chapter?.title}\nCurrent chapter text:\n${chapter?.content}`
+        : `${context}\n${input ? `Creator's focus: ${input}` : ""}`;
+      const result = await client.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        temperature: tool === "proofread" ? 0.35 : 0.7,
+        messages: [
+          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.` },
+          { role: "user", content: prompt },
+        ],
+      });
+      const content = result.choices[0]?.message?.content?.trim();
+      if (!content) return res.status(502).json({ message: "The AI provider returned an empty result. Try again." });
+      res.json({ content });
+    } catch (error) {
+      console.error(`Publishing ${tool} tool failed:`, error);
+      res.status(502).json({ message: "The AI writing tool failed. Try again later." });
     }
   });
 

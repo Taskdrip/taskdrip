@@ -578,6 +578,7 @@ const REQUIRED_TABLES: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS "creator_books_creator_id_idx" ON "creator_books" ("creator_id")`,
   `CREATE INDEX IF NOT EXISTS "creator_books_status_idx" ON "creator_books" ("status")`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "kdp_keywords" jsonb NOT NULL DEFAULT '[]'::jsonb`,
   `CREATE TABLE IF NOT EXISTS "creator_publishing_products" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "creator_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,

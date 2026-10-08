@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { AiEmailAssistant } from "@/components/ai-email-assistant";
 import { EmailBodyEditor } from "@/components/email-body-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -19,7 +20,7 @@ import {
   Server, Shield, Globe, Key, TestTube, Inbox, Bot, ChevronRight,
   ArrowLeft, Copy, Info, Layers, BookOpen, ExternalLink, Terminal, Lock,
   Database, HelpCircle, Package, Bell, Download, LayoutGrid, GraduationCap,
-  ShoppingBag, Building2, UserCheck, PieChart, AtSign, X
+  ShoppingBag, Building2, UserCheck, PieChart, AtSign, Sparkles, X
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -864,6 +865,8 @@ export default function AdminEmail() {
   const [welcomeTestName, setWelcomeTestName] = useState("");
   const [welcomeTestType, setWelcomeTestType] = useState("creator");
   const [sendingWelcomeTest, setSendingWelcomeTest] = useState(false);
+  const [emailAiInsight, setEmailAiInsight] = useState("");
+  const [generatingEmailInsight, setGeneratingEmailInsight] = useState(false);
 
   // ── Campaign state
   const [campaignModal, setCampaignModal] = useState(false);
@@ -997,6 +1000,20 @@ export default function AdminEmail() {
       else toast({ title: `Failed: ${data.error}`, variant: "destructive" });
     } catch { toast({ title: "Failed to send", variant: "destructive" }); }
     setSendingTest(false);
+  };
+
+  const handleGenerateEmailInsights = async () => {
+    setGeneratingEmailInsight(true);
+    try {
+      const response = await fetch("/api/admin/email/ai/insights", { credentials: "include" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not load AI insights");
+      setEmailAiInsight(data.insights || "");
+    } catch (error: any) {
+      toast({ title: "AI insights unavailable", description: error.message, variant: "destructive" });
+    } finally {
+      setGeneratingEmailInsight(false);
+    }
   };
 
   const handleSendWelcomeTest = async () => {
@@ -1216,6 +1233,23 @@ export default function AdminEmail() {
             <StatCard label="Total Campaigns" value={campaigns.length} icon={Layers} color="bg-indigo-600" />
             <StatCard label="Email Templates" value={templates.length} icon={FileText} color="bg-pink-600" />
           </div>
+
+          <Card className="mb-6 border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center justify-between gap-3 text-base">
+                <span className="flex items-center gap-2"><Bot className="h-4 w-4 text-purple-600" />Groq AI campaign insights</span>
+                <Button size="sm" variant="outline" className="gap-1 border-purple-200" onClick={handleGenerateEmailInsights} disabled={generatingEmailInsight}>
+                  {generatingEmailInsight ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {generatingEmailInsight ? "Analyzing…" : "Analyze email performance"}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {emailAiInsight
+                ? <p className="whitespace-pre-line text-sm text-gray-700">{emailAiInsight}</p>
+                : <p className="text-xs text-gray-500">Get tailored recommendations from your campaign open, click, and subscriber data. Requires GROQ_API_KEY.</p>}
+            </CardContent>
+          </Card>
 
           {/* Test welcome email panel */}
           <Card className="mb-6 border border-purple-100 bg-purple-50/40">
@@ -2417,6 +2451,16 @@ export default function AdminEmail() {
                 value={editCampaign?.subject || ""} onChange={e => setEditCampaign(p => ({ ...p, subject: e.target.value }))} />
             </div>
 
+            <AiEmailAssistant
+              mode="campaign"
+              category="campaign"
+              audience={editCampaign?.targetSegment || "creators and brands"}
+              currentHtml={editCampaign?.htmlBody || ""}
+              currentSubject={editCampaign?.subject || ""}
+              onApplyContent={({ subject, html }) => setEditCampaign(p => ({ ...p, subject, htmlBody: html }))}
+              onApplySubject={subject => setEditCampaign(p => ({ ...p, subject }))}
+            />
+
             {/* AI Quick-fill */}
             <div>
               <Label className="text-xs font-medium mb-2 block">Load from AI Template</Label>
@@ -2480,6 +2524,14 @@ export default function AdminEmail() {
               <Label className="text-xs font-medium">Subject</Label>
               <Input className="mt-1" value={editTemplate?.subject || ""} onChange={e => setEditTemplate(p => ({ ...p, subject: e.target.value }))} />
             </div>
+            <AiEmailAssistant
+              mode="template"
+              category={editTemplate?.category || "general"}
+              currentHtml={editTemplate?.htmlBody || ""}
+              currentSubject={editTemplate?.subject || ""}
+              onApplyContent={({ subject, html }) => setEditTemplate(p => ({ ...p, subject, htmlBody: html }))}
+              onApplySubject={subject => setEditTemplate(p => ({ ...p, subject }))}
+            />
             <div>
               <Label className="text-xs font-medium mb-1.5 block">HTML Body</Label>
               <EmailBodyEditor
@@ -2543,6 +2595,16 @@ export default function AdminEmail() {
               <Label className="text-xs font-medium">Email Subject</Label>
               <Input className="mt-1" value={editAr?.subject || ""} onChange={e => setEditAr(p => ({ ...p, subject: e.target.value }))} />
             </div>
+            <AiEmailAssistant
+              mode="auto-responder"
+              triggerType={editAr?.trigger || "custom"}
+              triggerLabel={TRIGGERS.find(trigger => trigger.value === editAr?.trigger)?.label || editAr?.name || "custom"}
+              audience={editAr?.targetUserType || "all"}
+              currentHtml={editAr?.htmlBody || ""}
+              currentSubject={editAr?.subject || ""}
+              onApplyContent={({ subject, html }) => setEditAr(p => ({ ...p, subject, htmlBody: html, aiGenerated: true }))}
+              onApplySubject={subject => setEditAr(p => ({ ...p, subject }))}
+            />
             <div>
               <Label className="text-xs font-medium mb-1.5 block">HTML Body</Label>
               <EmailBodyEditor
@@ -2587,6 +2649,15 @@ export default function AdminEmail() {
               <Label className="text-xs font-medium">Subject</Label>
               <Input className="mt-1" placeholder="Email subject…" value={composeSubject} onChange={e => setComposeSubject(e.target.value)} />
             </div>
+            <AiEmailAssistant
+              mode="template"
+              category="personal email"
+              audience={emailContactUser?.name || "Taskdrip user"}
+              currentHtml={composeHtml}
+              currentSubject={composeSubject}
+              onApplyContent={({ subject, html }) => { setComposeSubject(subject); setComposeHtml(html); }}
+              onApplySubject={setComposeSubject}
+            />
             <div>
               <Label className="text-xs font-medium mb-1.5 block">Message (HTML supported)</Label>
               <EmailBodyEditor

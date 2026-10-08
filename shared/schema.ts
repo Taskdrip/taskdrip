@@ -377,6 +377,7 @@ export const creatorBooks = pgTable("creator_books", {
   description: text("description"),
   outline: jsonb("outline").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   chapters: jsonb("chapters").$type<Array<{ id: string; title: string; content: string }>>().notNull().default(sql`'[]'::jsonb`),
+  kdpKeywords: jsonb("kdp_keywords").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   coverImage: text("cover_image"),
   amazonUrl: text("amazon_url"),
   accessUrl: text("access_url"),
