@@ -578,6 +578,13 @@ var init_schema = __esm({
       description: text("description"),
       outline: jsonb("outline").$type().notNull().default(sql`'[]'::jsonb`),
       chapters: jsonb("chapters").$type().notNull().default(sql`'[]'::jsonb`),
+      kdpKeywords: jsonb("kdp_keywords").$type().notNull().default(sql`'[]'::jsonb`),
+      designerDocument: jsonb("designer_document").$type().default(sql`null`),
+      generationJobId: varchar("generation_job_id", { length: 80 }),
+      generationStatus: varchar("generation_status", { length: 24 }).notNull().default("idle"),
+      generationProgress: integer("generation_progress").notNull().default(0),
+      generationMessage: text("generation_message"),
+      generationError: text("generation_error"),
       coverImage: text("cover_image"),
       amazonUrl: text("amazon_url"),
       accessUrl: text("access_url"),
@@ -2667,6 +2674,7 @@ async function sendEmail(opts) {
     if (smtpOk) providers.push(smtpProvider);
     if (sendgridKey) providers.push(sgProvider);
   }
+  const providerErrors = [];
   for (const provider of providers) {
     try {
       await provider.fn();
@@ -2682,10 +2690,12 @@ async function sendEmail(opts) {
       });
       return { success: true, provider: provider.name };
     } catch (err) {
-      console.error(`[email] ${provider.name} send failed:`, err.message);
+      const detail = String(err?.message || err || "Unknown delivery error").replace(/Bearer\s+\S+/gi, "Bearer [redacted]").slice(0, 500);
+      providerErrors.push(`${provider.name}: ${detail}`);
+      console.error(`[email] ${provider.name} send failed:`, detail);
     }
   }
-  const errMsg = "All email providers failed. Check RESEND_API_KEY / SMTP credentials.";
+  const errMsg = providerErrors.length ? `All email providers failed. ${providerErrors.join(" | ")}` : "No email provider is available. Configure Resend, SMTP, or SendGrid.";
   await db.insert(emailLogs).values({
     id: crypto.randomUUID(),
     campaignId: opts.campaignId || null,
@@ -4398,6 +4408,242 @@ var init_seed_breedskool = __esm({
   }
 });
 
+// server/groq-email.ts
+var groq_email_exports = {};
+__export(groq_email_exports, {
+  analyzeCampaignInsights: () => analyzeCampaignInsights,
+  generateAutoResponder: () => generateAutoResponder,
+  generateEmailTemplate: () => generateEmailTemplate,
+  generateSubjectLines: () => generateSubjectLines,
+  improveTemplate: () => improveTemplate,
+  recommendSendTime: () => recommendSendTime
+});
+async function groqChat(messages2, maxTokens = 2e3) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY is not configured. Add it to your Replit Secrets.");
+  const res = await fetch(GROQ_API, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: messages2,
+      max_tokens: maxTokens,
+      temperature: 0.72
+    })
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Groq API error ${res.status}: ${errText.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+function parseDelimitedResponse(text2) {
+  const subjectMatch = text2.match(/---SUBJECT---\s*([\s\S]*?)\s*---HTML---/);
+  const htmlMatch = text2.match(/---HTML---\s*([\s\S]*?)\s*---END---/);
+  if (!subjectMatch?.[1] || !htmlMatch?.[1]) return null;
+  return {
+    subject: subjectMatch[1].trim().replace(/^```(?:text)?\s*/i, "").replace(/\s*```$/, ""),
+    html: htmlMatch[1].trim().replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/, "")
+  };
+}
+async function generateEmailTemplate(opts) {
+  const vars = (opts.variables ?? ["{{first_name}}", "{{email}}", "{{site_url}}"]).join(", ");
+  const audience = opts.audience ?? "influencers and creators";
+  const systemPrompt = `You are a world-class email designer for ${BRAND.name} (${BRAND.description}).
+Generate production-ready HTML email templates.
+${DESIGN_RULES}
+Available template variables: ${vars}
+Target audience: ${audience}
+Email category: ${opts.category}
+
+Return your response in EXACTLY this format (no extra text):
+---SUBJECT---
+[the email subject line]
+---HTML---
+[complete <!DOCTYPE html> email here]
+---END---`;
+  const reply = await groqChat(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: `Create a ${opts.category} email template for: ${opts.prompt}` }
+    ],
+    3800
+  );
+  const parsed = parseDelimitedResponse(reply);
+  if (!parsed) {
+    throw new Error("AI returned an unexpected format. Please try again with a clearer description.");
+  }
+  return parsed;
+}
+async function generateSubjectLines(opts) {
+  const count5 = opts.count ?? 5;
+  const reply = await groqChat(
+    [
+      {
+        role: "system",
+        content: `You are an expert email marketer for ${BRAND.name}. Generate ${count5} compelling, high-converting subject lines. Return ONLY a JSON array of strings \u2014 no explanation:
+["Subject 1", "Subject 2", ...]`
+      },
+      {
+        role: "user",
+        content: `Generate ${count5} subject line variations.
+Audience: ${opts.audience}
+Goal: ${opts.goal ?? "maximize open rate and engagement"}
+${opts.existingSubject ? `Existing subject to improve: ${opts.existingSubject}` : ""}
+Email content snippet: ${opts.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 500)}`
+      }
+    ],
+    600
+  );
+  const match = reply.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+  try {
+    const arr = JSON.parse(match[0]);
+    return Array.isArray(arr) ? arr.slice(0, count5).map(String) : [];
+  } catch {
+    return [];
+  }
+}
+async function improveTemplate(opts) {
+  const audience = opts.audience ?? "platform users";
+  const feedback = opts.feedback ?? "Make it more engaging, personal, and conversion-focused. Improve the visual design, copy, and call-to-action.";
+  const systemPrompt = `You are a senior email designer for ${BRAND.name}. Improve the provided email template.
+${DESIGN_RULES}
+Return in EXACTLY this format:
+---SUBJECT---
+[improved subject line]
+---HTML---
+[improved <!DOCTYPE html> email]
+---SUMMARY---
+[2-3 bullet points of what was improved]
+---END---`;
+  const reply = await groqChat(
+    [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Improve this email template.
+${opts.subject ? `Current subject: ${opts.subject}` : ""}
+Target audience: ${audience}
+Feedback: ${feedback}
+
+Current HTML (first 3500 chars):
+${opts.html.slice(0, 3500)}`
+      }
+    ],
+    3800
+  );
+  const subjectMatch = reply.match(/---SUBJECT---\s*([\s\S]*?)\s*---HTML---/);
+  const htmlMatch = reply.match(/---HTML---\s*([\s\S]*?)\s*---SUMMARY---/);
+  const summaryMatch = reply.match(/---SUMMARY---\s*([\s\S]*?)\s*---END---/);
+  return {
+    subject: subjectMatch?.[1]?.trim() ?? opts.subject ?? "",
+    html: htmlMatch?.[1]?.trim().replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/, "") ?? opts.html,
+    summary: summaryMatch?.[1]?.trim().replace(/^```(?:text)?\s*/i, "").replace(/\s*```$/, "") ?? ""
+  };
+}
+async function generateAutoResponder(opts) {
+  const audience = opts.userType === "all" ? "all users" : `${opts.userType}s`;
+  const systemPrompt = `You are an expert email marketer for ${BRAND.name} (${BRAND.description}).
+Create a highly personalized auto-responder triggered by: "${opts.triggerLabel}".
+Target audience: ${audience}.
+${DESIGN_RULES}
+Available variables: {{first_name}}, {{last_name}}, {{email}}, {{user_type}}, {{site_url}}
+
+Return in EXACTLY this format:
+---SUBJECT---
+[subject line]
+---HTML---
+[complete <!DOCTYPE html> email]
+---END---`;
+  const reply = await groqChat(
+    [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Generate the auto-responder for trigger: "${opts.triggerLabel}"${opts.extraContext ? `
+Context: ${opts.extraContext}` : ""}. Make it warm, personal, and action-oriented.`
+      }
+    ],
+    3200
+  );
+  const parsed = parseDelimitedResponse(reply);
+  if (!parsed) throw new Error("AI returned an unexpected format. Try again.");
+  return parsed;
+}
+async function analyzeCampaignInsights(opts) {
+  if (opts.campaigns.length === 0 && opts.totalSent === 0) {
+    return "\u{1F680} No campaign data yet \u2014 send your first campaign to unlock AI performance analysis and actionable recommendations.";
+  }
+  const avgOpenRate = opts.campaigns.length > 0 ? (opts.campaigns.reduce((s, c) => s + (c.sent > 0 ? c.opened / c.sent : 0), 0) / opts.campaigns.length * 100).toFixed(1) : "0";
+  const reply = await groqChat(
+    [
+      {
+        role: "system",
+        content: `You are a data-driven email marketing analyst for ${BRAND.name}. Analyze the provided email metrics and give 4 short, actionable bullet points with emojis. Each bullet is max 25 words. Total response max 120 words. Be specific and concrete.`
+      },
+      {
+        role: "user",
+        content: `Analyze and give 4 actionable insights:
+- Total sent: ${opts.totalSent.toLocaleString()}
+- Campaigns: ${opts.campaigns.length} (avg open rate: ${avgOpenRate}%)
+- Active auto-responders: ${opts.autoResponders.filter((a) => a.isActive).length} / ${opts.autoResponders.length}
+- Templates saved: ${opts.templates}
+- Top campaigns: ${JSON.stringify(opts.campaigns.slice(0, 4).map((c) => ({ name: c.name, sent: c.sent, openRate: c.sent > 0 ? (c.opened / c.sent * 100).toFixed(0) + "%" : "0%", clicked: c.clicked })))}`
+      }
+    ],
+    350
+  );
+  return reply;
+}
+async function recommendSendTime(opts) {
+  const reply = await groqChat(
+    [
+      {
+        role: "system",
+        content: `You are an email marketing expert. Recommend the optimal send time in exactly 2 sentences. Be specific with day of week and time range.`
+      },
+      {
+        role: "user",
+        content: `Best time to send a "${opts.emailType}" email to "${opts.audience}" on ${BRAND.name}?`
+      }
+    ],
+    120
+  );
+  return reply;
+}
+var GROQ_MODEL, GROQ_API, BRAND, DESIGN_RULES;
+var init_groq_email = __esm({
+  "server/groq-email.ts"() {
+    "use strict";
+    GROQ_MODEL = "llama-3.3-70b-versatile";
+    GROQ_API = "https://api.groq.com/openai/v1/chat/completions";
+    BRAND = {
+      name: "Taskdrip",
+      description: "A SocialFi influencer marketplace where creators earn crypto (USDT) by completing brand campaigns. Features: influencer marketplace, BreedSkool learning platform, shop, and more.",
+      primaryColor: "#7c3aed",
+      accentColor: "#4f46e5",
+      bgDark: "#0d0d1a",
+      siteUrl: "https://taskdrip.online"
+    };
+    DESIGN_RULES = `
+Design system (MUST follow):
+- Use table-based layout for email-client compatibility (no flexbox/grid)
+- Max-width 600px, centered with margin:0 auto
+- Outer wrapper: background-color:#0d0d1a
+- Inner card: background:#1a1a2e; border-radius:16px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.5)
+- Hero header: background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#ffffff; padding:40px 32px; text-align:center
+- Body section: background:#ffffff; padding:32px
+- CTA button: display:inline-block; background:#7c3aed; color:#fff; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:700; font-size:16px
+- Footer: background:#111120; color:#9ca3af; font-size:12px; padding:24px; text-align:center
+- Font stack: -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif
+- ALL CSS must be INLINE \u2014 absolutely no <style> tags or external CSS
+- Include unsubscribe: <a href="{{unsubscribe_url}}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
+`;
+  }
+});
+
 // server/social-crawler.ts
 var social_crawler_exports = {};
 __export(social_crawler_exports, {
@@ -5935,8 +6181,8 @@ var DatabaseStorage = class {
     }
   }
   async likePost(postId, userId) {
-    const { nanoid: nanoid3 } = await import("nanoid");
-    const id = nanoid3();
+    const { nanoid: nanoid4 } = await import("nanoid");
+    const id = nanoid4();
     await db.insert(postLikes).values({ id, postId, userId });
     await db.update(posts).set({ likeCount: sql2`${posts.likeCount} + 1` }).where(eq(posts.id, postId));
   }
@@ -11873,17 +12119,228 @@ import { and as and6, count as count3, desc as desc7, eq as eq9, gt, inArray as 
 import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import multer from "multer";
+import OpenAI3 from "openai";
+import { nanoid as nanoid2 } from "nanoid";
+
+// server/ebook-design-generator.ts
 import OpenAI2 from "openai";
 import { nanoid } from "nanoid";
+
+// shared/ebook-design.ts
+var DEFAULT_EBOOK_THEME = {
+  name: "Classic editorial",
+  primary: "#33245C",
+  accent: "#B97840",
+  paper: "#FFFCF6",
+  text: "#24202A",
+  headingFont: "serif",
+  bodyFont: "serif"
+};
+
+// server/ebook-design-generator.ts
+var GROQ_API_BASE_URL = "https://api.groq.com/openai/v1";
+var BOOK_AI_BASE_URL = process.env.BOOK_AI_BASE_URL?.trim().replace(/\/+$/, "");
+var BOOK_AI_MODEL = process.env.BOOK_AI_MODEL || (BOOK_AI_BASE_URL ? "llama3.3" : process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile");
+var ART_MOTIFS = /* @__PURE__ */ new Set(["botanical", "geometry", "orbit", "waves"]);
+function isBookDesignAIAvailable() {
+  return Boolean(process.env.GROQ_API_KEY || BOOK_AI_BASE_URL);
+}
+function themeColor(value, fallback) {
+  const color = String(value || "");
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+function parseModelJson(content) {
+  const trimmed = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("The book model returned invalid structured output. Try again.");
+  return JSON.parse(trimmed.slice(start, end + 1));
+}
+function createPage(kind, title, blocks, chapterId) {
+  return { id: nanoid(), kind, title, chapterId, blocks };
+}
+function textBlock(role, text2) {
+  return { id: nanoid(), kind: "text", role, text: text2 };
+}
+function artBlock(motif, altText, brief) {
+  return { id: nanoid(), kind: "art", motif, altText, brief };
+}
+function makeTheme(raw) {
+  const headingFont = raw?.headingFont === "sans" ? "sans" : "serif";
+  const bodyFont = raw?.bodyFont === "sans" ? "sans" : "serif";
+  return {
+    name: String(raw?.name || "Classic editorial").slice(0, 60),
+    primary: themeColor(raw?.primary, DEFAULT_EBOOK_THEME.primary),
+    accent: themeColor(raw?.accent, DEFAULT_EBOOK_THEME.accent),
+    paper: themeColor(raw?.paper, DEFAULT_EBOOK_THEME.paper),
+    text: themeColor(raw?.text, DEFAULT_EBOOK_THEME.text),
+    headingFont,
+    bodyFont
+  };
+}
+function buildDesignerDocument(input) {
+  const pages = [];
+  const primaryMotif = input.planChapters[0]?.motif || "geometry";
+  pages.push(createPage("cover", "Front cover", [
+    artBlock(primaryMotif, `Decorative ${primaryMotif} cover illustration`, "Editable vector cover art"),
+    textBlock("eyebrow", "AN ORIGINAL BOOK"),
+    textBlock("title", input.title),
+    ...input.subtitle ? [textBlock("subtitle", input.subtitle)] : [],
+    textBlock("caption", input.authorName || "Author name")
+  ]));
+  pages.push(createPage("title", "Title page", [
+    textBlock("title", input.title),
+    ...input.subtitle ? [textBlock("subtitle", input.subtitle)] : [],
+    artBlock("orbit", "Small ornamental title-page illustration"),
+    textBlock("caption", input.authorName || "Author name")
+  ]));
+  pages.push(createPage("copyright", "Copyright", [
+    textBlock("heading", "Copyright"),
+    textBlock("body", `Copyright \xA9 ${(/* @__PURE__ */ new Date()).getFullYear()} ${input.authorName || "[Author name]"}
+All rights reserved.
+
+Add publisher, edition, permissions, and ISBN details here before publication.`)
+  ]));
+  pages.push(createPage("contents", "Contents", [
+    textBlock("heading", "Contents"),
+    { id: nanoid(), kind: "contents" }
+  ]));
+  input.chapters.forEach((chapter, index2) => {
+    const plan = input.planChapters[index2];
+    const motif = plan?.motif || (index2 % 2 ? "waves" : "botanical");
+    pages.push(createPage("chapter-opening", chapter.title, [
+      textBlock("eyebrow", `CHAPTER ${index2 + 1}`),
+      artBlock(motif, `${motif} illustration for ${chapter.title}`, plan?.summary),
+      textBlock("title", chapter.title),
+      ...plan?.summary ? [textBlock("quote", plan.summary.slice(0, 600))] : []
+    ], chapter.id));
+    pages.push(createPage("chapter-body", `${chapter.title} \u2014 text`, [
+      { id: nanoid(), kind: "chapter", chapterId: chapter.id }
+    ], chapter.id));
+  });
+  pages.push(createPage("backmatter", "About the author", [
+    artBlock("botanical", "Decorative author-page illustration"),
+    textBlock("heading", "About the author"),
+    textBlock("body", "Add a short, accurate author biography here."),
+    textBlock("heading", "More from the author"),
+    textBlock("body", "Add your website, newsletter, and other titles here.")
+  ]));
+  return {
+    schemaVersion: 1,
+    prompt: input.prompt.slice(0, 5e3),
+    theme: input.theme,
+    pages
+  };
+}
+async function generateCompleteBook(input) {
+  const apiKey = process.env.BOOK_AI_API_KEY || process.env.GROQ_API_KEY || (BOOK_AI_BASE_URL ? "local-model" : "");
+  if (!apiKey) throw new Error("Configure GROQ_API_KEY or an OpenAI-compatible BOOK_AI_BASE_URL to enable book generation.");
+  const client = new OpenAI2({ apiKey, baseURL: BOOK_AI_BASE_URL || GROQ_API_BASE_URL });
+  await input.onProgress(4, "Designing the book outline and visual theme");
+  const planning = await client.chat.completions.create({
+    model: BOOK_AI_MODEL,
+    temperature: 0.55,
+    max_tokens: 3600,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `You are an experienced book editor and interior designer. Plan an original, useful, reader-ready book from the author's brief. Respect the exact requested chapter count. Never promise bestseller status. Do not invent studies, citations, expert credentials, legal/medical/financial advice, or quotations. Use general, clearly framed explanations where sources are not supplied. Create accessible visual design directions using only a JSON theme and motif names; never output SVG, HTML, or executable code. Respond with JSON only in this shape:
+{"title":"...","subtitle":"...","description":"...","theme":{"name":"...","primary":"#RRGGBB","accent":"#RRGGBB","paper":"#RRGGBB","text":"#RRGGBB","headingFont":"serif|sans","bodyFont":"serif|sans"},"chapters":[{"title":"...","summary":"...","motif":"botanical|geometry|orbit|waves"}]}
+The description must be reader-focused, under 3500 characters. Titles should be clear and not include unsupported claims.`
+      },
+      {
+        role: "user",
+        content: `Author prompt:
+${input.prompt}
+
+Book type: ${input.bookType}
+Reader niche: ${input.genre}
+Print trim size: ${input.trimSize}
+Target chapter count: exactly ${input.chapterCount}
+${input.title ? `Use this working title as inspiration: ${input.title}` : ""}`
+      }
+    ]
+  });
+  const plan = parseModelJson(planning.choices[0]?.message?.content || "{}");
+  const rawChapters = Array.isArray(plan.chapters) ? plan.chapters.slice(0, input.chapterCount) : [];
+  if (rawChapters.length < Math.min(4, input.chapterCount)) {
+    throw new Error("The book model returned too few chapters. Try generating again with a more specific prompt.");
+  }
+  while (rawChapters.length < input.chapterCount) {
+    const index2 = rawChapters.length;
+    rawChapters.push({
+      title: `Chapter ${index2 + 1}: ${input.genre}`,
+      summary: `A practical continuation of the book's central idea: ${input.prompt.slice(0, 160)}`,
+      motif: index2 % 2 ? "waves" : "geometry"
+    });
+  }
+  const planChapters = rawChapters.map((item, index2) => ({
+    title: String(item.title || `Chapter ${index2 + 1}`).trim().slice(0, 180),
+    summary: String(item.summary || "").trim().slice(0, 600),
+    motif: ART_MOTIFS.has(item.motif) ? item.motif : index2 % 2 ? "waves" : "geometry"
+  }));
+  const title = String(plan.title || input.title || "Untitled book").trim().slice(0, 240);
+  const subtitle = String(plan.subtitle || "").trim().slice(0, 300);
+  const description = String(plan.description || "").trim().slice(0, 3500);
+  const theme = makeTheme(plan.theme);
+  const outline = planChapters.map((chapter) => `${chapter.title}${chapter.summary ? ` \u2014 ${chapter.summary}` : ""}`);
+  const chapters = [];
+  for (let index2 = 0; index2 < planChapters.length; index2 += 1) {
+    const planned = planChapters[index2];
+    const percentBefore = 10 + Math.round(index2 / planChapters.length * 75);
+    await input.onProgress(percentBefore, `Writing chapter ${index2 + 1} of ${planChapters.length}`);
+    const chapterResponse = await client.chat.completions.create({
+      model: BOOK_AI_MODEL,
+      temperature: 0.65,
+      max_tokens: 2400,
+      messages: [
+        {
+          role: "system",
+          content: `Write a complete, useful first-draft book chapter in 600\u2013800 words. This is part of an original ${input.bookType} book. Use clear section headings, readable paragraphs, and concrete examples. Follow the brief and chapter summary. Avoid repetition of other chapters. Never fabricate research, citations, quotations, expert credentials, or guaranteed results. Do not add markdown code fences. The author will review and edit the draft.`
+        },
+        {
+          role: "user",
+          content: `Book idea: ${input.prompt}
+Reader niche: ${input.genre}
+Full outline:
+${outline.map((line, i) => `${i + 1}. ${line}`).join("\n")}
+
+Write chapter ${index2 + 1}: ${planned.title}
+Purpose: ${planned.summary}`
+        }
+      ]
+    });
+    const content = chapterResponse.choices[0]?.message?.content?.trim();
+    if (!content || content.length < 450) {
+      throw new Error(`The model returned an incomplete draft for chapter ${index2 + 1}. The earlier manuscript was left unchanged.`);
+    }
+    chapters.push({ id: nanoid(), title: planned.title, content });
+  }
+  await input.onProgress(92, "Building editable page designs and vector illustrations");
+  const designerDocument = buildDesignerDocument({
+    prompt: input.prompt,
+    title,
+    subtitle,
+    description,
+    authorName: input.authorName,
+    theme,
+    chapters,
+    planChapters
+  });
+  return { title, subtitle, description, outline, chapters, designerDocument };
+}
+
+// server/creator-publishing.ts
 var PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
 var PRIVATE_STUDIO_PAYMENT_DIR = path.resolve(process.cwd(), ".private-studio-payment-proofs");
 mkdirSync(PRIVATE_STUDIO_PAYMENT_DIR, { recursive: true });
-var GROQ_API_BASE_URL = "https://api.groq.com/openai/v1";
+var GROQ_API_BASE_URL2 = "https://api.groq.com/openai/v1";
 var GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
 function createGroqClient() {
   const apiKey = process.env.GROQ_API_KEY;
-  return apiKey ? new OpenAI2({ apiKey, baseURL: GROQ_API_BASE_URL }) : null;
+  return apiKey ? new OpenAI3({ apiKey, baseURL: GROQ_API_BASE_URL2 }) : null;
 }
 function groqUnavailableResponse(action) {
   return {
@@ -11916,7 +12373,7 @@ var privateProductUpload = multer({
     destination: (_req, _file, cb) => cb(null, PRIVATE_PRODUCT_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname || "").toLowerCase();
-      cb(null, `${nanoid()}${ext}`);
+      cb(null, `${nanoid2()}${ext}`);
     }
   }),
   limits: { fileSize: 100 * 1024 * 1024 },
@@ -11933,7 +12390,7 @@ var studioPaymentProofUpload = multer({
     destination: (_req, _file, cb) => cb(null, PRIVATE_STUDIO_PAYMENT_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname || "").toLowerCase();
-      cb(null, `${nanoid()}${ext}`);
+      cb(null, `${nanoid2()}${ext}`);
     }
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -11958,6 +12415,89 @@ async function getCreatorStudioMonthlyPrice() {
   const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_monthly_price")).limit(1);
   const price = Number(setting?.value);
   return Number.isFinite(price) && price >= 0 && price <= 999999 ? Number(price.toFixed(2)) : 7;
+}
+var EMPTY_STUDIO_PAYMENT_OPTIONS = { cryptoWallets: [], bankAccounts: [] };
+async function getCreatorStudioPaymentOptions() {
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_payment_options")).limit(1);
+  try {
+    const parsed = JSON.parse(setting?.value || "{}");
+    return {
+      cryptoWallets: Array.isArray(parsed.cryptoWallets) ? parsed.cryptoWallets : [],
+      bankAccounts: Array.isArray(parsed.bankAccounts) ? parsed.bankAccounts : []
+    };
+  } catch {
+    return EMPTY_STUDIO_PAYMENT_OPTIONS;
+  }
+}
+function validateStudioPaymentOptions(input) {
+  const clean = (value, max = 200) => String(value ?? "").trim().slice(0, max);
+  return {
+    cryptoWallets: (Array.isArray(input?.cryptoWallets) ? input.cryptoWallets : []).slice(0, 20).map((wallet, index2) => ({
+      id: clean(wallet.id, 80) || `wallet-${index2 + 1}`,
+      name: clean(wallet.name, 100),
+      asset: clean(wallet.asset, 20).toUpperCase(),
+      network: clean(wallet.network, 80),
+      address: clean(wallet.address, 240),
+      instructions: clean(wallet.instructions, 1e3),
+      enabled: wallet.enabled !== false
+    })).filter((wallet) => wallet.name && wallet.asset && wallet.network && wallet.address),
+    bankAccounts: (Array.isArray(input?.bankAccounts) ? input.bankAccounts : []).slice(0, 20).map((account, index2) => ({
+      id: clean(account.id, 80) || `bank-${index2 + 1}`,
+      bankName: clean(account.bankName, 100),
+      accountName: clean(account.accountName, 160),
+      accountNumber: clean(account.accountNumber, 80),
+      currency: clean(account.currency || "USD", 12).toUpperCase(),
+      instructions: clean(account.instructions, 1e3),
+      enabled: account.enabled !== false
+    })).filter((account) => account.bankName && account.accountName && account.accountNumber)
+  };
+}
+async function sendCreatorStudioExpiryReminders() {
+  const now = /* @__PURE__ */ new Date();
+  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq9(creatorStudioSubscriptions.status, "active"));
+  if (!activeRows.length) return;
+  const emailService = await Promise.resolve().then(() => (init_email_service(), email_service_exports)).catch(() => null);
+  for (const subscription of activeRows) {
+    if (!subscription.endDate) continue;
+    const remainingMs = subscription.endDate.getTime() - now.getTime();
+    const daysLeft = remainingMs / (24 * 60 * 60 * 1e3);
+    const reminderType = daysLeft <= 0 ? "creator_studio_expired" : daysLeft <= 3 ? "creator_studio_expiry_reminder" : null;
+    if (!reminderType) continue;
+    const reminderLink = `/creator-studio?renewal=${subscription.id}&expires=${subscription.endDate.getTime()}`;
+    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and6(
+      eq9(notifications.relatedId, subscription.id),
+      eq9(notifications.type, reminderType),
+      eq9(notifications.actionUrl, reminderLink)
+    )).limit(1);
+    if (existing) continue;
+    const expired = daysLeft <= 0;
+    const message = expired ? "Your Creator Studio access has expired. Submit a new monthly payment to restore access." : `Your Creator Studio access expires in ${Math.max(1, Math.ceil(daysLeft))} day${Math.ceil(daysLeft) === 1 ? "" : "s"}. Submit your renewal payment before it ends.`;
+    await db.insert(notifications).values({
+      userId: subscription.userId,
+      type: reminderType,
+      title: expired ? "Creator Studio access expired" : "Creator Studio renewal reminder",
+      content: message,
+      actionUrl: reminderLink,
+      relatedId: subscription.id,
+      isRead: false,
+      priority: "high"
+    }).catch((error) => console.warn("[creator-studio] Could not save expiry notification:", error));
+    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq9(users.id, subscription.userId)).limit(1);
+    if (user?.email && emailService?.sendEmail) {
+      await emailService.sendEmail({
+        to: user.email,
+        toName: user.firstName,
+        subject: expired ? "Your Creator Studio access has expired" : "Your Creator Studio subscription is almost due",
+        html: `<p>Hello ${String(user.firstName || "there").replace(/[<>&"]/g, "")},</p><p>${message}</p><p><a href="https://taskdrip.online/creator-studio">Open Creator Studio to renew</a></p>`
+      }).catch((error) => console.warn("[creator-studio] Renewal email failed:", error?.message || error));
+    }
+    if (expired) {
+      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and6(
+        eq9(creatorStudioSubscriptions.id, subscription.id),
+        eq9(creatorStudioSubscriptions.status, "active")
+      ));
+    }
+  }
 }
 async function getCreatorStudioAccess(userId) {
   const now = /* @__PURE__ */ new Date();
@@ -12016,7 +12556,67 @@ function parseList(value) {
     if (Array.isArray(parsed)) return parsed.map((item) => String(item).trim()).filter(Boolean).slice(0, 20);
   } catch {
   }
-  return value.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 20);
+  return value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean).slice(0, 20);
+}
+function normalizeDesignerDocument(value) {
+  if (!value || typeof value !== "object" || value.schemaVersion !== 1) return null;
+  if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 100) return null;
+  const color = (candidate, fallback) => /^#[0-9a-f]{6}$/i.test(String(candidate || "")) ? String(candidate) : fallback;
+  const pageKinds = /* @__PURE__ */ new Set(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "backmatter"]);
+  const blockKinds = /* @__PURE__ */ new Set(["text", "list", "art", "chapter", "contents"]);
+  const pages = [];
+  for (const rawPage of value.pages) {
+    if (!rawPage || !pageKinds.has(rawPage.kind) || !Array.isArray(rawPage.blocks) || rawPage.blocks.length > 50) return null;
+    const blocks = [];
+    for (const rawBlock of rawPage.blocks) {
+      if (!rawBlock || !blockKinds.has(rawBlock.kind)) return null;
+      const id = String(rawBlock.id || nanoid2()).slice(0, 80);
+      if (rawBlock.kind === "text") {
+        const role = String(rawBlock.role || "");
+        if (!["eyebrow", "title", "subtitle", "heading", "body", "quote", "caption"].includes(role)) return null;
+        blocks.push({ id, kind: "text", role, text: String(rawBlock.text || "").slice(0, 2e4) });
+      } else if (rawBlock.kind === "list") {
+        if (!Array.isArray(rawBlock.items)) return null;
+        blocks.push({ id, kind: "list", items: rawBlock.items.slice(0, 80).map((item) => String(item).slice(0, 1e3)) });
+      } else if (rawBlock.kind === "art") {
+        const motif = String(rawBlock.motif || "");
+        if (!["botanical", "geometry", "orbit", "waves"].includes(motif)) return null;
+        blocks.push({
+          id,
+          kind: "art",
+          motif,
+          altText: String(rawBlock.altText || "Decorative illustration").slice(0, 180),
+          brief: String(rawBlock.brief || "").slice(0, 600)
+        });
+      } else if (rawBlock.kind === "chapter") {
+        blocks.push({ id, kind: "chapter", chapterId: String(rawBlock.chapterId || "").slice(0, 80) });
+      } else {
+        blocks.push({ id, kind: "contents" });
+      }
+    }
+    pages.push({
+      id: String(rawPage.id || nanoid2()).slice(0, 80),
+      kind: rawPage.kind,
+      title: String(rawPage.title || "Untitled page").slice(0, 240),
+      ...rawPage.chapterId ? { chapterId: String(rawPage.chapterId).slice(0, 80) } : {},
+      blocks
+    });
+  }
+  const theme = value.theme || {};
+  return {
+    schemaVersion: 1,
+    prompt: String(value.prompt || "").slice(0, 5e3),
+    theme: {
+      name: String(theme.name || DEFAULT_EBOOK_THEME.name).slice(0, 60),
+      primary: color(theme.primary, DEFAULT_EBOOK_THEME.primary),
+      accent: color(theme.accent, DEFAULT_EBOOK_THEME.accent),
+      paper: color(theme.paper, DEFAULT_EBOOK_THEME.paper),
+      text: color(theme.text, DEFAULT_EBOOK_THEME.text),
+      headingFont: theme.headingFont === "sans" ? "sans" : "serif",
+      bodyFont: theme.bodyFont === "sans" ? "sans" : "serif"
+    },
+    pages
+  };
 }
 function validPublicImage(value) {
   const image = String(value || "").trim();
@@ -12152,12 +12752,33 @@ async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
   });
 }
 function registerCreatorPublishingRoutes(app2) {
+  const reminderTimer = setInterval(() => {
+    sendCreatorStudioExpiryReminders().catch((error) => {
+      console.error("[creator-studio] Subscription reminder scan failed:", error);
+    });
+  }, 12 * 60 * 60 * 1e3);
+  reminderTimer.unref?.();
+  sendCreatorStudioExpiryReminders().catch((error) => {
+    console.error("[creator-studio] Initial subscription reminder scan failed:", error);
+  });
   app2.get("/api/creator-studio/plan", async (_req, res) => {
     try {
       res.json({ monthlyPrice: await getCreatorStudioMonthlyPrice(), currency: "USD", periodDays: 30 });
     } catch (error) {
       console.error("Could not load Creator Studio plan:", error);
       res.status(500).json({ message: "Could not load Creator Studio pricing." });
+    }
+  });
+  app2.get("/api/creator-studio/payment-options", async (_req, res) => {
+    try {
+      const options = await getCreatorStudioPaymentOptions();
+      res.json({
+        cryptoWallets: options.cryptoWallets.filter((item) => item.enabled),
+        bankAccounts: options.bankAccounts.filter((item) => item.enabled)
+      });
+    } catch (error) {
+      console.error("Could not load Creator Studio payment options:", error);
+      res.status(500).json({ message: "Could not load Creator Studio payment options." });
     }
   });
   app2.get("/api/creator-studio/access", isAuthenticated, async (req, res) => {
@@ -12290,8 +12911,8 @@ function registerCreatorPublishingRoutes(app2) {
     if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const action = String(req.body.action || "");
     const reviewNote = String(req.body.reviewNote || "").trim().slice(0, 4e3);
-    if (!["approve", "reject", "revoke"].includes(action)) {
-      return res.status(400).json({ message: "Choose approve, reject, or revoke." });
+    if (!["approve", "reject", "revoke", "extend"].includes(action)) {
+      return res.status(400).json({ message: "Choose approve, reject, revoke, or extend." });
     }
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason when rejecting a payment." });
     try {
@@ -12303,23 +12924,24 @@ function registerCreatorPublishingRoutes(app2) {
       if (action === "reject" && subscription.status !== "pending") {
         return res.status(409).json({ message: "Only pending payments can be rejected." });
       }
-      if (action === "revoke" && subscription.status !== "active") {
-        return res.status(409).json({ message: "Only active access can be revoked." });
+      if ((action === "revoke" || action === "extend") && subscription.status !== "active") {
+        return res.status(409).json({ message: "Only active subscriptions can be extended or revoked." });
       }
       const now = /* @__PURE__ */ new Date();
-      const endDate = new Date(now.getTime() + subscription.periodDays * 24 * 60 * 60 * 1e3);
-      const nextStatus = action === "approve" ? "active" : action === "reject" ? "rejected" : "cancelled";
+      const extensionStart = subscription.endDate && subscription.endDate > now ? subscription.endDate : now;
+      const endDate = new Date(extensionStart.getTime() + subscription.periodDays * 24 * 60 * 60 * 1e3);
+      const nextStatus = action === "approve" || action === "extend" ? "active" : action === "reject" ? "rejected" : "cancelled";
       const [updated] = await db.update(creatorStudioSubscriptions).set({
         status: nextStatus,
         startDate: action === "approve" ? now : subscription.startDate,
-        endDate: action === "approve" ? endDate : action === "revoke" ? now : subscription.endDate,
+        endDate: action === "approve" || action === "extend" ? endDate : action === "revoke" ? now : subscription.endDate,
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: now,
         updatedAt: now
       }).where(eq9(creatorStudioSubscriptions.id, subscription.id)).returning();
-      const title = action === "approve" ? "Creator Studio access approved" : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
-      const content = action === "approve" ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.` : action === "reject" ? `Your Creator Studio payment was not approved. ${reviewNote}` : "An admin ended your Creator Studio access.";
+      const title = action === "approve" ? "Creator Studio access approved" : action === "extend" ? "Creator Studio access extended" : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
+      const content = action === "approve" ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.` : action === "extend" ? `Your Creator Studio subscription has been extended until ${endDate.toLocaleDateString()}.` : action === "reject" ? `Your Creator Studio payment was not approved. ${reviewNote}` : "An admin ended your Creator Studio access.";
       await db.insert(notifications).values({
         userId: subscription.userId,
         type: "creator_studio_subscription",
@@ -12334,6 +12956,91 @@ function registerCreatorPublishingRoutes(app2) {
     } catch (error) {
       console.error("Could not update Creator Studio subscription:", error);
       res.status(500).json({ message: "Could not update Creator Studio subscription." });
+    }
+  });
+  app2.get("/api/admin/creator-studio/payment-options", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      res.json(await getCreatorStudioPaymentOptions());
+    } catch (error) {
+      console.error("Could not load Creator Studio payment options:", error);
+      res.status(500).json({ message: "Could not load Creator Studio payment options." });
+    }
+  });
+  app2.put("/api/admin/creator-studio/payment-options", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const options = validateStudioPaymentOptions(req.body);
+      await db.insert(appSettings).values({
+        key: "creator_studio_payment_options",
+        value: JSON.stringify(options),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: JSON.stringify(options), updatedAt: /* @__PURE__ */ new Date() }
+      });
+      res.json(options);
+    } catch (error) {
+      console.error("Could not save Creator Studio payment options:", error);
+      res.status(500).json({ message: "Could not save Creator Studio payment options." });
+    }
+  });
+  app2.post("/api/admin/creator-studio/subscriptions/grant", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const periodDays = Number(req.body.periodDays ?? 30);
+    if (!email || !Number.isInteger(periodDays) || periodDays < 1 || periodDays > 365) {
+      return res.status(400).json({ message: "Enter a creator email and an access period from 1 to 365 days." });
+    }
+    try {
+      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq9(users.email, email)).limit(1);
+      if (!user || user.userType !== "creator") return res.status(404).json({ message: "No creator account found for that email." });
+      const access = await getCreatorStudioAccess(user.id);
+      if (access.hasAccess) return res.status(409).json({ message: "This creator already has active access." });
+      if (access.subscriptionStatus === "pending") return res.status(409).json({ message: "This creator already has a payment awaiting review." });
+      const now = /* @__PURE__ */ new Date();
+      const endDate = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1e3);
+      const [subscription] = await db.insert(creatorStudioSubscriptions).values({
+        userId: user.id,
+        status: "active",
+        amount: "0.00",
+        currency: "USD",
+        network: "admin_grant",
+        paymentMethodLabel: "Admin-granted access",
+        periodDays,
+        startDate: now,
+        endDate,
+        reviewedBy: req.user.id,
+        reviewedAt: now
+      }).returning();
+      await db.insert(notifications).values({
+        userId: user.id,
+        type: "creator_studio_subscription",
+        title: "Creator Studio access granted",
+        content: `Your Creator Studio access is active until ${endDate.toLocaleDateString()}.`,
+        actionUrl: "/creator-studio",
+        priority: "high"
+      });
+      res.status(201).json(subscription);
+    } catch (error) {
+      console.error("Could not grant Creator Studio access:", error);
+      res.status(500).json({ message: "Could not grant Creator Studio access." });
+    }
+  });
+  app2.post("/api/admin/creator-studio/subscribers/:userId/reset-password", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const password = String(req.body.password || "");
+    if (password.length < 12 || password.length > 128) {
+      return res.status(400).json({ message: "Use a temporary password between 12 and 128 characters." });
+    }
+    try {
+      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq9(users.id, req.params.userId)).limit(1);
+      if (!subscriber || subscriber.userType !== "creator") return res.status(404).json({ message: "Creator account not found." });
+      await storage.resetUserPassword(subscriber.id, password);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Could not reset Creator Studio subscriber password:", error);
+      res.status(500).json({ message: "Could not reset the password." });
     }
   });
   app2.get("/api/creator-studio/books", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
@@ -12355,6 +13062,7 @@ function registerCreatorPublishingRoutes(app2) {
         bookType: "nonfiction",
         genre: "General nonfiction",
         trimSize: "6x9",
+        kdpKeywords: [],
         status: "draft"
       }).returning();
       res.status(201).json(book);
@@ -12396,6 +13104,7 @@ function registerCreatorPublishingRoutes(app2) {
       if (req.body.idea !== void 0) changes.idea = String(req.body.idea).slice(0, 12e3);
       if (req.body.description !== void 0) changes.description = String(req.body.description).slice(0, 2e4);
       if (req.body.outline !== void 0) changes.outline = parseList(req.body.outline);
+      if (req.body.kdpKeywords !== void 0) changes.kdpKeywords = parseList(req.body.kdpKeywords);
       if (req.body.chapters !== void 0) {
         if (!Array.isArray(req.body.chapters) || req.body.chapters.length > 80) {
           return res.status(400).json({ message: "A book can contain up to 80 chapters." });
@@ -12405,6 +13114,15 @@ function registerCreatorPublishingRoutes(app2) {
           title: String(chapter.title || `Chapter ${index2 + 1}`).slice(0, 240),
           content: String(chapter.content || "").slice(0, 1e5)
         }));
+      }
+      if (req.body.designerDocument !== void 0) {
+        if (req.body.designerDocument === null) {
+          changes.designerDocument = null;
+        } else {
+          const document = normalizeDesignerDocument(req.body.designerDocument);
+          if (!document) return res.status(400).json({ message: "The book design document is invalid." });
+          changes.designerDocument = document;
+        }
       }
       if (req.body.coverImage !== void 0) {
         const cover = validPublicImage(req.body.coverImage);
@@ -12429,6 +13147,131 @@ function registerCreatorPublishingRoutes(app2) {
     } catch (error) {
       console.error("Failed to save book:", error);
       res.status(500).json({ message: "Could not save your book." });
+    }
+  });
+  app2.get("/api/creator-studio/books/:id/generation", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    try {
+      const [book] = await db.select({
+        id: creatorBooks.id,
+        generationJobId: creatorBooks.generationJobId,
+        generationStatus: creatorBooks.generationStatus,
+        generationProgress: creatorBooks.generationProgress,
+        generationMessage: creatorBooks.generationMessage,
+        generationError: creatorBooks.generationError,
+        updatedAt: creatorBooks.updatedAt
+      }).from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+      if (!book) return res.status(404).json({ message: "Book not found." });
+      if (["queued", "generating"].includes(book.generationStatus) && book.updatedAt && Date.now() - new Date(book.updatedAt).getTime() > 30 * 60 * 1e3) {
+        const message = "This generation was interrupted. Your previous draft is unchanged; you can try again.";
+        await db.update(creatorBooks).set({
+          generationStatus: "failed",
+          generationProgress: 0,
+          generationMessage: null,
+          generationError: message,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.generationJobId, book.generationJobId || "")));
+        return res.json({ ...book, generationStatus: "failed", generationProgress: 0, generationError: message });
+      }
+      res.json(book);
+    } catch (error) {
+      console.error("Could not check ebook generation status:", error);
+      res.status(500).json({ message: "Could not check book generation status." });
+    }
+  });
+  app2.post("/api/creator-studio/books/:id/ai/full-book", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    if (!isBookDesignAIAvailable()) return res.status(503).json({
+      code: "AI_PROVIDER_NOT_CONFIGURED",
+      message: "Configure GROQ_API_KEY, or an OpenAI-compatible BOOK_AI_BASE_URL (and BOOK_AI_MODEL) to enable book generation."
+    });
+    const prompt = String(req.body.prompt || "").trim().slice(0, 8e3);
+    const chapterCount = Number(req.body.chapterCount);
+    if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
+    if (![4, 6, 8].includes(chapterCount)) return res.status(400).json({ message: "Choose a 4, 6, or 8 chapter book." });
+    try {
+      const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+      if (!book) return res.status(404).json({ message: "Book not found." });
+      if (["published", "submitted"].includes(book.status)) {
+        return res.status(409).json({ message: "Books submitted for review or already published cannot be regenerated." });
+      }
+      if (["queued", "generating"].includes(book.generationStatus)) {
+        return res.status(409).json({ message: "This book is already being generated." });
+      }
+      if ((book.chapters?.length || book.designerDocument?.pages?.length) && req.body.replaceExisting !== true) {
+        return res.status(409).json({
+          code: "BOOK_CONTENT_REPLACEMENT_CONFIRMATION_REQUIRED",
+          message: "Generating again replaces this draft's manuscript and page design. Confirm before continuing.",
+          requiresConfirmation: true
+        });
+      }
+      const jobId = nanoid2();
+      const startedAt = /* @__PURE__ */ new Date();
+      await db.update(creatorBooks).set({
+        generationJobId: jobId,
+        generationStatus: "queued",
+        generationProgress: 1,
+        generationMessage: "Preparing the book generator",
+        generationError: null,
+        updatedAt: startedAt
+      }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.creatorId, req.user.id)));
+      const authorName = `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim().slice(0, 160);
+      const onProgress = async (progress, message) => {
+        await db.update(creatorBooks).set({
+          generationStatus: "generating",
+          generationProgress: Math.max(1, Math.min(99, Math.round(progress))),
+          generationMessage: String(message).slice(0, 240),
+          generationError: null,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.generationJobId, jobId)));
+      };
+      void (async () => {
+        try {
+          const generated = await generateCompleteBook({
+            prompt,
+            title: book.title === "Untitled book" ? "" : book.title,
+            bookType: book.bookType,
+            genre: book.genre,
+            trimSize: book.trimSize,
+            authorName,
+            chapterCount,
+            onProgress
+          });
+          await db.update(creatorBooks).set({
+            title: generated.title,
+            subtitle: generated.subtitle || null,
+            idea: prompt,
+            description: generated.description,
+            outline: generated.outline,
+            chapters: generated.chapters,
+            designerDocument: generated.designerDocument,
+            status: "editing",
+            generationStatus: "completed",
+            generationProgress: 100,
+            generationMessage: "Complete draft and page designs are ready to edit.",
+            generationError: null,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.creatorId, req.user.id), eq9(creatorBooks.generationJobId, jobId)));
+        } catch (error) {
+          const message = String(error?.message || "Book generation failed. Please try again.").slice(0, 500);
+          console.error("[ebook-studio] Full book generation failed:", message);
+          await db.update(creatorBooks).set({
+            generationStatus: "failed",
+            generationProgress: 0,
+            generationMessage: null,
+            generationError: message,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.generationJobId, jobId)));
+        }
+      })();
+      res.status(202).json({
+        jobId,
+        status: "queued",
+        message: "Book generation started. Your draft will remain available while the model writes."
+      });
+    } catch (error) {
+      console.error("Could not start ebook generation:", error);
+      res.status(500).json({ message: "Could not start book generation." });
     }
   });
   app2.post("/api/creator-studio/books/:id/submit", isAuthenticated, requireCreatorStudioAccess, privateProductUpload.single("productFile"), async (req, res) => {
@@ -12696,6 +13539,108 @@ Chapter: ${chapterTitle}` }
     } catch (error) {
       console.error("Publishing chapter generation failed:", error);
       res.status(502).json({ message: "AI chapter generation failed. Try again later." });
+    }
+  });
+  app2.post("/api/creator-studio/ai/metadata", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    const client = createGroqClient();
+    if (!client) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
+    const bookId = String(req.body.bookId || "");
+    const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+    if (!book) return res.status(404).json({ message: "Book not found." });
+    if (book.status === "published" || book.status === "submitted") {
+      return res.status(409).json({ message: "Metadata for submitted books is locked." });
+    }
+    try {
+      const result = await client.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        temperature: 0.65,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: 'Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.'
+          },
+          {
+            role: "user",
+            content: `Book type: ${book.bookType}
+Niche: ${book.genre}
+Trim size: ${book.trimSize}
+Concept: ${book.idea || ""}
+Current title: ${book.title}
+Current subtitle: ${book.subtitle || ""}
+Current description: ${book.description || ""}`
+          }
+        ]
+      });
+      const parsed = JSON.parse(result.choices[0]?.message?.content || "{}");
+      res.json({
+        title: String(parsed.title || "").slice(0, 240),
+        subtitle: String(parsed.subtitle || "").slice(0, 300),
+        description: String(parsed.description || "").slice(0, 3500),
+        keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 7).map((item) => String(item).slice(0, 100)) : [],
+        categories: Array.isArray(parsed.categories) ? parsed.categories.slice(0, 5).map((item) => String(item).slice(0, 120)) : []
+      });
+    } catch (error) {
+      console.error("Publishing metadata generation failed:", error);
+      res.status(502).json({ message: "AI metadata generation failed. Try again later." });
+    }
+  });
+  app2.post("/api/creator-studio/ai/tool", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    const client = createGroqClient();
+    if (!client) return res.status(503).json(groqUnavailableResponse("writing tools"));
+    const tool = String(req.body.tool || "");
+    const bookId = String(req.body.bookId || "");
+    const chapterId = String(req.body.chapterId || "");
+    const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+    if (!book) return res.status(404).json({ message: "Book not found." });
+    if (book.status === "published" || book.status === "submitted") {
+      return res.status(409).json({ message: "Writing tools are disabled for submitted or published books." });
+    }
+    const chapter = (Array.isArray(book.chapters) ? book.chapters : []).find((item) => item.id === chapterId);
+    if (["proofread", "expand"].includes(tool) && !chapter) {
+      return res.status(404).json({ message: "Choose a saved chapter first." });
+    }
+    const input = String(req.body.input || "").trim().slice(0, 12e3);
+    if (!["title-ideas", "blurb", "proofread", "expand", "keywords"].includes(tool)) {
+      return res.status(400).json({ message: "Choose a supported writing tool." });
+    }
+    if (["proofread", "expand"].includes(tool) && !(chapter?.content || "").trim()) {
+      return res.status(400).json({ message: "Add chapter content before using this tool." });
+    }
+    try {
+      const instructions = {
+        "title-ideas": "Suggest 10 original, memorable book title and subtitle pairs for the concept. Include no false claims. Return numbered plain text.",
+        blurb: "Write a compelling back-cover / Amazon description for this book. Include a strong hook, reader outcomes, and a clear audience fit. No fabricated credentials, reviews, research, or guaranteed results. Return polished plain text under 3000 characters.",
+        proofread: "Proofread and improve grammar, clarity, flow, and consistency while preserving the author's meaning and voice. Do not add fabricated facts or sources. Return only the revised chapter text.",
+        expand: "Expand the chapter into a detailed, useful draft that fits the book's outline and niche. Preserve the author's existing ideas, add clear headings and helpful examples, but do not invent research or make professional medical, legal, or financial claims. Return only the revised chapter text.",
+        keywords: "Suggest 7 relevant Amazon KDP search keyword phrases, each short enough to fit a keyword field. Avoid misleading, trademark-stuffed, or bestseller-guarantee phrases. Return one phrase per line."
+      };
+      const context = `Book title: ${book.title}
+Book type: ${book.bookType}
+Niche: ${book.genre}
+Concept: ${book.idea || ""}
+Description: ${book.description || ""}`;
+      const prompt = tool === "proofread" || tool === "expand" ? `${context}
+Chapter title: ${chapter?.title}
+Current chapter text:
+${chapter?.content}` : `${context}
+${input ? `Creator's focus: ${input}` : ""}`;
+      const result = await client.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        temperature: tool === "proofread" ? 0.35 : 0.7,
+        messages: [
+          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.` },
+          { role: "user", content: prompt }
+        ]
+      });
+      const content = result.choices[0]?.message?.content?.trim();
+      if (!content) return res.status(502).json({ message: "The AI provider returned an empty result. Try again." });
+      res.json({ content });
+    } catch (error) {
+      console.error(`Publishing ${tool} tool failed:`, error);
+      res.status(502).json({ message: "The AI writing tool failed. Try again later." });
     }
   });
   app2.get("/api/admin/publishing-products", isAuthenticated, async (req, res) => {
@@ -13081,7 +14026,7 @@ Chapter: ${chapterTitle}` }
 import { z as z2 } from "zod";
 import multer2 from "multer";
 import bcrypt3 from "bcryptjs";
-import { nanoid as nanoid2 } from "nanoid";
+import { nanoid as nanoid3 } from "nanoid";
 import path2 from "path";
 import express from "express";
 import { ReplitConnectors as ReplitConnectors2 } from "@replit/connectors-sdk";
@@ -13412,7 +14357,7 @@ var upload = multer2({
       const raw = path2.extname(file.originalname || "").toLowerCase();
       const ext = /^\.[a-z0-9]{1,6}$/.test(raw) ? raw : "";
       if (DANGEROUS_EXTS.has(ext)) return cb(new Error("File type not allowed"), "");
-      cb(null, `${nanoid2()}${ext}`);
+      cb(null, `${nanoid3()}${ext}`);
     }
   }),
   limits: { fileSize: 25 * 1024 * 1024 },
@@ -14271,8 +15216,8 @@ async function registerRoutes(app2, existingServer) {
           });
         }
       }
-      const { nanoid: nanoid3 } = await import("nanoid");
-      const id = `post_${nanoid3()}`;
+      const { nanoid: nanoid4 } = await import("nanoid");
+      const id = `post_${nanoid4()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       try {
@@ -14320,8 +15265,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid3 } = await import("nanoid");
-      const id = `post_${nanoid3()}`;
+      const { nanoid: nanoid4 } = await import("nanoid");
+      const id = `post_${nanoid4()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       res.status(201).json(post);
@@ -14400,8 +15345,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid3 } = await import("nanoid");
-      const id = `cmt_${nanoid3()}`;
+      const { nanoid: nanoid4 } = await import("nanoid");
+      const id = `cmt_${nanoid4()}`;
       const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim(), parentId);
       res.status(201).json(comment);
     } catch (error) {
@@ -16307,7 +17252,7 @@ async function registerRoutes(app2, existingServer) {
       const { email, password, firstName, lastName, userType, isVerified } = req.body;
       const hashedPassword = await bcrypt3.hash(password, 10);
       const newUser = await storage.createUser({
-        id: nanoid2(),
+        id: nanoid3(),
         email,
         password: hashedPassword,
         firstName,
@@ -16674,7 +17619,7 @@ async function registerRoutes(app2, existingServer) {
       if (!escrow) return res.status(404).json({ message: "Escrow payment not found" });
       await storage.updateEscrowPayment(escrow.id, { status: "verified", verifiedAt: /* @__PURE__ */ new Date(), verifiedBy: req.user.id });
       const activatedCampaign = await storage.updateCampaign(escrow.campaignId, { isActive: true, status: "active", paymentStatus: "completed" });
-      const { nanoid: nanoid3 } = await import("nanoid");
+      const { nanoid: nanoid4 } = await import("nanoid");
       await storage.createNotification({
         userId: escrow.brandId,
         type: "payment_received",
@@ -23070,7 +24015,7 @@ Notes: ${adminNotes}` : ""}`
         return res.status(400).json({ message: `Please complete: ${missing.join(", ")}.`, missingFields: missing });
       }
       const featureImagePath = req.file ? `/uploads/${req.file.filename}` : req.body.featureImage || null;
-      const campaignId = `campaign_${Date.now()}_${nanoid2(9)}`;
+      const campaignId = `campaign_${Date.now()}_${nanoid3(9)}`;
       const campaign = await storage.createCampaign({
         id: campaignId,
         title,
@@ -23699,6 +24644,7 @@ ${body}`,
     }
   });
   const { sendEmail: sendEmail2, testSmtpConnection: testSmtpConnection2, blastCampaign: blastCampaign2, AI_TEMPLATES: AI_TEMPLATES2, buildDefaultEmailHtml: buildDefaultEmailHtml2, getEmailStatus: getEmailStatus2, sendWelcomeEmail: sendWelcomeEmail2 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
+  const groqEmail = await Promise.resolve().then(() => (init_groq_email(), groq_email_exports));
   activateResendIfAvailable().catch(() => {
   });
   app2.post("/api/admin/email/activate-resend", isAuthenticated, async (req, res) => {
@@ -23749,6 +24695,116 @@ ${body}`,
     } catch (error) {
       console.error("Error fetching admin activity history:", error);
       res.status(500).json({ message: "Failed to fetch activity history" });
+    }
+  });
+  app2.get("/api/admin/email/ai/insights", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      if (!process.env.GROQ_API_KEY) return res.status(503).json({ message: "GROQ_API_KEY is not configured." });
+      const [campaigns2, responders, templates] = await Promise.all([
+        storage.getAllEmailCampaigns(),
+        storage.getAllEmailAutoResponders(),
+        storage.getAllEmailTemplates()
+      ]);
+      const insights = await groqEmail.analyzeCampaignInsights({
+        campaigns: campaigns2.map((item) => ({
+          name: item.name,
+          sent: Number(item.sent || 0),
+          opened: Number(item.opened || 0),
+          clicked: Number(item.clicked || 0),
+          bounced: Number(item.bounced || 0),
+          status: item.status
+        })),
+        autoResponders: responders.map((item) => ({
+          name: item.name,
+          trigger: item.trigger,
+          sentCount: Number(item.sentCount || 0),
+          isActive: !!item.isActive
+        })),
+        templates: templates.length,
+        totalSent: campaigns2.reduce((sum, item) => sum + Number(item.sent || 0), 0)
+      });
+      res.json({ insights });
+    } catch (error) {
+      console.error("[email-ai] Insight generation failed:", error);
+      res.status(502).json({ message: error.message || "Could not generate email insights." });
+    }
+  });
+  app2.post("/api/admin/email/ai/generate", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const prompt = String(req.body.prompt || "").trim().slice(0, 2e3);
+      if (prompt.length < 5) return res.status(400).json({ message: "Describe the email you want to generate." });
+      const result = await groqEmail.generateEmailTemplate({
+        prompt,
+        category: String(req.body.category || "general").slice(0, 60),
+        audience: String(req.body.audience || "creators and brands").slice(0, 200)
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("[email-ai] Template generation failed:", error);
+      res.status(502).json({ message: error.message || "Could not generate the email." });
+    }
+  });
+  app2.post("/api/admin/email/ai/subjects", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const content = String(req.body.content || "").trim().slice(0, 5e3);
+      if (!content) return res.status(400).json({ message: "Provide email content to analyze." });
+      const subjects = await groqEmail.generateSubjectLines({
+        content,
+        audience: String(req.body.audience || "creators and brands").slice(0, 200),
+        goal: String(req.body.goal || "").slice(0, 300),
+        existingSubject: String(req.body.existingSubject || "").slice(0, 300)
+      });
+      res.json({ subjects });
+    } catch (error) {
+      console.error("[email-ai] Subject suggestions failed:", error);
+      res.status(502).json({ message: error.message || "Could not generate subject lines." });
+    }
+  });
+  app2.post("/api/admin/email/ai/improve", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const html = String(req.body.html || "").trim().slice(0, 12e3);
+      if (!html) return res.status(400).json({ message: "Add email HTML before asking AI to improve it." });
+      const result = await groqEmail.improveTemplate({
+        html,
+        subject: String(req.body.subject || "").slice(0, 300),
+        feedback: String(req.body.feedback || "").slice(0, 500),
+        audience: String(req.body.audience || "platform users").slice(0, 200)
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("[email-ai] Template improvement failed:", error);
+      res.status(502).json({ message: error.message || "Could not improve the template." });
+    }
+  });
+  app2.post("/api/admin/email/ai/auto-responder", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const trigger = String(req.body.trigger || "custom").slice(0, 60);
+      const triggerLabel = String(req.body.triggerLabel || trigger).slice(0, 120);
+      const extraContext = String(req.body.extraContext || "").slice(0, 1500);
+      const userType = String(req.body.userType || "all").slice(0, 40);
+      const result = await groqEmail.generateAutoResponder({ trigger, triggerLabel, userType, extraContext });
+      res.json(result);
+    } catch (error) {
+      console.error("[email-ai] Auto-responder generation failed:", error);
+      res.status(502).json({ message: error.message || "Could not generate an auto-responder." });
+    }
+  });
+  app2.post("/api/admin/email/ai/send-time", isAuthenticated, async (req, res) => {
+    try {
+      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const recommendation = await groqEmail.recommendSendTime({
+        audience: String(req.body.audience || "Taskdrip creators").slice(0, 200),
+        emailType: String(req.body.emailType || "campaign announcement").slice(0, 120)
+      });
+      res.json({ recommendation });
+    } catch (error) {
+      console.error("[email-ai] Send-time recommendation failed:", error);
+      res.status(502).json({ message: error.message || "Could not recommend a send time." });
     }
   });
   app2.get("/api/admin/email/status", isAuthenticated, async (req, res) => {
@@ -23821,6 +24877,12 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { to, subject, html } = req.body;
+      if (typeof to !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())) {
+        return res.status(400).json({ success: false, error: "Enter a valid recipient email address." });
+      }
+      if (!String(subject || "").trim()) {
+        return res.status(400).json({ success: false, error: "Enter an email subject." });
+      }
       const result = await sendEmail2({ to, subject, html: html || "<p>Test email from Taskdrip Email CRM.</p>" });
       res.json(result);
     } catch (e) {
@@ -23873,9 +24935,30 @@ ${body}`,
   });
   app2.post("/api/admin/email/upload-image", isAuthenticated, upload.single("image"), async (req, res) => {
     try {
-      if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      if (req.user?.userType !== "admin") {
+        if (req.file) {
+          const fs2 = await import("node:fs/promises");
+          await fs2.unlink(req.file.path).catch(() => {
+          });
+        }
+        return res.status(403).json({ message: "Forbidden" });
+      }
       if (!req.file) return res.status(400).json({ message: "No image uploaded" });
-      const url = `/uploads/${req.file.filename}`;
+      const ext = (String(req.file.originalname || "").toLowerCase().match(/\.[^.]+$/) || [""])[0];
+      const allowedImageTypes = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+        ".gif": "image/gif"
+      };
+      if (!allowedImageTypes[ext] || req.file.mimetype !== allowedImageTypes[ext]) {
+        const fs2 = await import("node:fs/promises");
+        await fs2.unlink(req.file.path).catch(() => {
+        });
+        return res.status(400).json({ message: "Upload a PNG, JPG, WEBP, or GIF image." });
+      }
+      const url = new URL(`/uploads/${req.file.filename}`, `${req.protocol}://${req.get("host")}`).toString();
       res.json({ url });
     } catch (e) {
       res.status(500).json({ message: e.message || "Upload failed" });
@@ -26412,7 +27495,7 @@ function log(message, source = "express") {
 async function setupVite(app2, server2) {
   const { createServer: createViteServer, createLogger } = await import("vite");
   const { default: viteConfig } = await Promise.resolve().then(() => (init_vite_config(), vite_config_exports));
-  const { nanoid: nanoid3 } = await import("nanoid");
+  const { nanoid: nanoid4 } = await import("nanoid");
   const viteLogger = createLogger();
   const vite = await createViteServer({
     ...viteConfig,
@@ -26439,7 +27522,7 @@ async function setupVite(app2, server2) {
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid3()}"`
+        `src="/src/main.tsx?v=${nanoid4()}"`
       );
       let page = await vite.transformIndexHtml(url, template);
       page = await buildSeoHtml(page, req);
@@ -29320,6 +30403,12 @@ var REQUIRED_TABLES = [
     "description" text,
     "outline" jsonb NOT NULL DEFAULT '[]'::jsonb,
     "chapters" jsonb NOT NULL DEFAULT '[]'::jsonb,
+    "designer_document" jsonb,
+    "generation_job_id" varchar(80),
+    "generation_status" varchar(24) NOT NULL DEFAULT 'idle',
+    "generation_progress" integer NOT NULL DEFAULT 0,
+    "generation_message" text,
+    "generation_error" text,
     "cover_image" text,
     "amazon_url" text,
     "access_url" text,
@@ -29329,6 +30418,13 @@ var REQUIRED_TABLES = [
   )`,
   `CREATE INDEX IF NOT EXISTS "creator_books_creator_id_idx" ON "creator_books" ("creator_id")`,
   `CREATE INDEX IF NOT EXISTS "creator_books_status_idx" ON "creator_books" ("status")`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "kdp_keywords" jsonb NOT NULL DEFAULT '[]'::jsonb`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "designer_document" jsonb`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_job_id" varchar(80)`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_status" varchar(24) NOT NULL DEFAULT 'idle'`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_progress" integer NOT NULL DEFAULT 0`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_message" text`,
+  `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_error" text`,
   `CREATE TABLE IF NOT EXISTS "creator_publishing_products" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "creator_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,

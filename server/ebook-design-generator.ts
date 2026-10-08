@@ -10,11 +10,14 @@ import {
 } from "@shared/ebook-design";
 
 const GROQ_API_BASE_URL = "https://api.groq.com/openai/v1";
-const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
+const BOOK_AI_BASE_URL = process.env.BOOK_AI_BASE_URL?.trim().replace(/\/+$/, "");
+const BOOK_AI_MODEL = process.env.BOOK_AI_MODEL || (
+  BOOK_AI_BASE_URL ? "llama3.3" : process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile"
+);
 const ART_MOTIFS = new Set<EbookArtMotif>(["botanical", "geometry", "orbit", "waves"]);
 
 export function isBookDesignAIAvailable() {
-  return Boolean(process.env.GROQ_API_KEY);
+  return Boolean(process.env.GROQ_API_KEY || BOOK_AI_BASE_URL);
 }
 
 export type GeneratedBook = {
@@ -147,13 +150,13 @@ export async function generateCompleteBook(input: {
   chapterCount: number;
   onProgress: BookGenerationProgress;
 }): Promise<GeneratedBook> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error("GROQ_API_KEY is not configured in Replit Secrets.");
-  const client = new OpenAI({ apiKey, baseURL: GROQ_API_BASE_URL });
+  const apiKey = process.env.BOOK_AI_API_KEY || process.env.GROQ_API_KEY || (BOOK_AI_BASE_URL ? "local-model" : "");
+  if (!apiKey) throw new Error("Configure GROQ_API_KEY or an OpenAI-compatible BOOK_AI_BASE_URL to enable book generation.");
+  const client = new OpenAI({ apiKey, baseURL: BOOK_AI_BASE_URL || GROQ_API_BASE_URL });
 
   await input.onProgress(4, "Designing the book outline and visual theme");
   const planning = await client.chat.completions.create({
-    model: GROQ_TEXT_MODEL,
+    model: BOOK_AI_MODEL,
     temperature: 0.55,
     max_tokens: 3600,
     response_format: { type: "json_object" },
@@ -186,7 +189,7 @@ The description must be reader-focused, under 3500 characters. Titles should be 
     });
   }
 
-  const planChapters = rawChapters.map((item: any, index: number) => ({
+  const planChapters: Array<{ title: string; summary: string; motif: EbookArtMotif }> = rawChapters.map((item: any, index: number) => ({
     title: String(item.title || `Chapter ${index + 1}`).trim().slice(0, 180),
     summary: String(item.summary || "").trim().slice(0, 600),
     motif: ART_MOTIFS.has(item.motif) ? item.motif as EbookArtMotif : (index % 2 ? "waves" : "geometry") as EbookArtMotif,
@@ -195,7 +198,7 @@ The description must be reader-focused, under 3500 characters. Titles should be 
   const subtitle = String(plan.subtitle || "").trim().slice(0, 300);
   const description = String(plan.description || "").trim().slice(0, 3500);
   const theme = makeTheme(plan.theme);
-  const outline = planChapters.map((chapter) => `${chapter.title}${chapter.summary ? ` — ${chapter.summary}` : ""}`);
+  const outline: string[] = planChapters.map((chapter) => `${chapter.title}${chapter.summary ? ` — ${chapter.summary}` : ""}`);
 
   const chapters: GeneratedBook["chapters"] = [];
   for (let index = 0; index < planChapters.length; index += 1) {
@@ -203,7 +206,7 @@ The description must be reader-focused, under 3500 characters. Titles should be 
     const percentBefore = 10 + Math.round((index / planChapters.length) * 75);
     await input.onProgress(percentBefore, `Writing chapter ${index + 1} of ${planChapters.length}`);
     const chapterResponse = await client.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
+      model: BOOK_AI_MODEL,
       temperature: 0.65,
       max_tokens: 2400,
       messages: [

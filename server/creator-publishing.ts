@@ -970,7 +970,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     if (!isBookDesignAIAvailable()) return res.status(503).json({
       code: "AI_PROVIDER_NOT_CONFIGURED",
-      message: "Book generation requires GROQ_API_KEY in Replit Secrets.",
+      message: "Configure GROQ_API_KEY, or an OpenAI-compatible BOOK_AI_BASE_URL (and BOOK_AI_MODEL) to enable book generation.",
     });
 
     const prompt = String(req.body.prompt || "").trim().slice(0, 8000);

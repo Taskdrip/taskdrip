@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
+import EbookBookDesigner from "@/components/ebook-book-designer";
 import { KDP_BOOK_TYPES, KDP_GENRES, KDP_TRIM_SIZES, downloadKdpManuscript } from "@/lib/kdp-manuscript";
+import { exportEbook, type EbookExportFormat } from "@/lib/ebook-export";
 import { ArrowDownToLine, ArrowLeft, Banknote, BookOpen, Check, Copy, CreditCard, ExternalLink, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet, Wand2 } from "lucide-react";
+import type { EbookDesignDocument } from "@shared/ebook-design";
 
 type Chapter = { id: string; title: string; content: string };
 type Book = {
@@ -26,6 +29,12 @@ type Book = {
   coverImage?: string | null;
   outline?: string[];
   chapters?: Chapter[];
+  designerDocument?: EbookDesignDocument | null;
+  generationJobId?: string | null;
+  generationStatus?: string;
+  generationProgress?: number;
+  generationMessage?: string | null;
+  generationError?: string | null;
   amazonUrl?: string | null;
   accessUrl?: string | null;
   kdpKeywords?: string[];
@@ -59,6 +68,13 @@ type StudioPaymentOptions = {
   cryptoWallets: Array<{ id: string; name: string; asset: string; network: string; address: string; instructions?: string; enabled: boolean }>;
   bankAccounts: Array<{ id: string; bankName: string; accountName: string; accountNumber: string; currency: string; instructions?: string; enabled: boolean }>;
 };
+type GenerationStatus = {
+  generationJobId?: string | null;
+  generationStatus: string;
+  generationProgress: number;
+  generationMessage?: string | null;
+  generationError?: string | null;
+};
 
 async function requestJson(url: string, options: RequestInit = {}) {
   const response = await fetch(url, { credentials: "include", ...options });
@@ -85,9 +101,11 @@ export default function CreatorStudioPage() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [section, setSection] = useState<"overview" | "books" | "products" | "earnings">("overview");
   const [activeBook, setActiveBook] = useState<Book | null>(null);
+  const [designerOpen, setDesignerOpen] = useState(false);
   const [bookFile, setBookFile] = useState<File | null>(null);
   const [bookPrice, setBookPrice] = useState("9.99");
   const [bookBusy, setBookBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState<EbookExportFormat | null>(null);
   const [outlineBusy, setOutlineBusy] = useState(false);
   const [chapterBusy, setChapterBusy] = useState<string | null>(null);
   const [metadataBusy, setMetadataBusy] = useState(false);
@@ -167,6 +185,13 @@ export default function CreatorStudioPage() {
     queryFn: () => requestJson("/api/creator-studio/books"),
     enabled: accessQuery.data?.hasAccess === true,
   });
+  const generationQueryKey = [activeBook ? `/api/creator-studio/books/${activeBook.id}/generation` : "/api/creator-studio/books/no-selection/generation"];
+  const generationQuery = useQuery<GenerationStatus>({
+    queryKey: generationQueryKey,
+    queryFn: () => requestJson(String(generationQueryKey[0])),
+    enabled: !!activeBook && accessQuery.data?.hasAccess === true,
+    refetchInterval: (query) => ["queued", "generating"].includes(String(query.state.data?.generationStatus || "")) ? 1500 : false,
+  });
   const productsQuery = useQuery<Product[]>({
     queryKey: ["/api/creator-studio/products"],
     queryFn: () => requestJson("/api/creator-studio/products"),
@@ -207,10 +232,35 @@ export default function CreatorStudioPage() {
   const refreshProducts = () => queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/products"] });
   const refreshBooks = () => queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/books"] });
 
+  useEffect(() => {
+    const state = generationQuery.data;
+    if (!activeBook || !state || state.generationStatus === activeBook.generationStatus) return;
+    if (state.generationStatus === "completed") {
+      void booksQuery.refetch().then(({ data }) => {
+        const latest = data?.find((book) => book.id === activeBook.id);
+        if (latest) {
+          setActiveBook(latest);
+          setDesignerOpen(true);
+          toast({ title: "Your book draft is ready", description: "Review and edit the generated manuscript and page designs." });
+        }
+      });
+      return;
+    }
+    setActiveBook({
+      ...activeBook,
+      generationJobId: state.generationJobId,
+      generationStatus: state.generationStatus,
+      generationProgress: state.generationProgress,
+      generationMessage: state.generationMessage,
+      generationError: state.generationError,
+    });
+  }, [generationQuery.data?.generationStatus, activeBook?.id, activeBook?.generationStatus]);
+
   const createBook = async () => {
     try {
       const book = await requestJson("/api/creator-studio/books", { method: "POST" });
       setActiveBook(book);
+      setDesignerOpen(false);
       setSection("books");
       await refreshBooks();
       toast({ title: "Book draft created" });
@@ -237,6 +287,7 @@ export default function CreatorStudioPage() {
           outline: book.outline || [],
           chapters: book.chapters || [],
           kdpKeywords: book.kdpKeywords || [],
+          designerDocument: book.designerDocument || null,
           coverImage: book.coverImage || "",
           amazonUrl: book.amazonUrl || "",
           accessUrl: book.accessUrl || "",
@@ -250,6 +301,63 @@ export default function CreatorStudioPage() {
       return null;
     } finally {
       setBookBusy(false);
+    }
+  };
+
+  const generateCompleteBook = async (options: { prompt: string; chapterCount: number; replaceExisting: boolean }) => {
+    if (!activeBook) return;
+    const saved = await saveBook({ ...activeBook, idea: options.prompt });
+    if (!saved) return;
+    const statusUrl = `/api/creator-studio/books/${saved.id}/generation`;
+    try {
+      const result = await requestJson(`/api/creator-studio/books/${saved.id}/ai/full-book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options),
+      });
+      const queued: GenerationStatus = {
+        generationJobId: result.jobId,
+        generationStatus: "queued",
+        generationProgress: 1,
+        generationMessage: result.message || "Preparing the book generator",
+        generationError: null,
+      };
+      queryClient.setQueryData([statusUrl], queued);
+      setActiveBook({ ...saved, idea: options.prompt, ...queued });
+      setDesignerOpen(true);
+      toast({ title: "Book generation started", description: "You can keep this page open while the complete draft and page designs are prepared." });
+    } catch (error: any) {
+      toast({ title: "Could not start book generation", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const downloadBook = async (format: EbookExportFormat) => {
+    if (!activeBook) return;
+    const hasWrittenContent = activeBook.chapters?.some((chapter) => chapter.content.trim())
+      || activeBook.designerDocument?.pages.some((page) => page.blocks.some((block) =>
+        (block.kind === "text" && ["body", "quote"].includes(block.role) && block.text.trim().length > 0)
+        || (block.kind === "list" && block.items.some((item) => item.trim().length > 0)),
+      ));
+    if (format !== "cover-png" && !hasWrittenContent) {
+      toast({ title: "Add manuscript content before exporting", description: "Write at least one chapter before creating a publication file.", variant: "destructive" });
+      return;
+    }
+    setExportBusy(format);
+    try {
+      await exportEbook({
+        id: activeBook.id,
+        title: activeBook.title,
+        subtitle: activeBook.subtitle,
+        description: activeBook.description,
+        trimSize: activeBook.trimSize,
+        chapters: activeBook.chapters || [],
+        designerDocument: activeBook.designerDocument || null,
+      }, `${(user as any)?.firstName || ""} ${(user as any)?.lastName || ""}`.trim(), format);
+      toast({ title: `${format.toUpperCase()} export downloaded`, description: "Review the exported file in the target store’s previewer before publication." });
+    } catch (error: any) {
+      toast({ title: `Could not export ${format.toUpperCase()}`, description: error.message || "Try again after saving your book.", variant: "destructive" });
+    } finally {
+      setExportBusy(null);
     }
   };
 
@@ -667,7 +775,7 @@ export default function CreatorStudioPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {books.map((book) => (
-                  <button key={book.id} onClick={() => setActiveBook(book)} disabled={["published", "submitted"].includes(book.status)} className={`w-full rounded-lg border p-3 text-left disabled:cursor-not-allowed disabled:opacity-70 ${activeBook?.id === book.id ? "border-violet-500 bg-violet-50" : "hover:bg-slate-50"}`}>
+                  <button key={book.id} onClick={() => { setActiveBook(book); setDesignerOpen(!!book.designerDocument); }} disabled={["published", "submitted"].includes(book.status)} className={`w-full rounded-lg border p-3 text-left disabled:cursor-not-allowed disabled:opacity-70 ${activeBook?.id === book.id ? "border-violet-500 bg-violet-50" : "hover:bg-slate-50"}`}>
                     <div className="font-medium truncate">{book.title}</div>
                     <Badge className={`mt-2 ${statusColor[book.status] || ""}`}>{book.status.replace("_", " ")}</Badge>
                   </button>
@@ -676,9 +784,51 @@ export default function CreatorStudioPage() {
               </CardContent>
             </Card>
 
-            {activeBook ? (
+            {activeBook ? designerOpen ? (
+              <div className="min-w-0 space-y-3">
+                <Button variant="ghost" size="sm" onClick={() => setDesignerOpen(false)}><ArrowLeft className="mr-2 h-4 w-4" />Back to book setup</Button>
+                <EbookBookDesigner
+                  book={{
+                    ...activeBook,
+                    bookType: activeBook.bookType || "nonfiction",
+                    genre: activeBook.genre || "General nonfiction",
+                    trimSize: activeBook.trimSize || "6x9",
+                  }}
+                  chapters={activeBook.chapters || []}
+                  document={activeBook.designerDocument || null}
+                  authorName={`${(user as any)?.firstName || ""} ${(user as any)?.lastName || ""}`.trim()}
+                  generation={generationQuery.data || {
+                    generationJobId: activeBook.generationJobId,
+                    generationStatus: activeBook.generationStatus || "idle",
+                    generationProgress: activeBook.generationProgress || 0,
+                    generationMessage: activeBook.generationMessage,
+                    generationError: activeBook.generationError,
+                  }}
+                  isSaving={bookBusy}
+                  exportBusy={exportBusy}
+                  onGenerate={generateCompleteBook}
+                  onSave={() => { void saveBook(activeBook); }}
+                  onBookChange={(changes) => setActiveBook((current) => current ? { ...current, ...changes } : current)}
+                  onAddChapter={() => {
+                    const chapter = {
+                      id: crypto.randomUUID(),
+                      title: `Chapter ${(activeBook.chapters || []).length + 1}`,
+                      content: "",
+                    };
+                    setActiveBook((current) => current ? { ...current, chapters: [...(current.chapters || []), chapter] } : current);
+                    return chapter;
+                  }}
+                  onDocumentChange={(document) => setActiveBook((current) => current ? { ...current, designerDocument: document } : current)}
+                  onChapterChange={(chapterId, content) => updateChapter(chapterId, "content", content)}
+                  onExport={(format) => { void downloadBook(format); }}
+                />
+              </div>
+            ) : (
               <Card className="border-0 shadow-sm">
-                <CardHeader><CardTitle>Edit book draft</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
+                  <CardTitle>Edit book draft</CardTitle>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setDesignerOpen(true)}><BookOpen className="mr-2 h-4 w-4" />Open ebook design studio</Button>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div><Label>Title</Label><Input value={activeBook.title} onChange={(e) => setActiveBook({ ...activeBook, title: e.target.value })} maxLength={240} /></div>

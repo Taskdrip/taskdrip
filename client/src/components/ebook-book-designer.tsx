@@ -12,11 +12,15 @@ import {
   Image as ImageIcon,
   LoaderCircle,
   Palette,
+  Plus,
   Save,
   Sparkles,
   Type,
+  Trash2,
 } from "lucide-react";
+import { KDP_BOOK_TYPES, KDP_GENRES, KDP_TRIM_SIZES } from "@/lib/kdp-manuscript";
 import {
+  DEFAULT_EBOOK_THEME,
   renderEbookArtSvg,
   type EbookArtMotif,
   type EbookDesignBlock,
@@ -55,13 +59,21 @@ export type EbookBookDesignerProps = {
   exportBusy: string | null;
   onGenerate: (options: { prompt: string; chapterCount: number; replaceExisting: boolean }) => void;
   onSave: () => void;
+  onBookChange: (changes: Partial<Pick<Book, "title" | "subtitle" | "bookType" | "genre" | "trimSize">>) => void;
+  onAddChapter: () => Chapter;
   onDocumentChange: (doc: EbookDesignDocument) => void;
   onChapterChange: (chapterId: string, content: string) => void;
-  onExport: (format: "pdf" | "epub" | "docx" | "html") => void;
+  onExport: (format: "pdf" | "epub" | "docx" | "html" | "cover-png") => void;
 };
 
 const motifs: EbookArtMotif[] = ["botanical", "geometry", "orbit", "waves"];
-const formats = ["pdf", "epub", "docx", "html"] as const;
+const formats = [
+  { value: "pdf", label: "Print interior PDF" },
+  { value: "epub", label: "EPUB 3 · Kindle / Google Play Books" },
+  { value: "docx", label: "Word document" },
+  { value: "html", label: "Standalone HTML" },
+  { value: "cover-png", label: "Front cover PNG" },
+] as const;
 const fontChoices = [
   { value: "serif", label: "Editorial serif" },
   { value: "sans", label: "Modern sans" },
@@ -93,6 +105,8 @@ export default function EbookBookDesigner({
   exportBusy,
   onGenerate,
   onSave,
+  onBookChange,
+  onAddChapter,
   onDocumentChange,
   onChapterChange,
   onExport,
@@ -114,7 +128,7 @@ export default function EbookBookDesigner({
     if (!document) return new Map<string, string>();
     return new Map(document.pages.flatMap((page, pageIndex) =>
       page.blocks.flatMap((block, blockIndex) => block.kind === "art"
-        ? [[block.id, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderEbookArtSvg(block.motif, document.theme, pageIndex + blockIndex, block.altText))}]] as [string, string][]]
+        ? [[block.id, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderEbookArtSvg(block.motif, document.theme, pageIndex + blockIndex, block.altText))}`]] as [string, string][]
         : []),
     ));
   }, [document]);
@@ -127,7 +141,27 @@ export default function EbookBookDesigner({
     if (document && activePageId) changeDocument(updatePage(document, activePageId, transform));
   };
   const changeBlock = (blockId: string, transform: (block: EbookDesignBlock) => EbookDesignBlock) => {
-    changePage((page) => ({ ...page, blocks: page.blocks.map((block) => block.id === blockId ? transform(block) : block) }));
+    if (!document || !activePageId) return;
+    const previous = document.pages.flatMap((page) => page.blocks).find((block) => block.id === blockId);
+    if (!previous) return;
+    const updated = transform(previous);
+    if (previous.kind === "text" && updated.kind === "text" && ["title", "subtitle"].includes(previous.role)) {
+      const change = previous.role === "title" ? { title: updated.text } : { subtitle: updated.text };
+      onBookChange(change);
+      const nextText = updated.text;
+      changeDocument({
+        ...document,
+        pages: document.pages.map((page) => ({
+          ...page,
+          blocks: page.blocks.map((block) => {
+            if (block.id === blockId) return updated;
+            return block.kind === "text" && block.role === previous.role ? { ...block, text: nextText } : block;
+          }),
+        })),
+      });
+      return;
+    }
+    changePage((page) => ({ ...page, blocks: page.blocks.map((block) => block.id === blockId ? updated : block) }));
   };
   const movePage = (direction: -1 | 1) => {
     if (!document || !selectedPage) return;
@@ -145,6 +179,91 @@ export default function EbookBookDesigner({
       : false;
     if (hasContent && !replaceExisting) return;
     onGenerate({ prompt: prompt.trim(), chapterCount, replaceExisting });
+  };
+  const changeBook = (changes: Partial<Pick<Book, "title" | "subtitle" | "bookType" | "genre" | "trimSize">>) => {
+    onBookChange(changes);
+    if (!document || (changes.title === undefined && changes.subtitle === undefined)) return;
+    changeDocument({
+      ...document,
+      pages: document.pages.map((page) => ({
+        ...page,
+        blocks: page.blocks.map((block) => {
+          if (block.kind !== "text") return block;
+          if (block.role === "title" && changes.title !== undefined) return { ...block, text: changes.title };
+          if (block.role === "subtitle" && changes.subtitle !== undefined) return { ...block, text: changes.subtitle || "" };
+          return block;
+        }),
+      })),
+    });
+  };
+  const addPage = () => {
+    const pageId = crypto.randomUUID();
+    const base = document || {
+      schemaVersion: 1 as const,
+      prompt: book.idea || "",
+      theme: DEFAULT_EBOOK_THEME,
+      pages: [],
+    };
+    const page: EbookDesignPage = {
+      id: pageId,
+      kind: "chapter-body",
+      title: "New page",
+      blocks: [{ id: crypto.randomUUID(), kind: "text", role: "body", text: "Write this page here." }],
+    };
+    changeDocument({ ...base, pages: [...base.pages, page] });
+    setSelectedPageId(pageId);
+    setMobilePanel("design");
+  };
+  const addBlock = (kind: "heading" | "body" | "art" | "list" | "contents" | "chapter") => {
+    const base = document || {
+      schemaVersion: 1 as const,
+      prompt: book.idea || "",
+      theme: DEFAULT_EBOOK_THEME,
+      pages: [],
+    };
+    let pageId = activePageId;
+    let pagesInDocument = base.pages;
+    if (!pagesInDocument.length) {
+      pageId = crypto.randomUUID();
+      pagesInDocument = [{
+        id: pageId,
+        kind: "chapter-body",
+        title: "New page",
+        blocks: [],
+      }];
+      setSelectedPageId(pageId);
+    }
+    const page = pagesInDocument.find((item) => item.id === pageId) || pagesInDocument[0];
+    let block: EbookDesignBlock;
+    if (kind === "heading" || kind === "body") {
+      block = { id: crypto.randomUUID(), kind: "text", role: kind, text: kind === "heading" ? "New section" : "Write your text here." };
+    } else if (kind === "art") {
+      block = { id: crypto.randomUUID(), kind: "art", motif: "geometry", altText: "Decorative geometric illustration", brief: "Edit this art direction." };
+    } else if (kind === "list") {
+      block = { id: crypto.randomUUID(), kind: "list", items: ["First item", "Second item"] };
+    } else if (kind === "contents") {
+      block = { id: crypto.randomUUID(), kind: "contents" };
+    } else {
+      const chapter = onAddChapter();
+      block = { id: crypto.randomUUID(), kind: "chapter", chapterId: chapter.id };
+    }
+    changeDocument({
+      ...base,
+      pages: pagesInDocument.map((item) => item.id === page.id
+        ? { ...item, blocks: [...item.blocks, block] }
+        : item),
+    });
+    setMobilePanel("design");
+  };
+  const removeBlock = (blockId: string) => {
+    changePage((page) => ({ ...page, blocks: page.blocks.filter((block) => block.id !== blockId) }));
+  };
+  const deletePage = () => {
+    if (!document || !selectedPage || document.pages.length <= 1) return;
+    if (!window.confirm("Delete the designed page “" + selectedPage.title + "”? This change is not saved until you save the draft.")) return;
+    const nextPages = document.pages.filter((page) => page.id !== selectedPage.id);
+    changeDocument({ ...document, pages: nextPages });
+    setSelectedPageId(nextPages[Math.max(0, pages.indexOf(selectedPage) - 1)]?.id || "");
   };
 
   const fontFamily = (font: "serif" | "sans") => font === "serif"
@@ -204,14 +323,14 @@ export default function EbookBookDesigner({
                 id="ebook-export"
                 value=""
                 onChange={(event) => {
-                  const format = event.target.value as typeof formats[number];
+                  const format = event.target.value as typeof formats[number]["value"];
                   if (format) onExport(format);
                 }}
                 disabled={!document || !!exportBusy}
                 className="ebook-focus h-10 w-full appearance-none rounded-xl bg-[#34564b] pl-4 pr-10 text-sm font-semibold text-white hover:bg-[#29473d] disabled:cursor-not-allowed disabled:opacity-50 sm:w-[170px]"
               >
                 <option value="" disabled>{exportBusy ? "Preparing…" : "Export book"}</option>
-                {formats.map((format) => <option key={format} value={format}>{format.toUpperCase()}</option>)}
+                {formats.map((format) => <option key={format.value} value={format.value}>{format.label}</option>)}
               </select>
               {exportBusy ? <LoaderCircle className="pointer-events-none absolute right-3 top-3 h-4 w-4 animate-spin text-white" aria-hidden="true" /> : <Download className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-white" aria-hidden="true" />}
             </div>
@@ -238,6 +357,9 @@ export default function EbookBookDesigner({
               placeholder="Describe the book you want to write, its reader, and the ideas it should carry."
               className="ebook-focus min-h-[96px] w-full resize-y rounded-xl border border-[#dcd6cb] bg-[#fffdf8] px-3 py-2.5 text-sm leading-6 text-[#302d27] placeholder:text-[#a29b90]"
             />
+            <p className="mt-2 text-[11px] leading-5 text-[#777168]">
+              The default is open-weight Llama 3.3 70B through Groq. For a self-hosted OpenAI-compatible model, configure <code>BOOK_AI_BASE_URL</code> and <code>BOOK_AI_MODEL</code>; keep any endpoint key in Replit Secrets.
+            </p>
             <div className="mt-3 flex items-end gap-3">
               <div className="min-w-0 flex-1">
                 <label htmlFor="chapter-count" className="mb-1.5 block text-xs font-semibold text-[#59554d]">Chapter plan</label>
@@ -343,22 +465,40 @@ export default function EbookBookDesigner({
             <p className="text-[10px] font-bold uppercase tracking-[.19em] text-[#927550]">Book details</p>
             <h2 id="book-details-heading" className="mt-1 text-[17px] font-semibold tracking-[-.025em]">Your publication</h2>
             <div className="mt-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#ede9df] text-[#696358]"><FileText size={15} aria-hidden="true" /></span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#928b7f]">Format / genre</p>
-                  <p className="mt-0.5 truncate text-sm font-medium text-[#39362f]">{book.bookType} · {book.genre}</p>
-                </div>
+              <div>
+                <label htmlFor="designer-book-title" className="mb-1 block text-[11px] font-semibold text-[#686259]">Book title</label>
+                <input id="designer-book-title" value={book.title} maxLength={240} onChange={(event) => changeBook({ title: event.target.value })} className="ebook-focus h-9 w-full rounded-lg border border-[#dcd6cb] bg-[#fffdf8] px-2.5 text-sm" />
               </div>
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#ede9df] text-[#696358]"><Type size={15} aria-hidden="true" /></span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#928b7f]">Trim / byline</p>
-                  <p className="mt-0.5 truncate text-sm font-medium text-[#39362f]">{book.trimSize} · {authorName || "Author not set"}</p>
-                </div>
+              <div>
+                <label htmlFor="designer-book-subtitle" className="mb-1 block text-[11px] font-semibold text-[#686259]">Subtitle</label>
+                <input id="designer-book-subtitle" value={book.subtitle || ""} maxLength={300} onChange={(event) => changeBook({ subtitle: event.target.value })} className="ebook-focus h-9 w-full rounded-lg border border-[#dcd6cb] bg-[#fffdf8] px-2.5 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="designer-book-type" className="mb-1 block text-[11px] font-semibold text-[#686259]">Book type</label>
+                <select id="designer-book-type" value={book.bookType} onChange={(event) => changeBook({ bookType: event.target.value })} className="ebook-focus h-9 w-full rounded-lg border border-[#dcd6cb] bg-[#fffdf8] px-2.5 text-xs">
+                  {KDP_BOOK_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="designer-book-genre" className="mb-1 block text-[11px] font-semibold text-[#686259]">Reader niche</label>
+                <select id="designer-book-genre" value={book.genre} onChange={(event) => changeBook({ genre: event.target.value })} className="ebook-focus h-9 w-full rounded-lg border border-[#dcd6cb] bg-[#fffdf8] px-2.5 text-xs">
+                  {Array.from(new Set([book.genre, ...KDP_GENRES].filter(Boolean))).map((genre) => <option key={genre} value={genre}>{genre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="designer-book-trim" className="mb-1 block text-[11px] font-semibold text-[#686259]">KDP trim size</label>
+                <select id="designer-book-trim" value={book.trimSize} onChange={(event) => changeBook({ trimSize: event.target.value })} className="ebook-focus h-9 w-full rounded-lg border border-[#dcd6cb] bg-[#fffdf8] px-2.5 text-xs">
+                  {KDP_TRIM_SIZES.map((size) => <option key={size.value} value={size.value}>{size.label}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 border-t border-[#e8e3da] pt-3 text-xs text-[#79746b]">
+                <Type size={14} aria-hidden="true" />By {authorName || "Author"}
               </div>
               <p className="border-t border-[#e8e3da] pt-3 text-xs leading-5 text-[#777168]">
                 {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"} · {pages.length} designed {pages.length === 1 ? "page" : "pages"}
+              </p>
+              <p className="text-[11px] leading-5 text-[#777168]">
+                Exports include a trim-sized print interior PDF, front-cover PNG, reflowable EPUB 3, DOCX, and HTML. KDP paperbacks need a separate full-wrap cover; validate files in KDP Previewer, Kindle, or Google Play Books because store acceptance also depends on current rules, metadata, and rights.
               </p>
             </div>
           </section>
@@ -389,6 +529,10 @@ export default function EbookBookDesigner({
             <div className="mt-4 flex gap-1.5">
               <button type="button" onClick={() => movePage(-1)} disabled={!selectedPage || pages.indexOf(selectedPage) <= 0} className="ebook-focus inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#ded9cf] bg-[#fffdf8] text-xs font-medium text-[#615c53] hover:bg-white disabled:opacity-40" aria-label="Move selected page earlier"><ArrowUp size={14} aria-hidden="true" />Move up</button>
               <button type="button" onClick={() => movePage(1)} disabled={!selectedPage || pages.indexOf(selectedPage) >= pages.length - 1} className="ebook-focus inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#ded9cf] bg-[#fffdf8] text-xs font-medium text-[#615c53] hover:bg-white disabled:opacity-40" aria-label="Move selected page later"><ArrowDown size={14} aria-hidden="true" />Move down</button>
+            </div>
+            <div className="mt-2 flex gap-1.5">
+              <button type="button" onClick={addPage} className="ebook-focus inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#ded9cf] bg-[#fffdf8] text-xs font-medium text-[#615c53] hover:bg-white"><Plus size={14} aria-hidden="true" />Add page</button>
+              <button type="button" onClick={deletePage} disabled={!selectedPage || pages.length <= 1} className="ebook-focus inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#ead2cc] bg-[#fff9f7] text-xs font-medium text-[#985b4d] hover:bg-white disabled:opacity-40"><Trash2 size={14} aria-hidden="true" />Delete</button>
             </div>
             <div className="ebook-scrollbar mt-3 max-h-[520px] space-y-1.5 overflow-y-auto pr-1">
               {pages.length ? pages.map((page, index) => (
@@ -511,9 +655,20 @@ export default function EbookBookDesigner({
                 </div>
                 <div className="border-t border-[#e5dfd5] pt-3">
                   <h3 className="text-[10px] font-bold uppercase tracking-[.15em] text-[#928b7f]">Content blocks</h3>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => addBlock("heading")} className="ebook-focus rounded-lg border border-[#ded9cf] bg-[#fffdf8] px-2 py-1.5 text-[10px] font-medium text-[#615c53]">+ Heading</button>
+                  <button type="button" onClick={() => addBlock("body")} className="ebook-focus rounded-lg border border-[#ded9cf] bg-[#fffdf8] px-2 py-1.5 text-[10px] font-medium text-[#615c53]">+ Text</button>
+                  <button type="button" onClick={() => addBlock("art")} className="ebook-focus rounded-lg border border-[#ded9cf] bg-[#fffdf8] px-2 py-1.5 text-[10px] font-medium text-[#615c53]">+ Graphic</button>
+                  <button type="button" onClick={() => addBlock("list")} className="ebook-focus rounded-lg border border-[#ded9cf] bg-[#fffdf8] px-2 py-1.5 text-[10px] font-medium text-[#615c53]">+ List</button>
+                  <button type="button" onClick={() => addBlock("contents")} className="ebook-focus rounded-lg border border-[#ded9cf] bg-[#fffdf8] px-2 py-1.5 text-[10px] font-medium text-[#615c53]">+ Contents</button>
+                  <button type="button" onClick={() => addBlock("chapter")} className="ebook-focus rounded-lg border border-[#ded9cf] bg-[#fffdf8] px-2 py-1.5 text-[10px] font-medium text-[#615c53]">+ New chapter</button>
+                </div>
                   <div className="mt-3 space-y-4">
                     {selectedPage.blocks.map((block) => (
                       <div key={block.id} className="rounded-xl border border-[#e4ded3] bg-[#fffdf8] p-3">
+                      <div className="mb-2 flex justify-end">
+                        <button type="button" onClick={() => removeBlock(block.id)} aria-label={`Remove ${block.kind} block`} className="ebook-focus inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-[#985b4d] hover:bg-[#fff0ec]"><Trash2 size={12} aria-hidden="true" />Remove</button>
+                      </div>
                         {block.kind === "text" && (
                           <>
                             <label htmlFor={`block-${block.id}`} className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold capitalize text-[#514c43]">

@@ -35,6 +35,12 @@ The dev server runs on port 5000.
 | `YOUTUBE_API_KEY` | Lead gen + Influencer CRM robot | For influencer crawl |
 | `OPENAI_API_KEY` | Additional AI features | Optional |
 
+## Ebook design studio
+
+- `/creator-studio` includes the prompt-to-book designer for creators and administrators. The hosted default uses the open-weight Llama 3.3 70B model through Groq (`GROQ_API_KEY`).
+- To use a self-hosted OpenAI-compatible model instead, set `BOOK_AI_BASE_URL` and `BOOK_AI_MODEL`; put any endpoint credential in the Replit Secrets tool as `BOOK_AI_API_KEY`.
+- Exports: trim-sized print-interior PDF, front-cover PNG, reflowable EPUB 3, DOCX, and standalone HTML. A KDP paperback still needs a separate full-wrap cover. Review output in the target store's previewer; the studio does not guarantee store acceptance.
+
 ## Key pages
 
 - `/admin/influencer-crm` — **Influencer CRM** — AI robot crawler, tier-based segments, outreach hub (NEW)
