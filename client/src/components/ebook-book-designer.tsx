@@ -116,7 +116,12 @@ export default function EbookBookDesigner({
   onExport,
 }: EbookBookDesignerProps) {
   const [prompt, setPrompt] = useState(document?.prompt || book.idea || book.description || "");
-  const [chapterCount, setChapterCount] = useState<4 | 6 | 8 | 10 | 12>([4, 6, 8, 10, 12].includes(defaultChapterCount) ? defaultChapterCount as 4 | 6 | 8 | 10 | 12 : 6);
+  const allowedChapterCounts = [4, 6, 8, 10, 12, 16, 20] as const;
+  const [chapterCount, setChapterCount] = useState<(typeof allowedChapterCounts)[number]>(
+    allowedChapterCounts.includes(defaultChapterCount as (typeof allowedChapterCounts)[number])
+      ? defaultChapterCount as (typeof allowedChapterCounts)[number]
+      : 6,
+  );
   const [chapterCountTouched, setChapterCountTouched] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(document?.pages[0]?.id || "");
   const [mobilePanel, setMobilePanel] = useState<"pages" | "preview" | "design">("preview");
@@ -130,8 +135,8 @@ export default function EbookBookDesigner({
   );
 
   useEffect(() => {
-    if (!chapterCountTouched && [4, 6, 8, 10, 12].includes(defaultChapterCount)) {
-      setChapterCount(defaultChapterCount as 4 | 6 | 8 | 10 | 12);
+    if (!chapterCountTouched && allowedChapterCounts.includes(defaultChapterCount as (typeof allowedChapterCounts)[number])) {
+      setChapterCount(defaultChapterCount as (typeof allowedChapterCounts)[number]);
     }
   }, [defaultChapterCount, chapterCountTouched]);
 
@@ -369,7 +374,7 @@ export default function EbookBookDesigner({
               className="ebook-focus min-h-[96px] w-full resize-y rounded-xl border border-[#dcd6cb] bg-[#fffdf8] px-3 py-2.5 text-sm leading-6 text-[#302d27] placeholder:text-[#a29b90]"
             />
             <p className="mt-2 text-[11px] leading-5 text-[#777168]">
-              The default is open-weight Llama 3.3 70B through Groq. For a self-hosted OpenAI-compatible model, configure <code>BOOK_AI_BASE_URL</code> and <code>BOOK_AI_MODEL</code>; keep any endpoint key in Replit Secrets.
+              Your publishing admin chooses the model connection. Common open-weight model families include Llama, Qwen, Mistral, and Gemma; availability and license terms depend on the selected provider. Generated manuscripts and illustrations are editable drafts for review.
             </p>
             <div className="mt-3 flex items-end gap-3">
               <div className="min-w-0 flex-1">
@@ -379,11 +384,11 @@ export default function EbookBookDesigner({
                   value={chapterCount}
                   onChange={(event) => {
                     setChapterCountTouched(true);
-                    setChapterCount(Number(event.target.value) as 4 | 6 | 8 | 10 | 12);
+                    setChapterCount(Number(event.target.value) as (typeof allowedChapterCounts)[number]);
                   }}
                   className="ebook-focus h-10 w-full rounded-xl border border-[#dcd6cb] bg-[#fffdf8] px-3 text-sm text-[#302d27]"
                 >
-                  {[4, 6, 8, 10, 12].map((count) => <option key={count} value={count}>{count} chapters</option>)}
+                  {allowedChapterCounts.map((count) => <option key={count} value={count}>{count} chapters</option>)}
                 </select>
               </div>
               <button

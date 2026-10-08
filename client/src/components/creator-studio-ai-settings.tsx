@@ -34,6 +34,8 @@ export interface CreatorStudioAiSettings {
 
 interface AiSettingsResponse {
   aiAvailable: boolean;
+  provider: "groq" | "openai-compatible" | "ollama";
+  endpointUrl: string;
   model: string;
   settings: CreatorStudioAiSettings;
 }
@@ -88,13 +90,15 @@ function mergeSettings(settings?: Partial<CreatorStudioAiSettings> | null): Crea
   };
 }
 
-function settingsSnapshot(model: string, settings: CreatorStudioAiSettings) {
-  return JSON.stringify({ model, settings });
+function settingsSnapshot(provider: string, endpointUrl: string, model: string, settings: CreatorStudioAiSettings) {
+  return JSON.stringify({ provider, endpointUrl, model, settings });
 }
 
 export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorStudioAiSettingsProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [provider, setProvider] = useState<AiSettingsResponse["provider"]>("groq");
+  const [endpointUrl, setEndpointUrl] = useState("");
   const [model, setModel] = useState("");
   const [settings, setSettings] = useState<CreatorStudioAiSettings>(defaultSettings);
   const [savedSnapshot, setSavedSnapshot] = useState("");
@@ -107,33 +111,43 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
   });
 
   const hasLocalChanges = useMemo(
-    () => !!savedSnapshot && settingsSnapshot(model, settings) !== savedSnapshot,
-    [model, settings, savedSnapshot],
+    () => !!savedSnapshot && settingsSnapshot(provider, endpointUrl, model, settings) !== savedSnapshot,
+    [provider, endpointUrl, model, settings, savedSnapshot],
   );
 
   useEffect(() => {
     if (!settingsQuery.data || hasLocalChanges) return;
+    const nextProvider = settingsQuery.data.provider || "groq";
+    const nextEndpointUrl = settingsQuery.data.endpointUrl || "";
     const nextModel = settingsQuery.data.model || "";
     const nextSettings = mergeSettings(settingsQuery.data.settings);
+    setProvider(nextProvider);
+    setEndpointUrl(nextEndpointUrl);
     setModel(nextModel);
     setSettings(nextSettings);
-    setSavedSnapshot(settingsSnapshot(nextModel, nextSettings));
+    setSavedSnapshot(settingsSnapshot(nextProvider, nextEndpointUrl, nextModel, nextSettings));
   }, [settingsQuery.data, hasLocalChanges]);
 
   const saveMutation = useMutation({
     mutationFn: () => requestJson<AiSettingsResponse>(SETTINGS_URL, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: model.trim(), settings }),
+      body: JSON.stringify({ provider, endpointUrl: endpointUrl.trim(), model: model.trim(), settings }),
     }),
     onSuccess: (response) => {
+      const savedProvider = response?.provider ?? provider;
+      const savedEndpointUrl = response?.endpointUrl ?? endpointUrl.trim();
       const savedModel = response?.model ?? model.trim();
       const savedSettings = mergeSettings(response?.settings ?? settings);
+      setProvider(savedProvider);
+      setEndpointUrl(savedEndpointUrl);
       setModel(savedModel);
       setSettings(savedSettings);
-      setSavedSnapshot(settingsSnapshot(savedModel, savedSettings));
+      setSavedSnapshot(settingsSnapshot(savedProvider, savedEndpointUrl, savedModel, savedSettings));
       queryClient.setQueryData<AiSettingsResponse>(SETTINGS_QUERY_KEY, (previous) => ({
-        aiAvailable: response?.aiAvailable ?? previous?.aiAvailable ?? Boolean(savedModel),
+        aiAvailable: response?.aiAvailable ?? previous?.aiAvailable ?? false,
+        provider: savedProvider,
+        endpointUrl: savedEndpointUrl,
         model: savedModel,
         settings: savedSettings,
       }));
@@ -147,12 +161,12 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
   });
 
   const createBookMutation = useMutation({
-    mutationFn: () => requestJson<{ book: CreatedBook }>(CREATE_COLORING_BOOK_URL, {
+    mutationFn: () => requestJson<{ book: CreatedBook; pageCount?: number }>(CREATE_COLORING_BOOK_URL, {
       method: "POST",
     }),
-    onSuccess: ({ book }) => {
+    onSuccess: ({ book, pageCount }) => {
+      toast({ title: "Children’s Bible coloring book created", description: `${book.title} · ${pageCount || "More than 120"} designed pages` });
       onBookCreatedRef.current(book);
-      toast({ title: "Children’s Bible coloring book created", description: book.title });
     },
     onError: (error: Error) => toast({
       title: "Could not create the coloring book",
@@ -186,9 +200,11 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
   };
 
   const providerAvailable = Boolean(settingsQuery.data?.aiAvailable);
-  const isModelConfigured = Boolean(
-    providerAvailable && settingsQuery.data?.model.trim() && model.trim() === settingsQuery.data.model.trim(),
-  );
+  const isModelConfigured = Boolean(providerAvailable
+    && provider === settingsQuery.data?.provider
+    && endpointUrl.trim() === (settingsQuery.data?.endpointUrl || "").trim()
+    && settingsQuery.data?.model.trim()
+    && model.trim() === settingsQuery.data.model.trim());
   const modelStatus = !providerAvailable
     ? "Provider not configured"
     : isModelConfigured
@@ -279,21 +295,56 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
               <Sparkles className="h-4 w-4" aria-hidden="true" />
             </span>
           </div>
-          <div className="max-w-xl">
-            <Label htmlFor="creator-ai-model">Model name</Label>
-            <Input
-              id="creator-ai-model"
-              className="mt-1.5"
-              value={model}
-              onChange={(event) => setModel(event.target.value)}
-              placeholder="For example: llama-3.3-70b-versatile"
-              autoComplete="off"
-              spellCheck={false}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="creator-ai-provider">Provider</Label>
+              <select
+                id="creator-ai-provider"
+                className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={provider}
+                onChange={(event) => setProvider(event.target.value as AiSettingsResponse["provider"])}
+              >
+                <option value="groq">Groq · hosted open-weight models</option>
+                <option value="openai-compatible">OpenAI-compatible endpoint</option>
+                <option value="ollama">Ollama-compatible endpoint</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="creator-ai-model">Model name</Label>
+              <Input
+                id="creator-ai-model"
+                className="mt-1.5"
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                placeholder={provider === "groq" ? "llama-3.3-70b-versatile" : "Model identifier for your endpoint"}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            {provider !== "groq" && (
+              <div className="sm:col-span-2">
+                <Label htmlFor="creator-ai-endpoint">Provider endpoint URL</Label>
+                <Input
+                  id="creator-ai-endpoint"
+                  className="mt-1.5"
+                  value={endpointUrl}
+                  onChange={(event) => setEndpointUrl(event.target.value)}
+                  placeholder={provider === "ollama" ? "http://localhost:11434/v1" : "https://your-provider.example/v1"}
+                  autoComplete="url"
+                  spellCheck={false}
+                />
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  The endpoint must be reachable from the deployed server and support the OpenAI chat-completions API.
+                </p>
+              </div>
+            )}
           </div>
-          <p className="mt-2 text-xs leading-5 text-slate-500">
-            Availability is reported by the server. This panel only displays model status and name.
-          </p>
+          <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-3.5 text-xs leading-5 text-sky-950">
+            <p className="font-semibold">Keep API keys in deployment variables—not in this form.</p>
+            <p className="mt-1">For Groq, add <code>GROQ_API_KEY</code>. For an OpenAI-compatible provider, add <code>BOOK_AI_API_KEY</code> and <code>BOOK_AI_BASE_URL</code>. For Ollama, enter a reachable compatible endpoint URL here; do not enter a key unless your endpoint requires one.</p>
+            <p className="mt-1">In Railway, open your project → service → Variables, add the required variable names and values, then redeploy the service. In Replit, use Secrets for the same names. Never paste a key into the Model name or endpoint fields.</p>
+            <p className="mt-1">Only models whose license and terms permit your intended use should be selected. AI output is a draft for human review; availability, cost, context limits, and licenses vary.</p>
+          </div>
         </section>
 
         <section aria-labelledby="book-defaults-heading" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
@@ -310,7 +361,7 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
                 value={settings.defaultChapterCount}
                 onChange={(event) => updateSettings("defaultChapterCount", Number(event.target.value))}
               >
-                {[4, 6, 8, 10, 12].map((count) => <option key={count} value={count}>{count} chapters</option>)}
+                {[4, 6, 8, 10, 12, 16, 20].map((count) => <option key={count} value={count}>{count} chapters</option>)}
               </select>
             </div>
             <div>
@@ -432,7 +483,7 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
             </div>
             <div>
               <h2 id="coloring-book-heading" className="font-semibold text-slate-900">Children’s Bible coloring book</h2>
-              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-600">Create this saved editable book project in Creator Studio.</p>
+              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-600">Create an editable 8.5 × 11-inch, 16-story project with more than 120 designed pages, scripture references, parent guides, questions, activities, color examples, and black-line pages.</p>
             </div>
           </div>
           <Button

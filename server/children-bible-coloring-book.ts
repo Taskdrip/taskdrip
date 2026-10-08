@@ -108,6 +108,95 @@ const stories: Story[] = [
     parentGuide: "This story touches on death and grief. Explain it using words that fit your family’s beliefs and your child’s age. Reassure your child they can ask questions or talk about their feelings with a trusted adult.",
     coloringPrompt: "Color the garden, flowers, sunrise, and open tomb.",
   },
+  {
+    title: "Abraham Counts the Stars",
+    reference: "Genesis 12:1–9; 15:1–6",
+    scene: "abraham",
+    story: "God called Abraham to leave his home and travel to a new land. Abraham and Sarah packed for a long journey, though the Bible does not tell us whether they argued about who packed the tent ropes. God promised Abraham a family as numerous as the stars. One night Abraham looked up at the dark sky and tried to count them. He soon had far too many stars to keep track of. Abraham trusted God's promise, even while he was still waiting. His story invites us to be hopeful, patient, and ready to take a brave next step.",
+    parentGuide: "Explain that Abraham and Sarah trusted God during a long journey and a long wait. Ask: What helps you when you have to be patient? What is one brave new thing you would like to try with a grown-up?",
+    coloringPrompt: "Color Abraham, the tent, and the night sky full of stars.",
+  },
+  {
+    title: "Joseph Chooses Forgiveness",
+    reference: "Genesis 37; 45:1–15; 50:15–21",
+    scene: "joseph",
+    story: "Joseph's brothers treated him unfairly and sent him far from home. Years later, Joseph became a leader in Egypt and helped store food before a famine. When his brothers arrived looking for food, Joseph recognized them. They were frightened, but Joseph chose to forgive them and help the whole family. Forgiving did not mean pretending the hurt never happened; it meant choosing a path toward safety and a new beginning. Joseph's story has twists worthy of a whole stack of scrolls, and it reminds us that people can change and families can repair relationships.",
+    parentGuide: "Forgiveness can take time and does not mean a child must stay near someone unsafe. Ask: How can we repair a small hurt? Which trusted grown-up can help when a problem is too big to solve alone?",
+    coloringPrompt: "Color Joseph's coat, the grain baskets, and the family meeting again.",
+  },
+  {
+    title: "Samuel Hears a Call",
+    reference: "1 Samuel 3:1–21",
+    scene: "samuel",
+    story: "Samuel was a boy helping Eli at the place of worship. One night Samuel heard someone call his name. He hurried to Eli, who said he had not called. It happened again—and again—until Eli realized that God was calling Samuel. Eli helped Samuel listen and answer. Samuel learned that listening carefully can be the first step toward helping others. It was a very busy night for a boy who probably thought bedtime had already been settled!",
+    parentGuide: "Tell the story as a lesson about listening, not as a frightening voice in the dark. Ask: When is listening important? Which kind adults help you make sense of a difficult situation?",
+    coloringPrompt: "Color Samuel's lamp, the quiet room, and Eli helping him listen.",
+  },
+  {
+    title: "Zacchaeus Finds a Better Way",
+    reference: "Luke 19:1–10",
+    scene: "zacchaeus",
+    story: "Zacchaeus was a tax collector who had treated people unfairly. When Jesus came to town, Zacchaeus was too short to see over the crowd, so he climbed a tree. Jesus spotted him and invited himself to Zacchaeus's house. The crowd grumbled, but Zacchaeus listened. He promised to repay people he had cheated and to share what he had. His choices showed that he wanted to make things right. Zacchaeus came down from the tree with more than a good view: he had a chance to begin again.",
+    parentGuide: "Focus on taking responsibility and making harm right with help from a trusted adult. Ask: What can we do after making a mistake? How can we share fairly?",
+    coloringPrompt: "Color Zacchaeus in the tree, the welcoming crowd, and Jesus nearby.",
+  },
+];
+
+const storyWinks = [
+  "The birds had front-row seats, and every one of them seemed to have an opinion.",
+  "Two-by-two boarding is easier when the penguins remember to take turns.",
+  "That was one sea crossing with absolutely no bridge toll.",
+  "David's sheep may have been his smallest—and fluffiest—cheering section.",
+  "The lions were impressive, but Daniel stayed calm and kept praying.",
+  "That was quite a fish story, and Jonah had the sea-splashed details.",
+  "Ruth gathered grain one careful handful at a time; no combine harvester required.",
+  "Esther planned her words carefully—no royal speech written on a napkin at the last minute.",
+  "The shepherds made a night visit that was much more exciting than counting sheep.",
+  "The baskets went home fuller than the lunch bags had started.",
+  "The Samaritan was a neighbor in action, with excellent roadside manners.",
+  "The early morning garden visit brought news bigger than the sunrise.",
+  "Abraham soon discovered that counting stars is a very long bedtime activity.",
+  "Joseph's story had so many turns it could fill a whole shelf of scrolls.",
+  "Samuel made several nighttime trips before the message finally made sense.",
+  "Zacchaeus found a high seat in the tree and a fresh start on the ground.",
+];
+
+const storyQuestions = [
+  ["What did God make first in the story?", "Which part of creation would you most like to explore?", "How can your family care for plants or animals?"],
+  ["Who helped Noah get the ark ready?", "What sign appeared after the rain?", "How can we help someone who is preparing for a big job?"],
+  ["How did the people cross the sea?", "What helped them keep going when they felt afraid?", "Who can help you when a challenge feels too big?"],
+  ["What kind of work did David do before meeting Goliath?", "What gave David courage?", "Name one small way a child can help today."],
+  ["What did Daniel keep doing even when it was difficult?", "How did the king feel when he learned Daniel was safe?", "What helps you feel calm when you are worried?"],
+  ["Where did Jonah go when he tried to travel the other way?", "What did Jonah do while he was inside the great fish?", "When have you tried again after a mistake?"],
+  ["Why did Ruth travel with Naomi?", "How did Ruth help her family?", "What is one generous thing you can do this week?"],
+  ["What did Esther do when her people needed help?", "Who helped Esther prepare?", "How can you safely speak up for someone?"],
+  ["Who heard the good news about Jesus' birth?", "Where did the shepherds go?", "How can you welcome someone new?"],
+  ["What food did the child share?", "What did the disciples do with the food?", "What can you share fairly with others?"],
+  ["Who stopped to help the injured traveler?", "What did the Samaritan do to care for him?", "Who should a child ask for help in an unsafe situation?"],
+  ["Who visited the tomb early in the morning?", "What hopeful news did they hear?", "Who can comfort you when you feel sad?"],
+  ["What promise did God make to Abraham?", "What did Abraham see when he looked up at night?", "What helps you while you wait for something important?"],
+  ["What did Joseph do when his brothers came to Egypt?", "How did Joseph help his family?", "What can help people repair a hurt?"],
+  ["Who helped Samuel understand the call?", "What did Samuel learn to do?", "How can careful listening help someone else?"],
+  ["Where did Zacchaeus climb to see Jesus?", "What did Zacchaeus promise to change?", "What is one way to make something right after a mistake?"],
+];
+
+const familyActivities = [
+  "Take a short nature walk and draw one living thing you want to care for.",
+  "Make a paper ark and draw two favorite animal friends beside it.",
+  "Create a safe-path picture using blue paper and talk about a time you felt brave.",
+  "Draw a sheep and write one kind or courageous thing you can do.",
+  "Practice a calm breathing count together, then draw what helps you feel peaceful.",
+  "Make a three-part picture: a wrong turn, a second chance, and a kind choice.",
+  "Draw two hands helping someone and choose one small helpful action for today.",
+  "Make a paper crown and write the name of a trusted adult you can ask for help.",
+  "Draw a welcome card for someone new to your family, class, or community.",
+  "Draw a basket and fill it with pictures of things people can share.",
+  "Make a neighbor-helping plan with a trusted grown-up.",
+  "Draw a sunrise and name one person who can comfort you when you feel sad.",
+  "Make a star map with five stars and tell a grown-up one thing you are patiently waiting for.",
+  "Draw a bridge between two people and write one safe way they could begin to make peace.",
+  "Play a listening game: take turns repeating one kind thing the other person said.",
+  "Draw a tree with a ladder and write one fair choice Zacchaeus could make today.",
 ];
 
 function text(id: string, role: Extract<EbookDesignPage["blocks"][number], { kind: "text" }>["role"], value: string) {
@@ -134,19 +223,19 @@ export function createChildrenBibleColoringBook() {
   const chapters = stories.map((story) => ({
     id: nanoid(),
     title: story.title,
-    content: `${story.reference}\n\n${story.story}\n\nTalk together\n${story.parentGuide}\n\nColoring invitation\n${story.coloringPrompt}`,
+    content: `${story.reference}\n\n${story.story}\n\n${storyWinks[stories.indexOf(story)]}`,
   }));
   const pages: EbookDesignPage[] = [
     page("cover", "Front cover", [
       art("cover-family", "storybook-cover", "A welcoming Bible storybook family with sheep", "color"),
-      text("cover-eyebrow", "eyebrow", "A READ-ALOUD AND COLORING COLLECTION"),
+      text("cover-eyebrow", "eyebrow", "A READ-ALOUD AND COLORING ADVENTURE"),
       text("cover-title", "title", "God’s Big Story"),
-      text("cover-subtitle", "subtitle", "12 Bible Stories to Read, Talk About, and Color"),
+      text("cover-subtitle", "subtitle", "16 Bible Stories to Read, Talk About, and Color"),
       text("cover-author", "caption", "A Family Story and Coloring Book"),
     ]),
     page("title", "Title page", [
       text("title-main", "title", "God’s Big Story"),
-      text("title-subtitle", "subtitle", "12 Bible Stories to Read, Talk About, and Color"),
+      text("title-subtitle", "subtitle", "16 Bible Stories to Read, Talk About, and Color"),
       art("title-art", "storybook-cover", "Children, a lamb, and a bright star", "color"),
       text("title-caption", "caption", "For children and the grown-ups who read with them"),
     ]),
@@ -156,7 +245,7 @@ export function createChildrenBibleColoringBook() {
     ]),
     page("backmatter", "How to use this book", [
       text("how-heading", "heading", "Read. Talk. Color."),
-      text("how-body", "body", "Each story has three parts: a short retelling to read together, a parent guide with gentle conversation ideas, and a full-page black-line illustration to color. Read at your child’s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; placing a spare sheet behind the coloring page may help protect the next page.\n\nThis book was designed as a black-ink, no-bleed coloring interior at 8.5 × 11 inches. Check your final PDF in the KDP Print Previewer and update the cover, imprint, copyright, and ISBN details before publication."),
+      text("how-body", "body", "Every story has a lively read-aloud retelling, a Bible passage reference, a grown-up guide, questions, a hands-on activity, a bright color example, and an original black-line coloring page. Read at your child’s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe designed interior is 8.5 × 11 inches with no bleed. Because it includes full-color examples, select a KDP color-interior option; a black-and-white edition requires removing or converting those example pages and rechecking the exported file. Before publication, replace author and copyright placeholders, add a valid ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in KDP Print Previewer. Store specifications can change; no automated export guarantees acceptance."),
     ]),
     page("contents", "Story index", [
       text("contents-heading", "heading", "The stories"),
@@ -166,61 +255,98 @@ export function createChildrenBibleColoringBook() {
 
   stories.forEach((story, index) => {
     const chapter = chapters[index];
+    const storyNumber = String(index + 1).padStart(2, "0");
     pages.push(page("chapter-opening", story.title, [
-      text(`story-${index}-label`, "eyebrow", `STORY ${String(index + 1).padStart(2, "0")} · ${story.reference}`),
+      text(`story-${index}-label`, "eyebrow", `STORY ${storyNumber} · ${story.reference}`),
       art(`story-${index}-small-art`, story.scene, `A black-line illustration for ${story.title}`),
       text(`story-${index}-title`, "title", story.title),
-      text(`story-${index}-invitation`, "caption", "Read this story together, then turn the page to talk and color."),
+      text(`story-${index}-invitation`, "caption", "Read, explore, answer, and color this story together."),
     ], chapter.id));
     pages.push(page("chapter-body", `Read: ${story.title}`, [
       text(`story-${index}-reference`, "eyebrow", `READ ALOUD · ${story.reference}`),
       { id: `story-${index}-manuscript`, kind: "chapter", chapterId: chapter.id },
     ], chapter.id));
     pages.push(page("parent-guide", `Parent guide: ${story.title}`, [
+      text(`scripture-${index}-eyebrow`, "eyebrow", `OPEN THE BIBLE · STORY ${storyNumber}`),
+      text(`scripture-${index}-title`, "title", "Scripture explorer"),
+      text(`scripture-${index}-reference`, "heading", story.reference),
+      text(`scripture-${index}-body`, "body", "Read this passage in the Bible translation your family uses. This book retells the story in original words; it does not reproduce a Bible translation. Look for a detail that matches the picture and a detail you had not noticed before."),
+      text(`scripture-${index}-note`, "caption", "Grown-ups: check the retelling against your preferred Bible translation before sharing."),
+    ], chapter.id));
+    pages.push(page("parent-guide", `Talk together: ${story.title}`, [
       text(`guide-${index}-eyebrow`, "eyebrow", "GROWN-UP AND CHILD"),
       text(`guide-${index}-title`, "title", "Talk about the story"),
       text(`guide-${index}-body`, "body", story.parentGuide),
-      text(`guide-${index}-prompt`, "heading", "Coloring invitation"),
-      text(`guide-${index}-activity`, "body", story.coloringPrompt),
-      art(`guide-${index}-mini-art`, story.scene, `Small illustration preview for ${story.title}`),
+      text(`guide-${index}-prompt`, "heading", "Wonder together"),
+      { id: `guide-${index}-questions`, kind: "list", items: storyQuestions[index] },
     ], chapter.id));
     pages.push(page("coloring", `Color: ${story.title}`, [
-      text(`color-${index}-eyebrow`, "eyebrow", `STORY ${String(index + 1).padStart(2, "0")} · ${story.reference}`),
+      text(`example-${index}-eyebrow`, "eyebrow", `COLOR GUIDE · STORY ${storyNumber}`),
+      text(`example-${index}-title`, "title", "A bright example"),
+      text(`example-${index}-instruction`, "caption", `${story.coloringPrompt} Try your own colors on the next page.`),
+      art(`example-${index}-art`, story.scene, `Colored storybook example for ${story.title}`, "color"),
+      text(`example-${index}-tip`, "caption", "Notice the warm highlights and cool shadows, then make the scene your own."),
+    ], chapter.id));
+    pages.push(page("coloring", `Coloring page: ${story.title}`, [
+      text(`color-${index}-eyebrow`, "eyebrow", `YOUR TURN · STORY ${storyNumber}`),
       text(`color-${index}-title`, "title", story.title),
       text(`color-${index}-instruction`, "caption", story.coloringPrompt),
-      art(`color-${index}-page-art`, story.scene, `Full-page line-art illustration: ${story.coloringPrompt}`),
+      art(`color-${index}-page-art`, story.scene, `Full-page black-line coloring illustration: ${story.coloringPrompt}`),
+    ], chapter.id));
+    pages.push(page("parent-guide", `Story quest: ${story.title}`, [
+      text(`quest-${index}-eyebrow`, "eyebrow", "STORY CHECK AND ACTIVITY"),
+      text(`quest-${index}-title`, "title", "Can you remember?"),
+      { id: `quest-${index}-questions`, kind: "list", items: storyQuestions[index] },
+      text(`quest-${index}-activity-heading`, "heading", "Try this together"),
+      text(`quest-${index}-activity`, "body", familyActivities[index]),
+      text(`quest-${index}-note`, "caption", "A grown-up can read the questions aloud and write down the child’s answers."),
+    ], chapter.id));
+    pages.push(page("backmatter", `My story response: ${story.title}`, [
+      text(`response-${index}-eyebrow`, "eyebrow", `MY STORYBOOK · STORY ${storyNumber}`),
+      text(`response-${index}-title`, "title", "My story response"),
+      text(`response-${index}-prompt`, "body", `Draw your favorite part of ${story.title} in the space below. Then tell a grown-up one thing you learned or wondered about.`),
+      text(`response-${index}-lines`, "body", "My favorite part:\n\n________________________________________________\n\nOne kind or brave thing I can try:\n\n________________________________________________"),
     ], chapter.id));
   });
 
+  pages.push(page("backmatter", "Story map", [
+    text("story-map-heading", "heading", "Keep exploring"),
+    text("story-map-body", "body", "These stories span creation, courage, kindness, forgiveness, hope, and new beginnings. Use the scripture references to read the passages in the Bible translation your family prefers. The retellings are original summaries, not quotations."),
+    { id: "story-map-list", kind: "list", items: stories.map((story) => `${story.title} · ${story.reference}`) },
+  ]));
   pages.push(page("backmatter", "A note to the grown-ups", [
     text("grownups-heading", "heading", "Keep the conversation going"),
     text("grownups-body", "body", "Thank you for reading, wondering, and creating together. Children may ask questions that do not have easy answers. Listening closely, making room for feelings, and exploring a Bible story together can be meaningful ways to keep talking.\n\nBefore this book is published, replace the placeholder copyright details, add accurate author or publisher information and an ISBN if required, and review every page and illustration. Print requirements change; confirm current specifications in the KDP setup and preview tools."),
   ]));
+  pages.push(page("backmatter", "My storybook notes", [
+    text("notes-heading", "heading", "My favorite story"),
+    text("notes-body", "body", "The story I want to remember is:\n\n________________________________________________\n\nMy favorite character is:\n\n________________________________________________\n\nOne kind or brave thing I can try:\n\n________________________________________________"),
+  ]));
 
   const designerDocument: EbookDesignDocument = {
     schemaVersion: 1,
-    prompt: "Original, age-appropriate Bible story coloring book with 12 short retellings, parent conversation guides, and printable black-line vector scenes. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
+    prompt: "Original, age-appropriate Bible story coloring book with 16 short retellings, scripture references, parent conversation guides, story questions, family activities, colored examples, and printable black-line vector scenes. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
     theme: {
       ...DEFAULT_EBOOK_THEME,
       name: "Bright storybook",
-      primary: "#394b83",
-      accent: "#d78439",
-      paper: "#fffdf7",
-      text: "#282a36",
+      primary: "#167f83",
+      accent: "#f0a23b",
+      paper: "#f0fcf9",
+      text: "#173a40",
       headingFont: "sans",
-      bodyFont: "serif",
+      bodyFont: "sans",
     },
     pages,
   };
 
   return {
-    title: "God’s Big Story",
-    subtitle: "12 Bible Stories to Read, Talk About, and Color",
+    title: "God’s Big Story: A Read-Aloud Bible Coloring Adventure",
+    subtitle: "16 Bible Stories to Read, Talk About, and Color",
     bookType: "children",
     genre: "Bible stories and coloring books",
     trimSize: "8.5x11",
-    idea: "Original, child-friendly retellings of 12 Bible stories with parent read-aloud notes and one printable coloring page per story.",
-    description: "Read together, talk about the story, and color twelve original Bible-inspired scenes. Each short retelling is paired with a scripture reference, a parent conversation guide, and an original black-line illustration designed for coloring. Trim size: 8.5 × 11 inches. Families should review each page and publication detail before printing.",
+    idea: "Original, child-friendly retellings of 16 Bible stories with scripture references, parent read-aloud notes, questions, activities, color guides, and printable illustrations.",
+    description: "Read together, talk about the story, and color sixteen original Bible-inspired scenes. Each short retelling is paired with a scripture reference, a parent conversation guide, story questions, a family activity, a colored example, and an original black-line illustration. Trim size: 8.5 × 11 inches. Review the editable draft and all publication details before printing.",
     outline: stories.map((story) => `${story.title} — ${story.reference}`),
     chapters,
     kdpKeywords: [

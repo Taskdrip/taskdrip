@@ -125,6 +125,10 @@ const BIBLE_SCENE_IDS = new Set([
   "feeding",
   "samaritan",
   "resurrection",
+  "abraham",
+  "joseph",
+  "samuel",
+  "zacchaeus",
 ]);
 
 function renderBibleSceneSvg(
@@ -207,6 +211,22 @@ function renderBibleSceneSvg(
     case "resurrection":
       scenery = `<path d="M125 596q57-146 129-148h132q81 2 129 148Z" fill="${fill("#e5d8cc")}" ${stroke}/><path d="M257 594V461q3-115 63-115t63 115v133" fill="${fill("#fff")}" ${stroke}/><path d="M363 517q51-60 102-1" fill="none" ${stroke}/><circle cx="324" cy="244" r="72" fill="${fill("#ffeaa1")}" ${stroke}/>${star(175,200,18)}${star(467,200,18)}<path d="M100 600q30-43 60 0m320 0q30-43 60 0" fill="none" ${stroke}/>`;
       people = human(164, 420, 0.62) + human(476, 420, 0.62);
+      break;
+    case "abraham":
+      scenery = `<path d="M104 560V355l214-168 215 168v205Z" fill="${fill("#fff0c4")}" ${stroke}/><path d="M104 355h429M251 560V397q69-93 137 0v163" fill="none" ${stroke}/>${Array.from({ length: 12 }, (_, index) => star(105 + (index * 73) % 440, 90 + (index * 47) % 175, 13 + (index % 3) * 4)).join("")}<path d="M76 602h488" fill="none" ${stroke}/>`;
+      people = human(320, 395, 0.78);
+      break;
+    case "joseph":
+      scenery = `${hill}<path d="M91 593h455M427 574v-163m-24 41h48m-24 0-42 39m42-39 42 39" fill="none" ${stroke}/>${star(130,176,20)}${star(501,195,20)}<path d="M273 511l47-38 47 38v86h-94Z" fill="${fill("#ffe7a8")}" ${stroke}/><path d="M294 528h52m-52 21h52m-52 21h52" fill="none" ${stroke}/>`;
+      people = human(218, 404, 0.8, isColor ? "#a9d9e7" : "#fff") + human(408, 408, 0.72, isColor ? "#efbb68" : "#fff");
+      break;
+    case "samuel":
+      scenery = `<path d="M118 601V274h404v327M118 328h404M167 274v327m306-327v327" fill="none" ${stroke}/><path d="M293 576v-64q27-35 54 0v64m-52-118h52" fill="${fill("#ffe7a8")}" ${stroke}/><path d="M309 447q12-30 24 0m-12-28v27" fill="none" ${stroke}/>${star(321,154,24)}`;
+      people = human(231, 383, 0.69) + human(408, 399, 0.75, isColor ? "#c8e5a5" : "#fff");
+      break;
+    case "zacchaeus":
+      scenery = `${hill}<path d="M126 534q48-76 96 0v66h-96Zm186-38q52-87 104 0v104H312Zm159 27q39-61 78 0v77h-78Z" fill="${fill("#d4edc3")}" ${stroke}/><path d="M339 492V198m-45 68q49-93 93 0m-108 61q63-80 128 0m-127 38q66-71 131 0" fill="none" ${stroke}/><path d="M95 604h450" fill="none" ${stroke}/>`;
+      people = human(335, 332, 0.58, isColor ? "#f2ce72" : "#fff") + human(223, 431, 0.67) + human(455, 432, 0.67, isColor ? "#c8e5a5" : "#fff");
       break;
     default:
       scenery = `<circle cx="320" cy="470" r="170" fill="${fill("#fff0c4")}" ${stroke}/>${star(176,236,22)}${star(466,245,18)}`;

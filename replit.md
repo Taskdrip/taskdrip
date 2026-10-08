@@ -28,7 +28,9 @@ The dev server runs on port 5000.
 | `DATABASE_URL` | PostgreSQL connection string | ✅ (auto-injected by Replit) |
 | `SESSION_SECRET` | Session signing key | ✅ |
 | `SENDGRID_API_KEY` | Transactional email | For email features |
-| `GROQ_API_KEY` | AI-powered features | For AI features |
+| `GROQ_API_KEY` | Groq-hosted Creator Studio models | For Groq-backed AI features |
+| `BOOK_AI_BASE_URL` / `BOOK_AI_MODEL` | OpenAI-compatible or Ollama-compatible Creator Studio model | Optional |
+| `BOOK_AI_API_KEY` | Credential for an OpenAI-compatible model endpoint | Optional; set only in Replit Secrets or deployment Variables |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web push notifications | For push features |
 | `GEMINI_API_KEY` | Auto-blogger AI rewriting | For auto-blogger |
 | `GOOGLE_PLACES_API_KEY` | Lead gen — business discovery | For lead gen |
@@ -37,8 +39,9 @@ The dev server runs on port 5000.
 
 ## Ebook design studio
 
-- `/creator-studio` includes the prompt-to-book designer for creators and administrators. The hosted default uses the open-weight Llama 3.3 70B model through Groq (`GROQ_API_KEY`).
-- To use a self-hosted OpenAI-compatible model instead, set `BOOK_AI_BASE_URL` and `BOOK_AI_MODEL`; put any endpoint credential in the Replit Secrets tool as `BOOK_AI_API_KEY`.
+- `/creator-studio` includes an editable prompt-to-book designer, full-book generation, and PDF/EPUB/DOCX/HTML/cover exports. Publishing admins select Groq, any OpenAI-compatible endpoint, or Ollama in Creator Publishing settings.
+- Store API keys only in Replit Secrets or the deployment provider's secret-variable manager. Railway: open the service's **Variables**, set `GROQ_API_KEY` or `BOOK_AI_API_KEY` and `BOOK_AI_BASE_URL`, then redeploy. Never put keys in the AI settings form or database.
+- The built-in 16-story Bible coloring-book draft has more than 120 interior pages and includes full-color examples, so its print edition needs an appropriate color interior. All books remain editable drafts; inspect each export in the target store's current previewer and replace publication placeholders before submitting.
 - Exports: trim-sized print-interior PDF, front-cover PNG, reflowable EPUB 3, DOCX, and standalone HTML. A KDP paperback still needs a separate full-wrap cover. Review output in the target store's previewer; the studio does not guarantee store acceptance.
 
 ## Key pages

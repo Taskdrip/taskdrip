@@ -15,10 +15,17 @@ const DEFAULT_BOOK_AI_MODEL = process.env.BOOK_AI_MODEL || (
   BOOK_AI_BASE_URL ? "llama3.3" : process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile"
 );
 const ART_MOTIFS = new Set<EbookArtMotif>(["botanical", "geometry", "orbit", "waves", "bible-scene"]);
-const BIBLE_SCENES = ["creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection"];
+const BIBLE_SCENES = ["creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus"];
 
-export function isBookDesignAIAvailable() {
-  return Boolean(process.env.GROQ_API_KEY || BOOK_AI_BASE_URL);
+export function isBookDesignAIAvailable(config?: {
+  provider?: "groq" | "openai-compatible" | "ollama";
+  endpointUrl?: string;
+}) {
+  const provider = config?.provider || (BOOK_AI_BASE_URL ? "openai-compatible" : "groq");
+  const endpointUrl = config?.endpointUrl || BOOK_AI_BASE_URL;
+  if (provider === "groq") return Boolean(process.env.GROQ_API_KEY);
+  if (provider === "ollama") return Boolean(endpointUrl);
+  return Boolean(endpointUrl && process.env.BOOK_AI_API_KEY);
 }
 
 export type GeneratedBook = {
@@ -80,7 +87,7 @@ function buildDesignerDocument(
     authorName: string;
     theme: EbookDesignTheme;
     chapters: GeneratedBook["chapters"];
-    planChapters: Array<{ summary: string; motif: EbookArtMotif; scene?: string }>;
+    planChapters: Array<{ summary: string; motif: EbookArtMotif; scene?: string; reference?: string }>;
     childrenBibleBook: boolean;
     includeParentNotes: boolean;
   },
@@ -144,6 +151,14 @@ function buildDesignerDocument(
       { id: nanoid(), kind: "chapter", chapterId: chapter.id },
     ], chapter.id));
     if (input.childrenBibleBook) {
+      pages.push(createPage("parent-guide", `Scripture explorer: ${chapter.title}`, [
+        textBlock("eyebrow", `OPEN THE BIBLE · STORY ${index + 1}`),
+        textBlock("title", "Scripture explorer"),
+        textBlock("heading", plan?.summary ? "Notice the story" : chapter.title),
+        textBlock("heading", "Bible passage (verify before use)"),
+        textBlock("body", plan?.reference || "Add and verify an appropriate Bible passage reference before publication."),
+        textBlock("caption", "This original retelling is not a Bible quotation. Read the cited passage in the translation your family prefers."),
+      ], chapter.id));
       if (input.includeParentNotes) {
         pages.push(createPage("parent-guide", `Read and talk: ${chapter.title}`, [
           textBlock("eyebrow", `GROWN-UP AND CHILD · ${chapter.title}`),
@@ -153,10 +168,32 @@ function buildDesignerDocument(
           textBlock("body", "Choose colors together and describe one detail you notice in the scene."),
         ], chapter.id));
       }
+      pages.push(createPage("parent-guide", `Story questions: ${chapter.title}`, [
+        textBlock("eyebrow", "STORY CHECK"),
+        textBlock("title", "Can you remember?"),
+        { id: nanoid(), kind: "list", items: [
+          `What is one important thing that happened in ${chapter.title}?`,
+          `Which choice or action helped someone in this story?`,
+          "What would you like to ask one of the characters?",
+        ] },
+      ], chapter.id));
+      pages.push(createPage("coloring", `Color guide: ${chapter.title}`, [
+        textBlock("eyebrow", `COLOR GUIDE · STORY ${index + 1}`),
+        textBlock("title", "A bright example"),
+        textBlock("caption", "Notice the colors and details, then make the next page your own."),
+        artBlock("bible-scene", `Colored storybook example for ${chapter.title}`, "Bright color example for young artists.", scene, "color"),
+      ], chapter.id));
       pages.push(createPage("coloring", `Coloring page: ${chapter.title}`, [
         textBlock("eyebrow", `STORY ${index + 1} · COLORING PAGE`),
         textBlock("title", chapter.title),
         artBlock("bible-scene", `Printable black-line illustration for ${chapter.title}`, "Original vector art for children to color.", scene, "line"),
+      ], chapter.id));
+      pages.push(createPage("parent-guide", `Family activity: ${chapter.title}`, [
+        textBlock("eyebrow", "TRY THIS TOGETHER"),
+        textBlock("title", "Story quest"),
+        textBlock("body", `Draw your favorite moment from ${chapter.title}. Then choose one kind or courageous action from the story and try a safe, age-appropriate version together with a trusted grown-up.`),
+        textBlock("heading", "My answer"),
+        textBlock("body", "My favorite part was:\n\n________________________________________________\n\nOne kind thing I can try:\n\n________________________________________________"),
       ], chapter.id));
     }
   });
@@ -187,6 +224,8 @@ export async function generateCompleteBook(input: {
   chapterCount: number;
   aiModel?: string;
   aiSettings?: {
+    provider?: "groq" | "openai-compatible" | "ollama";
+    endpointUrl?: string;
     childAgeBand?: string;
     includeParentNotes?: boolean;
     illustrationStyle?: string;
@@ -196,9 +235,16 @@ export async function generateCompleteBook(input: {
   };
   onProgress: BookGenerationProgress;
 }): Promise<GeneratedBook> {
-  const apiKey = process.env.BOOK_AI_API_KEY || process.env.GROQ_API_KEY || (BOOK_AI_BASE_URL ? "local-model" : "");
-  if (!apiKey) throw new Error("Configure GROQ_API_KEY or an OpenAI-compatible BOOK_AI_BASE_URL to enable book generation.");
-  const client = new OpenAI({ apiKey, baseURL: BOOK_AI_BASE_URL || GROQ_API_BASE_URL });
+  const provider = input.aiSettings?.provider || (BOOK_AI_BASE_URL ? "openai-compatible" : "groq");
+  const endpointUrl = input.aiSettings?.endpointUrl || BOOK_AI_BASE_URL;
+  const apiKey = provider === "groq"
+    ? process.env.GROQ_API_KEY
+    : provider === "ollama"
+      ? (process.env.BOOK_AI_API_KEY || "ollama")
+      : process.env.BOOK_AI_API_KEY;
+  const baseURL = provider === "groq" ? GROQ_API_BASE_URL : endpointUrl;
+  if (!apiKey || !baseURL) throw new Error("Configure an AI provider endpoint and deployment API key, or use a reachable Ollama-compatible endpoint.");
+  const client = new OpenAI({ apiKey, baseURL });
   const model = input.aiModel || DEFAULT_BOOK_AI_MODEL;
   const aiSettings = input.aiSettings || {};
   const childrenBibleBook = input.bookType === "children" && /bible|christian|faith|scripture/i.test(`${input.genre} ${input.prompt}`);
@@ -215,8 +261,8 @@ export async function generateCompleteBook(input: {
       {
         role: "system",
         content: `You are an experienced book editor and interior designer. Plan an original, useful, reader-ready book from the author's brief. Respect the exact requested chapter count. Never promise bestseller status. Do not invent studies, citations, expert credentials, legal/medical/financial advice, or quotations. Use general, clearly framed explanations where sources are not supplied. Create accessible visual design directions using only a JSON theme and motif names; never output SVG, HTML, or executable code. Respond with JSON only in this shape:
-{"title":"...","subtitle":"...","description":"...","theme":{"name":"...","primary":"#RRGGBB","accent":"#RRGGBB","paper":"#RRGGBB","text":"#RRGGBB","headingFont":"serif|sans","bodyFont":"serif|sans"},"chapters":[{"title":"...","summary":"...","motif":"botanical|geometry|orbit|waves|bible-scene","scene":"creation|noah|moses|david|daniel|jonah|ruth|esther|nativity|feeding|samaritan|resurrection"}]}
-${childrenBibleBook ? `For this children's Bible book, use gentle language for ages ${aiSettings.childAgeBand || "6–8"}. Follow the cited Bible passage described by the author; never present invented dialogue as a Bible quotation. Give each chapter one matching scene identifier from the listed options. ${aiSettings.includeParentNotes === false ? "Do not include parent-guide material." : "Make the book suitable for a child and a reading adult."}` : ""}
+{"title":"...","subtitle":"...","description":"...","theme":{"name":"...","primary":"#RRGGBB","accent":"#RRGGBB","paper":"#RRGGBB","text":"#RRGGBB","headingFont":"serif|sans","bodyFont":"serif|sans"},"chapters":[{"title":"...","summary":"...","reference":"verified user-supplied passage or clearly marked placeholder","motif":"botanical|geometry|orbit|waves|bible-scene","scene":"${BIBLE_SCENES.join("|")}"}]}
+${childrenBibleBook ? `For this children's Bible book, use gentle language for ages ${aiSettings.childAgeBand || "6–8"}. Follow only Bible passages specified by the author; never invent or fabricate a Bible reference, and never present invented dialogue as a Bible quotation. If no reference is supplied, set reference to "[Add and verify Bible passage reference]". Give each chapter one matching scene identifier from the listed options. ${aiSettings.includeParentNotes === false ? "Do not include parent-guide material." : "Make the book suitable for a child and a reading adult."}` : ""}
 The description must be reader-focused, under 3500 characters. Titles should be clear and not include unsupported claims.
 ${studioGuidance}`.slice(0, 8000),
       },
@@ -242,10 +288,11 @@ ${studioGuidance}`.slice(0, 8000),
     });
   }
 
-  const planChapters: Array<{ title: string; summary: string; motif: EbookArtMotif; scene?: string }> = rawChapters.map((item: any, index: number) => ({
+  const planChapters: Array<{ title: string; summary: string; motif: EbookArtMotif; scene?: string; reference?: string }> = rawChapters.map((item: any, index: number) => ({
     title: String(item.title || `Chapter ${index + 1}`).trim().slice(0, 180),
     summary: String(item.summary || "").trim().slice(0, 600),
     motif: ART_MOTIFS.has(item.motif) ? item.motif as EbookArtMotif : (index % 2 ? "waves" : "geometry") as EbookArtMotif,
+    ...(childrenBibleBook && typeof item.reference === "string" ? { reference: item.reference.trim().slice(0, 120) } : {}),
     ...(BIBLE_SCENES.includes(String(item.scene || "")) ? { scene: String(item.scene) } : {}),
   }));
   const title = String(plan.title || input.title || "Untitled book").trim().slice(0, 240);

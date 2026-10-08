@@ -72,13 +72,25 @@ This is not automatic card/Paystack/Stripe settlement. If an automatic gateway i
 
 ## AI
 
-AI outline and chapter drafting use the OpenAI API when configured. The server fails explicitly with `AI_PROVIDER_NOT_CONFIGURED` when no provider key is configured; the editor and manual drafting continue to work.
+Creator Studio supports complete-book generation, outlines, chapters, metadata, and writing tools through:
 
-Environment variables:
+- Groq-hosted models through `GROQ_API_KEY`.
+- Any reachable OpenAI chat-completions-compatible endpoint through `BOOK_AI_BASE_URL` and, when required, `BOOK_AI_API_KEY`.
+- Ollama-compatible endpoints. The model server must be reachable from the Taskdrip server; `localhost` only works when Ollama runs in the same network/container.
 
-- `OPENAI_API_KEY` — required only for AI generation.
-- `OPENAI_TEXT_MODEL` — optional model override; defaults to `gpt-4o-mini`.
-- Existing Taskdrip environment variables (including database and session configuration) remain unchanged.
+The admin **Creator Publishing → Ebook generation settings** panel lets publishing admins select the provider, endpoint, model identifier, chapter defaults, child age band, illustration direction, shared and per-tool prompts, temperature, and output-token limits. API keys are never entered into this form or stored in the settings database.
+
+### Configure on Railway
+
+1. Open the Railway project and select the Taskdrip service.
+2. Open **Variables** and add the provider's variable names and secret values:
+   - Groq: `GROQ_API_KEY`
+   - Other authenticated OpenAI-compatible service: `BOOK_AI_API_KEY` and `BOOK_AI_BASE_URL`
+   - Ollama: configure a reachable endpoint URL in the admin panel; use `BOOK_AI_API_KEY` only if the endpoint requires it.
+3. In Creator Publishing, select the matching provider and enter the model identifier. For an OpenAI-compatible or Ollama endpoint, enter its `/v1` base URL.
+4. Save the settings and redeploy the service after changing Railway variables.
+
+In Replit, add the same variable names through Secrets. Open-weight model families and hosted model catalogs change; verify each selected model's license, inference availability, cost, context length, and commercial-use terms. The application does not claim one model is universally “best” or license-free.
 
 AI output is a draft for the creator to review, edit, and fact-check. It is not presented as verified research.
 
@@ -92,15 +104,17 @@ AI output is a draft for the creator to review, edit, and fact-check. It is not 
 
 ## Publishing and exports
 
-The editor saves structured book content but does not create a print-ready PDF, EPUB, KDP interior, or full cover export. Creators must upload a finished PDF or EPUB for review. Built-in book composition/export is a future extension.
+Creator Studio saves structured, editable page designs and exports print-interior PDF, EPUB 3, DOCX, standalone HTML, front-cover PNG, and paperback full-wrap cover PDF. The admin can create a 16-story Bible coloring-book draft with 135 designed interior pages, read-aloud retellings, scripture references, parent guides, questions, activities, colored examples, and black-line coloring pages.
+
+Exports are publication drafts, not guaranteed KDP or Google Play Books approvals. This sample has editable author/copyright placeholders and includes color-example pages. For print, select a suitable color-interior option, verify trim, margins, bleed, paper, page count, metadata, and cover dimensions in the current KDP setup, and inspect the exported PDF in KDP Print Previewer. A black-and-white interior requires removing or converting the color-example pages and rechecking the output. The studio does not automatically submit books to Amazon or Google.
 
 ## Deployment and testing
 
 1. Configure PostgreSQL and the existing `SESSION_SECRET`.
 2. Run `npm run db:migrate`.
-3. Configure `OPENAI_API_KEY` only if AI generation is required.
+3. Configure a supported AI provider only if model-backed generation is required.
 4. Start the app with `npm run dev`; build production assets with `npm run build`.
-5. Verify creator signup/login, monthly payment submission, admin approval/rejection, gated editor access, project tracking, product review, Shop listing, earnings, and purchase-authorized download in an environment with a migrated database.
+5. Verify admin provider settings and book creation, then review PDF/EPUB exports in their intended publishing previewers.
 
 Automated tests for the new subscription lifecycle and browser checkout flow should be added before production launch.
 
@@ -108,5 +122,5 @@ Automated tests for the new subscription lifecycle and browser checkout flow sho
 
 - Automatic payment settlement and renewal webhooks.
 - Durable private object storage for product files and payment evidence.
-- Built-in PDF/EPUB generation and print-ready exports.
-- Expanded authoring tools such as cover design, citations, accessibility checks, and book-quality reports.
+- AI-generated original raster illustrations and matching line-art assets.
+- Automated preflight for content quality, font embedding, page margins, image resolution, and store-specific packaging.

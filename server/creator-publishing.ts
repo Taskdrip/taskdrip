@@ -58,7 +58,7 @@ const DEFAULT_STUDIO_TOOL_SETTINGS = {
 type CreatorStudioToolName = keyof typeof DEFAULT_STUDIO_TOOL_PROMPTS;
 type CreatorStudioToolSettings = Record<CreatorStudioToolName, { temperature: number; maxTokens: number }>;
 type CreatorStudioAIControls = {
-  defaultChapterCount: 4 | 6 | 8 | 10 | 12;
+  defaultChapterCount: 4 | 6 | 8 | 10 | 12 | 16 | 20;
   childAgeBand: string;
   includeParentNotes: boolean;
   illustrationStyle: string;
@@ -66,6 +66,7 @@ type CreatorStudioAIControls = {
   toolPrompts: Record<keyof typeof DEFAULT_STUDIO_TOOL_PROMPTS, string>;
   toolSettings: CreatorStudioToolSettings;
 };
+type CreatorStudioAIProvider = "groq" | "openai-compatible" | "ollama";
 const DEFAULT_CREATOR_STUDIO_AI_CONTROLS: CreatorStudioAIControls = {
   defaultChapterCount: 6,
   childAgeBand: "6–8",
@@ -78,7 +79,7 @@ const DEFAULT_CREATOR_STUDIO_AI_CONTROLS: CreatorStudioAIControls = {
 
 function normalizeCreatorStudioAIControls(input: any): CreatorStudioAIControls {
   const chapterCount = Number(input?.defaultChapterCount);
-  const allowedChapters = [4, 6, 8, 10, 12] as const;
+  const allowedChapters = [4, 6, 8, 10, 12, 16, 20] as const;
   const clean = (value: unknown, fallback: string, limit: number) => String(value ?? fallback).trim().slice(0, limit);
   const inputPrompts = input?.toolPrompts && typeof input.toolPrompts === "object" ? input.toolPrompts : {};
   const inputToolSettings = input?.toolSettings && typeof input.toolSettings === "object" ? input.toolSettings : {};
@@ -123,25 +124,38 @@ async function getCreatorStudioAIConfig() {
     .limit(1);
   let saved: any = {};
   try { saved = JSON.parse(row?.value || "{}"); } catch { /* Ignore an invalid older settings row. */ }
+  const provider: CreatorStudioAIProvider = ["groq", "openai-compatible", "ollama"].includes(saved.provider)
+    ? saved.provider
+    : (BOOK_AI_BASE_URL ? "openai-compatible" : "groq");
+  const endpointUrl = String(saved.endpointUrl || BOOK_AI_BASE_URL || "").trim().replace(/\/+$/, "").slice(0, 500);
   const model = String(saved.model || process.env.BOOK_AI_MODEL || GROQ_TEXT_MODEL).trim().slice(0, 120);
   return {
+    provider,
+    endpointUrl,
     model,
-    aiAvailable: Boolean((BOOK_AI_BASE_URL && (process.env.BOOK_AI_API_KEY || "local-model")) || process.env.GROQ_API_KEY),
+    aiAvailable: provider === "groq"
+      ? Boolean(process.env.GROQ_API_KEY)
+      : provider === "ollama"
+        ? Boolean(endpointUrl)
+        : Boolean(endpointUrl && process.env.BOOK_AI_API_KEY),
     settings: normalizeCreatorStudioAIControls(saved.settings),
   };
 }
 
-function createGroqClient(model = GROQ_TEXT_MODEL) {
-  const apiKey = process.env.BOOK_AI_API_KEY || process.env.GROQ_API_KEY || (BOOK_AI_BASE_URL ? "local-model" : "");
-  return apiKey
-    ? { client: new OpenAI({ apiKey, baseURL: BOOK_AI_BASE_URL || GROQ_API_BASE_URL }), model }
-    : null;
+function createStudioAIClient(model = GROQ_TEXT_MODEL, provider: CreatorStudioAIProvider = BOOK_AI_BASE_URL ? "openai-compatible" : "groq", endpointUrl = "") {
+  const baseURL = provider === "groq" ? GROQ_API_BASE_URL : (endpointUrl || BOOK_AI_BASE_URL);
+  const apiKey = provider === "groq"
+    ? process.env.GROQ_API_KEY
+    : provider === "ollama"
+      ? (process.env.BOOK_AI_API_KEY || "ollama")
+      : process.env.BOOK_AI_API_KEY;
+  return apiKey && baseURL ? { client: new OpenAI({ apiKey, baseURL }), model } : null;
 }
 
 function groqUnavailableResponse(action: string) {
   return {
     code: "AI_PROVIDER_NOT_CONFIGURED",
-    message: `AI ${action} is unavailable. Configure GROQ_API_KEY or an OpenAI-compatible BOOK_AI_BASE_URL in the deployment environment.`,
+    message: `AI ${action} is unavailable. Configure the provider's endpoint and add its API key as a deployment variable; Ollama can use a reachable compatible endpoint without a key.`,
   };
 }
 
@@ -877,15 +891,37 @@ export function registerCreatorPublishingRoutes(app: Express) {
     if (!model || !/^[\w./:-]+$/.test(model)) {
       return res.status(400).json({ message: "Enter a valid model name. Do not enter an API key here." });
     }
+    const provider = String(req.body.provider || "") as CreatorStudioAIProvider;
+    if (!["groq", "openai-compatible", "ollama"].includes(provider)) {
+      return res.status(400).json({ message: "Choose Groq, an OpenAI-compatible provider, or Ollama." });
+    }
+    const endpointUrl = String(req.body.endpointUrl || "").trim().replace(/\/+$/, "").slice(0, 500);
+    if (provider !== "groq") {
+      let endpoint: URL;
+      try { endpoint = new URL(endpointUrl); } catch {
+        return res.status(400).json({ message: "Enter a valid provider endpoint URL." });
+      }
+      if (!["http:", "https:"].includes(endpoint.protocol)) {
+        return res.status(400).json({ message: "Provider endpoints must use HTTP or HTTPS." });
+      }
+      if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+        return res.status(400).json({ message: "Keep credentials and query parameters out of endpoint URLs; configure credentials as deployment variables." });
+      }
+      const isLoopbackOllama = provider === "ollama"
+        && ["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname);
+      if (endpoint.protocol === "http:" && !isLoopbackOllama) {
+        return res.status(400).json({ message: "Use HTTPS for remote AI endpoints. Plain HTTP is allowed only for local Ollama." });
+      }
+    }
     try {
       const settings = normalizeCreatorStudioAIControls(req.body.settings);
       await db.insert(appSettings).values({
         key: "creator_studio_ai_settings",
-        value: JSON.stringify({ model, settings }),
+        value: JSON.stringify({ provider, endpointUrl, model, settings }),
         updatedAt: new Date(),
       }).onConflictDoUpdate({
         target: appSettings.key,
-        set: { value: JSON.stringify({ model, settings }), updatedAt: new Date() },
+        set: { value: JSON.stringify({ provider, endpointUrl, model, settings }), updatedAt: new Date() },
       });
       const config = await getCreatorStudioAIConfig();
       res.json(config);
@@ -901,19 +937,27 @@ export function registerCreatorPublishingRoutes(app: Express) {
       const [existing] = await db.select({
         id: creatorBooks.id,
         title: creatorBooks.title,
+        designerDocument: creatorBooks.designerDocument,
       }).from(creatorBooks).where(and(
         eq(creatorBooks.creatorId, req.user.id),
-        eq(creatorBooks.title, "God’s Big Story"),
+        eq(creatorBooks.title, "God’s Big Story: A Read-Aloud Bible Coloring Adventure"),
         eq(creatorBooks.genre, "Bible stories and coloring books"),
       )).limit(1);
-      if (existing) return res.json({ book: existing, alreadyExists: true });
+      if (existing) return res.json({
+        book: { id: existing.id, title: existing.title },
+        pageCount: Math.max(0, (existing.designerDocument?.pages?.length || 0) - 1),
+        alreadyExists: true,
+      });
 
       const draft = createChildrenBibleColoringBook();
       const [book] = await db.insert(creatorBooks).values({
         creatorId: req.user.id,
         ...draft,
       }).returning({ id: creatorBooks.id, title: creatorBooks.title });
-      res.status(201).json({ book });
+      res.status(201).json({
+        book,
+        pageCount: Math.max(0, (draft.designerDocument?.pages?.length || 0) - 1),
+      });
     } catch (error) {
       console.error("Could not create the sample children’s Bible coloring book:", error);
       res.status(500).json({ message: "Could not create the coloring-book draft." });
@@ -1136,16 +1180,12 @@ export function registerCreatorPublishingRoutes(app: Express) {
 
   app.post("/api/creator-studio/books/:id/ai/full-book", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    if (!isBookDesignAIAvailable()) return res.status(503).json({
-      code: "AI_PROVIDER_NOT_CONFIGURED",
-      message: "Configure GROQ_API_KEY, or an OpenAI-compatible BOOK_AI_BASE_URL (and BOOK_AI_MODEL) to enable book generation.",
-    });
-
     const prompt = String(req.body.prompt || "").trim().slice(0, 8000);
     const config = await getCreatorStudioAIConfig();
+    if (!isBookDesignAIAvailable(config)) return res.status(503).json(groqUnavailableResponse("complete-book generation"));
     const chapterCount = Number(req.body.chapterCount || config.settings.defaultChapterCount);
     if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
-    if (![4, 6, 8, 10, 12].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 12 chapters." });
+    if (![4, 6, 8, 10, 12, 16, 20].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 20 chapters." });
 
     try {
       const [book] = await db.select().from(creatorBooks)
@@ -1199,7 +1239,11 @@ export function registerCreatorPublishingRoutes(app: Express) {
             authorName,
             chapterCount,
             aiModel: config.model,
-            aiSettings: config.settings,
+            aiSettings: {
+              ...config.settings,
+              provider: config.provider,
+              endpointUrl: config.endpointUrl,
+            },
             onProgress,
           });
           await db.update(creatorBooks).set({
@@ -1463,7 +1507,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
   app.post("/api/creator-studio/ai/outline", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     const config = await getCreatorStudioAIConfig();
-    const ai = createGroqClient(config.model);
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
     if (!ai) return res.status(503).json(groqUnavailableResponse("outline generation"));
     const { client, model } = ai;
     const idea = String(req.body.idea || "").trim().slice(0, 6000);
@@ -1497,7 +1541,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
   app.post("/api/creator-studio/ai/chapter", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     const config = await getCreatorStudioAIConfig();
-    const ai = createGroqClient(config.model);
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
     if (!ai) return res.status(503).json(groqUnavailableResponse("chapter generation"));
     const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
@@ -1536,7 +1580,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
   app.post("/api/creator-studio/ai/metadata", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     const config = await getCreatorStudioAIConfig();
-    const ai = createGroqClient(config.model);
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
     if (!ai) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
     const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
@@ -1581,7 +1625,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
   app.post("/api/creator-studio/ai/tool", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     const config = await getCreatorStudioAIConfig();
-    const ai = createGroqClient(config.model);
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
     if (!ai) return res.status(503).json(groqUnavailableResponse("writing tools"));
     const { client, model } = ai;
     const tool = String(req.body.tool || "");
