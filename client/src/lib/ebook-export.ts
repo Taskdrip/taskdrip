@@ -1,7 +1,7 @@
 import { strToU8, zipSync } from "fflate";
 import { renderEbookArtSvg, type EbookDesignBlock, type EbookDesignDocument, type EbookDesignPage } from "@shared/ebook-design";
 
-export type EbookExportFormat = "pdf" | "epub" | "docx" | "html" | "cover-png";
+export type EbookExportFormat = "pdf" | "epub" | "docx" | "html" | "cover-png" | "kdp-cover-pdf";
 export type EbookExportBook = {
   id?: string;
   title: string;
@@ -137,6 +137,12 @@ function htmlStyles(document: EbookDesignDocument, trimSize: string) {
     figure{text-align:center;margin:1.5em 0}figure img{max-width:100%;max-height:3in}figcaption{font-size:9pt;color:#666}
     p{orphans:2;widows:2}li{margin:.35em 0}.contents{line-height:2}.chapter p{text-indent:1em;margin:.7em 0}
     .kind-cover{text-align:center}.kind-cover .role-title{margin-top:20%}
+    .kind-parent-guide figure img{max-height:1.35in}
+    .kind-coloring{display:flex;min-height:9.5in;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center}
+    .kind-coloring h1{font-size:19pt;margin:.2em 0 .35em}.kind-coloring .role-eyebrow{font-size:8pt;margin:.15em 0}
+    .kind-coloring figure{display:flex;flex:1;width:100%;align-items:center;justify-content:center;margin:.35em 0}
+    .kind-coloring figure img{width:auto;height:7.2in;max-width:100%;max-height:7.2in;object-fit:contain}
+    .kind-coloring figcaption{font-size:8pt;margin-top:.2em}
     @media screen{body{max-width:7in;margin:2rem auto;padding:1rem 1.3rem;box-shadow:0 8px 35px #0002}.book-page{margin-bottom:3rem}}`;
 }
 
@@ -215,14 +221,17 @@ function coverSvg(book: EbookExportBook, document: EbookDesignDocument, author: 
   const title = escapeXml(book.title || "Untitled book");
   const subtitle = escapeXml(book.subtitle || "");
   const motif = document.pages.flatMap((page) => page.blocks).find((block) => block.kind === "art");
-  const art = motif?.kind === "art" ? renderEbookArtSvg(motif.motif, theme, 1, motif.altText) : "";
+  const art = motif?.kind === "art" ? renderEbookArtSvg(motif.motif, theme, 1, motif.altText, motif.scene, motif.artMode) : "";
   const artContents = art.replace(/^[\s\S]*?<rect[^>]*\/>/, "").replace(/<\/svg>\s*$/, "");
+  const artViewBox = motif?.kind === "art" && motif.motif === "bible-scene" ? "0 0 640 720" : "0 0 640 280";
+  const artY = motif?.kind === "art" && motif.motif === "bible-scene" ? 170 : 230;
+  const artHeight = motif?.kind === "art" && motif.motif === "bible-scene" ? 620 : 330;
   const safeTitle = title.replace(/(.{1,24})(?:\s|$)/g, "$1\n").split("\n").filter(Boolean).slice(0, 4);
   const titleMarkup = safeTitle.map((line, index) => `<tspan x="600" dy="${index ? 92 : 0}">${line}</tspan>`).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 1800" role="img" aria-label="Book cover for ${title}">
     <rect width="1200" height="1800" fill="${theme.primary}"/>
     <rect x="72" y="72" width="1056" height="1656" rx="20" fill="${theme.paper}"/>
-    <svg x="220" y="230" width="760" height="330" viewBox="0 0 640 280">${artContents}</svg>
+    <svg x="220" y="${artY}" width="760" height="${artHeight}" viewBox="${artViewBox}">${artContents}</svg>
     <text x="600" y="830" text-anchor="middle" fill="${theme.primary}" font-family="Georgia,serif" font-size="70" font-weight="600">${titleMarkup}</text>
     ${subtitle ? `<text x="600" y="1190" text-anchor="middle" fill="${theme.text}" font-family="Arial,sans-serif" font-size="36">${subtitle}</text>` : ""}
     <text x="600" y="1550" text-anchor="middle" fill="${theme.accent}" font-family="Arial,sans-serif" font-size="28">${escapeXml(author || "Author")}</text>
@@ -238,7 +247,7 @@ async function coverPng(svg: string) {
       image.onload = () => resolve();
       image.onerror = () => reject(new Error("Could not render the cover artwork."));
     });
-    const canvas = document.createElement("canvas");
+    const canvas = window.document.createElement("canvas");
     canvas.width = 1200;
     canvas.height = 1800;
     const context = canvas.getContext("2d");
@@ -285,7 +294,7 @@ export function buildEpubArchive(book: EbookExportBook, author: string) {
     [`OEBPS/${coverImage}`]: strToU8(cover),
   };
   for (const block of imageBlocks) {
-    files[`OEBPS/${imagePath(block)}`] = strToU8(renderEbookArtSvg(block.motif, document.theme, 1, block.altText));
+    files[`OEBPS/${imagePath(block)}`] = strToU8(renderEbookArtSvg(block.motif, document.theme, 1, block.altText, block.scene, block.artMode));
   }
   return zipSync(files);
 }
@@ -344,10 +353,17 @@ async function createPdf(book: EbookExportBook, author: string) {
       } else if (block.kind === "list") {
         block.items.forEach((item) => addText(`•  ${item}`, 11));
       } else if (block.kind === "art") {
-        const artHeight = page.kind === "cover" ? 2.2 : 1.35;
-        const artWidth = Math.min(textWidth, pageWidth * 0.76);
+        const isColoringPage = page.kind === "coloring";
+        const artHeight = isColoringPage ? 7.05 : page.kind === "cover" ? 3.4 : 1.35;
+        const artWidth = Math.min(textWidth, isColoringPage ? 6.1 : pageWidth * 0.76);
         const artX = (pageWidth - artWidth) / 2;
-        drawVectorArt(pdf, block.motif, artX, cursorY, artWidth, artHeight, document.theme.primary, document.theme.accent, document.theme.paper);
+        if (block.motif === "bible-scene") {
+          const svg = renderEbookArtSvg(block.motif, document.theme, 1, block.altText, block.scene, block.artMode);
+          const imageData = await svgToPngDataUrl(svg, Math.round(artWidth * 300), Math.round(artHeight * 300));
+          pdf.addImage(imageData, "PNG", artX, cursorY, artWidth, artHeight, undefined, "FAST");
+        } else {
+          drawVectorArt(pdf, block.motif, artX, cursorY, artWidth, artHeight, document.theme.primary, document.theme.accent, document.theme.paper);
+        }
         cursorY += artHeight + 0.18;
         if (block.brief) addText(block.brief, 8, { color: document.theme.accent, center: true });
       } else if (block.kind === "contents") {
@@ -395,6 +411,79 @@ async function createPdf(book: EbookExportBook, author: string) {
   return pdf.output("blob") as Blob;
 }
 
+async function createKdpPaperbackCoverPdf(book: EbookExportBook, author: string) {
+  const document = normalizedDocument(book);
+  const { jsPDF } = await import("jspdf");
+  const [rawWidth, rawHeight] = (book.trimSize || "6x9").split("x").map(Number);
+  const trimWidth = [rawWidth, rawHeight].every((value) => Number.isFinite(value) && value >= 4 && value <= 12) ? rawWidth : 6;
+  const trimHeight = [rawWidth, rawHeight].every((value) => Number.isFinite(value) && value >= 4 && value <= 12) ? rawHeight : 9;
+  const bleed = 0.125;
+  const interiorPageCount = Math.max(24, document.pages.filter((page) => page.kind !== "cover").length);
+  // KDP's black-ink, white-paper paperback spine factor.
+  const spineWidth = interiorPageCount * 0.002252;
+  const coverWidth = bleed * 2 + trimWidth * 2 + spineWidth;
+  const coverHeight = bleed * 2 + trimHeight;
+  const backX = bleed;
+  const spineX = backX + trimWidth;
+  const frontX = spineX + spineWidth;
+  const panelY = bleed;
+  const pdf = new jsPDF({ unit: "in", format: [coverWidth, coverHeight], orientation: "landscape", compress: true });
+
+  pdf.setFillColor(...colorRgb(document.theme.paper));
+  pdf.rect(0, 0, coverWidth, coverHeight, "F");
+  pdf.setFillColor(...colorRgb(document.theme.primary));
+  pdf.rect(spineX, 0, spineWidth, coverHeight, "F");
+  pdf.setDrawColor(...colorRgb(document.theme.accent));
+  pdf.setLineWidth(0.018);
+  pdf.rect(backX + 0.22, panelY + 0.22, trimWidth - 0.44, trimHeight - 0.44);
+  pdf.rect(frontX + 0.22, panelY + 0.22, trimWidth - 0.44, trimHeight - 0.44);
+
+  const artBlock = document.pages
+    .find((page) => page.kind === "cover")
+    ?.blocks.find((block) => block.kind === "art");
+  if (artBlock?.kind === "art") {
+    const artSvg = renderEbookArtSvg(artBlock.motif, document.theme, 1, artBlock.altText, artBlock.scene, artBlock.artMode);
+    const artWidth = Math.min(trimWidth - 1.15, (trimHeight - 3.1) * 640 / 720);
+    const artHeight = artWidth * 720 / 640;
+    const artData = await svgToPngDataUrl(artSvg, Math.round(artWidth * 300), Math.round(artHeight * 300));
+    pdf.addImage(artData, "PNG", frontX + (trimWidth - artWidth) / 2, panelY + 1.75, artWidth, artHeight, undefined, "FAST");
+  }
+
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(Math.min(31, trimWidth * 4));
+  pdf.setTextColor(...colorRgb(document.theme.primary));
+  const titleLines = pdf.splitTextToSize(book.title || "Untitled book", trimWidth - 0.8).slice(0, 3);
+  pdf.text(titleLines, frontX + trimWidth / 2, panelY + 0.75, { align: "center" });
+  const subtitle = String(book.subtitle || "").trim();
+  if (subtitle) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(13);
+    pdf.setTextColor(...colorRgb(document.theme.text));
+    pdf.text(pdf.splitTextToSize(subtitle, trimWidth - 0.9).slice(0, 2), frontX + trimWidth / 2, panelY + trimHeight - 1.45, { align: "center" });
+  }
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor(...colorRgb(document.theme.accent));
+  pdf.text(author || "Author", frontX + trimWidth / 2, panelY + trimHeight - 0.55, { align: "center" });
+
+  pdf.setFont("times", "bold");
+  pdf.setFontSize(19);
+  pdf.setTextColor(...colorRgb(document.theme.primary));
+  pdf.text("Inside this book", backX + 0.5, panelY + 0.82);
+  pdf.setFont("times", "normal");
+  pdf.setFontSize(11);
+  pdf.setTextColor(...colorRgb(document.theme.text));
+  const backCopy = String(book.description || "Read twelve Bible stories together, talk about their meaning, and color original storybook illustrations.").trim().slice(0, 1200);
+  const backLines = pdf.splitTextToSize(backCopy, trimWidth - 1).slice(0, Math.max(8, Math.floor((trimHeight - 3) * 5)));
+  pdf.text(backLines, backX + 0.5, panelY + 1.25);
+  const barcodeX = backX + trimWidth - 2.18;
+  const barcodeY = panelY + trimHeight - 1.45;
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(barcodeX, barcodeY, 2, 1.2, "F");
+
+  return pdf.output("blob") as Blob;
+}
+
 async function createDocx(book: EbookExportBook, author: string) {
   const { AlignmentType, Document, HeadingLevel, Packer, Paragraph } = await import("docx");
   const [width, height] = (book.trimSize || "6x9").split("x").map(Number);
@@ -435,6 +524,10 @@ export async function exportEbook(book: EbookExportBook, author: string, format:
     downloadBlob(await coverPng(coverSvg(book, document, author)), `${filename}-front-cover.png`);
     return;
   }
+  if (format === "kdp-cover-pdf") {
+    downloadBlob(await createKdpPaperbackCoverPdf(book, author), `${filename}-paperback-full-wrap-cover.pdf`);
+    return;
+  }
   if (format === "pdf") {
     downloadBlob(await createPdf(book, author), `${filename}-interior.pdf`);
     return;
@@ -449,8 +542,29 @@ export async function exportEbook(book: EbookExportBook, author: string, format:
     return;
   }
   const content = renderPagesHtml(book, document, (block) =>
-    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderEbookArtSvg(block.motif, document.theme, 1, block.altText))}`,
+    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderEbookArtSvg(block.motif, document.theme, 1, block.altText, block.scene, block.artMode))}`,
   );
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(book.title)}</title><style>${styles}</style></head><body>${content}</body></html>`;
   downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), `${filename}.html`);
+}
+
+async function svgToPngDataUrl(svg: string, width: number, height: number): Promise<string> {
+  const imageUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = imageUrl;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, width);
+    canvas.height = Math.max(1, height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not prepare the coloring illustration for print.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 }

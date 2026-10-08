@@ -31,6 +31,7 @@ import {
   type EbookDesignDocument,
   type EbookDesignPage,
 } from "@shared/ebook-design";
+import { createChildrenBibleColoringBook } from "./children-bible-coloring-book";
 
 const PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
@@ -39,16 +40,108 @@ mkdirSync(PRIVATE_STUDIO_PAYMENT_DIR, { recursive: true });
 
 const GROQ_API_BASE_URL = "https://api.groq.com/openai/v1";
 const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
+const BOOK_AI_BASE_URL = process.env.BOOK_AI_BASE_URL?.trim().replace(/\/+$/, "");
+const DEFAULT_STUDIO_TOOL_PROMPTS = {
+  "complete-book": "",
+  outline: "",
+  chapter: "",
+  metadata: "",
+  "writing-assistant": "",
+};
+const DEFAULT_STUDIO_TOOL_SETTINGS = {
+  "complete-book": { temperature: 0.55, maxTokens: 3600 },
+  outline: { temperature: 0.6, maxTokens: 2400 },
+  chapter: { temperature: 0.7, maxTokens: 2400 },
+  metadata: { temperature: 0.65, maxTokens: 2400 },
+  "writing-assistant": { temperature: 0.7, maxTokens: 2400 },
+};
+type CreatorStudioToolName = keyof typeof DEFAULT_STUDIO_TOOL_PROMPTS;
+type CreatorStudioToolSettings = Record<CreatorStudioToolName, { temperature: number; maxTokens: number }>;
+type CreatorStudioAIControls = {
+  defaultChapterCount: 4 | 6 | 8 | 10 | 12;
+  childAgeBand: string;
+  includeParentNotes: boolean;
+  illustrationStyle: string;
+  generationPrompt: string;
+  toolPrompts: Record<keyof typeof DEFAULT_STUDIO_TOOL_PROMPTS, string>;
+  toolSettings: CreatorStudioToolSettings;
+};
+const DEFAULT_CREATOR_STUDIO_AI_CONTROLS: CreatorStudioAIControls = {
+  defaultChapterCount: 6,
+  childAgeBand: "6–8",
+  includeParentNotes: true,
+  illustrationStyle: "Original, print-friendly vector illustrations; black-line artwork on coloring pages.",
+  generationPrompt: "Keep all writing original, accurate to cited source material, clear for the chosen reader, and ready for human review before publication.",
+  toolPrompts: DEFAULT_STUDIO_TOOL_PROMPTS,
+  toolSettings: DEFAULT_STUDIO_TOOL_SETTINGS,
+};
 
-function createGroqClient() {
-  const apiKey = process.env.GROQ_API_KEY;
-  return apiKey ? new OpenAI({ apiKey, baseURL: GROQ_API_BASE_URL }) : null;
+function normalizeCreatorStudioAIControls(input: any): CreatorStudioAIControls {
+  const chapterCount = Number(input?.defaultChapterCount);
+  const allowedChapters = [4, 6, 8, 10, 12] as const;
+  const clean = (value: unknown, fallback: string, limit: number) => String(value ?? fallback).trim().slice(0, limit);
+  const inputPrompts = input?.toolPrompts && typeof input.toolPrompts === "object" ? input.toolPrompts : {};
+  const inputToolSettings = input?.toolSettings && typeof input.toolSettings === "object" ? input.toolSettings : {};
+  const normalizeToolSettings = (key: CreatorStudioToolName) => {
+    const raw = inputToolSettings[key] && typeof inputToolSettings[key] === "object" ? inputToolSettings[key] : {};
+    const defaults = DEFAULT_STUDIO_TOOL_SETTINGS[key];
+    const temperature = Number(raw.temperature);
+    const maxTokens = Number(raw.maxTokens);
+    return {
+      temperature: Number.isFinite(temperature) ? Math.min(2, Math.max(0, temperature)) : defaults.temperature,
+      maxTokens: Number.isFinite(maxTokens) ? Math.min(8000, Math.max(512, Math.round(maxTokens))) : defaults.maxTokens,
+    };
+  };
+  return {
+    defaultChapterCount: (allowedChapters.includes(chapterCount as any) ? chapterCount : DEFAULT_CREATOR_STUDIO_AI_CONTROLS.defaultChapterCount) as CreatorStudioAIControls["defaultChapterCount"],
+    childAgeBand: ["3–5", "6–8", "9–12"].includes(String(input?.childAgeBand))
+      ? String(input.childAgeBand) : DEFAULT_CREATOR_STUDIO_AI_CONTROLS.childAgeBand,
+    includeParentNotes: input?.includeParentNotes !== false,
+    illustrationStyle: clean(input?.illustrationStyle, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.illustrationStyle, 300),
+    generationPrompt: clean(input?.generationPrompt, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.generationPrompt, 2000),
+    toolPrompts: {
+      "complete-book": clean(inputPrompts["complete-book"], "", 2000),
+      outline: clean(inputPrompts.outline, "", 2000),
+      chapter: clean(inputPrompts.chapter, "", 2000),
+      metadata: clean(inputPrompts.metadata, "", 2000),
+      "writing-assistant": clean(inputPrompts["writing-assistant"], "", 2000),
+    },
+    toolSettings: {
+      "complete-book": normalizeToolSettings("complete-book"),
+      outline: normalizeToolSettings("outline"),
+      chapter: normalizeToolSettings("chapter"),
+      metadata: normalizeToolSettings("metadata"),
+      "writing-assistant": normalizeToolSettings("writing-assistant"),
+    },
+  };
+}
+
+async function getCreatorStudioAIConfig() {
+  const [row] = await db.select({ value: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, "creator_studio_ai_settings"))
+    .limit(1);
+  let saved: any = {};
+  try { saved = JSON.parse(row?.value || "{}"); } catch { /* Ignore an invalid older settings row. */ }
+  const model = String(saved.model || process.env.BOOK_AI_MODEL || GROQ_TEXT_MODEL).trim().slice(0, 120);
+  return {
+    model,
+    aiAvailable: Boolean((BOOK_AI_BASE_URL && (process.env.BOOK_AI_API_KEY || "local-model")) || process.env.GROQ_API_KEY),
+    settings: normalizeCreatorStudioAIControls(saved.settings),
+  };
+}
+
+function createGroqClient(model = GROQ_TEXT_MODEL) {
+  const apiKey = process.env.BOOK_AI_API_KEY || process.env.GROQ_API_KEY || (BOOK_AI_BASE_URL ? "local-model" : "");
+  return apiKey
+    ? { client: new OpenAI({ apiKey, baseURL: BOOK_AI_BASE_URL || GROQ_API_BASE_URL }), model }
+    : null;
 }
 
 function groqUnavailableResponse(action: string) {
   return {
     code: "AI_PROVIDER_NOT_CONFIGURED",
-    message: `AI ${action} is unavailable until GROQ_API_KEY is configured in Replit Secrets.`,
+    message: `AI ${action} is unavailable. Configure GROQ_API_KEY or an OpenAI-compatible BOOK_AI_BASE_URL in the deployment environment.`,
   };
 }
 
@@ -301,8 +394,9 @@ function normalizeDesignerDocument(value: any): EbookDesignDocument | null {
   if (!value || typeof value !== "object" || value.schemaVersion !== 1) return null;
   if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 100) return null;
   const color = (candidate: any, fallback: string) => /^#[0-9a-f]{6}$/i.test(String(candidate || "")) ? String(candidate) : fallback;
-  const pageKinds = new Set<EbookDesignPage["kind"]>(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "backmatter"]);
+  const pageKinds = new Set<EbookDesignPage["kind"]>(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "parent-guide", "coloring", "backmatter"]);
   const blockKinds = new Set(["text", "list", "art", "chapter", "contents"]);
+  const bibleScenes = new Set(["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection"]);
   const pages: EbookDesignPage[] = [];
 
   for (const rawPage of value.pages) {
@@ -320,13 +414,16 @@ function normalizeDesignerDocument(value: any): EbookDesignDocument | null {
         blocks.push({ id, kind: "list", items: rawBlock.items.slice(0, 80).map((item: any) => String(item).slice(0, 1000)) });
       } else if (rawBlock.kind === "art") {
         const motif = String(rawBlock.motif || "");
-        if (!["botanical", "geometry", "orbit", "waves"].includes(motif)) return null;
+        if (!["botanical", "geometry", "orbit", "waves", "bible-scene"].includes(motif)) return null;
+        const scene = String(rawBlock.scene || "");
+        if (motif === "bible-scene" && !bibleScenes.has(scene)) return null;
         blocks.push({
           id,
           kind: "art",
           motif: motif as EbookArtMotif,
           altText: String(rawBlock.altText || "Decorative illustration").slice(0, 180),
           brief: String(rawBlock.brief || "").slice(0, 600),
+          ...(motif === "bible-scene" ? { scene, artMode: rawBlock.artMode === "color" ? "color" as const : "line" as const } : {}),
         });
       } else if (rawBlock.kind === "chapter") {
         blocks.push({ id, kind: "chapter", chapterId: String(rawBlock.chapterId || "").slice(0, 80) });
@@ -551,6 +648,17 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
   });
 
+  app.get("/api/creator-studio/ai-config", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    try {
+      const config = await getCreatorStudioAIConfig();
+      res.json({ aiAvailable: config.aiAvailable, model: config.model, defaultChapterCount: config.settings.defaultChapterCount });
+    } catch (error) {
+      console.error("Could not load Creator Studio model settings:", error);
+      res.status(500).json({ message: "Could not load Creator Studio model settings." });
+    }
+  });
+
   app.post("/api/creator-studio/subscribe", isAuthenticated, studioPaymentProofUpload.single("paymentProof"), async (req: any, res) => {
     if (!canPublish(req.user)) {
       removeUpload(req.file);
@@ -749,6 +857,66 @@ export function registerCreatorPublishingRoutes(app: Express) {
     } catch (error) {
       console.error("Could not save Creator Studio payment options:", error);
       res.status(500).json({ message: "Could not save Creator Studio payment options." });
+    }
+  });
+
+  app.get("/api/admin/creator-studio/ai-settings", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const config = await getCreatorStudioAIConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Could not load Creator Studio AI settings:", error);
+      res.status(500).json({ message: "Could not load AI publishing settings." });
+    }
+  });
+
+  app.put("/api/admin/creator-studio/ai-settings", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const model = String(req.body.model || "").trim().slice(0, 120);
+    if (!model || !/^[\w./:-]+$/.test(model)) {
+      return res.status(400).json({ message: "Enter a valid model name. Do not enter an API key here." });
+    }
+    try {
+      const settings = normalizeCreatorStudioAIControls(req.body.settings);
+      await db.insert(appSettings).values({
+        key: "creator_studio_ai_settings",
+        value: JSON.stringify({ model, settings }),
+        updatedAt: new Date(),
+      }).onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: JSON.stringify({ model, settings }), updatedAt: new Date() },
+      });
+      const config = await getCreatorStudioAIConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Could not save Creator Studio AI settings:", error);
+      res.status(500).json({ message: "Could not save AI publishing settings." });
+    }
+  });
+
+  app.post("/api/admin/creator-studio/books/children-bible-coloring", isAuthenticated, async (req: any, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const [existing] = await db.select({
+        id: creatorBooks.id,
+        title: creatorBooks.title,
+      }).from(creatorBooks).where(and(
+        eq(creatorBooks.creatorId, req.user.id),
+        eq(creatorBooks.title, "God’s Big Story"),
+        eq(creatorBooks.genre, "Bible stories and coloring books"),
+      )).limit(1);
+      if (existing) return res.json({ book: existing, alreadyExists: true });
+
+      const draft = createChildrenBibleColoringBook();
+      const [book] = await db.insert(creatorBooks).values({
+        creatorId: req.user.id,
+        ...draft,
+      }).returning({ id: creatorBooks.id, title: creatorBooks.title });
+      res.status(201).json({ book });
+    } catch (error) {
+      console.error("Could not create the sample children’s Bible coloring book:", error);
+      res.status(500).json({ message: "Could not create the coloring-book draft." });
     }
   });
 
@@ -974,9 +1142,10 @@ export function registerCreatorPublishingRoutes(app: Express) {
     });
 
     const prompt = String(req.body.prompt || "").trim().slice(0, 8000);
-    const chapterCount = Number(req.body.chapterCount);
+    const config = await getCreatorStudioAIConfig();
+    const chapterCount = Number(req.body.chapterCount || config.settings.defaultChapterCount);
     if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
-    if (![4, 6, 8].includes(chapterCount)) return res.status(400).json({ message: "Choose a 4, 6, or 8 chapter book." });
+    if (![4, 6, 8, 10, 12].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 12 chapters." });
 
     try {
       const [book] = await db.select().from(creatorBooks)
@@ -1029,6 +1198,8 @@ export function registerCreatorPublishingRoutes(app: Express) {
             trimSize: book.trimSize,
             authorName,
             chapterCount,
+            aiModel: config.model,
+            aiSettings: config.settings,
             onProgress,
           });
           await db.update(creatorBooks).set({
@@ -1291,19 +1462,22 @@ export function registerCreatorPublishingRoutes(app: Express) {
 
   app.post("/api/creator-studio/ai/outline", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("outline generation"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createGroqClient(config.model);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("outline generation"));
+    const { client, model } = ai;
     const idea = String(req.body.idea || "").trim().slice(0, 6000);
     const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
     const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     if (idea.length < 8) return res.status(400).json({ message: "Describe the book idea in at least 8 characters." });
     try {
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: 0.6,
+        model,
+        temperature: config.settings.toolSettings.outline.temperature,
+        max_tokens: config.settings.toolSettings.outline.maxTokens,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {\"chapters\":[{\"title\":\"...\",\"summary\":\"...\"}]}. Use 6 to 12 chapters and respect the requested book type and niche." },
+          { role: "system", content: `Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters and respect the requested book type and niche.\n${config.settings.toolPrompts.outline}` },
           { role: "user", content: `Book type: ${bookType}\nNiche: ${genre}\nBook concept: ${idea}` },
         ],
       });
@@ -1322,8 +1496,10 @@ export function registerCreatorPublishingRoutes(app: Express) {
 
   app.post("/api/creator-studio/ai/chapter", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("chapter generation"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createGroqClient(config.model);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("chapter generation"));
+    const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
     const chapterTitle = String(req.body.chapterTitle || "").trim().slice(0, 240);
     const idea = String(req.body.idea || "").trim().slice(0, 4000);
@@ -1340,10 +1516,11 @@ export function registerCreatorPublishingRoutes(app: Express) {
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
     try {
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: 0.7,
+        model,
+        temperature: config.settings.toolSettings.chapter.temperature,
+        max_tokens: config.settings.toolSettings.chapter.maxTokens,
         messages: [
-          { role: "system", content: "Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs." },
+          { role: "system", content: `Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs.\n${config.settings.toolPrompts.chapter}` },
           { role: "user", content: `Book type: ${book.bookType || "nonfiction"}\nNiche: ${book.genre || "General nonfiction"}\nBook idea: ${idea || book.idea || "Not provided"}\nChapter: ${chapterTitle}` },
         ],
       });
@@ -1358,8 +1535,10 @@ export function registerCreatorPublishingRoutes(app: Express) {
 
   app.post("/api/creator-studio/ai/metadata", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createGroqClient(config.model);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
+    const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
     const [book] = await db.select().from(creatorBooks)
       .where(and(eq(creatorBooks.id, bookId), eq(creatorBooks.creatorId, req.user.id)))
@@ -1370,13 +1549,14 @@ export function registerCreatorPublishingRoutes(app: Express) {
     }
     try {
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: 0.65,
+        model,
+        temperature: config.settings.toolSettings.metadata.temperature,
+        max_tokens: config.settings.toolSettings.metadata.maxTokens,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: "Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {\"title\":\"...\",\"subtitle\":\"...\",\"description\":\"...\",\"keywords\":[\"...\"],\"categories\":[\"...\"]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.",
+            content: `Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.\n${config.settings.toolPrompts.metadata}`,
           },
           {
             role: "user",
@@ -1400,8 +1580,10 @@ export function registerCreatorPublishingRoutes(app: Express) {
 
   app.post("/api/creator-studio/ai/tool", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("writing tools"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createGroqClient(config.model);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("writing tools"));
+    const { client, model } = ai;
     const tool = String(req.body.tool || "");
     const bookId = String(req.body.bookId || "");
     const chapterId = String(req.body.chapterId || "");
@@ -1436,10 +1618,11 @@ export function registerCreatorPublishingRoutes(app: Express) {
         ? `${context}\nChapter title: ${chapter?.title}\nCurrent chapter text:\n${chapter?.content}`
         : `${context}\n${input ? `Creator's focus: ${input}` : ""}`;
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: tool === "proofread" ? 0.35 : 0.7,
+        model,
+        temperature: tool === "proofread" ? Math.min(0.6, config.settings.toolSettings["writing-assistant"].temperature) : config.settings.toolSettings["writing-assistant"].temperature,
+        max_tokens: config.settings.toolSettings["writing-assistant"].maxTokens,
         messages: [
-          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.` },
+          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.\n${config.settings.toolPrompts["writing-assistant"]}` },
           { role: "user", content: prompt },
         ],
       });

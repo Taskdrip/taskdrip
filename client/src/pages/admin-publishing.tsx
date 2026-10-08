@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import CreatorStudioAiSettingsPanel from "@/components/creator-studio-ai-settings";
 import { useToast } from "@/hooks/use-toast";
 
 async function apiJson(url: string, options: RequestInit = {}) {
@@ -155,6 +156,9 @@ export default function AdminPublishingPage() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-7 space-y-5">
+        <CreatorStudioAiSettingsPanel onBookCreated={(book) => {
+          window.location.href = `/creator-studio?bookId=${encodeURIComponent(book.id)}`;
+        }} />
         <Card className="border-0 shadow-sm">
           <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-violet-700" />Publishing settings</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap items-end gap-3">

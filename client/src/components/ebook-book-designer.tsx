@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowDown,
@@ -57,22 +57,25 @@ export type EbookBookDesignerProps = {
   generation: Generation;
   isSaving: boolean;
   exportBusy: string | null;
+  defaultChapterCount?: number;
   onGenerate: (options: { prompt: string; chapterCount: number; replaceExisting: boolean }) => void;
   onSave: () => void;
   onBookChange: (changes: Partial<Pick<Book, "title" | "subtitle" | "bookType" | "genre" | "trimSize">>) => void;
   onAddChapter: () => Chapter;
   onDocumentChange: (doc: EbookDesignDocument) => void;
   onChapterChange: (chapterId: string, content: string) => void;
-  onExport: (format: "pdf" | "epub" | "docx" | "html" | "cover-png") => void;
+  onExport: (format: "pdf" | "epub" | "docx" | "html" | "cover-png" | "kdp-cover-pdf") => void;
 };
 
-const motifs: EbookArtMotif[] = ["botanical", "geometry", "orbit", "waves"];
+const motifs: EbookArtMotif[] = ["botanical", "geometry", "orbit", "waves", "bible-scene"];
+const bibleScenes = ["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection"];
 const formats = [
   { value: "pdf", label: "Print interior PDF" },
   { value: "epub", label: "EPUB 3 · Kindle / Google Play Books" },
   { value: "docx", label: "Word document" },
   { value: "html", label: "Standalone HTML" },
   { value: "cover-png", label: "Front cover PNG" },
+  { value: "kdp-cover-pdf", label: "Paperback full-wrap cover PDF · white paper" },
 ] as const;
 const fontChoices = [
   { value: "serif", label: "Editorial serif" },
@@ -103,6 +106,7 @@ export default function EbookBookDesigner({
   generation,
   isSaving,
   exportBusy,
+  defaultChapterCount = 6,
   onGenerate,
   onSave,
   onBookChange,
@@ -112,7 +116,8 @@ export default function EbookBookDesigner({
   onExport,
 }: EbookBookDesignerProps) {
   const [prompt, setPrompt] = useState(document?.prompt || book.idea || book.description || "");
-  const [chapterCount, setChapterCount] = useState<4 | 6 | 8>(6);
+  const [chapterCount, setChapterCount] = useState<4 | 6 | 8 | 10 | 12>([4, 6, 8, 10, 12].includes(defaultChapterCount) ? defaultChapterCount as 4 | 6 | 8 | 10 | 12 : 6);
+  const [chapterCountTouched, setChapterCountTouched] = useState(false);
   const [selectedPageId, setSelectedPageId] = useState(document?.pages[0]?.id || "");
   const [mobilePanel, setMobilePanel] = useState<"pages" | "preview" | "design">("preview");
   const pages = document?.pages || [];
@@ -124,11 +129,17 @@ export default function EbookBookDesigner({
     generation.generationStatus.toLowerCase(),
   );
 
+  useEffect(() => {
+    if (!chapterCountTouched && [4, 6, 8, 10, 12].includes(defaultChapterCount)) {
+      setChapterCount(defaultChapterCount as 4 | 6 | 8 | 10 | 12);
+    }
+  }, [defaultChapterCount, chapterCountTouched]);
+
   const artSources = useMemo(() => {
     if (!document) return new Map<string, string>();
     return new Map(document.pages.flatMap((page, pageIndex) =>
       page.blocks.flatMap((block, blockIndex) => block.kind === "art"
-        ? [[block.id, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderEbookArtSvg(block.motif, document.theme, pageIndex + blockIndex, block.altText))}`]] as [string, string][]
+        ? [[block.id, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderEbookArtSvg(block.motif, document.theme, pageIndex + blockIndex, block.altText, block.scene, block.artMode))}`]] as [string, string][]
         : []),
     ));
   }, [document]);
@@ -366,10 +377,13 @@ export default function EbookBookDesigner({
                 <select
                   id="chapter-count"
                   value={chapterCount}
-                  onChange={(event) => setChapterCount(Number(event.target.value) as 4 | 6 | 8)}
+                  onChange={(event) => {
+                    setChapterCountTouched(true);
+                    setChapterCount(Number(event.target.value) as 4 | 6 | 8 | 10 | 12);
+                  }}
                   className="ebook-focus h-10 w-full rounded-xl border border-[#dcd6cb] bg-[#fffdf8] px-3 text-sm text-[#302d27]"
                 >
-                  {[4, 6, 8].map((count) => <option key={count} value={count}>{count} chapters</option>)}
+                  {[4, 6, 8, 10, 12].map((count) => <option key={count} value={count}>{count} chapters</option>)}
                 </select>
               </div>
               <button
@@ -709,6 +723,23 @@ export default function EbookBookDesigner({
                                 {motifs.map((motif) => <option key={motif} value={motif}>{motif}</option>)}
                               </select>
                             </div>
+                            {block.motif === "bible-scene" && (
+                              <>
+                                <div>
+                                  <label htmlFor={`scene-${block.id}`} className="mb-1.5 block text-[11px] font-medium text-[#777065]">Bible story illustration</label>
+                                  <select id={`scene-${block.id}`} value={block.scene || "storybook-cover"} onChange={(event) => changeBlock(block.id, (current) => current.kind === "art" ? { ...current, scene: event.target.value } : current)} className="ebook-focus h-9 w-full rounded-lg border border-[#e2ddd3] bg-[#fcfaf5] px-2.5 text-xs capitalize">
+                                    {bibleScenes.map((scene) => <option key={scene} value={scene}>{scene.replaceAll("-", " ")}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label htmlFor={`art-mode-${block.id}`} className="mb-1.5 block text-[11px] font-medium text-[#777065]">Artwork treatment</label>
+                                  <select id={`art-mode-${block.id}`} value={block.artMode || "line"} onChange={(event) => changeBlock(block.id, (current) => current.kind === "art" ? { ...current, artMode: event.target.value as "line" | "color" } : current)} className="ebook-focus h-9 w-full rounded-lg border border-[#e2ddd3] bg-[#fcfaf5] px-2.5 text-xs">
+                                    <option value="line">Black-line coloring page</option>
+                                    <option value="color">Full-color storybook art</option>
+                                  </select>
+                                </div>
+                              </>
+                            )}
                             <div>
                               <label htmlFor={`alt-${block.id}`} className="mb-1.5 block text-[11px] font-medium text-[#777065]">Illustration description</label>
                               <input id={`alt-${block.id}`} value={block.altText} onChange={(event) => changeBlock(block.id, (current) => current.kind === "art" ? { ...current, altText: event.target.value } : current)} className="ebook-focus h-9 w-full rounded-lg border border-[#e2ddd3] bg-[#fcfaf5] px-2.5 text-xs" />

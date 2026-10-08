@@ -185,6 +185,11 @@ export default function CreatorStudioPage() {
     queryFn: () => requestJson("/api/creator-studio/books"),
     enabled: accessQuery.data?.hasAccess === true,
   });
+  const aiConfigQuery = useQuery<{ aiAvailable: boolean; model: string; defaultChapterCount: number }>({
+    queryKey: ["/api/creator-studio/ai-config"],
+    queryFn: () => requestJson("/api/creator-studio/ai-config"),
+    enabled: accessQuery.data?.hasAccess === true,
+  });
   const generationQueryKey = [activeBook ? `/api/creator-studio/books/${activeBook.id}/generation` : "/api/creator-studio/books/no-selection/generation"];
   const generationQuery = useQuery<GenerationStatus>({
     queryKey: generationQueryKey,
@@ -231,6 +236,17 @@ export default function CreatorStudioPage() {
 
   const refreshProducts = () => queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/products"] });
   const refreshBooks = () => queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/books"] });
+
+  const requestedBookId = new URLSearchParams(window.location.search).get("bookId");
+  useEffect(() => {
+    if (!requestedBookId || !books.length) return;
+    const requestedBook = books.find((book) => book.id === requestedBookId);
+    if (!requestedBook) return;
+    setActiveBook(requestedBook);
+    setSection("books");
+    setDesignerOpen(true);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [books, requestedBookId]);
 
   useEffect(() => {
     const state = generationQuery.data;
@@ -788,6 +804,7 @@ export default function CreatorStudioPage() {
               <div className="min-w-0 space-y-3">
                 <Button variant="ghost" size="sm" onClick={() => setDesignerOpen(false)}><ArrowLeft className="mr-2 h-4 w-4" />Back to book setup</Button>
                 <EbookBookDesigner
+                  defaultChapterCount={aiConfigQuery.data?.defaultChapterCount}
                   book={{
                     ...activeBook,
                     bookType: activeBook.bookType || "nonfiction",
