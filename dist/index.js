@@ -571,12 +571,16 @@ var init_schema = __esm({
       creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
       title: varchar("title", { length: 240 }).notNull(),
       subtitle: varchar("subtitle", { length: 300 }),
+      bookType: varchar("book_type", { length: 40 }).notNull().default("nonfiction"),
+      genre: varchar("genre", { length: 100 }).notNull().default("General nonfiction"),
+      trimSize: varchar("trim_size", { length: 20 }).notNull().default("6x9"),
       idea: text("idea"),
       description: text("description"),
       outline: jsonb("outline").$type().notNull().default(sql`'[]'::jsonb`),
       chapters: jsonb("chapters").$type().notNull().default(sql`'[]'::jsonb`),
       coverImage: text("cover_image"),
       amazonUrl: text("amazon_url"),
+      accessUrl: text("access_url"),
       status: varchar("status", { length: 32 }).notNull().default("draft"),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
@@ -600,6 +604,7 @@ var init_schema = __esm({
       version: varchar("version", { length: 40 }).default("1.0"),
       license: text("license"),
       amazonUrl: text("amazon_url"),
+      accessUrl: text("access_url"),
       fileKey: text("file_key"),
       originalFileName: varchar("original_file_name", { length: 255 }),
       mimeType: varchar("mime_type", { length: 120 }),
@@ -11935,7 +11940,7 @@ function isPublishingAdmin(user) {
   return user?.userType === "admin" || ADMIN_ROLES.has(user?.role);
 }
 function canPublish(user) {
-  return user?.userType === "creator" || user?.userType === "influencer";
+  return Boolean(user?.id);
 }
 async function getCreatorStudioMonthlyPrice() {
   const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_monthly_price")).limit(1);
@@ -11964,6 +11969,10 @@ async function getCreatorStudioAccess(userId) {
 }
 var requireCreatorStudioAccess = async (req, res, next) => {
   if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+  if (isPublishingAdmin(req.user)) {
+    req.creatorStudioAccess = { hasAccess: true, subscriptionStatus: "active" };
+    return next();
+  }
   try {
     const access = await getCreatorStudioAccess(req.user.id);
     if (!access.hasAccess) {
@@ -12033,6 +12042,17 @@ function validAmazonUrl(value) {
       "amzn.to"
     ];
     if (url.protocol !== "https:" || !allowed.some((domain) => host === domain || host.endsWith(`.${domain}`))) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+function validAccessUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || !url.hostname || url.username || url.password) return null;
     return url.toString();
   } catch {
     return null;
@@ -12131,6 +12151,15 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/access", isAuthenticated, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
+      if (isPublishingAdmin(req.user)) {
+        return res.json({
+          hasAccess: true,
+          monthlyPrice: 0,
+          currency: "USD",
+          subscriptionStatus: "active",
+          subscription: null
+        });
+      }
       const access = await getCreatorStudioAccess(req.user.id);
       const subscription = access.subscription ? (({ paymentProofKey: _privateKey, ...safeSubscription }) => safeSubscription)(access.subscription) : null;
       res.json({ ...access, subscription });
@@ -12311,6 +12340,9 @@ function registerCreatorPublishingRoutes(app2) {
       const [book] = await db.insert(creatorBooks).values({
         creatorId: req.user.id,
         title: "Untitled book",
+        bookType: "nonfiction",
+        genre: "General nonfiction",
+        trimSize: "6x9",
         status: "draft"
       }).returning();
       res.status(201).json(book);
@@ -12330,6 +12362,25 @@ function registerCreatorPublishingRoutes(app2) {
       const changes = { updatedAt: /* @__PURE__ */ new Date(), status: "editing" };
       if (req.body.title !== void 0) changes.title = String(req.body.title).trim().slice(0, 240);
       if (req.body.subtitle !== void 0) changes.subtitle = String(req.body.subtitle).trim().slice(0, 300) || null;
+      if (req.body.bookType !== void 0) {
+        const bookType = String(req.body.bookType).trim().toLowerCase();
+        if (!["nonfiction", "fiction", "workbook", "children", "poetry", "memoir"].includes(bookType)) {
+          return res.status(400).json({ message: "Choose a supported book format." });
+        }
+        changes.bookType = bookType;
+      }
+      if (req.body.genre !== void 0) {
+        const genre = String(req.body.genre).trim().slice(0, 100);
+        if (!genre) return res.status(400).json({ message: "Choose or enter a book niche." });
+        changes.genre = genre;
+      }
+      if (req.body.trimSize !== void 0) {
+        const trimSize = String(req.body.trimSize).trim();
+        if (!["6x9", "5.5x8.5", "5x8", "8.5x11", "8x10", "8x8"].includes(trimSize)) {
+          return res.status(400).json({ message: "Choose a supported KDP trim size." });
+        }
+        changes.trimSize = trimSize;
+      }
       if (req.body.idea !== void 0) changes.idea = String(req.body.idea).slice(0, 12e3);
       if (req.body.description !== void 0) changes.description = String(req.body.description).slice(0, 2e4);
       if (req.body.outline !== void 0) changes.outline = parseList(req.body.outline);
@@ -12353,6 +12404,11 @@ function registerCreatorPublishingRoutes(app2) {
         if (req.body.amazonUrl && !amazon) return res.status(400).json({ message: "Enter a valid HTTPS Amazon product link." });
         changes.amazonUrl = amazon;
       }
+      if (req.body.accessUrl !== void 0) {
+        const accessUrl = req.body.accessUrl ? validAccessUrl(req.body.accessUrl) : null;
+        if (req.body.accessUrl && !accessUrl) return res.status(400).json({ message: "Enter a valid HTTPS reader or purchase link." });
+        changes.accessUrl = accessUrl;
+      }
       if (changes.title !== void 0 && changes.title.length < 2) {
         return res.status(400).json({ message: "Book title must contain at least 2 characters." });
       }
@@ -12369,7 +12425,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(403).json({ message: "Creator accounts only." });
     }
     const ext = path.extname(req.file?.originalname || "").toLowerCase();
-    if (!req.file || !BOOK_EXPORT_EXTENSIONS.has(ext)) {
+    if (req.file && !BOOK_EXPORT_EXTENSIONS.has(ext)) {
       removeUpload(req.file);
       return res.status(400).json({ message: "Upload the finished PDF or EPUB file for sale." });
     }
@@ -12395,11 +12451,19 @@ function registerCreatorPublishingRoutes(app2) {
       }
       const coverImage = validPublicImage(book.coverImage);
       const amazonUrl = book.amazonUrl ? validAmazonUrl(book.amazonUrl) : null;
+      const accessUrl = book.accessUrl ? validAccessUrl(book.accessUrl) : null;
       if (book.amazonUrl && !amazonUrl) {
         removeUpload(req.file);
         return res.status(400).json({ message: "The Amazon link is not valid." });
       }
-      const originalFileName = safeFileName(req.file.originalname);
+      if (book.accessUrl && !accessUrl) {
+        removeUpload(req.file);
+        return res.status(400).json({ message: "The reader or purchase link is not valid." });
+      }
+      if (!req.file && !amazonUrl && !accessUrl) {
+        return res.status(400).json({ message: "Upload a PDF or EPUB, or add an Amazon or reader link before submitting." });
+      }
+      const originalFileName = req.file ? safeFileName(req.file.originalname) : null;
       const submitted = await db.transaction(async (tx) => {
         const [product] = await tx.insert(creatorPublishingProducts).values({
           creatorId: req.user.id,
@@ -12413,10 +12477,11 @@ function registerCreatorPublishingRoutes(app2) {
           coverImage,
           tags: ["ebook", "book"],
           amazonUrl,
-          fileKey: path.basename(req.file.filename),
+          accessUrl,
+          fileKey: req.file ? path.basename(req.file.filename) : null,
           originalFileName,
-          mimeType: req.file.mimetype,
-          fileSize: req.file.size,
+          mimeType: req.file?.mimetype || null,
+          fileSize: req.file?.size || null,
           status: "pending_review",
           submittedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
@@ -12565,6 +12630,8 @@ function registerCreatorPublishingRoutes(app2) {
       });
     }
     const idea = String(req.body.idea || "").trim().slice(0, 6e3);
+    const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
+    const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     if (idea.length < 8) return res.status(400).json({ message: "Describe the book idea in at least 8 characters." });
     try {
       const client = new OpenAI2({ apiKey: process.env.OPENAI_API_KEY });
@@ -12573,8 +12640,10 @@ function registerCreatorPublishingRoutes(app2) {
         temperature: 0.6,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: `Create a practical non-fiction or fiction book outline from the creator's idea. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters. Do not invent credentials, citations, or claims.` },
-          { role: "user", content: idea }
+          { role: "system", content: 'Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters and respect the requested book type and niche.' },
+          { role: "user", content: `Book type: ${bookType}
+Niche: ${genre}
+Book concept: ${idea}` }
         ]
       });
       const content = result.choices[0]?.message?.content || "{}";
@@ -12598,6 +12667,8 @@ function registerCreatorPublishingRoutes(app2) {
     const bookId = String(req.body.bookId || "");
     const chapterTitle = String(req.body.chapterTitle || "").trim().slice(0, 240);
     const idea = String(req.body.idea || "").trim().slice(0, 4e3);
+    const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
+    const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     const [book] = await db.select({ id: creatorBooks.id }).from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
@@ -12607,8 +12678,10 @@ function registerCreatorPublishingRoutes(app2) {
         model: process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini",
         temperature: 0.7,
         messages: [
-          { role: "system", content: "Draft an original book chapter for the creator to review and edit. Do not claim to provide legal, medical, financial, or safety advice. Avoid fabricated sources and quotations. Use clear headings and readable paragraphs." },
-          { role: "user", content: `Book idea: ${idea || "Not provided"}
+          { role: "system", content: "Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs." },
+          { role: "user", content: `Book type: ${bookType}
+Niche: ${genre}
+Book idea: ${idea || "Not provided"}
 Chapter: ${chapterTitle}` }
         ]
       });
@@ -12788,6 +12861,7 @@ Chapter: ${chapterTitle}` }
         version: creatorPublishingProducts.version,
         license: creatorPublishingProducts.license,
         amazonUrl: creatorPublishingProducts.amazonUrl,
+        accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId,
         rating: shopProducts.rating,
         reviewCount: shopProducts.reviewCount,
@@ -12815,6 +12889,7 @@ Chapter: ${chapterTitle}` }
         version: creatorPublishingProducts.version,
         license: creatorPublishingProducts.license,
         amazonUrl: creatorPublishingProducts.amazonUrl,
+        accessUrl: creatorPublishingProducts.accessUrl,
         creatorId: creatorPublishingProducts.creatorId
       }).from(creatorPublishingProducts).where(and6(
         eq9(creatorPublishingProducts.shopProductId, req.params.shopProductId),
@@ -12837,6 +12912,9 @@ Chapter: ${chapterTitle}` }
         productType: creatorPublishingProducts.productType,
         coverImage: creatorPublishingProducts.coverImage,
         originalFileName: creatorPublishingProducts.originalFileName,
+        hasDownload: sql7`${creatorPublishingProducts.fileKey} IS NOT NULL`,
+        amazonUrl: creatorPublishingProducts.amazonUrl,
+        accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId
       }).from(purchases).innerJoin(shopProducts, eq9(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq9(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and6(
         eq9(purchases.userId, req.user.id),
@@ -28816,7 +28894,12 @@ var REQUIRED_COLUMNS = [
   { table: "course_enrollments", column: "is_paid", definition: "boolean DEFAULT false" },
   { table: "course_enrollments", column: "transaction_hash", definition: "varchar" },
   { table: "course_enrollments", column: "progress", definition: "integer DEFAULT 0" },
-  { table: "course_enrollments", column: "updated_at", definition: "timestamp DEFAULT now()" }
+  { table: "course_enrollments", column: "updated_at", definition: "timestamp DEFAULT now()" },
+  { table: "creator_books", column: "book_type", definition: "varchar(40) NOT NULL DEFAULT 'nonfiction'" },
+  { table: "creator_books", column: "genre", definition: "varchar(100) NOT NULL DEFAULT 'General nonfiction'" },
+  { table: "creator_books", column: "trim_size", definition: "varchar(20) NOT NULL DEFAULT '6x9'" },
+  { table: "creator_books", column: "access_url", definition: "text" },
+  { table: "creator_publishing_products", column: "access_url", definition: "text" }
 ];
 var REQUIRED_TABLES = [
   // Core courses table — must exist before course_lessons and any seeding
@@ -29217,7 +29300,105 @@ var REQUIRED_TABLES = [
     "ip_address" varchar(100),
     "user_agent" text,
     "created_at" timestamp DEFAULT now()
-  )`
+  )`,
+  // Creator Studio books — kept here as well as in SQL migrations so imported
+  // databases can open the studio without a separate manual schema push.
+  `CREATE TABLE IF NOT EXISTS "creator_books" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "creator_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "title" varchar(240) NOT NULL,
+    "subtitle" varchar(300),
+    "book_type" varchar(40) NOT NULL DEFAULT 'nonfiction',
+    "genre" varchar(100) NOT NULL DEFAULT 'General nonfiction',
+    "trim_size" varchar(20) NOT NULL DEFAULT '6x9',
+    "idea" text,
+    "description" text,
+    "outline" jsonb NOT NULL DEFAULT '[]'::jsonb,
+    "chapters" jsonb NOT NULL DEFAULT '[]'::jsonb,
+    "cover_image" text,
+    "amazon_url" text,
+    "access_url" text,
+    "status" varchar(32) NOT NULL DEFAULT 'draft',
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "creator_books_creator_id_idx" ON "creator_books" ("creator_id")`,
+  `CREATE INDEX IF NOT EXISTS "creator_books_status_idx" ON "creator_books" ("status")`,
+  `CREATE TABLE IF NOT EXISTS "creator_publishing_products" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "creator_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "book_id" varchar REFERENCES "creator_books"("id") ON DELETE SET NULL,
+    "shop_product_id" varchar REFERENCES "shop_products"("id") ON DELETE SET NULL,
+    "title" varchar(240) NOT NULL,
+    "description" text NOT NULL,
+    "product_type" varchar(60) NOT NULL,
+    "category" varchar(100) NOT NULL,
+    "price" numeric(10,2) NOT NULL DEFAULT '0.00',
+    "currency" varchar(8) NOT NULL DEFAULT 'USD',
+    "cover_image" text,
+    "tags" text[] NOT NULL DEFAULT ARRAY[]::text[],
+    "version" varchar(40) DEFAULT '1.0',
+    "license" text,
+    "amazon_url" text,
+    "access_url" text,
+    "file_key" text,
+    "original_file_name" varchar(255),
+    "mime_type" varchar(120),
+    "file_size" integer,
+    "status" varchar(32) NOT NULL DEFAULT 'draft',
+    "review_note" text,
+    "submitted_at" timestamp,
+    "reviewed_at" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "creator_publishing_products_creator_id_idx" ON "creator_publishing_products" ("creator_id")`,
+  `CREATE INDEX IF NOT EXISTS "creator_publishing_products_status_idx" ON "creator_publishing_products" ("status")`,
+  `CREATE INDEX IF NOT EXISTS "creator_publishing_products_shop_product_id_idx" ON "creator_publishing_products" ("shop_product_id")`,
+  `CREATE TABLE IF NOT EXISTS "creator_product_earnings" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "purchase_id" varchar NOT NULL UNIQUE REFERENCES "purchases"("id"),
+    "product_id" varchar NOT NULL REFERENCES "shop_products"("id"),
+    "creator_id" varchar NOT NULL REFERENCES "users"("id"),
+    "currency" varchar(8) NOT NULL DEFAULT 'USD',
+    "gross_amount" numeric(10,2) NOT NULL,
+    "platform_fee" numeric(10,2) NOT NULL DEFAULT '0.00',
+    "referral_fee" numeric(10,2) NOT NULL DEFAULT '0.00',
+    "processing_fee" numeric(10,2) NOT NULL DEFAULT '0.00',
+    "net_amount" numeric(10,2) NOT NULL,
+    "status" varchar(24) NOT NULL DEFAULT 'available',
+    "created_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "creator_product_earnings_creator_id_idx" ON "creator_product_earnings" ("creator_id")`,
+  `CREATE TABLE IF NOT EXISTS "creator_product_downloads" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "publishing_product_id" varchar NOT NULL REFERENCES "creator_publishing_products"("id") ON DELETE CASCADE,
+    "purchase_id" varchar NOT NULL REFERENCES "purchases"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "downloaded_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "creator_product_downloads_purchase_id_idx" ON "creator_product_downloads" ("purchase_id")`,
+  `CREATE TABLE IF NOT EXISTS "creator_studio_subscriptions" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "status" varchar(24) NOT NULL DEFAULT 'pending',
+    "amount" numeric(10,2) NOT NULL,
+    "currency" varchar(8) NOT NULL DEFAULT 'USD',
+    "network" varchar(40) DEFAULT 'manual',
+    "transaction_hash" varchar(255),
+    "payment_proof_key" text,
+    "payment_method_label" varchar(160),
+    "period_days" integer NOT NULL DEFAULT 30,
+    "start_date" timestamp,
+    "end_date" timestamp,
+    "review_note" text,
+    "reviewed_by" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "reviewed_at" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_user_status_idx" ON "creator_studio_subscriptions" ("user_id", "status")`,
+  `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_status_created_idx" ON "creator_studio_subscriptions" ("status", "created_at")`
 ];
 async function runStartupMigrations() {
   for (const ddl of REQUIRED_TABLES) {

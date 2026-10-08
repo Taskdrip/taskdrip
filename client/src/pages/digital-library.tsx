@@ -42,14 +42,20 @@ export default function DigitalLibraryPage() {
                   <div className="flex items-start justify-between gap-2"><CardTitle className="text-base">{item.title}</CardTitle><Badge variant="outline">{item.purchaseStatus}</Badge></div>
                   <p className="text-xs text-slate-500 truncate">{item.originalFileName || item.productType}</p>
                 </CardHeader>
-                <CardContent>
-                  <a href={`/api/publishing/download/${item.publishingProductId}`} className={item.downloadsRemaining > 0 ? "" : "pointer-events-none"}>
-                    <Button className="w-full" disabled={item.downloadsRemaining <= 0}>
-                      <ArrowDownToLine className="h-4 w-4 mr-2" />
-                      {item.downloadsRemaining > 0 ? `Download · ${item.downloadsRemaining} left` : "Download limit reached"}
-                    </Button>
-                  </a>
-                  <p className="text-xs text-slate-500 mt-2">Downloads are private and limited to 10 per purchase.</p>
+                <CardContent className="space-y-2">
+                  {item.hasDownload && (
+                    <>
+                      <a href={`/api/publishing/download/${item.publishingProductId}`} className={item.downloadsRemaining > 0 ? "" : "pointer-events-none"}>
+                        <Button className="w-full" disabled={item.downloadsRemaining <= 0}>
+                          <ArrowDownToLine className="h-4 w-4 mr-2" />
+                          {item.downloadsRemaining > 0 ? `Download · ${item.downloadsRemaining} left` : "Download limit reached"}
+                        </Button>
+                      </a>
+                      <p className="text-xs text-slate-500">Downloads are private and limited to 10 per purchase.</p>
+                    </>
+                  )}
+                  {item.amazonUrl && <a href={item.amazonUrl} target="_blank" rel="noopener noreferrer" className="block"><Button variant="outline" className="w-full">Buy on Amazon</Button></a>}
+                  {item.accessUrl && <a href={item.accessUrl} target="_blank" rel="noopener noreferrer" className="block"><Button variant="outline" className="w-full">Access Book</Button></a>}
                 </CardContent>
               </Card>
             ))}

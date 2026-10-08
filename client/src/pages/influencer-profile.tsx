@@ -1000,6 +1000,11 @@ export default function CreatorProfile() {
                               <Button size="sm" variant="outline">Amazon</Button>
                             </a>
                           )}
+                          {product.accessUrl && (
+                            <a href={product.accessUrl} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline">Access Book</Button>
+                            </a>
+                          )}
                         </div>
                       </div>
                       {Number(product.salesCount || 0) > 0 && (

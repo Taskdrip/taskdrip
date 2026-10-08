@@ -70,6 +70,7 @@ function SignupSuccessScreen({ firstName, userType, redirectTo }: { firstName: s
       setLocation('/dashboard');
     }
   };
+  const continueLabel = redirectTo === "/creator-studio" ? "Continue to Ebook Studio" : "Continue to Checkout";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-purple-900 flex items-center justify-center px-4 py-12">
@@ -97,14 +98,16 @@ function SignupSuccessScreen({ firstName, userType, redirectTo }: { firstName: s
         {redirectTo && (
           <div className="bg-green-500/20 border border-green-400/40 rounded-2xl p-4 text-center">
             <p className="text-green-200 text-sm font-medium mb-3">
-              🛍️ Your order details are saved — click below to continue your checkout!
+              {redirectTo === "/creator-studio"
+                ? "Your account is ready — open your Ebook Studio workspace."
+                : "Your order details are saved — click below to continue your checkout!"}
             </p>
             <Button
               onClick={handleContinue}
               className="w-full bg-green-500 hover:bg-green-400 text-white font-bold h-12 text-base shadow-lg shadow-green-500/30"
               data-testid="button-continue-to-order"
             >
-              Continue to Checkout <ArrowRight className="h-4 w-4 ml-2" />
+              {continueLabel} <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         )}
@@ -223,7 +226,8 @@ export default function SimpleSignup() {
       return await response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.setQueryData(['/api/user'], data.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       triggerSocialTasksModal();
       setSuccessUser({ firstName: data.user.firstName, userType: activeTab === 'creator' ? 'creator' : 'brand' });
     },

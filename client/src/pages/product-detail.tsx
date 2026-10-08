@@ -494,6 +494,13 @@ export default function ProductDetail() {
                   </Button>
                 </a>
               )}
+              {publishingInfo?.accessUrl && (
+                <a href={publishingInfo.accessUrl} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button variant="outline" size="lg" className="w-full">
+                    <ExternalLink className="w-5 h-5 mr-2" />Access Book
+                  </Button>
+                </a>
+              )}
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1">
                   <Heart className="w-5 h-5" />

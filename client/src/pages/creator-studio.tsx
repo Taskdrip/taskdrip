@@ -10,18 +10,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
-import { ArrowDownToLine, ArrowLeft, BookOpen, Check, CreditCard, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet } from "lucide-react";
+import { KDP_BOOK_TYPES, KDP_GENRES, KDP_TRIM_SIZES, downloadKdpManuscript } from "@/lib/kdp-manuscript";
+import { ArrowDownToLine, ArrowLeft, BookOpen, Check, CreditCard, ExternalLink, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet } from "lucide-react";
 
 type Chapter = { id: string; title: string; content: string };
 type Book = {
   id: string;
   title: string;
   subtitle?: string | null;
+  bookType?: string;
+  genre?: string;
+  trimSize?: string;
   idea?: string | null;
   description?: string | null;
+  coverImage?: string | null;
   outline?: string[];
   chapters?: Chapter[];
   amazonUrl?: string | null;
+  accessUrl?: string | null;
   status: string;
 };
 type Product = {
@@ -35,6 +41,8 @@ type Product = {
   version?: string;
   license?: string | null;
   coverImage?: string | null;
+  amazonUrl?: string | null;
+  accessUrl?: string | null;
   originalFileName?: string | null;
   status: string;
   reviewNote?: string | null;
@@ -87,7 +95,8 @@ export default function CreatorStudioPage() {
     price: "9.99", tags: "", version: "1.0", license: "", coverImage: "",
   });
 
-  const isCreatorAccount = ["creator", "influencer"].includes((user as any)?.userType || "");
+  const isStudioAdmin = (user as any)?.userType === "admin"
+    || ["admin", "store_manager", "moderator", "content_editor"].includes((user as any)?.role || "");
   const planQuery = useQuery<{ monthlyPrice: number; currency: string }>({
     queryKey: ["/api/creator-studio/plan"],
     queryFn: () => requestJson("/api/creator-studio/plan"),
@@ -95,12 +104,12 @@ export default function CreatorStudioPage() {
   const accessQuery = useQuery<StudioAccess>({
     queryKey: ["/api/creator-studio/access"],
     queryFn: () => requestJson("/api/creator-studio/access"),
-    enabled: !!user && isCreatorAccount,
+    enabled: !!user,
   });
   const paymentMethodsQuery = useQuery<any[]>({
     queryKey: ["/api/payment-methods", "subscriptions"],
     queryFn: () => requestJson("/api/payment-methods?feature=subscriptions"),
-    enabled: !!user && isCreatorAccount && accessQuery.data?.hasAccess === false && accessQuery.data?.subscriptionStatus !== "pending",
+    enabled: !!user && !isStudioAdmin && accessQuery.data?.hasAccess === false && accessQuery.data?.subscriptionStatus !== "pending",
   });
   const paymentMethods = paymentMethodsQuery.data?.length
     ? paymentMethodsQuery.data
@@ -191,11 +200,16 @@ export default function CreatorStudioPage() {
         body: JSON.stringify({
           title: book.title,
           subtitle: book.subtitle || "",
+          bookType: book.bookType || "nonfiction",
+          genre: book.genre || "General nonfiction",
+          trimSize: book.trimSize || "6x9",
           idea: book.idea || "",
           description: book.description || "",
           outline: book.outline || [],
           chapters: book.chapters || [],
+          coverImage: book.coverImage || "",
           amazonUrl: book.amazonUrl || "",
+          accessUrl: book.accessUrl || "",
         }),
       });
       setActiveBook(saved);
@@ -210,15 +224,15 @@ export default function CreatorStudioPage() {
   };
 
   const submitBook = async () => {
-    if (!activeBook || !bookFile) {
-      toast({ title: "Add the finished PDF or EPUB file first", variant: "destructive" });
+    if (!activeBook || (!bookFile && !activeBook.amazonUrl && !activeBook.accessUrl)) {
+      toast({ title: "Upload a PDF or EPUB, or add an Amazon or reader link first", variant: "destructive" });
       return;
     }
     const saved = await saveBook();
     if (!saved) return;
     const data = new FormData();
     data.append("price", bookPrice);
-    data.append("productFile", bookFile);
+    if (bookFile) data.append("productFile", bookFile);
     setBookBusy(true);
     try {
       await requestJson(`/api/creator-studio/books/${saved.id}/submit`, { method: "POST", body: data });
@@ -244,7 +258,11 @@ export default function CreatorStudioPage() {
       const result = await requestJson("/api/creator-studio/ai/outline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea: activeBook.idea }),
+        body: JSON.stringify({
+          idea: activeBook.idea,
+          bookType: activeBook.bookType || "nonfiction",
+          genre: activeBook.genre || "General nonfiction",
+        }),
       });
       const outline = result.outline as string[];
       setActiveBook({
@@ -271,7 +289,13 @@ export default function CreatorStudioPage() {
       const result = await requestJson("/api/creator-studio/ai/chapter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookId: activeBook.id, chapterTitle: chapter.title, idea: activeBook.idea }),
+        body: JSON.stringify({
+          bookId: activeBook.id,
+          chapterTitle: chapter.title,
+          idea: activeBook.idea,
+          bookType: activeBook.bookType || "nonfiction",
+          genre: activeBook.genre || "General nonfiction",
+        }),
       });
       updateChapter(chapter.id, "content", result.content);
       toast({ title: "Draft generated", description: "Review and edit the generated text before publishing." });
@@ -336,7 +360,7 @@ export default function CreatorStudioPage() {
     earnings: "Sales & Earnings",
   }[section]), [section]);
 
-  if (authLoading || (isAuthenticated && isCreatorAccount && accessQuery.isLoading)) {
+  if (authLoading || (isAuthenticated && accessQuery.isLoading)) {
     return <div className="min-h-screen bg-slate-50"><NavigationFixed /><div className="mx-auto max-w-4xl px-4 py-24 text-center text-slate-500">Loading Creator Studio…</div></div>;
   }
 
@@ -350,29 +374,13 @@ export default function CreatorStudioPage() {
               <BookOpen className="mx-auto h-12 w-12 text-violet-700" />
               <p className="mt-5 text-sm font-bold uppercase tracking-wider text-violet-700">Taskdrip Creator Publishing</p>
               <h1 className="mt-2 text-3xl font-bold text-slate-900">Create and publish from your Taskdrip account</h1>
-              <p className="mx-auto mt-3 max-w-xl text-slate-600">Sign in or create a creator account to open the ebook editor, save projects, and submit products for review.</p>
+              <p className="mx-auto mt-3 max-w-xl text-slate-600">Sign in or create a Taskdrip creator account to open the ebook editor, format KDP manuscripts, and submit books to the store.</p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <Link href="/login?redirect=%2Fcreator-studio"><Button>Sign in</Button></Link>
                 <Link href="/signup?type=creator&redirect=%2Fcreator-studio"><Button variant="outline">Create a creator account</Button></Link>
               </div>
             </CardContent>
           </Card>
-        </main>
-      </div>
-    );
-  }
-
-  if (!isCreatorAccount) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <NavigationFixed />
-        <main className="mx-auto max-w-3xl px-4 py-20">
-          <Card className="border-0 shadow-lg"><CardContent className="p-8 text-center">
-            <LockKeyhole className="mx-auto h-10 w-10 text-violet-700" />
-            <h1 className="mt-4 text-2xl font-bold">Creator account required</h1>
-            <p className="mt-2 text-slate-600">Creator Studio is available to Taskdrip creator and influencer accounts.</p>
-            <Link href={(user as any)?.userType === "admin" ? "/admin/publishing" : "/dashboard"}><Button className="mt-5">Return to dashboard</Button></Link>
-          </CardContent></Card>
         </main>
       </div>
     );
@@ -399,7 +407,7 @@ export default function CreatorStudioPage() {
         <NavigationFixed />
         <main className="mx-auto max-w-5xl px-4 py-10 sm:py-16">
           <div className="mx-auto max-w-3xl">
-            <Link href="/dashboard"><Button variant="ghost" className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Dashboard</Button></Link>
+            <Link href={isStudioAdmin ? "/admin-dashboard" : "/dashboard"}><Button variant="ghost" className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Dashboard</Button></Link>
             <Card className="overflow-hidden border-0 shadow-lg">
               <div className="bg-gradient-to-br from-violet-800 to-indigo-900 px-6 py-8 text-white sm:px-9">
                 <div className="flex items-center gap-3"><LockKeyhole className="h-7 w-7" /><span className="text-sm font-bold uppercase tracking-wider">Creator Studio access</span></div>
@@ -548,6 +556,11 @@ export default function CreatorStudioPage() {
                     <div><Label>Title</Label><Input value={activeBook.title} onChange={(e) => setActiveBook({ ...activeBook, title: e.target.value })} maxLength={240} /></div>
                     <div><Label>Subtitle</Label><Input value={activeBook.subtitle || ""} onChange={(e) => setActiveBook({ ...activeBook, subtitle: e.target.value })} maxLength={300} /></div>
                   </div>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    <div><Label>Book type</Label><select className="mt-1 w-full h-10 rounded-md border bg-white px-3 text-sm" value={activeBook.bookType || "nonfiction"} onChange={(e) => setActiveBook({ ...activeBook, bookType: e.target.value })}>{KDP_BOOK_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></div>
+                    <div><Label>Reader niche</Label><select className="mt-1 w-full h-10 rounded-md border bg-white px-3 text-sm" value={activeBook.genre || "General nonfiction"} onChange={(e) => setActiveBook({ ...activeBook, genre: e.target.value })}>{KDP_GENRES.map((genre) => <option key={genre} value={genre}>{genre}</option>)}</select></div>
+                    <div><Label>KDP trim size</Label><select className="mt-1 w-full h-10 rounded-md border bg-white px-3 text-sm" value={activeBook.trimSize || "6x9"} onChange={(e) => setActiveBook({ ...activeBook, trimSize: e.target.value })}>{KDP_TRIM_SIZES.map((size) => <option key={size.value} value={size.value}>{size.label}</option>)}</select></div>
+                  </div>
                   <div><Label>Book concept</Label><Textarea rows={3} value={activeBook.idea || ""} onChange={(e) => setActiveBook({ ...activeBook, idea: e.target.value })} placeholder="Who is this for, and what will readers learn?" /></div>
                   <div><Label>Book description</Label><Textarea rows={3} value={activeBook.description || ""} onChange={(e) => setActiveBook({ ...activeBook, description: e.target.value })} placeholder="A short description for readers and the Taskdrip Shop." /></div>
                   <div>
@@ -569,13 +582,40 @@ export default function CreatorStudioPage() {
                     {!activeBook.chapters?.length && <p className="text-sm text-slate-500">Add at least one chapter with content before book submission.</p>}
                   </div>
                   <div className="grid sm:grid-cols-2 gap-3">
-                    <div><Label>Amazon link (optional)</Label><Input type="url" value={activeBook.amazonUrl || ""} onChange={(e) => setActiveBook({ ...activeBook, amazonUrl: e.target.value })} placeholder="https://www.amazon.com/dp/…" /></div>
+                    <div><Label>Book cover image URL (optional)</Label><Input type="url" value={activeBook.coverImage || ""} onChange={(e) => setActiveBook({ ...activeBook, coverImage: e.target.value })} placeholder="https://…" /></div>
                     <div><Label>Taskdrip price (USD)</Label><Input type="number" min="0" step="0.01" value={bookPrice} onChange={(e) => setBookPrice(e.target.value)} /></div>
                   </div>
-                  <div><Label>Finished PDF or EPUB file</Label><Input type="file" accept=".pdf,.epub" onChange={(e) => setBookFile(e.target.files?.[0] || null)} /><p className="text-xs text-slate-500 mt-1">The manuscript editor saves drafts. Upload the final customer-ready file before review.</p></div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div><Label>Amazon KDP purchase link (optional)</Label><Input type="url" value={activeBook.amazonUrl || ""} onChange={(e) => setActiveBook({ ...activeBook, amazonUrl: e.target.value })} placeholder="Add after the book is live on Amazon" /></div>
+                    <div><Label>Reader or purchase link (optional)</Label><Input type="url" value={activeBook.accessUrl || ""} onChange={(e) => setActiveBook({ ...activeBook, accessUrl: e.target.value })} placeholder="https://…" /></div>
+                  </div>
+                  <p className="-mt-2 text-xs text-slate-500">Amazon links appear as “Buy on Amazon.” Your reader link appears as “Access Book” on the public store page. Use a public or separately gated HTTPS page; these links are visible to all visitors.</p>
+                  <div><Label>Finished PDF or EPUB file (optional when using an external link)</Label><Input type="file" accept=".pdf,.epub" onChange={(e) => setBookFile(e.target.files?.[0] || null)} /><p className="text-xs text-slate-500 mt-1">Upload the customer-ready file for Taskdrip delivery, or submit a KDP/reader link for an externally delivered book.</p></div>
+                  <Card className="border-violet-200 bg-violet-50/60 shadow-none">
+                    <CardHeader className="pb-2"><CardTitle className="text-base">KDP formatting & launch guide</CardTitle></CardHeader>
+                    <CardContent className="space-y-3 text-sm text-slate-700">
+                      <p>Choose a consistent book type, niche, trim size, and chapter structure. The manuscript export adds a title page, contents page, chapter breaks, readable type, and print page sizing.</p>
+                      <ul className="list-disc space-y-1 pl-5">
+                        <li>{activeBook.title.trim().length >= 2 ? "Book title is ready" : "Add a title"}.</li>
+                        <li>{activeBook.description?.trim() ? "Reader description is ready" : "Write a clear reader description"}.</li>
+                        <li>{activeBook.chapters?.length && activeBook.chapters.every((chapter) => chapter.content.trim()) ? "All chapters have content" : "Add content to each chapter"}.</li>
+                        <li>Review the exported manuscript and preview it in Amazon Kindle Previewer before uploading to KDP.</li>
+                        <li>Upload a separate KDP cover file and complete Amazon’s metadata, rights, and pricing steps.</li>
+                      </ul>
+                      <p className="text-xs text-slate-500">The guide supports formatting and quality checks; it does not promise bestseller rankings or publish to Amazon automatically.</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" onClick={() => downloadKdpManuscript(activeBook, `${(user as any)?.firstName || ""} ${(user as any)?.lastName || ""}`.trim())}>
+                          <ArrowDownToLine className="mr-2 h-4 w-4" />Download KDP manuscript (HTML)
+                        </Button>
+                        <a href="https://kdp.amazon.com/" target="_blank" rel="noopener noreferrer">
+                          <Button type="button" variant="outline"><ExternalLink className="mr-2 h-4 w-4" />Open Amazon KDP</Button>
+                        </a>
+                      </div>
+                    </CardContent>
+                  </Card>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" disabled={bookBusy} onClick={() => saveBook()}>{bookBusy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}Save draft</Button>
-                    <Button disabled={bookBusy || !bookFile} onClick={submitBook}>{bookBusy ? "Submitting…" : "Submit finished book for review"}</Button>
+                    <Button disabled={bookBusy || (!bookFile && !activeBook.amazonUrl && !activeBook.accessUrl)} onClick={submitBook}>{bookBusy ? "Submitting…" : "Submit book for review"}</Button>
                   </div>
                 </CardContent>
               </Card>

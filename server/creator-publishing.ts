@@ -73,7 +73,7 @@ function isPublishingAdmin(user: any) {
 }
 
 function canPublish(user: any) {
-  return user?.userType === "creator" || user?.userType === "influencer";
+  return Boolean(user?.id);
 }
 
 async function getCreatorStudioMonthlyPrice() {
@@ -116,6 +116,10 @@ async function getCreatorStudioAccess(userId: string) {
 
 const requireCreatorStudioAccess = async (req: any, res: any, next: any) => {
   if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+  if (isPublishingAdmin(req.user)) {
+    req.creatorStudioAccess = { hasAccess: true, subscriptionStatus: "active" };
+    return next();
+  }
   try {
     const access = await getCreatorStudioAccess(req.user.id);
     if (!access.hasAccess) {
@@ -180,6 +184,18 @@ function validAmazonUrl(value: any): string | null {
       "amazon.com.mx", "amazon.nl", "amazon.sg", "amazon.ae", "amzn.to",
     ];
     if (url.protocol !== "https:" || !allowed.some((domain) => host === domain || host.endsWith(`.${domain}`))) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function validAccessUrl(value: any): string | null {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || !url.hostname || url.username || url.password) return null;
     return url.toString();
   } catch {
     return null;
@@ -292,6 +308,15 @@ export function registerCreatorPublishingRoutes(app: Express) {
   app.get("/api/creator-studio/access", isAuthenticated, async (req: any, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
+      if (isPublishingAdmin(req.user)) {
+        return res.json({
+          hasAccess: true,
+          monthlyPrice: 0,
+          currency: "USD",
+          subscriptionStatus: "active",
+          subscription: null,
+        });
+      }
       const access = await getCreatorStudioAccess(req.user.id);
       const subscription = access.subscription
         ? (({ paymentProofKey: _privateKey, ...safeSubscription }) => safeSubscription)(access.subscription)
@@ -490,6 +515,9 @@ export function registerCreatorPublishingRoutes(app: Express) {
       const [book] = await db.insert(creatorBooks).values({
         creatorId: req.user.id,
         title: "Untitled book",
+        bookType: "nonfiction",
+        genre: "General nonfiction",
+        trimSize: "6x9",
         status: "draft",
       }).returning();
       res.status(201).json(book);
@@ -513,6 +541,25 @@ export function registerCreatorPublishingRoutes(app: Express) {
       const changes: any = { updatedAt: new Date(), status: "editing" };
       if (req.body.title !== undefined) changes.title = String(req.body.title).trim().slice(0, 240);
       if (req.body.subtitle !== undefined) changes.subtitle = String(req.body.subtitle).trim().slice(0, 300) || null;
+      if (req.body.bookType !== undefined) {
+        const bookType = String(req.body.bookType).trim().toLowerCase();
+        if (!["nonfiction", "fiction", "workbook", "children", "poetry", "memoir"].includes(bookType)) {
+          return res.status(400).json({ message: "Choose a supported book format." });
+        }
+        changes.bookType = bookType;
+      }
+      if (req.body.genre !== undefined) {
+        const genre = String(req.body.genre).trim().slice(0, 100);
+        if (!genre) return res.status(400).json({ message: "Choose or enter a book niche." });
+        changes.genre = genre;
+      }
+      if (req.body.trimSize !== undefined) {
+        const trimSize = String(req.body.trimSize).trim();
+        if (!["6x9", "5.5x8.5", "5x8", "8.5x11", "8x10", "8x8"].includes(trimSize)) {
+          return res.status(400).json({ message: "Choose a supported KDP trim size." });
+        }
+        changes.trimSize = trimSize;
+      }
       if (req.body.idea !== undefined) changes.idea = String(req.body.idea).slice(0, 12000);
       if (req.body.description !== undefined) changes.description = String(req.body.description).slice(0, 20000);
       if (req.body.outline !== undefined) changes.outline = parseList(req.body.outline);
@@ -536,6 +583,11 @@ export function registerCreatorPublishingRoutes(app: Express) {
         if (req.body.amazonUrl && !amazon) return res.status(400).json({ message: "Enter a valid HTTPS Amazon product link." });
         changes.amazonUrl = amazon;
       }
+      if (req.body.accessUrl !== undefined) {
+        const accessUrl = req.body.accessUrl ? validAccessUrl(req.body.accessUrl) : null;
+        if (req.body.accessUrl && !accessUrl) return res.status(400).json({ message: "Enter a valid HTTPS reader or purchase link." });
+        changes.accessUrl = accessUrl;
+      }
       if (changes.title !== undefined && changes.title.length < 2) {
         return res.status(400).json({ message: "Book title must contain at least 2 characters." });
       }
@@ -555,7 +607,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
       return res.status(403).json({ message: "Creator accounts only." });
     }
     const ext = path.extname(req.file?.originalname || "").toLowerCase();
-    if (!req.file || !BOOK_EXPORT_EXTENSIONS.has(ext)) {
+    if (req.file && !BOOK_EXPORT_EXTENSIONS.has(ext)) {
       removeUpload(req.file);
       return res.status(400).json({ message: "Upload the finished PDF or EPUB file for sale." });
     }
@@ -583,12 +635,20 @@ export function registerCreatorPublishingRoutes(app: Express) {
       }
       const coverImage = validPublicImage(book.coverImage);
       const amazonUrl = book.amazonUrl ? validAmazonUrl(book.amazonUrl) : null;
+      const accessUrl = book.accessUrl ? validAccessUrl(book.accessUrl) : null;
       if (book.amazonUrl && !amazonUrl) {
         removeUpload(req.file);
         return res.status(400).json({ message: "The Amazon link is not valid." });
       }
+      if (book.accessUrl && !accessUrl) {
+        removeUpload(req.file);
+        return res.status(400).json({ message: "The reader or purchase link is not valid." });
+      }
+      if (!req.file && !amazonUrl && !accessUrl) {
+        return res.status(400).json({ message: "Upload a PDF or EPUB, or add an Amazon or reader link before submitting." });
+      }
 
-      const originalFileName = safeFileName(req.file.originalname);
+      const originalFileName = req.file ? safeFileName(req.file.originalname) : null;
       const submitted = await db.transaction(async (tx) => {
         const [product] = await tx.insert(creatorPublishingProducts).values({
           creatorId: req.user.id,
@@ -602,10 +662,11 @@ export function registerCreatorPublishingRoutes(app: Express) {
           coverImage,
           tags: ["ebook", "book"],
           amazonUrl,
-          fileKey: path.basename(req.file.filename),
+          accessUrl,
+          fileKey: req.file ? path.basename(req.file.filename) : null,
           originalFileName,
-          mimeType: req.file.mimetype,
-          fileSize: req.file.size,
+          mimeType: req.file?.mimetype || null,
+          fileSize: req.file?.size || null,
           status: "pending_review",
           submittedAt: new Date(),
           updatedAt: new Date(),
@@ -768,6 +829,8 @@ export function registerCreatorPublishingRoutes(app: Express) {
       });
     }
     const idea = String(req.body.idea || "").trim().slice(0, 6000);
+    const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
+    const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     if (idea.length < 8) return res.status(400).json({ message: "Describe the book idea in at least 8 characters." });
     try {
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -776,8 +839,8 @@ export function registerCreatorPublishingRoutes(app: Express) {
         temperature: 0.6,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "Create a practical non-fiction or fiction book outline from the creator's idea. Return JSON only: {\"chapters\":[{\"title\":\"...\",\"summary\":\"...\"}]}. Use 6 to 12 chapters. Do not invent credentials, citations, or claims." },
-          { role: "user", content: idea },
+          { role: "system", content: "Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {\"chapters\":[{\"title\":\"...\",\"summary\":\"...\"}]}. Use 6 to 12 chapters and respect the requested book type and niche." },
+          { role: "user", content: `Book type: ${bookType}\nNiche: ${genre}\nBook concept: ${idea}` },
         ],
       });
       const content = result.choices[0]?.message?.content || "{}";
@@ -804,6 +867,8 @@ export function registerCreatorPublishingRoutes(app: Express) {
     const bookId = String(req.body.bookId || "");
     const chapterTitle = String(req.body.chapterTitle || "").trim().slice(0, 240);
     const idea = String(req.body.idea || "").trim().slice(0, 4000);
+    const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
+    const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     const [book] = await db.select({ id: creatorBooks.id })
       .from(creatorBooks)
       .where(and(eq(creatorBooks.id, bookId), eq(creatorBooks.creatorId, req.user.id)))
@@ -816,8 +881,8 @@ export function registerCreatorPublishingRoutes(app: Express) {
         model: process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini",
         temperature: 0.7,
         messages: [
-          { role: "system", content: "Draft an original book chapter for the creator to review and edit. Do not claim to provide legal, medical, financial, or safety advice. Avoid fabricated sources and quotations. Use clear headings and readable paragraphs." },
-          { role: "user", content: `Book idea: ${idea || "Not provided"}\nChapter: ${chapterTitle}` },
+          { role: "system", content: "Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs." },
+          { role: "user", content: `Book type: ${bookType}\nNiche: ${genre}\nBook idea: ${idea || "Not provided"}\nChapter: ${chapterTitle}` },
         ],
       });
       const content = result.choices[0]?.message?.content?.trim();
@@ -1014,6 +1079,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
         version: creatorPublishingProducts.version,
         license: creatorPublishingProducts.license,
         amazonUrl: creatorPublishingProducts.amazonUrl,
+        accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId,
         rating: shopProducts.rating,
         reviewCount: shopProducts.reviewCount,
@@ -1045,6 +1111,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
         version: creatorPublishingProducts.version,
         license: creatorPublishingProducts.license,
         amazonUrl: creatorPublishingProducts.amazonUrl,
+        accessUrl: creatorPublishingProducts.accessUrl,
         creatorId: creatorPublishingProducts.creatorId,
       }).from(creatorPublishingProducts)
         .where(and(
@@ -1069,6 +1136,9 @@ export function registerCreatorPublishingRoutes(app: Express) {
         productType: creatorPublishingProducts.productType,
         coverImage: creatorPublishingProducts.coverImage,
         originalFileName: creatorPublishingProducts.originalFileName,
+        hasDownload: sql<boolean>`${creatorPublishingProducts.fileKey} IS NOT NULL`,
+        amazonUrl: creatorPublishingProducts.amazonUrl,
+        accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId,
       }).from(purchases)
         .innerJoin(shopProducts, eq(purchases.productId, shopProducts.id))
