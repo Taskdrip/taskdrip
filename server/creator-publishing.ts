@@ -20,6 +20,17 @@ import {
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
+import {
+  generateCompleteBook,
+  isBookDesignAIAvailable,
+} from "./ebook-design-generator";
+import {
+  DEFAULT_EBOOK_THEME,
+  type EbookArtMotif,
+  type EbookDesignBlock,
+  type EbookDesignDocument,
+  type EbookDesignPage,
+} from "@shared/ebook-design";
 
 const PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
@@ -284,6 +295,69 @@ function parseList(value: any): string[] {
     // Plain comma-separated tags are also accepted.
   }
   return value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean).slice(0, 20);
+}
+
+function normalizeDesignerDocument(value: any): EbookDesignDocument | null {
+  if (!value || typeof value !== "object" || value.schemaVersion !== 1) return null;
+  if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 100) return null;
+  const color = (candidate: any, fallback: string) => /^#[0-9a-f]{6}$/i.test(String(candidate || "")) ? String(candidate) : fallback;
+  const pageKinds = new Set<EbookDesignPage["kind"]>(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "backmatter"]);
+  const blockKinds = new Set(["text", "list", "art", "chapter", "contents"]);
+  const pages: EbookDesignPage[] = [];
+
+  for (const rawPage of value.pages) {
+    if (!rawPage || !pageKinds.has(rawPage.kind) || !Array.isArray(rawPage.blocks) || rawPage.blocks.length > 50) return null;
+    const blocks: EbookDesignBlock[] = [];
+    for (const rawBlock of rawPage.blocks) {
+      if (!rawBlock || !blockKinds.has(rawBlock.kind)) return null;
+      const id = String(rawBlock.id || nanoid()).slice(0, 80);
+      if (rawBlock.kind === "text") {
+        const role = String(rawBlock.role || "");
+        if (!["eyebrow", "title", "subtitle", "heading", "body", "quote", "caption"].includes(role)) return null;
+        blocks.push({ id, kind: "text", role: role as Extract<EbookDesignBlock, { kind: "text" }>["role"], text: String(rawBlock.text || "").slice(0, 20000) });
+      } else if (rawBlock.kind === "list") {
+        if (!Array.isArray(rawBlock.items)) return null;
+        blocks.push({ id, kind: "list", items: rawBlock.items.slice(0, 80).map((item: any) => String(item).slice(0, 1000)) });
+      } else if (rawBlock.kind === "art") {
+        const motif = String(rawBlock.motif || "");
+        if (!["botanical", "geometry", "orbit", "waves"].includes(motif)) return null;
+        blocks.push({
+          id,
+          kind: "art",
+          motif: motif as EbookArtMotif,
+          altText: String(rawBlock.altText || "Decorative illustration").slice(0, 180),
+          brief: String(rawBlock.brief || "").slice(0, 600),
+        });
+      } else if (rawBlock.kind === "chapter") {
+        blocks.push({ id, kind: "chapter", chapterId: String(rawBlock.chapterId || "").slice(0, 80) });
+      } else {
+        blocks.push({ id, kind: "contents" });
+      }
+    }
+    pages.push({
+      id: String(rawPage.id || nanoid()).slice(0, 80),
+      kind: rawPage.kind,
+      title: String(rawPage.title || "Untitled page").slice(0, 240),
+      ...(rawPage.chapterId ? { chapterId: String(rawPage.chapterId).slice(0, 80) } : {}),
+      blocks,
+    });
+  }
+
+  const theme = value.theme || {};
+  return {
+    schemaVersion: 1,
+    prompt: String(value.prompt || "").slice(0, 5000),
+    theme: {
+      name: String(theme.name || DEFAULT_EBOOK_THEME.name).slice(0, 60),
+      primary: color(theme.primary, DEFAULT_EBOOK_THEME.primary),
+      accent: color(theme.accent, DEFAULT_EBOOK_THEME.accent),
+      paper: color(theme.paper, DEFAULT_EBOOK_THEME.paper),
+      text: color(theme.text, DEFAULT_EBOOK_THEME.text),
+      headingFont: theme.headingFont === "sans" ? "sans" : "serif",
+      bodyFont: theme.bodyFont === "sans" ? "sans" : "serif",
+    },
+    pages,
+  };
 }
 
 function validPublicImage(value: any): string | null {
@@ -820,6 +894,15 @@ export function registerCreatorPublishingRoutes(app: Express) {
           content: String(chapter.content || "").slice(0, 100000),
         }));
       }
+      if (req.body.designerDocument !== undefined) {
+        if (req.body.designerDocument === null) {
+          changes.designerDocument = null;
+        } else {
+          const document = normalizeDesignerDocument(req.body.designerDocument);
+          if (!document) return res.status(400).json({ message: "The book design document is invalid." });
+          changes.designerDocument = document;
+        }
+      }
       if (req.body.coverImage !== undefined) {
         const cover = validPublicImage(req.body.coverImage);
         if (req.body.coverImage && !cover) return res.status(400).json({ message: "Use an HTTPS cover image or upload one to Taskdrip." });
@@ -845,6 +928,145 @@ export function registerCreatorPublishingRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to save book:", error);
       res.status(500).json({ message: "Could not save your book." });
+    }
+  });
+
+  app.get("/api/creator-studio/books/:id/generation", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    try {
+      const [book] = await db.select({
+        id: creatorBooks.id,
+        generationJobId: creatorBooks.generationJobId,
+        generationStatus: creatorBooks.generationStatus,
+        generationProgress: creatorBooks.generationProgress,
+        generationMessage: creatorBooks.generationMessage,
+        generationError: creatorBooks.generationError,
+        updatedAt: creatorBooks.updatedAt,
+      }).from(creatorBooks)
+        .where(and(eq(creatorBooks.id, req.params.id), eq(creatorBooks.creatorId, req.user.id)))
+        .limit(1);
+      if (!book) return res.status(404).json({ message: "Book not found." });
+
+      if (["queued", "generating"].includes(book.generationStatus) && book.updatedAt
+        && Date.now() - new Date(book.updatedAt).getTime() > 30 * 60 * 1000) {
+        const message = "This generation was interrupted. Your previous draft is unchanged; you can try again.";
+        await db.update(creatorBooks).set({
+          generationStatus: "failed",
+          generationProgress: 0,
+          generationMessage: null,
+          generationError: message,
+          updatedAt: new Date(),
+        }).where(and(eq(creatorBooks.id, book.id), eq(creatorBooks.generationJobId, book.generationJobId || "")));
+        return res.json({ ...book, generationStatus: "failed", generationProgress: 0, generationError: message });
+      }
+      res.json(book);
+    } catch (error) {
+      console.error("Could not check ebook generation status:", error);
+      res.status(500).json({ message: "Could not check book generation status." });
+    }
+  });
+
+  app.post("/api/creator-studio/books/:id/ai/full-book", isAuthenticated, requireCreatorStudioAccess, async (req: any, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    if (!isBookDesignAIAvailable()) return res.status(503).json({
+      code: "AI_PROVIDER_NOT_CONFIGURED",
+      message: "Book generation requires GROQ_API_KEY in Replit Secrets.",
+    });
+
+    const prompt = String(req.body.prompt || "").trim().slice(0, 8000);
+    const chapterCount = Number(req.body.chapterCount);
+    if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
+    if (![4, 6, 8].includes(chapterCount)) return res.status(400).json({ message: "Choose a 4, 6, or 8 chapter book." });
+
+    try {
+      const [book] = await db.select().from(creatorBooks)
+        .where(and(eq(creatorBooks.id, req.params.id), eq(creatorBooks.creatorId, req.user.id)))
+        .limit(1);
+      if (!book) return res.status(404).json({ message: "Book not found." });
+      if (["published", "submitted"].includes(book.status)) {
+        return res.status(409).json({ message: "Books submitted for review or already published cannot be regenerated." });
+      }
+      if (["queued", "generating"].includes(book.generationStatus)) {
+        return res.status(409).json({ message: "This book is already being generated." });
+      }
+      if ((book.chapters?.length || book.designerDocument?.pages?.length) && req.body.replaceExisting !== true) {
+        return res.status(409).json({
+          code: "BOOK_CONTENT_REPLACEMENT_CONFIRMATION_REQUIRED",
+          message: "Generating again replaces this draft's manuscript and page design. Confirm before continuing.",
+          requiresConfirmation: true,
+        });
+      }
+
+      const jobId = nanoid();
+      const startedAt = new Date();
+      await db.update(creatorBooks).set({
+        generationJobId: jobId,
+        generationStatus: "queued",
+        generationProgress: 1,
+        generationMessage: "Preparing the book generator",
+        generationError: null,
+        updatedAt: startedAt,
+      }).where(and(eq(creatorBooks.id, book.id), eq(creatorBooks.creatorId, req.user.id)));
+
+      const authorName = `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim().slice(0, 160);
+      const onProgress = async (progress: number, message: string) => {
+        await db.update(creatorBooks).set({
+          generationStatus: "generating",
+          generationProgress: Math.max(1, Math.min(99, Math.round(progress))),
+          generationMessage: String(message).slice(0, 240),
+          generationError: null,
+          updatedAt: new Date(),
+        }).where(and(eq(creatorBooks.id, book.id), eq(creatorBooks.generationJobId, jobId)));
+      };
+
+      void (async () => {
+        try {
+          const generated = await generateCompleteBook({
+            prompt,
+            title: book.title === "Untitled book" ? "" : book.title,
+            bookType: book.bookType,
+            genre: book.genre,
+            trimSize: book.trimSize,
+            authorName,
+            chapterCount,
+            onProgress,
+          });
+          await db.update(creatorBooks).set({
+            title: generated.title,
+            subtitle: generated.subtitle || null,
+            idea: prompt,
+            description: generated.description,
+            outline: generated.outline,
+            chapters: generated.chapters,
+            designerDocument: generated.designerDocument,
+            status: "editing",
+            generationStatus: "completed",
+            generationProgress: 100,
+            generationMessage: "Complete draft and page designs are ready to edit.",
+            generationError: null,
+            updatedAt: new Date(),
+          }).where(and(eq(creatorBooks.id, book.id), eq(creatorBooks.creatorId, req.user.id), eq(creatorBooks.generationJobId, jobId)));
+        } catch (error: any) {
+          const message = String(error?.message || "Book generation failed. Please try again.").slice(0, 500);
+          console.error("[ebook-studio] Full book generation failed:", message);
+          await db.update(creatorBooks).set({
+            generationStatus: "failed",
+            generationProgress: 0,
+            generationMessage: null,
+            generationError: message,
+            updatedAt: new Date(),
+          }).where(and(eq(creatorBooks.id, book.id), eq(creatorBooks.generationJobId, jobId)));
+        }
+      })();
+
+      res.status(202).json({
+        jobId,
+        status: "queued",
+        message: "Book generation started. Your draft will remain available while the model writes.",
+      });
+    } catch (error) {
+      console.error("Could not start ebook generation:", error);
+      res.status(500).json({ message: "Could not start book generation." });
     }
   });
 

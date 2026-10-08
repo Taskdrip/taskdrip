@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import type { EbookDesignDocument } from "./ebook-design";
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
@@ -378,6 +379,12 @@ export const creatorBooks = pgTable("creator_books", {
   outline: jsonb("outline").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   chapters: jsonb("chapters").$type<Array<{ id: string; title: string; content: string }>>().notNull().default(sql`'[]'::jsonb`),
   kdpKeywords: jsonb("kdp_keywords").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  designerDocument: jsonb("designer_document").$type<EbookDesignDocument | null>().default(sql`null`),
+  generationJobId: varchar("generation_job_id", { length: 80 }),
+  generationStatus: varchar("generation_status", { length: 24 }).notNull().default("idle"),
+  generationProgress: integer("generation_progress").notNull().default(0),
+  generationMessage: text("generation_message"),
+  generationError: text("generation_error"),
   coverImage: text("cover_image"),
   amazonUrl: text("amazon_url"),
   accessUrl: text("access_url"),
