@@ -11879,6 +11879,18 @@ var PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
 var PRIVATE_STUDIO_PAYMENT_DIR = path.resolve(process.cwd(), ".private-studio-payment-proofs");
 mkdirSync(PRIVATE_STUDIO_PAYMENT_DIR, { recursive: true });
+var GROQ_API_BASE_URL = "https://api.groq.com/openai/v1";
+var GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
+function createGroqClient() {
+  const apiKey = process.env.GROQ_API_KEY;
+  return apiKey ? new OpenAI2({ apiKey, baseURL: GROQ_API_BASE_URL }) : null;
+}
+function groqUnavailableResponse(action) {
+  return {
+    code: "AI_PROVIDER_NOT_CONFIGURED",
+    message: `AI ${action} is unavailable until GROQ_API_KEY is configured in Replit Secrets.`
+  };
+}
 var ALLOWED_FILE_EXTENSIONS = /* @__PURE__ */ new Set([
   ".pdf",
   ".epub",
@@ -12623,20 +12635,15 @@ function registerCreatorPublishingRoutes(app2) {
   });
   app2.post("/api/creator-studio/ai/outline", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(503).json({
-        code: "AI_PROVIDER_NOT_CONFIGURED",
-        message: "AI outline generation is unavailable until an OpenAI API key is configured as OPENAI_API_KEY."
-      });
-    }
+    const client = createGroqClient();
+    if (!client) return res.status(503).json(groqUnavailableResponse("outline generation"));
     const idea = String(req.body.idea || "").trim().slice(0, 6e3);
     const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
     const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     if (idea.length < 8) return res.status(400).json({ message: "Describe the book idea in at least 8 characters." });
     try {
-      const client = new OpenAI2({ apiKey: process.env.OPENAI_API_KEY });
       const result = await client.chat.completions.create({
-        model: process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini",
+        model: GROQ_TEXT_MODEL,
         temperature: 0.6,
         response_format: { type: "json_object" },
         messages: [
@@ -12658,30 +12665,28 @@ Book concept: ${idea}` }
   });
   app2.post("/api/creator-studio/ai/chapter", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(503).json({
-        code: "AI_PROVIDER_NOT_CONFIGURED",
-        message: "AI chapter generation is unavailable until an OpenAI API key is configured as OPENAI_API_KEY."
-      });
-    }
+    const client = createGroqClient();
+    if (!client) return res.status(503).json(groqUnavailableResponse("chapter generation"));
     const bookId = String(req.body.bookId || "");
     const chapterTitle = String(req.body.chapterTitle || "").trim().slice(0, 240);
     const idea = String(req.body.idea || "").trim().slice(0, 4e3);
-    const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
-    const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
-    const [book] = await db.select({ id: creatorBooks.id }).from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select({
+      id: creatorBooks.id,
+      bookType: creatorBooks.bookType,
+      genre: creatorBooks.genre,
+      idea: creatorBooks.idea
+    }).from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
     try {
-      const client = new OpenAI2({ apiKey: process.env.OPENAI_API_KEY });
       const result = await client.chat.completions.create({
-        model: process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini",
+        model: GROQ_TEXT_MODEL,
         temperature: 0.7,
         messages: [
           { role: "system", content: "Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs." },
-          { role: "user", content: `Book type: ${bookType}
-Niche: ${genre}
-Book idea: ${idea || "Not provided"}
+          { role: "user", content: `Book type: ${book.bookType || "nonfiction"}
+Niche: ${book.genre || "General nonfiction"}
+Book idea: ${idea || book.idea || "Not provided"}
 Chapter: ${chapterTitle}` }
         ]
       });
