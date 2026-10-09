@@ -270,7 +270,11 @@ function Router() {
             <Route path="/admin" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
             <Route path="/admin/users" component={AdminUserManagement} />
             <Route path="/admin/products" component={AdminProducts} />
-            <Route path="/admin/plugin-studio" component={AdminPluginStudio} />
+            <Route path="/admin/plugin-studio" component={() =>
+              (user as any)?.userType === "admin" || (user as any)?.role === "admin"
+                ? <AdminErrorBoundary><AdminPluginStudio /></AdminErrorBoundary>
+                : <NotFound />
+            } />
             <Route path="/admin/courses" component={AdminCourses} />
             <Route path="/admin/certificate-template" component={AdminCertificateTemplate} />
             <Route path="/breedskool/:id/learn" component={CourseLearn} />
@@ -317,6 +321,7 @@ function Router() {
             <Route path="/profile" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/profile')}`; return null; }} />
             <Route path="/wallet" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/wallet')}`; return null; }} />
             <Route path="/admin" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin')}`; return null; }} />
+            <Route path="/admin/plugin-studio" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin/plugin-studio')}`; return null; }} />
             <Route path="/admin-ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-ads')}`; return null; }} />
             <Route path="/admin/ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
             <Route path="/admin/influencer-crm" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/influencer-crm')}`; return null; }} />

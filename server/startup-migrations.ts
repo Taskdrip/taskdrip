@@ -8,6 +8,11 @@ type ColumnFix = {
 };
 
 const REQUIRED_COLUMNS: ColumnFix[] = [
+  { table: "plugin_studio_projects", column: "source_prompt", definition: "text" },
+  { table: "plugin_studio_projects", column: "core_short_description", definition: "varchar" },
+  { table: "plugin_studio_projects", column: "core_description", definition: "text" },
+  { table: "plugin_studio_projects", column: "core_files", definition: "jsonb NOT NULL DEFAULT '{}'::jsonb" },
+  { table: "plugin_studio_projects", column: "premium_files", definition: "jsonb NOT NULL DEFAULT '{}'::jsonb" },
   { table: "users", column: "brand_tier", definition: "varchar DEFAULT 'startup'" },
   { table: "users", column: "brand_rank", definition: "varchar DEFAULT 'bronze'" },
   { table: "users", column: "total_transaction_volume", definition: "decimal(12,2) DEFAULT '0.00'" },
@@ -376,11 +381,16 @@ const REQUIRED_TABLES: string[] = [
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "slug" varchar NOT NULL UNIQUE,
     "template_key" varchar NOT NULL DEFAULT 'learnpress-woocommerce',
+    "source_prompt" text,
     "name" varchar NOT NULL,
     "version" varchar NOT NULL DEFAULT '1.0.0',
     "author" varchar NOT NULL DEFAULT 'Taskdrip',
     "short_description" varchar,
     "description" text NOT NULL,
+    "core_short_description" varchar,
+    "core_description" text,
+    "core_files" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "premium_files" jsonb NOT NULL DEFAULT '{}'::jsonb,
     "seo_title" varchar,
     "seo_description" varchar,
     "seo_keywords" text,

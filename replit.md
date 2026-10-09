@@ -80,10 +80,11 @@ The dev server runs on port 5000.
 
 ## WordPress Plugin Studio
 
-- Admins can open **Admin Dashboard → Premium Plugin Studio**, **Admin → Products → Plugin Studio**, or `/admin/plugin-studio`. The first package is CourseBridge Pro for LearnPress and WooCommerce; new packages currently use this same course-bridge generator template.
-- Published plugin packages become normal Taskdrip Shop digital products and use the existing shop checkout/payment review flow. A buyer can download the ZIP after the existing purchase record reaches a verified paid/approved state.
-- The generated WordPress ZIP includes the plugin code, install readme, SEO/shop metadata, and a WordPress.org release checklist. It does not upload to the WordPress.org SVN repository or bypass WordPress.org review. The current premium package has no separate free directory edition.
-- Each WordPress installation configures its own Resend sender and API key in the plugin settings (or `wp-config.php`). Taskdrip/Replit does not receive or embed the buyer's Resend key.
+- Admins can open **Admin Dashboard → Premium Plugin Studio**, **Admin → Products → Plugin Studio**, or `/admin/plugin-studio`. The studio uses the configured Creator Studio AI provider to generate independent WordPress plugin source from an admin's feature brief; it is not limited to the legacy CourseBridge project.
+- Each new project stores separate GPL-compatible free-core and paid-premium source editions. Admins can download both as installable ZIPs, test them on staging WordPress sites, and use the core ZIP's readme and checklist to prepare a WordPress.org submission.
+- New projects and their Taskdrip Shop products start as drafts. After code, licensing, security, and WordPress testing, an admin can publish the premium add-on through the existing shop checkout flow. Verified buyers download it through the existing paid-purchase authorization.
+- The generated premium plugin declares and checks for its free core dependency. The WordPress.org directory review and SVN release remain manual; the studio does not submit or promise approval.
+- AI-generated code is an unreviewed starting point, not a security or compatibility guarantee. Review both packages and test on a staging site before publishing or submitting.
 
 ## User preferences
 

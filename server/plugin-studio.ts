@@ -4,6 +4,8 @@ import { zipSync, strToU8 } from "fflate";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
 import { pluginStudioProjects, purchases, shopProducts } from "@shared/schema";
+import { createStudioAIClient, getCreatorStudioAIConfig } from "./creator-publishing";
+import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
 
 const STARTER = {
@@ -85,11 +87,29 @@ async function ensureStarterProject(adminId: string) {
   }
 }
 
-async function getProjectFiles(id: string) {
+function parseGeneratedPair(content: string): any {
+  const trimmed = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(trimmed.slice(start, end + 1));
+    throw new Error("The AI provider returned an invalid plugin package. Try again with a shorter specification.");
+  }
+}
+
+async function getProjectFiles(id: string, edition: PluginEdition) {
   const [project] = await db.select().from(pluginStudioProjects).where(eq(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
+  const sourceFiles = edition === "core" ? project.coreFiles : project.premiumFiles;
+  if (sourceFiles && Object.keys(sourceFiles).length > 0) {
+    const release = buildPluginReleaseFiles(project, edition, sourceFiles);
+    return { project, ...release };
+  }
   return {
     project,
+    folderSlug: project.slug,
     files: buildWordPressPluginFiles({
       slug: project.slug,
       name: project.name,
@@ -101,33 +121,60 @@ async function getProjectFiles(id: string) {
   };
 }
 
-function archiveFor(project: any, files: Record<string, string>): Buffer {
+function archiveFor(folderSlug: string, files: Record<string, string>): Buffer {
   const archive = zipSync(
-    Object.fromEntries(Object.entries(files).map(([file, content]) => [`${project.slug}/${file}`, strToU8(content)])),
+    Object.fromEntries(Object.entries(files).map(([file, content]) => [`${folderSlug}/${file}`, strToU8(content)])),
     { level: 8 },
   );
   return Buffer.from(archive);
 }
 
 export function registerPluginStudioRoutes(app: Express) {
+  app.get("/api/admin/plugin-studio/ai-status", isAuthenticated, async (req: any, res) => {
+    if (!adminOnly(req, res)) return;
+    try {
+      const config = await getCreatorStudioAIConfig();
+      res.json({
+        aiAvailable: config.aiAvailable,
+        provider: config.provider,
+        model: config.model,
+        settingsUrl: "/admin/publishing",
+      });
+    } catch (error: any) {
+      console.error("[plugin-studio] Could not load AI status:", error.message);
+      res.status(500).json({ message: "Could not check the plugin-generation AI settings." });
+    }
+  });
+
   app.get("/api/admin/plugin-studio/projects", isAuthenticated, async (req: any, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      await ensureStarterProject(req.user.id);
       const rows = await db.select({ project: pluginStudioProjects, product: shopProducts })
         .from(pluginStudioProjects)
         .leftJoin(shopProducts, eq(pluginStudioProjects.shopProductId, shopProducts.id))
         .orderBy(desc(pluginStudioProjects.createdAt));
-      res.json(rows.map(({ project, product }) => ({
-        ...project,
-        product: product ? {
-          id: product.id,
-          price: product.price,
-          salesCount: product.salesCount,
-          isActive: product.isActive,
-          isFeatured: product.isFeatured,
-        } : null,
-      })));
+      res.json(rows.map(({ project, product }) => {
+        const {
+          sourcePrompt,
+          coreShortDescription,
+          coreDescription,
+          coreFiles,
+          premiumFiles,
+          ...metadata
+        } = project;
+        return {
+          ...metadata,
+          coreFileCount: Object.keys(coreFiles || {}).length,
+          premiumFileCount: Object.keys(premiumFiles || {}).length,
+          product: product ? {
+            id: product.id,
+            price: product.price,
+            salesCount: product.salesCount,
+            isActive: product.isActive,
+            isFeatured: product.isFeatured,
+          } : null,
+        };
+      }));
     } catch (error: any) {
       console.error("[plugin-studio] Could not load projects:", error.message);
       res.status(500).json({ message: "Could not load plugin studio projects. Check that the database is available." });
@@ -138,6 +185,7 @@ export function registerPluginStudioRoutes(app: Express) {
     if (!adminOnly(req, res)) return;
     try {
       const name = String(req.body?.name || "").trim().slice(0, 120);
+      const sourcePrompt = String(req.body?.sourcePrompt || "").trim().slice(0, 6000);
       const version = String(req.body?.version || "1.0.0").trim().slice(0, 30);
       const author = String(req.body?.author || "Taskdrip").trim().slice(0, 80);
       const shortDescription = String(req.body?.shortDescription || "").trim().slice(0, 180);
@@ -146,62 +194,145 @@ export function registerPluginStudioRoutes(app: Express) {
       const seoDescription = String(req.body?.seoDescription || "").trim().slice(0, 180);
       const seoKeywords = String(req.body?.seoKeywords || "").trim().slice(0, 600);
       const price = Number(req.body?.price);
-      if (!name || !shortDescription || !description || !seoTitle || !seoDescription || !Number.isFinite(price) || price < 0.01 || price > 999999) {
-        return res.status(400).json({ message: "Enter a name, product description, SEO title and description, and a price above zero." });
+      if (!name || sourcePrompt.length < 30 || !shortDescription || !description || !seoTitle || !seoDescription || !Number.isFinite(price) || price < 0.01 || price > 999999) {
+        return res.status(400).json({ message: "Enter a plugin name, a functional brief of at least 30 characters, product copy, SEO details, and a price above zero." });
       }
       if (!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(version)) {
         return res.status(400).json({ message: "Use a semantic version such as 1.0.0." });
       }
-      const baseSlug = slugify(String(req.body?.slug || name));
-      if (!baseSlug) return res.status(400).json({ message: "The plugin slug must contain letters or numbers." });
-      const slug = `${baseSlug}-${Date.now().toString(36)}`.slice(0, 80);
-      const publishToShop = req.body?.publishToShop === true;
+      const slug = slugify(String(req.body?.slug || name)).slice(0, 55);
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 2) {
+        return res.status(400).json({ message: "Use a WordPress-compatible slug containing lowercase letters, numbers, and hyphens." });
+      }
+      const [existingProject] = await db.select({ id: pluginStudioProjects.id })
+        .from(pluginStudioProjects).where(eq(pluginStudioProjects.slug, slug)).limit(1);
+      if (existingProject) return res.status(409).json({ message: "That plugin slug is already in use. Choose a different slug." });
+
+      const config = await getCreatorStudioAIConfig();
+      const ai = config.aiAvailable
+        ? createStudioAIClient(config.model, config.provider, config.endpointUrl)
+        : null;
+      if (!ai) {
+        return res.status(503).json({
+          message: "Plugin generation needs an AI provider. Configure it in Admin → Creator Publishing → AI Settings, then try again.",
+          settingsUrl: "/admin/publishing",
+        });
+      }
+      const premiumSlug = `${slug}-premium`;
+      const result = await ai.client.chat.completions.create({
+        model: ai.model,
+        temperature: 0.2,
+        max_tokens: 9000,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: `You are a senior WordPress plugin engineer. Generate two distinct, complete, installable plugin packages from the user's specification and return JSON only.
+Required JSON: {"core":{"mainFile":"main.php","shortDescription":"...","description":"...","features":["..."],"requirements":["..."],"files":{"main.php":"<?php...","includes/module.php":"...","assets/admin.css":"..."}},"premium":{"mainFile":"main.php","shortDescription":"...","description":"...","features":["..."],"requirements":["..."],"files":{"main.php":"<?php...","includes/module.php":"..."}}}
+Core directory slug: ${slug}
+Premium add-on slug: ${premiumSlug}
+Build rules:
+- The free core must provide useful, complete functionality on its own. The premium add-on must add substantive features through the core's documented PHP hooks or API; do not make the core trialware, disable core features, or hide a paywall in it.
+- The premium entry file must declare the WordPress plugin dependency on the core slug "${slug}" and show a clear admin notice if that core is inactive. Use the stable public hooks/functions defined by the core; do not duplicate core implementation.
+- The core must define this stable version contract constant: TASKDRIP_${slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_CORE_VERSION. The premium add-on should use it to check that the core is loaded. The server will add a guarded core definition and a missing-core admin notice.
+- Both main files must begin with PHP and contain a standard WordPress plugin header comment including Plugin Name, Description, Version 1.0.0, Author ${author}, GPL-2.0-or-later License, and text domain. The server will normalize these headers.
+- Use PHP 7.4-compatible, namespaced or uniquely prefixed code, WordPress APIs, capability checks, nonce verification for state-changing actions, input validation/sanitization, escaped output, prepared database queries, and safe activation/uninstall behavior.
+- No secrets, telemetry, hidden admin users, backdoors, remote executable code, licensing locks in the free core, or unrequested third-party dependencies. Do not claim tests, approvals, or compatibility that were not performed.
+- Return complete source code, not pseudocode. Keep each package to at most 12 PHP/CSS/JS source files and return no binary or image files. Do not include README or documentation files; the server creates release documentation.
+- Include 3–6 short, specific features per edition, and list accurate WordPress/PHP/plugin requirements. Each edition needs a useful description and a root-level main PHP file.`,
+          },
+          {
+            role: "user",
+            content: `Plugin name: ${name}
+Core slug: ${slug}
+Premium slug: ${premiumSlug}
+Version: ${version}
+Author: ${author}
+Required behavior:
+${sourcePrompt}
+
+Premium Taskdrip product summary:
+${shortDescription}
+
+Product description:
+${description}`,
+          },
+        ],
+      });
+      const responseText = result.choices[0]?.message?.content;
+      if (!responseText) return res.status(502).json({ message: "The AI provider returned an empty plugin package. Try again." });
+      if (responseText.length > 500_000) {
+        return res.status(502).json({ message: "The generated plugin package is too large. Reduce the requested scope and try again." });
+      }
+      let generated: any;
+      try {
+        generated = parseGeneratedPair(responseText);
+      } catch (error: any) {
+        return res.status(502).json({ message: error.message });
+      }
+      let core: ReturnType<typeof normalizeGeneratedEdition>;
+      let premium: ReturnType<typeof normalizeGeneratedEdition>;
+      try {
+        core = normalizeGeneratedEdition(generated.core, { slug, name, version, author }, "core");
+        premium = normalizeGeneratedEdition(generated.premium, { slug, name, version, author }, "premium");
+      } catch (error: any) {
+        return res.status(502).json({ message: error.message });
+      }
       let created: any;
       await db.transaction(async (tx) => {
         const [product] = await tx.insert(shopProducts).values({
-          title: name,
+          title: `${name} Premium Add-on`,
           description,
           shortDescription,
           price: price.toFixed(2),
           category: "WordPress Plugins",
           type: "plugin",
-          features: [
-            "Map WooCommerce products to LearnPress courses",
-            "Automatic course enrollment after successful payment",
-            "Purchase and course-enrollment reporting",
-            "Consent-based Resend audience campaigns",
-            "Installable ZIP and WordPress deployment guide",
-          ],
-          requirements: ["WordPress 6.2+", "PHP 7.4+", "WooCommerce", "LearnPress"],
-          tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment"],
-          isActive: publishToShop,
+          features: [...premium.features, `Requires the free ${name} Core plugin`],
+          requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...premium.requirements, `Free core plugin: ${slug}`])).slice(0, 10),
+          tags: seoKeywords.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 10),
+          isActive: false,
           isFeatured: false,
           isFree: false,
           createdBy: req.user.id,
         }).returning();
         const [project] = await tx.insert(pluginStudioProjects).values({
           slug,
-          templateKey: "learnpress-woocommerce",
+          templateKey: "ai-generated-core-premium",
+          sourcePrompt,
           name,
           version,
           author,
           shortDescription,
           description,
+          coreShortDescription: core.shortDescription || `${name} free core edition`,
+          coreDescription: core.description || `The free core edition of ${name}.`,
+          coreFiles: core.files,
+          premiumFiles: premium.files,
           seoTitle,
           seoDescription,
           seoKeywords,
           shopProductId: product.id,
-          status: publishToShop ? "published" : "draft",
+          status: "draft",
           createdBy: req.user.id,
         }).returning();
         await tx.update(shopProducts)
           .set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` })
           .where(eq(shopProducts.id, product.id));
-        created = { ...project, product: { id: product.id, price: product.price, salesCount: 0, isActive: publishToShop } };
+        created = {
+          id: project.id,
+          slug: project.slug,
+          name: project.name,
+          version: project.version,
+          status: project.status,
+          product: { id: product.id, price: product.price, salesCount: 0, isActive: false },
+          coreFileCount: Object.keys(core.files).length,
+          premiumFileCount: Object.keys(premium.files).length,
+        };
       });
       res.status(201).json(created);
     } catch (error: any) {
       console.error("[plugin-studio] Could not create project:", error.message);
+      if (error?.status === 503) return res.status(503).json({ message: error.message });
       res.status(500).json({ message: "Could not create the plugin project." });
     }
   });
@@ -215,6 +346,13 @@ export function registerPluginStudioRoutes(app: Express) {
       const status = req.body?.status;
       if (status !== undefined && !["draft", "published"].includes(status)) {
         return res.status(400).json({ message: "Plugin status must be draft or published." });
+      }
+      if (
+        status === "published" &&
+        project.templateKey === "ai-generated-core-premium" &&
+        (!Object.keys(project.coreFiles || {}).length || !Object.keys(project.premiumFiles || {}).length)
+      ) {
+        return res.status(409).json({ message: "Generate both plugin editions before publishing the premium add-on." });
       }
       const updates: any = { updatedAt: new Date() };
       if (status) updates.status = status;
@@ -235,11 +373,12 @@ export function registerPluginStudioRoutes(app: Express) {
   app.get("/api/admin/plugin-studio/projects/:id/download", isAuthenticated, async (req: any, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const result = await getProjectFiles(req.params.id);
+      const edition: PluginEdition = req.query.edition === "core" ? "core" : "premium";
+      const result = await getProjectFiles(req.params.id, edition);
       if (!result) return res.status(404).json({ message: "Plugin project not found." });
-      const archive = archiveFor(result.project, result.files);
+      const archive = archiveFor(result.folderSlug, result.files);
       res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename="${result.project.slug}-${result.project.version}.zip"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${result.folderSlug}-${result.project.version}.zip"`);
       res.setHeader("Content-Length", archive.length);
       res.send(archive);
     } catch (error: any) {
@@ -294,17 +433,11 @@ export function registerPluginStudioRoutes(app: Express) {
         )).limit(1);
         if (!purchase) return res.status(403).json({ message: "A verified paid purchase is required before downloading this plugin." });
       }
-      const files = buildWordPressPluginFiles({
-        slug: project.slug,
-        name: project.name,
-        version: project.version,
-        author: project.author,
-        shortDescription: project.shortDescription || project.name,
-        description: project.description,
-      });
-      const archive = archiveFor(project, files);
+      const release = await getProjectFiles(project.id, "premium");
+      if (!release) return res.status(404).json({ message: "Plugin package not found." });
+      const archive = archiveFor(release.folderSlug, release.files);
       res.setHeader("Content-Type", "application/zip");
-      res.setHeader("Content-Disposition", `attachment; filename="${project.slug}-${project.version}.zip"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${release.folderSlug}-${project.version}.zip"`);
       res.setHeader("Content-Length", archive.length);
       res.send(archive);
     } catch (error: any) {

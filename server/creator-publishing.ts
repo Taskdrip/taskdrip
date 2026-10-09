@@ -140,7 +140,7 @@ function normalizeCreatorStudioAIControls(input: any): CreatorStudioAIControls {
   };
 }
 
-async function getCreatorStudioAIConfig() {
+export async function getCreatorStudioAIConfig() {
   const [row] = await db.select({ value: appSettings.value })
     .from(appSettings)
     .where(eq(appSettings.key, "creator_studio_ai_settings"))
@@ -165,7 +165,7 @@ async function getCreatorStudioAIConfig() {
   };
 }
 
-function createStudioAIClient(model = GROQ_TEXT_MODEL, provider: CreatorStudioAIProvider = BOOK_AI_BASE_URL ? "openai-compatible" : "groq", endpointUrl = "") {
+export function createStudioAIClient(model = GROQ_TEXT_MODEL, provider: CreatorStudioAIProvider = BOOK_AI_BASE_URL ? "openai-compatible" : "groq", endpointUrl = "") {
   const baseURL = provider === "groq" ? GROQ_API_BASE_URL : (endpointUrl || BOOK_AI_BASE_URL);
   const apiKey = provider === "groq"
     ? process.env.GROQ_API_KEY

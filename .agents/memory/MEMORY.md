@@ -1,4 +1,5 @@
 - [BreedSkool Tech Training](breedskool-tech-training.md) — registration feature with ₦ pricing; tables in DB, routes in server/routes.ts, import pattern matters.
+- [Plugin Studio release model](plugin-studio-release-model.md) — keep a useful free WordPress.org core separate from the paid Taskdrip add-on; review and test before release.
 - [Railway Nixpacks Deployment](railway-nixpacks.md) — Dockerfile build fails on Railway; switched to Nixpacks with nixpacks.toml + railway.toml buildCommand.
 - [Railway preDeployCommand wipes data](railway-json-predeploy.md) — railway.json preDeployCommand with db:push --force destroyed all seeded courses on every deploy; remove it.
 - [Railway email transport](railway-email-transport.md) — Replit connector credentials do not reach Railway; production mail needs a native Resend key and verified sender.
