@@ -328,6 +328,28 @@ export const shopProducts = pgTable("shop_products", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Metadata and SEO for WordPress plugins built in the admin plugin studio.
+// The saleable product itself remains a normal shop_products row so checkout,
+// bank transfer, crypto verification, and purchase history stay on the existing path.
+export const pluginStudioProjects = pgTable("plugin_studio_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug").notNull().unique(),
+  templateKey: varchar("template_key").notNull().default("learnpress-woocommerce"),
+  name: varchar("name").notNull(),
+  version: varchar("version").notNull().default("1.0.0"),
+  author: varchar("author").notNull().default("Taskdrip"),
+  shortDescription: varchar("short_description"),
+  description: text("description").notNull(),
+  seoTitle: varchar("seo_title"),
+  seoDescription: varchar("seo_description"),
+  seoKeywords: text("seo_keywords"),
+  shopProductId: varchar("shop_product_id").references(() => shopProducts.id, { onDelete: "set null" }),
+  status: varchar("status").notNull().default("draft"),
+  createdBy: varchar("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const purchases = pgTable("purchases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),

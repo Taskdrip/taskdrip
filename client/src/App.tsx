@@ -27,6 +27,7 @@ const Shop = lazy(() => import("@/pages/shop"));
 const ProductDetail = lazy(() => import("@/pages/product-detail"));
 const ShopCheckout = lazy(() => import("@/pages/shop-checkout"));
 const AdminProducts = lazy(() => import("@/pages/admin-products"));
+const AdminPluginStudio = lazy(() => import("@/pages/admin-plugin-studio"));
 const Admin = lazy(() => import("@/pages/admin"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Signup = lazy(() => import("@/pages/signup"));
@@ -269,6 +270,7 @@ function Router() {
             <Route path="/admin" component={() => <AdminErrorBoundary><AdminDashboard /></AdminErrorBoundary>} />
             <Route path="/admin/users" component={AdminUserManagement} />
             <Route path="/admin/products" component={AdminProducts} />
+            <Route path="/admin/plugin-studio" component={AdminPluginStudio} />
             <Route path="/admin/courses" component={AdminCourses} />
             <Route path="/admin/certificate-template" component={AdminCertificateTemplate} />
             <Route path="/breedskool/:id/learn" component={CourseLearn} />

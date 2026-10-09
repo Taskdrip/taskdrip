@@ -371,6 +371,27 @@ const REQUIRED_TABLES: string[] = [
     "created_at" timestamp DEFAULT now()
   )`,
 
+  // WordPress plugin studio projects; the saleable product remains in shop_products.
+  `CREATE TABLE IF NOT EXISTS "plugin_studio_projects" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "slug" varchar NOT NULL UNIQUE,
+    "template_key" varchar NOT NULL DEFAULT 'learnpress-woocommerce',
+    "name" varchar NOT NULL,
+    "version" varchar NOT NULL DEFAULT '1.0.0',
+    "author" varchar NOT NULL DEFAULT 'Taskdrip',
+    "short_description" varchar,
+    "description" text NOT NULL,
+    "seo_title" varchar,
+    "seo_description" varchar,
+    "seo_keywords" text,
+    "shop_product_id" varchar,
+    "status" varchar NOT NULL DEFAULT 'draft',
+    "created_by" varchar,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "plugin_studio_projects_shop_product_idx" ON "plugin_studio_projects" ("shop_product_id")`,
+
   // Auto-blogger jobs
   `CREATE TABLE IF NOT EXISTS "auto_blog_jobs" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),

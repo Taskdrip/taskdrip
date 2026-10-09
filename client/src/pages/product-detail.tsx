@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { SeoHead } from "@/components/SeoHead";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -144,6 +145,16 @@ export default function ProductDetail() {
   const { data: product, isLoading } = useQuery<ShopProduct>({
     queryKey: ["/api/shop/products", productId],
     enabled: !!productId,
+  });
+
+  const { data: pluginSeo } = useQuery<any>({
+    queryKey: ["/api/shop/plugin-seo", productId],
+    enabled: !!productId,
+    queryFn: async () => {
+      const response = await fetch(`/api/shop/plugin-seo/${encodeURIComponent(productId!)}`);
+      if (!response.ok) throw new Error("Could not load plugin SEO details");
+      return response.json();
+    },
   });
 
   const { data: publishingInfo } = useQuery<any>({
@@ -278,6 +289,32 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {pluginSeo && (
+        <SeoHead
+          title={pluginSeo.seoTitle || product.title}
+          description={pluginSeo.seoDescription || product.shortDescription || product.description}
+          keywords={pluginSeo.seoKeywords || undefined}
+          ogType="product"
+          ogImage={product.featuredImage || undefined}
+          canonicalUrl={window.location.href.split("?")[0]}
+          jsonLd={{
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: pluginSeo.name,
+            description: pluginSeo.seoDescription || product.shortDescription || product.description,
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "WordPress",
+            softwareVersion: pluginSeo.version,
+            offers: {
+              "@type": "Offer",
+              price: String(pluginSeo.price ?? product.price),
+              priceCurrency: "USD",
+              availability: "https://schema.org/InStock",
+              url: window.location.href.split("?")[0],
+            },
+          }}
+        />
+      )}
       <NavigationFixed />
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}

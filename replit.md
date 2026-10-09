@@ -56,6 +56,7 @@ The dev server runs on port 5000.
 - `/brand-dashboard` — Brand dashboard with "Direct Hires" tab for tracking hire requests
 - `/hire-developer` — Submit a developer hire request
 - `/direct-hire/:id` — Track a specific hire project + project chat
+- `/admin/plugin-studio` — Build WordPress plugin ZIPs, manage SEO/shop listings, and download releases
 
 ## Hire Developer Process Flow
 
@@ -76,6 +77,13 @@ The dev server runs on port 5000.
 - Default admin seeded on first run: `demo@taskdrip.online` / `Admin@2024` — **change before going live**
 - Dev server: port 5000, workflow "Start application" (`npm run dev`)
 - Production build outputs to `dist/index.js` (ESM)
+
+## WordPress Plugin Studio
+
+- Admins can open **Admin → Products → Plugin Studio** or `/admin/plugin-studio`. The first package is CourseBridge Pro for LearnPress and WooCommerce; new packages currently use this same course-bridge generator template.
+- Published plugin packages become normal Taskdrip Shop digital products and use the existing shop checkout/payment review flow. A buyer can download the ZIP after the existing purchase record reaches a verified paid/approved state.
+- The generated WordPress ZIP includes the plugin code, install readme, SEO/shop metadata, and a WordPress.org release checklist. It does not upload to the WordPress.org SVN repository or bypass WordPress.org review. The current premium package has no separate free directory edition.
+- Each WordPress installation configures its own Resend sender and API key in the plugin settings (or `wp-config.php`). Taskdrip/Replit does not receive or embed the buyer's Resend key.
 
 ## User preferences
 

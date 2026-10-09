@@ -15,6 +15,7 @@ import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generat
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or } from "drizzle-orm";
 import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./creator-publishing";
+import { registerPluginStudioRoutes } from "./plugin-studio";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -14140,5 +14141,6 @@ Instructions:
 
   const httpServer = existingServer ?? createServer(app);
   registerCreatorPublishingRoutes(app);
+  registerPluginStudioRoutes(app);
   return httpServer;
 }

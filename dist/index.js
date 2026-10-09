@@ -163,6 +163,7 @@ __export(schema_exports, {
   payoutRequests: () => payoutRequests,
   platformFees: () => platformFees,
   platformSettings: () => platformSettings,
+  pluginStudioProjects: () => pluginStudioProjects,
   portfolioItems: () => portfolioItems,
   postComments: () => postComments,
   postLikes: () => postLikes,
@@ -216,7 +217,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, purchases, productReviews, creatorBooks, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, productReviews, creatorBooks, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -522,6 +523,24 @@ var init_schema = __esm({
       introVideoUrl: varchar("intro_video_url"),
       serviceAddons: jsonb("service_addons").$type().default(sql`'[]'::jsonb`),
       createdBy: varchar("created_by").references(() => users.id),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    pluginStudioProjects = pgTable("plugin_studio_projects", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      slug: varchar("slug").notNull().unique(),
+      templateKey: varchar("template_key").notNull().default("learnpress-woocommerce"),
+      name: varchar("name").notNull(),
+      version: varchar("version").notNull().default("1.0.0"),
+      author: varchar("author").notNull().default("Taskdrip"),
+      shortDescription: varchar("short_description"),
+      description: text("description").notNull(),
+      seoTitle: varchar("seo_title"),
+      seoDescription: varchar("seo_description"),
+      seoKeywords: text("seo_keywords"),
+      shopProductId: varchar("shop_product_id").references(() => shopProducts.id, { onDelete: "set null" }),
+      status: varchar("status").notNull().default("draft"),
+      createdBy: varchar("created_by").references(() => users.id, { onDelete: "set null" }),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
@@ -3754,7 +3773,7 @@ var seed_breedskool_courses_exports = {};
 __export(seed_breedskool_courses_exports, {
   seedBreedskoolCourses: () => seedBreedskoolCourses
 });
-import { eq as eq10, sql as sql8 } from "drizzle-orm";
+import { eq as eq11, sql as sql8 } from "drizzle-orm";
 async function seedBreedskoolCourses(adminId) {
   let created = 0;
   let linked = 0;
@@ -3777,7 +3796,7 @@ async function seedBreedskoolCourses(adminId) {
             whatYouLearn: course.whatYouLearn,
             requirements: course.requirements,
             syllabus: course.syllabus
-          }).where(eq10(courses.id, courseId));
+          }).where(eq11(courses.id, courseId));
         }
       } else {
         const [newCourse] = await db.insert(courses).values({
@@ -3801,7 +3820,7 @@ async function seedBreedskoolCourses(adminId) {
         courseId = newCourse.id;
         created++;
       }
-      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq10(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq11(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
           await db.insert(courseLessons).values({
@@ -3824,7 +3843,7 @@ async function seedBreedskoolCourses(adminId) {
               content: lesson.content,
               isPreview: lesson.isPreview,
               order: lesson.order
-            }).where(eq10(courseLessons.id, existingLesson.id));
+            }).where(eq11(courseLessons.id, existingLesson.id));
           } else {
             await db.insert(courseLessons).values({
               courseId,
@@ -3839,7 +3858,7 @@ async function seedBreedskoolCourses(adminId) {
           sql8`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
       }
-      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq10(breedskoolCoursePricing.courseKey, course.courseKey));
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq11(breedskoolCoursePricing.courseKey, course.courseKey));
       linked++;
     } catch (e) {
       console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
@@ -4201,11 +4220,11 @@ __export(seed_breedskool_exports, {
   seedBreedskoolPaymentSettings: () => seedBreedskoolPaymentSettings,
   seedBreedskoolPricing: () => seedBreedskoolPricing
 });
-import { eq as eq11, inArray as inArray7, and as and7 } from "drizzle-orm";
+import { eq as eq12, inArray as inArray8, and as and8 } from "drizzle-orm";
 async function seedBreedskoolPaymentSettings() {
   for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
     try {
-      const existing = await db.select().from(appSettings).where(eq11(appSettings.key, key)).limit(1);
+      const existing = await db.select().from(appSettings).where(eq12(appSettings.key, key)).limit(1);
       if (existing.length === 0) {
         await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
       }
@@ -4219,7 +4238,7 @@ async function seedBreedskoolPricing() {
   let skipped = 0;
   for (const course of BREEDSKOOL_COURSES) {
     try {
-      const existing = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
+      const existing = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(breedskoolCoursePricing).values({
           ...course,
@@ -4242,7 +4261,7 @@ async function seedBreedskoolPricing() {
           isActive: course.isActive,
           acceptedPayments: course.acceptedPayments,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq11(breedskoolCoursePricing.courseKey, course.courseKey));
+        }).where(eq12(breedskoolCoursePricing.courseKey, course.courseKey));
         skipped++;
       }
     } catch (e) {
@@ -4254,14 +4273,14 @@ async function seedBreedskoolPricing() {
 async function fixVerifiedBreedskoolEnrollments() {
   let fixed = 0, skipped = 0, noLink = 0;
   try {
-    const verified = await db.select().from(breedskoolRegistrations).where(inArray7(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
+    const verified = await db.select().from(breedskoolRegistrations).where(inArray8(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
     for (const reg of verified) {
       let resolvedUserId = reg.userId;
       if (!resolvedUserId && reg.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq11(users.email, reg.email.toLowerCase().trim())).limit(1);
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq12(users.email, reg.email.toLowerCase().trim())).limit(1);
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq11(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq12(breedskoolRegistrations.id, reg.id));
         }
       }
       if (!resolvedUserId) {
@@ -4270,20 +4289,20 @@ async function fixVerifiedBreedskoolEnrollments() {
       }
       let courseId = reg.linkedCourseId;
       if (!courseId && reg.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq11(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq12(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
         courseId = pricing?.linkedCourseId || null;
       }
       if (!courseId) {
         noLink++;
         continue;
       }
-      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and7(
-        eq11(courseEnrollments.courseId, courseId),
-        eq11(courseEnrollments.userId, reg.userId)
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and8(
+        eq12(courseEnrollments.courseId, courseId),
+        eq12(courseEnrollments.userId, reg.userId)
       )).limit(1);
       if (existing) {
         if (existing.status !== "active") {
-          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq11(courseEnrollments.id, existing.id));
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq12(courseEnrollments.id, existing.id));
           fixed++;
         } else {
           skipped++;
@@ -4300,7 +4319,7 @@ async function fixVerifiedBreedskoolEnrollments() {
         fixed++;
       }
       if (!reg.linkedCourseId && courseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq11(breedskoolRegistrations.id, reg.id));
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq12(breedskoolRegistrations.id, reg.id));
       }
     }
   } catch (e) {
@@ -4449,12 +4468,12 @@ function parseDelimitedResponse(text3) {
 }
 async function generateEmailTemplate(opts) {
   const vars = (opts.variables ?? ["{{first_name}}", "{{email}}", "{{site_url}}"]).join(", ");
-  const audience = opts.audience ?? "influencers and creators";
+  const audience2 = opts.audience ?? "influencers and creators";
   const systemPrompt = `You are a world-class email designer for ${BRAND.name} (${BRAND.description}).
 Generate production-ready HTML email templates.
 ${DESIGN_RULES}
 Available template variables: ${vars}
-Target audience: ${audience}
+Target audience: ${audience2}
 Email category: ${opts.category}
 
 Return your response in EXACTLY this format (no extra text):
@@ -4506,7 +4525,7 @@ Email content snippet: ${opts.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, "
   }
 }
 async function improveTemplate(opts) {
-  const audience = opts.audience ?? "platform users";
+  const audience2 = opts.audience ?? "platform users";
   const feedback = opts.feedback ?? "Make it more engaging, personal, and conversion-focused. Improve the visual design, copy, and call-to-action.";
   const systemPrompt = `You are a senior email designer for ${BRAND.name}. Improve the provided email template.
 ${DESIGN_RULES}
@@ -4525,7 +4544,7 @@ Return in EXACTLY this format:
         role: "user",
         content: `Improve this email template.
 ${opts.subject ? `Current subject: ${opts.subject}` : ""}
-Target audience: ${audience}
+Target audience: ${audience2}
 Feedback: ${feedback}
 
 Current HTML (first 3500 chars):
@@ -4544,10 +4563,10 @@ ${opts.html.slice(0, 3500)}`
   };
 }
 async function generateAutoResponder(opts) {
-  const audience = opts.userType === "all" ? "all users" : `${opts.userType}s`;
+  const audience2 = opts.userType === "all" ? "all users" : `${opts.userType}s`;
   const systemPrompt = `You are an expert email marketer for ${BRAND.name} (${BRAND.description}).
 Create a highly personalized auto-responder triggered by: "${opts.triggerLabel}".
-Target audience: ${audience}.
+Target audience: ${audience2}.
 ${DESIGN_RULES}
 Available variables: {{first_name}}, {{last_name}}, {{email}}, {{user_type}}, {{site_url}}
 
@@ -4977,7 +4996,7 @@ __export(influencer_crm_service_exports, {
   getTierInfo: () => getTierInfo,
   sendInfluencerOutreach: () => sendInfluencerOutreach
 });
-import { eq as eq12, inArray as inArray8 } from "drizzle-orm";
+import { eq as eq13, inArray as inArray9 } from "drizzle-orm";
 function classifyTier(followers) {
   if (!followers || followers <= 0) return "unknown";
   for (const t of TIERS) {
@@ -5186,7 +5205,7 @@ async function crawlInfluencersAI(opts) {
   }
   if (includeInternal) {
     const { users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-    const internal = await db.select().from(users3).where(eq12(users3.userType, "influencer")).limit(100);
+    const internal = await db.select().from(users3).where(eq13(users3.userType, "influencer")).limit(100);
     if (internal.length > 0) sourcesUsed.push("internal");
     for (const u of internal) {
       const followers = u.totalFollowers || 0;
@@ -5231,7 +5250,7 @@ function dedupeByExternalId(items) {
   });
 }
 async function getInfluencerTierStats() {
-  const rows = await db.select().from(leads).where(eq12(leads.kind, "influencer"));
+  const rows = await db.select().from(leads).where(eq13(leads.kind, "influencer"));
   const tierCounts = {};
   const tierContacted = {};
   for (const r of rows) {
@@ -5280,12 +5299,12 @@ async function sendInfluencerOutreach(opts) {
     sentBy: sentBy || null
   });
   if (status === "sent" || status === "logged") {
-    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq12(leads.id, lead.id));
+    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq13(leads.id, lead.id));
   }
   return { success: status !== "failed", channel: "email", error };
 }
 async function bulkInfluencerOutreach(opts) {
-  const all = await db.select().from(leads).where(inArray8(leads.id, opts.leadIds));
+  const all = await db.select().from(leads).where(inArray9(leads.id, opts.leadIds));
   const results = [];
   for (const lead of all) {
     const r = await sendInfluencerOutreach({ lead, subject: opts.subject, body: opts.body, sentBy: opts.sentBy });
@@ -6173,8 +6192,8 @@ var DatabaseStorage = class {
       totalTipsReceived: sql2`COALESCE(${posts.totalTipsReceived}, 0) + ${amount}`
     }).where(eq(posts.id, postId));
   }
-  async deletePost(id, userId, isAdmin5 = false) {
-    if (isAdmin5) {
+  async deletePost(id, userId, isAdmin6 = false) {
+    if (isAdmin6) {
       await db.delete(posts).where(eq(posts.id, id));
     } else {
       await db.delete(posts).where(and(eq(posts.id, id), eq(posts.userId, userId)));
@@ -6493,8 +6512,8 @@ var DatabaseStorage = class {
     return creators.map((u) => ({ ...u, password: void 0 }));
   }
   async getAdminUser() {
-    const [admin] = await db.select().from(users).where(eq(users.userType, "admin")).limit(1);
-    return admin;
+    const [admin2] = await db.select().from(users).where(eq(users.userType, "admin")).limit(1);
+    return admin2;
   }
   // ── BreedSkool ────────────────────────────────────────────────
   async getAllCourses(publishedOnly = false) {
@@ -12110,7 +12129,7 @@ function scanRequestBody(body, depth = 0) {
 init_schema();
 init_lead_service();
 init_db();
-import { desc as desc9, sql as sql12, eq as eq13, and as and9, count as count4, gte as gte2, inArray as inArray9, ilike as ilike2, or } from "drizzle-orm";
+import { desc as desc10, sql as sql12, eq as eq14, and as and10, count as count4, gte as gte2, inArray as inArray10, ilike as ilike2, or } from "drizzle-orm";
 
 // server/creator-publishing.ts
 init_schema();
@@ -12311,7 +12330,12 @@ async function generateCompleteBook(input) {
   const model = input.aiModel || DEFAULT_BOOK_AI_MODEL;
   const aiSettings = input.aiSettings || {};
   const childrenBibleBook = input.bookType === "children" && /bible|christian|faith|scripture/i.test(`${input.genre} ${input.prompt}`);
-  const studioGuidance = [aiSettings.generationPrompt, aiSettings.toolPrompts?.["complete-book"]].filter(Boolean).join("\n\n");
+  const studioGuidance = [
+    aiSettings.generationPrompt,
+    aiSettings.resourceNotes ? `Author-provided source and reference resources:
+${aiSettings.resourceNotes}` : "",
+    aiSettings.toolPrompts?.["complete-book"]
+  ].filter(Boolean).join("\n\n");
   const completeBookSettings = aiSettings.toolSettings?.["complete-book"];
   await input.onProgress(4, "Designing the book outline and visual theme");
   const planning = await client.chat.completions.create({
@@ -12658,7 +12682,7 @@ function art(id, scene, altText, artMode = "line") {
     scene,
     artMode,
     altText,
-    brief: artMode === "line" ? "Original black-line illustration for young artists to color." : "Original, colorful storybook illustration."
+    brief: artMode === "line" ? "Bold, clean black-line story art with broad, enclosed spaces for crayons and pencils." : "Layered storybook color art with dimensional shading, warm highlights, and expressive characters."
   };
 }
 function page(kind, title, blocks, chapterId) {
@@ -12690,11 +12714,11 @@ ${storyWinks[stories.indexOf(story)]}`
     ]),
     page("copyright", "Copyright and family note", [
       text2("copyright-heading", "heading", "About this book"),
-      text2("copyright-note", "body", "This book contains original child-friendly retellings and original layered vector illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family\u2019s own faith tradition or trusted spiritual leaders.\n\nCopyright \xA9 [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing.")
+      text2("copyright-note", "body", "This book contains original child-friendly retellings and original layered storybook illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family\u2019s own faith tradition or trusted spiritual leaders.\n\nCopyright \xA9 [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing.")
     ]),
     page("backmatter", "How to use this book", [
       text2("how-heading", "heading", "Read. Talk. Color."),
-      text2("how-body", "body", "Each of these 20 stories has a lively read-aloud retelling, a Bible passage reference, an illustrated story opener, a grown-up guide, questions, a hands-on assignment, a bright color example, and a black-line coloring page with a matching mini color reference. Read at your child\u2019s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe designed interior is 8.5 \xD7 11 inches with no bleed. Because it includes full-color art, select a KDP color-interior option; a black-and-white edition requires removing or converting those example pages and rechecking the exported file. Before publication, replace author and copyright placeholders, add a valid ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in KDP Print Previewer. Store specifications can change; confirm current specifications in the target store\u2019s current setup and preview tools.")
+      text2("how-body", "body", "Each of these 20 stories has a lively read-aloud retelling, a Bible passage reference, a full-page illustrated story opener, a grown-up guide, questions, a hands-on assignment, a dimensional color example, and a black-line coloring page with a matching mini color reference. Read at your child\u2019s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe print interior is A4 portrait (210 \xD7 297 mm), with no bleed. Because it includes full-color art, choose a color-interior print option and confirm that the selected printer supports A4 before ordering. Replace author and copyright placeholders, add an ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in the target printer\u2019s previewer. Print specifications vary by provider.")
     ]),
     page("contents", "Story index", [
       text2("contents-heading", "heading", "The stories"),
@@ -12772,10 +12796,10 @@ ${storyWinks[stories.indexOf(story)]}`
   ]));
   const designerDocument = {
     schemaVersion: 1,
-    prompt: "Original, age-appropriate, read-aloud Bible story and coloring book with 20 gently humorous retellings, scripture references, illustrated openers, parent conversation guides, story questions, child assignments, colored examples, and printable high-contrast black-line illustrations with mini color references. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
+    prompt: "Original, age-appropriate read-aloud Bible story and coloring book with 20 gently humorous retellings, scripture references, full-page illustrated openers, parent conversation guides, story questions, child assignments, dimensional color examples, and high-contrast black-line illustrations with mini color references. Use A4 portrait pages. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
     theme: {
       ...DEFAULT_EBOOK_THEME,
-      name: "Bright storybook",
+      name: "Bright layered storybook",
       primary: "#145d72",
       accent: "#f2ad35",
       paper: "#fff9e8",
@@ -12790,9 +12814,9 @@ ${storyWinks[stories.indexOf(story)]}`
     subtitle: "20 Bible Stories to Read, Talk About, and Color",
     bookType: "children",
     genre: "Bible stories and coloring books",
-    trimSize: "8.5x11",
+    trimSize: "8.2677x11.6929",
     idea: "An illustrated, read-aloud Bible story and coloring book with 20 warm, gently humorous retellings, scripture references, parent read-aloud notes, questions, child assignments, dimensional color examples, and printable high-contrast scenes.",
-    description: "Read together, laugh together, talk about the story, and color twenty original Bible-inspired scenes. Every story includes an illustrated opener, an original read-aloud retelling, its Bible reference, a parent conversation guide, child-friendly questions, a hands-on assignment, a layered-color example, and a matching black-line coloring page with a mini example. Trim size: 8.5 \xD7 11 inches. Review the editable draft and all publication details before printing.",
+    description: "Read together, laugh together, talk about the story, and color twenty original Bible-inspired scenes. Every story includes a full-page illustrated opener, an original read-aloud retelling, its Bible reference, a parent conversation guide, child-friendly questions, a hands-on assignment, a dimensional color example, and a matching black-line coloring page with a mini example. Print interior: A4 portrait (210 \xD7 297 mm). Review the editable draft and confirm your printer supports A4 before ordering.",
     outline: stories.map((story) => `${story.title} \u2014 ${story.reference}`),
     chapters,
     kdpKeywords: [
@@ -12822,14 +12846,24 @@ var DEFAULT_STUDIO_TOOL_PROMPTS = {
   outline: "",
   chapter: "",
   metadata: "",
-  "writing-assistant": ""
+  "writing-assistant": "",
+  "title-ideas": "",
+  blurb: "",
+  proofread: "",
+  expand: "",
+  keywords: ""
 };
 var DEFAULT_STUDIO_TOOL_SETTINGS = {
   "complete-book": { temperature: 0.55, maxTokens: 3600 },
   outline: { temperature: 0.6, maxTokens: 2400 },
   chapter: { temperature: 0.7, maxTokens: 2400 },
   metadata: { temperature: 0.65, maxTokens: 2400 },
-  "writing-assistant": { temperature: 0.7, maxTokens: 2400 }
+  "writing-assistant": { temperature: 0.7, maxTokens: 2400 },
+  "title-ideas": { temperature: 0.7, maxTokens: 1400 },
+  blurb: { temperature: 0.65, maxTokens: 1800 },
+  proofread: { temperature: 0.2, maxTokens: 4e3 },
+  expand: { temperature: 0.65, maxTokens: 4e3 },
+  keywords: { temperature: 0.5, maxTokens: 1200 }
 };
 var DEFAULT_CREATOR_STUDIO_AI_CONTROLS = {
   defaultChapterCount: 6,
@@ -12837,6 +12871,7 @@ var DEFAULT_CREATOR_STUDIO_AI_CONTROLS = {
   includeParentNotes: true,
   illustrationStyle: "Original, print-friendly vector illustrations; black-line artwork on coloring pages.",
   generationPrompt: "Keep all writing original, accurate to cited source material, clear for the chosen reader, and ready for human review before publication.",
+  resourceNotes: "",
   toolPrompts: DEFAULT_STUDIO_TOOL_PROMPTS,
   toolSettings: DEFAULT_STUDIO_TOOL_SETTINGS
 };
@@ -12862,19 +12897,30 @@ function normalizeCreatorStudioAIControls(input) {
     includeParentNotes: input?.includeParentNotes !== false,
     illustrationStyle: clean(input?.illustrationStyle, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.illustrationStyle, 300),
     generationPrompt: clean(input?.generationPrompt, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.generationPrompt, 2e3),
+    resourceNotes: clean(input?.resourceNotes, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.resourceNotes, 5e3),
     toolPrompts: {
       "complete-book": clean(inputPrompts["complete-book"], "", 2e3),
       outline: clean(inputPrompts.outline, "", 2e3),
       chapter: clean(inputPrompts.chapter, "", 2e3),
       metadata: clean(inputPrompts.metadata, "", 2e3),
-      "writing-assistant": clean(inputPrompts["writing-assistant"], "", 2e3)
+      "writing-assistant": clean(inputPrompts["writing-assistant"], "", 2e3),
+      "title-ideas": clean(inputPrompts["title-ideas"], "", 2e3),
+      blurb: clean(inputPrompts.blurb, "", 2e3),
+      proofread: clean(inputPrompts.proofread, "", 2e3),
+      expand: clean(inputPrompts.expand, "", 2e3),
+      keywords: clean(inputPrompts.keywords, "", 2e3)
     },
     toolSettings: {
       "complete-book": normalizeToolSettings("complete-book"),
       outline: normalizeToolSettings("outline"),
       chapter: normalizeToolSettings("chapter"),
       metadata: normalizeToolSettings("metadata"),
-      "writing-assistant": normalizeToolSettings("writing-assistant")
+      "writing-assistant": normalizeToolSettings("writing-assistant"),
+      "title-ideas": normalizeToolSettings("title-ideas"),
+      blurb: normalizeToolSettings("blurb"),
+      proofread: normalizeToolSettings("proofread"),
+      expand: normalizeToolSettings("expand"),
+      keywords: normalizeToolSettings("keywords")
     }
   };
 }
@@ -13414,10 +13460,10 @@ function registerCreatorPublishingRoutes(app2) {
         priority: "normal"
       }).catch(() => {
       });
-      const [admin] = await db.select({ id: users.id }).from(users).where(eq9(users.userType, "admin")).limit(1);
-      if (admin) {
+      const [admin2] = await db.select({ id: users.id }).from(users).where(eq9(users.userType, "admin")).limit(1);
+      if (admin2) {
         await db.insert(notifications).values({
-          userId: admin.id,
+          userId: admin2.id,
           type: "creator_studio_subscription",
           title: "Creator Studio subscription payment to review",
           content: `${req.user.firstName || "A creator"} submitted a $${access.monthlyPrice.toFixed(2)} monthly Creator Studio payment.`,
@@ -13778,7 +13824,7 @@ function registerCreatorPublishingRoutes(app2) {
       }
       if (req.body.trimSize !== void 0) {
         const trimSize = String(req.body.trimSize).trim();
-        if (!["6x9", "5.5x8.5", "5x8", "8.5x11", "8x10", "8x8"].includes(trimSize)) {
+        if (!["6x9", "5.5x8.5", "5x8", "8.2677x11.6929", "8.5x11", "8x10", "8x8"].includes(trimSize)) {
           return res.status(400).json({ message: "Choose a supported KDP trim size." });
         }
         changes.trimSize = trimSize;
@@ -14179,8 +14225,10 @@ function registerCreatorPublishingRoutes(app2) {
         max_tokens: config.settings.toolSettings.outline.maxTokens,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: `Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters and respect the requested book type and niche.
-${config.settings.toolPrompts.outline}` },
+          { role: "system", content: `Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Return exactly ${config.settings.defaultChapterCount} chapters and respect the requested book type and niche.
+${config.settings.resourceNotes ? `Author-provided source and reference resources:
+${config.settings.resourceNotes}
+` : ""}${config.settings.toolPrompts.outline}` },
           { role: "user", content: `Book type: ${bookType}
 Niche: ${genre}
 Book concept: ${idea}` }
@@ -14220,7 +14268,9 @@ Book concept: ${idea}` }
         max_tokens: config.settings.toolSettings.chapter.maxTokens,
         messages: [
           { role: "system", content: `Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs.
-${config.settings.toolPrompts.chapter}` },
+${config.settings.resourceNotes ? `Author-provided source and reference resources:
+${config.settings.resourceNotes}
+` : ""}${config.settings.toolPrompts.chapter}` },
           { role: "user", content: `Book type: ${book.bookType || "nonfiction"}
 Niche: ${book.genre || "General nonfiction"}
 Book idea: ${idea || book.idea || "Not provided"}
@@ -14257,7 +14307,9 @@ Chapter: ${chapterTitle}` }
           {
             role: "system",
             content: `Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.
-${config.settings.toolPrompts.metadata}`
+${config.settings.resourceNotes ? `Author-provided source and reference resources:
+${config.settings.resourceNotes}
+` : ""}${config.settings.toolPrompts.metadata}`
           },
           {
             role: "user",
@@ -14327,13 +14379,17 @@ Chapter title: ${chapter?.title}
 Current chapter text:
 ${chapter?.content}` : `${context}
 ${input ? `Creator's focus: ${input}` : ""}`;
+      const toolSettings = config.settings.toolSettings[tool];
       const result = await client.chat.completions.create({
         model,
-        temperature: tool === "proofread" ? Math.min(0.6, config.settings.toolSettings["writing-assistant"].temperature) : config.settings.toolSettings["writing-assistant"].temperature,
-        max_tokens: config.settings.toolSettings["writing-assistant"].maxTokens,
+        temperature: tool === "proofread" ? Math.min(0.6, toolSettings.temperature) : toolSettings.temperature,
+        max_tokens: toolSettings.maxTokens,
         messages: [
           { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.
-${config.settings.toolPrompts["writing-assistant"]}` },
+${config.settings.resourceNotes ? `Author-provided source and reference resources:
+${config.settings.resourceNotes}
+` : ""}${config.settings.toolPrompts["writing-assistant"]}
+${config.settings.toolPrompts[tool]}` },
           { role: "user", content: prompt }
         ]
       });
@@ -14720,6 +14776,1244 @@ ${config.settings.toolPrompts["writing-assistant"]}` },
     } catch (error) {
       console.error("Failed to load creator earnings:", error);
       res.status(500).json({ message: "Could not load creator earnings." });
+    }
+  });
+}
+
+// server/plugin-studio.ts
+init_db();
+import { and as and7, desc as desc8, eq as eq10, inArray as inArray7 } from "drizzle-orm";
+import { zipSync, strToU8 } from "fflate";
+init_schema();
+
+// server/wp-plugin-template.ts
+function phpLiteral(value) {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+function headerValue(value, maxLength) {
+  return value.replace(/<[^>]*>/g, "").replace(/\*\//g, "* /").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+function replaceTokens(source, info) {
+  const description = info.description.replace(/<\/p>\s*<p[^>]*>/gi, "\n\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/\*\//g, "* /").replace(/\u0000/g, "").trim();
+  const safeName = headerValue(info.name, 120);
+  const safeAuthor = headerValue(info.author, 80);
+  const safeShortDescription = headerValue(info.shortDescription, 180);
+  const values = {
+    "{{SLUG}}": info.slug.replace(/[^a-z0-9_-]/g, ""),
+    "{{NAME}}": safeName,
+    "{{NAME_PHP}}": phpLiteral(safeName),
+    "{{VERSION}}": info.version.replace(/[^a-zA-Z0-9.+-]/g, ""),
+    "{{AUTHOR}}": safeAuthor,
+    "{{SHORT_DESCRIPTION}}": safeShortDescription,
+    "{{DESCRIPTION}}": description
+  };
+  return source.replace(/\{\{[A-Z_]+\}\}/g, (token) => values[token] ?? token);
+}
+var mainPlugin = `<?php
+/**
+ * Plugin Name: {{NAME}}
+ * Plugin URI: https://taskdrip.online/shop
+ * Description: {{SHORT_DESCRIPTION}}
+ * Version: {{VERSION}}
+ * Requires at least: 6.2
+ * Requires PHP: 7.4
+ * Requires Plugins: woocommerce, learnpress
+ * Author: {{AUTHOR}}
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: {{SLUG}}
+ * Domain Path: /languages
+ *
+ * @package {{SLUG}}
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+define('TDLPW_VERSION', '{{VERSION}}');
+define('TDLPW_FILE', __FILE__);
+define('TDLPW_PATH', plugin_dir_path(__FILE__));
+define('TDLPW_URL', plugin_dir_url(__FILE__));
+
+require_once TDLPW_PATH . 'includes/class-activator.php';
+require_once TDLPW_PATH . 'includes/class-core.php';
+
+register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
+register_deactivation_hook(__FILE__, array('TDLPW_Activator', 'deactivate'));
+
+add_action('plugins_loaded', function () {
+    load_plugin_textdomain('{{SLUG}}', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    (new TDLPW_Core())->run();
+});
+`;
+var activator = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Activator {
+    public static function activate() {
+        global $wpdb;
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $table = $wpdb->prefix . 'tdlpw_order_index';
+        $charset = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE " . $table . " (
+            order_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NULL,
+            customer_email varchar(190) NOT NULL,
+            product_ids longtext NOT NULL,
+            course_ids longtext NOT NULL,
+            amount decimal(18,4) NOT NULL DEFAULT 0,
+            currency varchar(12) NOT NULL DEFAULT '',
+            order_status varchar(30) NOT NULL DEFAULT '',
+            purchased_at datetime NOT NULL,
+            PRIMARY KEY  (order_id),
+            KEY user_id (user_id),
+            KEY customer_email (customer_email),
+            KEY order_status (order_status),
+            KEY purchased_at (purchased_at)
+        ) " . $charset . ";";
+        dbDelta($sql);
+        $log_table = $wpdb->prefix . 'tdlpw_campaign_log';
+        $log_sql = "CREATE TABLE " . $log_table . " (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            subject varchar(190) NOT NULL,
+            email varchar(190) NOT NULL,
+            status varchar(20) NOT NULL,
+            detail text NOT NULL,
+            sent_at datetime NOT NULL,
+            PRIMARY KEY  (id),
+            KEY email (email),
+            KEY status (status),
+            KEY sent_at (sent_at)
+        ) " . $charset . ";";
+        dbDelta($log_sql);
+        if (get_option('tdlpw_settings', false) === false) {
+            add_option('tdlpw_settings', array(
+                'from_name' => get_bloginfo('name'),
+                'from_email' => get_option('admin_email'),
+            ), '', false);
+        }
+    }
+
+    public static function deactivate() {
+        // Keep purchase history, course mappings, and consent records on deactivation.
+        wp_clear_scheduled_hook('tdlpw_cleanup_old_campaign_logs');
+        wp_clear_scheduled_hook('tdlpw_backfill_paid_orders');
+        wp_clear_scheduled_hook('tdlpw_sync_mapped_product');
+    }
+}
+`;
+var core = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+require_once TDLPW_PATH . 'includes/class-bridge.php';
+require_once TDLPW_PATH . 'includes/class-audience.php';
+require_once TDLPW_PATH . 'includes/class-resend.php';
+require_once TDLPW_PATH . 'includes/class-admin.php';
+
+final class TDLPW_Core {
+    public function run() {
+        (new TDLPW_Bridge())->run();
+        (new TDLPW_Admin())->run();
+        add_action('admin_notices', array($this, 'dependency_notice'));
+        add_action('init', array($this, 'unsubscribe_route'));
+        add_action('init', array($this, 'register_privacy_handlers'));
+        add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
+        add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
+    }
+
+    public function dependency_notice() {
+        if (!current_user_can('activate_plugins')) { return; }
+        $missing = array();
+        if (!class_exists('WooCommerce')) { $missing[] = 'WooCommerce'; }
+        if (!defined('LEARNPRESS_VERSION')) { $missing[] = 'LearnPress'; }
+        if ($missing) {
+            echo '<div class="notice notice-warning"><p><strong>' .
+                esc_html('{{NAME_PHP}}') . '</strong> requires ' .
+                esc_html(implode(' and ', $missing)) . ' to be installed and active.</p></div>';
+        }
+    }
+
+    public function unsubscribe_route() {
+        if (!isset($_GET['tdlpw_unsubscribe'])) { return; }
+        $user_id = absint($_GET['tdlpw_unsubscribe']);
+        $token = isset($_GET['token']) ? sanitize_text_field(wp_unslash($_GET['token'])) : '';
+        $expected = hash_hmac('sha256', (string) $user_id, wp_salt('auth'));
+        if (!$user_id || !$token || !hash_equals($expected, $token)) {
+            wp_die(esc_html__('This unsubscribe link is invalid or expired.', '{{SLUG}}'), '', array('response' => 400));
+        }
+        update_user_meta($user_id, 'tdlpw_email_marketing_optin', '0');
+        wp_die(
+            esc_html__('You have been unsubscribed from course marketing emails.', '{{SLUG}}'),
+            esc_html__('Email preferences updated', '{{SLUG}}'),
+            array('response' => 200)
+        );
+    }
+
+    public function register_privacy_handlers() {
+        add_filter('wp_privacy_personal_data_exporters', array($this, 'privacy_exporter'));
+        add_filter('wp_privacy_personal_data_erasers', array($this, 'privacy_eraser'));
+    }
+
+    public function privacy_exporter($exporters) {
+        $exporters['taskdrip-course-bridge'] = array(
+            'exporter_friendly_name' => __('Course Bridge purchases and email preferences', '{{SLUG}}'),
+            'callback' => array($this, 'export_personal_data'),
+        );
+        return $exporters;
+    }
+
+    public function export_personal_data($email_address, $page = 1) {
+        $user = get_user_by('email', $email_address);
+        if (!$user) { return array('data' => array(), 'done' => true); }
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            'SELECT order_id, product_ids, course_ids, amount, currency, order_status, purchased_at FROM ' .
+            TDLPW_Audience::table() . ' WHERE user_id = %d ORDER BY purchased_at DESC LIMIT 100',
+            $user->ID
+        ), ARRAY_A);
+        $data = array();
+        foreach ((array) $rows as $row) {
+            $data[] = array(
+                array('name' => __('Order', '{{SLUG}}'), 'value' => absint($row['order_id'])),
+                array('name' => __('Products', '{{SLUG}}'), 'value' => implode(', ', array_filter(array_map('get_the_title', (array) json_decode($row['product_ids'], true))))),
+                array('name' => __('Courses', '{{SLUG}}'), 'value' => implode(', ', array_filter(array_map('get_the_title', (array) json_decode($row['course_ids'], true))))),
+                array('name' => __('Amount / currency', '{{SLUG}}'), 'value' => sanitize_text_field($row['amount'] . ' ' . $row['currency'])),
+                array('name' => __('Order status', '{{SLUG}}'), 'value' => sanitize_key($row['order_status'])),
+                array('name' => __('Purchase date', '{{SLUG}}'), 'value' => sanitize_text_field($row['purchased_at'])),
+            );
+        }
+        $data[] = array(
+            array('name' => __('Course marketing email consent', '{{SLUG}}'), 'value' => get_user_meta($user->ID, 'tdlpw_email_marketing_optin', true) === '1' ? __('Opted in', '{{SLUG}}') : __('Not opted in', '{{SLUG}}')),
+        );
+        return array('data' => $data, 'done' => true);
+    }
+
+    public function privacy_eraser($erasers) {
+        $erasers['taskdrip-course-bridge'] = array(
+            'eraser_friendly_name' => __('Course Bridge email preferences', '{{SLUG}}'),
+            'callback' => array($this, 'erase_personal_data'),
+        );
+        return $erasers;
+    }
+
+    public function erase_personal_data($email_address, $page = 1) {
+        $user = get_user_by('email', $email_address);
+        if (!$user) { return array('items_removed' => false, 'items_retained' => false, 'messages' => array(), 'done' => true); }
+        global $wpdb;
+        $table = TDLPW_Audience::table();
+        $wpdb->query($wpdb->prepare(
+            'UPDATE ' . $table . ' SET user_id = NULL, customer_email = CONCAT("anonymized-", order_id, "@example.invalid") WHERE user_id = %d',
+            $user->ID
+        ));
+        $wpdb->delete($wpdb->prefix . 'tdlpw_campaign_log', array('email' => $email_address), array('%s'));
+        delete_user_meta($user->ID, 'tdlpw_email_marketing_optin');
+        delete_user_meta($user->ID, 'tdlpw_email_marketing_optin_at');
+        return array(
+            'items_removed' => true,
+            'items_retained' => true,
+            'messages' => array(__('Purchase totals and order references are retained in anonymized form for store reporting; marketing consent and email logs were removed.', '{{SLUG}}')),
+            'done' => true,
+        );
+    }
+}
+`;
+var bridge = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Bridge {
+    public function run() {
+        add_action('woocommerce_product_options_general_product_data', array($this, 'product_course_field'));
+        add_action('woocommerce_admin_process_product_object', array($this, 'save_product_courses'));
+        add_action('tdlpw_sync_mapped_product', array($this, 'sync_historical_product_orders'), 10, 2);
+        add_action('woocommerce_checkout_after_customer_details', array($this, 'checkout_optin'));
+        add_action('woocommerce_checkout_create_order', array($this, 'save_checkout_optin'), 10, 2);
+        add_action('woocommerce_order_status_processing', array($this, 'sync_paid_order'));
+        add_action('woocommerce_order_status_completed', array($this, 'sync_paid_order'));
+        add_action('woocommerce_payment_complete', array($this, 'sync_paid_order'));
+        add_action('woocommerce_order_status_changed', array($this, 'sync_order_status'), 10, 4);
+    }
+
+    private function courses() {
+        return get_posts(array(
+            'post_type' => 'lp_course',
+            'post_status' => array('publish', 'private'),
+            'numberposts' => 500,
+            'orderby' => 'title',
+            'order' => 'ASC',
+        ));
+    }
+
+    public function product_course_field() {
+        global $post;
+        if (!$post || !current_user_can('edit_product', $post->ID)) { return; }
+        $selected = array_map('absint', (array) get_post_meta($post->ID, '_tdlpw_course_ids', true));
+        echo '<div class="options_group"><p class="form-field"><label for="tdlpw_course_ids">' .
+            esc_html__('LearnPress courses', '{{SLUG}}') . '</label>';
+        echo '<select id="tdlpw_course_ids" name="tdlpw_course_ids[]" class="wc-enhanced-select" multiple="multiple" style="width:50%">';
+        foreach ($this->courses() as $course) {
+            echo '<option value="' . esc_attr((string) $course->ID) . '" ' .
+                selected(in_array((int) $course->ID, $selected, true), true, false) . '>' .
+                esc_html($course->post_title) . '</option>';
+        }
+        echo '</select><span class="description">' .
+            esc_html__('Buyers of this WooCommerce product will be enrolled in every selected course after confirmed payment.', '{{SLUG}}') .
+            '</span></p></div>';
+    }
+
+    public function save_product_courses($product) {
+        if (!($product instanceof WC_Product) || !current_user_can('edit_product', $product->get_id())) { return; }
+        $ids = isset($_POST['tdlpw_course_ids']) ? array_map('absint', (array) wp_unslash($_POST['tdlpw_course_ids'])) : array();
+        $valid = array();
+        foreach (array_unique($ids) as $id) {
+            if (get_post_type($id) === 'lp_course') { $valid[] = $id; }
+        }
+        $product->update_meta_data('_tdlpw_course_ids', $valid);
+        if (!wp_next_scheduled('tdlpw_sync_mapped_product', array($product->get_id(), 1))) {
+            wp_schedule_single_event(time() + 15, 'tdlpw_sync_mapped_product', array($product->get_id(), 1));
+        }
+    }
+
+    public function sync_historical_product_orders($product_id, $page = 1) {
+        if (!function_exists('wc_get_orders')) { return; }
+        $page = max(1, absint($page));
+        $result = wc_get_orders(array(
+            'status' => array('wc-processing', 'wc-completed'),
+            'product' => array(absint($product_id)),
+            'limit' => 100,
+            'page' => $page,
+            'paginate' => true,
+            'orderby' => 'date',
+            'order' => 'ASC',
+            'return' => 'objects',
+        ));
+        foreach ((array) ($result->orders ?? array()) as $order) {
+            $this->sync_paid_order($order->get_id());
+        }
+        if ($page < absint($result->max_num_pages ?? 0)) {
+            wp_schedule_single_event(time() + 20, 'tdlpw_sync_mapped_product', array(absint($product_id), $page + 1));
+        }
+    }
+
+    public function checkout_optin() {
+        if (!function_exists('woocommerce_form_field')) { return; }
+        echo '<div class="tdlpw-marketing-optin">';
+        woocommerce_form_field('tdlpw_email_marketing_optin', array(
+            'type' => 'checkbox',
+            'class' => array('form-row-wide'),
+            'label' => esc_html__('Email me optional course news and learning offers. I can unsubscribe at any time.', '{{SLUG}}'),
+            'required' => false,
+        ), false);
+        echo '</div>';
+    }
+
+    public function save_checkout_optin($order, $data) {
+        if (empty($_POST['tdlpw_email_marketing_optin'])) { return; }
+        $user_id = $order->get_user_id();
+        if ($user_id) {
+            update_user_meta($user_id, 'tdlpw_email_marketing_optin', '1');
+            update_user_meta($user_id, 'tdlpw_email_marketing_optin_at', current_time('mysql', true));
+        }
+        $order->update_meta_data('_tdlpw_marketing_optin', '1');
+    }
+
+    public function sync_paid_order($order_id) {
+        if (!function_exists('wc_get_order')) { return; }
+        $order = wc_get_order($order_id);
+        if (!$order || !$order->is_paid()) { return; }
+        $user_id = absint($order->get_customer_id());
+        $product_ids = array();
+        $course_ids = array();
+        foreach ($order->get_items() as $item) {
+            $product_id = absint($item->get_product_id());
+            if (!$product_id) { continue; }
+            $product_ids[] = $product_id;
+            $mapped = array_map('absint', (array) get_post_meta($product_id, '_tdlpw_course_ids', true));
+            foreach ($mapped as $course_id) {
+                if (!$course_id || get_post_type($course_id) !== 'lp_course') { continue; }
+                $course_ids[] = $course_id;
+                $done = array_map('absint', (array) $order->get_meta('_tdlpw_enrolled_courses', true));
+                if ($user_id && function_exists('learn_press_user_enroll_course') && !in_array($course_id, $done, true)) {
+                    $result = learn_press_user_enroll_course($user_id, $course_id);
+                    if (!is_wp_error($result)) {
+                        $done[] = $course_id;
+                        $order->update_meta_data('_tdlpw_enrolled_courses', array_values(array_unique($done)));
+                        $order->add_order_note(sprintf(
+                            /* translators: %s: LearnPress course title. */
+                            __('Taskdrip Course Bridge enrolled the customer in "%s".', '{{SLUG}}'),
+                            get_the_title($course_id)
+                        ));
+                    }
+                }
+            }
+        }
+        $order->save();
+        TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));
+    }
+
+    public function sync_order_status($order_id, $from, $to, $order) {
+        if (in_array($to, array('processing', 'completed'), true)) {
+            $this->sync_paid_order($order_id);
+            return;
+        }
+        global $wpdb;
+        $wpdb->update(
+            TDLPW_Audience::table(),
+            array('order_status' => sanitize_key($to)),
+            array('order_id' => absint($order_id)),
+            array('%s'),
+            array('%d')
+        );
+    }
+}
+`;
+var audience = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Audience {
+    public static function schedule_backfill() {
+        if (!function_exists('wc_get_orders') || get_option('tdlpw_backfill_complete')) { return; }
+        if (!wp_next_scheduled('tdlpw_backfill_paid_orders')) {
+            wp_schedule_single_event(time() + 15, 'tdlpw_backfill_paid_orders');
+        }
+    }
+
+    public static function backfill_paid_orders() {
+        if (!function_exists('wc_get_orders')) { return; }
+        $page = max(1, absint(get_option('tdlpw_backfill_page', 1)));
+        $result = wc_get_orders(array(
+            'status' => array('wc-processing', 'wc-completed'),
+            'limit' => 100,
+            'page' => $page,
+            'paginate' => true,
+            'orderby' => 'date',
+            'order' => 'ASC',
+            'return' => 'objects',
+        ));
+        foreach ((array) ($result->orders ?? array()) as $order) {
+            // Reconcile legacy paid orders against current mappings, then index their purchases.
+            (new TDLPW_Bridge())->sync_paid_order($order->get_id());
+        }
+        if ($page < absint($result->max_num_pages ?? 0)) {
+            update_option('tdlpw_backfill_page', $page + 1, false);
+            wp_schedule_single_event(time() + 20, 'tdlpw_backfill_paid_orders');
+        } else {
+            update_option('tdlpw_backfill_complete', 1, false);
+            delete_option('tdlpw_backfill_page');
+        }
+    }
+
+    public static function table() {
+        global $wpdb;
+        return $wpdb->prefix . 'tdlpw_order_index';
+    }
+
+    public static function index_order($order, $product_ids, $course_ids) {
+        global $wpdb;
+        $email = sanitize_email($order->get_billing_email());
+        if (!$email) { return; }
+        $user_id = absint($order->get_customer_id());
+        if (!$user_id) {
+            $existing = get_user_by('email', $email);
+            $user_id = $existing ? absint($existing->ID) : null;
+        }
+        $paid_at = $order->get_date_paid();
+        $wpdb->replace(self::table(), array(
+            'order_id' => absint($order->get_id()),
+            'user_id' => $user_id,
+            'customer_email' => $email,
+            'product_ids' => wp_json_encode(array_map('absint', $product_ids)),
+            'course_ids' => wp_json_encode(array_map('absint', $course_ids)),
+            'amount' => (float) $order->get_total(),
+            'currency' => sanitize_text_field($order->get_currency()),
+            'order_status' => sanitize_key($order->get_status()),
+            'purchased_at' => $paid_at ? gmdate('Y-m-d H:i:s', $paid_at->getTimestamp()) : gmdate('Y-m-d H:i:s'),
+        ), array('%d', '%d', '%s', '%s', '%s', '%f', '%s', '%s', '%s'));
+    }
+
+    public static function rows($filters = array()) {
+        global $wpdb;
+        $entries = $wpdb->get_results(
+            'SELECT user_id, customer_email, product_ids, course_ids, amount, currency, order_id, purchased_at FROM ' .
+            self::table() . " WHERE order_status IN ('processing','completed') ORDER BY purchased_at DESC LIMIT 5000",
+            ARRAY_A
+        );
+        $audience = array();
+        foreach ((array) $entries as $entry) {
+            $email = sanitize_email($entry['customer_email']);
+            $user = !empty($entry['user_id']) ? get_user_by('id', absint($entry['user_id'])) : get_user_by('email', $email);
+            if (!$email || !$user) { continue; }
+            $id = absint($user->ID);
+            if (!isset($audience[$id])) {
+                $audience[$id] = array(
+                    'id' => $id,
+                    'name' => $user->display_name,
+                    'email' => $email,
+                    'role' => implode(', ', array_map('sanitize_key', (array) $user->roles)),
+                    'products' => array(),
+                    'courses' => array(),
+                    'orders' => 0,
+                    'spend_by_currency' => array(),
+                    'latest_order_id' => 0,
+                    'last_purchase' => '',
+                    'optin' => get_user_meta($id, 'tdlpw_email_marketing_optin', true) === '1',
+                );
+            }
+            $audience[$id]['orders']++;
+            if (!$audience[$id]['latest_order_id']) {
+                $audience[$id]['latest_order_id'] = absint($entry['order_id']);
+                $audience[$id]['last_purchase'] = sanitize_text_field($entry['purchased_at']);
+            }
+            $currency = sanitize_text_field($entry['currency'] ?: 'Other');
+            if (!isset($audience[$id]['spend_by_currency'][$currency])) { $audience[$id]['spend_by_currency'][$currency] = 0; }
+            $audience[$id]['spend_by_currency'][$currency] += (float) $entry['amount'];
+            foreach ((array) json_decode((string) $entry['product_ids'], true) as $product_id) {
+                $product_id = absint($product_id);
+                if ($product_id) { $audience[$id]['products'][$product_id] = get_the_title($product_id); }
+            }
+            foreach ((array) json_decode((string) $entry['course_ids'], true) as $course_id) {
+                $course_id = absint($course_id);
+                if ($course_id) { $audience[$id]['courses'][$course_id] = get_the_title($course_id); }
+            }
+        }
+
+        // Include direct LearnPress course enrollments, even when the student did not buy through WooCommerce.
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists === $table) {
+            $enrollments = $wpdb->get_results(
+                "SELECT user_id, item_id FROM " . $table .
+                " WHERE item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC LIMIT 5000",
+                ARRAY_A
+            );
+            foreach ((array) $enrollments as $enrollment) {
+                $id = absint($enrollment['user_id']);
+                $course_id = absint($enrollment['item_id']);
+                $user = get_user_by('id', $id);
+                if (!$user || !$course_id) { continue; }
+                if (!isset($audience[$id])) {
+                    $audience[$id] = array(
+                        'id' => $id,
+                        'name' => $user->display_name,
+                        'email' => sanitize_email($user->user_email),
+                        'role' => implode(', ', array_map('sanitize_key', (array) $user->roles)),
+                        'products' => array(), 'courses' => array(), 'orders' => 0,
+                        'spend_by_currency' => array(),
+                        'latest_order_id' => 0, 'last_purchase' => '',
+                        'optin' => get_user_meta($id, 'tdlpw_email_marketing_optin', true) === '1',
+                    );
+                }
+                $audience[$id]['courses'][$course_id] = get_the_title($course_id);
+            }
+        }
+
+        $product_filter = absint($filters['product'] ?? 0);
+        $course_filter = absint($filters['course'] ?? 0);
+        $role_filter = sanitize_key($filters['role'] ?? '');
+        $opted_in = !empty($filters['opted_in']);
+        $rows = array_values(array_filter($audience, function ($row) use ($product_filter, $course_filter, $role_filter, $opted_in) {
+            if ($product_filter && !isset($row['products'][$product_filter])) { return false; }
+            if ($course_filter && !isset($row['courses'][$course_filter])) { return false; }
+            if ($role_filter && !in_array($role_filter, array_map('trim', explode(',', $row['role'])), true)) { return false; }
+            if ($opted_in && !$row['optin']) { return false; }
+            return true;
+        }));
+        usort($rows, function ($a, $b) { return strcasecmp($a['name'], $b['name']); });
+        return $rows;
+    }
+}
+`;
+var resend = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Resend {
+    public static function send_campaign($recipient_ids, $subject, $html) {
+        $settings = get_option('tdlpw_settings', array());
+        $api_key = defined('TDLPW_RESEND_API_KEY') ? constant('TDLPW_RESEND_API_KEY') : ($settings['resend_api_key'] ?? '');
+        $from_email = sanitize_email($settings['from_email'] ?? '');
+        $from_name = sanitize_text_field($settings['from_name'] ?? get_bloginfo('name'));
+        if (!$api_key || !preg_match('/^re_[A-Za-z0-9_-]+$/', $api_key)) {
+            return new WP_Error('tdlpw_missing_resend_key', __('Add a valid Resend API key in plugin settings or wp-config.php.', '{{SLUG}}'));
+        }
+        if (!$from_email || !is_email($from_email)) {
+            return new WP_Error('tdlpw_missing_from_email', __('Set a valid sender address in the plugin settings.', '{{SLUG}}'));
+        }
+        if (count($recipient_ids) > 100) {
+            return new WP_Error('tdlpw_batch_limit', __('A single campaign can contain at most 100 selected recipients.', '{{SLUG}}'));
+        }
+        $emails = array();
+        $recipients = array();
+        foreach (array_unique(array_map('absint', $recipient_ids)) as $user_id) {
+            $user = get_user_by('id', $user_id);
+            if (!$user || get_user_meta($user_id, 'tdlpw_email_marketing_optin', true) !== '1') { continue; }
+            $token = hash_hmac('sha256', (string) $user_id, wp_salt('auth'));
+            $unsubscribe = add_query_arg(array('tdlpw_unsubscribe' => $user_id, 'token' => $token), home_url('/'));
+            $body = wpautop(wp_kses_post($html)) .
+                '<p style="font-size:12px;color:#6b7280">You received this because you opted in to course updates. ' .
+                '<a href="' . esc_url($unsubscribe) . '">Unsubscribe</a></p>';
+            $recipients[] = $user->user_email;
+            $emails[] = array(
+                'from' => $from_name . ' <' . $from_email . '>',
+                'to' => array(sanitize_email($user->user_email)),
+                'subject' => sanitize_text_field($subject),
+                'html' => $body,
+                'headers' => array(
+                    'List-Unsubscribe' => '<' . $unsubscribe . '>',
+                    'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+                ),
+            );
+        }
+        if (!$emails) { return array('sent' => 0, 'failed' => 0, 'errors' => array()); }
+        $response = wp_remote_post('https://api.resend.com/emails/batch', array(
+            'timeout' => 25,
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $api_key,
+                'Content-Type' => 'application/json',
+            ),
+            'body' => wp_json_encode($emails),
+        ));
+        $response_code = is_wp_error($response) ? 0 : wp_remote_retrieve_response_code($response);
+        if (is_wp_error($response) || $response_code < 200 || $response_code >= 300) {
+            $error = is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response);
+            foreach ($recipients as $email) { self::log($subject, $email, 'failed', $error); }
+            return array('sent' => 0, 'failed' => count($recipients), 'errors' => array(substr($error, 0, 500)));
+        }
+        $sent = count($recipients);
+        $result = json_decode(wp_remote_retrieve_body($response), true);
+        foreach ($recipients as $index => $email) {
+            $provider_id = sanitize_text_field($result['data'][$index]['id'] ?? '');
+            self::log($subject, $email, 'sent', $provider_id ? 'Resend ID: ' . $provider_id : '');
+        }
+        return array('sent' => $sent, 'failed' => 0, 'errors' => array());
+    }
+
+    private static function log($subject, $email, $status, $detail) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'tdlpw_campaign_log';
+        $wpdb->insert($table, array(
+            'subject' => sanitize_text_field($subject),
+            'email' => sanitize_email($email),
+            'status' => sanitize_key($status),
+            'detail' => sanitize_textarea_field($detail),
+            'sent_at' => current_time('mysql', true),
+        ), array('%s', '%s', '%s', '%s', '%s'));
+    }
+}
+`;
+var admin = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Admin {
+    public function run() {
+        add_action('admin_menu', array($this, 'menu'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+        add_action('admin_post_tdlpw_save_settings', array($this, 'save_settings'));
+        add_action('admin_post_tdlpw_send_campaign', array($this, 'send_campaign'));
+    }
+
+    public function enqueue_assets($hook) {
+        if ($hook !== 'toplevel_page_tdlpw-dashboard') { return; }
+        wp_enqueue_style('{{SLUG}}-admin', TDLPW_URL . 'assets/css/admin.css', array(), TDLPW_VERSION);
+    }
+
+    public function menu() {
+        add_menu_page(
+            esc_html__('Course Bridge', '{{SLUG}}'),
+            esc_html__('Course Bridge', '{{SLUG}}'),
+            'manage_woocommerce',
+            'tdlpw-dashboard',
+            array($this, 'render'),
+            'dashicons-welcome-learn-more',
+            58
+        );
+    }
+
+    public function save_settings() {
+        if (!current_user_can('manage_options')) { wp_die(esc_html__('Access denied.', '{{SLUG}}'), '', array('response' => 403)); }
+        check_admin_referer('tdlpw_save_settings');
+        $settings = get_option('tdlpw_settings', array());
+        $settings['from_name'] = sanitize_text_field(wp_unslash($_POST['from_name'] ?? ''));
+        $settings['from_email'] = sanitize_email(wp_unslash($_POST['from_email'] ?? ''));
+        $key = trim(sanitize_text_field(wp_unslash($_POST['resend_api_key'] ?? '')));
+        if ($key !== '') { $settings['resend_api_key'] = $key; }
+        if (isset($_POST['remove_resend_api_key'])) { unset($settings['resend_api_key']); }
+        update_option('tdlpw_settings', $settings, false);
+        wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'settings', 'updated' => '1'), admin_url('admin.php')));
+        exit;
+    }
+
+    public function send_campaign() {
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('Access denied.', '{{SLUG}}'), '', array('response' => 403)); }
+        check_admin_referer('tdlpw_send_campaign');
+        $subject = sanitize_text_field(wp_unslash($_POST['subject'] ?? ''));
+        $html = wp_kses_post(wp_unslash($_POST['message'] ?? ''));
+        $selected = array_map('absint', (array) wp_unslash($_POST['recipient_ids'] ?? array()));
+        $selected = array_slice(array_values(array_unique(array_filter($selected))), 0, 100);
+        if (!$subject || !$html || !$selected) {
+            wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'customers', 'notice' => 'select'), admin_url('admin.php')));
+            exit;
+        }
+        $result = TDLPW_Resend::send_campaign($selected, $subject, $html);
+        if (is_wp_error($result)) {
+            $notice = rawurlencode($result->get_error_message());
+        } else {
+            $notice = rawurlencode(sprintf(__('Campaign complete: %1$d sent, %2$d failed.', '{{SLUG}}'), $result['sent'], $result['failed']));
+        }
+        wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'customers', 'notice' => $notice), admin_url('admin.php')));
+        exit;
+    }
+
+    private function course_choices() {
+        return get_posts(array('post_type' => 'lp_course', 'post_status' => array('publish', 'private'), 'numberposts' => 500, 'orderby' => 'title', 'order' => 'ASC'));
+    }
+
+    private function product_choices() {
+        return function_exists('wc_get_products') ? wc_get_products(array('limit' => 500, 'status' => 'publish', 'orderby' => 'name', 'order' => 'ASC')) : array();
+    }
+
+    public function render() {
+        if (!current_user_can('manage_woocommerce')) { return; }
+        $tab = sanitize_key($_GET['tab'] ?? 'overview');
+        $settings = get_option('tdlpw_settings', array());
+        $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
+        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('LearnPress + WooCommerce Course Bridge', '{{SLUG}}') . '</h1>';
+        echo '<p>' . esc_html__('Link course products, verify paid orders, review buyers, and send consent-based course updates through Resend.', '{{SLUG}}') . '</p>';
+        if (!empty($_GET['notice'])) {
+            echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
+        }
+        echo '<nav class="nav-tab-wrapper">';
+        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Customers & Campaigns', '{{SLUG}}'), 'settings' => __('Email Settings', '{{SLUG}}')) as $key => $label) {
+            echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' .
+                esc_url(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => $key), admin_url('admin.php'))) . '">' . esc_html($label) . '</a>';
+        }
+        echo '</nav>';
+        if ($tab === 'settings') { $this->render_settings($settings, $is_constant_key); }
+        elseif ($tab === 'customers') { $this->render_customers(); }
+        else { $this->render_overview(); }
+        echo '</div>';
+    }
+
+    private function render_overview() {
+        $products = $this->product_choices();
+        $courses = $this->course_choices();
+        echo '<div class="tdlpw-grid"><section class="tdlpw-card"><h2>' . esc_html__('How course mapping works', '{{SLUG}}') . '</h2>';
+        echo '<ol><li>' . esc_html__('Edit a WooCommerce product and choose one or more LearnPress courses in Product data \u2192 General.', '{{SLUG}}') . '</li>';
+        echo '<li>' . esc_html__('When WooCommerce confirms payment, each mapped course is enrolled automatically once.', '{{SLUG}}') . '</li>';
+        echo '<li>' . esc_html__('Review paid product and course purchases under Customers & Campaigns.', '{{SLUG}}') . '</li></ol>';
+        echo '<p><strong>' . esc_html(sprintf(__('%1$d published products \xB7 %2$d LearnPress courses', '{{SLUG}}'), count($products), count($courses))) . '</strong></p>';
+        if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
+            echo '<p class="notice notice-warning inline">' . esc_html__('Activate WooCommerce and LearnPress to enable course mapping.', '{{SLUG}}') . '</p>';
+        }
+        echo '</section><section class="tdlpw-card"><h2>' . esc_html__('Course mappings', '{{SLUG}}') . '</h2>';
+        if (!$products) { echo '<p>' . esc_html__('Publish a WooCommerce product to start linking courses.', '{{SLUG}}') . '</p>'; }
+        else {
+            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__('Product', '{{SLUG}}') . '</th><th>' . esc_html__('Linked LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Edit', '{{SLUG}}') . '</th></tr></thead><tbody>';
+            foreach (array_slice($products, 0, 100) as $product) {
+                $ids = array_map('absint', (array) get_post_meta($product->get_id(), '_tdlpw_course_ids', true));
+                $names = array_filter(array_map('get_the_title', $ids));
+                echo '<tr><td>' . esc_html($product->get_name()) . '</td><td>' . esc_html($names ? implode(', ', $names) : __('No course linked', '{{SLUG}}')) . '</td><td><a href="' . esc_url(get_edit_post_link($product->get_id())) . '">' . esc_html__('Edit product', '{{SLUG}}') . '</a></td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</section></div>';
+        echo '<p class="description">' . esc_html__('Only successful WooCommerce payments are synced. Existing order and LearnPress enrollment records remain intact when this plugin is deactivated.', '{{SLUG}}') . '</p>';
+    }
+
+    private function render_customers() {
+        global $wpdb;
+        $filters = array(
+            'product' => absint($_GET['product'] ?? 0),
+            'course' => absint($_GET['course'] ?? 0),
+            'role' => sanitize_key($_GET['role'] ?? ''),
+            'opted_in' => !empty($_GET['opted_in']),
+        );
+        $rows = TDLPW_Audience::rows($filters);
+        $current_page = max(1, absint($_GET['customers_page'] ?? 1));
+        $page_size = 100;
+        $page_rows = array_slice($rows, ($current_page - 1) * $page_size, $page_size);
+        $total_pages = max(1, (int) ceil(count($rows) / $page_size));
+        $roles = wp_roles()->roles;
+        $courses = $this->course_choices();
+        $products = $this->product_choices();
+        echo '<form method="get" class="tdlpw-filters"><input type="hidden" name="page" value="tdlpw-dashboard"><input type="hidden" name="tab" value="customers">';
+        echo '<select name="product"><option value="0">' . esc_html__('All products', '{{SLUG}}') . '</option>';
+        foreach ($products as $product) {
+            echo '<option value="' . esc_attr((string) $product->get_id()) . '" ' . selected($filters['product'], $product->get_id(), false) . '>' . esc_html($product->get_name()) . '</option>';
+        }
+        echo '</select><select name="course"><option value="0">' . esc_html__('All courses', '{{SLUG}}') . '</option>';
+        foreach ($courses as $course) {
+            echo '<option value="' . esc_attr((string) $course->ID) . '" ' . selected($filters['course'], $course->ID, false) . '>' . esc_html($course->post_title) . '</option>';
+        }
+        echo '</select><select name="role"><option value="">' . esc_html__('All WordPress roles', '{{SLUG}}') . '</option>';
+        foreach ($roles as $key => $role) {
+            echo '<option value="' . esc_attr($key) . '" ' . selected($filters['role'], $key, false) . '>' . esc_html(translate_user_role($role['name'])) . '</option>';
+        }
+        echo '</select><label><input type="checkbox" name="opted_in" value="1" ' . checked($filters['opted_in'], true, false) . '> ' . esc_html__('Marketing opt-ins only', '{{SLUG}}') . '</label><button class="button">' . esc_html__('Filter', '{{SLUG}}') . '</button></form>';
+        echo '<p>' . esc_html(sprintf(__('%d buyer/student records. Campaigns can be sent only to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
+        wp_nonce_field('tdlpw_send_campaign');
+        echo '<div class="tdlpw-campaign"><label>' . esc_html__('Email subject', '{{SLUG}}') . '<input class="regular-text" name="subject" required maxlength="180"></label>';
+        echo '<label>' . esc_html__('Message (HTML allowed: links, headings, paragraphs)', '{{SLUG}}') . '<textarea name="message" rows="5" class="large-text" required></textarea></label>';
+        echo '<button class="button button-primary" type="submit">' . esc_html__('Send to selected opted-in users', '{{SLUG}}') . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send.', '{{SLUG}}') . '</span></div>';
+        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select marketing opt-ins', '{{SLUG}}') . '"></th><th>' . esc_html__('Customer', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching buyer or enrolled-student records found yet.', '{{SLUG}}') . '</td></tr>'; }
+        foreach ($page_rows as $row) {
+            $spend = array();
+            foreach ($row['spend_by_currency'] as $currency => $amount) {
+                $spend[] = number_format_i18n($amount, 2) . ' ' . $currency;
+            }
+            $latest_order = $row['latest_order_id']
+                ? ' <a href="' . esc_url(add_query_arg(array('page' => 'wc-orders', 'action' => 'edit', 'id' => $row['latest_order_id']), admin_url('admin.php'))) . '">#' . esc_html((string) $row['latest_order_id']) . '</a>' .
+                    ($row['last_purchase'] ? '<br><small>' . esc_html($row['last_purchase']) . ' UTC</small>' : '')
+                : '';
+            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '">' : '\u2014') .
+                '</td><td>' . esc_html($row['name']) . '<br><a href="mailto:' . esc_attr($row['email']) . '">' . esc_html($row['email']) . '</a></td>' .
+                '<td>' . esc_html($row['role'] ?: '\u2014') . '</td><td>' . esc_html(implode(', ', array_filter($row['products'])) ?: '\u2014') . '</td>' .
+                '<td>' . esc_html(implode(', ', array_filter($row['courses'])) ?: '\u2014') . '</td>' .
+                '<td>' . esc_html((string) $row['orders']) . ' / ' . esc_html(implode(', ', $spend) ?: '\u2014') . $latest_order . '</td>' .
+                '<td>' . ($row['optin'] ? '<span class="tdlpw-status tdlpw-opted">' . esc_html__('Opted in', '{{SLUG}}') . '</span>' : '<span class="tdlpw-status">' . esc_html__('Not opted in', '{{SLUG}}') . '</span>') . '</td></tr>';
+        }
+        echo '</tbody></table></form>';
+        if ($total_pages > 1) {
+            $pagination = array(
+                'page' => 'tdlpw-dashboard', 'tab' => 'customers',
+                'product' => $filters['product'], 'course' => $filters['course'],
+                'role' => $filters['role'], 'opted_in' => $filters['opted_in'] ? 1 : '',
+            );
+            echo '<p class="tablenav"><span>' . esc_html(sprintf(__('Page %1$d of %2$d \xB7 %3$d contacts', '{{SLUG}}'), $current_page, $total_pages, count($rows))) . '</span> ';
+            if ($current_page > 1) {
+                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page - 1)), admin_url('admin.php'))) . '">' . esc_html__('Previous', '{{SLUG}}') . '</a> ';
+            }
+            if ($current_page < $total_pages) {
+                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page + 1)), admin_url('admin.php'))) . '">' . esc_html__('Next', '{{SLUG}}') . '</a>';
+            }
+            echo '</p>';
+        }
+        $table = TDLPW_Audience::table();
+        $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
+        echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; Resend sends up to 100 selected recipients per request.', '{{SLUG}}'), $count)) . '</p>';
+        echo '<script>document.addEventListener("change",function(e){if(e.target.matches("[data-tdlpw-select-all]"))document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(c){if(!c.disabled)c.checked=e.target.checked})});</script>';
+
+        $logs = $wpdb->get_results('SELECT subject, email, status, detail, sent_at FROM ' . $wpdb->prefix . 'tdlpw_campaign_log ORDER BY id DESC LIMIT 30', ARRAY_A);
+        echo '<h2>' . esc_html__('Recent Resend activity', '{{SLUG}}') . '</h2><table class="widefat striped"><thead><tr><th>' . esc_html__('Subject', '{{SLUG}}') . '</th><th>' . esc_html__('Recipient', '{{SLUG}}') . '</th><th>' . esc_html__('Status', '{{SLUG}}') . '</th><th>' . esc_html__('Provider response', '{{SLUG}}') . '</th><th>' . esc_html__('Sent at (UTC)', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        if (!$logs) { echo '<tr><td colspan="5">' . esc_html__('No email campaigns have been sent yet.', '{{SLUG}}') . '</td></tr>'; }
+        foreach ((array) $logs as $log) {
+            echo '<tr><td>' . esc_html($log['subject']) . '</td><td>' . esc_html($log['email']) . '</td><td>' . esc_html($log['status']) . '</td><td>' . esc_html($log['detail'] ?: '\u2014') . '</td><td>' . esc_html($log['sent_at']) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+
+    private function render_settings($settings, $is_constant_key) {
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-settings">';
+        echo '<input type="hidden" name="action" value="tdlpw_save_settings">';
+        wp_nonce_field('tdlpw_save_settings');
+        echo '<h2>' . esc_html__('Resend sender settings', '{{SLUG}}') . '</h2>';
+        echo '<p>' . esc_html__('A verified sending domain is required in Resend. Campaigns are restricted to users who checked the optional marketing consent at WooCommerce checkout.', '{{SLUG}}') . '</p>';
+        echo '<label>' . esc_html__('Sender name', '{{SLUG}}') . '<input class="regular-text" name="from_name" value="' . esc_attr($settings['from_name'] ?? get_bloginfo('name')) . '" required></label>';
+        echo '<label>' . esc_html__('Verified sender email', '{{SLUG}}') . '<input class="regular-text" type="email" name="from_email" value="' . esc_attr($settings['from_email'] ?? get_option('admin_email')) . '" required></label>';
+        if ($is_constant_key) {
+            echo '<p class="notice notice-success inline">' . esc_html__('Resend API key is supplied by wp-config.php and is not editable here.', '{{SLUG}}') . '</p>';
+        } else {
+            echo '<label>' . esc_html__('Resend API key', '{{SLUG}}') . '<input class="regular-text" type="password" name="resend_api_key" value="" autocomplete="new-password" placeholder="' . esc_attr(!empty($settings['resend_api_key']) ? __('Saved \u2014 leave blank to keep current key', '{{SLUG}}') : 're_\u2026') . '"></label>';
+            echo '<p class="description">' . esc_html__('The key is stored in this WordPress site. For stronger protection, define TDLPW_RESEND_API_KEY in wp-config.php instead.', '{{SLUG}}') . '</p>';
+            if (!empty($settings['resend_api_key'])) {
+                echo '<label><input type="checkbox" name="remove_resend_api_key" value="1"> ' . esc_html__('Remove the saved Resend API key', '{{SLUG}}') . '</label>';
+            }
+        }
+        echo '<p><button class="button button-primary">' . esc_html__('Save email settings', '{{SLUG}}') . '</button></p></form>';
+    }
+}
+`;
+var readme = `=== {{NAME}} ===
+Contributors: taskdrip
+Tags: learnpress, woocommerce, course, enrollment, email marketing
+Requires at least: 6.2
+Requires PHP: 7.4
+Stable tag: {{VERSION}}
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+{{SHORT_DESCRIPTION}}
+
+== Description ==
+
+{{DESCRIPTION}}
+
+Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders enroll their customer in the courses mapped to purchased products. Review buyer roles, product and course purchases, and order totals from one WordPress admin screen. Send Resend email campaigns to customer segments only after the customer has opted in.
+
+== Features ==
+
+* Map one WooCommerce product to one or multiple LearnPress courses.
+* Enroll customers when WooCommerce confirms payment; order metadata prevents duplicate enrollment.
+* View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
+* Filter the audience by product, course, role, and marketing consent.
+* Send individual or selected-group email campaigns through Resend.
+* Respect consent, add unsubscribe links, and log each email send result.
+* Keep order history and course mappings when the plugin is deactivated.
+
+== Installation ==
+
+1. Upload the plugin ZIP in Plugins > Add New Plugin > Upload Plugin, or copy the unzipped folder to \`/wp-content/plugins/\`.
+2. Activate WooCommerce and LearnPress, then activate this plugin.
+3. Edit a WooCommerce product. Under Product data > General, map it to one or more LearnPress courses.
+4. Go to Course Bridge > Email Settings and enter a Resend API key and verified sender email.
+5. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
+
+== Privacy and email consent ==
+
+The optional checkout checkbox records consent to marketing email. Campaign tools send only to users with recorded consent. Every campaign includes an unsubscribe link. Order index records are retained after deactivation so administrators do not lose their purchase history.
+
+== Frequently Asked Questions ==
+
+= Does an order waiting for payment enroll the student? =
+
+No. Enrollment happens only after WooCommerce reports that the order is paid and processing or completed.
+
+= Can a product grant multiple courses? =
+
+Yes. Select multiple LearnPress courses in that product's settings.
+
+= Does email require a Resend API key? =
+
+Yes. Add a Resend API key and use a verified sender domain. You can use the plugin settings or define TDLPW_RESEND_API_KEY in wp-config.php.
+
+== Changelog ==
+
+= {{VERSION}} =
+* Initial release: LearnPress course mapping, paid-order enrollment, buyer reporting, consent-based Resend campaigns, and SEO-ready repository metadata.
+`;
+var deployment = `# {{NAME}} \u2014 release and repository notes
+
+## Install a release ZIP
+
+Upload the generated ZIP at WordPress Admin \u2192 Plugins \u2192 Add New Plugin \u2192 Upload Plugin. Activate WooCommerce and LearnPress first. Configure a low-value test product and verify the paid-order to course-enrollment flow before selling.
+
+## Prepare a WordPress.org submission
+
+This archive follows the standard WordPress plugin directory layout and includes readme.txt, GPL-compatible headers, text domain, capability checks, nonce-protected admin actions, escaped output, sanitized settings, and an uninstall file. Before submitting:
+
+1. Review the current WordPress Plugin Developer guidelines and GPL-compatible licensing for every distributed dependency and asset.
+2. Run Plugin Check and the current WordPress coding standards against this release.
+3. Test supported WordPress, PHP, WooCommerce, and LearnPress versions on a clean staging site.
+4. Submit the public/free SVN-hosted plugin to WordPress.org for human review. Acceptance is controlled by WordPress.org; this tool does not upload credentials or bypass review.
+5. Distribute paid builds through Taskdrip Shop. A plugin hosted in the WordPress.org directory must follow its current rules; do not put a paid-only build in the directory.
+
+## Credentials and email
+
+The Resend key belongs to the WordPress site administrator and is not embedded in this ZIP. Prefer defining TDLPW_RESEND_API_KEY in wp-config.php; alternatively save it in Course Bridge \u2192 Email Settings. Use a verified sender domain and send marketing email only to opted-in users.
+`;
+var uninstall = `<?php
+if (!defined('WP_UNINSTALL_PLUGIN')) { exit; }
+
+// Preserve order reports, product-course mappings, and consent/audit data by default.
+// An administrator may explicitly remove the report table and plugin options here.
+if (defined('TDLPW_REMOVE_DATA_ON_UNINSTALL') && TDLPW_REMOVE_DATA_ON_UNINSTALL) {
+    global $wpdb;
+    $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'tdlpw_order_index');
+    $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'tdlpw_campaign_log');
+    delete_option('tdlpw_settings');
+    delete_metadata('user', 0, 'tdlpw_email_marketing_optin', '', true);
+    delete_metadata('user', 0, 'tdlpw_email_marketing_optin_at', '', true);
+    $products = get_posts(array('post_type' => 'product', 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids'));
+    foreach ($products as $product_id) { delete_post_meta($product_id, '_tdlpw_course_ids'); }
+}
+`;
+var css = `.tdlpw-wrap{max-width:1320px}.tdlpw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:22px 0}.tdlpw-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:20px;margin:22px 0}.tdlpw-card h2{margin-top:0}.tdlpw-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.tdlpw-filters select{min-width:180px}.tdlpw-campaign{display:grid;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}.tdlpw-campaign label,.tdlpw-settings label{display:grid;gap:6px;font-weight:600}.tdlpw-settings{max-width:760px}.tdlpw-settings label{margin:14px 0}.tdlpw-status{display:inline-block;border-radius:999px;padding:3px 8px;background:#f1f1f1}.tdlpw-opted{background:#e7f8ee;color:#146b37}.tdlpw-wrap table td{vertical-align:top}.tdlpw-wrap .notice.inline{padding:8px 12px}.tdlpw-marketing-optin{margin:8px 0}
+`;
+function buildWordPressPluginFiles(info) {
+  const tokenized = {
+    [`${info.slug}.php`]: mainPlugin,
+    "includes/class-activator.php": activator,
+    "includes/class-core.php": core,
+    "includes/class-bridge.php": bridge,
+    "includes/class-audience.php": audience,
+    "includes/class-resend.php": resend,
+    "includes/class-admin.php": admin,
+    "assets/css/admin.css": css,
+    "readme.txt": readme,
+    "DEPLOYMENT.md": deployment,
+    "uninstall.php": uninstall,
+    "index.php": "<?php\n// Silence is golden.\n",
+    "includes/index.php": "<?php\n// Silence is golden.\n",
+    "assets/index.php": "<?php\n// Silence is golden.\n"
+  };
+  return Object.fromEntries(Object.entries(tokenized).map(([file, source]) => [file, replaceTokens(source, info)]));
+}
+
+// server/plugin-studio.ts
+var STARTER = {
+  slug: "coursebridge-learnpress-woocommerce",
+  templateKey: "learnpress-woocommerce",
+  name: "CourseBridge Pro for LearnPress & WooCommerce",
+  version: "1.0.0",
+  author: "Taskdrip",
+  shortDescription: "Automatically enroll WooCommerce customers in linked LearnPress courses, track buyers, and run consent-based Resend campaigns.",
+  description: "Connect WooCommerce products to LearnPress courses with CourseBridge Pro. When a WooCommerce order is confirmed as paid, the customer is enrolled in each course mapped to the products in their order. Give course teams a clear view of product and course purchases, customer roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group email campaigns through Resend, with recorded consent and unsubscribe links. Includes an installable WordPress plugin ZIP, upgrade-conscious order history, SEO-ready product copy, and a WordPress repository preparation guide.",
+  seoTitle: "LearnPress WooCommerce Integration & Email Marketing Plugin",
+  seoDescription: "Connect LearnPress courses to WooCommerce products. Auto-enroll paid buyers, track customers and course purchases, and send consent-based Resend email campaigns.",
+  seoKeywords: "LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, Resend email marketing, course customer management"
+};
+function slugify2(value) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+}
+function isAdmin5(req) {
+  return req.user?.userType === "admin" || req.user?.role === "admin";
+}
+function adminOnly(req, res) {
+  if (!req.isAuthenticated?.() || !isAdmin5(req)) {
+    res.status(403).json({ message: "Administrator access required." });
+    return false;
+  }
+  return true;
+}
+async function ensureStarterProject(adminId) {
+  const [existing] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq10(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+  if (existing) return;
+  try {
+    await db.transaction(async (tx) => {
+      const [product] = await tx.insert(shopProducts).values({
+        title: STARTER.name,
+        description: STARTER.description,
+        shortDescription: STARTER.shortDescription,
+        price: "49.00",
+        category: "WordPress Plugins",
+        type: "plugin",
+        features: [
+          "Link WooCommerce products to one or more LearnPress courses",
+          "Enroll customers automatically after successful WooCommerce payment",
+          "Review product and course buyers, WordPress roles, and order totals",
+          "Send consent-based Resend campaigns to selected customer segments",
+          "Secure unsubscribe links and per-recipient send logs",
+          "Downloadable plugin ZIP with WordPress installation and repository notes"
+        ],
+        requirements: ["WordPress 6.2+", "PHP 7.4+", "WooCommerce", "LearnPress"],
+        tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
+        isActive: true,
+        isFeatured: true,
+        isFree: false,
+        createdBy: adminId
+      }).returning();
+      const [project] = await tx.insert(pluginStudioProjects).values({
+        ...STARTER,
+        shopProductId: product.id,
+        status: "published",
+        createdBy: adminId
+      }).returning();
+      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq10(shopProducts.id, product.id));
+    });
+  } catch (error) {
+    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq10(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+    if (!created) throw error;
+  }
+}
+async function getProjectFiles(id) {
+  const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.id, id)).limit(1);
+  if (!project) return null;
+  return {
+    project,
+    files: buildWordPressPluginFiles({
+      slug: project.slug,
+      name: project.name,
+      version: project.version,
+      author: project.author,
+      shortDescription: project.shortDescription || project.name,
+      description: project.description
+    })
+  };
+}
+function archiveFor(project, files) {
+  const archive = zipSync(
+    Object.fromEntries(Object.entries(files).map(([file, content]) => [`${project.slug}/${file}`, strToU8(content)])),
+    { level: 8 }
+  );
+  return Buffer.from(archive);
+}
+function registerPluginStudioRoutes(app2) {
+  app2.get("/api/admin/plugin-studio/projects", isAuthenticated, async (req, res) => {
+    if (!adminOnly(req, res)) return;
+    try {
+      await ensureStarterProject(req.user.id);
+      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq10(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc8(pluginStudioProjects.createdAt));
+      res.json(rows.map(({ project, product }) => ({
+        ...project,
+        product: product ? {
+          id: product.id,
+          price: product.price,
+          salesCount: product.salesCount,
+          isActive: product.isActive,
+          isFeatured: product.isFeatured
+        } : null
+      })));
+    } catch (error) {
+      console.error("[plugin-studio] Could not load projects:", error.message);
+      res.status(500).json({ message: "Could not load plugin studio projects. Check that the database is available." });
+    }
+  });
+  app2.post("/api/admin/plugin-studio/projects", isAuthenticated, async (req, res) => {
+    if (!adminOnly(req, res)) return;
+    try {
+      const name = String(req.body?.name || "").trim().slice(0, 120);
+      const version = String(req.body?.version || "1.0.0").trim().slice(0, 30);
+      const author = String(req.body?.author || "Taskdrip").trim().slice(0, 80);
+      const shortDescription = String(req.body?.shortDescription || "").trim().slice(0, 180);
+      const description = String(req.body?.description || "").trim().slice(0, 6e3);
+      const seoTitle = String(req.body?.seoTitle || "").trim().slice(0, 70);
+      const seoDescription = String(req.body?.seoDescription || "").trim().slice(0, 180);
+      const seoKeywords = String(req.body?.seoKeywords || "").trim().slice(0, 600);
+      const price = Number(req.body?.price);
+      if (!name || !shortDescription || !description || !seoTitle || !seoDescription || !Number.isFinite(price) || price < 0.01 || price > 999999) {
+        return res.status(400).json({ message: "Enter a name, product description, SEO title and description, and a price above zero." });
+      }
+      if (!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(version)) {
+        return res.status(400).json({ message: "Use a semantic version such as 1.0.0." });
+      }
+      const baseSlug = slugify2(String(req.body?.slug || name));
+      if (!baseSlug) return res.status(400).json({ message: "The plugin slug must contain letters or numbers." });
+      const slug = `${baseSlug}-${Date.now().toString(36)}`.slice(0, 80);
+      const publishToShop = req.body?.publishToShop === true;
+      let created;
+      await db.transaction(async (tx) => {
+        const [product] = await tx.insert(shopProducts).values({
+          title: name,
+          description,
+          shortDescription,
+          price: price.toFixed(2),
+          category: "WordPress Plugins",
+          type: "plugin",
+          features: [
+            "Map WooCommerce products to LearnPress courses",
+            "Automatic course enrollment after successful payment",
+            "Purchase and course-enrollment reporting",
+            "Consent-based Resend audience campaigns",
+            "Installable ZIP and WordPress deployment guide"
+          ],
+          requirements: ["WordPress 6.2+", "PHP 7.4+", "WooCommerce", "LearnPress"],
+          tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment"],
+          isActive: publishToShop,
+          isFeatured: false,
+          isFree: false,
+          createdBy: req.user.id
+        }).returning();
+        const [project] = await tx.insert(pluginStudioProjects).values({
+          slug,
+          templateKey: "learnpress-woocommerce",
+          name,
+          version,
+          author,
+          shortDescription,
+          description,
+          seoTitle,
+          seoDescription,
+          seoKeywords,
+          shopProductId: product.id,
+          status: publishToShop ? "published" : "draft",
+          createdBy: req.user.id
+        }).returning();
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq10(shopProducts.id, product.id));
+        created = { ...project, product: { id: product.id, price: product.price, salesCount: 0, isActive: publishToShop } };
+      });
+      res.status(201).json(created);
+    } catch (error) {
+      console.error("[plugin-studio] Could not create project:", error.message);
+      res.status(500).json({ message: "Could not create the plugin project." });
+    }
+  });
+  app2.patch("/api/admin/plugin-studio/projects/:id", isAuthenticated, async (req, res) => {
+    if (!adminOnly(req, res)) return;
+    try {
+      const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.id, req.params.id)).limit(1);
+      if (!project) return res.status(404).json({ message: "Plugin project not found." });
+      const status = req.body?.status;
+      if (status !== void 0 && !["draft", "published"].includes(status)) {
+        return res.status(400).json({ message: "Plugin status must be draft or published." });
+      }
+      const updates = { updatedAt: /* @__PURE__ */ new Date() };
+      if (status) updates.status = status;
+      await db.transaction(async (tx) => {
+        await tx.update(pluginStudioProjects).set(updates).where(eq10(pluginStudioProjects.id, project.id));
+        if (project.shopProductId && status) {
+          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq10(shopProducts.id, project.shopProductId));
+        }
+      });
+      res.json({ success: true, status: status || project.status });
+    } catch (error) {
+      console.error("[plugin-studio] Could not update project:", error.message);
+      res.status(500).json({ message: "Could not update the plugin project." });
+    }
+  });
+  app2.get("/api/admin/plugin-studio/projects/:id/download", isAuthenticated, async (req, res) => {
+    if (!adminOnly(req, res)) return;
+    try {
+      const result = await getProjectFiles(req.params.id);
+      if (!result) return res.status(404).json({ message: "Plugin project not found." });
+      const archive = archiveFor(result.project, result.files);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="${result.project.slug}-${result.project.version}.zip"`);
+      res.setHeader("Content-Length", archive.length);
+      res.send(archive);
+    } catch (error) {
+      console.error("[plugin-studio] Could not generate ZIP:", error.message);
+      res.status(500).json({ message: "Could not generate the plugin ZIP." });
+    }
+  });
+  app2.get("/api/shop/plugin-seo/:productId", async (req, res) => {
+    try {
+      const [project] = await db.select({
+        id: pluginStudioProjects.id,
+        slug: pluginStudioProjects.slug,
+        name: pluginStudioProjects.name,
+        version: pluginStudioProjects.version,
+        seoTitle: pluginStudioProjects.seoTitle,
+        seoDescription: pluginStudioProjects.seoDescription,
+        seoKeywords: pluginStudioProjects.seoKeywords,
+        productId: shopProducts.id,
+        price: shopProducts.price,
+        isActive: shopProducts.isActive
+      }).from(pluginStudioProjects).innerJoin(shopProducts, eq10(pluginStudioProjects.shopProductId, shopProducts.id)).where(and7(
+        eq10(pluginStudioProjects.shopProductId, req.params.productId),
+        eq10(pluginStudioProjects.status, "published"),
+        eq10(shopProducts.isActive, true)
+      )).limit(1);
+      res.json(project || null);
+    } catch (error) {
+      console.error("[plugin-studio] Could not load SEO metadata:", error.message);
+      res.status(500).json({ message: "Could not load plugin SEO details." });
+    }
+  });
+  app2.get("/api/plugin-studio/projects/:id/download", isAuthenticated, async (req, res) => {
+    try {
+      const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.id, req.params.id)).limit(1);
+      if (!project || !project.shopProductId) return res.status(404).json({ message: "Plugin product not found." });
+      const [product] = await db.select().from(shopProducts).where(eq10(shopProducts.id, project.shopProductId)).limit(1);
+      if (!product || !product.isActive || project.status !== "published") {
+        return res.status(404).json({ message: "This plugin is not available for download." });
+      }
+      const user = req.user;
+      const admin2 = isAdmin5(user);
+      if (!admin2) {
+        const [purchase] = await db.select({ id: purchases.id }).from(purchases).where(and7(
+          eq10(purchases.userId, user.id),
+          eq10(purchases.productId, product.id),
+          inArray7(purchases.status, ["paid", "approved", "delivered"])
+        )).limit(1);
+        if (!purchase) return res.status(403).json({ message: "A verified paid purchase is required before downloading this plugin." });
+      }
+      const files = buildWordPressPluginFiles({
+        slug: project.slug,
+        name: project.name,
+        version: project.version,
+        author: project.author,
+        shortDescription: project.shortDescription || project.name,
+        description: project.description
+      });
+      const archive = archiveFor(project, files);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="${project.slug}-${project.version}.zip"`);
+      res.setHeader("Content-Length", archive.length);
+      res.send(archive);
+    } catch (error) {
+      console.error("[plugin-studio] Could not download purchased plugin:", error.message);
+      res.status(500).json({ message: "Could not generate the plugin download." });
     }
   });
 }
@@ -15199,7 +16493,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq13(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq14(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -15260,8 +16554,8 @@ async function enrichP2PListing(listing) {
   };
 }
 async function enrichP2PTransaction(tx) {
-  const [listing, buyer, seller, admin] = await Promise.all([
-    db.select().from(p2pListings).where(eq13(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+  const [listing, buyer, seller, admin2] = await Promise.all([
+    db.select().from(p2pListings).where(eq14(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -15271,7 +16565,7 @@ async function enrichP2PTransaction(tx) {
     listing,
     buyer: buyer ? { id: buyer.id, firstName: buyer.firstName, lastName: buyer.lastName, username: buyer.username, profileImageUrl: buyer.profileImageUrl } : null,
     seller: seller ? { id: seller.id, firstName: seller.firstName, lastName: seller.lastName, username: seller.username, profileImageUrl: seller.profileImageUrl } : null,
-    admin: admin ? { id: admin.id, firstName: admin.firstName, lastName: admin.lastName, username: admin.username } : null
+    admin: admin2 ? { id: admin2.id, firstName: admin2.firstName, lastName: admin2.lastName, username: admin2.username } : null
   };
 }
 async function runSubscriptionExpiryCheck() {
@@ -15407,8 +16701,8 @@ async function registerRoutes(app2, existingServer) {
       const recipients = ["owoeyeolajumokeoluwatosin@gmail.com", TASKDRIP_EMAILS.info];
       if (process.env.RESEND_API_KEY) {
         const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const result = await resend.emails.send({
+        const resend2 = new Resend(process.env.RESEND_API_KEY);
+        const result = await resend2.emails.send({
           from: `Olajumoke Owoeye | Portfolio <${process.env.RESEND_FROM_EMAIL || TASKDRIP_EMAILS.info}>`,
           to: recipients,
           reply_to: parsed.data.email,
@@ -15770,8 +17064,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/admin/payment-methods", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const methods = await storage.getAllPaymentMethods();
       res.json(methods);
     } catch (e) {
@@ -15780,8 +17074,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.post("/api/admin/payment-methods", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const method = await storage.createPaymentMethod(req.body);
       res.json(method);
     } catch (e) {
@@ -15791,8 +17085,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.patch("/api/admin/payment-methods/:id", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { id: _id, createdAt: _c, updatedAt: _u, ...safeData } = req.body;
       const method = await storage.updatePaymentMethod(req.params.id, safeData);
       res.json(method);
@@ -15803,8 +17097,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.delete("/api/admin/payment-methods/:id", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       await storage.deletePaymentMethod(req.params.id);
       res.json({ success: true });
     } catch (e) {
@@ -15813,22 +17107,22 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.post("/api/admin/seed-demo-campaigns", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const existing = await storage.getAllCampaigns();
       const force = req.body?.force === true || req.query?.force === "true";
       if (existing.length > 0 && !force) return res.json({ message: "Campaigns already exist", count: existing.length });
       const futureDate = (days) => new Date(Date.now() + days * 864e5);
       const demos = [
-        { title: "Promote Our New Gaming App \u2014 TikTok/YouTube Review", description: "Create a 60-second TikTok or YouTube review of our gaming app. Show gameplay, highlight features, and include our download link in bio. Authentic reviews preferred. Brand will repost top creators on official channels.", category: "gaming", platform: "TikTok", brandName: "NovaByte Gaming", brandId: admin.id, reward: "120.00", totalSlots: 50, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80", requirements: ["Minimum 5K followers", "Post must stay live for 30 days", "Include #NovaByteGaming hashtag", "Submit proof screenshot"], estimatedTime: "2-3 hours" },
-        { title: "Instagram Reel for Premium Skincare Launch", description: "Create a 30-second Instagram Reel showcasing our new skincare product. Morning routine integration preferred. Product will be shipped to you free of charge before recording.", category: "beauty", platform: "Instagram", brandName: "GlowLab Beauty", brandId: admin.id, reward: "85.00", totalSlots: 30, deadline: futureDate(21), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80", requirements: ["Beauty/lifestyle niche", "Minimum 3K followers", "Tag @glowlabbeauty in post", "Reels format only"], estimatedTime: "1-2 hours" },
-        { title: "Fitness Challenge \u2014 7-Day Transformation Campaign", description: "Join our 7-day fitness challenge and document your journey. Post daily stories + one main feed post. Share honest results and experiences. Top 10 creators earn a 2x bonus payout.", category: "fitness", platform: "YouTube", brandName: "PeakFit Pro", brandId: admin.id, reward: "200.00", totalSlots: 100, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80", requirements: ["Fitness/health niche", "Minimum 10K followers", "Post 7 consecutive stories", "Include affiliate link in bio"], estimatedTime: "7 days" },
-        { title: "Tech Unboxing \u2014 Latest Wireless Earbuds Review", description: "Unbox and review our premium wireless earbuds. Test sound quality, battery life, and comfort. Share your honest opinion with your audience. Earbuds are yours to keep.", category: "tech", platform: "YouTube", brandName: "SoundWave Tech", brandId: admin.id, reward: "150.00", totalSlots: 40, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80", requirements: ["Tech niche preferred", "Minimum 15K YouTube subscribers", "Video must be 5+ minutes", "Sound quality comparison included"], estimatedTime: "3-5 hours" },
-        { title: "Travel Vlog Feature \u2014 Luxury Resort Partnership", description: "Feature our luxury resort in your next travel vlog. We cover accommodation for 3 nights + pay the campaign reward. Stunning coastal location with helicopter tour included.", category: "travel", platform: "YouTube", brandName: "Horizon Escapes", brandId: admin.id, reward: "750.00", totalSlots: 15, deadline: futureDate(60), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80", requirements: ["Travel niche creators only", "Minimum 50K followers", "Professional video quality", "At least 8-minute vlog feature"], estimatedTime: "3-5 days" },
-        { title: "Food Reel Campaign \u2014 Healthy Meal Delivery App", description: "Create a food reel featuring our healthy meal delivery service. Show the ordering process, delivery, and taste test reaction. Fun and authentic content wins!", category: "food", platform: "Instagram", brandName: "FreshDrop", brandId: admin.id, reward: "75.00", totalSlots: 80, deadline: futureDate(21), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", requirements: ["Food/lifestyle niche", "Minimum 2K followers", "Must show app ordering process", "Include discount code in caption"], estimatedTime: "1-2 hours" },
-        { title: "Crypto Education Series \u2014 Explain DeFi to Beginners", description: "Create educational content explaining DeFi concepts for newcomers. Series of 3 short videos required. Position our protocol as a beginner-friendly entry point. High-tier creators earn up to $2,500.", category: "Crypto & Web3", platform: "YouTube", brandName: "BlockNova Protocol", brandId: admin.id, reward: "500.00", totalSlots: 25, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", requirements: ["Crypto/finance niche", "Minimum 25K followers", "Educational content style", "Disclose paid promotion"], estimatedTime: "5-8 hours" },
-        { title: "Fashion Haul \u2014 Sustainable Streetwear Drop", description: "Showcase 3-5 pieces from our new sustainable streetwear collection. Style them, share what you love, and tag our brand. Free clothing worth $400 plus payout.", category: "Fashion & Beauty", platform: "TikTok", brandName: "EcoThread Co.", brandId: admin.id, reward: "180.00", totalSlots: 60, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80", requirements: ["Fashion/lifestyle niche", "Minimum 8K followers", "TikTok or Reels format", "Show all 3-5 pieces"], estimatedTime: "2-4 hours" },
-        { title: "AI Tool Showcase \u2014 Productivity Power Users Wanted", description: "Show how you use our AI productivity tool in your daily workflow. Long-form YouTube tutorial preferred. Top global creators (Power Influencer + Global Titan tiers) eligible for $5,000 bonus.", category: "Technology", platform: "YouTube", brandName: "FlowAI Labs", brandId: admin.id, reward: "1200.00", totalSlots: 10, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", requirements: ["Tech/productivity niche", "Minimum 100K followers", "Long-form YouTube only (10+ min)", "Real workflow integration"], estimatedTime: "8-12 hours" }
+        { title: "Promote Our New Gaming App \u2014 TikTok/YouTube Review", description: "Create a 60-second TikTok or YouTube review of our gaming app. Show gameplay, highlight features, and include our download link in bio. Authentic reviews preferred. Brand will repost top creators on official channels.", category: "gaming", platform: "TikTok", brandName: "NovaByte Gaming", brandId: admin2.id, reward: "120.00", totalSlots: 50, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80", requirements: ["Minimum 5K followers", "Post must stay live for 30 days", "Include #NovaByteGaming hashtag", "Submit proof screenshot"], estimatedTime: "2-3 hours" },
+        { title: "Instagram Reel for Premium Skincare Launch", description: "Create a 30-second Instagram Reel showcasing our new skincare product. Morning routine integration preferred. Product will be shipped to you free of charge before recording.", category: "beauty", platform: "Instagram", brandName: "GlowLab Beauty", brandId: admin2.id, reward: "85.00", totalSlots: 30, deadline: futureDate(21), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80", requirements: ["Beauty/lifestyle niche", "Minimum 3K followers", "Tag @glowlabbeauty in post", "Reels format only"], estimatedTime: "1-2 hours" },
+        { title: "Fitness Challenge \u2014 7-Day Transformation Campaign", description: "Join our 7-day fitness challenge and document your journey. Post daily stories + one main feed post. Share honest results and experiences. Top 10 creators earn a 2x bonus payout.", category: "fitness", platform: "YouTube", brandName: "PeakFit Pro", brandId: admin2.id, reward: "200.00", totalSlots: 100, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80", requirements: ["Fitness/health niche", "Minimum 10K followers", "Post 7 consecutive stories", "Include affiliate link in bio"], estimatedTime: "7 days" },
+        { title: "Tech Unboxing \u2014 Latest Wireless Earbuds Review", description: "Unbox and review our premium wireless earbuds. Test sound quality, battery life, and comfort. Share your honest opinion with your audience. Earbuds are yours to keep.", category: "tech", platform: "YouTube", brandName: "SoundWave Tech", brandId: admin2.id, reward: "150.00", totalSlots: 40, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80", requirements: ["Tech niche preferred", "Minimum 15K YouTube subscribers", "Video must be 5+ minutes", "Sound quality comparison included"], estimatedTime: "3-5 hours" },
+        { title: "Travel Vlog Feature \u2014 Luxury Resort Partnership", description: "Feature our luxury resort in your next travel vlog. We cover accommodation for 3 nights + pay the campaign reward. Stunning coastal location with helicopter tour included.", category: "travel", platform: "YouTube", brandName: "Horizon Escapes", brandId: admin2.id, reward: "750.00", totalSlots: 15, deadline: futureDate(60), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80", requirements: ["Travel niche creators only", "Minimum 50K followers", "Professional video quality", "At least 8-minute vlog feature"], estimatedTime: "3-5 days" },
+        { title: "Food Reel Campaign \u2014 Healthy Meal Delivery App", description: "Create a food reel featuring our healthy meal delivery service. Show the ordering process, delivery, and taste test reaction. Fun and authentic content wins!", category: "food", platform: "Instagram", brandName: "FreshDrop", brandId: admin2.id, reward: "75.00", totalSlots: 80, deadline: futureDate(21), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", requirements: ["Food/lifestyle niche", "Minimum 2K followers", "Must show app ordering process", "Include discount code in caption"], estimatedTime: "1-2 hours" },
+        { title: "Crypto Education Series \u2014 Explain DeFi to Beginners", description: "Create educational content explaining DeFi concepts for newcomers. Series of 3 short videos required. Position our protocol as a beginner-friendly entry point. High-tier creators earn up to $2,500.", category: "Crypto & Web3", platform: "YouTube", brandName: "BlockNova Protocol", brandId: admin2.id, reward: "500.00", totalSlots: 25, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", requirements: ["Crypto/finance niche", "Minimum 25K followers", "Educational content style", "Disclose paid promotion"], estimatedTime: "5-8 hours" },
+        { title: "Fashion Haul \u2014 Sustainable Streetwear Drop", description: "Showcase 3-5 pieces from our new sustainable streetwear collection. Style them, share what you love, and tag our brand. Free clothing worth $400 plus payout.", category: "Fashion & Beauty", platform: "TikTok", brandName: "EcoThread Co.", brandId: admin2.id, reward: "180.00", totalSlots: 60, deadline: futureDate(30), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80", requirements: ["Fashion/lifestyle niche", "Minimum 8K followers", "TikTok or Reels format", "Show all 3-5 pieces"], estimatedTime: "2-4 hours" },
+        { title: "AI Tool Showcase \u2014 Productivity Power Users Wanted", description: "Show how you use our AI productivity tool in your daily workflow. Long-form YouTube tutorial preferred. Top global creators (Power Influencer + Global Titan tiers) eligible for $5,000 bonus.", category: "Technology", platform: "YouTube", brandName: "FlowAI Labs", brandId: admin2.id, reward: "1200.00", totalSlots: 10, deadline: futureDate(45), status: "active", isActive: true, featureImage: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", requirements: ["Tech/productivity niche", "Minimum 100K followers", "Long-form YouTube only (10+ min)", "Real workflow integration"], estimatedTime: "8-12 hours" }
       ];
       const created = [];
       for (const demo of demos) {
@@ -15864,8 +17158,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.patch("/api/admin/posts/:id/spotlight", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (!canManageContent(admin)) return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (!canManageContent(admin2)) return res.status(403).json({ message: "Forbidden" });
       const { isSpotlight, isSponsored } = req.body;
       const post = await storage.setPostSpotlight(req.params.id, !!isSpotlight, !!isSponsored);
       res.json(post);
@@ -15889,7 +17183,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and9(eq13(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and10(eq14(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -15908,7 +17202,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and9(eq13(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and10(eq14(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -15949,8 +17243,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/admin/feed-posts", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (!canManageContent(admin) && !canModerate(admin)) return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (!canManageContent(admin2) && !canModerate(admin2)) return res.status(403).json({ message: "Forbidden" });
       const limit = parseInt(req.query.limit) || 50;
       const feed = await storage.getFeed(limit, 0);
       res.json(feed);
@@ -15961,8 +17255,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.post("/api/admin/feed-posts", isAuthenticated, upload.single("image"), async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (!canManageContent(admin)) return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (!canManageContent(admin2)) return res.status(403).json({ message: "Forbidden" });
       const { content, imageUrl, videoUrl } = req.body;
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
@@ -15979,8 +17273,8 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.delete("/api/admin/feed-posts/:id", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getUser(req.user.id);
-      if (!canManageContent(admin) && !canModerate(admin)) return res.status(403).json({ message: "Forbidden" });
+      const admin2 = await storage.getUser(req.user.id);
+      if (!canManageContent(admin2) && !canModerate(admin2)) return res.status(403).json({ message: "Forbidden" });
       await storage.deletePost(req.params.id, req.user.id, true);
       res.json({ success: true });
     } catch (error) {
@@ -16004,8 +17298,8 @@ async function registerRoutes(app2, existingServer) {
   app2.delete("/api/posts/:id", isAuthenticated, async (req, res) => {
     try {
       const requester = await storage.getUser(req.user.id);
-      const isAdmin5 = requester?.userType === "admin";
-      await storage.deletePost(req.params.id, req.user.id, isAdmin5);
+      const isAdmin6 = requester?.userType === "admin";
+      await storage.deletePost(req.params.id, req.user.id, isAdmin6);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete post" });
@@ -16204,7 +17498,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq13(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq14(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -16373,13 +17667,13 @@ async function registerRoutes(app2, existingServer) {
       const campaignId = req.params.id;
       const campaign = await storage.getCampaignById(campaignId);
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
-      const isAdmin5 = requester?.userType === "admin";
+      const isAdmin6 = requester?.userType === "admin";
       const isBrandOwner = campaign.brandId === requesterId;
-      if (!isAdmin5 && !isBrandOwner) {
+      if (!isAdmin6 && !isBrandOwner) {
         return res.status(403).json({ message: "You can only edit your own campaigns" });
       }
       const updates = { ...req.body };
-      if (!isAdmin5) {
+      if (!isAdmin6) {
         delete updates.reward;
         delete updates.totalSlots;
       } else {
@@ -16421,9 +17715,9 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) {
         return res.status(404).json({ message: "Campaign not found" });
       }
-      const isAdmin5 = requester?.userType === "admin";
+      const isAdmin6 = requester?.userType === "admin";
       const isBrandOwner = campaign.brandId === requesterId;
-      if (!isAdmin5 && !isBrandOwner) {
+      if (!isAdmin6 && !isBrandOwner) {
         return res.status(403).json({ message: "You can only delete your own campaigns" });
       }
       await storage.deleteCampaign(campaignId);
@@ -17143,7 +18437,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         username: users.username,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray9(users.id, uniqueIds)) : [];
+      }).from(users).where(inArray10(users.id, uniqueIds)) : [];
       const userMap = {};
       for (const u of userRows) userMap[u.id] = u;
       const enrichedMessages = msgs.map((msg) => ({
@@ -17326,7 +18620,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq13(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq14(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -17426,10 +18720,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and9(eq13(campaignMicroTasks.campaignId, req.params.id), eq13(campaignMicroTasks.isActive, true))).orderBy(desc9(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and10(eq14(campaignMicroTasks.campaignId, req.params.id), eq14(campaignMicroTasks.isActive, true))).orderBy(desc10(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and9(eq13(microTaskSubmissions.campaignId, req.params.id), eq13(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and10(eq14(microTaskSubmissions.campaignId, req.params.id), eq14(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -17447,7 +18741,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq13(campaignMicroTasks.campaignId, campaigns.id)).where(eq13(campaignMicroTasks.brandId, userId)).orderBy(desc9(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq14(campaignMicroTasks.campaignId, campaigns.id)).where(eq14(campaignMicroTasks.brandId, userId)).orderBy(desc10(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -17505,7 +18799,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq13(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq14(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -17531,7 +18825,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql12`count(*)::int` }).from(microTaskSubmissions).where(and9(eq13(microTaskSubmissions.microTaskId, task.id), eq13(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql12`count(*)::int` }).from(microTaskSubmissions).where(and10(eq14(microTaskSubmissions.microTaskId, task.id), eq14(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -17555,7 +18849,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq13(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq14(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -17566,7 +18860,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq13(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq14(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -17575,11 +18869,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and9(eq13(microTaskSubmissions.microTaskId, task.id), eq13(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and10(eq14(microTaskSubmissions.microTaskId, task.id), eq14(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql12`count(*)` }).from(microTaskSubmissions).where(and9(eq13(microTaskSubmissions.microTaskId, task.id), eq13(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql12`count(*)` }).from(microTaskSubmissions).where(and10(eq14(microTaskSubmissions.microTaskId, task.id), eq14(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -17615,7 +18909,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq13(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq13(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq13(microTaskSubmissions.userId, users.id)).where(eq13(campaignMicroTasks.brandId, userId)).orderBy(desc9(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq14(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq14(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq14(microTaskSubmissions.userId, users.id)).where(eq14(campaignMicroTasks.brandId, userId)).orderBy(desc10(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -17631,14 +18925,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin] = await db.select().from(users).where(eq13(users.id, userId));
-      if (admin?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
+      const [admin2] = await db.select().from(users).where(eq14(users.id, userId));
+      if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq13(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq13(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq13(microTaskSubmissions.userId, users.id)).orderBy(desc9(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq14(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq14(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq14(microTaskSubmissions.userId, users.id)).orderBy(desc10(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -17654,9 +18948,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq13(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq14(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq13(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq14(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -17671,7 +18965,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq14(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -17789,7 +19083,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and9(eq13(userReviews.referenceType, "campaign_participation"), eq13(userReviews.referenceId, participation.id))).orderBy(desc9(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and10(eq14(userReviews.referenceType, "campaign_participation"), eq14(userReviews.referenceId, participation.id))).orderBy(desc10(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17809,7 +19103,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and9(eq13(userReviews.referenceType, "campaign_participation"), eq13(userReviews.referenceId, participation.id), eq13(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and10(eq14(userReviews.referenceType, "campaign_participation"), eq14(userReviews.referenceId, participation.id), eq14(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -17820,8 +19114,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql12`AVG(${userReviews.rating})` }).from(userReviews).where(eq13(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq13(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql12`AVG(${userReviews.rating})` }).from(userReviews).where(eq14(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq14(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -17838,10 +19132,10 @@ async function registerRoutes(app2, existingServer) {
       const isParty = req.user.id === brandId || req.user.id === creatorId;
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
       const reason = String(req.body.reason || "").trim();
-      const admin = await storage.getAdminUser();
-      if (admin) {
+      const admin2 = await storage.getAdminUser();
+      if (admin2) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "mediation_request",
           title: "\u2696\uFE0F Mediation Requested",
           content: `${req.user.firstName} requested mediation for campaign "${campaign.title}". ${reason ? `Reason: ${reason}` : ""}`,
@@ -17988,8 +19282,8 @@ async function registerRoutes(app2, existingServer) {
   app2.delete("/api/admin/users/:id", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user.id;
-      const admin = await storage.getUser(userId);
-      if (!admin || admin.userType !== "admin") {
+      const admin2 = await storage.getUser(userId);
+      if (!admin2 || admin2.userType !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const targetId = req.params.id;
@@ -18042,8 +19336,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const admin = await storage.getUser(userId);
-      if (!admin || admin.userType !== "admin") {
+      const admin2 = await storage.getUser(userId);
+      if (!admin2 || admin2.userType !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const validRoles = ["user", "content_editor", "moderator", "store_manager", "admin"];
@@ -18185,8 +19479,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq19 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq19(transactions3.id, id));
+            const { eq: eq20 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq20(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -18217,7 +19511,7 @@ async function registerRoutes(app2, existingServer) {
       let courseRevenue = 0;
       for (const e of allEnrollmentRows) {
         if (e.status === "active" || e.paymentStatus === "approved") {
-          const course = await db.select({ price: courses.price }).from(courses).where(eq13(courses.id, e.courseId)).limit(1);
+          const course = await db.select({ price: courses.price }).from(courses).where(eq14(courses.id, e.courseId)).limit(1);
           courseRevenue += parseFloat(course[0]?.price || "0");
         }
       }
@@ -18262,7 +19556,7 @@ async function registerRoutes(app2, existingServer) {
       const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
       let courseTotal = 0;
       for (const e of approvedEnrollmentIds) {
-        const course = await db.select({ price: courses.price }).from(courses).where(eq13(courses.id, e.courseId)).limit(1);
+        const course = await db.select({ price: courses.price }).from(courses).where(eq14(courses.id, e.courseId)).limit(1);
         courseTotal += parseFloat(course[0]?.price || "0");
       }
       const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
@@ -18392,13 +19686,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
-        db.select().from(transactions).orderBy(desc9(transactions.createdAt)),
-        db.select().from(p2pTransactions).orderBy(desc9(p2pTransactions.createdAt)),
-        db.select().from(purchases).orderBy(desc9(purchases.createdAt)),
-        db.select().from(escrowPayments).orderBy(desc9(escrowPayments.createdAt)),
-        db.select().from(paymentDeposits).orderBy(desc9(paymentDeposits.createdAt)),
-        db.select().from(subscriptions).orderBy(desc9(subscriptions.createdAt)),
-        db.select().from(directHireOffers).orderBy(desc9(directHireOffers.createdAt)),
+        db.select().from(transactions).orderBy(desc10(transactions.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc10(p2pTransactions.createdAt)),
+        db.select().from(purchases).orderBy(desc10(purchases.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc10(escrowPayments.createdAt)),
+        db.select().from(paymentDeposits).orderBy(desc10(paymentDeposits.createdAt)),
+        db.select().from(subscriptions).orderBy(desc10(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc10(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)
       ]);
       const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
@@ -18565,7 +19859,7 @@ async function registerRoutes(app2, existingServer) {
         approvedAt: courseEnrollments.approvedAt,
         createdAt: courseEnrollments.createdAt,
         courseTitle: courses.title
-      }).from(courseEnrollments).leftJoin(courses, eq13(courseEnrollments.courseId, courses.id)).orderBy(desc9(courseEnrollments.createdAt));
+      }).from(courseEnrollments).leftJoin(courses, eq14(courseEnrollments.courseId, courses.id)).orderBy(desc10(courseEnrollments.createdAt));
       for (const t of enrollmentRows) {
         const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
         unified.push({
@@ -18609,7 +19903,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const admin = await storage.getAdminUser();
+      const admin2 = await storage.getAdminUser();
       const safeSelect = async (q) => q.catch((e) => {
         console.error("[analytics safeSelect]", e?.message || e);
         return [];
@@ -18626,13 +19920,13 @@ async function registerRoutes(app2, existingServer) {
         allCourses,
         allProducts
       ] = await Promise.all([
-        safeSelect(db.select().from(subscriptions).orderBy(desc9(subscriptions.createdAt))),
-        safeSelect(db.select().from(purchases).orderBy(desc9(purchases.createdAt))),
-        safeSelect(db.select().from(courseEnrollments).orderBy(desc9(courseEnrollments.createdAt))),
-        safeSelect(db.select().from(directHireOffers).orderBy(desc9(directHireOffers.createdAt))),
-        safeSelect(db.select().from(escrowPayments).orderBy(desc9(escrowPayments.createdAt))),
-        safeSelect(db.select().from(p2pTransactions).orderBy(desc9(p2pTransactions.createdAt))),
-        safeSelect(db.select().from(payoutRequests).orderBy(desc9(payoutRequests.createdAt))),
+        safeSelect(db.select().from(subscriptions).orderBy(desc10(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc10(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc10(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc10(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc10(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc10(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc10(payoutRequests.createdAt))),
         safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
         safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
         safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts))
@@ -18689,7 +19983,7 @@ async function registerRoutes(app2, existingServer) {
       const adminIdSet = new Set(
         allUsers.filter((u2) => u2.userType === "admin").map((u2) => u2.id)
       );
-      if (admin?.id) adminIdSet.add(admin.id);
+      if (admin2?.id) adminIdSet.add(admin2.id);
       const hireDevRecords = hireRows.filter((r) => adminIdSet.has(r.influencerId)).map((r) => ({
         id: r.id,
         amount: +(r.agreedBudget || r.budget || 0),
@@ -18769,10 +20063,10 @@ async function registerRoutes(app2, existingServer) {
       const tipAmount = parseFloat(amount);
       if (!tipAmount || tipAmount <= 0) return res.status(400).json({ message: "Invalid tip amount" });
       if (!network && !paymentMethodType) return res.status(400).json({ message: "Payment method is required" });
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.status(500).json({ message: "Platform admin account is not configured" });
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.status(500).json({ message: "Platform admin account is not configured" });
       await storage.createTransaction({
-        userId: admin.id,
+        userId: admin2.id,
         type: "platform_tip",
         amount: tipAmount.toString(),
         network: network || paymentMethodType || null,
@@ -18984,23 +20278,23 @@ async function registerRoutes(app2, existingServer) {
       }
       let verifiedPurchaseId;
       const { creatorPublishingProducts: publishingProducts, purchases: shopPurchases } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and9(
-        eq13(publishingProducts.shopProductId, req.params.id),
-        eq13(publishingProducts.status, "published")
+      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and10(
+        eq14(publishingProducts.shopProductId, req.params.id),
+        eq14(publishingProducts.status, "published")
       )).limit(1);
       if (publishingProduct) {
-        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and9(
-          eq13(shopPurchases.productId, req.params.id),
-          eq13(shopPurchases.userId, user.id),
-          inArray9(shopPurchases.status, ["paid", "approved", "delivered"])
+        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and10(
+          eq14(shopPurchases.productId, req.params.id),
+          eq14(shopPurchases.userId, user.id),
+          inArray10(shopPurchases.status, ["paid", "approved", "delivered"])
         )).limit(1);
         if (!verifiedPurchase) {
           return res.status(403).json({ message: "Only verified buyers can review this digital product." });
         }
         verifiedPurchaseId = verifiedPurchase.id;
-        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and9(
-          eq13(productReviews.productId, req.params.id),
-          eq13(productReviews.userId, user.id)
+        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and10(
+          eq14(productReviews.productId, req.params.id),
+          eq14(productReviews.userId, user.id)
         )).limit(1);
         if (existingReview) return res.status(409).json({ message: "You have already reviewed this product." });
       }
@@ -19642,7 +20936,7 @@ async function registerRoutes(app2, existingServer) {
       }).catch(() => {
       });
       try {
-        const admins = await db.select().from(users).where(eq13(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq14(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -19666,7 +20960,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const list = await db.select().from(contentReports).orderBy(desc9(contentReports.createdAt));
+      const list = await db.select().from(contentReports).orderBy(desc10(contentReports.createdAt));
       res.json(list);
     } catch (error) {
       res.status(500).json({ message: "Failed to list reports" });
@@ -19676,14 +20970,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq13(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq14(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq14(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -19705,13 +20999,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq13(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq14(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq14(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -19772,7 +21066,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq13(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq14(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -19806,7 +21100,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq13(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq14(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -19855,7 +21149,7 @@ async function registerRoutes(app2, existingServer) {
       const { status, adminNote } = req.body || {};
       const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
       if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(directHireOffers.id, req.params.id)).returning();
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(directHireOffers.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Hire request not found" });
       if (updated.brandId) {
         const statusLabels = {
@@ -19922,15 +21216,15 @@ async function registerRoutes(app2, existingServer) {
     try {
       const user = await storage.getUser(req.user.id);
       if (!user) return res.status(404).json({ message: "User not found" });
-      const isAdmin5 = user.userType === "admin";
-      const transactionsList = isAdmin5 ? await storage.getAllTransactions() : await storage.getUserTransactions(req.user.id);
-      const payoutRequestsList = isAdmin5 ? await storage.getAllPayoutRequests() : await storage.getUserPayoutRequests(req.user.id);
-      const directHireOffersList = isAdmin5 ? await storage.getAllDirectHireOffers() : user.userType === "brand" ? await storage.getDirectHireOffersByBrand(req.user.id) : await storage.getDirectHireOffersByInfluencer(req.user.id);
+      const isAdmin6 = user.userType === "admin";
+      const transactionsList = isAdmin6 ? await storage.getAllTransactions() : await storage.getUserTransactions(req.user.id);
+      const payoutRequestsList = isAdmin6 ? await storage.getAllPayoutRequests() : await storage.getUserPayoutRequests(req.user.id);
+      const directHireOffersList = isAdmin6 ? await storage.getAllDirectHireOffers() : user.userType === "brand" ? await storage.getDirectHireOffersByBrand(req.user.id) : await storage.getDirectHireOffersByInfluencer(req.user.id);
       const allEscrowPayments = await storage.getAllEscrowPayments();
-      const escrowPaymentsList = isAdmin5 ? allEscrowPayments : user.userType === "brand" ? allEscrowPayments.filter((payment) => payment.brandId === req.user.id) : [];
+      const escrowPaymentsList = isAdmin6 ? allEscrowPayments : user.userType === "brand" ? allEscrowPayments.filter((payment) => payment.brandId === req.user.id) : [];
       const enrichedEscrowPayments = await Promise.all(escrowPaymentsList.map(async (payment) => {
         const campaign = payment.campaignId ? await storage.getCampaignById(payment.campaignId) : null;
-        const brand = isAdmin5 && payment.brandId ? await storage.getUser(payment.brandId) : null;
+        const brand = isAdmin6 && payment.brandId ? await storage.getUser(payment.brandId) : null;
         return {
           ...payment,
           campaign: campaign ? {
@@ -19986,9 +21280,9 @@ async function registerRoutes(app2, existingServer) {
       await storage.updateUserBalance(req.user.id, parsedAmount, "subtract");
       const allUsers = await storage.getAllUsers();
       const admins = allUsers.filter((u) => u.userType === "admin");
-      for (const admin of admins) {
+      for (const admin2 of admins) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "payout_request",
           title: "New Payout Request",
           content: `${user?.firstName} ${user?.lastName} requested a payout of $${parsedAmount} via ${network}`,
@@ -20126,9 +21420,9 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/admin-user", async (req, res) => {
     try {
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.status(404).json({ message: "No admin found" });
-      const { password, ...safe } = admin;
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.status(404).json({ message: "No admin found" });
+      const { password, ...safe } = admin2;
       res.json(safe);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch admin" });
@@ -20159,12 +21453,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq13(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq14(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq13(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq14(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -20200,8 +21494,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq13(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq13(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq14(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq14(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -20253,7 +21547,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq13(referralCommissions.referrerId, req.user.id)).orderBy(desc9(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq14(referralCommissions.referrerId, req.user.id)).orderBy(desc10(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -20295,7 +21589,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq13(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq14(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -20310,10 +21604,10 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq13(users.userType, "admin")).limit(3);
-      for (const admin of adminUsers) {
+      const adminUsers = await db.select().from(users).where(eq14(users.userType, "admin")).limit(3);
+      for (const admin2 of adminUsers) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "referral_payout",
           title: "Referral Payout Request",
           content: `A user has requested a referral commission payout of $${amountNum.toFixed(2)}.`,
@@ -20353,7 +21647,7 @@ async function registerRoutes(app2, existingServer) {
         commissionAmount: referralCommissions.commissionAmount,
         status: referralCommissions.status,
         createdAt: referralCommissions.createdAt
-      }).from(referralCommissions).leftJoin(referrerAlias, eq13(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc9(referralCommissions.createdAt)).limit(200);
+      }).from(referralCommissions).leftJoin(referrerAlias, eq14(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc10(referralCommissions.createdAt)).limit(200);
       const referralPayouts = await db.select({
         id: payoutRequests.id,
         userId: payoutRequests.userId,
@@ -20366,7 +21660,7 @@ async function registerRoutes(app2, existingServer) {
         lastName: users.lastName,
         username: users.username,
         email: users.email
-      }).from(payoutRequests).leftJoin(users, eq13(payoutRequests.userId, users.id)).where(sql12`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc9(payoutRequests.createdAt)).limit(100);
+      }).from(payoutRequests).leftJoin(users, eq14(payoutRequests.userId, users.id)).where(sql12`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc10(payoutRequests.createdAt)).limit(100);
       const filteredPayouts = referralPayouts.filter(
         (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
       );
@@ -20391,7 +21685,7 @@ async function registerRoutes(app2, existingServer) {
       const updateData = { status };
       if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
       if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(referralCommissions).set(updateData).where(eq13(referralCommissions.id, id)).returning();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq14(referralCommissions.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Commission not found" });
       res.json(updated);
     } catch (error) {
@@ -20401,12 +21695,12 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/conversations", isAuthenticated, async (req, res) => {
     try {
       const userId = req.user.id;
-      const isAdmin5 = req.user.userType === "admin";
+      const isAdmin6 = req.user.userType === "admin";
       let allMessages;
-      if (isAdmin5) {
-        allMessages = await db.select().from(messages).orderBy(desc9(messages.createdAt));
+      if (isAdmin6) {
+        allMessages = await db.select().from(messages).orderBy(desc10(messages.createdAt));
       } else {
-        allMessages = await db.select().from(messages).where(sql12`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc9(messages.createdAt));
+        allMessages = await db.select().from(messages).where(sql12`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc10(messages.createdAt));
       }
       const convMap = {};
       for (const msg of allMessages) {
@@ -20434,8 +21728,8 @@ async function registerRoutes(app2, existingServer) {
         Object.values(convMap).map((conv) => conv.campaignId).filter(Boolean)
       )];
       const [participantRows, campaignRows] = await Promise.all([
-        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray9(users.id, allParticipantIds)) : [],
-        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray9(campaigns.id, allCampaignIds)) : []
+        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray10(users.id, allParticipantIds)) : [],
+        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray10(campaigns.id, allCampaignIds)) : []
       ]);
       const participantMap = {};
       for (const u of participantRows) participantMap[u.id] = u;
@@ -20460,7 +21754,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const { convKey } = req.params;
       const userId = req.user.id;
-      const isAdmin5 = req.user.userType === "admin";
+      const isAdmin6 = req.user.userType === "admin";
       let rawMessages;
       if (convKey.startsWith("direct_")) {
         const parts = convKey.replace("direct_", "").split("_");
@@ -20471,7 +21765,7 @@ async function registerRoutes(app2, existingServer) {
         });
       } else {
         rawMessages = await storage.getCampaignMessages(convKey);
-        if (!isAdmin5) {
+        if (!isAdmin6) {
           const isParticipant = rawMessages.some((m) => m.senderId === userId || m.receiverId === userId);
           if (!isParticipant) return res.status(403).json({ message: "Not a participant in this conversation" });
         }
@@ -20484,7 +21778,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         companyName: users.companyName,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray9(users.id, senderIds)) : [];
+      }).from(users).where(inArray10(users.id, senderIds)) : [];
       const senderMap = {};
       for (const s of senderRows) senderMap[s.id] = s;
       const enriched = rawMessages.map((msg) => ({ ...msg, sender: senderMap[msg.senderId] || null }));
@@ -20498,7 +21792,7 @@ async function registerRoutes(app2, existingServer) {
       });
       const unreadIds = rawMessages.filter((m) => m.receiverId === userId && !m.isRead).map((m) => m.id);
       if (unreadIds.length > 0) {
-        await db.update(messages).set({ isRead: true }).where(inArray9(messages.id, unreadIds));
+        await db.update(messages).set({ isRead: true }).where(inArray10(messages.id, unreadIds));
       }
       res.json(deduplicated);
     } catch (error) {
@@ -20544,8 +21838,8 @@ async function registerRoutes(app2, existingServer) {
       participantSet.add(campaign.brandId);
       const participations = await storage.getCampaignParticipations(convKey);
       for (const p of participations) participantSet.add(p.userId);
-      const admin = await storage.getAdminUser();
-      if (admin) participantSet.add(admin.id);
+      const admin2 = await storage.getAdminUser();
+      if (admin2) participantSet.add(admin2.id);
       let recipients;
       if (targetUserId && participantSet.has(targetUserId)) {
         recipients = [targetUserId];
@@ -20582,20 +21876,20 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.post("/api/support-tickets", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.status(404).json({ message: "No admin available" });
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.status(404).json({ message: "No admin available" });
       const { subject, content, priority = "normal" } = req.body;
       if (!content?.trim()) return res.status(400).json({ message: "Content required" });
       const msg = await storage.createMessage({
         senderId: req.user.id,
-        receiverId: admin.id,
+        receiverId: admin2.id,
         subject: subject || "Support Ticket",
         content: `[${priority.toUpperCase()} PRIORITY] ${content.trim()}`,
         messageType: "support_ticket",
         attachments: []
       });
       await storage.createNotification({
-        userId: admin.id,
+        userId: admin2.id,
         type: "message",
         title: `Support Ticket: ${subject || "New request"}`,
         content: `From ${req.user.firstName} ${req.user.lastName}: ${content.substring(0, 80)}`,
@@ -20611,7 +21905,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/admin/conversations", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const allMessages = await db.select().from(messages).orderBy(desc9(messages.createdAt));
+      const allMessages = await db.select().from(messages).orderBy(desc10(messages.createdAt));
       const convMap = {};
       for (const msg of allMessages) {
         if (!msg.campaignId) continue;
@@ -20639,7 +21933,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and9(eq13(blockedUsers.blockerId, blockerId), eq13(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and10(eq14(blockedUsers.blockerId, blockerId), eq14(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -20651,7 +21945,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and9(eq13(blockedUsers.blockerId, blockerId), eq13(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and10(eq14(blockedUsers.blockerId, blockerId), eq14(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -20661,8 +21955,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and9(eq13(blockedUsers.blockerId, myId), eq13(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and9(eq13(blockedUsers.blockerId, otherId), eq13(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and10(eq14(blockedUsers.blockerId, myId), eq14(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and10(eq14(blockedUsers.blockerId, otherId), eq14(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -20720,8 +22014,8 @@ async function registerRoutes(app2, existingServer) {
           });
         }
       }
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.status(404).json({ message: "No developer available" });
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.status(404).json({ message: "No developer available" });
       const budgetLabels = {
         under_500: "Under $500",
         "500_2000": "$500 \u2013 $2,000",
@@ -20783,7 +22077,7 @@ ${contactLines.join("\n")}
 Submitted via Hire Developer form. Reply in this chat to continue the conversation.`;
       const message = await storage.createMessage({
         senderId: userId,
-        receiverId: admin.id,
+        receiverId: admin2.id,
         subject: `Project Request: ${title}`,
         content: messageContent,
         messageType: "general",
@@ -20802,7 +22096,7 @@ Submitted via Hire Developer form. Reply in this chat to continue the conversati
       try {
         devOffer = await storage.createDirectHireOffer({
           brandId: userId,
-          influencerId: admin.id,
+          influencerId: admin2.id,
           title,
           description: description + (features ? `
 
@@ -20822,7 +22116,7 @@ ${contactLines.join("\n")}` : ""),
         try {
           await storage.createMessage({
             senderId: userId,
-            receiverId: admin.id,
+            receiverId: admin2.id,
             subject: `Project Request: ${title}`,
             content: messageContent,
             messageType: "direct_hire",
@@ -20835,7 +22129,7 @@ ${contactLines.join("\n")}` : ""),
         }
       }
       await storage.createNotification({
-        userId: admin.id,
+        userId: admin2.id,
         type: "message",
         title: `New dev project request: ${title}`,
         content: `${typeLabels[projectType] || projectType} \xB7 ${budgetLabels[budget] || budget}`,
@@ -20875,7 +22169,7 @@ ${contactLines.join("\n")}` : ""),
         ]
       }).catch(() => {
       });
-      res.status(201).json({ messageId: message.id, adminId: admin.id, offerId: devOffer?.id || null });
+      res.status(201).json({ messageId: message.id, adminId: admin2.id, offerId: devOffer?.id || null });
     } catch (error) {
       console.error("hire-developer error:", error);
       res.status(500).json({ message: error.message || "Failed to submit request" });
@@ -20883,10 +22177,10 @@ ${contactLines.join("\n")}` : ""),
   });
   app2.get("/api/hire-developer/my-requests", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.json([]);
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.json([]);
       const allSent = await storage.getDirectHireOffersByBrand(req.user.id);
-      const devRequests = allSent.filter((o) => o.influencerId === admin.id);
+      const devRequests = allSent.filter((o) => o.influencerId === admin2.id);
       res.json(devRequests);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -20894,19 +22188,19 @@ ${contactLines.join("\n")}` : ""),
   });
   app2.post("/api/messages/to-admin", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.status(404).json({ message: "No admin available" });
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.status(404).json({ message: "No admin available" });
       const { subject, content } = req.body;
       const message = await storage.createMessage({
         senderId: req.user.id,
-        receiverId: admin.id,
+        receiverId: admin2.id,
         subject: subject || "Payment Verification Request",
         content,
         messageType: "general",
         attachments: []
       });
       await storage.createNotification({
-        userId: admin.id,
+        userId: admin2.id,
         type: "message",
         title: `New message: ${subject || "Payment Verification Request"}`,
         content: `From ${req.user.firstName} ${req.user.lastName}: ${content.substring(0, 80)}...`,
@@ -20921,11 +22215,11 @@ ${contactLines.join("\n")}` : ""),
   });
   app2.post("/api/guide/send-to-inbox", isAuthenticated, async (req, res) => {
     try {
-      const admin = await storage.getAdminUser();
-      if (!admin) return res.status(404).json({ message: "System admin not found" });
+      const admin2 = await storage.getAdminUser();
+      if (!admin2) return res.status(404).json({ message: "System admin not found" });
       const { subject, content } = req.body;
       const message = await storage.createMessage({
-        senderId: admin.id,
+        senderId: admin2.id,
         receiverId: req.user.id,
         subject: subject || "Your Taskdrip Guide Report",
         content,
@@ -21032,7 +22326,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -21159,7 +22453,7 @@ Instructions:
       });
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         let resolvedLinkedCourseId = pricing?.linkedCourseId || null;
         if (!resolvedLinkedCourseId && selectedCourseKey === "free_foundations") {
@@ -21168,9 +22462,9 @@ Instructions:
         }
         if (resolvedLinkedCourseId) {
           linkedCourseId = resolvedLinkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and9(
-            eq13(courseEnrollments.courseId, resolvedLinkedCourseId),
-            eq13(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and10(
+            eq14(courseEnrollments.courseId, resolvedLinkedCourseId),
+            eq14(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -21185,7 +22479,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq13(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq14(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -21268,7 +22562,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq13(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq14(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21277,7 +22571,7 @@ Instructions:
   app2.get("/api/admin/breedskool/registrations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc9(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc10(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21340,30 +22634,30 @@ Instructions:
         if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: "Invalid payment status." });
         updateData.paymentStatus = String(paymentStatus);
       }
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq13(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq14(breedskoolRegistrations.id, req.params.id)).returning();
       if (!row) return res.status(404).json({ message: "Registration not found" });
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq13(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq14(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq13(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq14(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and9(
-              eq13(courseEnrollments.courseId, courseIdToActivate),
-              eq13(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and10(
+              eq14(courseEnrollments.courseId, courseIdToActivate),
+              eq14(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq13(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq14(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -21375,7 +22669,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq13(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq14(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -21492,7 +22786,7 @@ Instructions:
     { id: "ton", label: "Toncoin", currency: "TON", network: "ton", address: "", isActive: true }
   ];
   const readBreedSkoolDonationWallets = async () => {
-    const [walletRow] = await db.select().from(appSettings).where(eq13(appSettings.key, "breedskool_donation_wallets"));
+    const [walletRow] = await db.select().from(appSettings).where(eq14(appSettings.key, "breedskool_donation_wallets"));
     if (walletRow?.value) {
       try {
         const stored = JSON.parse(walletRow.value);
@@ -21509,7 +22803,7 @@ Instructions:
       } catch {
       }
     }
-    const legacyRows = await db.select().from(appSettings).where(inArray9(appSettings.key, [
+    const legacyRows = await db.select().from(appSettings).where(inArray10(appSettings.key, [
       "breedskool_usdt_tron_address",
       "breedskool_usdt_ton_address",
       "breedskool_usdt_bnb_address"
@@ -21523,7 +22817,7 @@ Instructions:
   };
   app2.get("/api/breedskool/campaign", async (_req, res) => {
     try {
-      const [row] = await db.select().from(appSettings).where(eq13(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq14(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       let storedConfig = null;
       if (row?.value) {
@@ -21550,7 +22844,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const [row] = await db.select().from(appSettings).where(eq13(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq14(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       if (row?.value) {
         try {
@@ -21630,7 +22924,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray9(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray10(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json({ ...settings, wallets: await readBreedSkoolDonationWallets() });
@@ -21651,7 +22945,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray9(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray10(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json({ ...settings, wallets: await readBreedSkoolDonationWallets() });
@@ -21700,7 +22994,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign/donations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc9(paymentDeposits.createdAt));
+      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc10(paymentDeposits.createdAt));
       res.json(deposits.map((deposit) => {
         let details = {};
         try {
@@ -21727,7 +23021,7 @@ Instructions:
       if (!["submitted", "verified", "approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Choose a valid donation status." });
       }
-      const [existing] = await db.select().from(paymentDeposits).where(eq13(paymentDeposits.id, req.params.id));
+      const [existing] = await db.select().from(paymentDeposits).where(eq14(paymentDeposits.id, req.params.id));
       if (!existing || !String(existing.adminNotes || "").includes("breedskool_campaign")) {
         return res.status(404).json({ message: "Donation not found." });
       }
@@ -21745,7 +23039,7 @@ Instructions:
         approvedBy: status === "approved" || status === "verified" ? req.user.id : null,
         approvedAt: status === "approved" || status === "verified" ? /* @__PURE__ */ new Date() : null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq14(paymentDeposits.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21753,7 +23047,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq13(courseAssignments.userId, req.user.id)).orderBy(desc9(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq14(courseAssignments.userId, req.user.id)).orderBy(desc10(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21761,7 +23055,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq13(breedskoolRegistrations.userId, req.user.id)).orderBy(desc9(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq14(breedskoolRegistrations.userId, req.user.id)).orderBy(desc10(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -21817,9 +23111,9 @@ Instructions:
   app2.post("/api/courses", isAuthenticated, upload.single("thumbnail"), async (req, res) => {
     try {
       const u = req.user;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
       const isPremiumInfluencer = u.subscriptionStatus === "active" && u.isVerified;
-      if (!isAdmin5 && !isPremiumInfluencer) {
+      if (!isAdmin6 && !isPremiumInfluencer) {
         return res.status(403).json({ message: "Only admins or premium verified influencers can create courses" });
       }
       const body = { ...req.body };
@@ -21857,10 +23151,10 @@ Instructions:
   app2.patch("/api/courses/:id", isAuthenticated, upload.single("thumbnail"), async (req, res) => {
     try {
       const u = req.user;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
       const course = await storage.getCourseById(req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
-      if (!isAdmin5 && course.instructorId !== u.id) {
+      if (!isAdmin6 && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
       const body = { ...req.body };
@@ -21911,8 +23205,8 @@ Instructions:
     try {
       const u = req.user;
       const courseId = req.params.id;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
-      if (!isAdmin5) {
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin6) {
         const course = await storage.getCourseById(courseId);
         const isInstructor = course && course.instructorId === u.id;
         if (!isInstructor) {
@@ -21930,9 +23224,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq13(courseEnrollments.userId, users.id)).where(and9(
-        eq13(courseEnrollments.courseId, courseId),
-        eq13(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq14(courseEnrollments.userId, users.id)).where(and10(
+        eq14(courseEnrollments.courseId, courseId),
+        eq14(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -21943,8 +23237,8 @@ Instructions:
     try {
       const u = req.user;
       const courseId = req.params.id;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
-      if (!isAdmin5) {
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin6) {
         const course = await storage.getCourseById(courseId);
         const isInstructor = course && course.instructorId === u.id;
         if (!isInstructor) {
@@ -21968,11 +23262,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq13(courseCommunityPosts.userId, users.id)).where(and9(
-        eq13(courseCommunityPosts.courseId, courseId),
-        eq13(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq14(courseCommunityPosts.userId, users.id)).where(and10(
+        eq14(courseCommunityPosts.courseId, courseId),
+        eq14(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq13(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq14(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -21986,8 +23280,8 @@ Instructions:
       const courseId = req.params.id;
       const { message, replyToId, topic } = req.body;
       if (!message?.trim()) return res.status(400).json({ message: "Message is required." });
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
-      if (!isAdmin5) {
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin6) {
         const course = await storage.getCourseById(courseId);
         const isInstructor = course && course.instructorId === u.id;
         if (!isInstructor) {
@@ -22013,27 +23307,27 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
-      if (!isAdmin5) {
-        const [course] = await db.select().from(courses).where(eq13(courses.id, courseId)).limit(1);
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin6) {
+        const [course] = await db.select().from(courses).where(eq14(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and9(eq13(courseEnrollments.courseId, courseId), eq13(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and10(eq14(courseEnrollments.courseId, courseId), eq14(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and9(eq13(courseCommunityPosts.id, postId), eq13(courseCommunityPosts.courseId, courseId), eq13(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and10(eq14(courseCommunityPosts.id, postId), eq14(courseCommunityPosts.courseId, courseId), eq14(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and9(eq13(courseCommunityLikes.postId, postId), eq13(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and10(eq14(courseCommunityLikes.postId, postId), eq14(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and9(
-          eq13(courseCommunityLikes.postId, postId),
-          eq13(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and10(
+          eq14(courseCommunityLikes.postId, postId),
+          eq14(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql12`GREATEST(like_count - 1, 0)` }).where(eq13(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql12`GREATEST(like_count - 1, 0)` }).where(eq14(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
         await db.execute(sql12`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
@@ -22049,15 +23343,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and9(eq13(courseCommunityPosts.id, postId), eq13(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and10(eq14(courseCommunityPosts.id, postId), eq14(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
-      if (!isAdmin5 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq13(courses.id, courseId)).limit(1);
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
+      if (!isAdmin6 && post.userId !== u.id) {
+        const [course] = await db.select().from(courses).where(eq14(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq13(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq14(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -22066,7 +23360,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq13(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq14(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -22082,8 +23376,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq13(courseCommunityPosts.userId, users.id)).where(and9(inArray9(courseCommunityPosts.courseId, courseIds), eq13(courseCommunityPosts.isDeleted, false))).orderBy(desc9(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq13(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq14(courseCommunityPosts.userId, users.id)).where(and10(inArray10(courseCommunityPosts.courseId, courseIds), eq14(courseCommunityPosts.isDeleted, false))).orderBy(desc10(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq14(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -22093,7 +23387,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq13(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq14(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -22104,7 +23398,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq13(courseEnrollments.userId, users.id)).where(and9(inArray9(courseEnrollments.courseId, courseIds), sql12`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq14(courseEnrollments.userId, users.id)).where(and10(inArray10(courseEnrollments.courseId, courseIds), sql12`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -22265,10 +23559,10 @@ Instructions:
   app2.post("/api/courses/:id/lessons", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
       const course = await storage.getCourseById(req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
-      if (!isAdmin5 && course.instructorId !== u.id) {
+      if (!isAdmin6 && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
       const body = req.body;
@@ -22290,10 +23584,10 @@ Instructions:
   app2.patch("/api/courses/:courseId/lessons/:lessonId", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
       const course = await storage.getCourseById(req.params.courseId);
       if (!course) return res.status(404).json({ message: "Course not found" });
-      if (!isAdmin5 && course.instructorId !== u.id) {
+      if (!isAdmin6 && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
       const body = req.body;
@@ -22314,10 +23608,10 @@ Instructions:
   app2.delete("/api/courses/:courseId/lessons/:lessonId", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const isAdmin5 = u.userType === "admin" || u.role === "admin";
+      const isAdmin6 = u.userType === "admin" || u.role === "admin";
       const course = await storage.getCourseById(req.params.courseId);
       if (!course) return res.status(404).json({ message: "Course not found" });
-      if (!isAdmin5 && course.instructorId !== u.id) {
+      if (!isAdmin6 && course.instructorId !== u.id) {
         return res.status(403).json({ message: "Unauthorized" });
       }
       await storage.deleteLesson(req.params.lessonId);
@@ -22396,10 +23690,10 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and9(
-        eq13(courseAssignments.courseId, req.params.id),
-        eq13(courseAssignments.userId, req.user.id)
-      )).orderBy(desc9(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(and10(
+        eq14(courseAssignments.courseId, req.params.id),
+        eq14(courseAssignments.userId, req.user.id)
+      )).orderBy(desc10(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -22454,7 +23748,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq13(courseAssignments.userId, users.id)).orderBy(desc9(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq14(courseAssignments.userId, users.id)).orderBy(desc10(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -22466,7 +23760,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq13(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq14(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -22514,13 +23808,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq19, desc: desc10 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq19(courseMessages2.courseId, req.params.id)).orderBy(desc10(courseMessages2.createdAt));
+      const { eq: eq20, desc: desc11 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq20(courseMessages2.courseId, req.params.id)).orderBy(desc11(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq19(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq20(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq19(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq20(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -22553,8 +23847,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq19, and: and11 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and11(eq19(productLikes2.productId, req.params.id), eq19(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq20, and: and12 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and12(eq20(productLikes2.productId, req.params.id), eq20(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -22564,26 +23858,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq19, and: and11, sql: sql16 } = await import("drizzle-orm");
+      const { eq: eq20, and: and12, sql: sql16 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and11(eq19(productLikes2.productId, req.params.id), eq19(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and12(eq20(productLikes2.productId, req.params.id), eq20(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq19(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq20(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             [type === "like" ? "likesCount" : "dislikesCount"]: sql16`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq19(shopProducts2.id, req.params.id));
+          }).where(eq20(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq19(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq20(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             likesCount: sql16`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
             dislikesCount: sql16`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq19(shopProducts2.id, req.params.id));
+          }).where(eq20(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -22594,7 +23888,7 @@ Instructions:
         });
         await db2.update(shopProducts2).set({
           [type === "like" ? "likesCount" : "dislikesCount"]: sql16`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq19(shopProducts2.id, req.params.id));
+        }).where(eq20(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -22980,7 +24274,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and9(eq13(messages.referenceType, "direct_hire"), eq13(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and10(eq14(messages.referenceType, "direct_hire"), eq14(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -23088,7 +24382,7 @@ Instructions:
         totalEarned: sql12`${users.totalEarned} + ${payout}`,
         completedCampaigns: sql12`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(users.id, offer.influencerId));
+      }).where(eq14(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -23117,7 +24411,7 @@ Instructions:
           availableBalance: sql12`${users.availableBalance} + ${platformRevenue}`,
           totalEarned: sql12`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq13(users.id, primaryAdmin.id));
+        }).where(eq14(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -23129,9 +24423,9 @@ Instructions:
           processedAt: /* @__PURE__ */ new Date()
         });
       }
-      for (const admin of admins) {
+      for (const admin2 of admins) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "direct_hire_completed",
           title: "Direct hire completed",
           content: `"${offer.title}" was approved. Platform revenue: $${(platformFee + brandFee).toFixed(2)}.`,
@@ -23157,7 +24451,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and9(eq13(userReviews.referenceType, "direct_hire"), eq13(userReviews.referenceId, offer.id))).orderBy(desc9(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and10(eq14(userReviews.referenceType, "direct_hire"), eq14(userReviews.referenceId, offer.id))).orderBy(desc10(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -23173,7 +24467,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and9(eq13(userReviews.referenceType, "direct_hire"), eq13(userReviews.referenceId, offer.id), eq13(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and10(eq14(userReviews.referenceType, "direct_hire"), eq14(userReviews.referenceId, offer.id), eq14(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -23183,8 +24477,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql12`AVG(${userReviews.rating})`, count: sql12`COUNT(*)` }).from(userReviews).where(eq13(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq13(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql12`AVG(${userReviews.rating})`, count: sql12`COUNT(*)` }).from(userReviews).where(eq14(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq14(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -23199,7 +24493,7 @@ Instructions:
         return res.status(400).json({ message: "Mediation can only be requested on active projects" });
       }
       const reason = String(req.body.reason || "").trim();
-      const admin = await storage.getAdminUser();
+      const admin2 = await storage.getAdminUser();
       const systemContent = `\u2696\uFE0F Mediation requested by ${req.user.firstName}${reason ? `: "${reason}"` : ""}. An admin has been notified and will join shortly.`;
       await storage.createMessage({
         senderId: req.user.id,
@@ -23210,9 +24504,9 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       });
-      if (admin) {
+      if (admin2) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "mediation_request",
           title: "\u2696\uFE0F Mediation Requested",
           content: `${req.user.firstName} requested mediation on direct hire "${offer.title}". ${reason ? `Reason: ${reason}` : ""}`,
@@ -23310,9 +24604,9 @@ Instructions:
       }).catch(() => {
       });
       const admins = await storage.getUsersByType("admin");
-      for (const admin of admins) {
+      for (const admin2 of admins) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "direct_hire_payment",
           title: "\u{1F4B0} Direct Hire Payment Submitted",
           content: `Brand "${req.user.firstName}" submitted payment for offer "${offer.title}". Please verify.`,
@@ -23349,7 +24643,7 @@ Instructions:
       await db.update(users).set({
         pendingBalance: sql12`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(users.id, offer.influencerId));
+      }).where(eq14(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -23542,8 +24836,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq13(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq13(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq14(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq14(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -23554,7 +24848,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq13(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq14(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -23563,7 +24857,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq13(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq14(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -23714,11 +25008,11 @@ ${body}`,
   app2.get("/api/admin/direct-hire", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const [admin, offers] = await Promise.all([
+      const [admin2, offers] = await Promise.all([
         storage.getAdminUser(),
         storage.getAllDirectHireOffers()
       ]);
-      const adminId = admin?.id;
+      const adminId = admin2?.id;
       const uniqueIds = [...new Set(offers.flatMap((o) => [o.brandId, o.influencerId]).filter(Boolean))];
       const userArr = await Promise.all(uniqueIds.map((id) => storage.getUser(id)));
       const userMap = {};
@@ -23920,7 +25214,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and9(eq13(p2pListings.status, "approved"), eq13(p2pListings.isFeatured, true))).orderBy(desc9(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and10(eq14(p2pListings.status, "approved"), eq14(p2pListings.isFeatured, true))).orderBy(desc10(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -23928,7 +25222,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -23945,12 +25239,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq13(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq13(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq13(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq13(p2pListings.country, country));
-      if (currency) conditions.push(eq13(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and9(...conditions)).orderBy(desc9(p2pListings.createdAt));
+      let conditions = [eq14(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq14(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq14(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq14(p2pListings.country, country));
+      if (currency) conditions.push(eq14(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and10(...conditions)).orderBy(desc10(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -24011,9 +25305,9 @@ Notes: ${adminNotes}` : ""}`
       }).returning();
       await logP2PAction(req.user.id, "listing_created", { listingId: listing.id });
       const admins = await storage.getUsersByType("admin");
-      for (const admin of admins) {
+      for (const admin2 of admins) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "p2p_listing_pending",
           title: "New P2P listing pending",
           content: `${req.user.firstName} submitted "${title}" for approval.`,
@@ -24027,7 +25321,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -24043,7 +25337,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and9(eq13(p2pTaskAddonSubmissions.listingId, req.params.id), eq13(p2pTaskAddonSubmissions.userId, req.user.id), eq13(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and10(eq14(p2pTaskAddonSubmissions.listingId, req.params.id), eq14(p2pTaskAddonSubmissions.userId, req.user.id), eq14(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -24077,12 +25371,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq13(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc9(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq14(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc10(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24090,7 +25384,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq13(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc9(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq14(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc10(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24098,9 +25392,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq13(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq14(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -24113,7 +25407,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq14(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -24134,13 +25428,13 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq13(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq14(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
       const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
-        inArray9(p2pTaskAddonSubmissions.listingId, listingIds)
-      ).orderBy(desc9(p2pTaskAddonSubmissions.createdAt));
+        inArray10(p2pTaskAddonSubmissions.listingId, listingIds)
+      ).orderBy(desc10(p2pTaskAddonSubmissions.createdAt));
       const submissionsWithTitle = submissions.map((s) => ({ ...s, listingTitle: listingTitleMap[s.listingId] || "" }));
       res.json(submissionsWithTitle);
     } catch (e) {
@@ -24165,7 +25459,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
@@ -24223,9 +25517,9 @@ Notes: ${adminNotes}` : ""}`
         content: `${req.user.firstName} accepted "${listing.title}".`,
         actionUrl: `/p2p-deals/${tx.id}`
       });
-      for (const admin of admins) {
+      for (const admin2 of admins) {
         await storage.createNotification({
-          userId: admin.id,
+          userId: admin2.id,
           type: "p2p_transaction_created",
           title: "P2P transaction alert",
           content: `New P2P deal: "${listing.title}" for $${totalAmount.toFixed(2)}.`,
@@ -24239,7 +25533,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions", isAuthenticated, async (req, res) => {
     try {
-      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc9(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql12`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc9(p2pTransactions.createdAt));
+      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc10(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql12`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc10(p2pTransactions.createdAt));
       res.json(await Promise.all(rows.map(enrichP2PTransaction)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24247,7 +25541,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -24257,10 +25551,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq13(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq14(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24268,7 +25562,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -24286,7 +25580,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -24295,11 +25589,11 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
-      for (const admin of admins) {
-        await storage.createNotification({ userId: admin.id, type: "p2p_payment_marked", title: "P2P payment marked", content: `Buyer marked transaction ${tx.id} as paid.`, actionUrl: "/admin/p2p-transactions" });
+      for (const admin2 of admins) {
+        await storage.createNotification({ userId: admin2.id, type: "p2p_payment_marked", title: "P2P payment marked", content: `Buyer marked transaction ${tx.id} as paid.`, actionUrl: "/admin/p2p-transactions" });
       }
       res.json(await enrichP2PTransaction(updated));
     } catch (e) {
@@ -24309,10 +25603,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -24322,11 +25616,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -24336,15 +25630,15 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
-      for (const admin of admins) {
-        await storage.createNotification({ userId: admin.id, type: "p2p_ready_release", title: "P2P ready for release", content: `Buyer confirmed receipt for ${tx.id}.`, actionUrl: "/admin/p2p-transactions" });
+      for (const admin2 of admins) {
+        await storage.createNotification({ userId: admin2.id, type: "p2p_ready_release", title: "P2P ready for release", content: `Buyer confirmed receipt for ${tx.id}.`, actionUrl: "/admin/p2p-transactions" });
       }
       res.json(await enrichP2PTransaction(updated));
     } catch (e) {
@@ -24353,15 +25647,15 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
-      for (const admin of admins) {
-        await storage.createNotification({ userId: admin.id, type: "p2p_dispute", title: "P2P dispute opened", content: `A dispute was opened for ${tx.id}.`, actionUrl: "/admin/p2p-transactions" });
+      for (const admin2 of admins) {
+        await storage.createNotification({ userId: admin2.id, type: "p2p_dispute", title: "P2P dispute opened", content: `A dispute was opened for ${tx.id}.`, actionUrl: "/admin/p2p-transactions" });
       }
       res.json(await enrichP2PTransaction(updated));
     } catch (e) {
@@ -24371,11 +25665,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql12`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql12`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql12`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql12`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -24388,10 +25682,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -24412,7 +25706,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq13(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq14(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -24438,7 +25732,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq13(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq14(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -24455,14 +25749,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq13(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq13(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq14(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq13(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq14(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -24489,7 +25783,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq13(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq14(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -24500,7 +25794,7 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-listings", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = (await db.select().from(p2pListings).orderBy(desc9(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = (await db.select().from(p2pListings).orderBy(desc10(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const enriched = await Promise.all(rows.map(enrichP2PListing));
       res.json(enriched);
     } catch (e) {
@@ -24510,8 +25804,8 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-transactions", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = await db.select().from(p2pTransactions).orderBy(desc9(p2pTransactions.createdAt));
-      const allListings = (await db.select().from(p2pListings).orderBy(desc9(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = await db.select().from(p2pTransactions).orderBy(desc10(p2pTransactions.createdAt));
+      const allListings = (await db.select().from(p2pListings).orderBy(desc10(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const revenue = rows.filter((r) => r.status === "completed").reduce((sum, r) => sum + Number(r.fee || 0), 0);
       res.json({
         stats: {
@@ -24560,7 +25854,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq13(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq14(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24570,7 +25864,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq13(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq14(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -24582,9 +25876,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq13(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq14(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq13(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq14(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24866,7 +26160,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/all-submissions", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const submissions = await db.select().from(taskSubmissions).orderBy(desc9(taskSubmissions.submittedAt));
+      const submissions = await db.select().from(taskSubmissions).orderBy(desc10(taskSubmissions.submittedAt));
       const enriched = await Promise.all(submissions.map(async (s) => {
         const [creator, campaign] = await Promise.all([
           storage.getUser(s.userId),
@@ -24949,7 +26243,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq13(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq14(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -25174,7 +26468,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq13(adAnalytics.adId, req.params.id)).orderBy(desc9(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq14(adAnalytics.adId, req.params.id)).orderBy(desc10(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -25327,7 +26621,7 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const apps = await storage.getAllAdvertiseApplications();
-      const payments = await db.select().from(paymentDeposits).where(sql12`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc9(paymentDeposits.createdAt));
+      const payments = await db.select().from(paymentDeposits).where(sql12`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc10(paymentDeposits.createdAt));
       res.json(apps.map((app22) => ({
         ...app22,
         payment: payments.find((payment) => String(payment.adminNotes || "").includes(`ads_application:${app22.id}`)) || null
@@ -25371,8 +26665,8 @@ ${body}`,
       const status = String(req.query.status || "").trim();
       const search = String(req.query.search || "").trim();
       const conditions = [];
-      if (eventType && eventType !== "all") conditions.push(eq13(activityLogs.eventType, eventType));
-      if (status && status !== "all") conditions.push(eq13(activityLogs.status, status));
+      if (eventType && eventType !== "all") conditions.push(eq14(activityLogs.eventType, eventType));
+      if (status && status !== "all") conditions.push(eq14(activityLogs.status, status));
       if (search) {
         const pattern = `%${search.slice(0, 100)}%`;
         conditions.push(or(
@@ -25383,9 +26677,9 @@ ${body}`,
           ilike2(activityLogs.entityId, pattern)
         ));
       }
-      const where = conditions.length ? and9(...conditions) : void 0;
+      const where = conditions.length ? and10(...conditions) : void 0;
       const [items, totalRows] = await Promise.all([
-        db.select().from(activityLogs).where(where).orderBy(desc9(activityLogs.createdAt)).limit(limit).offset(offset),
+        db.select().from(activityLogs).where(where).orderBy(desc10(activityLogs.createdAt)).limit(limit).offset(offset),
         db.select({ count: count4() }).from(activityLogs).where(where)
       ]);
       res.json({
@@ -25810,7 +27104,7 @@ ${body}`,
       const allUsers = await storage.getAllUsers?.() || [];
       const { courseEnrollments: courseEnrollments2, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
       const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const { eq: eq19, sql: sqlFn } = await import("drizzle-orm");
+      const { eq: eq20, sql: sqlFn } = await import("drizzle-orm");
       const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
       const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
       const studentUserIds = /* @__PURE__ */ new Set([
@@ -25996,7 +27290,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq13(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq14(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -26020,9 +27314,9 @@ ${body}`,
         await storage.awardPoints(req.user.id, "tdrip_purchase", points, `Purchased ${points} $TDRIP via crypto checkout`, transaction.id);
       } else {
         const admins = await storage.getUsersByType("admin");
-        for (const admin of admins) {
+        for (const admin2 of admins) {
           await storage.createNotification({
-            userId: admin.id,
+            userId: admin2.id,
             type: "tdrip_topup_pending",
             title: "$TDRIP top-up needs review",
             content: `${req.user.firstName} submitted proof for ${points} $TDRIP (${transaction.amount} USDT).`,
@@ -26286,8 +27580,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq19, and: and11 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and11(eq19(pageHeroBackgrounds2.page, req.params.page), eq19(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq20, and: and12 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and12(eq20(pageHeroBackgrounds2.page, req.params.page), eq20(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26309,12 +27603,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq19 } = await import("drizzle-orm");
+      const { eq: eq20 } = await import("drizzle-orm");
       const page2 = req.params.page;
       const data = { ...req.body, page: page2, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq19(pageHeroBackgrounds2.page, page2));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq20(pageHeroBackgrounds2.page, page2));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq19(pageHeroBackgrounds2.page, page2)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq20(pageHeroBackgrounds2.page, page2)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -26328,8 +27622,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq19 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq19(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq20 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq20(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26435,7 +27729,7 @@ ${body}`,
       if (!user) return res.status(404).json({ message: "User not found" });
       const shopOrders = await storage.getUserPurchases(userId);
       const courseOrders = await storage.getMyEnrollments(userId);
-      const p2pRows = await db.select().from(p2pTransactions).where(sql12`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc9(p2pTransactions.createdAt));
+      const p2pRows = await db.select().from(p2pTransactions).where(sql12`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc10(p2pTransactions.createdAt));
       const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
       let escrowOrders = [];
       if (user.userType === "brand" || user.userType === "admin") {
@@ -26459,12 +27753,12 @@ ${body}`,
       const directHireOrders = Array.from(hireMap.values()).sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
-      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql12`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc9(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and9(
-        eq13(paymentDeposits.brandId, userId),
+      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql12`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc10(advertiseApplications.createdAt)) : [];
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and10(
+        eq14(paymentDeposits.brandId, userId),
         sql12`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
-      )).orderBy(desc9(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq13(subscriptions.userId, userId)).orderBy(desc9(subscriptions.createdAt));
+      )).orderBy(desc10(paymentDeposits.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq14(subscriptions.userId, userId)).orderBy(desc10(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -26486,14 +27780,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq13(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq14(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq13(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq14(users.id, sellerId));
         seller = s || null;
       }
       res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? "seller" : "buyer" });
@@ -26505,7 +27799,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq13(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq14(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -26600,7 +27894,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq13(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq14(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -26703,7 +27997,7 @@ ${body}`,
   });
   const readPortfolioContent = async () => {
     const rows = await db.select().from(siteContent).where(
-      inArray9(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects])
+      inArray10(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects])
     );
     const profileRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.profile);
     const projectsRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.projects);
@@ -26784,7 +28078,7 @@ ${body}`,
       if (projects.some((project) => !project?.slug || !project?.title)) {
         return res.status(400).json({ message: "Every project needs a slug and title" });
       }
-      const existing = await db.select({ contentKey: siteContent.contentKey }).from(siteContent).where(inArray9(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects]));
+      const existing = await db.select({ contentKey: siteContent.contentKey }).from(siteContent).where(inArray10(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects]));
       const existingKeys = new Set(existing.map((row) => row.contentKey));
       const save = async (key, label, section, value, sortOrder) => {
         const serialized = JSON.stringify(value);
@@ -26811,7 +28105,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq13(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq14(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -26828,7 +28122,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq13(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq14(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -26845,7 +28139,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq13(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq14(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -26875,7 +28169,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq13(pageSeoSettings.pageSlug, req.params.slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq14(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page2 || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26886,9 +28180,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq13(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq14(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -26953,7 +28247,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq13(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq14(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26962,7 +28256,7 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq13(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq14(footerColumns.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27032,7 +28326,7 @@ ${body}`,
 `;
       }
       try {
-        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq13(posts.status, "published")).limit(500);
+        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq14(posts.status, "published")).limit(500);
         for (const post of blogPostsList) {
           if (post.slug) {
             const lm = post.updatedAt ? new Date(post.updatedAt).toISOString().split("T")[0] : today;
@@ -27051,7 +28345,7 @@ ${body}`,
       } catch {
       }
       try {
-        const creatorList = await db.select({ id: users.id }).from(users).where(eq13(users.userType, "influencer")).limit(500);
+        const creatorList = await db.select({ id: users.id }).from(users).where(eq14(users.userType, "influencer")).limit(500);
         for (const c of creatorList) {
           xml += `  <url><loc>${domain}/influencers/${c.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
@@ -27059,7 +28353,7 @@ ${body}`,
       } catch {
       }
       try {
-        const brandList = await db.select({ id: users.id }).from(users).where(eq13(users.userType, "brand")).limit(500);
+        const brandList = await db.select({ id: users.id }).from(users).where(eq14(users.userType, "brand")).limit(500);
         for (const b of brandList) {
           xml += `  <url><loc>${domain}/brand/${b.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
@@ -27164,12 +28458,12 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq13(leads.kind, String(kind)));
+      if (kind) conds.push(eq14(leads.kind, String(kind)));
       if (niche) conds.push(sql12`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
       if (businessType) conds.push(sql12`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq13(leads.country, String(country)));
+      if (country) conds.push(eq14(leads.country, String(country)));
       if (city) conds.push(sql12`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq13(leads.status, String(status)));
+      if (status) conds.push(eq14(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
         conds.push(sql12`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -27178,8 +28472,8 @@ ${body}`,
       if (hasPhone === "true") conds.push(sql12`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
       if (hasWebsite === "true") conds.push(sql12`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
       if (hasEmail === "true") conds.push(sql12`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and9(...conds) : void 0;
-      const rows = await db.select().from(leads).where(where).orderBy(desc9(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
+      const where = conds.length ? and10(...conds) : void 0;
+      const rows = await db.select().from(leads).where(where).orderBy(desc10(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count4() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
     } catch (e) {
@@ -27208,9 +28502,9 @@ ${body}`,
   });
   app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq13(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq14(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq13(leadMessages.leadId, lead.id)).orderBy(desc9(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq14(leadMessages.leadId, lead.id)).orderBy(desc10(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27222,7 +28516,7 @@ ${body}`,
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq13(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq14(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -27230,8 +28524,8 @@ ${body}`,
   });
   app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq13(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq13(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq14(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq14(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27271,7 +28565,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq13(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq14(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -27300,10 +28594,10 @@ ${body}`,
   });
   app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq13(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq14(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -27313,7 +28607,7 @@ ${body}`,
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq13(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq14(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -27338,7 +28632,7 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq13(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq14(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
@@ -27353,9 +28647,9 @@ ${body}`,
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
         if (niche) conds.push(sql12`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq13(leads.country, String(country)));
-        if (kind) conds.push(eq13(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and9(...conds)).limit(2e3);
+        if (country) conds.push(eq14(leads.country, String(country)));
+        if (kind) conds.push(eq14(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and10(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -27371,7 +28665,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq13(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq14(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -27384,13 +28678,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq13(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq14(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq13(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq14(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27445,10 +28739,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq13(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq14(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq13(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq14(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           sendAdminActivityEmail({
@@ -27485,7 +28779,7 @@ ${body}`,
   app2.get("/api/admin/newsletter-subscribers", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const rows = await db.select().from(newsletterSubscribers).orderBy(desc9(newsletterSubscribers.subscribedAt));
+      const rows = await db.select().from(newsletterSubscribers).orderBy(desc10(newsletterSubscribers.subscribedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27496,7 +28790,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq13(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq14(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27689,10 +28983,10 @@ ${body}`,
     app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
         const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
-        const conds = [eq13(leads.kind, "influencer")];
+        const conds = [eq14(leads.kind, "influencer")];
         if (niche) conds.push(sql12`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq13(leads.country, String(country)));
-        if (status) conds.push(eq13(leads.status, String(status)));
+        if (country) conds.push(eq14(leads.country, String(country)));
+        if (status) conds.push(eq14(leads.status, String(status)));
         if (search) {
           const s = `%${String(search).toLowerCase()}%`;
           conds.push(sql12`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -27709,8 +29003,8 @@ ${body}`,
             conds.push(sql12`${leads.followers} IS NULL OR ${leads.followers} = 0`);
           }
         }
-        const rows = await db.select().from(leads).where(and9(...conds)).orderBy(desc9(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
-        const totalRow = await db.select({ c: count4() }).from(leads).where(and9(...conds));
+        const rows = await db.select().from(leads).where(and10(...conds)).orderBy(desc10(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
+        const totalRow = await db.select({ c: count4() }).from(leads).where(and10(...conds));
         const items = rows.map((r) => ({ ...r, computedTier: classifyTier2(r.followers) }));
         res.json({ items, total: Number(totalRow[0]?.c || 0) });
       } catch (e) {
@@ -27753,7 +29047,7 @@ ${body}`,
         const fields = ["name", "niche", "country", "city", "email", "website", "phone", "whatsapp", "socialLinks", "followers", "description", "tags", "status", "aiSummary", "aiReport"];
         for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
         allowed.updatedAt = /* @__PURE__ */ new Date();
-        const [updated] = await db.update(leads).set(allowed).where(and9(eq13(leads.id, req.params.id), eq13(leads.kind, "influencer"))).returning();
+        const [updated] = await db.update(leads).set(allowed).where(and10(eq14(leads.id, req.params.id), eq14(leads.kind, "influencer"))).returning();
         res.json(updated);
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -27761,8 +29055,8 @@ ${body}`,
     });
     app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
-        await db.delete(leadMessages).where(eq13(leadMessages.leadId, req.params.id));
-        await db.delete(leads).where(eq13(leads.id, req.params.id));
+        await db.delete(leadMessages).where(eq14(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq14(leads.id, req.params.id));
         res.json({ ok: true });
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -27772,7 +29066,7 @@ ${body}`,
       try {
         const { subject, body, channel } = req.body || {};
         if (!body) return res.status(400).json({ message: "body required" });
-        const [lead] = await db.select().from(leads).where(and9(eq13(leads.id, req.params.id), eq13(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select().from(leads).where(and10(eq14(leads.id, req.params.id), eq14(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         if (channel === "email" || !channel) {
           const result = await sendInfluencerOutreach2({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
@@ -27787,7 +29081,7 @@ ${body}`,
           provider: "manual",
           sentBy: req.user?.id || null
         }).returning();
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq13(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq14(leads.id, lead.id));
         res.json({ success: true, channel, message: msg });
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -27795,7 +29089,7 @@ ${body}`,
     });
     app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
-        const msgs = await db.select().from(leadMessages).where(eq13(leadMessages.leadId, req.params.id)).orderBy(desc9(leadMessages.createdAt));
+        const msgs = await db.select().from(leadMessages).where(eq14(leadMessages.leadId, req.params.id)).orderBy(desc10(leadMessages.createdAt));
         res.json(msgs);
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -27805,7 +29099,7 @@ ${body}`,
       try {
         const body = String(req.body?.body || "").trim();
         if (!body) return res.status(400).json({ message: "Note body required" });
-        const [lead] = await db.select({ id: leads.id }).from(leads).where(and9(eq13(leads.id, req.params.id), eq13(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select({ id: leads.id }).from(leads).where(and10(eq14(leads.id, req.params.id), eq14(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         const [message] = await db.insert(leadMessages).values({
           leadId: lead.id,
@@ -27827,7 +29121,7 @@ ${body}`,
         if (!body) return res.status(400).json({ message: "body required" });
         let ids = Array.isArray(leadIds) ? leadIds : [];
         if (!ids.length) {
-          const conds = [eq13(leads.kind, "influencer")];
+          const conds = [eq14(leads.kind, "influencer")];
           if (niche) conds.push(sql12`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
           if (tier && tier !== "all") {
             const tierDef = TIERS2.find((t) => t.id === String(tier));
@@ -27837,7 +29131,7 @@ ${body}`,
               conds.push(sql12`${leads.followers} >= ${tierDef.min}`);
             }
           }
-          const rows = await db.select({ id: leads.id }).from(leads).where(and9(...conds)).limit(500);
+          const rows = await db.select({ id: leads.id }).from(leads).where(and10(...conds)).limit(500);
           ids = rows.map((r) => r.id);
         }
         if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
@@ -27850,6 +29144,7 @@ ${body}`,
   }
   const httpServer = existingServer ?? createServer(app2);
   registerCreatorPublishingRoutes(app2);
+  registerPluginStudioRoutes(app2);
   return httpServer;
 }
 
@@ -27861,7 +29156,7 @@ import path4 from "path";
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { eq as eq14 } from "drizzle-orm";
+import { eq as eq15 } from "drizzle-orm";
 var escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
@@ -27998,7 +29293,7 @@ async function lookupRoute(origin, pathname) {
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug2 = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(eq14(blogPosts.slug, slug2));
+    const [post] = await db.select().from(blogPosts).where(eq15(blogPosts.slug, slug2));
     if (post) {
       const image = post.featuredImage || ogImageFromHtml(post.content);
       return {
@@ -28012,7 +29307,7 @@ async function lookupRoute(origin, pathname) {
   const campaignMatch = pathname.match(/^\/campaigns\/([^/?#]+)/);
   if (campaignMatch) {
     const id = decodeURIComponent(campaignMatch[1]);
-    const [c] = await db.select().from(campaigns).where(eq14(campaigns.id, id));
+    const [c] = await db.select().from(campaigns).where(eq15(campaigns.id, id));
     if (c) {
       return {
         title: `${c.title} | Taskdrip`,
@@ -28024,11 +29319,11 @@ async function lookupRoute(origin, pathname) {
   const shopMatch = pathname.match(/^\/shop\/product\/([^/?#]+)/);
   if (shopMatch) {
     const key = decodeURIComponent(shopMatch[1]);
-    const [p] = await db.select().from(shopProducts).where(eq14(shopProducts.id, key)) || [];
+    const [p] = await db.select().from(shopProducts).where(eq15(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
       try {
-        const [bySlug] = await db.select().from(shopProducts).where(eq14(shopProducts.slug, key));
+        const [bySlug] = await db.select().from(shopProducts).where(eq15(shopProducts.slug, key));
         product = bySlug;
       } catch {
       }
@@ -28046,13 +29341,13 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(profileMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq14(users.id, key));
+      const [byId] = await db.select().from(users).where(eq15(users.id, key));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq14(users.username, key));
+        const [byUsername] = await db.select().from(users).where(eq15(users.username, key));
         user = byUsername || null;
       } catch {
       }
@@ -28074,7 +29369,7 @@ async function lookupRoute(origin, pathname) {
   if (courseMatch) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
-      const [course] = await db.select().from(courseEnrollments).where(eq14(courseEnrollments.id, key));
+      const [course] = await db.select().from(courseEnrollments).where(eq15(courseEnrollments.id, key));
       if (course) {
         return {
           title: `${course.title || "Course"} | BreedSkool`,
@@ -28089,7 +29384,7 @@ async function lookupRoute(origin, pathname) {
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq14(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, id));
       if (listing) {
         return {
           title: `${listing.title || "P2P listing"} | Taskdrip`,
@@ -28103,7 +29398,7 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq14(pageSeoSettings.pageSlug, slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq15(pageSeoSettings.pageSlug, slug));
       if (page2) {
         return {
           title: page2.metaTitle || page2.pageTitle,
@@ -28261,7 +29556,7 @@ function serveStatic(app2) {
 // server/seed-demo.ts
 init_db();
 init_schema();
-import { eq as eq15, sql as sql13 } from "drizzle-orm";
+import { eq as eq16, sql as sql13 } from "drizzle-orm";
 import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
@@ -29018,7 +30313,7 @@ async function seedDemoData(adminUserId) {
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
     }
-    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq15(p2pListings.sellerId, adminUserId)).limit(1);
+    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq16(p2pListings.sellerId, adminUserId)).limit(1);
     if (existingP2P.length === 0) {
       console.log("[seed] Seeding demo P2P listings...");
       for (const listing of DEMO_P2P_LISTINGS) {
@@ -29144,7 +30439,7 @@ async function seedDemoData(adminUserId) {
     }
     let networksCreated = 0;
     for (const net of PAYMENT_NETWORKS_DATA) {
-      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq15(paymentNetworks.networkKey, net.networkKey)).limit(1);
+      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq16(paymentNetworks.networkKey, net.networkKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net);
         networksCreated++;
@@ -29449,7 +30744,7 @@ async function seedCmsContent() {
 // server/seed-legal.ts
 init_db();
 init_schema();
-import { eq as eq16 } from "drizzle-orm";
+import { eq as eq17 } from "drizzle-orm";
 var LEGAL_CONTENT = [
   {
     slug: "terms",
@@ -29805,7 +31100,7 @@ Website: <a href="https://taskdrip.online">taskdrip.online</a></p>`
 async function seedLegalPages() {
   try {
     for (const page2 of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq16(legalPages.slug, page2.slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq17(legalPages.slug, page2.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
           slug: page2.slug,
@@ -29815,7 +31110,7 @@ async function seedLegalPages() {
         console.log(`[seed-legal] Seeded legal page: ${page2.slug}`);
       }
     }
-    const demoSub = await db.select().from(newsletterSubscribers).where(eq16(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
+    const demoSub = await db.select().from(newsletterSubscribers).where(eq17(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
     if (!demoSub.length) {
       await db.insert(newsletterSubscribers).values({
         email: "newsletter.demo@taskdrip.online",
@@ -29837,7 +31132,7 @@ init_seed_breedskool_courses();
 // server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq17, sql as sql14, and as and10 } from "drizzle-orm";
+import { eq as eq18, sql as sql14, and as and11 } from "drizzle-orm";
 import bcrypt5 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
@@ -29915,7 +31210,7 @@ async function seedSaasCourseDemo() {
   let enrollmentsCreated = 0;
   let reviewsCreated = 0;
   try {
-    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
+    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
     const courseId = pricing?.linkedCourseId;
     if (!courseId) {
       console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
@@ -29926,7 +31221,7 @@ async function seedSaasCourseDemo() {
     const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
     for (const student of DEMO_STUDENTS) {
       try {
-        const [existing] = await db.select({ id: users.id }).from(users).where(eq17(users.email, student.email)).limit(1);
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq18(users.email, student.email)).limit(1);
         let userId;
         if (existing) {
           userId = existing.id;
@@ -29944,9 +31239,9 @@ async function seedSaasCourseDemo() {
           userId = newUser.id;
           studentsCreated++;
         }
-        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and10(
-          eq17(courseEnrollments.courseId, courseId),
-          eq17(courseEnrollments.userId, userId)
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and11(
+          eq18(courseEnrollments.courseId, courseId),
+          eq18(courseEnrollments.userId, userId)
         )).limit(1);
         if (!existingEnroll) {
           const paidAt = randomDate(purchaseStart, purchaseEnd);
@@ -29967,19 +31262,19 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
     }
-    const [countResult] = await db.select({ cnt: sql14`count(*)::int` }).from(courseEnrollments).where(and10(
-      eq17(courseEnrollments.courseId, courseId),
-      eq17(courseEnrollments.isPaid, true),
-      eq17(courseEnrollments.status, "active")
+    const [countResult] = await db.select({ cnt: sql14`count(*)::int` }).from(courseEnrollments).where(and11(
+      eq18(courseEnrollments.courseId, courseId),
+      eq18(courseEnrollments.isPaid, true),
+      eq18(courseEnrollments.status, "active")
     ));
-    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq17(courses.id, courseId));
+    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq18(courses.id, courseId));
     for (const rev of DEMO_REVIEWS) {
       try {
-        const [userRow] = await db.select({ id: users.id }).from(users).where(eq17(users.email, rev.email)).limit(1);
+        const [userRow] = await db.select({ id: users.id }).from(users).where(eq18(users.email, rev.email)).limit(1);
         if (!userRow) continue;
-        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and10(
-          eq17(courseReviews.courseId, courseId),
-          eq17(courseReviews.userId, userRow.id)
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and11(
+          eq18(courseReviews.courseId, courseId),
+          eq18(courseReviews.userId, userRow.id)
         )).limit(1);
         if (!existingReview) {
           const reviewDate = randomDate(/* @__PURE__ */ new Date("2025-09-15"), /* @__PURE__ */ new Date("2026-07-28"));
@@ -29996,16 +31291,16 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for review ${rev.email}:`, e?.message);
       }
     }
-    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq17(courseReviews.courseId, courseId));
+    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq18(courseReviews.courseId, courseId));
     if (allReviews.length > 0) {
       const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
       await db.update(courses).set({
         reviewsCount: allReviews.length,
         averageRating: avg.toFixed(2),
         isFeatured: true
-      }).where(eq17(courses.id, courseId));
+      }).where(eq18(courses.id, courseId));
     } else {
-      await db.update(courses).set({ isFeatured: true }).where(eq17(courses.id, courseId));
+      await db.update(courses).set({ isFeatured: true }).where(eq18(courses.id, courseId));
     }
   } catch (e) {
     console.error("[seed-saas-demo] Fatal error:", e?.message);
@@ -30016,11 +31311,11 @@ async function seedSaasCourseDemo() {
 // server/seed-lawcolab.ts
 init_db();
 init_schema();
-import { eq as eq18 } from "drizzle-orm";
+import { eq as eq19 } from "drizzle-orm";
 var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
 async function seedLawcolab() {
   try {
-    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq18(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq19(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
     if (existing.length > 0) {
       return { inserted: false, skipped: true };
     }
@@ -30918,6 +32213,26 @@ var REQUIRED_TABLES = [
     "last_fetched_at" timestamp,
     "created_at" timestamp DEFAULT now()
   )`,
+  // WordPress plugin studio projects; the saleable product remains in shop_products.
+  `CREATE TABLE IF NOT EXISTS "plugin_studio_projects" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "slug" varchar NOT NULL UNIQUE,
+    "template_key" varchar NOT NULL DEFAULT 'learnpress-woocommerce',
+    "name" varchar NOT NULL,
+    "version" varchar NOT NULL DEFAULT '1.0.0',
+    "author" varchar NOT NULL DEFAULT 'Taskdrip',
+    "short_description" varchar,
+    "description" text NOT NULL,
+    "seo_title" varchar,
+    "seo_description" varchar,
+    "seo_keywords" text,
+    "shop_product_id" varchar,
+    "status" varchar NOT NULL DEFAULT 'draft',
+    "created_by" varchar,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "plugin_studio_projects_shop_product_idx" ON "plugin_studio_projects" ("shop_product_id")`,
   // Auto-blogger jobs
   `CREATE TABLE IF NOT EXISTS "auto_blog_jobs" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),

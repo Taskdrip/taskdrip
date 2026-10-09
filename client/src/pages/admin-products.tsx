@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Eye, Star, Package, Search, Filter, Image, X } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Star, Package, Search, Filter, Image, X, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -270,13 +270,17 @@ export default function AdminProducts() {
           <h1 className="text-3xl font-bold">Product Management</h1>
           <p className="text-gray-600">Manage your shop products</p>
         </div>
-        <Dialog open={isCreateDialogOpen || !!editingProduct} onOpenChange={(open) => {
-          if (!open) {
-            setIsCreateDialogOpen(false);
-            setEditingProduct(null);
-            form.reset();
-          }
-        }}>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <a href="/admin/plugin-studio"><WandSparkles className="w-4 h-4 mr-2" />WordPress Plugin Studio</a>
+          </Button>
+          <Dialog open={isCreateDialogOpen || !!editingProduct} onOpenChange={(open) => {
+            if (!open) {
+              setIsCreateDialogOpen(false);
+              setEditingProduct(null);
+              form.reset();
+            }
+          }}>
           <DialogTrigger asChild>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -753,7 +757,8 @@ export default function AdminProducts() {
               </form>
             </Form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
