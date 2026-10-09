@@ -28,6 +28,7 @@ export interface CreatorStudioAiSettings {
   includeParentNotes: boolean;
   illustrationStyle: string;
   generationPrompt: string;
+  resourceNotes: string;
   toolPrompts: Record<string, string>;
   toolSettings: Record<string, { temperature: number; maxTokens: number }>;
 }
@@ -46,14 +47,20 @@ const TOOL_PROMPTS = [
   { key: "chapter", title: "Chapter", note: "Draft or revise a single chapter." },
   { key: "metadata", title: "Metadata", note: "Prepare publication details and discoverability copy." },
   { key: "writing-assistant", title: "Writing assistant", note: "Support focused writing and editorial tasks." },
+  { key: "title-ideas", title: "Title ideas", note: "Suggest book title and subtitle options." },
+  { key: "blurb", title: "Book description", note: "Write the back-cover and store description." },
+  { key: "proofread", title: "Proofreader", note: "Improve clarity and correctness while preserving meaning." },
+  { key: "expand", title: "Chapter expansion", note: "Develop a saved chapter without inventing sources." },
+  { key: "keywords", title: "Keyword suggestions", note: "Suggest relevant store-search phrases." },
 ] as const;
 
 const defaultSettings: CreatorStudioAiSettings = {
   defaultChapterCount: 6,
-  childAgeBand: "",
-  includeParentNotes: false,
+  childAgeBand: "6–8",
+  includeParentNotes: true,
   illustrationStyle: "",
   generationPrompt: "",
+  resourceNotes: "",
   toolPrompts: {},
   toolSettings: {
     "complete-book": { temperature: 0.55, maxTokens: 3600 },
@@ -61,6 +68,11 @@ const defaultSettings: CreatorStudioAiSettings = {
     chapter: { temperature: 0.7, maxTokens: 2400 },
     metadata: { temperature: 0.65, maxTokens: 2400 },
     "writing-assistant": { temperature: 0.7, maxTokens: 2400 },
+    "title-ideas": { temperature: 0.7, maxTokens: 1400 },
+    blurb: { temperature: 0.65, maxTokens: 1800 },
+    proofread: { temperature: 0.2, maxTokens: 4000 },
+    expand: { temperature: 0.65, maxTokens: 4000 },
+    keywords: { temperature: 0.5, maxTokens: 1200 },
   },
 };
 
@@ -411,6 +423,23 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
 
         <section aria-labelledby="generation-prompt-heading" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="mb-4">
+            <h2 id="resource-notes-heading" className="font-semibold text-slate-900">Reference resources</h2>
+            <p className="mt-1 text-sm text-slate-500">Optional source notes and approved references added to the AI tools’ context.</p>
+          </div>
+          <Label htmlFor="creator-resource-notes">Source and reference notes</Label>
+          <Textarea
+            id="creator-resource-notes"
+            className="mt-1.5 min-h-28 resize-y leading-6"
+            value={settings.resourceNotes}
+            maxLength={5000}
+            onChange={(event) => updateSettings("resourceNotes", event.target.value)}
+            placeholder="Add source passages, approved terminology, style-guide notes, or other material the tools should follow."
+          />
+          <p className="mt-2 text-xs leading-5 text-slate-500">These notes are sent with book, outline, chapter, metadata, and writing-tool prompts. Do not put API keys or passwords here.</p>
+        </section>
+
+        <section aria-labelledby="generation-prompt-heading" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+          <div className="mb-4">
             <h2 id="generation-prompt-heading" className="font-semibold text-slate-900">Full-book prompt</h2>
             <p className="mt-1 text-sm text-slate-500">Core instructions applied when the complete-book tool creates a manuscript.</p>
           </div>
@@ -488,7 +517,7 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
             </div>
             <div>
               <h2 id="coloring-book-heading" className="font-semibold text-slate-900">Children’s Bible coloring book</h2>
-              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-600">Create or upgrade the editable 8.5 × 11-inch, 20-story edition: 167 designed interior pages with scripture references, illustrated read-alouds, family questions, assignments, dimensional color examples, and matching coloring pages.</p>
+              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-600">Create or upgrade the editable 20-story edition: a 147-page A4 portrait print interior, with scripture references, illustrated read-alouds, family questions, assignments, dimensional color examples, and matching coloring pages.</p>
             </div>
           </div>
           <Button

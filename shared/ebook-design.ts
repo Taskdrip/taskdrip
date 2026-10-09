@@ -271,12 +271,21 @@ function renderBibleSceneSvg(
   }
 
   const gradientDefinition = isColor
-    ? `<defs><linearGradient id="canvas-wash" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="${safeColor(theme.paper, "#fff9e9")}"/></linearGradient>${Array.from(colors, (color) => {
+    ? `<defs>
+      <linearGradient id="canvas-wash" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffefa"/><stop offset=".6" stop-color="${safeColor(theme.paper, "#fff9e9")}"/><stop offset="1" stop-color="#f2e6ce"/></linearGradient>
+      <linearGradient id="storybook-sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a8e6f3"/><stop offset=".52" stop-color="#e5f7f4"/><stop offset="1" stop-color="#fff8e9"/></linearGradient>
+      <radialGradient id="storybook-glow"><stop stop-color="#fff8cc" stop-opacity=".88"/><stop offset="1" stop-color="#fff8cc" stop-opacity="0"/></radialGradient>
+      <filter id="storybook-shadow" x="-18%" y="-12%" width="136%" height="145%"><feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="4" dx="1" result="shadow"/><feComponentTransfer><feFuncA type="linear" slope=".2"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      ${Array.from(colors, (color) => {
       const shade = (amount: number) => {
         const channels = color.slice(1).match(/.{2}/g)!.map((part) => parseInt(part, 16));
         return `#${channels.map((channel) => Math.round(Math.max(0, Math.min(255, channel * (1 - amount)))).toString(16).padStart(2, "0")).join("")}`;
       };
-      return `<linearGradient id="volume-${color.slice(1)}" x1="0" y1="0" x2=".2" y2="1"><stop stop-color="#ffffff" stop-opacity=".62"/><stop offset=".38" stop-color="${color}"/><stop offset="1" stop-color="${shade(.16)}"/></linearGradient>`;
+      const highlight = () => {
+        const channels = color.slice(1).match(/.{2}/g)!.map((part) => parseInt(part, 16));
+        return `#${channels.map((channel) => Math.round(channel + (255 - channel) * .28).toString(16).padStart(2, "0")).join("")}`;
+      };
+      return `<linearGradient id="volume-${color.slice(1)}" x1="0" y1="0" x2=".18" y2="1"><stop stop-color="#ffffff" stop-opacity=".9"/><stop offset=".12" stop-color="${highlight()}"/><stop offset=".42" stop-color="${color}"/><stop offset=".76" stop-color="${color}"/><stop offset="1" stop-color="${shade(.24)}"/></linearGradient>`;
     }).join("")}</defs>`
     : "";
   const cartoonMotion = isColor
@@ -285,5 +294,5 @@ function renderBibleSceneSvg(
   const landscape = safeScene === "creation" || safeScene === "david" || safeScene === "samaritan";
   const gardenCorners = `<g ${stroke}><path d="M47 674q20-45 42-72m-37 36q-16-21-29-12 9 20 29 21m13-25q-3-25 15-27 7 20-15 27m533 52q-20-45-42-72m37 36q16-21 29-12-9 20-29 21m-13-25q3-25-15-27-7 20 15 27" fill="none"/><path d="M50 649q-13-11-22 1 8 13 22-1m539 0q13-11 22 1-8 13-22-1" fill="${fill("#82c18a")}"/><circle cx="67" cy="643" r="8" fill="${fill("#f4bf62")}"/><circle cx="573" cy="643" r="8" fill="${fill("#f4bf62")}"/><circle cx="67" cy="643" r="3" fill="${fill("#fff")}"/><circle cx="573" cy="643" r="3" fill="${fill("#fff")}"/></g>`;
   const title = escapeXml(altText.slice(0, 180));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="${title}" preserveAspectRatio="xMidYMid meet">${gradientDefinition}${cartoonMotion}<title>${title}</title><rect width="640" height="720" fill="${isColor ? "url(#canvas-wash)" : "#fff"}"/><rect x="28" y="28" width="584" height="664" rx="24" fill="none" ${stroke}/>${landscape ? "" : `<path d="M78 615h484" fill="none" ${stroke}/>`}${scenery}<g class="${isColor ? "storybook-character" : ""}">${people}</g>${gardenCorners}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="${title}" preserveAspectRatio="xMidYMid meet">${gradientDefinition}${cartoonMotion}<title>${title}</title><rect width="640" height="720" fill="${isColor ? "url(#canvas-wash)" : "#fff"}"/>${isColor ? `<rect x="30" y="30" width="580" height="650" rx="24" fill="url(#storybook-sky)" opacity=".48"/><circle cx="510" cy="130" r="145" fill="url(#storybook-glow)"/>` : ""}<rect x="28" y="28" width="584" height="664" rx="24" fill="none" ${stroke}/>${landscape ? "" : `<path d="M78 615h484" fill="none" ${stroke}/>`}${scenery}<g class="${isColor ? "storybook-character" : ""}" ${isColor ? `filter="url(#storybook-shadow)"` : ""}>${people}</g>${gardenCorners}</svg>`;
 }

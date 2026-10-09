@@ -255,7 +255,9 @@ function art(id: string, scene: string, altText: string, artMode: "line" | "colo
     scene,
     artMode,
     altText,
-    brief: artMode === "line" ? "Original black-line illustration for young artists to color." : "Original, colorful storybook illustration.",
+    brief: artMode === "line"
+      ? "Bold, clean black-line story art with broad, enclosed spaces for crayons and pencils."
+      : "Layered storybook color art with dimensional shading, warm highlights, and expressive characters.",
   };
 }
 
@@ -285,11 +287,11 @@ export function createChildrenBibleColoringBook() {
     ]),
     page("copyright", "Copyright and family note", [
       text("copyright-heading", "heading", "About this book"),
-      text("copyright-note", "body", "This book contains original child-friendly retellings and original layered vector illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family’s own faith tradition or trusted spiritual leaders.\n\nCopyright © [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing."),
+      text("copyright-note", "body", "This book contains original child-friendly retellings and original layered storybook illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family’s own faith tradition or trusted spiritual leaders.\n\nCopyright © [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing."),
     ]),
     page("backmatter", "How to use this book", [
       text("how-heading", "heading", "Read. Talk. Color."),
-      text("how-body", "body", "Each of these 20 stories has a lively read-aloud retelling, a Bible passage reference, an illustrated story opener, a grown-up guide, questions, a hands-on assignment, a bright color example, and a black-line coloring page with a matching mini color reference. Read at your child’s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe designed interior is 8.5 × 11 inches with no bleed. Because it includes full-color art, select a KDP color-interior option; a black-and-white edition requires removing or converting those example pages and rechecking the exported file. Before publication, replace author and copyright placeholders, add a valid ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in KDP Print Previewer. Store specifications can change; confirm current specifications in the target store’s current setup and preview tools."),
+      text("how-body", "body", "Each of these 20 stories has a lively read-aloud retelling, a Bible passage reference, a full-page illustrated story opener, a grown-up guide, questions, a hands-on assignment, a dimensional color example, and a black-line coloring page with a matching mini color reference. Read at your child’s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe print interior is A4 portrait (210 × 297 mm), with no bleed. Because it includes full-color art, choose a color-interior print option and confirm that the selected printer supports A4 before ordering. Replace author and copyright placeholders, add an ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in the target printer’s previewer. Print specifications vary by provider."),
     ]),
     page("contents", "Story index", [
       text("contents-heading", "heading", "The stories"),
@@ -370,10 +372,10 @@ export function createChildrenBibleColoringBook() {
 
   const designerDocument: EbookDesignDocument = {
     schemaVersion: 1,
-    prompt: "Original, age-appropriate, read-aloud Bible story and coloring book with 20 gently humorous retellings, scripture references, illustrated openers, parent conversation guides, story questions, child assignments, colored examples, and printable high-contrast black-line illustrations with mini color references. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
+    prompt: "Original, age-appropriate read-aloud Bible story and coloring book with 20 gently humorous retellings, scripture references, full-page illustrated openers, parent conversation guides, story questions, child assignments, dimensional color examples, and high-contrast black-line illustrations with mini color references. Use A4 portrait pages. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
     theme: {
       ...DEFAULT_EBOOK_THEME,
-      name: "Bright storybook",
+      name: "Bright layered storybook",
       primary: "#145d72",
       accent: "#f2ad35",
       paper: "#fff9e8",
@@ -389,9 +391,9 @@ export function createChildrenBibleColoringBook() {
     subtitle: "20 Bible Stories to Read, Talk About, and Color",
     bookType: "children",
     genre: "Bible stories and coloring books",
-    trimSize: "8.5x11",
+    trimSize: "8.2677x11.6929",
     idea: "An illustrated, read-aloud Bible story and coloring book with 20 warm, gently humorous retellings, scripture references, parent read-aloud notes, questions, child assignments, dimensional color examples, and printable high-contrast scenes.",
-    description: "Read together, laugh together, talk about the story, and color twenty original Bible-inspired scenes. Every story includes an illustrated opener, an original read-aloud retelling, its Bible reference, a parent conversation guide, child-friendly questions, a hands-on assignment, a layered-color example, and a matching black-line coloring page with a mini example. Trim size: 8.5 × 11 inches. Review the editable draft and all publication details before printing.",
+    description: "Read together, laugh together, talk about the story, and color twenty original Bible-inspired scenes. Every story includes a full-page illustrated opener, an original read-aloud retelling, its Bible reference, a parent conversation guide, child-friendly questions, a hands-on assignment, a dimensional color example, and a matching black-line coloring page with a mini example. Print interior: A4 portrait (210 × 297 mm). Review the editable draft and confirm your printer supports A4 before ordering.",
     outline: stories.map((story) => `${story.title} — ${story.reference}`),
     chapters,
     kdpKeywords: [

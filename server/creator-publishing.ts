@@ -47,6 +47,11 @@ const DEFAULT_STUDIO_TOOL_PROMPTS = {
   chapter: "",
   metadata: "",
   "writing-assistant": "",
+  "title-ideas": "",
+  blurb: "",
+  proofread: "",
+  expand: "",
+  keywords: "",
 };
 const DEFAULT_STUDIO_TOOL_SETTINGS = {
   "complete-book": { temperature: 0.55, maxTokens: 3600 },
@@ -54,6 +59,11 @@ const DEFAULT_STUDIO_TOOL_SETTINGS = {
   chapter: { temperature: 0.7, maxTokens: 2400 },
   metadata: { temperature: 0.65, maxTokens: 2400 },
   "writing-assistant": { temperature: 0.7, maxTokens: 2400 },
+  "title-ideas": { temperature: 0.7, maxTokens: 1400 },
+  blurb: { temperature: 0.65, maxTokens: 1800 },
+  proofread: { temperature: 0.2, maxTokens: 4000 },
+  expand: { temperature: 0.65, maxTokens: 4000 },
+  keywords: { temperature: 0.5, maxTokens: 1200 },
 };
 type CreatorStudioToolName = keyof typeof DEFAULT_STUDIO_TOOL_PROMPTS;
 type CreatorStudioToolSettings = Record<CreatorStudioToolName, { temperature: number; maxTokens: number }>;
@@ -63,6 +73,7 @@ type CreatorStudioAIControls = {
   includeParentNotes: boolean;
   illustrationStyle: string;
   generationPrompt: string;
+  resourceNotes: string;
   toolPrompts: Record<keyof typeof DEFAULT_STUDIO_TOOL_PROMPTS, string>;
   toolSettings: CreatorStudioToolSettings;
 };
@@ -73,6 +84,7 @@ const DEFAULT_CREATOR_STUDIO_AI_CONTROLS: CreatorStudioAIControls = {
   includeParentNotes: true,
   illustrationStyle: "Original, print-friendly vector illustrations; black-line artwork on coloring pages.",
   generationPrompt: "Keep all writing original, accurate to cited source material, clear for the chosen reader, and ready for human review before publication.",
+  resourceNotes: "",
   toolPrompts: DEFAULT_STUDIO_TOOL_PROMPTS,
   toolSettings: DEFAULT_STUDIO_TOOL_SETTINGS,
 };
@@ -100,12 +112,18 @@ function normalizeCreatorStudioAIControls(input: any): CreatorStudioAIControls {
     includeParentNotes: input?.includeParentNotes !== false,
     illustrationStyle: clean(input?.illustrationStyle, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.illustrationStyle, 300),
     generationPrompt: clean(input?.generationPrompt, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.generationPrompt, 2000),
+    resourceNotes: clean(input?.resourceNotes, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.resourceNotes, 5000),
     toolPrompts: {
       "complete-book": clean(inputPrompts["complete-book"], "", 2000),
       outline: clean(inputPrompts.outline, "", 2000),
       chapter: clean(inputPrompts.chapter, "", 2000),
       metadata: clean(inputPrompts.metadata, "", 2000),
       "writing-assistant": clean(inputPrompts["writing-assistant"], "", 2000),
+      "title-ideas": clean(inputPrompts["title-ideas"], "", 2000),
+      blurb: clean(inputPrompts.blurb, "", 2000),
+      proofread: clean(inputPrompts.proofread, "", 2000),
+      expand: clean(inputPrompts.expand, "", 2000),
+      keywords: clean(inputPrompts.keywords, "", 2000),
     },
     toolSettings: {
       "complete-book": normalizeToolSettings("complete-book"),
@@ -113,6 +131,11 @@ function normalizeCreatorStudioAIControls(input: any): CreatorStudioAIControls {
       chapter: normalizeToolSettings("chapter"),
       metadata: normalizeToolSettings("metadata"),
       "writing-assistant": normalizeToolSettings("writing-assistant"),
+      "title-ideas": normalizeToolSettings("title-ideas"),
+      blurb: normalizeToolSettings("blurb"),
+      proofread: normalizeToolSettings("proofread"),
+      expand: normalizeToolSettings("expand"),
+      keywords: normalizeToolSettings("keywords"),
     },
   };
 }
@@ -1109,7 +1132,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
       }
       if (req.body.trimSize !== undefined) {
         const trimSize = String(req.body.trimSize).trim();
-        if (!["6x9", "5.5x8.5", "5x8", "8.5x11", "8x10", "8x8"].includes(trimSize)) {
+        if (!["6x9", "5.5x8.5", "5x8", "8.2677x11.6929", "8.5x11", "8x10", "8x8"].includes(trimSize)) {
           return res.status(400).json({ message: "Choose a supported KDP trim size." });
         }
         changes.trimSize = trimSize;
@@ -1543,7 +1566,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
         max_tokens: config.settings.toolSettings.outline.maxTokens,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: `Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters and respect the requested book type and niche.\n${config.settings.toolPrompts.outline}` },
+          { role: "system", content: `Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Return exactly ${config.settings.defaultChapterCount} chapters and respect the requested book type and niche.\n${config.settings.resourceNotes ? `Author-provided source and reference resources:\n${config.settings.resourceNotes}\n` : ""}${config.settings.toolPrompts.outline}` },
           { role: "user", content: `Book type: ${bookType}\nNiche: ${genre}\nBook concept: ${idea}` },
         ],
       });
@@ -1586,7 +1609,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
         temperature: config.settings.toolSettings.chapter.temperature,
         max_tokens: config.settings.toolSettings.chapter.maxTokens,
         messages: [
-          { role: "system", content: `Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs.\n${config.settings.toolPrompts.chapter}` },
+          { role: "system", content: `Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs.\n${config.settings.resourceNotes ? `Author-provided source and reference resources:\n${config.settings.resourceNotes}\n` : ""}${config.settings.toolPrompts.chapter}` },
           { role: "user", content: `Book type: ${book.bookType || "nonfiction"}\nNiche: ${book.genre || "General nonfiction"}\nBook idea: ${idea || book.idea || "Not provided"}\nChapter: ${chapterTitle}` },
         ],
       });
@@ -1622,7 +1645,7 @@ export function registerCreatorPublishingRoutes(app: Express) {
         messages: [
           {
             role: "system",
-            content: `Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.\n${config.settings.toolPrompts.metadata}`,
+            content: `Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.\n${config.settings.resourceNotes ? `Author-provided source and reference resources:\n${config.settings.resourceNotes}\n` : ""}${config.settings.toolPrompts.metadata}`,
           },
           {
             role: "user",
@@ -1683,12 +1706,13 @@ export function registerCreatorPublishingRoutes(app: Express) {
       const prompt = tool === "proofread" || tool === "expand"
         ? `${context}\nChapter title: ${chapter?.title}\nCurrent chapter text:\n${chapter?.content}`
         : `${context}\n${input ? `Creator's focus: ${input}` : ""}`;
+      const toolSettings = config.settings.toolSettings[tool as CreatorStudioToolName];
       const result = await client.chat.completions.create({
         model,
-        temperature: tool === "proofread" ? Math.min(0.6, config.settings.toolSettings["writing-assistant"].temperature) : config.settings.toolSettings["writing-assistant"].temperature,
-        max_tokens: config.settings.toolSettings["writing-assistant"].maxTokens,
+        temperature: tool === "proofread" ? Math.min(0.6, toolSettings.temperature) : toolSettings.temperature,
+        max_tokens: toolSettings.maxTokens,
         messages: [
-          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.\n${config.settings.toolPrompts["writing-assistant"]}` },
+          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.\n${config.settings.resourceNotes ? `Author-provided source and reference resources:\n${config.settings.resourceNotes}\n` : ""}${config.settings.toolPrompts["writing-assistant"]}\n${config.settings.toolPrompts[tool as CreatorStudioToolName]}` },
           { role: "user", content: prompt },
         ],
       });

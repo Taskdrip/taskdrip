@@ -230,6 +230,7 @@ export async function generateCompleteBook(input: {
     includeParentNotes?: boolean;
     illustrationStyle?: string;
     generationPrompt?: string;
+    resourceNotes?: string;
     toolPrompts?: Record<string, string>;
     toolSettings?: Record<string, { temperature: number; maxTokens: number }>;
   };
@@ -248,7 +249,11 @@ export async function generateCompleteBook(input: {
   const model = input.aiModel || DEFAULT_BOOK_AI_MODEL;
   const aiSettings = input.aiSettings || {};
   const childrenBibleBook = input.bookType === "children" && /bible|christian|faith|scripture/i.test(`${input.genre} ${input.prompt}`);
-  const studioGuidance = [aiSettings.generationPrompt, aiSettings.toolPrompts?.["complete-book"]].filter(Boolean).join("\n\n");
+  const studioGuidance = [
+    aiSettings.generationPrompt,
+    aiSettings.resourceNotes ? `Author-provided source and reference resources:\n${aiSettings.resourceNotes}` : "",
+    aiSettings.toolPrompts?.["complete-book"],
+  ].filter(Boolean).join("\n\n");
   const completeBookSettings = aiSettings.toolSettings?.["complete-book"];
 
   await input.onProgress(4, "Designing the book outline and visual theme");

@@ -38,6 +38,7 @@ export const KDP_TRIM_SIZES = [
   { value: "6x9", label: "6 × 9 in — common paperback size" },
   { value: "5.5x8.5", label: "5.5 × 8.5 in" },
   { value: "5x8", label: "5 × 8 in" },
+  { value: "8.2677x11.6929", label: "A4 portrait — 210 × 297 mm" },
   { value: "8.5x11", label: "8.5 × 11 in — workbook / large format" },
   { value: "8x10", label: "8 × 10 in — workbook / large format" },
   { value: "8x8", label: "8 × 8 in — square format" },

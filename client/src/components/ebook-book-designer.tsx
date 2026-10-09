@@ -128,6 +128,10 @@ export default function EbookBookDesigner({
   const pages = document?.pages || [];
   const selectedPage = pages.find((page) => page.id === selectedPageId) || pages[0];
   const activePageId = selectedPage?.id || "";
+  const [previewWidth, previewHeight] = (book.trimSize || "6x9").split("x").map(Number);
+  const previewAspectRatio = Number.isFinite(previewWidth) && Number.isFinite(previewHeight) && previewWidth > 0 && previewHeight > 0
+    ? `${previewWidth} / ${previewHeight}`
+    : "6 / 9";
   const hasContent = chapters.some((chapter) => chapter.content.trim()) || pages.length > 0;
   const progress = safeProgress(generation.generationProgress);
   const isGenerating = ["queued", "pending", "running", "processing", "generating"].includes(
@@ -303,6 +307,8 @@ export default function EbookBookDesigner({
         .ebook-designer * { box-sizing: border-box; }
         .ebook-scrollbar { scrollbar-width: thin; scrollbar-color: #c8c1b5 transparent; }
         .ebook-page-shadow { box-shadow: 0 16px 55px rgba(47, 41, 31, .12), 0 2px 8px rgba(47, 41, 31, .08); }
+        .ebook-cover-mockup { border-left: 8px solid #f1e9d9; border-radius: 2px 8px 8px 2px; transform: perspective(1200px) rotateY(-5deg) rotateX(1deg); transform-origin: center left; box-shadow: 18px 24px 44px rgba(34, 31, 25, .25), 2px 0 0 rgba(255,255,255,.75) inset; }
+        .ebook-cover-mockup:after { content: ""; position: absolute; inset: 0 auto 0 0; width: 8px; background: linear-gradient(90deg,rgba(32,27,20,.25),rgba(255,255,255,.38)); pointer-events: none; }
         .ebook-focus:focus-visible { outline: 3px solid #aa7c46; outline-offset: 2px; }
         .ebook-designer input[type="color"] { padding: 3px; }
         @media (prefers-reduced-motion: no-preference) {
@@ -505,10 +511,11 @@ export default function EbookBookDesigner({
                 </select>
               </div>
               <div>
-                <label htmlFor="designer-book-trim" className="mb-1 block text-[11px] font-semibold text-[#686259]">KDP trim size</label>
+                <label htmlFor="designer-book-trim" className="mb-1 block text-[11px] font-semibold text-[#686259]">Print page size</label>
                 <select id="designer-book-trim" value={book.trimSize} onChange={(event) => changeBook({ trimSize: event.target.value })} className="ebook-focus h-9 w-full rounded-lg border border-[#dcd6cb] bg-[#fffdf8] px-2.5 text-xs">
                   {KDP_TRIM_SIZES.map((size) => <option key={size.value} value={size.value}>{size.label}</option>)}
                 </select>
+                {book.trimSize === "8.2677x11.6929" && <p className="mt-1.5 text-[10px] leading-4 text-[#777168]">A4 portrait export. Confirm your chosen print service supports this page size.</p>}
               </div>
               <div className="flex items-center gap-2 border-t border-[#e8e3da] pt-3 text-xs text-[#79746b]">
                 <Type size={14} aria-hidden="true" />By {authorName || "Author"}
@@ -584,6 +591,7 @@ export default function EbookBookDesigner({
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-[.19em] text-[#87775f]">Live preview</span>
                 {selectedPage && <span className="rounded-md bg-[#f6f3ec] px-2 py-1 text-[10px] font-medium capitalize text-[#777166]">{selectedPage.kind.replace("-", " ")}</span>}
+                {selectedPage?.kind === "cover" && <span className="rounded-md border border-[#d6c7ab] bg-[#fff8e8] px-2 py-1 text-[10px] font-semibold text-[#83633b]">3D cover mockup</span>}
               </div>
               {selectedPage && (
                 <div className="flex items-center gap-1.5 text-xs text-[#79746b]">
@@ -602,8 +610,8 @@ export default function EbookBookDesigner({
             {selectedPage && document ? (
               <div className="ebook-appear flex flex-1 justify-center overflow-auto px-1 py-2 sm:px-4 sm:py-3">
                 <article
-                  className="ebook-page-shadow relative flex min-h-[590px] w-full max-w-[430px] shrink-0 flex-col overflow-hidden px-[9%] py-[10%] sm:min-h-[690px]"
-                  style={{ backgroundColor: document.theme.paper, color: document.theme.text }}
+                  className={`ebook-page-shadow relative flex w-full max-w-[430px] shrink-0 flex-col overflow-hidden px-[9%] py-[10%] ${selectedPage.kind === "cover" ? "ebook-cover-mockup" : ""}`}
+                  style={{ backgroundColor: document.theme.paper, color: document.theme.text, aspectRatio: previewAspectRatio }}
                   aria-label={`Preview: ${selectedPage.title}`}
                 >
                   <div className="absolute left-[9%] right-[9%] top-[6%] h-[2px]" style={{ backgroundColor: document.theme.accent, opacity: .65 }} />
